@@ -2,7 +2,7 @@
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { UserCheck, Clock, Star, MapPin, AlertCircle, CheckCircle, Users, Filter } from 'lucide-react';
+import { UserCheck, Clock, Star, MapPin, AlertCircle, CheckCircle, Users, Filter, RefreshCw } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { format, isWithinInterval, parseISO } from 'date-fns';
@@ -133,16 +133,13 @@ export default function AssignReviews() {
       employeeNames = [employeeNames];
     }
     
-    // Remove duplicates from the array
-    const uniqueNames = [...new Set(employeeNames)];
-    
-    const confidence = uniqueNames.length === 1 ? 'high' : 
-                      uniqueNames.length === 2 ? 'medium' : 'low';
+    const confidence = employeeNames.length === 1 ? 'high' : 
+                      employeeNames.length === 2 ? 'medium' : 'low';
     
     await updateReviewMutation.mutateAsync({
       reviewId: review.id,
       data: {
-        employee_assigned_name: uniqueNames.join(', '),
+        employee_assigned_name: employeeNames.join(', '),
         assignment_confidence: confidence
       }
     });
@@ -156,15 +153,13 @@ export default function AssignReviews() {
     for (const review of unassignedWithMatches) {
       // Auto-assign to ALL matching employees
       const employeeNames = review.matchingEmployees.map(m => m.employee_name);
-      // Remove duplicates
-      const uniqueNames = [...new Set(employeeNames)];
-      const confidence = uniqueNames.length === 1 ? 'high' : 
-                       uniqueNames.length === 2 ? 'medium' : 'low';
+      const confidence = employeeNames.length === 1 ? 'high' : 
+                       employeeNames.length === 2 ? 'medium' : 'low';
       
       await updateReviewMutation.mutateAsync({
         reviewId: review.id,
         data: {
-          employee_assigned_name: uniqueNames.join(', '),
+          employee_assigned_name: employeeNames.join(', '),
           assignment_confidence: confidence
         }
       });
@@ -174,32 +169,24 @@ export default function AssignReviews() {
   };
 
   const handleResetAllAssignments = async () => {
-    if (!confirm('Sei sicuro di voler rimuovere TUTTE le assegnazioni? Questa operazione non può essere annullata.')) {
+    if (!confirm('Sei sicuro di voler resettare TUTTE le assegnazioni? Questa azione non può essere annullata.')) {
       return;
     }
 
     setResetting(true);
-
-    try {
-      // Get all assigned reviews
-      const assignedReviews = reviews.filter(r => r.employee_assigned_name);
-      
-      // Reset all assignments
-      for (const review of assignedReviews) {
-        await updateReviewMutation.mutateAsync({
-          reviewId: review.id,
-          data: {
-            employee_assigned_name: null,
-            assignment_confidence: null
-          }
-        });
-      }
-
-      alert(`✅ Reset completato! ${assignedReviews.length} assegnazioni sono state rimosse. Ora puoi riassegnare con la nuova logica.`);
-    } catch (error) {
-      alert('Errore durante il reset: ' + error.message);
+    
+    const assignedReviews = reviews.filter(r => r.employee_assigned_name);
+    
+    for (const review of assignedReviews) {
+      await updateReviewMutation.mutateAsync({
+        reviewId: review.id,
+        data: {
+          employee_assigned_name: null,
+          assignment_confidence: null
+        }
+      });
     }
-
+    
     setResetting(false);
   };
 
@@ -278,13 +265,14 @@ export default function AssignReviews() {
         </div>
 
         <div className="flex gap-3">
-          <button
+          <NeumorphicButton
             onClick={handleResetAllAssignments}
             disabled={resetting || stats.assigned === 0}
-            className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2"
           >
-            {resetting ? '🔄 Reset...' : '🗑️ Reset Tutte Assegnazioni'}
-          </button>
+            <RefreshCw className={`w-4 h-4 ${resetting ? 'animate-spin' : ''}`} />
+            {resetting ? 'Resettando...' : `Reset Assegnazioni (${stats.assigned})`}
+          </NeumorphicButton>
 
           <NeumorphicButton
             onClick={handleAutoAssignAll}
@@ -296,22 +284,18 @@ export default function AssignReviews() {
         </div>
       </div>
 
-      {/* Warning about duplicates */}
+      {/* Reset Warning */}
       {stats.assigned > 0 && (
-        <NeumorphicCard className="p-6 bg-orange-50">
+        <NeumorphicCard className="p-4 bg-yellow-50 border-2 border-yellow-400">
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-6 h-6 text-orange-600 flex-shrink-0 mt-1" />
-            <div className="text-sm text-orange-800">
-              <p className="font-bold mb-2">⚠️ Hai delle assegnazioni esistenti</p>
+            <AlertCircle className="w-5 h-5 text-yellow-700 mt-0.5" />
+            <div className="text-sm text-yellow-800">
+              <p className="font-bold mb-1">⚠️ Problema Rilevato</p>
               <p className="mb-2">
-                Se hai notato assegnazioni duplicate nei dati precedenti, ti consigliamo di:
+                Ci sono <strong>{stats.assigned} recensioni già assegnate</strong>. Se noti assegnazioni doppie o errate, usa il pulsante <strong>"Reset Assegnazioni"</strong> per rimuovere tutte le assegnazioni esistenti e poi riassegnale con la logica corretta usando <strong>"Auto-Assegna Tutte"</strong>.
               </p>
-              <ol className="ml-4 space-y-1 list-decimal list-inside">
-                <li>Cliccare su <strong>"Reset Tutte Assegnazioni"</strong> per rimuovere tutte le assegnazioni correnti</li>
-                <li>Usare <strong>"Auto-Assegna Tutte"</strong> per riassegnare con la nuova logica corretta</li>
-              </ol>
-              <p className="mt-2 text-xs">
-                💡 La nuova logica garantisce che ogni dipendente venga assegnato UNA SOLA volta per recensione, anche se ha turni sovrapposti.
+              <p className="text-xs">
+                Il reset rimuoverà TUTTE le assegnazioni e potrai riassegnare le recensioni con la nuova logica che previene i duplicati.
               </p>
             </div>
           </div>
@@ -433,13 +417,14 @@ export default function AssignReviews() {
           <AlertCircle className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
           <div className="text-sm text-blue-800">
             <p className="font-bold mb-2">Come funziona l'assegnazione:</p>
-            <ul className="space-y-1 ml-4 list-disc list-inside">
-              <li>Ogni dipendente viene assegnato MASSIMO UNA VOLTA per recensione</li>
-              <li>Le recensioni vengono assegnate a TUTTI i dipendenti in turno nell'orario della recensione</li>
-              <li>Viene utilizzato l'orario pianificato (scheduled_start e scheduled_end)</li>
-              <li>Vengono esclusi: "Ferie", "Malattia (Certificato)", "Malattia (No Certificato)", "Assenza non retribuita"</li>
-              <li>Vengono esclusi i ruoli: "Preparazioni" e "Volantinaggio"</li>
-              <li>Confidenza alta: 1 dipendente | Media: 2 dipendenti | Bassa: 3+ dipendenti</li>
+            <ul className="space-y-1 ml-4">
+              <li>• Ogni dipendente viene assegnato MASSIMO UNA VOLTA per recensione</li>
+              <li>• Le recensioni vengono assegnate a TUTTI i dipendenti in turno nell'orario della recensione</li>
+              <li>• Viene utilizzato l'orario pianificato (scheduled_start e scheduled_end)</li>
+              <li>• Vengono esclusi: "Ferie", "Malattia (Certificato)", "Malattia (No Certificato)", "Assenza non retribuita"</li>
+              <li>• Vengono esclusi i ruoli: "Preparazioni" e "Volantinaggio"</li>
+              <li>• Confidenza alta: 1 dipendente | Media: 2 dipendenti | Bassa: 3+ dipendenti</li>
+              <li className="font-bold text-blue-900 mt-2">• Se hai assegnazioni doppie, usa "Reset Assegnazioni" e poi "Auto-Assegna Tutte"</li>
             </ul>
           </div>
         </div>
