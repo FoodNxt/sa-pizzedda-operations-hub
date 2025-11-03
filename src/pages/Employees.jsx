@@ -262,12 +262,28 @@ export default function Employees() {
     }
   };
 
-  // Get latest late shifts for selected employee
+  // Get latest late shifts for selected employee - WITH AUTOMATIC DEDUPLICATION
   const getLatestLateShifts = (employeeName) => {
-    return shifts
+    // Get all late shifts for this employee
+    const lateShifts = shifts
       .filter(s => s.employee_name === employeeName && s.ritardo === true && s.shift_date)
-      .sort((a, b) => new Date(b.shift_date) - new Date(a.shift_date))
-      .slice(0, 3);
+      .sort((a, b) => new Date(b.shift_date) - new Date(a.shift_date));
+    
+    // Remove duplicates using a Map with composite key
+    const uniqueShiftsMap = new Map();
+    
+    lateShifts.forEach(shift => {
+      // Create unique key based on: employee_name, store_id, shift_date, scheduled_start, scheduled_end
+      const key = `${shift.employee_name}|${shift.store_id}|${shift.shift_date}|${shift.scheduled_start}|${shift.scheduled_end}`;
+      
+      // Only keep the first occurrence (most recent due to sorting)
+      if (!uniqueShiftsMap.has(key)) {
+        uniqueShiftsMap.set(key, shift);
+      }
+    });
+    
+    // Convert back to array and take first 3
+    return Array.from(uniqueShiftsMap.values()).slice(0, 3);
   };
 
   // Get latest Google reviews for selected employee
@@ -726,8 +742,8 @@ export default function Employees() {
                   const lateShifts = getLatestLateShifts(selectedEmployee.full_name);
                   return lateShifts.length > 0 ? (
                     <div className="space-y-2">
-                      {lateShifts.map((shift) => (
-                        <div key={shift.id} className="neumorphic-pressed p-3 rounded-lg">
+                      {lateShifts.map((shift, index) => ( // Added index for key as shift.id might not be unique after dedupe for display
+                        <div key={`${shift.id}-${index}`} className="neumorphic-pressed p-3 rounded-lg">
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-sm font-medium text-[#6b6b6b]">
                               {new Date(shift.shift_date).toLocaleDateString('it-IT')} - {shift.store_name}
@@ -784,7 +800,7 @@ export default function Employees() {
                           {review.comment && (
                             <p className="text-xs text-[#6b6b6b] mb-1">{review.comment}</p>
                           )}
-                          <p className="text-xs text-[#9b9b9b]">
+                          <p className="text-xs text-[#9b9b9b] ">
                             {new Date(review.review_date).toLocaleDateString('it-IT')}
                           </p>
                         </div>
