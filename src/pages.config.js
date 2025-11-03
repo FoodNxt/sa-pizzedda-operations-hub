@@ -7,6 +7,7 @@ import ZapierSetup from './pages/ZapierSetup';
 import ShiftsSetup from './pages/ShiftsSetup';
 import Shifts from './pages/Shifts';
 import AssignReviews from './pages/AssignReviews';
+import EmployeeReviewsPerformance from './pages/EmployeeReviewsPerformance';
 import Layout from './Layout.jsx';
 
 
@@ -20,6 +21,7 @@ export const PAGES = {
     "ShiftsSetup": ShiftsSetup,
     "Shifts": Shifts,
     "AssignReviews": AssignReviews,
+    "EmployeeReviewsPerformance": EmployeeReviewsPerformance,
 }
 
 export const pagesConfig = {
