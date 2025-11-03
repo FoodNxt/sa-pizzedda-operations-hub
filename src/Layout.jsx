@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -34,8 +35,13 @@ const navigationItems = [
     icon: Users,
   },
   {
-    title: "Zapier Setup",
+    title: "Zapier Reviews", // Changed from "Zapier Setup" to "Zapier Reviews"
     url: createPageUrl("ZapierSetup"),
+    icon: Zap,
+  },
+  {
+    title: "Zapier Shifts", // New item added
+    url: createPageUrl("ShiftsSetup"),
     icon: Zap,
   },
 ];
