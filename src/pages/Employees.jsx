@@ -1,0 +1,527 @@
+import React, { useState, useMemo } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
+import { 
+  Users, 
+  TrendingUp, 
+  TrendingDown, 
+  Award, 
+  AlertCircle,
+  Clock,
+  ShoppingCart,
+  Star,
+  ChevronDown,
+  ChevronUp
+} from 'lucide-react';
+import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
+
+export default function Employees() {
+  const [selectedStore, setSelectedStore] = useState('all');
+  const [selectedPosition, setSelectedPosition] = useState('all');
+  const [sortBy, setSortBy] = useState('performance');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores'],
+    queryFn: () => base44.entities.Store.list(),
+  });
+
+  const { data: employees = [] } = useQuery({
+    queryKey: ['employees'],
+    queryFn: () => base44.entities.Employee.list(),
+  });
+
+  const { data: orders = [] } = useQuery({
+    queryKey: ['orders'],
+    queryFn: () => base44.entities.Order.list(),
+  });
+
+  const { data: shifts = [] } = useQuery({
+    queryKey: ['shifts'],
+    queryFn: () => base44.entities.Shift.list(),
+  });
+
+  const { data: reviews = [] } = useQuery({
+    queryKey: ['reviews'],
+    queryFn: () => base44.entities.Review.list(),
+  });
+
+  // Calculate employee metrics
+  const employeeMetrics = useMemo(() => {
+    return employees.map(employee => {
+      // Orders metrics
+      const employeeOrders = orders.filter(o => o.employee_id === employee.id);
+      const wrongOrders = employeeOrders.filter(o => o.is_wrong_order).length;
+      const wrongOrderRate = employeeOrders.length > 0 
+        ? (wrongOrders / employeeOrders.length) * 100 
+        : 0;
+      const avgProcessingTime = employeeOrders.length > 0
+        ? employeeOrders.reduce((sum, o) => sum + (o.processing_time_minutes || 0), 0) / employeeOrders.length
+        : 0;
+      const avgSatisfaction = employeeOrders.filter(o => o.customer_satisfaction).length > 0
+        ? employeeOrders.reduce((sum, o) => sum + (o.customer_satisfaction || 0), 0) / 
+          employeeOrders.filter(o => o.customer_satisfaction).length
+        : 0;
+
+      // Shift metrics
+      const employeeShifts = shifts.filter(s => s.employee_id === employee.id);
+      const totalLateMinutes = employeeShifts.reduce((sum, s) => sum + (s.late_minutes || 0), 0);
+      const totalEarlyDepartures = employeeShifts.reduce((sum, s) => sum + (s.early_departure_minutes || 0), 0);
+      const avgLateMinutes = employeeShifts.length > 0 ? totalLateMinutes / employeeShifts.length : 0;
+
+      // Review mentions
+      const mentions = reviews.filter(r => r.employee_mentioned === employee.id);
+      const positiveMentions = mentions.filter(r => r.rating >= 4).length;
+      const negativeMentions = mentions.filter(r => r.rating < 3).length;
+
+      // Calculate overall performance score (0-100)
+      let performanceScore = 100;
+      performanceScore -= wrongOrderRate * 2; // Penalty for wrong orders
+      performanceScore -= avgLateMinutes * 0.5; // Penalty for lateness
+      performanceScore -= (totalEarlyDepartures / (employeeShifts.length || 1)) * 0.3;
+      performanceScore += positiveMentions * 2; // Bonus for positive mentions
+      performanceScore -= negativeMentions * 3; // Penalty for negative mentions
+      performanceScore += (avgSatisfaction - 3) * 5; // Bonus/penalty based on satisfaction
+      performanceScore = Math.max(0, Math.min(100, performanceScore));
+
+      // Performance level
+      const performanceLevel = performanceScore >= 80 ? 'excellent' : 
+                              performanceScore >= 60 ? 'good' : 
+                              performanceScore >= 40 ? 'needs_improvement' : 
+                              'poor';
+
+      return {
+        ...employee,
+        wrongOrders,
+        wrongOrderRate,
+        avgProcessingTime,
+        avgSatisfaction,
+        totalLateMinutes,
+        avgLateMinutes,
+        mentions: mentions.length,
+        positiveMentions,
+        negativeMentions,
+        performanceScore: Math.round(performanceScore),
+        performanceLevel,
+        totalOrders: employeeOrders.length,
+        totalShifts: employeeShifts.length
+      };
+    });
+  }, [employees, orders, shifts, reviews]);
+
+  // Filter and sort employees
+  const filteredEmployees = useMemo(() => {
+    let filtered = employeeMetrics;
+
+    if (selectedStore !== 'all') {
+      filtered = filtered.filter(e => e.store_id === selectedStore);
+    }
+
+    if (selectedPosition !== 'all') {
+      filtered = filtered.filter(e => e.position === selectedPosition);
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      let valueA, valueB;
+      switch (sortBy) {
+        case 'performance':
+          valueA = a.performanceScore;
+          valueB = b.performanceScore;
+          break;
+        case 'wrongOrders':
+          valueA = a.wrongOrderRate;
+          valueB = b.wrongOrderRate;
+          break;
+        case 'lateness':
+          valueA = a.avgLateMinutes;
+          valueB = b.avgLateMinutes;
+          break;
+        case 'satisfaction':
+          valueA = a.avgSatisfaction;
+          valueB = b.avgSatisfaction;
+          break;
+        default:
+          valueA = a.performanceScore;
+          valueB = b.performanceScore;
+      }
+      return sortOrder === 'desc' ? valueB - valueA : valueA - valueB;
+    });
+
+    return filtered;
+  }, [employeeMetrics, selectedStore, selectedPosition, sortBy, sortOrder]);
+
+  const getPerformanceColor = (level) => {
+    switch (level) {
+      case 'excellent': return 'text-green-600';
+      case 'good': return 'text-blue-600';
+      case 'needs_improvement': return 'text-yellow-600';
+      case 'poor': return 'text-red-600';
+      default: return 'text-[#6b6b6b]';
+    }
+  };
+
+  const getPerformanceLabel = (level) => {
+    switch (level) {
+      case 'excellent': return 'Excellent';
+      case 'good': return 'Good';
+      case 'needs_improvement': return 'Needs Improvement';
+      case 'poor': return 'Poor';
+      default: return 'N/A';
+    }
+  };
+
+  const toggleSort = (field) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
+    } else {
+      setSortBy(field);
+      setSortOrder('desc');
+    }
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Employee Performance</h1>
+        <p className="text-[#9b9b9b]">Monitor and rank employees based on multiple metrics</p>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 mb-6">
+        <NeumorphicCard className="px-4 py-2">
+          <select
+            value={selectedStore}
+            onChange={(e) => setSelectedStore(e.target.value)}
+            className="bg-transparent text-[#6b6b6b] outline-none"
+          >
+            <option value="all">All Stores</option>
+            {stores.map(store => (
+              <option key={store.id} value={store.id}>{store.name}</option>
+            ))}
+          </select>
+        </NeumorphicCard>
+
+        <NeumorphicCard className="px-4 py-2">
+          <select
+            value={selectedPosition}
+            onChange={(e) => setSelectedPosition(e.target.value)}
+            className="bg-transparent text-[#6b6b6b] outline-none"
+          >
+            <option value="all">All Positions</option>
+            <option value="manager">Manager</option>
+            <option value="chef">Chef</option>
+            <option value="server">Server</option>
+            <option value="delivery">Delivery</option>
+            <option value="cashier">Cashier</option>
+            <option value="kitchen_staff">Kitchen Staff</option>
+          </select>
+        </NeumorphicCard>
+      </div>
+
+      {/* Summary Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <NeumorphicCard className="p-6 text-center">
+          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
+            <Users className="w-8 h-8 text-[#8b7355]" />
+          </div>
+          <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">{filteredEmployees.length}</h3>
+          <p className="text-sm text-[#9b9b9b]">Total Employees</p>
+        </NeumorphicCard>
+
+        <NeumorphicCard className="p-6 text-center">
+          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
+            <Award className="w-8 h-8 text-green-600" />
+          </div>
+          <h3 className="text-3xl font-bold text-green-600 mb-1">
+            {filteredEmployees.filter(e => e.performanceLevel === 'excellent').length}
+          </h3>
+          <p className="text-sm text-[#9b9b9b]">Top Performers</p>
+        </NeumorphicCard>
+
+        <NeumorphicCard className="p-6 text-center">
+          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
+            <TrendingUp className="w-8 h-8 text-blue-600" />
+          </div>
+          <h3 className="text-3xl font-bold text-blue-600 mb-1">
+            {filteredEmployees.filter(e => e.performanceLevel === 'good').length}
+          </h3>
+          <p className="text-sm text-[#9b9b9b]">Good Performance</p>
+        </NeumorphicCard>
+
+        <NeumorphicCard className="p-6 text-center">
+          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
+            <AlertCircle className="w-8 h-8 text-red-600" />
+          </div>
+          <h3 className="text-3xl font-bold text-red-600 mb-1">
+            {filteredEmployees.filter(e => e.performanceLevel === 'poor' || e.performanceLevel === 'needs_improvement').length}
+          </h3>
+          <p className="text-sm text-[#9b9b9b]">Needs Attention</p>
+        </NeumorphicCard>
+      </div>
+
+      {/* Employee Rankings Table */}
+      <NeumorphicCard className="p-6">
+        <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Employee Rankings</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-[#c1c1c1]">
+                <th className="text-left p-3 text-[#9b9b9b] font-medium">Rank</th>
+                <th className="text-left p-3 text-[#9b9b9b] font-medium">Employee</th>
+                <th className="text-left p-3 text-[#9b9b9b] font-medium">Position</th>
+                <th 
+                  className="text-center p-3 text-[#9b9b9b] font-medium cursor-pointer hover:text-[#6b6b6b]"
+                  onClick={() => toggleSort('performance')}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    Performance
+                    {sortBy === 'performance' && (
+                      sortOrder === 'desc' ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />
+                    )}
+                  </div>
+                </th>
+                <th 
+                  className="text-center p-3 text-[#9b9b9b] font-medium cursor-pointer hover:text-[#6b6b6b]"
+                  onClick={() => toggleSort('wrongOrders')}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    Wrong Orders
+                    {sortBy === 'wrongOrders' && (
+                      sortOrder === 'desc' ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />
+                    )}
+                  </div>
+                </th>
+                <th 
+                  className="text-center p-3 text-[#9b9b9b] font-medium cursor-pointer hover:text-[#6b6b6b]"
+                  onClick={() => toggleSort('lateness')}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    Avg Lateness
+                    {sortBy === 'lateness' && (
+                      sortOrder === 'desc' ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />
+                    )}
+                  </div>
+                </th>
+                <th 
+                  className="text-center p-3 text-[#9b9b9b] font-medium cursor-pointer hover:text-[#6b6b6b]"
+                  onClick={() => toggleSort('satisfaction')}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    Satisfaction
+                    {sortBy === 'satisfaction' && (
+                      sortOrder === 'desc' ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />
+                    )}
+                  </div>
+                </th>
+                <th className="text-center p-3 text-[#9b9b9b] font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredEmployees.length > 0 ? (
+                filteredEmployees.map((employee, index) => (
+                  <tr 
+                    key={employee.id} 
+                    className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors cursor-pointer"
+                    onClick={() => setSelectedEmployee(employee)}
+                  >
+                    <td className="p-3">
+                      <div className="neumorphic-flat w-8 h-8 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-bold text-[#6b6b6b]">{index + 1}</span>
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full neumorphic-flat flex items-center justify-center">
+                          <span className="text-sm font-bold text-[#8b7355]">
+                            {employee.full_name?.charAt(0) || 'E'}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-[#6b6b6b]">{employee.full_name}</p>
+                          <p className="text-sm text-[#9b9b9b]">{employee.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-3 text-[#6b6b6b] capitalize">
+                      {employee.position?.replace(/_/g, ' ')}
+                    </td>
+                    <td className="p-3 text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        <span className={`text-2xl font-bold ${getPerformanceColor(employee.performanceLevel)}`}>
+                          {employee.performanceScore}
+                        </span>
+                        <span className={`text-xs ${getPerformanceColor(employee.performanceLevel)}`}>
+                          {getPerformanceLabel(employee.performanceLevel)}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="p-3 text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        <span className={`font-bold ${
+                          employee.wrongOrderRate > 10 ? 'text-red-600' : 
+                          employee.wrongOrderRate > 5 ? 'text-yellow-600' : 
+                          'text-green-600'
+                        }`}>
+                          {employee.wrongOrders}
+                        </span>
+                        <span className="text-xs text-[#9b9b9b]">
+                          {employee.wrongOrderRate.toFixed(1)}%
+                        </span>
+                      </div>
+                    </td>
+                    <td className="p-3 text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        <span className={`font-bold ${
+                          employee.avgLateMinutes > 10 ? 'text-red-600' : 
+                          employee.avgLateMinutes > 5 ? 'text-yellow-600' : 
+                          'text-green-600'
+                        }`}>
+                          {employee.avgLateMinutes.toFixed(1)}
+                        </span>
+                        <span className="text-xs text-[#9b9b9b]">minutes</span>
+                      </div>
+                    </td>
+                    <td className="p-3 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        {employee.avgSatisfaction > 0 ? (
+                          <>
+                            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                            <span className="font-bold text-[#6b6b6b]">
+                              {employee.avgSatisfaction.toFixed(1)}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-[#9b9b9b]">N/A</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="p-3 text-center">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedEmployee(employee);
+                        }}
+                        className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#6b6b6b] hover:text-[#8b7355] transition-colors"
+                      >
+                        View Details
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="8" className="p-8 text-center text-[#9b9b9b]">
+                    No employees found matching the filters
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </NeumorphicCard>
+
+      {/* Employee Detail Modal */}
+      {selectedEmployee && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4">
+          <NeumorphicCard className="max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-[#6b6b6b] mb-1">{selectedEmployee.full_name}</h2>
+                <p className="text-[#9b9b9b] capitalize">{selectedEmployee.position?.replace(/_/g, ' ')}</p>
+              </div>
+              <button
+                onClick={() => setSelectedEmployee(null)}
+                className="neumorphic-flat px-4 py-2 rounded-lg text-[#6b6b6b]"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                <p className="text-sm text-[#9b9b9b] mb-2">Performance Score</p>
+                <p className={`text-4xl font-bold ${getPerformanceColor(selectedEmployee.performanceLevel)}`}>
+                  {selectedEmployee.performanceScore}
+                </p>
+                <p className={`text-sm mt-1 ${getPerformanceColor(selectedEmployee.performanceLevel)}`}>
+                  {getPerformanceLabel(selectedEmployee.performanceLevel)}
+                </p>
+              </div>
+
+              <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                <p className="text-sm text-[#9b9b9b] mb-2">Total Orders</p>
+                <p className="text-4xl font-bold text-[#6b6b6b]">{selectedEmployee.totalOrders}</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="neumorphic-flat p-4 rounded-xl">
+                <div className="flex items-center gap-3 mb-3">
+                  <ShoppingCart className="w-5 h-5 text-[#8b7355]" />
+                  <h3 className="font-bold text-[#6b6b6b]">Order Performance</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-[#9b9b9b]">Wrong Orders</p>
+                    <p className="text-xl font-bold text-[#6b6b6b]">
+                      {selectedEmployee.wrongOrders} ({selectedEmployee.wrongOrderRate.toFixed(1)}%)
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-[#9b9b9b]">Avg Processing Time</p>
+                    <p className="text-xl font-bold text-[#6b6b6b]">
+                      {selectedEmployee.avgProcessingTime.toFixed(1)} min
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="neumorphic-flat p-4 rounded-xl">
+                <div className="flex items-center gap-3 mb-3">
+                  <Clock className="w-5 h-5 text-[#8b7355]" />
+                  <h3 className="font-bold text-[#6b6b6b]">Attendance</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-[#9b9b9b]">Total Shifts</p>
+                    <p className="text-xl font-bold text-[#6b6b6b]">{selectedEmployee.totalShifts}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-[#9b9b9b]">Avg Lateness</p>
+                    <p className="text-xl font-bold text-[#6b6b6b]">
+                      {selectedEmployee.avgLateMinutes.toFixed(1)} min
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="neumorphic-flat p-4 rounded-xl">
+                <div className="flex items-center gap-3 mb-3">
+                  <Star className="w-5 h-5 text-[#8b7355]" />
+                  <h3 className="font-bold text-[#6b6b6b]">Customer Feedback</h3>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-sm text-[#9b9b9b]">Mentions</p>
+                    <p className="text-xl font-bold text-[#6b6b6b]">{selectedEmployee.mentions}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-[#9b9b9b]">Positive</p>
+                    <p className="text-xl font-bold text-green-600">{selectedEmployee.positiveMentions}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-[#9b9b9b]">Negative</p>
+                    <p className="text-xl font-bold text-red-600">{selectedEmployee.negativeMentions}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </NeumorphicCard>
+        </div>
+      )}
+    </div>
+  );
+}
