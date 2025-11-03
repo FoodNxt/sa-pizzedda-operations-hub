@@ -26,8 +26,25 @@ export default function ChannelComparison() {
   });
 
   // Get unique sales channels and delivery apps
-  const salesChannels = [...new Set(orderItems.map(o => o.saleTypeName).filter(Boolean))];
-  const deliveryApps = [...new Set(orderItems.map(o => o.sourceApp).filter(Boolean))];
+  const salesChannels = useMemo(() => {
+    const channels = new Set(orderItems.map(o => o.saleTypeName).filter(Boolean));
+    
+    // Add Tabesto as a sales channel if it exists in sourceApp
+    orderItems.forEach(o => {
+      if (o.sourceApp && o.sourceApp.toLowerCase() === 'tabesto') {
+        channels.add('Tabesto');
+      }
+    });
+    
+    return [...channels].sort(); // Sort for consistent order
+  }, [orderItems]);
+  
+  const deliveryApps = useMemo(() => {
+    return [...new Set(orderItems
+      .map(o => o.sourceApp)
+      .filter(app => app && app.toLowerCase() !== 'tabesto') // Exclude Tabesto from delivery apps
+    )].sort(); // Sort for consistent order
+  }, [orderItems]);
 
   // Filter and calculate metrics
   const comparisonData = useMemo(() => {
@@ -45,7 +62,6 @@ export default function ChannelComparison() {
 
     const filterOrders = (channel, app) => {
       return orderItems.filter(item => {
-        // Date filter
         if (item.modifiedDate) {
           const itemDate = new Date(item.modifiedDate);
           if (isBefore(itemDate, cutoffDate) || isAfter(itemDate, endFilterDate)) {
@@ -53,10 +69,19 @@ export default function ChannelComparison() {
           }
         }
         
-        // Channel filter
-        if (channel !== 'all' && item.saleTypeName !== channel) return false;
+        // Channel filter - include Tabesto as a channel
+        if (channel !== 'all') {
+          if (channel === 'Tabesto') {
+            // If channel selected is "Tabesto", it must come from sourceApp "Tabesto"
+            if (!item.sourceApp || item.sourceApp.toLowerCase() !== 'tabesto') return false;
+          } else {
+            // For other channels, use saleTypeName
+            if (item.saleTypeName !== channel) return false;
+          }
+        }
         
-        // App filter
+        // App filter - exclude Tabesto from the general app selection logic
+        // The deliveryApps list already excludes Tabesto, so this should work correctly.
         if (app !== 'all' && item.sourceApp !== app) return false;
         
         return true;

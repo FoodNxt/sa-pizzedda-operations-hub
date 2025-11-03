@@ -26,8 +26,25 @@ export default function Financials() {
   });
 
   // Get unique sales channels and delivery apps
-  const salesChannels = [...new Set(orderItems.map(o => o.saleTypeName).filter(Boolean))];
-  const deliveryApps = [...new Set(orderItems.map(o => o.sourceApp).filter(Boolean))];
+  const salesChannels = useMemo(() => {
+    const channels = new Set(orderItems.map(o => o.saleTypeName).filter(Boolean));
+    
+    // Add Tabesto as a sales channel if it exists in sourceApp
+    orderItems.forEach(o => {
+      if (o.sourceApp && o.sourceApp.toLowerCase() === 'tabesto') {
+        channels.add('Tabesto');
+      }
+    });
+    
+    return [...channels];
+  }, [orderItems]);
+  
+  const deliveryApps = useMemo(() => {
+    return [...new Set(orderItems
+      .map(o => o.sourceApp)
+      .filter(app => app && app.toLowerCase() !== 'tabesto') // Exclude Tabesto from delivery apps
+    )];
+  }, [orderItems]);
 
   // Process and filter data
   const processedData = useMemo(() => {
@@ -58,10 +75,17 @@ export default function Financials() {
       // Store filter
       if (selectedStore !== 'all' && item.store_id !== selectedStore) return false;
       
-      // Channel filter
-      if (selectedChannel !== 'all' && item.saleTypeName !== selectedChannel) return false;
+      // Channel filter - include Tabesto as a channel
+      if (selectedChannel !== 'all') {
+        if (selectedChannel === 'Tabesto') {
+          if (!item.sourceApp || item.sourceApp.toLowerCase() !== 'tabesto') return false;
+        } else {
+          // Check item.saleTypeName normally for other channels
+          if (item.saleTypeName !== selectedChannel) return false;
+        }
+      }
       
-      // Delivery app filter
+      // Delivery app filter (Tabesto is excluded from deliveryApps list, so this is implicitly fine)
       if (selectedDeliveryApp !== 'all' && item.sourceApp !== selectedDeliveryApp) return false;
       
       return true;
@@ -140,14 +164,20 @@ export default function Financials() {
     const ordersByChannel = {}; // To store unique orders per channel
     
     filtered.forEach(item => {
-      const channel = item.saleTypeName || 'Unknown';
-      if (!revenueByChannel[channel]) {
-        revenueByChannel[channel] = { name: channel, value: 0 };
-        ordersByChannel[channel] = new Set(); // Initialize a Set for unique orders
+      let channelName;
+      if (item.sourceApp && item.sourceApp.toLowerCase() === 'tabesto') {
+        channelName = 'Tabesto';
+      } else {
+        channelName = item.saleTypeName || 'Unknown';
       }
-      revenueByChannel[channel].value += item.finalPriceWithSessionDiscountsAndSurcharges || 0;
+
+      if (!revenueByChannel[channelName]) {
+        revenueByChannel[channelName] = { name: channelName, value: 0 };
+        ordersByChannel[channelName] = new Set(); // Initialize a Set for unique orders
+      }
+      revenueByChannel[channelName].value += item.finalPriceWithSessionDiscountsAndSurcharges || 0;
       if (item.order) { // Add order ID to the set if it exists
-        ordersByChannel[channel].add(item.order);
+        ordersByChannel[channelName].add(item.order);
       }
     });
 
@@ -164,7 +194,8 @@ export default function Financials() {
     const ordersByApp = {}; // To store unique orders per app
     
     filtered.forEach(item => {
-      if (item.sourceApp) {
+      // Exclude Tabesto from delivery app breakdown
+      if (item.sourceApp && item.sourceApp.toLowerCase() !== 'tabesto') {
         const app = item.sourceApp;
         if (!revenueByApp[app]) {
           revenueByApp[app] = { name: app, value: 0 };
