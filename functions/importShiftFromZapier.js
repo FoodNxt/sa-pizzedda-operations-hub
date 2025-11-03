@@ -80,6 +80,7 @@ Deno.serve(async (req) => {
             notes: body.note || '',
             shift_type: body.timesheet_type_name || '',
             employee_group: body.employee_group || null,
+            employee_group_name: body.employee_group_name || null,
             function_name: body.function_name || null,
             approved: body.timesheet_approved === '1' || body.timesheet_approved === 1
         };

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Clock, Copy, CheckCircle, AlertCircle, Users, Store as StoreIcon, FileSpreadsheet } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
@@ -73,6 +74,8 @@ export default function ShiftsSetup() {
         timeclock_end: '01/12/2025 15:05',
         timeclock_minutes: 340,
         timesheet_type_name: 'Test',
+        employee_group: 'FT',
+        employee_group_name: 'Full Time',
         note: 'Test turno da Shifts Setup',
         timesheet_approved: 1
       });
@@ -320,6 +323,9 @@ export default function ShiftsSetup() {
                 { name: 'timeclock_end', desc: 'Colonna "TimeclockEnd"', required: false },
                 { name: 'timeclock_minutes', desc: 'Colonna "TimeclockMinutes"', required: false },
                 { name: 'timesheet_type_name', desc: 'Colonna "TimesheetTypeName"', required: false },
+                { name: 'employee_group', desc: 'Colonna "EmployeeSalaryId" (FT/PT/CM)', required: false },
+                { name: 'employee_group_name', desc: 'Colonna "EmployeeGroupName"', required: false },
+                { name: 'function_name', desc: 'Colonna "FunctionName" (Pizzaiolo, Cassiere...)', required: false },
                 { name: 'note', desc: 'Colonna "Note"', required: false },
                 { name: 'timesheet_approved', desc: 'Colonna "TimesheetApproved"', required: false },
                 { name: 'external_id', desc: 'Colonna "Id" (ID esterno)', required: false }
