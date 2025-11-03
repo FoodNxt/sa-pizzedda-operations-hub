@@ -1,159 +1,237 @@
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { DollarSign, TrendingUp, TrendingDown, PieChart as PieChartIcon, BarChart3 } from 'lucide-react';
+import { DollarSign, TrendingUp, ShoppingCart, Truck, Filter } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { format, subDays, isAfter, isBefore, startOfDay, endOfDay } from 'date-fns';
 
 export default function Financials() {
   const [selectedStore, setSelectedStore] = useState('all');
-  const [periodType, setPeriodType] = useState('daily');
   const [dateRange, setDateRange] = useState(30);
+  const [selectedChannel, setSelectedChannel] = useState('all');
+  const [selectedDeliveryApp, setSelectedDeliveryApp] = useState('all');
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
     queryFn: () => base44.entities.Store.list(),
   });
 
-  const { data: financials = [] } = useQuery({
-    queryKey: ['financials'],
-    queryFn: () => base44.entities.Financial.list('-date'),
+  const { data: orderItems = [] } = useQuery({
+    queryKey: ['orderItems'],
+    queryFn: () => base44.entities.OrderItem.list('-modifiedDate', 10000),
   });
 
-  // Filter and process financial data
-  const processedData = useMemo(() => {
-    let filtered = financials.filter(f => f.period_type === periodType);
-    
-    if (selectedStore !== 'all') {
-      filtered = filtered.filter(f => f.store_id === selectedStore);
-    }
+  // Get unique sales channels and delivery apps
+  const salesChannels = [...new Set(orderItems.map(o => o.saleTypeName).filter(Boolean))];
+  const deliveryApps = [...new Set(orderItems.map(o => o.sourceApp).filter(Boolean))];
 
-    // Get recent data based on date range
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - dateRange);
-    filtered = filtered.filter(f => new Date(f.date) >= cutoffDate);
+  // Process and filter data
+  const processedData = useMemo(() => {
+    const cutoffDate = subDays(new Date(), dateRange);
+    
+    let filtered = orderItems.filter(item => {
+      // Date filter
+      if (item.modifiedDate && isBefore(new Date(item.modifiedDate), cutoffDate)) {
+        return false;
+      }
+      
+      // Store filter
+      if (selectedStore !== 'all' && item.store_id !== selectedStore) return false;
+      
+      // Channel filter
+      if (selectedChannel !== 'all' && item.saleTypeName !== selectedChannel) return false;
+      
+      // Delivery app filter
+      if (selectedDeliveryApp !== 'all' && item.sourceApp !== selectedDeliveryApp) return false;
+      
+      return true;
+    });
 
     // Calculate totals
-    const totalRevenue = filtered.reduce((sum, f) => sum + (f.revenue || 0), 0);
-    const totalCosts = filtered.reduce((sum, f) => 
-      sum + (f.cost_ingredients || 0) + (f.cost_labor || 0) + (f.cost_overhead || 0), 0
+    const totalRevenue = filtered.reduce((sum, item) => 
+      sum + (item.finalPriceWithSessionDiscountsAndSurcharges || item.finalPrice || 0), 0
     );
-    const totalProfit = totalRevenue - totalCosts;
-    const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+    
+    const totalOrders = filtered.length;
+    const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-    // Prepare chart data
-    const chartData = filtered
+    // Revenue by date (group by day)
+    const revenueByDate = {};
+    filtered.forEach(item => {
+      if (item.modifiedDate) {
+        const date = format(new Date(item.modifiedDate), 'yyyy-MM-dd');
+        if (!revenueByDate[date]) {
+          revenueByDate[date] = { date, revenue: 0, orders: 0 };
+        }
+        revenueByDate[date].revenue += item.finalPriceWithSessionDiscountsAndSurcharges || item.finalPrice || 0;
+        revenueByDate[date].orders += 1;
+      }
+    });
+
+    const dailyRevenue = Object.values(revenueByDate)
       .sort((a, b) => new Date(a.date) - new Date(b.date))
-      .map(f => ({
-        date: new Date(f.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        revenue: f.revenue || 0,
-        costs: (f.cost_ingredients || 0) + (f.cost_labor || 0) + (f.cost_overhead || 0),
-        profit: (f.revenue || 0) - ((f.cost_ingredients || 0) + (f.cost_labor || 0) + (f.cost_overhead || 0)),
+      .map(d => ({
+        date: format(new Date(d.date), 'dd/MM'),
+        revenue: parseFloat(d.revenue.toFixed(2)),
+        orders: d.orders,
+        avgValue: parseFloat((d.revenue / d.orders).toFixed(2))
       }));
 
-    // Cost breakdown
-    const costBreakdown = [
-      {
-        name: 'Ingredients',
-        value: filtered.reduce((sum, f) => sum + (f.cost_ingredients || 0), 0)
-      },
-      {
-        name: 'Labor',
-        value: filtered.reduce((sum, f) => sum + (f.cost_labor || 0), 0)
-      },
-      {
-        name: 'Overhead',
-        value: filtered.reduce((sum, f) => sum + (f.cost_overhead || 0), 0)
+    // Revenue by store
+    const revenueByStore = {};
+    filtered.forEach(item => {
+      const storeName = item.store_name || 'Unknown';
+      if (!revenueByStore[storeName]) {
+        revenueByStore[storeName] = { name: storeName, revenue: 0, orders: 0 };
       }
-    ].filter(item => item.value > 0);
+      revenueByStore[storeName].revenue += item.finalPriceWithSessionDiscountsAndSurcharges || item.finalPrice || 0;
+      revenueByStore[storeName].orders += 1;
+    });
 
-    // Store comparison
-    const storeComparison = stores.map(store => {
-      const storeFinancials = financials.filter(f => 
-        f.store_id === store.id && f.period_type === periodType
-      );
-      const revenue = storeFinancials.reduce((sum, f) => sum + (f.revenue || 0), 0);
-      const costs = storeFinancials.reduce((sum, f) => 
-        sum + (f.cost_ingredients || 0) + (f.cost_labor || 0) + (f.cost_overhead || 0), 0
-      );
-      return {
-        name: store.name,
-        revenue,
-        profit: revenue - costs,
-        margin: revenue > 0 ? ((revenue - costs) / revenue) * 100 : 0
-      };
-    }).filter(s => s.revenue > 0);
+    const storeBreakdown = Object.values(revenueByStore)
+      .sort((a, b) => b.revenue - a.revenue)
+      .map(s => ({
+        name: s.name,
+        revenue: parseFloat(s.revenue.toFixed(2)),
+        orders: s.orders,
+        avgValue: parseFloat((s.revenue / s.orders).toFixed(2))
+      }));
+
+    // Revenue by sales channel
+    const revenueByChannel = {};
+    filtered.forEach(item => {
+      const channel = item.saleTypeName || 'Unknown';
+      if (!revenueByChannel[channel]) {
+        revenueByChannel[channel] = { name: channel, value: 0, orders: 0 };
+      }
+      revenueByChannel[channel].value += item.finalPriceWithSessionDiscountsAndSurcharges || item.finalPrice || 0;
+      revenueByChannel[channel].orders += 1;
+    });
+
+    const channelBreakdown = Object.values(revenueByChannel)
+      .sort((a, b) => b.value - a.value)
+      .map(c => ({
+        name: c.name,
+        value: parseFloat(c.value.toFixed(2)),
+        orders: c.orders
+      }));
+
+    // Revenue by delivery app
+    const revenueByApp = {};
+    filtered.forEach(item => {
+      if (item.sourceApp) {
+        const app = item.sourceApp;
+        if (!revenueByApp[app]) {
+          revenueByApp[app] = { name: app, value: 0, orders: 0 };
+        }
+        revenueByApp[app].value += item.finalPriceWithSessionDiscountsAndSurcharges || item.finalPrice || 0;
+        revenueByApp[app].orders += 1;
+      }
+    });
+
+    const deliveryAppBreakdown = Object.values(revenueByApp)
+      .sort((a, b) => b.value - a.value)
+      .map(a => ({
+        name: a.name.charAt(0).toUpperCase() + a.name.slice(1),
+        value: parseFloat(a.value.toFixed(2)),
+        orders: a.orders
+      }));
 
     return {
       totalRevenue,
-      totalCosts,
-      totalProfit,
-      profitMargin,
-      chartData,
-      costBreakdown,
-      storeComparison
+      totalOrders,
+      avgOrderValue,
+      dailyRevenue,
+      storeBreakdown,
+      channelBreakdown,
+      deliveryAppBreakdown
     };
-  }, [financials, selectedStore, periodType, dateRange, stores]);
+  }, [orderItems, selectedStore, dateRange, selectedChannel, selectedDeliveryApp]);
 
-  const COLORS = ['#8b7355', '#a68a6a', '#c1a07f', '#dcb794'];
+  const COLORS = ['#8b7355', '#a68a6a', '#c1a07f', '#dcb794', '#6b5d51', '#9d8770'];
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Financial Performance</h1>
-        <p className="text-[#9b9b9b]">Track revenue, costs, and profitability</p>
+        <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Analisi Finanziaria</h1>
+        <p className="text-[#9b9b9b]">Analisi dettagliata ordini e revenue</p>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-6">
-        <NeumorphicCard className="px-4 py-2">
-          <select
-            value={selectedStore}
-            onChange={(e) => setSelectedStore(e.target.value)}
-            className="bg-transparent text-[#6b6b6b] outline-none"
-          >
-            <option value="all">All Stores</option>
-            {stores.map(store => (
-              <option key={store.id} value={store.id}>{store.name}</option>
-            ))}
-          </select>
-        </NeumorphicCard>
+      <NeumorphicCard className="p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <Filter className="w-5 h-5 text-[#8b7355]" />
+          <h2 className="text-lg font-bold text-[#6b6b6b]">Filtri</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div>
+            <label className="text-sm text-[#9b9b9b] mb-2 block">Locale</label>
+            <select
+              value={selectedStore}
+              onChange={(e) => setSelectedStore(e.target.value)}
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+            >
+              <option value="all">Tutti i Locali</option>
+              {stores.map(store => (
+                <option key={store.id} value={store.id}>{store.name}</option>
+              ))}
+            </select>
+          </div>
 
-        <NeumorphicCard className="px-4 py-2">
-          <select
-            value={periodType}
-            onChange={(e) => setPeriodType(e.target.value)}
-            className="bg-transparent text-[#6b6b6b] outline-none"
-          >
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-          </select>
-        </NeumorphicCard>
+          <div>
+            <label className="text-sm text-[#9b9b9b] mb-2 block">Periodo</label>
+            <select
+              value={dateRange}
+              onChange={(e) => setDateRange(Number(e.target.value))}
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+            >
+              <option value="7">Ultimi 7 giorni</option>
+              <option value="30">Ultimi 30 giorni</option>
+              <option value="90">Ultimi 90 giorni</option>
+              <option value="365">Ultimo anno</option>
+            </select>
+          </div>
 
-        <NeumorphicCard className="px-4 py-2">
-          <select
-            value={dateRange}
-            onChange={(e) => setDateRange(Number(e.target.value))}
-            className="bg-transparent text-[#6b6b6b] outline-none"
-          >
-            <option value="7">Last 7 days</option>
-            <option value="30">Last 30 days</option>
-            <option value="90">Last 90 days</option>
-            <option value="365">Last year</option>
-          </select>
-        </NeumorphicCard>
-      </div>
+          <div>
+            <label className="text-sm text-[#9b9b9b] mb-2 block">Canale Vendita</label>
+            <select
+              value={selectedChannel}
+              onChange={(e) => setSelectedChannel(e.target.value)}
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+            >
+              <option value="all">Tutti i Canali</option>
+              {salesChannels.map(channel => (
+                <option key={channel} value={channel}>{channel}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-sm text-[#9b9b9b] mb-2 block">App Delivery</label>
+            <select
+              value={selectedDeliveryApp}
+              onChange={(e) => setSelectedDeliveryApp(e.target.value)}
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+            >
+              <option value="all">Tutte le App</option>
+              {deliveryApps.map(app => (
+                <option key={app} value={app}>{app.charAt(0).toUpperCase() + app.slice(1)}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </NeumorphicCard>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <NeumorphicCard className="p-6">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-[#9b9b9b] mb-2">Total Revenue</p>
+              <p className="text-sm text-[#9b9b9b] mb-2">Revenue Totale</p>
               <h3 className="text-3xl font-bold text-[#6b6b6b]">
-                ${processedData.totalRevenue.toLocaleString()}
+                €{processedData.totalRevenue.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </h3>
             </div>
             <div className="neumorphic-flat p-3 rounded-lg">
@@ -165,13 +243,13 @@ export default function Financials() {
         <NeumorphicCard className="p-6">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-[#9b9b9b] mb-2">Total Costs</p>
+              <p className="text-sm text-[#9b9b9b] mb-2">Ordini Totali</p>
               <h3 className="text-3xl font-bold text-[#6b6b6b]">
-                ${processedData.totalCosts.toLocaleString()}
+                {processedData.totalOrders.toLocaleString()}
               </h3>
             </div>
             <div className="neumorphic-flat p-3 rounded-lg">
-              <BarChart3 className="w-6 h-6 text-[#8b7355]" />
+              <ShoppingCart className="w-6 h-6 text-[#8b7355]" />
             </div>
           </div>
         </NeumorphicCard>
@@ -179,19 +257,13 @@ export default function Financials() {
         <NeumorphicCard className="p-6">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-[#9b9b9b] mb-2">Net Profit</p>
-              <h3 className={`text-3xl font-bold ${
-                processedData.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
-                ${processedData.totalProfit.toLocaleString()}
+              <p className="text-sm text-[#9b9b9b] mb-2">Scontrino Medio</p>
+              <h3 className="text-3xl font-bold text-[#6b6b6b]">
+                €{processedData.avgOrderValue.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </h3>
             </div>
             <div className="neumorphic-flat p-3 rounded-lg">
-              {processedData.totalProfit >= 0 ? (
-                <TrendingUp className="w-6 h-6 text-green-600" />
-              ) : (
-                <TrendingDown className="w-6 h-6 text-red-600" />
-              )}
+              <TrendingUp className="w-6 h-6 text-[#8b7355]" />
             </div>
           </div>
         </NeumorphicCard>
@@ -199,29 +271,25 @@ export default function Financials() {
         <NeumorphicCard className="p-6">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-[#9b9b9b] mb-2">Profit Margin</p>
-              <h3 className={`text-3xl font-bold ${
-                processedData.profitMargin >= 20 ? 'text-green-600' : 
-                processedData.profitMargin >= 10 ? 'text-yellow-600' : 
-                'text-red-600'
-              }`}>
-                {processedData.profitMargin.toFixed(1)}%
+              <p className="text-sm text-[#9b9b9b] mb-2">Delivery App Orders</p>
+              <h3 className="text-3xl font-bold text-[#6b6b6b]">
+                {processedData.deliveryAppBreakdown.reduce((sum, app) => sum + app.orders, 0)}
               </h3>
             </div>
             <div className="neumorphic-flat p-3 rounded-lg">
-              <PieChartIcon className="w-6 h-6 text-[#8b7355]" />
+              <Truck className="w-6 h-6 text-[#8b7355]" />
             </div>
           </div>
         </NeumorphicCard>
       </div>
 
-      {/* Charts */}
+      {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Revenue & Profit Trend */}
+        {/* Daily Revenue Trend */}
         <NeumorphicCard className="p-6">
-          <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Revenue & Profit Trend</h2>
+          <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Trend Revenue Giornaliero</h2>
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={processedData.chartData}>
+            <LineChart data={processedData.dailyRevenue}>
               <CartesianGrid strokeDasharray="3 3" stroke="#c1c1c1" />
               <XAxis dataKey="date" stroke="#9b9b9b" />
               <YAxis stroke="#9b9b9b" />
@@ -232,58 +300,20 @@ export default function Financials() {
                   borderRadius: '12px',
                   boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
                 }}
+                formatter={(value) => `€${value.toFixed(2)}`}
               />
               <Legend />
-              <Line type="monotone" dataKey="revenue" stroke="#8b7355" strokeWidth={3} name="Revenue" />
-              <Line type="monotone" dataKey="profit" stroke="#22c55e" strokeWidth={3} name="Profit" />
+              <Line type="monotone" dataKey="revenue" stroke="#8b7355" strokeWidth={3} name="Revenue €" />
+              <Line type="monotone" dataKey="avgValue" stroke="#22c55e" strokeWidth={2} name="Scontrino Medio €" />
             </LineChart>
           </ResponsiveContainer>
         </NeumorphicCard>
 
-        {/* Cost Breakdown */}
+        {/* Revenue by Store */}
         <NeumorphicCard className="p-6">
-          <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Cost Breakdown</h2>
-          {processedData.costBreakdown.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={processedData.costBreakdown}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {processedData.costBreakdown.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    background: '#e0e5ec', 
-                    border: 'none',
-                    borderRadius: '12px',
-                    boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-[300px] flex items-center justify-center text-[#9b9b9b]">
-              No cost data available
-            </div>
-          )}
-        </NeumorphicCard>
-      </div>
-
-      {/* Store Comparison */}
-      {selectedStore === 'all' && processedData.storeComparison.length > 0 && (
-        <NeumorphicCard className="p-6">
-          <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Store Comparison</h2>
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={processedData.storeComparison}>
+          <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Revenue per Locale</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={processedData.storeBreakdown}>
               <CartesianGrid strokeDasharray="3 3" stroke="#c1c1c1" />
               <XAxis dataKey="name" stroke="#9b9b9b" />
               <YAxis stroke="#9b9b9b" />
@@ -294,46 +324,238 @@ export default function Financials() {
                   borderRadius: '12px',
                   boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
                 }}
+                formatter={(value, name) => {
+                  if (name === 'revenue') return `€${value.toFixed(2)}`;
+                  if (name === 'avgValue') return `€${value.toFixed(2)}`;
+                  return value;
+                }}
               />
               <Legend />
-              <Bar dataKey="revenue" fill="#8b7355" name="Revenue" radius={[8, 8, 0, 0]} />
-              <Bar dataKey="profit" fill="#22c55e" name="Profit" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="revenue" fill="#8b7355" name="Revenue €" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </NeumorphicCard>
+      </div>
+
+      {/* Charts Row 2 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Revenue by Sales Channel */}
+        <NeumorphicCard className="p-6">
+          <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Revenue per Canale di Vendita</h2>
+          {processedData.channelBreakdown.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={processedData.channelBreakdown}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={100}
+                  dataKey="value"
+                >
+                  {processedData.channelBreakdown.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ 
+                    background: '#e0e5ec', 
+                    border: 'none',
+                    borderRadius: '12px',
+                    boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
+                  }}
+                  formatter={(value) => `€${value.toFixed(2)}`}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-[#9b9b9b]">
+              Nessun dato disponibile
+            </div>
+          )}
+        </NeumorphicCard>
+
+        {/* Revenue by Delivery App */}
+        <NeumorphicCard className="p-6">
+          <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Revenue per App Delivery</h2>
+          {processedData.deliveryAppBreakdown.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={processedData.deliveryAppBreakdown}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#c1c1c1" />
+                <XAxis dataKey="name" stroke="#9b9b9b" />
+                <YAxis stroke="#9b9b9b" />
+                <Tooltip 
+                  contentStyle={{ 
+                    background: '#e0e5ec', 
+                    border: 'none',
+                    borderRadius: '12px',
+                    boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
+                  }}
+                  formatter={(value, name) => {
+                    if (name === 'value') return `€${value.toFixed(2)}`;
+                    return value;
+                  }}
+                />
+                <Legend />
+                <Bar dataKey="value" fill="#8b7355" name="Revenue €" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="orders" fill="#a68a6a" name="Ordini" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-[#9b9b9b]">
+              Nessun ordine da app di delivery
+            </div>
+          )}
+        </NeumorphicCard>
+      </div>
+
+      {/* Breakdown Tables */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Stores Table */}
+        <NeumorphicCard className="p-6">
+          <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">Dettaglio per Locale</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[#c1c1c1]">
+                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Locale</th>
+                  <th className="text-right p-3 text-[#9b9b9b] font-medium">Revenue</th>
+                  <th className="text-right p-3 text-[#9b9b9b] font-medium">Ordini</th>
+                  <th className="text-right p-3 text-[#9b9b9b] font-medium">€ Medio</th>
+                </tr>
+              </thead>
+              <tbody>
+                {processedData.storeBreakdown.map((store, index) => (
+                  <tr key={index} className="border-b border-[#d1d1d1]">
+                    <td className="p-3 text-[#6b6b6b] font-medium">{store.name}</td>
+                    <td className="p-3 text-right text-[#6b6b6b]">€{store.revenue.toFixed(2)}</td>
+                    <td className="p-3 text-right text-[#6b6b6b]">{store.orders}</td>
+                    <td className="p-3 text-right text-[#6b6b6b]">€{store.avgValue.toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </NeumorphicCard>
+
+        {/* Channels Table */}
+        <NeumorphicCard className="p-6">
+          <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">Dettaglio per Canale</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[#c1c1c1]">
+                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Canale</th>
+                  <th className="text-right p-3 text-[#9b9b9b] font-medium">Revenue</th>
+                  <th className="text-right p-3 text-[#9b9b9b] font-medium">Ordini</th>
+                  <th className="text-right p-3 text-[#9b9b9b] font-medium">% Tot</th>
+                </tr>
+              </thead>
+              <tbody>
+                {processedData.channelBreakdown.map((channel, index) => (
+                  <tr key={index} className="border-b border-[#d1d1d1]">
+                    <td className="p-3 text-[#6b6b6b] font-medium">{channel.name}</td>
+                    <td className="p-3 text-right text-[#6b6b6b]">€{channel.value.toFixed(2)}</td>
+                    <td className="p-3 text-right text-[#6b6b6b]">{channel.orders}</td>
+                    <td className="p-3 text-right text-[#6b6b6b]">
+                      {((channel.value / processedData.totalRevenue) * 100).toFixed(1)}%
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </NeumorphicCard>
+      </div>
+
+      {/* Delivery Apps Detailed Table */}
+      {processedData.deliveryAppBreakdown.length > 0 && (
+        <NeumorphicCard className="p-6">
+          <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">Dettaglio App Delivery</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b-2 border-[#8b7355]">
+                  <th className="text-left p-3 text-[#9b9b9b] font-medium">App</th>
+                  <th className="text-right p-3 text-[#9b9b9b] font-medium">Revenue</th>
+                  <th className="text-right p-3 text-[#9b9b9b] font-medium">Ordini</th>
+                  <th className="text-right p-3 text-[#9b9b9b] font-medium">Scontrino Medio</th>
+                  <th className="text-right p-3 text-[#9b9b9b] font-medium">% Revenue Totale</th>
+                </tr>
+              </thead>
+              <tbody>
+                {processedData.deliveryAppBreakdown.map((app, index) => (
+                  <tr key={index} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
+                    <td className="p-3">
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ background: COLORS[index % COLORS.length] }}
+                        />
+                        <span className="text-[#6b6b6b] font-medium">{app.name}</span>
+                      </div>
+                    </td>
+                    <td className="p-3 text-right text-[#6b6b6b] font-bold">
+                      €{app.value.toFixed(2)}
+                    </td>
+                    <td className="p-3 text-right text-[#6b6b6b]">
+                      {app.orders}
+                    </td>
+                    <td className="p-3 text-right text-[#6b6b6b]">
+                      €{(app.value / app.orders).toFixed(2)}
+                    </td>
+                    <td className="p-3 text-right text-[#6b6b6b]">
+                      {((app.value / processedData.totalRevenue) * 100).toFixed(1)}%
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-[#8b7355] font-bold">
+                  <td className="p-3 text-[#6b6b6b]">TOTALE DELIVERY</td>
+                  <td className="p-3 text-right text-[#6b6b6b]">
+                    €{processedData.deliveryAppBreakdown.reduce((sum, app) => sum + app.value, 0).toFixed(2)}
+                  </td>
+                  <td className="p-3 text-right text-[#6b6b6b]">
+                    {processedData.deliveryAppBreakdown.reduce((sum, app) => sum + app.orders, 0)}
+                  </td>
+                  <td className="p-3"></td>
+                  <td className="p-3 text-right text-[#6b6b6b]">
+                    {((processedData.deliveryAppBreakdown.reduce((sum, app) => sum + app.value, 0) / processedData.totalRevenue) * 100).toFixed(1)}%
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </NeumorphicCard>
       )}
 
-      {/* Details Table */}
+      {/* Daily Revenue Details Table */}
       <NeumorphicCard className="p-6">
-        <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Financial Details</h2>
+        <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">Dettaglio Giornaliero</h2>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-[#c1c1c1]">
-                <th className="text-left p-3 text-[#9b9b9b] font-medium">Date</th>
+              <tr className="border-b-2 border-[#8b7355]">
+                <th className="text-left p-3 text-[#9b9b9b] font-medium">Data</th>
                 <th className="text-right p-3 text-[#9b9b9b] font-medium">Revenue</th>
-                <th className="text-right p-3 text-[#9b9b9b] font-medium">Costs</th>
-                <th className="text-right p-3 text-[#9b9b9b] font-medium">Profit</th>
-                <th className="text-right p-3 text-[#9b9b9b] font-medium">Margin</th>
+                <th className="text-right p-3 text-[#9b9b9b] font-medium">Ordini</th>
+                <th className="text-right p-3 text-[#9b9b9b] font-medium">Scontrino Medio</th>
               </tr>
             </thead>
             <tbody>
-              {processedData.chartData.slice(0, 10).map((row, index) => (
-                <tr key={index} className="border-b border-[#d1d1d1]">
-                  <td className="p-3 text-[#6b6b6b]">{row.date}</td>
-                  <td className="p-3 text-right text-[#6b6b6b] font-medium">
-                    ${row.revenue.toLocaleString()}
+              {processedData.dailyRevenue.slice(-14).reverse().map((day, index) => (
+                <tr key={index} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
+                  <td className="p-3 text-[#6b6b6b]">{day.date}</td>
+                  <td className="p-3 text-right text-[#6b6b6b] font-bold">
+                    €{day.revenue.toFixed(2)}
                   </td>
                   <td className="p-3 text-right text-[#6b6b6b]">
-                    ${row.costs.toLocaleString()}
-                  </td>
-                  <td className={`p-3 text-right font-medium ${
-                    row.profit >= 0 ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    ${row.profit.toLocaleString()}
+                    {day.orders}
                   </td>
                   <td className="p-3 text-right text-[#6b6b6b]">
-                    {row.revenue > 0 ? ((row.profit / row.revenue) * 100).toFixed(1) : '0.0'}%
+                    €{day.avgValue.toFixed(2)}
                   </td>
                 </tr>
               ))}
