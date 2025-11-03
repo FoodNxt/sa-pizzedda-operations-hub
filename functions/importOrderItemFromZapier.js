@@ -55,25 +55,46 @@ Deno.serve(async (req) => {
             }, { status: 400 });
         }
 
-        if (!body.store_name) {
+        // AUTO-DETECT store from printedOrderItemChannel if store_name not provided
+        let storeName = body.store_name;
+        
+        if (!storeName && body.printedOrderItemChannel) {
+            const channelMap = {
+                'lct_21684': 'Ticinese',
+                'lct_21350': 'Lanino'
+            };
+            
+            storeName = channelMap[body.printedOrderItemChannel];
+            
+            if (!storeName) {
+                return Response.json({ 
+                    error: `Store non riconosciuto per printedOrderItemChannel: "${body.printedOrderItemChannel}"`,
+                    hint: 'Valori riconosciuti: lct_21684 (Ticinese), lct_21350 (Lanino)',
+                    received: body.printedOrderItemChannel
+                }, { status: 400 });
+            }
+        }
+
+        if (!storeName) {
             return Response.json({ 
-                error: 'Campo obbligatorio mancante: store_name',
-                hint: 'Devi specificare il nome del locale nel campo store_name',
+                error: 'Campo obbligatorio mancante: store_name o printedOrderItemChannel',
+                hint: 'Devi specificare store_name oppure un printedOrderItemChannel valido (lct_21684 o lct_21350)',
                 received_fields: Object.keys(body)
             }, { status: 400 });
         }
 
         // Find store by name (using service role for admin access)
         const stores = await base44.asServiceRole.entities.Store.filter({
-            name: body.store_name
+            name: storeName
         });
 
         if (!stores || stores.length === 0) {
             const allStores = await base44.asServiceRole.entities.Store.list();
             return Response.json({ 
-                error: `Locale non trovato: "${body.store_name}". Verifica che il nome sia esatto (maiuscole/minuscole).`,
+                error: `Locale non trovato: "${storeName}". Verifica che il nome sia esatto (maiuscole/minuscole).`,
                 available_stores: allStores.map(s => s.name),
-                received: body.store_name
+                received: storeName,
+                detected_from: body.store_name ? 'store_name field' : 'printedOrderItemChannel mapping'
             }, { status: 404 });
         }
 
@@ -119,7 +140,7 @@ Deno.serve(async (req) => {
 
         // Build OrderItem data object
         const orderItemData = {
-            store_name: body.store_name,
+            store_name: storeName,
             store_id: store.id,
             itemId: body.itemId,
             billNumber: body.billNumber,
@@ -198,7 +219,8 @@ Deno.serve(async (req) => {
                 billNumber: orderItem.billNumber,
                 orderItemName: orderItem.orderItemName,
                 store_name: orderItem.store_name,
-                finalPrice: orderItem.finalPrice
+                finalPrice: orderItem.finalPrice,
+                auto_detected_store: !body.store_name && body.printedOrderItemChannel ? true : false
             }
         }, { status: 201 });
 
