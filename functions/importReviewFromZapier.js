@@ -35,19 +35,37 @@ Deno.serve(async (req) => {
 
         const store = stores[0];
 
-        // Parse date (format: DD/MM/YYYY or DD-MM-YYYY)
-        const parseDate = (dateStr) => {
-            if (!dateStr) return new Date().toISOString().split('T')[0];
+        // Parse datetime (format: YYYY-MM-DD HH:MM:SS or DD/MM/YYYY or DD-MM-YYYY)
+        const parseDateTime = (dateStr) => {
+            if (!dateStr) return new Date().toISOString();
             
-            const parts = dateStr.split(/[\/\-]/);
-            if (parts.length === 3) {
+            // Try ISO format first (YYYY-MM-DD HH:MM:SS)
+            if (dateStr.match(/^\d{4}-\d{2}-\d{2}/)) {
+                // Format: 2025-08-13 13:28:50
+                const parts = dateStr.split(' ');
+                if (parts.length === 2) {
+                    return `${parts[0]}T${parts[1]}`;
+                }
+                return dateStr;
+            }
+            
+            // Try DD/MM/YYYY or DD-MM-YYYY format
+            const parts = dateStr.split(/[\/\-\s]/);
+            if (parts.length >= 3) {
                 const day = parts[0].padStart(2, '0');
                 const month = parts[1].padStart(2, '0');
                 const year = parts[2];
-                return `${year}-${month}-${day}`;
+                
+                // If there's time component
+                if (parts.length > 3) {
+                    const time = parts.slice(3).join(':');
+                    return `${year}-${month}-${day}T${time}`;
+                }
+                
+                return `${year}-${month}-${day}T00:00:00`;
             }
             
-            return new Date().toISOString().split('T')[0];
+            return new Date().toISOString();
         };
 
         // Parse rating (1-5)
@@ -61,7 +79,7 @@ Deno.serve(async (req) => {
         const reviewData = {
             store_id: store.id,
             customer_name: body.nome || 'Anonimo',
-            review_date: parseDate(body.data_recensione),
+            review_date: parseDateTime(body.data_recensione),
             rating: parseRating(body.voto),
             comment: body.commento || '',
             source: 'google'

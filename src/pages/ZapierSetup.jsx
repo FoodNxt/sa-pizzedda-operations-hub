@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Zap, Copy, CheckCircle, ExternalLink, AlertCircle, Store, FileSpreadsheet } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
@@ -50,7 +51,7 @@ export default function ZapierSetup() {
         body: JSON.stringify({
           nome_locale: stores[0].name,
           nome: 'Test Cliente',
-          data_recensione: new Date().toLocaleDateString('it-IT'),
+          data_recensione: '2025-01-15 14:30:00',
           voto: 5,
           commento: 'Test recensione da Zapier Setup'
         })
@@ -318,7 +319,7 @@ export default function ZapierSetup() {
             </div>
           </div>
 
-          {/* Step 5 */}
+          {/* Step 5 - Updated with correct field mapping */}
           <div className="neumorphic-flat p-5 rounded-xl">
             <div className="flex items-start gap-4">
               <div className="neumorphic-pressed w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
@@ -327,49 +328,49 @@ export default function ZapierSetup() {
               <div className="flex-1">
                 <h3 className="font-bold text-[#6b6b6b] mb-3">Mappa i Campi (Data)</h3>
                 <p className="text-[#6b6b6b] mb-3">
-                  Nel campo <strong>Data</strong>, aggiungi questi campi (usando i valori dalle colonne del Google Sheet):
+                  Nel campo <strong>Data</strong>, aggiungi questi 5 campi:
                 </p>
                 
                 <div className="space-y-3">
-                  <div className="neumorphic-pressed p-3 rounded-lg">
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <span className="font-bold text-[#8b7355]">nome_locale</span>
-                      <span className="text-[#6b6b6b]">→ Inserisci il nome esatto del locale (vedi lista sopra)</span>
+                  <div className="neumorphic-pressed p-3 rounded-lg bg-red-50">
+                    <div className="text-sm">
+                      <span className="font-bold text-[#8b7355] block mb-1">nome_locale</span>
+                      <span className="text-[#6b6b6b]">→ <strong>Scrivi manualmente</strong> il nome esatto del locale (vedi lista "Locali Disponibili" sopra)</span>
                     </div>
                   </div>
                   
                   <div className="neumorphic-pressed p-3 rounded-lg">
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <span className="font-bold text-[#8b7355]">nome</span>
+                    <div className="text-sm">
+                      <span className="font-bold text-[#8b7355] block mb-1">nome</span>
                       <span className="text-[#6b6b6b]">→ Colonna "Nome" del Google Sheet</span>
                     </div>
                   </div>
                   
                   <div className="neumorphic-pressed p-3 rounded-lg">
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <span className="font-bold text-[#8b7355]">data_recensione</span>
-                      <span className="text-[#6b6b6b]">→ Colonna "Data Recensione"</span>
+                    <div className="text-sm">
+                      <span className="font-bold text-[#8b7355] block mb-1">data_recensione</span>
+                      <span className="text-[#6b6b6b]">→ Colonna "Data Recensione" del Google Sheet (formato: YYYY-MM-DD HH:MM:SS)</span>
                     </div>
                   </div>
                   
                   <div className="neumorphic-pressed p-3 rounded-lg">
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <span className="font-bold text-[#8b7355]">voto</span>
-                      <span className="text-[#6b6b6b]">→ Colonna "Voto"</span>
+                    <div className="text-sm">
+                      <span className="font-bold text-[#8b7355] block mb-1">voto</span>
+                      <span className="text-[#6b6b6b]">→ Colonna "Voto" del Google Sheet (numero da 1 a 5)</span>
                     </div>
                   </div>
                   
                   <div className="neumorphic-pressed p-3 rounded-lg">
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <span className="font-bold text-[#8b7355]">commento</span>
-                      <span className="text-[#6b6b6b]">→ Colonna "Commento"</span>
+                    <div className="text-sm">
+                      <span className="font-bold text-[#8b7355] block mb-1">commento</span>
+                      <span className="text-[#6b6b6b]">→ Colonna "Commento" del Google Sheet</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="neumorphic-flat p-3 rounded-lg mt-4 bg-red-50">
+                <div className="neumorphic-flat p-3 rounded-lg mt-4 bg-yellow-50">
                   <p className="text-sm text-[#6b6b6b]">
-                    🚨 <strong>CRITICO:</strong> Il campo <code className="bg-white px-2 py-1 rounded">nome_locale</code> deve essere scritto manualmente con il nome esatto del locale (non prendere dal Google Sheet, ma dalla lista qui sopra).
+                    🚨 <strong>CRITICO:</strong> Il campo <code className="bg-white px-2 py-1 rounded">nome_locale</code> NON viene dal Google Sheet, ma va scritto <strong>manualmente</strong> con il nome esatto del tuo locale.
                   </p>
                 </div>
               </div>
@@ -429,7 +430,7 @@ export default function ZapierSetup() {
         </div>
       </NeumorphicCard>
 
-      {/* Example Google Sheet Structure */}
+      {/* Example Google Sheet Structure - Updated */}
       <NeumorphicCard className="p-6">
         <div className="flex items-center gap-3 mb-4">
           <FileSpreadsheet className="w-5 h-5 text-[#8b7355]" />
@@ -438,7 +439,7 @@ export default function ZapierSetup() {
         
         <div className="neumorphic-pressed p-4 rounded-xl mb-4">
           <p className="text-[#6b6b6b] mb-3">
-            Il tuo Google Sheet deve avere questa struttura:
+            Il tuo Google Sheet deve avere esattamente queste 4 colonne:
           </p>
           <div className="bg-white rounded-lg p-4 overflow-x-auto">
             <table className="w-full text-sm">
@@ -453,24 +454,39 @@ export default function ZapierSetup() {
               <tbody>
                 <tr className="border-b border-gray-200">
                   <td className="p-2 text-[#6b6b6b]">Mario Rossi</td>
-                  <td className="p-2 text-[#6b6b6b]">15/01/2024</td>
+                  <td className="p-2 text-[#6b6b6b]">2025-08-13 13:28:50</td>
                   <td className="p-2 text-[#6b6b6b]">5</td>
                   <td className="p-2 text-[#6b6b6b]">Ottima pizza, servizio eccellente!</td>
                 </tr>
                 <tr className="border-b border-gray-200">
                   <td className="p-2 text-[#6b6b6b]">Laura Bianchi</td>
-                  <td className="p-2 text-[#6b6b6b]">16/01/2024</td>
+                  <td className="p-2 text-[#6b6b6b]">2025-08-14 19:45:30</td>
                   <td className="p-2 text-[#6b6b6b]">4</td>
                   <td className="p-2 text-[#6b6b6b]">Molto buono, tornerò sicuramente</td>
+                </tr>
+                <tr className="border-b border-gray-200">
+                  <td className="p-2 text-[#6b6b6b]">Giuseppe Verdi</td>
+                  <td className="p-2 text-[#6b6b6b]">2025-08-15 20:15:00</td>
+                  <td className="p-2 text-[#6b6b6b]">3</td>
+                  <td className="p-2 text-[#6b6b6b]">Buono ma tempi di attesa lunghi</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
 
-        <div className="neumorphic-flat p-4 rounded-xl">
+        <div className="neumorphic-flat p-4 rounded-xl space-y-2">
           <p className="text-sm text-[#6b6b6b]">
-            📝 <strong>Ogni tab</strong> rappresenta un locale diverso. Il nome del tab non è rilevante, ma devi specificare manualmente il <code className="bg-white px-2 py-1 rounded">nome_locale</code> quando configuri lo Zap.
+            📝 <strong>Ogni tab</strong> del Google Sheet rappresenta un locale diverso
+          </p>
+          <p className="text-sm text-[#6b6b6b]">
+            📅 <strong>Formato Data:</strong> YYYY-MM-DD HH:MM:SS (esempio: 2025-08-13 13:28:50)
+          </p>
+          <p className="text-sm text-[#6b6b6b]">
+            ⭐ <strong>Voto:</strong> Numero da 1 a 5
+          </p>
+          <p className="text-sm text-[#6b6b6b]">
+            🏪 <strong>Nome Locale:</strong> Non va nel Google Sheet, ma va specificato manualmente in Zapier nel campo <code className="bg-white px-2 py-1 rounded">nome_locale</code>
           </p>
         </div>
       </NeumorphicCard>
