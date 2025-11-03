@@ -156,7 +156,7 @@ export default function ShiftsSetup() {
             </li>
             <li className="flex items-start gap-2">
               <span className="font-bold text-[#8b7355]">2.</span>
-              <span>Aggiungi: <code className="bg-white px-2 py-1 rounded">PLANDAY_WEBHOOK_SECRET</code></span>
+              <span>Aggiungi: <code className="bg-white px-2 py-1 rounded">ZAPIER_SHIFTS_WEBHOOK_SECRET</code></span>
             </li>
             <li className="flex items-start gap-2">
               <span className="font-bold text-[#8b7355]">3.</span>
@@ -310,7 +310,7 @@ export default function ShiftsSetup() {
               title: 'Mappa i Campi',
               highlight: true,
               fields: [
-                { name: 'secret', desc: 'Il tuo PLANDAY_WEBHOOK_SECRET', required: true },
+                { name: 'secret', desc: 'Il tuo ZAPIER_SHIFTS_WEBHOOK_SECRET', required: true },
                 { name: 'employee_name', desc: 'Colonna "Name" dal Google Sheet', required: true },
                 { name: 'department_name', desc: 'Colonna "DepartmentName" (nome locale)', required: true },
                 { name: 'start', desc: 'Colonna "Start" (formato: DD/MM/YYYY HH:MM)', required: true },

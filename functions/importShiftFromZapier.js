@@ -18,19 +18,19 @@ Deno.serve(async (req) => {
         
         // Validate webhook secret
         const providedSecret = body.secret;
-        const expectedSecret = Deno.env.get('PLANDAY_WEBHOOK_SECRET');
+        const expectedSecret = Deno.env.get('ZAPIER_SHIFTS_WEBHOOK_SECRET');
         
         if (!expectedSecret) {
             return Response.json({ 
-                error: 'Server configuration error: PLANDAY_WEBHOOK_SECRET not set',
-                hint: 'Set PLANDAY_WEBHOOK_SECRET in Dashboard → Code → Secrets'
+                error: 'Server configuration error: ZAPIER_SHIFTS_WEBHOOK_SECRET not set',
+                hint: 'Set ZAPIER_SHIFTS_WEBHOOK_SECRET in Dashboard → Code → Secrets'
             }, { status: 500 });
         }
         
         if (!providedSecret || providedSecret !== expectedSecret) {
             return Response.json({ 
                 error: 'Unauthorized: Invalid or missing webhook secret',
-                hint: 'Make sure the "secret" field matches your PLANDAY_WEBHOOK_SECRET'
+                hint: 'Make sure the "secret" field matches your ZAPIER_SHIFTS_WEBHOOK_SECRET'
             }, { status: 401 });
         }
         
@@ -107,49 +107,16 @@ Deno.serve(async (req) => {
             return new Date().toISOString();
         };
 
-        // Calculate late minutes
-        const calculateLateMinutes = (scheduledStart, actualStart) => {
-            if (!scheduledStart || !actualStart) return 0;
-            const scheduled = new Date(scheduledStart);
-            const actual = new Date(actualStart);
-            const diff = (actual - scheduled) / (1000 * 60); // Convert to minutes
-            return diff > 0 ? Math.round(diff) : 0;
-        };
-
-        // Calculate early departure minutes
-        const calculateEarlyDeparture = (scheduledEnd, actualEnd) => {
-            if (!scheduledEnd || !actualEnd) return 0;
-            const scheduled = new Date(scheduledEnd);
-            const actual = new Date(actualEnd);
-            const diff = (scheduled - actual) / (1000 * 60); // Convert to minutes
-            return diff > 0 ? Math.round(diff) : 0;
-        };
-
         const scheduledStart = parseDateTime(body.start);
         const scheduledEnd = parseDateTime(body.end);
         const actualStart = body.timeclock_start ? parseDateTime(body.timeclock_start) : null;
         const actualEnd = body.timeclock_end ? parseDateTime(body.timeclock_end) : null;
 
-        // Determine shift type from timesheet type
-        let shiftType = 'morning';
-        const timesheetType = body.timesheet_type_name || '';
-        if (timesheetType.toLowerCase().includes('straordinario')) {
-            shiftType = 'straordinario';
-        } else if (timesheetType.toLowerCase().includes('ferie')) {
-            shiftType = 'ferie';
-        } else if (timesheetType.toLowerCase().includes('malattia')) {
-            shiftType = 'malattia';
-        } else {
-            const hour = parseInt(scheduledStart.split('T')[1].split(':')[0]);
-            if (hour < 12) shiftType = 'morning';
-            else if (hour < 17) shiftType = 'afternoon';
-            else if (hour < 22) shiftType = 'evening';
-            else shiftType = 'night';
-        }
-
         // Create shift
         const shiftData = {
-            employee_id: employee.id,
+            employee_name: body.employee_name,
+            employee_id_external: body.employee_id || null,
+            store_name: body.department_name,
             store_id: store.id,
             shift_date: scheduledStart.split('T')[0],
             scheduled_start: scheduledStart,
@@ -158,12 +125,10 @@ Deno.serve(async (req) => {
             actual_start: actualStart,
             actual_end: actualEnd,
             actual_minutes: body.timeclock_minutes ? parseInt(body.timeclock_minutes) : null,
-            late_minutes: actualStart ? calculateLateMinutes(scheduledStart, actualStart) : 0,
-            early_departure_minutes: actualEnd ? calculateEarlyDeparture(scheduledEnd, actualEnd) : 0,
-            shift_type: shiftType,
-            timesheet_type: timesheetType,
             notes: body.note || '',
-            external_id: body.id || body.external_id || null,
+            shift_type: body.timesheet_type_name || '',
+            employee_group: body.employee_group || null,
+            function_name: body.function_name || null,
             approved: body.timesheet_approved === '1' || body.timesheet_approved === 1 || body.timesheet_approved === true
         };
 
@@ -174,12 +139,11 @@ Deno.serve(async (req) => {
             message: 'Turno importato con successo',
             shift: {
                 id: shift.id,
-                employee_name: employee.full_name,
-                store_name: store.name,
+                employee_name: shift.employee_name,
+                store_name: shift.store_name,
                 shift_date: shift.shift_date,
                 scheduled_start: shift.scheduled_start,
-                scheduled_end: shift.scheduled_end,
-                late_minutes: shift.late_minutes
+                scheduled_end: shift.scheduled_end
             }
         }, { status: 201 });
 
