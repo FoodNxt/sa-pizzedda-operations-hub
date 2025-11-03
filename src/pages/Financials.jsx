@@ -1,14 +1,17 @@
+
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { DollarSign, TrendingUp, ShoppingCart, Truck, Filter } from 'lucide-react';
+import { DollarSign, TrendingUp, ShoppingCart, Truck, Filter, Calendar, X } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { format, subDays, isAfter, isBefore, startOfDay, endOfDay } from 'date-fns';
+import { format, subDays, isAfter, isBefore, startOfDay, endOfDay, parseISO } from 'date-fns';
 
 export default function Financials() {
   const [selectedStore, setSelectedStore] = useState('all');
-  const [dateRange, setDateRange] = useState(30);
+  const [dateRange, setDateRange] = useState('30'); // Changed to string to accommodate 'custom'
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [selectedChannel, setSelectedChannel] = useState('all');
   const [selectedDeliveryApp, setSelectedDeliveryApp] = useState('all');
 
@@ -28,12 +31,28 @@ export default function Financials() {
 
   // Process and filter data
   const processedData = useMemo(() => {
-    const cutoffDate = subDays(new Date(), dateRange);
+    let cutoffDate;
+    let endFilterDate;
+    
+    // Use custom date range if provided, otherwise use preset
+    if (startDate || endDate) {
+      // Ensure time components are set for accurate range filtering
+      cutoffDate = startDate ? parseISO(startDate + 'T00:00:00') : new Date(0); // Epoch start if no start date
+      endFilterDate = endDate ? parseISO(endDate + 'T23:59:59') : new Date(); // Current time if no end date
+    } else {
+      const days = parseInt(dateRange, 10); // Parse string to number
+      cutoffDate = subDays(new Date(), days);
+      endFilterDate = new Date(); // End of current day for non-custom ranges
+    }
     
     let filtered = orderItems.filter(item => {
       // Date filter
-      if (item.modifiedDate && isBefore(new Date(item.modifiedDate), cutoffDate)) {
-        return false;
+      if (item.modifiedDate) {
+        const itemDate = new Date(item.modifiedDate);
+        // Exclude items whose date is before the cutoffDate or after the endFilterDate
+        if (isBefore(itemDate, cutoffDate) || isAfter(itemDate, endFilterDate)) {
+          return false;
+        }
       }
       
       // Store filter
@@ -147,9 +166,15 @@ export default function Financials() {
       channelBreakdown,
       deliveryAppBreakdown
     };
-  }, [orderItems, selectedStore, dateRange, selectedChannel, selectedDeliveryApp]);
+  }, [orderItems, selectedStore, dateRange, startDate, endDate, selectedChannel, selectedDeliveryApp]);
 
   const COLORS = ['#8b7355', '#a68a6a', '#c1a07f', '#dcb794', '#6b5d51', '#9d8770'];
+
+  const clearCustomDates = () => {
+    setStartDate('');
+    setEndDate('');
+    setDateRange('30'); // Reset to default preset
+  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -184,13 +209,20 @@ export default function Financials() {
             <label className="text-sm text-[#9b9b9b] mb-2 block">Periodo</label>
             <select
               value={dateRange}
-              onChange={(e) => setDateRange(Number(e.target.value))}
+              onChange={(e) => {
+                setDateRange(e.target.value);
+                if (e.target.value !== 'custom') {
+                  setStartDate('');
+                  setEndDate('');
+                }
+              }}
               className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
             >
               <option value="7">Ultimi 7 giorni</option>
               <option value="30">Ultimi 30 giorni</option>
               <option value="90">Ultimi 90 giorni</option>
               <option value="365">Ultimo anno</option>
+              <option value="custom">Periodo Personalizzato</option>
             </select>
           </div>
 
@@ -222,6 +254,48 @@ export default function Financials() {
             </select>
           </div>
         </div>
+
+        {/* Custom Date Range */}
+        {dateRange === 'custom' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-[#c1c1c1]">
+            <div>
+              <label className="text-sm text-[#9b9b9b] mb-2 block flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                Data Inizio
+              </label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm text-[#9b9b9b] mb-2 block flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                Data Fine
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                />
+                {(startDate || endDate) && (
+                  <button
+                    onClick={clearCustomDates}
+                    className="neumorphic-flat px-3 rounded-xl text-[#9b9b9b] hover:text-red-600 transition-colors"
+                    title="Cancella date"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </NeumorphicCard>
 
       {/* KPI Cards */}
@@ -285,14 +359,24 @@ export default function Financials() {
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Daily Revenue Trend */}
+        {/* Daily Revenue Trend - UPDATED with dual Y-axis */}
         <NeumorphicCard className="p-6">
           <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Trend Revenue Giornaliero</h2>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={processedData.dailyRevenue}>
               <CartesianGrid strokeDasharray="3 3" stroke="#c1c1c1" />
               <XAxis dataKey="date" stroke="#9b9b9b" />
-              <YAxis stroke="#9b9b9b" />
+              <YAxis 
+                yAxisId="left"
+                stroke="#8b7355" 
+                label={{ value: 'Revenue (€)', angle: -90, position: 'insideLeft', style: { fill: '#8b7355' } }}
+              />
+              <YAxis 
+                yAxisId="right" 
+                orientation="right"
+                stroke="#22c55e"
+                label={{ value: 'Scontrino Medio (€)', angle: 90, position: 'insideRight', style: { fill: '#22c55e' } }}
+              />
               <Tooltip 
                 contentStyle={{ 
                   background: '#e0e5ec', 
@@ -303,8 +387,24 @@ export default function Financials() {
                 formatter={(value) => `€${value.toFixed(2)}`}
               />
               <Legend />
-              <Line type="monotone" dataKey="revenue" stroke="#8b7355" strokeWidth={3} name="Revenue €" />
-              <Line type="monotone" dataKey="avgValue" stroke="#22c55e" strokeWidth={2} name="Scontrino Medio €" />
+              <Line 
+                yAxisId="left"
+                type="monotone" 
+                dataKey="revenue" 
+                stroke="#8b7355" 
+                strokeWidth={3} 
+                name="Revenue €" 
+                dot={{ fill: '#8b7355', r: 4 }}
+              />
+              <Line 
+                yAxisId="right"
+                type="monotone" 
+                dataKey="avgValue" 
+                stroke="#22c55e" 
+                strokeWidth={2} 
+                name="Scontrino Medio €"
+                dot={{ fill: '#22c55e', r: 3 }}
+              />
             </LineChart>
           </ResponsiveContainer>
         </NeumorphicCard>
