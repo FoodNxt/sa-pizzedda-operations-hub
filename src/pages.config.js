@@ -5,6 +5,7 @@ import Employees from './pages/Employees';
 import ImportReviews from './pages/ImportReviews';
 import ZapierSetup from './pages/ZapierSetup';
 import ShiftsSetup from './pages/ShiftsSetup';
+import Shifts from './pages/Shifts';
 import Layout from './Layout.jsx';
 
 
@@ -16,6 +17,7 @@ export const PAGES = {
     "ImportReviews": ImportReviews,
     "ZapierSetup": ZapierSetup,
     "ShiftsSetup": ShiftsSetup,
+    "Shifts": Shifts,
 }
 
 export const pagesConfig = {
