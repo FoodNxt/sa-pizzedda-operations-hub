@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Zap, Copy, CheckCircle, ExternalLink, AlertCircle, Store, FileSpreadsheet } from 'lucide-react';
+import { Zap, Copy, CheckCircle, ExternalLink, AlertCircle, Store, FileSpreadsheet, Key } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { base44 } from "@/api/base44Client";
@@ -11,6 +11,7 @@ export default function ZapierSetup() {
   const [copied, setCopied] = useState(false);
   const [testResult, setTestResult] = useState(null);
   const [testing, setTesting] = useState(false);
+  const [webhookSecret, setWebhookSecret] = useState('');
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -41,6 +42,14 @@ export default function ZapierSetup() {
       return;
     }
 
+    if (!webhookSecret) {
+      setTestResult({
+        success: false,
+        message: 'Inserisci il Webhook Secret prima di testare'
+      });
+      return;
+    }
+
     setTesting(true);
     setTestResult(null);
 
@@ -51,6 +60,7 @@ export default function ZapierSetup() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          secret: webhookSecret,
           nome_locale: stores[0].name,
           nome: 'Test Cliente',
           data_recensione: '2025-01-15 14:30:00',
@@ -113,6 +123,53 @@ export default function ZapierSetup() {
         </NeumorphicCard>
       )}
 
+      {/* Webhook Secret Setup */}
+      <NeumorphicCard className="p-6 border-2 border-[#8b7355]">
+        <div className="flex items-center gap-3 mb-4">
+          <Key className="w-6 h-6 text-[#8b7355]" />
+          <h2 className="text-xl font-bold text-[#6b6b6b]">🔐 Step 1: Configura Webhook Secret</h2>
+        </div>
+        
+        <div className="neumorphic-pressed p-4 rounded-xl mb-4">
+          <p className="text-[#6b6b6b] mb-4">
+            <strong>IMPORTANTE:</strong> Prima di tutto, devi impostare un <strong>Webhook Secret</strong> per proteggere il tuo endpoint.
+          </p>
+          
+          <ol className="space-y-3 text-[#6b6b6b] mb-4">
+            <li className="flex items-start gap-2">
+              <span className="font-bold text-[#8b7355]">1.</span>
+              <span>Vai su <strong>Dashboard → Code → Secrets</strong> (oppure Settings → Environment Variables)</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="font-bold text-[#8b7355]">2.</span>
+              <span>Aggiungi un nuovo secret con nome: <code className="bg-white px-2 py-1 rounded">ZAPIER_WEBHOOK_SECRET</code></span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="font-bold text-[#8b7355]">3.</span>
+              <span>Imposta un valore sicuro (es: <code className="bg-white px-2 py-1 rounded">zapier_2024_mio_secret_xyz123</code>)</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="font-bold text-[#8b7355]">4.</span>
+              <span>Copia lo stesso valore qui sotto per testare:</span>
+            </li>
+          </ol>
+
+          <input
+            type="password"
+            placeholder="Incolla qui il tuo webhook secret..."
+            value={webhookSecret}
+            onChange={(e) => setWebhookSecret(e.target.value)}
+            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+          />
+        </div>
+
+        <div className="neumorphic-flat p-4 rounded-xl bg-blue-50">
+          <p className="text-sm text-blue-800">
+            💡 <strong>Suggerimento:</strong> Usa un generatore di password online per creare un secret sicuro, oppure usa qualcosa come: <code className="bg-white px-2 py-1 rounded">sapizzedda_webhook_2024_AbCdEfGh123!</code>
+          </p>
+        </div>
+      </NeumorphicCard>
+
       {/* Available Stores */}
       {stores.length > 0 && (
         <NeumorphicCard className="p-6">
@@ -140,7 +197,7 @@ export default function ZapierSetup() {
       <NeumorphicCard className="p-6">
         <div className="flex items-center gap-3 mb-4">
           <Zap className="w-5 h-5 text-[#8b7355]" />
-          <h2 className="text-xl font-bold text-[#6b6b6b]">URL Webhook</h2>
+          <h2 className="text-xl font-bold text-[#6b6b6b]">🔗 Step 2: URL Webhook</h2>
         </div>
         
         <div className="neumorphic-pressed p-4 rounded-xl mb-4">
@@ -159,7 +216,7 @@ export default function ZapierSetup() {
 
         <NeumorphicButton
           onClick={testWebhook}
-          disabled={testing || stores.length === 0}
+          disabled={testing || stores.length === 0 || !webhookSecret}
           variant="primary"
           className="w-full"
         >
@@ -193,7 +250,7 @@ export default function ZapierSetup() {
       <NeumorphicCard className="p-6">
         <div className="flex items-center gap-3 mb-6">
           <FileSpreadsheet className="w-6 h-6 text-[#8b7355]" />
-          <h2 className="text-xl font-bold text-[#6b6b6b]">Guida Configurazione Zapier</h2>
+          <h2 className="text-xl font-bold text-[#6b6b6b]">⚙️ Step 3: Guida Configurazione Zapier</h2>
         </div>
 
         <div className="space-y-6">
@@ -321,23 +378,30 @@ export default function ZapierSetup() {
             </div>
           </div>
 
-          {/* Step 5 - Updated with correct field mapping */}
-          <div className="neumorphic-flat p-5 rounded-xl">
+          {/* Step 5 - UPDATED with secret field */}
+          <div className="neumorphic-flat p-5 rounded-xl border-2 border-red-500">
             <div className="flex items-start gap-4">
               <div className="neumorphic-pressed w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
                 <span className="font-bold text-[#8b7355]">5</span>
               </div>
               <div className="flex-1">
-                <h3 className="font-bold text-[#6b6b6b] mb-3">Mappa i Campi (Data)</h3>
+                <h3 className="font-bold text-[#6b6b6b] mb-3">🔐 Mappa i Campi (Data) - AGGIORNATO</h3>
                 <p className="text-[#6b6b6b] mb-3">
-                  Nel campo <strong>Data</strong>, aggiungi questi 5 campi:
+                  Nel campo <strong>Data</strong>, aggiungi questi <strong>6 campi</strong>:
                 </p>
                 
                 <div className="space-y-3">
-                  <div className="neumorphic-pressed p-3 rounded-lg bg-red-50">
+                  <div className="neumorphic-pressed p-3 rounded-lg bg-red-50 border-2 border-red-400">
+                    <div className="text-sm">
+                      <span className="font-bold text-red-700 block mb-1">secret 🔐</span>
+                      <span className="text-red-700">→ <strong>NUOVO!</strong> Scrivi manualmente il tuo <code className="bg-white px-2 py-1 rounded">ZAPIER_WEBHOOK_SECRET</code> (lo stesso che hai impostato nei secrets)</span>
+                    </div>
+                  </div>
+
+                  <div className="neumorphic-pressed p-3 rounded-lg bg-yellow-50">
                     <div className="text-sm">
                       <span className="font-bold text-[#8b7355] block mb-1">nome_locale</span>
-                      <span className="text-[#6b6b6b]">→ <strong>Scrivi manualmente</strong> il nome esatto del locale (vedi lista "Locali Disponibili" sopra)</span>
+                      <span className="text-[#6b6b6b]">→ Scrivi manualmente il nome esatto del locale (vedi lista "Locali Disponibili" sopra)</span>
                     </div>
                   </div>
                   
@@ -370,9 +434,9 @@ export default function ZapierSetup() {
                   </div>
                 </div>
 
-                <div className="neumorphic-flat p-3 rounded-lg mt-4 bg-yellow-50">
-                  <p className="text-sm text-[#6b6b6b]">
-                    🚨 <strong>CRITICO:</strong> Il campo <code className="bg-white px-2 py-1 rounded">nome_locale</code> NON viene dal Google Sheet, ma va scritto <strong>manualmente</strong> con il nome esatto del tuo locale.
+                <div className="neumorphic-flat p-3 rounded-lg mt-4 bg-red-50">
+                  <p className="text-sm text-red-800">
+                    🚨 <strong>IMPORTANTE:</strong> Il campo <code className="bg-white px-2 py-1 rounded">secret</code> è OBBLIGATORIO e deve contenere il valore esatto del tuo ZAPIER_WEBHOOK_SECRET!
                   </p>
                 </div>
               </div>
@@ -406,30 +470,34 @@ export default function ZapierSetup() {
         <div className="flex items-start gap-3 mb-4">
           <AlertCircle className="w-6 h-6 text-yellow-700" />
           <div>
-            <h3 className="font-bold text-yellow-800 mb-2">Risoluzione Errore 404 / Connection Error</h3>
+            <h3 className="font-bold text-yellow-800 mb-2">Risoluzione Errori</h3>
             <p className="text-yellow-700 mb-3">
-              Se ottieni un errore 404 o errore di connessione, verifica queste impostazioni:
+              Se ottieni errori, verifica:
             </p>
             <ol className="space-y-2 text-yellow-700">
               <li className="flex items-start gap-2">
                 <span className="font-bold">1.</span>
-                <span><strong>Headers</strong> deve contenere <code className="bg-yellow-200 px-2 py-1 rounded">Content-Type: application/json</code></span>
+                <span><strong>Secret configurato:</strong> Hai impostato ZAPIER_WEBHOOK_SECRET nei secrets dell'app?</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="font-bold">2.</span>
-                <span><strong>Payload Type</strong> deve essere <code className="bg-yellow-200 px-2 py-1 rounded">JSON</code></span>
+                <span><strong>Campo secret in Zapier:</strong> Hai aggiunto il campo "secret" con il valore corretto?</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="font-bold">3.</span>
-                <span><strong>URL</strong> deve essere esattamente quello copiato da questa pagina (senza path extra)</span>
+                <span><strong>Headers:</strong> Content-Type deve essere application/json</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="font-bold">4.</span>
-                <span><strong>Wrap Request In Array</strong> deve essere <code className="bg-yellow-200 px-2 py-1 rounded">No</code></span>
+                <span><strong>Payload Type:</strong> Deve essere JSON</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="font-bold">5.</span>
-                <span>Prova prima il pulsante <strong>"Testa Webhook"</strong> qui sopra per verificare che funzioni</span>
+                <span><strong>Wrap Request In Array:</strong> Deve essere No</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="font-bold">6.</span>
+                <span>Usa il pulsante <strong>"Testa Webhook"</strong> qui sopra prima di provare su Zapier</span>
               </li>
             </ol>
           </div>

@@ -1,11 +1,25 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
+import { createClient } from 'npm:@base44/sdk@0.7.1';
 
 Deno.serve(async (req) => {
     try {
-        const base44 = createClientFromRequest(req);
-        
         // Parse request body
         const body = await req.json();
+        
+        // Validate webhook secret
+        const providedSecret = body.secret;
+        const expectedSecret = Deno.env.get('ZAPIER_WEBHOOK_SECRET');
+        
+        if (!providedSecret || providedSecret !== expectedSecret) {
+            return Response.json({ 
+                error: 'Unauthorized: Invalid or missing webhook secret' 
+            }, { status: 401 });
+        }
+        
+        // Initialize Base44 client with service role (admin access)
+        const base44 = createClient(
+            Deno.env.get('BASE44_APP_ID'),
+            Deno.env.get('BASE44_SERVICE_ROLE_KEY')
+        );
         
         // Validate required fields
         if (!body.nome_locale) {
@@ -21,14 +35,14 @@ Deno.serve(async (req) => {
         }
 
         // Find store by name
-        const stores = await base44.asServiceRole.entities.Store.filter({
+        const stores = await base44.entities.Store.filter({
             name: body.nome_locale
         });
 
         if (!stores || stores.length === 0) {
             return Response.json({ 
                 error: `Locale non trovato: ${body.nome_locale}. Verifica che il nome sia esatto.`,
-                available_stores: await base44.asServiceRole.entities.Store.list()
+                available_stores: await base44.entities.Store.list()
                     .then(s => s.map(store => store.name))
             }, { status: 404 });
         }
@@ -85,7 +99,7 @@ Deno.serve(async (req) => {
             source: 'google'
         };
 
-        const review = await base44.asServiceRole.entities.Review.create(reviewData);
+        const review = await base44.entities.Review.create(reviewData);
 
         return Response.json({
             success: true,
