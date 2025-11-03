@@ -8,7 +8,8 @@ import {
   Users, 
   Menu,
   X,
-  Pizza
+  Pizza,
+  Upload
 } from "lucide-react";
 
 const navigationItems = [
@@ -31,6 +32,11 @@ const navigationItems = [
     title: "Employees",
     url: createPageUrl("Employees"),
     icon: Users,
+  },
+  {
+    title: "Import Reviews",
+    url: createPageUrl("ImportReviews"),
+    icon: Upload,
   },
 ];
 
@@ -103,7 +109,7 @@ export default function Layout({ children, currentPageName }) {
           w-72 transform transition-transform duration-300 ease-in-out
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}>
-          <div className="h-full neumorphic-card m-4 p-6 flex flex-col">
+          <div className="h-full neumorphic-card m-4 p-6 flex flex-col overflow-y-auto">
             {/* Logo */}
             <div className="hidden lg:flex items-center gap-3 mb-8">
               <div className="neumorphic-flat p-3">
@@ -140,7 +146,7 @@ export default function Layout({ children, currentPageName }) {
             </nav>
 
             {/* User Info */}
-            <div className="neumorphic-pressed p-4 rounded-xl">
+            <div className="neumorphic-pressed p-4 rounded-xl mt-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full neumorphic-flat flex items-center justify-center">
                   <span className="text-sm font-bold text-[#8b7355]">U</span>
