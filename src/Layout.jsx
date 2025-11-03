@@ -85,6 +85,11 @@ const navigationStructure = [
         title: "Ricalcola Ritardi",
         url: createPageUrl("RecalculateShifts"),
         icon: Clock,
+      },
+      {
+        title: "Elimina Duplicati",
+        url: createPageUrl("CleanupDuplicateShifts"),
+        icon: AlertTriangle,
       }
     ]
   },
