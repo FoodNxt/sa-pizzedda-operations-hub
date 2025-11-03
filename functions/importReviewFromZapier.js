@@ -1,8 +1,10 @@
-import { createClient } from 'npm:@base44/sdk@0.7.1';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
 
 Deno.serve(async (req) => {
-    // Wrap everything to ensure we always return JSON
     try {
+        // Initialize Base44 client from request
+        const base44 = createClientFromRequest(req);
+        
         // Parse request body with error handling
         let body;
         try {
@@ -21,7 +23,8 @@ Deno.serve(async (req) => {
         
         if (!expectedSecret) {
             return Response.json({ 
-                error: 'Server configuration error: ZAPIER_WEBHOOK_SECRET not set' 
+                error: 'Server configuration error: ZAPIER_WEBHOOK_SECRET not set',
+                hint: 'Set ZAPIER_WEBHOOK_SECRET in Dashboard → Code → Secrets'
             }, { status: 500 });
         }
         
@@ -31,18 +34,6 @@ Deno.serve(async (req) => {
                 hint: 'Make sure the "secret" field matches your ZAPIER_WEBHOOK_SECRET'
             }, { status: 401 });
         }
-        
-        // Initialize Base44 client with service role (admin access)
-        const appId = Deno.env.get('BASE44_APP_ID');
-        const serviceKey = Deno.env.get('BASE44_SERVICE_ROLE_KEY');
-        
-        if (!appId || !serviceKey) {
-            return Response.json({ 
-                error: 'Server configuration error: Missing BASE44 credentials' 
-            }, { status: 500 });
-        }
-        
-        const base44 = createClient(appId, serviceKey);
         
         // Validate required fields
         if (!body.nome_locale) {
@@ -59,13 +50,13 @@ Deno.serve(async (req) => {
             }, { status: 400 });
         }
 
-        // Find store by name
-        const stores = await base44.entities.Store.filter({
+        // Find store by name (using service role for admin access)
+        const stores = await base44.asServiceRole.entities.Store.filter({
             name: body.nome_locale
         });
 
         if (!stores || stores.length === 0) {
-            const allStores = await base44.entities.Store.list();
+            const allStores = await base44.asServiceRole.entities.Store.list();
             return Response.json({ 
                 error: `Locale non trovato: "${body.nome_locale}". Verifica che il nome sia esatto (maiuscole/minuscole).`,
                 available_stores: allStores.map(s => s.name),
@@ -115,7 +106,7 @@ Deno.serve(async (req) => {
             return Math.max(1, Math.min(5, Math.round(num)));
         };
 
-        // Create review
+        // Create review (using service role for admin access)
         const reviewData = {
             store_id: store.id,
             customer_name: body.nome || 'Anonimo',
@@ -125,7 +116,7 @@ Deno.serve(async (req) => {
             source: 'google'
         };
 
-        const review = await base44.entities.Review.create(reviewData);
+        const review = await base44.asServiceRole.entities.Review.create(reviewData);
 
         return Response.json({
             success: true,
