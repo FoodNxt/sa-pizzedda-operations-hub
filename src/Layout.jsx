@@ -15,7 +15,8 @@ import {
   ChevronDown,
   ChevronRight,
   Clock,
-  UserCheck
+  UserCheck,
+  BarChart3 // Added BarChart3 import
 } from "lucide-react";
 
 const navigationStructure = [
@@ -99,6 +100,7 @@ export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
     "Reviews": true,
+    "Financials": true, // Added Financials to expandedSections
     "People": true,
     "Zapier Guide": true
   });

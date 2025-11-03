@@ -9,6 +9,7 @@ import Shifts from './pages/Shifts';
 import AssignReviews from './pages/AssignReviews';
 import EmployeeReviewsPerformance from './pages/EmployeeReviewsPerformance';
 import OrderItemsSetup from './pages/OrderItemsSetup';
+import ChannelComparison from './pages/ChannelComparison';
 import Layout from './Layout.jsx';
 
 
@@ -24,6 +25,7 @@ export const PAGES = {
     "AssignReviews": AssignReviews,
     "EmployeeReviewsPerformance": EmployeeReviewsPerformance,
     "OrderItemsSetup": OrderItemsSetup,
+    "ChannelComparison": ChannelComparison,
 }
 
 export const pagesConfig = {
