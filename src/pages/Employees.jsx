@@ -12,9 +12,11 @@ import {
   ShoppingCart,
   Star,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Calendar
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
+import { parseISO, isWithinInterval } from 'date-fns';
 
 export default function Employees() {
   const [selectedStore, setSelectedStore] = useState('all');
@@ -22,6 +24,8 @@ export default function Employees() {
   const [sortBy, setSortBy] = useState('performance');
   const [sortOrder, setSortOrder] = useState('desc');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -50,6 +54,28 @@ export default function Employees() {
 
   // Calculate employee metrics
   const employeeMetrics = useMemo(() => {
+    // Filter reviews by date range
+    let filteredReviews = reviews;
+    if (startDate || endDate) {
+      filteredReviews = reviews.filter(review => {
+        // Ensure review_date exists before parsing
+        if (!review.review_date) return false;
+
+        const reviewDate = parseISO(review.review_date);
+        const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
+        const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
+
+        if (start && end) {
+          return isWithinInterval(reviewDate, { start, end });
+        } else if (start) {
+          return reviewDate >= start;
+        } else if (end) {
+          return reviewDate <= end;
+        }
+        return true;
+      });
+    }
+
     return employees.map(employee => {
       // Orders metrics
       const employeeOrders = orders.filter(o => o.employee_id === employee.id);
@@ -71,10 +97,23 @@ export default function Employees() {
       const totalEarlyDepartures = employeeShifts.reduce((sum, s) => sum + (s.early_departure_minutes || 0), 0);
       const avgLateMinutes = employeeShifts.length > 0 ? totalLateMinutes / employeeShifts.length : 0;
 
-      // Review mentions
-      const mentions = reviews.filter(r => r.employee_mentioned === employee.id);
+      // Review mentions (filtered by date)
+      const mentions = filteredReviews.filter(r => r.employee_mentioned === employee.id);
       const positiveMentions = mentions.filter(r => r.rating >= 4).length;
       const negativeMentions = mentions.filter(r => r.rating < 3).length;
+
+      // Calculate average Google rating from assigned reviews (filtered by date)
+      const assignedReviews = filteredReviews.filter(r => {
+        if (!r.employee_assigned_name) return false;
+        // Handle cases where employee_assigned_name might be a single string or comma-separated
+        const assignedNames = r.employee_assigned_name.split(',').map(n => n.trim().toLowerCase());
+        return assignedNames.includes(employee.full_name.toLowerCase());
+      });
+      
+      const googleReviews = assignedReviews.filter(r => r.source === 'google');
+      const avgGoogleRating = googleReviews.length > 0
+        ? googleReviews.reduce((sum, r) => sum + r.rating, 0) / googleReviews.length
+        : 0;
 
       // Calculate overall performance score (0-100)
       let performanceScore = 100;
@@ -106,10 +145,12 @@ export default function Employees() {
         performanceScore: Math.round(performanceScore),
         performanceLevel,
         totalOrders: employeeOrders.length,
-        totalShifts: employeeShifts.length
+        totalShifts: employeeShifts.length,
+        avgGoogleRating,
+        googleReviewCount: googleReviews.length
       };
     });
-  }, [employees, orders, shifts, reviews]);
+  }, [employees, orders, shifts, reviews, startDate, endDate]);
 
   // Filter and sort employees
   const filteredEmployees = useMemo(() => {
@@ -142,6 +183,10 @@ export default function Employees() {
         case 'satisfaction':
           valueA = a.avgSatisfaction;
           valueB = b.avgSatisfaction;
+          break;
+        case 'googleRating':
+          valueA = a.avgGoogleRating;
+          valueB = b.avgGoogleRating;
           break;
         default:
           valueA = a.performanceScore;
@@ -220,6 +265,40 @@ export default function Employees() {
             <option value="kitchen_staff">Kitchen Staff</option>
           </select>
         </NeumorphicCard>
+
+        <NeumorphicCard className="px-4 py-2 flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-[#9b9b9b]" />
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="bg-transparent text-[#6b6b6b] outline-none text-sm"
+            placeholder="Start date"
+          />
+        </NeumorphicCard>
+
+        <NeumorphicCard className="px-4 py-2 flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-[#9b9b9b]" />
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="bg-transparent text-[#6b6b6b] outline-none text-sm"
+            placeholder="End date"
+          />
+        </NeumorphicCard>
+
+        {(startDate || endDate) && (
+          <button
+            onClick={() => {
+              setStartDate('');
+              setEndDate('');
+            }}
+            className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#9b9b9b] hover:text-[#6b6b6b]"
+          >
+            Clear dates
+          </button>
+        )}
       </div>
 
       {/* Summary Stats */}
@@ -280,6 +359,17 @@ export default function Employees() {
                   <div className="flex items-center justify-center gap-1">
                     Performance
                     {sortBy === 'performance' && (
+                      sortOrder === 'desc' ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />
+                    )}
+                  </div>
+                </th>
+                <th 
+                  className="text-center p-3 text-[#9b9b9b] font-medium cursor-pointer hover:text-[#6b6b6b]"
+                  onClick={() => toggleSort('googleRating')}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    Google Rating
+                    {sortBy === 'googleRating' && (
                       sortOrder === 'desc' ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />
                     )}
                   </div>
@@ -360,6 +450,28 @@ export default function Employees() {
                       </div>
                     </td>
                     <td className="p-3 text-center">
+                      {employee.googleReviewCount > 0 ? (
+                        <div className="flex flex-col items-center gap-1">
+                          <div className="flex items-center gap-1">
+                            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                            <span className={`text-lg font-bold ${
+                              employee.avgGoogleRating >= 4.5 ? 'text-green-600' :
+                              employee.avgGoogleRating >= 4.0 ? 'text-blue-600' :
+                              employee.avgGoogleRating >= 3.5 ? 'text-yellow-600' :
+                              'text-red-600'
+                            }`}>
+                              {employee.avgGoogleRating.toFixed(2)}
+                            </span>
+                          </div>
+                          <span className="text-xs text-[#9b9b9b]">
+                            {employee.googleReviewCount} reviews
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-[#9b9b9b]">N/A</span>
+                      )}
+                    </td>
+                    <td className="p-3 text-center">
                       <div className="flex flex-col items-center gap-1">
                         <span className={`font-bold ${
                           employee.wrongOrderRate > 10 ? 'text-red-600' : 
@@ -414,7 +526,7 @@ export default function Employees() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="8" className="p-8 text-center text-[#9b9b9b]">
+                  <td colSpan="9" className="p-8 text-center text-[#9b9b9b]">
                     No employees found matching the filters
                   </td>
                 </tr>
@@ -453,8 +565,24 @@ export default function Employees() {
               </div>
 
               <div className="neumorphic-pressed p-4 rounded-xl text-center">
-                <p className="text-sm text-[#9b9b9b] mb-2">Total Orders</p>
-                <p className="text-4xl font-bold text-[#6b6b6b]">{selectedEmployee.totalOrders}</p>
+                <p className="text-sm text-[#9b9b9b] mb-2">Google Rating</p>
+                {selectedEmployee.googleReviewCount > 0 ? (
+                  <>
+                    <div className="flex items-center justify-center gap-2">
+                      <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
+                      <p className={`text-4xl font-bold ${
+                        selectedEmployee.avgGoogleRating >= 4.5 ? 'text-green-600' :
+                        selectedEmployee.avgGoogleRating >= 4.0 ? 'text-blue-600' :
+                        'text-yellow-600'
+                      }`}>
+                        {selectedEmployee.avgGoogleRating.toFixed(2)}
+                      </p>
+                    </div>
+                    <p className="text-sm mt-1 text-[#9b9b9b]">{selectedEmployee.googleReviewCount} reviews</p>
+                  </>
+                ) : (
+                  <p className="text-2xl text-[#9b9b9b]">N/A</p>
+                )}
               </div>
             </div>
 
