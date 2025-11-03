@@ -41,7 +41,7 @@ export default function AssignReviews() {
 
     const reviewDate = parseISO(review.review_date);
     
-    // Filter shifts for the same store
+    // Filter shifts for the same store using ONLY scheduled times
     const relevantShifts = shifts.filter(shift => {
       // Same store
       if (shift.store_id !== review.store_id) return false;
@@ -52,38 +52,33 @@ export default function AssignReviews() {
       // Exclude certain roles
       if (shift.employee_group_name === 'Preparazioni' || shift.employee_group_name === 'Volantinaggio') return false;
       
-      // Check if review time falls within shift time
-      if (!shift.actual_start || !shift.actual_end) {
-        // If no actual times, use scheduled times
-        if (!shift.scheduled_start || !shift.scheduled_end) return false;
-        
-        try {
-          const shiftStart = parseISO(shift.scheduled_start);
-          const shiftEnd = parseISO(shift.scheduled_end);
-          return isWithinInterval(reviewDate, { start: shiftStart, end: shiftEnd });
-        } catch (e) {
-          return false;
-        }
-      }
+      // Check if review time falls within SCHEDULED shift time
+      if (!shift.scheduled_start || !shift.scheduled_end) return false;
       
       try {
-        const shiftStart = parseISO(shift.actual_start);
-        const shiftEnd = parseISO(shift.actual_end);
+        const shiftStart = parseISO(shift.scheduled_start);
+        const shiftEnd = parseISO(shift.scheduled_end);
         return isWithinInterval(reviewDate, { start: shiftStart, end: shiftEnd });
       } catch (e) {
         return false;
       }
     });
 
-    // Calculate confidence based on number of matches
-    const confidence = relevantShifts.length === 1 ? 'high' : 
-                      relevantShifts.length === 2 ? 'medium' : 'low';
+    // Remove duplicates by employee_name
+    const uniqueEmployees = [];
+    const seenNames = new Set();
+    
+    for (const shift of relevantShifts) {
+      if (!seenNames.has(shift.employee_name)) {
+        seenNames.add(shift.employee_name);
+        uniqueEmployees.push({
+          employee_name: shift.employee_name,
+          shift
+        });
+      }
+    }
 
-    return relevantShifts.map(shift => ({
-      employee_name: shift.employee_name,
-      shift,
-      confidence
-    }));
+    return uniqueEmployees;
   };
 
   // Enriched reviews with matching employees
@@ -114,12 +109,12 @@ export default function AssignReviews() {
     withMatches: enrichedReviews.filter(r => r.hasMatches && !r.isAssigned).length
   };
 
-  const handleAssignReview = async (review, employeeName, confidence) => {
+  const handleAssignReview = async (review, employeeName) => {
     await updateReviewMutation.mutateAsync({
       reviewId: review.id,
       data: {
         employee_assigned_name: employeeName,
-        assignment_confidence: confidence
+        assignment_confidence: 'high'
       }
     });
   };
@@ -130,17 +125,15 @@ export default function AssignReviews() {
     const unassignedWithMatches = enrichedReviews.filter(r => !r.isAssigned && r.hasMatches);
     
     for (const review of unassignedWithMatches) {
-      if (review.matchingEmployees.length === 1) {
-        // Auto-assign if there's only one match (high confidence)
-        const match = review.matchingEmployees[0];
-        await updateReviewMutation.mutateAsync({
-          reviewId: review.id,
-          data: {
-            employee_assigned_name: match.employee_name,
-            assignment_confidence: 'high'
-          }
-        });
-      }
+      // Auto-assign to ALL matching employees (concatenated names)
+      const employeeNames = review.matchingEmployees.map(m => m.employee_name).join(', ');
+      await updateReviewMutation.mutateAsync({
+        reviewId: review.id,
+        data: {
+          employee_assigned_name: employeeNames,
+          assignment_confidence: review.matchingEmployees.length === 1 ? 'high' : 'medium'
+        }
+      });
     }
     
     setAutoAssigning(false);
@@ -225,7 +218,7 @@ export default function AssignReviews() {
           disabled={autoAssigning || stats.withMatches === 0}
           variant="primary"
         >
-          {autoAssigning ? 'Assegnazione...' : `Auto-Assegna (${stats.withMatches})`}
+          {autoAssigning ? 'Assegnazione...' : `Auto-Assegna Tutte (${stats.withMatches})`}
         </NeumorphicButton>
       </div>
 
@@ -263,10 +256,12 @@ export default function AssignReviews() {
                           <CheckCircle className="w-4 h-4 text-green-600" />
                           <span className="text-sm font-medium text-green-600">Assegnata</span>
                         </div>
-                        <p className="text-xs text-[#9b9b9b] mt-1">{review.employee_assigned_name}</p>
-                        <p className={`text-xs mt-1 ${getConfidenceColor(review.assignment_confidence)}`}>
-                          Confidenza: {review.assignment_confidence}
-                        </p>
+                        <p className="text-xs text-[#6b6b6b] mt-1 font-medium">{review.employee_assigned_name}</p>
+                        {review.assignment_confidence && (
+                          <p className={`text-xs mt-1 px-2 py-1 rounded ${getConfidenceColor(review.assignment_confidence)}`}>
+                            {review.assignment_confidence === 'high' ? '1 dipendente' : 'Più dipendenti'}
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -282,7 +277,7 @@ export default function AssignReviews() {
                 <div>
                   <h3 className="text-sm font-bold text-[#9b9b9b] mb-3 flex items-center gap-2">
                     <Users className="w-4 h-4" />
-                    Dipendenti in Turno
+                    Dipendenti in Turno ({review.matchingEmployees.length})
                   </h3>
                   
                   {review.hasMatches ? (
@@ -292,36 +287,41 @@ export default function AssignReviews() {
                           <div className="flex items-start justify-between mb-2">
                             <div>
                               <p className="font-medium text-[#6b6b6b] text-sm">{match.employee_name}</p>
-                              <p className="text-xs text-[#9b9b9b]">{match.shift.employee_group_name}</p>
+                              <p className="text-xs text-[#9b9b9b]">{match.shift.employee_group_name || 'N/A'}</p>
                             </div>
-                            <span className={`text-xs px-2 py-1 rounded ${getConfidenceColor(match.confidence)}`}>
-                              {match.confidence}
-                            </span>
                           </div>
                           
                           <div className="text-xs text-[#9b9b9b] mb-2">
                             <p>
-                              {match.shift.actual_start ? 
-                                `${format(parseISO(match.shift.actual_start), 'HH:mm')} - ${match.shift.actual_end ? format(parseISO(match.shift.actual_end), 'HH:mm') : '...'}`
-                                :
-                                `${format(parseISO(match.shift.scheduled_start), 'HH:mm')} - ${format(parseISO(match.shift.scheduled_end), 'HH:mm')}`
-                              }
+                              Turno: {format(parseISO(match.shift.scheduled_start), 'HH:mm')} - {format(parseISO(match.shift.scheduled_end), 'HH:mm')}
                             </p>
                             {match.shift.shift_type && (
-                              <p className="text-xs text-[#9b9b9b] mt-1">Tipo: {match.shift.shift_type}</p>
+                              <p className="mt-1">Tipo: {match.shift.shift_type}</p>
                             )}
                           </div>
 
                           {!review.isAssigned && (
                             <button
-                              onClick={() => handleAssignReview(review, match.employee_name, match.confidence)}
+                              onClick={() => handleAssignReview(review, match.employee_name)}
                               className="w-full neumorphic-flat px-3 py-2 rounded-lg text-xs text-[#6b6b6b] hover:text-[#8b7355] transition-colors mt-2"
                             >
-                              Assegna a {match.employee_name}
+                              Assegna solo a {match.employee_name}
                             </button>
                           )}
                         </div>
                       ))}
+                      
+                      {!review.isAssigned && review.matchingEmployees.length > 1 && (
+                        <button
+                          onClick={() => {
+                            const allNames = review.matchingEmployees.map(m => m.employee_name).join(', ');
+                            handleAssignReview(review, allNames);
+                          }}
+                          className="w-full neumorphic-flat px-3 py-2 rounded-lg text-xs text-white bg-[#8b7355] hover:bg-[#6b5335] transition-colors mt-2"
+                        >
+                          Assegna a tutti ({review.matchingEmployees.length})
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <div className="neumorphic-pressed p-4 rounded-lg text-center">
@@ -349,11 +349,12 @@ export default function AssignReviews() {
           <div className="text-sm text-blue-800">
             <p className="font-bold mb-2">Come funziona l'assegnazione:</p>
             <ul className="space-y-1 ml-4">
-              <li>• Le recensioni vengono assegnate ai dipendenti in base all'orario del turno</li>
+              <li>• Le recensioni vengono assegnate a TUTTI i dipendenti in turno al momento della recensione</li>
+              <li>• Utilizza gli orari <strong>programmati</strong> (scheduled_start e scheduled_end)</li>
               <li>• Vengono esclusi automaticamente i turni di tipo "Ferie" e "Malattia (Certificato)"</li>
               <li>• Vengono esclusi i ruoli "Preparazioni" e "Volantinaggio"</li>
-              <li>• Se più dipendenti erano in turno, puoi scegliere manualmente chi assegnare</li>
-              <li>• L'auto-assegnazione funziona solo per recensioni con un unico match (alta confidenza)</li>
+              <li>• Se più dipendenti erano in turno, vengono assegnati tutti oppure puoi scegliere manualmente</li>
+              <li>• L'auto-assegnazione assegna automaticamente tutti i dipendenti trovati in turno</li>
             </ul>
           </div>
         </div>
