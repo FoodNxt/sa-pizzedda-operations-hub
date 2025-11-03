@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -46,8 +47,14 @@ export default function AssignReviews() {
       // Same store
       if (shift.store_id !== review.store_id) return false;
       
-      // Exclude certain shift types
-      if (shift.shift_type === 'Malattia (Certificato)' || shift.shift_type === 'Ferie') return false;
+      // Exclude certain shift types - UPDATED to include all absence types
+      const excludedTypes = [
+        'Malattia (Certificato)', 
+        'Malattia (No Certificato)',
+        'Ferie',
+        'Assenza non retribuita'
+      ];
+      if (excludedTypes.includes(shift.shift_type)) return false;
       
       // Exclude certain roles
       if (shift.employee_group_name === 'Preparazioni' || shift.employee_group_name === 'Volantinaggio') return false;
@@ -64,7 +71,7 @@ export default function AssignReviews() {
       }
     });
 
-    // Remove duplicates by employee name
+    // Remove duplicates by employee name - keep only first occurrence
     const uniqueEmployees = [];
     const seenNames = new Set();
     
@@ -78,7 +85,7 @@ export default function AssignReviews() {
       }
     }
 
-    // Calculate confidence based on number of matches
+    // Calculate confidence based on number of unique employees
     const confidence = uniqueEmployees.length === 1 ? 'high' : 
                       uniqueEmployees.length === 2 ? 'medium' : 'low';
 
@@ -117,7 +124,7 @@ export default function AssignReviews() {
   };
 
   const handleAssignReview = async (review, employeeNames) => {
-    // If single employee, assign directly
+    // Ensure employeeNames is an array
     if (typeof employeeNames === 'string') {
       employeeNames = [employeeNames];
     }
@@ -270,14 +277,14 @@ export default function AssignReviews() {
 
                     {review.isAssigned && (
                       <div className="neumorphic-flat px-4 py-2 rounded-lg">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 mb-1">
                           <CheckCircle className="w-4 h-4 text-green-600" />
                           <span className="text-sm font-medium text-green-600">Assegnata</span>
                         </div>
-                        <p className="text-xs text-[#9b9b9b] mt-1">{review.employee_assigned_name}</p>
+                        <p className="text-xs text-[#6b6b6b] font-medium">{review.employee_assigned_name}</p>
                         {review.assignment_confidence && (
-                          <p className={`text-xs mt-1 px-2 py-1 rounded ${getConfidenceColor(review.assignment_confidence)}`}>
-                            Confidenza: {review.assignment_confidence}
+                          <p className={`text-xs mt-1 px-2 py-1 rounded inline-block ${getConfidenceColor(review.assignment_confidence)}`}>
+                            {review.assignment_confidence}
                           </p>
                         )}
                       </div>
@@ -301,23 +308,18 @@ export default function AssignReviews() {
                   {review.hasMatches ? (
                     <div className="space-y-2">
                       {review.matchingEmployees.map((match, idx) => (
-                        <div key={idx} className="neumorphic-flat p-3 rounded-lg">
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
-                              <p className="font-medium text-[#6b6b6b] text-sm">{match.employee_name}</p>
-                              <p className="text-xs text-[#9b9b9b]">{match.shift.employee_group_name}</p>
-                            </div>
-                            <span className={`text-xs px-2 py-1 rounded ${getConfidenceColor(match.confidence)}`}>
-                              {match.confidence}
-                            </span>
+                        <div key={`${match.employee_name}-${idx}`} className="neumorphic-flat p-3 rounded-lg">
+                          <div className="mb-2">
+                            <p className="font-medium text-[#6b6b6b] text-sm">{match.employee_name}</p>
+                            <p className="text-xs text-[#9b9b9b]">{match.shift.employee_group_name || 'N/A'}</p>
                           </div>
                           
-                          <div className="text-xs text-[#9b9b9b] mb-2">
+                          <div className="text-xs text-[#9b9b9b] space-y-1">
                             <p>
-                              {format(parseISO(match.shift.scheduled_start), 'HH:mm')} - {format(parseISO(match.shift.scheduled_end), 'HH:mm')}
+                              Turno: {format(parseISO(match.shift.scheduled_start), 'HH:mm')} - {format(parseISO(match.shift.scheduled_end), 'HH:mm')}
                             </p>
                             {match.shift.shift_type && (
-                              <p className="text-xs text-[#9b9b9b] mt-1">Tipo: {match.shift.shift_type}</p>
+                              <p>Tipo: {match.shift.shift_type}</p>
                             )}
                           </div>
                         </div>
@@ -326,7 +328,7 @@ export default function AssignReviews() {
                       {!review.isAssigned && (
                         <button
                           onClick={() => handleAssignReview(review, review.matchingEmployees.map(m => m.employee_name))}
-                          className="w-full neumorphic-flat px-3 py-2 rounded-lg text-xs text-[#6b6b6b] hover:text-[#8b7355] transition-colors mt-2 font-medium"
+                          className="w-full neumorphic-flat px-3 py-2 rounded-lg text-xs font-medium text-[#6b6b6b] hover:bg-[#8b7355] hover:text-white transition-all mt-2"
                         >
                           Assegna a {review.matchingEmployees.length === 1 ? review.matchingEmployees[0].employee_name : `tutti (${review.matchingEmployees.length})`}
                         </button>
@@ -359,9 +361,10 @@ export default function AssignReviews() {
             <p className="font-bold mb-2">Come funziona l'assegnazione:</p>
             <ul className="space-y-1 ml-4">
               <li>• Le recensioni vengono assegnate automaticamente a TUTTI i dipendenti in turno nell'orario della recensione</li>
-              <li>• Viene utilizzato l'orario pianificato (scheduled_start e scheduled_end) per identificare i turni</li>
-              <li>• Vengono esclusi automaticamente i turni di tipo "Ferie" e "Malattia (Certificato)"</li>
-              <li>• Vengono esclusi i ruoli "Preparazioni" e "Volantinaggio"</li>
+              <li>• Viene utilizzato l'orario pianificato (scheduled_start e scheduled_end)</li>
+              <li>• Vengono esclusi: "Ferie", "Malattia (Certificato)", "Malattia (No Certificato)", "Assenza non retribuita"</li>
+              <li>• Vengono esclusi i ruoli: "Preparazioni" e "Volantinaggio"</li>
+              <li>• Se lo stesso dipendente ha più turni sovrapposti, viene contato una sola volta</li>
               <li>• Confidenza alta: 1 dipendente | Media: 2 dipendenti | Bassa: 3+ dipendenti</li>
             </ul>
           </div>
