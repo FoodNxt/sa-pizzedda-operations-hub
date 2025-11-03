@@ -18,9 +18,11 @@ export default function ZapierSetup() {
   });
 
   useEffect(() => {
-    // Get the webhook URL dynamically
+    // Get the webhook URL dynamically - FIX: remove page path
     const baseUrl = window.location.origin;
-    const appPath = window.location.pathname.split('/').slice(0, 2).join('/');
+    // Get only the app base path (first segment after origin)
+    const pathSegments = window.location.pathname.split('/').filter(Boolean);
+    const appPath = pathSegments.length > 0 ? `/${pathSegments[0]}` : '';
     setWebhookUrl(`${baseUrl}${appPath}/api/functions/importReviewFromZapier`);
   }, []);
 
@@ -404,9 +406,9 @@ export default function ZapierSetup() {
         <div className="flex items-start gap-3 mb-4">
           <AlertCircle className="w-6 h-6 text-yellow-700" />
           <div>
-            <h3 className="font-bold text-yellow-800 mb-2">Risoluzione Errore 404</h3>
+            <h3 className="font-bold text-yellow-800 mb-2">Risoluzione Errore 404 / Connection Error</h3>
             <p className="text-yellow-700 mb-3">
-              Se ottieni un errore 404, verifica queste impostazioni:
+              Se ottieni un errore 404 o errore di connessione, verifica queste impostazioni:
             </p>
             <ol className="space-y-2 text-yellow-700">
               <li className="flex items-start gap-2">
@@ -419,11 +421,15 @@ export default function ZapierSetup() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="font-bold">3.</span>
-                <span><strong>URL</strong> deve essere esattamente quello copiato da questa pagina</span>
+                <span><strong>URL</strong> deve essere esattamente quello copiato da questa pagina (senza path extra)</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="font-bold">4.</span>
                 <span><strong>Wrap Request In Array</strong> deve essere <code className="bg-yellow-200 px-2 py-1 rounded">No</code></span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="font-bold">5.</span>
+                <span>Prova prima il pulsante <strong>"Testa Webhook"</strong> qui sopra per verificare che funzioni</span>
               </li>
             </ol>
           </div>
