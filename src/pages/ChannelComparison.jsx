@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -64,7 +65,7 @@ export default function ChannelComparison() {
 
     const calculateMetrics = (orders) => {
       const totalRevenue = orders.reduce((sum, item) => 
-        sum + (item.finalPriceWithSessionDiscountsAndSurcharges || item.finalPrice || 0), 0
+        sum + (item.finalPriceWithSessionDiscountsAndSurcharges || 0), 0
       );
       const totalOrders = orders.length;
       const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;

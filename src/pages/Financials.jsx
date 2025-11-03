@@ -69,7 +69,7 @@ export default function Financials() {
 
     // Calculate totals
     const totalRevenue = filtered.reduce((sum, item) => 
-      sum + (item.finalPriceWithSessionDiscountsAndSurcharges || item.finalPrice || 0), 0
+      sum + (item.finalPriceWithSessionDiscountsAndSurcharges || 0), 0
     );
     
     const totalOrders = filtered.length;
@@ -83,7 +83,7 @@ export default function Financials() {
         if (!revenueByDate[date]) {
           revenueByDate[date] = { date, revenue: 0, orders: 0 };
         }
-        revenueByDate[date].revenue += item.finalPriceWithSessionDiscountsAndSurcharges || item.finalPrice || 0;
+        revenueByDate[date].revenue += item.finalPriceWithSessionDiscountsAndSurcharges || 0;
         revenueByDate[date].orders += 1;
       }
     });
@@ -104,7 +104,7 @@ export default function Financials() {
       if (!revenueByStore[storeName]) {
         revenueByStore[storeName] = { name: storeName, revenue: 0, orders: 0 };
       }
-      revenueByStore[storeName].revenue += item.finalPriceWithSessionDiscountsAndSurcharges || item.finalPrice || 0;
+      revenueByStore[storeName].revenue += item.finalPriceWithSessionDiscountsAndSurcharges || 0;
       revenueByStore[storeName].orders += 1;
     });
 
@@ -124,7 +124,7 @@ export default function Financials() {
       if (!revenueByChannel[channel]) {
         revenueByChannel[channel] = { name: channel, value: 0, orders: 0 };
       }
-      revenueByChannel[channel].value += item.finalPriceWithSessionDiscountsAndSurcharges || item.finalPrice || 0;
+      revenueByChannel[channel].value += item.finalPriceWithSessionDiscountsAndSurcharges || 0;
       revenueByChannel[channel].orders += 1;
     });
 
@@ -144,7 +144,7 @@ export default function Financials() {
         if (!revenueByApp[app]) {
           revenueByApp[app] = { name: app, value: 0, orders: 0 };
         }
-        revenueByApp[app].value += item.finalPriceWithSessionDiscountsAndSurcharges || item.finalPrice || 0;
+        revenueByApp[app].value += item.finalPriceWithSessionDiscountsAndSurcharges || 0;
         revenueByApp[app].orders += 1;
       }
     });
