@@ -19,12 +19,9 @@ export default function ZapierSetup() {
   });
 
   useEffect(() => {
-    // Get the webhook URL dynamically - FIX: remove page path
+    // FIXED: Backend functions are at root level, not under app path
     const baseUrl = window.location.origin;
-    // Get only the app base path (first segment after origin)
-    const pathSegments = window.location.pathname.split('/').filter(Boolean);
-    const appPath = pathSegments.length > 0 ? `/${pathSegments[0]}` : '';
-    setWebhookUrl(`${baseUrl}${appPath}/api/functions/importReviewFromZapier`);
+    setWebhookUrl(`${baseUrl}/api/functions/importReviewFromZapier`);
   }, []);
 
   const copyToClipboard = () => {
