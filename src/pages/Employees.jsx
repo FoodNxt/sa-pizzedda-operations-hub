@@ -92,10 +92,13 @@ export default function Employees() {
         : 0;
 
       // Shift metrics
-      const employeeShifts = shifts.filter(s => s.employee_id === employee.id);
-      const totalLateMinutes = employeeShifts.reduce((sum, s) => sum + (s.late_minutes || 0), 0);
-      const totalEarlyDepartures = employeeShifts.reduce((sum, s) => sum + (s.early_departure_minutes || 0), 0);
+      const employeeShifts = shifts.filter(s => s.employee_name === employee.full_name);
+      const totalLateMinutes = employeeShifts.reduce((sum, s) => sum + (s.minuti_di_ritardo || 0), 0);
       const avgLateMinutes = employeeShifts.length > 0 ? totalLateMinutes / employeeShifts.length : 0;
+      
+      // Calcolo ritardi
+      const numeroRitardi = employeeShifts.filter(s => s.ritardo === true).length;
+      const percentualeRitardi = employeeShifts.length > 0 ? (numeroRitardi / employeeShifts.length) * 100 : 0;
 
       // Review mentions (filtered by date)
       const mentions = filteredReviews.filter(r => r.employee_mentioned === employee.id);
@@ -119,7 +122,7 @@ export default function Employees() {
       let performanceScore = 100;
       performanceScore -= wrongOrderRate * 2; // Penalty for wrong orders
       performanceScore -= avgLateMinutes * 0.5; // Penalty for lateness
-      performanceScore -= (totalEarlyDepartures / (employeeShifts.length || 1)) * 0.3;
+      performanceScore -= percentualeRitardi * 0.3; // Penalty for delay percentage
       performanceScore += positiveMentions * 2; // Bonus for positive mentions
       performanceScore -= negativeMentions * 3; // Penalty for negative mentions
       performanceScore += (avgSatisfaction - 3) * 5; // Bonus/penalty based on satisfaction
@@ -139,6 +142,8 @@ export default function Employees() {
         avgSatisfaction,
         totalLateMinutes,
         avgLateMinutes,
+        numeroRitardi,
+        percentualeRitardi,
         mentions: mentions.length,
         positiveMentions,
         negativeMentions,
@@ -179,6 +184,14 @@ export default function Employees() {
         case 'lateness':
           valueA = a.avgLateMinutes;
           valueB = b.avgLateMinutes;
+          break;
+        case 'numeroRitardi':
+          valueA = a.numeroRitardi;
+          valueB = b.numeroRitardi;
+          break;
+        case 'percentualeRitardi':
+          valueA = a.percentualeRitardi;
+          valueB = b.percentualeRitardi;
           break;
         case 'satisfaction':
           valueA = a.avgSatisfaction;
@@ -398,6 +411,28 @@ export default function Employees() {
                 </th>
                 <th 
                   className="text-center p-3 text-[#9b9b9b] font-medium cursor-pointer hover:text-[#6b6b6b]"
+                  onClick={() => toggleSort('numeroRitardi')}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    N° Ritardi
+                    {sortBy === 'numeroRitardi' && (
+                      sortOrder === 'desc' ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />
+                    )}
+                  </div>
+                </th>
+                <th 
+                  className="text-center p-3 text-[#9b9b9b] font-medium cursor-pointer hover:text-[#6b6b6b]"
+                  onClick={() => toggleSort('percentualeRitardi')}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    % Ritardi
+                    {sortBy === 'percentualeRitardi' && (
+                      sortOrder === 'desc' ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />
+                    )}
+                  </div>
+                </th>
+                <th 
+                  className="text-center p-3 text-[#9b9b9b] font-medium cursor-pointer hover:text-[#6b6b6b]"
                   onClick={() => toggleSort('satisfaction')}
                 >
                   <div className="flex items-center justify-center gap-1">
@@ -498,6 +533,31 @@ export default function Employees() {
                       </div>
                     </td>
                     <td className="p-3 text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        <span className={`text-lg font-bold ${
+                          employee.numeroRitardi > 10 ? 'text-red-600' : 
+                          employee.numeroRitardi > 5 ? 'text-yellow-600' : 
+                          'text-green-600'
+                        }`}>
+                          {employee.numeroRitardi}
+                        </span>
+                        <span className="text-xs text-[#9b9b9b]">
+                          su {employee.totalShifts} turni
+                        </span>
+                      </div>
+                    </td>
+                    <td className="p-3 text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        <span className={`text-lg font-bold ${
+                          employee.percentualeRitardi > 20 ? 'text-red-600' : 
+                          employee.percentualeRitardi > 10 ? 'text-yellow-600' : 
+                          'text-green-600'
+                        }`}>
+                          {employee.percentualeRitardi.toFixed(1)}%
+                        </span>
+                      </div>
+                    </td>
+                    <td className="p-3 text-center">
                       <div className="flex items-center justify-center gap-1">
                         {employee.avgSatisfaction > 0 ? (
                           <>
@@ -526,7 +586,7 @@ export default function Employees() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="9" className="p-8 text-center text-[#9b9b9b]">
+                  <td colSpan="11" className="p-8 text-center text-[#9b9b9b]">
                     No employees found matching the filters
                   </td>
                 </tr>
@@ -611,7 +671,7 @@ export default function Employees() {
               <div className="neumorphic-flat p-4 rounded-xl">
                 <div className="flex items-center gap-3 mb-3">
                   <Clock className="w-5 h-5 text-[#8b7355]" />
-                  <h3 className="font-bold text-[#6b6b6b]">Attendance</h3>
+                  <h3 className="font-bold text-[#6b6b6b]">Attendance & Ritardi</h3>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -622,6 +682,18 @@ export default function Employees() {
                     <p className="text-sm text-[#9b9b9b]">Avg Lateness</p>
                     <p className="text-xl font-bold text-[#6b6b6b]">
                       {selectedEmployee.avgLateMinutes.toFixed(1)} min
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-[#9b9b9b]">Numero Ritardi</p>
+                    <p className="text-xl font-bold text-red-600">
+                      {selectedEmployee.numeroRitardi}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-[#9b9b9b]">% Ritardi</p>
+                    <p className="text-xl font-bold text-red-600">
+                      {selectedEmployee.percentualeRitardi.toFixed(1)}%
                     </p>
                   </div>
                 </div>
