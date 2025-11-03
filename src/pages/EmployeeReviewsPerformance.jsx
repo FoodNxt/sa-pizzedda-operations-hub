@@ -1,7 +1,8 @@
+
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Star, TrendingUp, TrendingDown, Award, Users, Calendar, MapPin } from 'lucide-react';
+import { Star, TrendingUp, TrendingDown, Award, Users, Calendar, MapPin, AlertCircle } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { format, parseISO, isWithinInterval } from 'date-fns';
 
@@ -49,18 +50,22 @@ export default function EmployeeReviewsPerformance() {
       filteredReviews = filteredReviews.filter(r => r.store_id === selectedStore);
     }
 
-    // Group by employee
+    // Group by employee - FIXED: use a Set to track which reviews we've already counted per employee
     const employeeMap = new Map();
 
     filteredReviews.forEach(review => {
       // Split employee names (in case multiple employees assigned to same review)
       const employeeNames = review.employee_assigned_name.split(',').map(n => n.trim());
+      
+      // Remove duplicates from the employee names list for THIS review
+      const uniqueEmployeeNames = [...new Set(employeeNames)];
 
-      employeeNames.forEach(employeeName => {
+      uniqueEmployeeNames.forEach(employeeName => {
         if (!employeeMap.has(employeeName)) {
           employeeMap.set(employeeName, {
             name: employeeName,
             reviews: [],
+            reviewIds: new Set(), // Track review IDs to prevent double counting
             totalReviews: 0,
             avgRating: 0,
             ratings: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
@@ -71,13 +76,18 @@ export default function EmployeeReviewsPerformance() {
         }
 
         const emp = employeeMap.get(employeeName);
-        emp.reviews.push(review);
-        emp.totalReviews++;
-        emp.ratings[review.rating]++;
-        emp.stores.add(review.store_id);
         
-        if (review.rating >= 4) emp.positiveReviews++;
-        if (review.rating < 3) emp.negativeReviews++;
+        // Only count this review if we haven't already counted it for this employee
+        if (!emp.reviewIds.has(review.id)) {
+          emp.reviewIds.add(review.id);
+          emp.reviews.push(review);
+          emp.totalReviews++;
+          emp.ratings[review.rating]++;
+          emp.stores.add(review.store_id);
+          
+          if (review.rating >= 4) emp.positiveReviews++;
+          if (review.rating < 3) emp.negativeReviews++;
+        }
       });
     });
 
@@ -87,6 +97,8 @@ export default function EmployeeReviewsPerformance() {
       emp.avgRating = emp.totalReviews > 0 ? totalRating / emp.totalReviews : 0;
       emp.positiveRate = emp.totalReviews > 0 ? (emp.positiveReviews / emp.totalReviews) * 100 : 0;
       emp.storeCount = emp.stores.size;
+      // Remove reviewIds from final object (we don't need it in the UI)
+      delete emp.reviewIds;
       return emp;
     });
 
@@ -130,6 +142,20 @@ export default function EmployeeReviewsPerformance() {
         <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Performance Recensioni Dipendenti</h1>
         <p className="text-[#9b9b9b]">Analisi delle recensioni assegnate ai dipendenti</p>
       </div>
+
+      {/* Info about duplicates */}
+      <NeumorphicCard className="p-4 bg-blue-50">
+        <div className="flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-1" />
+          <div className="text-sm text-blue-800">
+            <p className="font-bold mb-1">ℹ️ Nota sulle Assegnazioni</p>
+            <p>
+              Questa pagina mostra le performance dei dipendenti basate sulle recensioni assegnate. 
+              Ogni recensione viene contata <strong>una sola volta per dipendente</strong>, anche se lo stesso dipendente appare più volte nella stessa assegnazione.
+            </p>
+          </div>
+        </div>
+      </NeumorphicCard>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-6">
