@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -38,6 +39,7 @@ export default function Shifts() {
     if (dateFilter === 'today' && daysDiff !== 0) return false;
     if (dateFilter === 'week' && daysDiff > 7) return false;
     if (dateFilter === 'month' && daysDiff > 30) return false;
+    if (dateFilter === 'all') return true; // Keep all shifts for 'all' date filter
     
     return true;
   });
@@ -45,19 +47,19 @@ export default function Shifts() {
   const getStatusColor = (shift) => {
     if (!shift.actual_start) return 'text-gray-400';
     if (!shift.actual_end) return 'text-blue-600';
-    return shift.approved ? 'text-green-600' : 'text-yellow-600';
+    return 'text-green-600';
   };
 
   const getStatusIcon = (shift) => {
     if (!shift.actual_start) return <XCircle className="w-5 h-5" />;
     if (!shift.actual_end) return <Clock className="w-5 h-5" />;
-    return shift.approved ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />;
+    return <CheckCircle className="w-5 h-5" />;
   };
 
   const getStatusText = (shift) => {
     if (!shift.actual_start) return 'Non timbrato';
     if (!shift.actual_end) return 'In corso';
-    return shift.approved ? 'Approvato' : 'Da approvare';
+    return 'Completato';
   };
 
   return (
@@ -118,9 +120,9 @@ export default function Shifts() {
         </NeumorphicCard>
 
         <NeumorphicCard className="p-6 text-center">
-          <p className="text-sm text-[#9b9b9b] mb-2">Approvati</p>
+          <p className="text-sm text-[#9b9b9b] mb-2">Completati</p>
           <p className="text-3xl font-bold text-green-600">
-            {filteredShifts.filter(s => s.approved).length}
+            {filteredShifts.filter(s => s.actual_start && s.actual_end).length}
           </p>
         </NeumorphicCard>
 
@@ -151,8 +153,8 @@ export default function Shifts() {
                 <th className="text-left p-3 text-[#9b9b9b] font-medium">Locale</th>
                 <th className="text-left p-3 text-[#9b9b9b] font-medium">Store ID</th>
                 <th className="text-left p-3 text-[#9b9b9b] font-medium">Orario</th>
-                <th className="text-center p-3 text-[#9b9b9b] font-medium">Tipo</th>
                 <th className="text-center p-3 text-[#9b9b9b] font-medium">Ruolo</th>
+                <th className="text-center p-3 text-[#9b9b9b] font-medium">Tipo Turno</th>
                 <th className="text-center p-3 text-[#9b9b9b] font-medium">Stato</th>
               </tr>
             </thead>
@@ -189,13 +191,13 @@ export default function Shifts() {
                       )}
                     </td>
                     <td className="p-3 text-center">
-                      <span className="neumorphic-flat px-3 py-1 rounded-lg text-xs text-[#6b6b6b]">
-                        {shift.employee_group || 'N/A'}
+                      <span className="text-sm text-[#6b6b6b]">
+                        {shift.employee_group_name || '-'}
                       </span>
                     </td>
                     <td className="p-3 text-center">
                       <span className="text-sm text-[#6b6b6b]">
-                        {shift.employee_group_name || '-'}
+                        {shift.shift_type || '-'}
                       </span>
                     </td>
                     <td className="p-3">

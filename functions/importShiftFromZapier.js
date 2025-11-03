@@ -77,12 +77,8 @@ Deno.serve(async (req) => {
             actual_start: body.timeclock_start ? parseDateTime(body.timeclock_start) : null,
             actual_end: body.timeclock_end ? parseDateTime(body.timeclock_end) : null,
             actual_minutes: body.timeclock_minutes ? parseInt(body.timeclock_minutes) : null,
-            notes: body.note || '',
             shift_type: body.timesheet_type_name || '',
-            employee_group: body.employee_group || null,
-            employee_group_name: body.employee_group_name || null,
-            function_name: body.function_name || null,
-            approved: body.timesheet_approved === '1' || body.timesheet_approved === 1
+            employee_group_name: body.employee_group_name || null
         };
 
         const shift = await base44.asServiceRole.entities.Shift.create(shiftData);

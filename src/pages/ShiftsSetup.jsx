@@ -74,10 +74,7 @@ export default function ShiftsSetup() {
         timeclock_end: '01/12/2025 15:05',
         timeclock_minutes: 340,
         timesheet_type_name: 'Test',
-        employee_group: 'FT',
-        employee_group_name: 'Full Time',
-        note: 'Test turno da Shifts Setup',
-        timesheet_approved: 1
+        employee_group_name: 'Pizzaiolo' // Changed from 'Full Time' and removed employee_group: 'FT'
       });
 
       if (response.data.error) {
@@ -323,12 +320,8 @@ export default function ShiftsSetup() {
                 { name: 'timeclock_end', desc: 'Colonna "TimeclockEnd"', required: false },
                 { name: 'timeclock_minutes', desc: 'Colonna "TimeclockMinutes"', required: false },
                 { name: 'timesheet_type_name', desc: 'Colonna "TimesheetTypeName"', required: false },
-                { name: 'employee_group', desc: 'Colonna "EmployeeSalaryId" (FT/PT/CM)', required: false },
                 { name: 'employee_group_name', desc: 'Colonna "EmployeeGroupName"', required: false },
-                { name: 'function_name', desc: 'Colonna "FunctionName" (Pizzaiolo, Cassiere...)', required: false },
-                { name: 'note', desc: 'Colonna "Note"', required: false },
-                { name: 'timesheet_approved', desc: 'Colonna "TimesheetApproved"', required: false },
-                { name: 'external_id', desc: 'Colonna "Id" (ID esterno)', required: false }
+                { name: 'employee_id', desc: 'Colonna "EmployeeId" (ID esterno)', required: false } // Replaced external_id with employee_id and removed others
               ]
             },
             {
