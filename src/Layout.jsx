@@ -50,9 +50,20 @@ const navigationStructure = [
   },
   {
     title: "Financials",
-    url: createPageUrl("Financials"),
     icon: DollarSign,
-    type: "link"
+    type: "section",
+    items: [
+      {
+        title: "Financials",
+        url: createPageUrl("Financials"),
+        icon: DollarSign,
+      },
+      {
+        title: "Channel Comparison",
+        url: createPageUrl("ChannelComparison"),
+        icon: BarChart3,
+      }
+    ]
   },
   {
     title: "People",
@@ -100,7 +111,7 @@ export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
     "Reviews": true,
-    "Financials": true, // Added Financials to expandedSections
+    "Financials": true,
     "People": true,
     "Zapier Guide": true
   });
