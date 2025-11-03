@@ -1,5 +1,4 @@
-
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { DollarSign, TrendingUp, TrendingDown, PieChart as PieChartIcon, BarChart3 } from 'lucide-react';
@@ -36,7 +35,7 @@ export default function Financials() {
 
     // Calculate totals
     const totalRevenue = filtered.reduce((sum, f) => sum + (f.revenue || 0), 0);
-    const totalCosts = filtered.reduce((sum, f => 
+    const totalCosts = filtered.reduce((sum, f) => 
       sum + (f.cost_ingredients || 0) + (f.cost_labor || 0) + (f.cost_overhead || 0), 0
     );
     const totalProfit = totalRevenue - totalCosts;
