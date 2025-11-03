@@ -1,36 +1,61 @@
 import { createClient } from 'npm:@base44/sdk@0.7.1';
 
 Deno.serve(async (req) => {
+    // Wrap everything to ensure we always return JSON
     try {
-        // Parse request body
-        const body = await req.json();
+        // Parse request body with error handling
+        let body;
+        try {
+            const text = await req.text();
+            body = JSON.parse(text);
+        } catch (parseError) {
+            return Response.json({ 
+                error: 'Invalid JSON in request body',
+                details: parseError.message 
+            }, { status: 400 });
+        }
         
         // Validate webhook secret
         const providedSecret = body.secret;
         const expectedSecret = Deno.env.get('ZAPIER_WEBHOOK_SECRET');
         
+        if (!expectedSecret) {
+            return Response.json({ 
+                error: 'Server configuration error: ZAPIER_WEBHOOK_SECRET not set' 
+            }, { status: 500 });
+        }
+        
         if (!providedSecret || providedSecret !== expectedSecret) {
             return Response.json({ 
-                error: 'Unauthorized: Invalid or missing webhook secret' 
+                error: 'Unauthorized: Invalid or missing webhook secret',
+                hint: 'Make sure the "secret" field matches your ZAPIER_WEBHOOK_SECRET'
             }, { status: 401 });
         }
         
         // Initialize Base44 client with service role (admin access)
-        const base44 = createClient(
-            Deno.env.get('BASE44_APP_ID'),
-            Deno.env.get('BASE44_SERVICE_ROLE_KEY')
-        );
+        const appId = Deno.env.get('BASE44_APP_ID');
+        const serviceKey = Deno.env.get('BASE44_SERVICE_ROLE_KEY');
+        
+        if (!appId || !serviceKey) {
+            return Response.json({ 
+                error: 'Server configuration error: Missing BASE44 credentials' 
+            }, { status: 500 });
+        }
+        
+        const base44 = createClient(appId, serviceKey);
         
         // Validate required fields
         if (!body.nome_locale) {
             return Response.json({ 
-                error: 'Campo obbligatorio mancante: nome_locale' 
+                error: 'Campo obbligatorio mancante: nome_locale',
+                received_fields: Object.keys(body)
             }, { status: 400 });
         }
 
         if (!body.voto) {
             return Response.json({ 
-                error: 'Campo obbligatorio mancante: voto' 
+                error: 'Campo obbligatorio mancante: voto',
+                received_fields: Object.keys(body)
             }, { status: 400 });
         }
 
@@ -40,10 +65,11 @@ Deno.serve(async (req) => {
         });
 
         if (!stores || stores.length === 0) {
+            const allStores = await base44.entities.Store.list();
             return Response.json({ 
-                error: `Locale non trovato: ${body.nome_locale}. Verifica che il nome sia esatto.`,
-                available_stores: await base44.entities.Store.list()
-                    .then(s => s.map(store => store.name))
+                error: `Locale non trovato: "${body.nome_locale}". Verifica che il nome sia esatto (maiuscole/minuscole).`,
+                available_stores: allStores.map(s => s.name),
+                received: body.nome_locale
             }, { status: 404 });
         }
 
@@ -117,7 +143,8 @@ Deno.serve(async (req) => {
         console.error('Error importing review:', error);
         return Response.json({ 
             error: 'Errore durante l\'importazione della recensione',
-            details: error.message 
+            details: error.message,
+            stack: error.stack
         }, { status: 500 });
     }
 });
