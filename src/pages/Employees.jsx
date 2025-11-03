@@ -227,7 +227,7 @@ export default function Employees() {
           valueA = a.performanceScore;
           valueB = b.performanceScore;
       }
-      return sortOrder === 'desc' ? valueB - valueA : valueA - b.valueB;
+      return sortOrder === 'desc' ? valueB - valueA : valueA - valueB;
     });
 
     return filtered;
@@ -260,6 +260,26 @@ export default function Employees() {
       setSortBy(field);
       setSortOrder('desc');
     }
+  };
+
+  // Get latest late shifts for selected employee
+  const getLatestLateShifts = (employeeName) => {
+    return shifts
+      .filter(s => s.employee_name === employeeName && s.ritardo === true && s.shift_date)
+      .sort((a, b) => new Date(b.shift_date) - new Date(a.shift_date))
+      .slice(0, 3);
+  };
+
+  // Get latest Google reviews for selected employee
+  const getLatestGoogleReviews = (employeeName) => {
+    return reviews
+      .filter(r => {
+        if (!r.employee_assigned_name || r.source !== 'google' || !r.review_date) return false;
+        const assignedNames = r.employee_assigned_name.split(',').map(n => n.trim().toLowerCase());
+        return assignedNames.includes(employeeName.toLowerCase());
+      })
+      .sort((a, b) => new Date(b.review_date) - new Date(a.review_date))
+      .slice(0, 3);
   };
 
   return (
@@ -694,6 +714,88 @@ export default function Employees() {
                     </p>
                   </div>
                 </div>
+              </div>
+
+              {/* Ultimi Turni in Ritardo */}
+              <div className="neumorphic-flat p-4 rounded-xl">
+                <div className="flex items-center gap-3 mb-3">
+                  <AlertCircle className="w-5 h-5 text-red-600" />
+                  <h3 className="font-bold text-[#6b6b6b]">Ultimi 3 Turni in Ritardo</h3>
+                </div>
+                {(() => {
+                  const lateShifts = getLatestLateShifts(selectedEmployee.full_name);
+                  return lateShifts.length > 0 ? (
+                    <div className="space-y-2">
+                      {lateShifts.map((shift) => (
+                        <div key={shift.id} className="neumorphic-pressed p-3 rounded-lg">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm font-medium text-[#6b6b6b]">
+                              {new Date(shift.shift_date).toLocaleDateString('it-IT')} - {shift.store_name}
+                            </span>
+                            <span className="text-sm font-bold text-red-600">
+                              +{shift.minuti_di_ritardo} min
+                            </span>
+                          </div>
+                          <div className="text-xs text-[#9b9b9b]">
+                            Previsto: {shift.scheduled_start ? new Date(shift.scheduled_start).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                            {' → '}
+                            Effettivo: {shift.actual_start ? new Date(shift.actual_start).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-[#9b9b9b] text-center py-2">
+                      Nessun ritardo registrato 🎉
+                    </p>
+                  );
+                })()}
+              </div>
+
+              {/* Ultime Recensioni Google */}
+              <div className="neumorphic-flat p-4 rounded-xl">
+                <div className="flex items-center gap-3 mb-3">
+                  <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+                  <h3 className="font-bold text-[#6b6b6b]">Ultime 3 Recensioni Google Maps</h3>
+                </div>
+                {(() => {
+                  const googleReviews = getLatestGoogleReviews(selectedEmployee.full_name);
+                  return googleReviews.length > 0 ? (
+                    <div className="space-y-2">
+                      {googleReviews.map((review) => (
+                        <div key={review.id} className="neumorphic-pressed p-3 rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-[#6b6b6b]">
+                              {review.customer_name || 'Anonimo'}
+                            </span>
+                            <div className="flex items-center gap-1">
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`w-3 h-3 ${
+                                    i < review.rating
+                                      ? 'text-yellow-500 fill-yellow-500'
+                                      : 'text-gray-300'
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          {review.comment && (
+                            <p className="text-xs text-[#6b6b6b] mb-1">{review.comment}</p>
+                          )}
+                          <p className="text-xs text-[#9b9b9b]">
+                            {new Date(review.review_date).toLocaleDateString('it-IT')}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-[#9b9b9b] text-center py-2">
+                      Nessuna recensione Google Maps ricevuta
+                    </p>
+                  );
+                })()}
               </div>
 
               <div className="neumorphic-flat p-4 rounded-xl">
