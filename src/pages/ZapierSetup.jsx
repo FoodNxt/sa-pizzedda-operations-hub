@@ -51,65 +51,37 @@ export default function ZapierSetup() {
     setTestResult(null);
 
     try {
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          secret: webhookSecret,
-          nome_locale: stores[0].name,
-          nome: 'Test Cliente',
-          data_recensione: '2025-01-15 14:30:00',
-          voto: 5,
-          commento: 'Test recensione da Zapier Setup'
-        })
+      // Use Base44 SDK instead of fetch to avoid CORS issues
+      const response = await base44.functions.invoke('importReviewFromZapier', {
+        secret: webhookSecret,
+        nome_locale: stores[0].name,
+        nome: 'Test Cliente',
+        data_recensione: '2025-01-15 14:30:00',
+        voto: 5,
+        commento: 'Test recensione da Zapier Setup'
       });
 
-      // Get response text first
-      const responseText = await response.text();
-      
-      // Try to parse as JSON
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (e) {
-        // Not JSON - show raw response
+      // Check if response has error
+      if (response.data.error) {
         setTestResult({
           success: false,
-          message: `Errore: La risposta non è JSON valido. Status: ${response.status}`,
-          data: {
-            status: response.status,
-            statusText: response.statusText,
-            responseText: responseText.substring(0, 500),
-            url: webhookUrl
-          }
-        });
-        setTesting(false);
-        return;
-      }
-
-      if (response.ok) {
-        setTestResult({
-          success: true,
-          message: 'Webhook testato con successo! La recensione di test è stata creata.',
-          data
+          message: response.data.error,
+          data: response.data
         });
       } else {
         setTestResult({
-          success: false,
-          message: data.error || `Errore HTTP ${response.status}`,
-          data
+          success: true,
+          message: 'Webhook testato con successo! La recensione di test è stata creata.',
+          data: response.data
         });
       }
     } catch (error) {
       setTestResult({
         success: false,
-        message: 'Errore di connessione: ' + error.message,
+        message: 'Errore durante il test: ' + error.message,
         data: {
           error: error.message,
-          url: webhookUrl,
-          hint: 'Verifica che la funzione sia deployata correttamente in Dashboard → Code → Functions'
+          hint: 'Verifica che la funzione sia deployata correttamente in Dashboard → Code → Functions → importReviewFromZapier'
         }
       });
     }
