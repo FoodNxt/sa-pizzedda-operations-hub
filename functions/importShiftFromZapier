@@ -1,4 +1,3 @@
-
 import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
 
 Deno.serve(async (req) => {
@@ -49,39 +48,50 @@ Deno.serve(async (req) => {
         }
 
         const parseDateTime = (dateStr) => {
-            if (!dateStr) return new Date().toISOString();
-            const parts = dateStr.split(' ');
+            if (!dateStr) return null;
+            
+            const parts = dateStr.trim().split(' ');
             if (parts.length === 2) {
                 const dateParts = parts[0].split('/');
                 if (dateParts.length === 3) {
                     const day = dateParts[0].padStart(2, '0');
                     const month = dateParts[1].padStart(2, '0');
                     const year = dateParts[2];
-                    return `${year}-${month}-${day}T${parts[1]}:00`;
+                    const time = parts[1];
+                    return `${year}-${month}-${day}T${time}:00`;
                 }
             }
-            return new Date().toISOString();
+            return null;
         };
 
         const scheduledStart = parseDateTime(body.start);
         const scheduledEnd = parseDateTime(body.end);
         const actualStart = body.timeclock_start ? parseDateTime(body.timeclock_start) : null;
+        const actualEnd = body.timeclock_end ? parseDateTime(body.timeclock_end) : null;
 
         // Calculate ritardo and minuti_di_ritardo
         let ritardo = false;
         let minuti_di_ritardo = 0;
 
         if (actualStart && scheduledStart) {
-            const actualStartDate = new Date(actualStart);
-            const scheduledStartDate = new Date(scheduledStart);
-            
-            if (actualStartDate > scheduledStartDate) {
-                ritardo = true;
-                const minutiEffettivi = Math.round((actualStartDate - scheduledStartDate) / (1000 * 60));
+            try {
+                const actualStartDate = new Date(actualStart);
+                const scheduledStartDate = new Date(scheduledStart);
                 
-                // Arrotonda a scaglioni di 15 minuti in eccesso
-                // Esempi: 6 min = 15, 16 min = 30, 31 min = 45
-                minuti_di_ritardo = Math.ceil(minutiEffettivi / 15) * 15;
+                // Check if dates are valid
+                if (!isNaN(actualStartDate.getTime()) && !isNaN(scheduledStartDate.getTime())) {
+                    const differenzaMs = actualStartDate.getTime() - scheduledStartDate.getTime();
+                    const minutiEffettivi = Math.round(differenzaMs / (1000 * 60));
+                    
+                    // Se c'è ritardo (anche di 1 solo minuto)
+                    if (minutiEffettivi > 0) {
+                        ritardo = true;
+                        // Arrotonda a scaglioni di 15 minuti in eccesso
+                        minuti_di_ritardo = Math.ceil(minutiEffettivi / 15) * 15;
+                    }
+                }
+            } catch (e) {
+                console.error('Error calculating delay:', e);
             }
         }
 
@@ -90,12 +100,12 @@ Deno.serve(async (req) => {
             employee_id_external: body.employee_id || null,
             store_name: body.department_name,
             store_id: stores[0].id,
-            shift_date: scheduledStart.split('T')[0],
+            shift_date: scheduledStart ? scheduledStart.split('T')[0] : new Date().toISOString().split('T')[0],
             scheduled_start: scheduledStart,
             scheduled_end: scheduledEnd,
             scheduled_minutes: parseInt(body.minutes) || 0,
             actual_start: actualStart,
-            actual_end: body.timeclock_end ? parseDateTime(body.timeclock_end) : null,
+            actual_end: actualEnd,
             actual_minutes: body.timeclock_minutes ? parseInt(body.timeclock_minutes) : null,
             shift_type: body.timesheet_type_name || '',
             employee_group_name: body.employee_group_name || null,
@@ -111,6 +121,8 @@ Deno.serve(async (req) => {
                 id: shift.id,
                 employee_name: shift.employee_name,
                 store_name: shift.store_name,
+                scheduled_start: shift.scheduled_start,
+                actual_start: shift.actual_start,
                 ritardo: shift.ritardo,
                 minuti_di_ritardo: shift.minuti_di_ritardo
             }
