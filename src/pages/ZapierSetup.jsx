@@ -127,7 +127,7 @@ export default function ZapierSetup() {
           </div>
           <div className="neumorphic-flat p-4 rounded-xl mt-4">
             <p className="text-sm text-[#6b6b6b]">
-              ⚠️ <strong>Importante:</strong> Il nome del tab in Google Sheets deve corrispondere <strong>esattamente</strong> al nome del locale (maiuscole/minuscole incluse).
+              ⚠️ <strong>Importante:</strong> Il valore di <code className="bg-white px-2 py-1 rounded">nome_locale</code> in Zapier deve corrispondere <strong>esattamente</strong> al nome del locale (maiuscole/minuscole incluse).
             </p>
           </div>
         </NeumorphicCard>
@@ -263,30 +263,78 @@ export default function ZapierSetup() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#8b7355] mt-1">•</span>
-                    <span><strong>URL:</strong> {webhookUrl ? 'Copia l\'URL qui sopra' : 'URL caricamento...'}</span>
+                    <span><strong>URL:</strong> Copia l'URL qui sopra ☝️</span>
                   </li>
                 </ul>
               </div>
             </div>
           </div>
 
-          {/* Step 4 */}
-          <div className="neumorphic-flat p-5 rounded-xl">
+          {/* Step 4 - IMPORTANT SETTINGS */}
+          <div className="neumorphic-flat p-5 rounded-xl border-2 border-[#8b7355]">
             <div className="flex items-start gap-4">
               <div className="neumorphic-pressed w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
                 <span className="font-bold text-[#8b7355]">4</span>
               </div>
               <div className="flex-1">
+                <h3 className="font-bold text-[#6b6b6b] mb-3">⚠️ Impostazioni Webhook (IMPORTANTE)</h3>
+                
+                <div className="space-y-4">
+                  {/* Payload Type */}
+                  <div className="neumorphic-pressed p-4 rounded-lg bg-yellow-50">
+                    <p className="font-bold text-[#6b6b6b] mb-2">📌 Payload Type:</p>
+                    <p className="text-[#6b6b6b] mb-2">Seleziona: <strong className="text-[#8b7355]">JSON</strong></p>
+                  </div>
+
+                  {/* Headers */}
+                  <div className="neumorphic-pressed p-4 rounded-lg bg-blue-50">
+                    <p className="font-bold text-[#6b6b6b] mb-2">📌 Headers:</p>
+                    <p className="text-[#6b6b6b] mb-3">Aggiungi questo header:</p>
+                    <div className="bg-white rounded p-3 font-mono text-sm">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <span className="text-[#8b7355] font-bold">Key:</span>
+                          <code className="ml-2 bg-gray-100 px-2 py-1 rounded">Content-Type</code>
+                        </div>
+                        <div>
+                          <span className="text-[#8b7355] font-bold">Value:</span>
+                          <code className="ml-2 bg-gray-100 px-2 py-1 rounded">application/json</code>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Other Settings */}
+                  <div className="neumorphic-pressed p-4 rounded-lg">
+                    <p className="font-bold text-[#6b6b6b] mb-2">📌 Altre Impostazioni:</p>
+                    <ul className="space-y-1 text-sm text-[#6b6b6b]">
+                      <li>• <strong>Wrap Request In Array:</strong> No</li>
+                      <li>• <strong>Unflatten:</strong> No</li>
+                      <li>• <strong>Basic Auth:</strong> Lascia vuoto</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Step 5 */}
+          <div className="neumorphic-flat p-5 rounded-xl">
+            <div className="flex items-start gap-4">
+              <div className="neumorphic-pressed w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="font-bold text-[#8b7355]">5</span>
+              </div>
+              <div className="flex-1">
                 <h3 className="font-bold text-[#6b6b6b] mb-3">Mappa i Campi (Data)</h3>
                 <p className="text-[#6b6b6b] mb-3">
-                  Nel campo <strong>Data</strong>, seleziona "Form" e aggiungi questi campi:
+                  Nel campo <strong>Data</strong>, aggiungi questi campi (usando i valori dalle colonne del Google Sheet):
                 </p>
                 
                 <div className="space-y-3">
                   <div className="neumorphic-pressed p-3 rounded-lg">
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <span className="font-bold text-[#8b7355]">nome_locale</span>
-                      <span className="text-[#6b6b6b]">→ Nome del tab/worksheet (es. "Locale Centro")</span>
+                      <span className="text-[#6b6b6b]">→ Inserisci il nome esatto del locale (vedi lista sopra)</span>
                     </div>
                   </div>
                   
@@ -319,20 +367,20 @@ export default function ZapierSetup() {
                   </div>
                 </div>
 
-                <div className="neumorphic-flat p-3 rounded-lg mt-3 bg-yellow-50">
+                <div className="neumorphic-flat p-3 rounded-lg mt-4 bg-red-50">
                   <p className="text-sm text-[#6b6b6b]">
-                    ⚠️ <strong>Importante:</strong> Il campo <strong>nome_locale</strong> deve essere il nome esatto del locale come configurato nell'app (vedi lista sopra)
+                    🚨 <strong>CRITICO:</strong> Il campo <code className="bg-white px-2 py-1 rounded">nome_locale</code> deve essere scritto manualmente con il nome esatto del locale (non prendere dal Google Sheet, ma dalla lista qui sopra).
                   </p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Step 5 */}
+          {/* Step 6 */}
           <div className="neumorphic-flat p-5 rounded-xl">
             <div className="flex items-start gap-4">
               <div className="neumorphic-pressed w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="font-bold text-[#8b7355]">5</span>
+                <span className="font-bold text-[#8b7355]">6</span>
               </div>
               <div className="flex-1">
                 <h3 className="font-bold text-[#6b6b6b] mb-2">Testa e Pubblica</h3>
@@ -346,6 +394,37 @@ export default function ZapierSetup() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </NeumorphicCard>
+
+      {/* Visual Guide Screenshot */}
+      <NeumorphicCard className="p-6 bg-yellow-50">
+        <div className="flex items-start gap-3 mb-4">
+          <AlertCircle className="w-6 h-6 text-yellow-700" />
+          <div>
+            <h3 className="font-bold text-yellow-800 mb-2">Risoluzione Errore 404</h3>
+            <p className="text-yellow-700 mb-3">
+              Se ottieni un errore 404, verifica queste impostazioni:
+            </p>
+            <ol className="space-y-2 text-yellow-700">
+              <li className="flex items-start gap-2">
+                <span className="font-bold">1.</span>
+                <span><strong>Headers</strong> deve contenere <code className="bg-yellow-200 px-2 py-1 rounded">Content-Type: application/json</code></span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="font-bold">2.</span>
+                <span><strong>Payload Type</strong> deve essere <code className="bg-yellow-200 px-2 py-1 rounded">JSON</code></span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="font-bold">3.</span>
+                <span><strong>URL</strong> deve essere esattamente quello copiato da questa pagina</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="font-bold">4.</span>
+                <span><strong>Wrap Request In Array</strong> deve essere <code className="bg-yellow-200 px-2 py-1 rounded">No</code></span>
+              </li>
+            </ol>
           </div>
         </div>
       </NeumorphicCard>
@@ -391,35 +470,8 @@ export default function ZapierSetup() {
 
         <div className="neumorphic-flat p-4 rounded-xl">
           <p className="text-sm text-[#6b6b6b]">
-            📝 <strong>Ogni tab</strong> rappresenta un locale diverso e deve avere un nome che corrisponde esattamente al nome del locale nell'app.
+            📝 <strong>Ogni tab</strong> rappresenta un locale diverso. Il nome del tab non è rilevante, ma devi specificare manualmente il <code className="bg-white px-2 py-1 rounded">nome_locale</code> quando configuri lo Zap.
           </p>
-        </div>
-      </NeumorphicCard>
-
-      {/* Support */}
-      <NeumorphicCard className="p-6">
-        <div className="flex items-start gap-3">
-          <AlertCircle className="w-6 h-6 text-[#8b7355] mt-1" />
-          <div>
-            <h3 className="font-bold text-[#6b6b6b] mb-2">Hai bisogno di aiuto?</h3>
-            <p className="text-[#6b6b6b] mb-3">
-              Se riscontri problemi durante la configurazione:
-            </p>
-            <ul className="space-y-2 text-[#6b6b6b]">
-              <li className="flex items-start gap-2">
-                <span className="text-[#8b7355]">1.</span>
-                <span>Verifica che i nomi dei locali nell'app corrispondano esattamente ai nomi dei tab in Google Sheets</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-[#8b7355]">2.</span>
-                <span>Usa il pulsante "Testa Webhook" sopra per verificare che il webhook funzioni</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-[#8b7355]">3.</span>
-                <span>Controlla che le colonne del Google Sheet abbiano i nomi corretti</span>
-              </li>
-            </ul>
-          </div>
         </div>
       </NeumorphicCard>
     </div>
