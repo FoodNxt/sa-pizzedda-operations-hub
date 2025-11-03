@@ -1,3 +1,4 @@
+
 import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
 
 Deno.serve(async (req) => {
@@ -76,7 +77,11 @@ Deno.serve(async (req) => {
             
             if (actualStartDate > scheduledStartDate) {
                 ritardo = true;
-                minuti_di_ritardo = Math.round((actualStartDate - scheduledStartDate) / (1000 * 60));
+                const minutiEffettivi = Math.round((actualStartDate - scheduledStartDate) / (1000 * 60));
+                
+                // Arrotonda a scaglioni di 15 minuti in eccesso
+                // Esempi: 6 min = 15, 16 min = 30, 31 min = 45
+                minuti_di_ritardo = Math.ceil(minutiEffettivi / 15) * 15;
             }
         }
 
