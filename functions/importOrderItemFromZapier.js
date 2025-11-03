@@ -55,6 +55,30 @@ Deno.serve(async (req) => {
             }, { status: 400 });
         }
 
+        if (!body.store_name) {
+            return Response.json({ 
+                error: 'Campo obbligatorio mancante: store_name',
+                hint: 'Devi specificare il nome del locale nel campo store_name',
+                received_fields: Object.keys(body)
+            }, { status: 400 });
+        }
+
+        // Find store by name (using service role for admin access)
+        const stores = await base44.asServiceRole.entities.Store.filter({
+            name: body.store_name
+        });
+
+        if (!stores || stores.length === 0) {
+            const allStores = await base44.asServiceRole.entities.Store.list();
+            return Response.json({ 
+                error: `Locale non trovato: "${body.store_name}". Verifica che il nome sia esatto (maiuscole/minuscole).`,
+                available_stores: allStores.map(s => s.name),
+                received: body.store_name
+            }, { status: 404 });
+        }
+
+        const store = stores[0];
+
         // Parse numbers safely
         const parseNumber = (value) => {
             if (value === null || value === undefined || value === '') return null;
@@ -95,6 +119,8 @@ Deno.serve(async (req) => {
 
         // Build OrderItem data object
         const orderItemData = {
+            store_name: body.store_name,
+            store_id: store.id,
             itemId: body.itemId,
             billNumber: body.billNumber,
             orderItemName: body.orderItemName,
@@ -171,6 +197,7 @@ Deno.serve(async (req) => {
                 itemId: orderItem.itemId,
                 billNumber: orderItem.billNumber,
                 orderItemName: orderItem.orderItemName,
+                store_name: orderItem.store_name,
                 finalPrice: orderItem.finalPrice
             }
         }, { status: 201 });
