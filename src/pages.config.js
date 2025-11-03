@@ -8,6 +8,7 @@ import ShiftsSetup from './pages/ShiftsSetup';
 import Shifts from './pages/Shifts';
 import AssignReviews from './pages/AssignReviews';
 import EmployeeReviewsPerformance from './pages/EmployeeReviewsPerformance';
+import OrderItemsSetup from './pages/OrderItemsSetup';
 import Layout from './Layout.jsx';
 
 
@@ -22,6 +23,7 @@ export const PAGES = {
     "Shifts": Shifts,
     "AssignReviews": AssignReviews,
     "EmployeeReviewsPerformance": EmployeeReviewsPerformance,
+    "OrderItemsSetup": OrderItemsSetup,
 }
 
 export const pagesConfig = {
