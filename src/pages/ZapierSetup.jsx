@@ -66,7 +66,28 @@ export default function ZapierSetup() {
         })
       });
 
-      const data = await response.json();
+      // Get response text first
+      const responseText = await response.text();
+      
+      // Try to parse as JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        // Not JSON - show raw response
+        setTestResult({
+          success: false,
+          message: `Errore: La risposta non è JSON valido. Status: ${response.status}`,
+          data: {
+            status: response.status,
+            statusText: response.statusText,
+            responseText: responseText.substring(0, 500),
+            url: webhookUrl
+          }
+        });
+        setTesting(false);
+        return;
+      }
 
       if (response.ok) {
         setTestResult({
@@ -77,14 +98,19 @@ export default function ZapierSetup() {
       } else {
         setTestResult({
           success: false,
-          message: data.error || 'Errore durante il test',
+          message: data.error || `Errore HTTP ${response.status}`,
           data
         });
       }
     } catch (error) {
       setTestResult({
         success: false,
-        message: 'Errore di connessione: ' + error.message
+        message: 'Errore di connessione: ' + error.message,
+        data: {
+          error: error.message,
+          url: webhookUrl,
+          hint: 'Verifica che la funzione sia deployata correttamente in Dashboard → Code → Functions'
+        }
       });
     }
 
