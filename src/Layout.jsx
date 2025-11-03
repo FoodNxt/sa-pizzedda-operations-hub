@@ -35,17 +35,22 @@ const navigationItems = [
     icon: Users,
   },
   {
-    title: "Shifts", // New item added
+    title: "Shifts",
     url: createPageUrl("Shifts"),
     icon: Menu,
   },
   {
-    title: "Zapier Reviews", // Changed from "Zapier Setup" to "Zapier Reviews"
+    title: "Assign Reviews",
+    url: createPageUrl("AssignReviews"),
+    icon: Users,
+  },
+  {
+    title: "Zapier Reviews",
     url: createPageUrl("ZapierSetup"),
     icon: Zap,
   },
   {
-    title: "Zapier Shifts", // New item added
+    title: "Zapier Shifts",
     url: createPageUrl("ShiftsSetup"),
     icon: Zap,
   },
