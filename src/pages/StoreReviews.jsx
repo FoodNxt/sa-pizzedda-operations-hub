@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -201,6 +202,7 @@ export default function StoreReviews() {
                       />
                     </div>
                     <p className="text-sm text-[#9b9b9b] mb-2">{store.address}</p>
+                    <p className="text-xs text-[#9b9b9b] font-mono mb-2">ID: {store.id}</p>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1">
                         <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
