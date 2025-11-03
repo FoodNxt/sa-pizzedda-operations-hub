@@ -37,22 +37,28 @@ export default function AssignReviews() {
     },
   });
 
-  // Find matching employees for a review
+  // Find matching employees for a review - FIXED with robust duplicate prevention
   const findMatchingEmployees = (review) => {
     if (!review.review_date || !review.store_id) return [];
 
     const reviewDate = parseISO(review.review_date);
     
-    // Track unique employees with a Map to ensure no duplicates
+    // Use a Map to track unique employees by name (case-insensitive, trimmed)
     const employeeMap = new Map();
     
-    // Filter shifts for the same store
     shifts.forEach(shift => {
-      // Same store
+      // Same store check
       if (shift.store_id !== review.store_id) return;
       
-      // Skip if employee already found for this review
-      if (employeeMap.has(shift.employee_name)) return;
+      // Normalize employee name (trim whitespace, lowercase for comparison)
+      const normalizedName = (shift.employee_name || '').trim();
+      const mapKey = normalizedName.toLowerCase();
+      
+      // Skip if empty name
+      if (!normalizedName) return;
+      
+      // Skip if employee already processed (case-insensitive)
+      if (employeeMap.has(mapKey)) return;
       
       // Exclude certain shift types
       const excludedTypes = [
@@ -75,9 +81,9 @@ export default function AssignReviews() {
         
         // Check if review time falls within shift time
         if (isWithinInterval(reviewDate, { start: shiftStart, end: shiftEnd })) {
-          // Add to map (only first occurrence per employee)
-          employeeMap.set(shift.employee_name, {
-            employee_name: shift.employee_name,
+          // Add to map using lowercase key, but keep original name for display
+          employeeMap.set(mapKey, {
+            employee_name: normalizedName, // Use normalized (trimmed) name
             shift
           });
         }
@@ -133,13 +139,25 @@ export default function AssignReviews() {
       employeeNames = [employeeNames];
     }
     
-    const confidence = employeeNames.length === 1 ? 'high' : 
-                      employeeNames.length === 2 ? 'medium' : 'low';
+    // ROBUST: Remove duplicates and normalize names
+    const uniqueNames = [...new Set(
+      employeeNames
+        .map(name => (name || '').trim())
+        .filter(name => name.length > 0)
+    )];
+    
+    if (uniqueNames.length === 0) {
+      alert('Errore: nessun dipendente valido da assegnare');
+      return;
+    }
+    
+    const confidence = uniqueNames.length === 1 ? 'high' : 
+                      uniqueNames.length === 2 ? 'medium' : 'low';
     
     await updateReviewMutation.mutateAsync({
       reviewId: review.id,
       data: {
-        employee_assigned_name: employeeNames.join(', '),
+        employee_assigned_name: uniqueNames.join(', '),
         assignment_confidence: confidence
       }
     });
@@ -151,15 +169,25 @@ export default function AssignReviews() {
     const unassignedWithMatches = enrichedReviews.filter(r => !r.isAssigned && r.hasMatches);
     
     for (const review of unassignedWithMatches) {
-      // Auto-assign to ALL matching employees
+      // Get employee names from matchingEmployees
       const employeeNames = review.matchingEmployees.map(m => m.employee_name);
-      const confidence = employeeNames.length === 1 ? 'high' : 
-                       employeeNames.length === 2 ? 'medium' : 'low';
+      
+      // ROBUST: Remove duplicates with Set and normalize
+      const uniqueNames = [...new Set(
+        employeeNames
+          .map(name => (name || '').trim())
+          .filter(name => name.length > 0)
+      )];
+      
+      if (uniqueNames.length === 0) continue; // Skip if no valid names after normalization
+      
+      const confidence = uniqueNames.length === 1 ? 'high' : 
+                       uniqueNames.length === 2 ? 'medium' : 'low';
       
       await updateReviewMutation.mutateAsync({
         reviewId: review.id,
         data: {
-          employee_assigned_name: employeeNames.join(', '),
+          employee_assigned_name: uniqueNames.join(', '),
           assignment_confidence: confidence
         }
       });
@@ -418,13 +446,14 @@ export default function AssignReviews() {
           <div className="text-sm text-blue-800">
             <p className="font-bold mb-2">Come funziona l'assegnazione:</p>
             <ul className="space-y-1 ml-4">
-              <li>• Ogni dipendente viene assegnato MASSIMO UNA VOLTA per recensione</li>
+              <li>• Ogni dipendente viene assegnato MASSIMO UNA VOLTA per recensione (confronto case-insensitive)</li>
+              <li>• I nomi vengono normalizzati (rimossi spazi extra) per prevenire duplicati</li>
               <li>• Le recensioni vengono assegnate a TUTTI i dipendenti in turno nell'orario della recensione</li>
               <li>• Viene utilizzato l'orario pianificato (scheduled_start e scheduled_end)</li>
               <li>• Vengono esclusi: "Ferie", "Malattia (Certificato)", "Malattia (No Certificato)", "Assenza non retribuita"</li>
               <li>• Vengono esclusi i ruoli: "Preparazioni" e "Volantinaggio"</li>
               <li>• Confidenza alta: 1 dipendente | Media: 2 dipendenti | Bassa: 3+ dipendenti</li>
-              <li className="font-bold text-blue-900 mt-2">• Se hai assegnazioni doppie, usa "Reset Assegnazioni" e poi "Auto-Assegna Tutte"</li>
+              <li className="font-bold text-blue-900 mt-2">• Se hai ancora duplicati, usa "Reset Assegnazioni" e poi "Auto-Assegna Tutte"</li>
             </ul>
           </div>
         </div>

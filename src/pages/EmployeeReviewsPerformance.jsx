@@ -2,7 +2,7 @@
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Star, TrendingUp, TrendingDown, Award, Users, Calendar, MapPin, AlertCircle } from 'lucide-react';
+import { Star, TrendingUp, TrendingDown, Award, Users, Calendar, MapPin, CheckCircle } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { format, parseISO, isWithinInterval } from 'date-fns';
 
@@ -22,7 +22,7 @@ export default function EmployeeReviewsPerformance() {
     queryFn: () => base44.entities.Store.list(),
   });
 
-  // Process employee performance data
+  // Process employee performance data - FIXED with robust duplicate prevention
   const employeePerformance = useMemo(() => {
     // Filter reviews by date and store
     let filteredReviews = reviews.filter(r => r.employee_assigned_name);
@@ -50,20 +50,30 @@ export default function EmployeeReviewsPerformance() {
       filteredReviews = filteredReviews.filter(r => r.store_id === selectedStore);
     }
 
-    // Group by employee - FIXED: use a Set to track which reviews we've already counted per employee
+    // Group by employee with ROBUST duplicate prevention
     const employeeMap = new Map();
 
     filteredReviews.forEach(review => {
-      // Split employee names (in case multiple employees assigned to same review)
-      const employeeNames = review.employee_assigned_name.split(',').map(n => n.trim());
+      // Split and normalize employee names
+      const employeeNames = (review.employee_assigned_name || '')
+        .split(',')
+        .map(n => n.trim())
+        .filter(n => n.length > 0);
       
-      // Remove duplicates from the employee names list for THIS review
-      const uniqueEmployeeNames = [...new Set(employeeNames)];
+      // Remove duplicates from THIS review's employee list (case-insensitive)
+      const uniqueNamesThisReview = [...new Set(
+        employeeNames.map(name => name.toLowerCase())
+      )].map(lowerName => {
+        // Find the original case version
+        return employeeNames.find(n => n.toLowerCase() === lowerName) || lowerName;
+      });
 
-      uniqueEmployeeNames.forEach(employeeName => {
-        if (!employeeMap.has(employeeName)) {
-          employeeMap.set(employeeName, {
-            name: employeeName,
+      uniqueNamesThisReview.forEach(employeeName => {
+        const mapKey = employeeName.toLowerCase(); // Use lowercase for map key
+        
+        if (!employeeMap.has(mapKey)) {
+          employeeMap.set(mapKey, {
+            name: employeeName, // Keep original case for display
             reviews: [],
             reviewIds: new Set(), // Track review IDs to prevent double counting
             totalReviews: 0,
@@ -75,7 +85,7 @@ export default function EmployeeReviewsPerformance() {
           });
         }
 
-        const emp = employeeMap.get(employeeName);
+        const emp = employeeMap.get(mapKey);
         
         // Only count this review if we haven't already counted it for this employee
         if (!emp.reviewIds.has(review.id)) {
@@ -97,7 +107,7 @@ export default function EmployeeReviewsPerformance() {
       emp.avgRating = emp.totalReviews > 0 ? totalRating / emp.totalReviews : 0;
       emp.positiveRate = emp.totalReviews > 0 ? (emp.positiveReviews / emp.totalReviews) * 100 : 0;
       emp.storeCount = emp.stores.size;
-      // Remove reviewIds from final object (we don't need it in the UI)
+      // Remove internal tracking from final object
       delete emp.reviewIds;
       return emp;
     });
@@ -143,16 +153,20 @@ export default function EmployeeReviewsPerformance() {
         <p className="text-[#9b9b9b]">Analisi delle recensioni assegnate ai dipendenti</p>
       </div>
 
-      {/* Info about duplicates */}
-      <NeumorphicCard className="p-4 bg-blue-50">
+      {/* Info about deduplication */}
+      <NeumorphicCard className="p-4 bg-green-50">
         <div className="flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-1" />
-          <div className="text-sm text-blue-800">
-            <p className="font-bold mb-1">ℹ️ Nota sulle Assegnazioni</p>
+          <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-1" />
+          <div className="text-sm text-green-800">
+            <p className="font-bold mb-1">✅ Sistema Anti-Duplicati Attivo</p>
             <p>
-              Questa pagina mostra le performance dei dipendenti basate sulle recensioni assegnate. 
-              Ogni recensione viene contata <strong>una sola volta per dipendente</strong>, anche se lo stesso dipendente appare più volte nella stessa assegnazione.
+              Questa pagina utilizza un sistema robusto per prevenire i duplicati:
             </p>
+            <ul className="mt-2 space-y-1 ml-4">
+              <li>• I nomi vengono normalizzati (case-insensitive, spazi rimossi)</li>
+              <li>• Ogni recensione viene contata <strong>una sola volta per dipendente</strong></li>
+              <li>• I duplicati nello stesso assegnamento vengono automaticamente rimossi</li>
+            </ul>
           </div>
         </div>
       </NeumorphicCard>
