@@ -9,7 +9,7 @@ import {
   Menu,
   X,
   Pizza,
-  Upload
+  Zap
 } from "lucide-react";
 
 const navigationItems = [
@@ -34,9 +34,9 @@ const navigationItems = [
     icon: Users,
   },
   {
-    title: "Import Reviews",
-    url: createPageUrl("ImportReviews"),
-    icon: Upload,
+    title: "Zapier Setup",
+    url: createPageUrl("ZapierSetup"),
+    icon: Zap,
   },
 ];
 

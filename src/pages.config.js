@@ -3,6 +3,7 @@ import StoreReviews from './pages/StoreReviews';
 import Financials from './pages/Financials';
 import Employees from './pages/Employees';
 import ImportReviews from './pages/ImportReviews';
+import ZapierSetup from './pages/ZapierSetup';
 import Layout from './Layout.jsx';
 
 
@@ -12,6 +13,7 @@ export const PAGES = {
     "Financials": Financials,
     "Employees": Employees,
     "ImportReviews": ImportReviews,
+    "ZapierSetup": ZapierSetup,
 }
 
 export const pagesConfig = {
