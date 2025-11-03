@@ -177,20 +177,26 @@ export default function OrderItemsSetup() {
         
         <div className="neumorphic-pressed p-4 rounded-xl mb-4">
           <p className="text-[#6b6b6b] mb-4">
-            Usa lo stesso <strong>ZAPIER_WEBHOOK_SECRET</strong> configurato per le recensioni, oppure creane uno nuovo.
+            <strong>IMPORTANTE:</strong> Configura un secret dedicato per gli ordini.
           </p>
           
           <p className="text-sm text-[#9b9b9b] mb-4">
-            Se non l'hai già fatto: Dashboard → Code → Secrets → <code className="bg-white px-2 py-1 rounded">ZAPIER_WEBHOOK_SECRET</code>
+            Vai su: Dashboard → Code → Secrets → Aggiungi <code className="bg-white px-2 py-1 rounded">ZAPIER_ORDERS_WEBHOOK_SECRET</code>
           </p>
 
           <input
             type="password"
-            placeholder="Incolla qui il tuo webhook secret..."
+            placeholder="Incolla qui il tuo ZAPIER_ORDERS_WEBHOOK_SECRET..."
             value={webhookSecret}
             onChange={(e) => setWebhookSecret(e.target.value)}
             className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
           />
+        </div>
+
+        <div className="neumorphic-flat p-4 rounded-xl bg-blue-50">
+          <p className="text-sm text-blue-800">
+            💡 <strong>Nota:</strong> Questo è un secret separato da quello delle recensioni e dei turni per maggiore sicurezza.
+          </p>
         </div>
       </NeumorphicCard>
 
@@ -332,7 +338,7 @@ export default function OrderItemsSetup() {
                     <div className="space-y-2 text-sm">
                       <div>
                         <span className="font-bold text-red-700">secret</span>
-                        <span className="text-red-700"> → Il tuo ZAPIER_WEBHOOK_SECRET</span>
+                        <span className="text-red-700"> → Il tuo ZAPIER_ORDERS_WEBHOOK_SECRET</span>
                       </div>
                       <div>
                         <span className="font-bold text-red-700">itemId</span>

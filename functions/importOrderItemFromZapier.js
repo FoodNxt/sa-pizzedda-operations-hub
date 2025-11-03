@@ -1,3 +1,4 @@
+
 import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
 
 Deno.serve(async (req) => {
@@ -18,12 +19,12 @@ Deno.serve(async (req) => {
         
         // Validate webhook secret
         const providedSecret = body.secret;
-        const expectedSecret = Deno.env.get('ZAPIER_WEBHOOK_SECRET');
+        const expectedSecret = Deno.env.get('ZAPIER_ORDERS_WEBHOOK_SECRET');
         
         if (!expectedSecret) {
             return Response.json({ 
-                error: 'Server configuration error: ZAPIER_WEBHOOK_SECRET not set',
-                hint: 'Set ZAPIER_WEBHOOK_SECRET in Dashboard → Code → Secrets'
+                error: 'Server configuration error: ZAPIER_ORDERS_WEBHOOK_SECRET not set',
+                hint: 'Set ZAPIER_ORDERS_WEBHOOK_SECRET in Dashboard → Code → Secrets'
             }, { status: 500 });
         }
         
