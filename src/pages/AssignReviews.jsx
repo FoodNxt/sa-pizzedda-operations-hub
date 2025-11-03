@@ -42,48 +42,51 @@ export default function AssignReviews() {
 
     const reviewDate = parseISO(review.review_date);
     
+    // Track unique employees with a Map to ensure no duplicates
+    const employeeMap = new Map();
+    
     // Filter shifts for the same store
-    const relevantShifts = shifts.filter(shift => {
+    shifts.forEach(shift => {
       // Same store
-      if (shift.store_id !== review.store_id) return false;
+      if (shift.store_id !== review.store_id) return;
       
-      // Exclude certain shift types - UPDATED to include all absence types
+      // Skip if employee already found for this review
+      if (employeeMap.has(shift.employee_name)) return;
+      
+      // Exclude certain shift types
       const excludedTypes = [
         'Malattia (Certificato)', 
         'Malattia (No Certificato)',
         'Ferie',
         'Assenza non retribuita'
       ];
-      if (excludedTypes.includes(shift.shift_type)) return false;
+      if (excludedTypes.includes(shift.shift_type)) return;
       
       // Exclude certain roles
-      if (shift.employee_group_name === 'Preparazioni' || shift.employee_group_name === 'Volantinaggio') return false;
+      if (shift.employee_group_name === 'Preparazioni' || shift.employee_group_name === 'Volantinaggio') return;
       
       // Use ONLY scheduled times
-      if (!shift.scheduled_start || !shift.scheduled_end) return false;
+      if (!shift.scheduled_start || !shift.scheduled_end) return;
       
       try {
         const shiftStart = parseISO(shift.scheduled_start);
         const shiftEnd = parseISO(shift.scheduled_end);
-        return isWithinInterval(reviewDate, { start: shiftStart, end: shiftEnd });
+        
+        // Check if review time falls within shift time
+        if (isWithinInterval(reviewDate, { start: shiftStart, end: shiftEnd })) {
+          // Add to map (only first occurrence per employee)
+          employeeMap.set(shift.employee_name, {
+            employee_name: shift.employee_name,
+            shift
+          });
+        }
       } catch (e) {
-        return false;
+        // Skip this shift if date parsing fails
       }
     });
 
-    // Remove duplicates by employee name - keep only first occurrence
-    const uniqueEmployees = [];
-    const seenNames = new Set();
-    
-    for (const shift of relevantShifts) {
-      if (!seenNames.has(shift.employee_name)) {
-        seenNames.add(shift.employee_name);
-        uniqueEmployees.push({
-          employee_name: shift.employee_name,
-          shift
-        });
-      }
-    }
+    // Convert map to array
+    const uniqueEmployees = Array.from(employeeMap.values());
 
     // Calculate confidence based on number of unique employees
     const confidence = uniqueEmployees.length === 1 ? 'high' : 
@@ -256,14 +259,14 @@ export default function AssignReviews() {
                 {/* Review Info */}
                 <div className="lg:col-span-2">
                   <div className="flex items-start justify-between mb-3">
-                    <div>
+                    <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
                         <span className="text-2xl font-bold text-[#6b6b6b]">{review.rating}</span>
                         <span className="text-[#9b9b9b]">•</span>
                         <span className="font-medium text-[#6b6b6b]">{review.customer_name || 'Anonimo'}</span>
                       </div>
-                      <div className="flex items-center gap-3 text-sm text-[#9b9b9b]">
+                      <div className="flex items-center gap-3 text-sm text-[#9b9b9b] mb-2">
                         <div className="flex items-center gap-1">
                           <MapPin className="w-4 h-4" />
                           {getStoreName(review.store_id)}
@@ -272,6 +275,9 @@ export default function AssignReviews() {
                           <Clock className="w-4 h-4" />
                           {format(parseISO(review.review_date), 'dd/MM/yyyy HH:mm')}
                         </div>
+                      </div>
+                      <div className="text-xs text-[#9b9b9b] font-mono">
+                        Review ID: {review.id}
                       </div>
                     </div>
 
@@ -308,7 +314,7 @@ export default function AssignReviews() {
                   {review.hasMatches ? (
                     <div className="space-y-2">
                       {review.matchingEmployees.map((match, idx) => (
-                        <div key={`${match.employee_name}-${idx}`} className="neumorphic-flat p-3 rounded-lg">
+                        <div key={`${review.id}-${match.employee_name}-${idx}`} className="neumorphic-flat p-3 rounded-lg">
                           <div className="mb-2">
                             <p className="font-medium text-[#6b6b6b] text-sm">{match.employee_name}</p>
                             <p className="text-xs text-[#9b9b9b]">{match.shift.employee_group_name || 'N/A'}</p>
@@ -360,11 +366,11 @@ export default function AssignReviews() {
           <div className="text-sm text-blue-800">
             <p className="font-bold mb-2">Come funziona l'assegnazione:</p>
             <ul className="space-y-1 ml-4">
-              <li>• Le recensioni vengono assegnate automaticamente a TUTTI i dipendenti in turno nell'orario della recensione</li>
+              <li>• Ogni dipendente viene assegnato MASSIMO UNA VOLTA per recensione</li>
+              <li>• Le recensioni vengono assegnate a TUTTI i dipendenti in turno nell'orario della recensione</li>
               <li>• Viene utilizzato l'orario pianificato (scheduled_start e scheduled_end)</li>
               <li>• Vengono esclusi: "Ferie", "Malattia (Certificato)", "Malattia (No Certificato)", "Assenza non retribuita"</li>
               <li>• Vengono esclusi i ruoli: "Preparazioni" e "Volantinaggio"</li>
-              <li>• Se lo stesso dipendente ha più turni sovrapposti, viene contato una sola volta</li>
               <li>• Confidenza alta: 1 dipendente | Media: 2 dipendenti | Bassa: 3+ dipendenti</li>
             </ul>
           </div>
