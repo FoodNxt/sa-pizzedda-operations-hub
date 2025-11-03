@@ -2,11 +2,11 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { 
-  Users, 
-  TrendingUp, 
-  TrendingDown, 
-  Award, 
+import {
+  Users,
+  TrendingUp,
+  TrendingDown,
+  Award,
   AlertCircle,
   Clock,
   ShoppingCart,
@@ -80,22 +80,43 @@ export default function Employees() {
       // Orders metrics
       const employeeOrders = orders.filter(o => o.employee_id === employee.id);
       const wrongOrders = employeeOrders.filter(o => o.is_wrong_order).length;
-      const wrongOrderRate = employeeOrders.length > 0 
-        ? (wrongOrders / employeeOrders.length) * 100 
+      const wrongOrderRate = employeeOrders.length > 0
+        ? (wrongOrders / employeeOrders.length) * 100
         : 0;
       const avgProcessingTime = employeeOrders.length > 0
         ? employeeOrders.reduce((sum, o) => sum + (o.processing_time_minutes || 0), 0) / employeeOrders.length
         : 0;
       const avgSatisfaction = employeeOrders.filter(o => o.customer_satisfaction).length > 0
-        ? employeeOrders.reduce((sum, o) => sum + (o.customer_satisfaction || 0), 0) / 
+        ? employeeOrders.reduce((sum, o) => sum + (o.customer_satisfaction || 0), 0) /
           employeeOrders.filter(o => o.customer_satisfaction).length
         : 0;
 
-      // Shift metrics
-      const employeeShifts = shifts.filter(s => s.employee_name === employee.full_name);
+      // Shift metrics (filtered by date)
+      const employeeShifts = shifts.filter(s => {
+        if (s.employee_name !== employee.full_name) return false;
+
+        // Date filter
+        if (startDate || endDate) {
+          if (!s.shift_date) return false;
+          const shiftDate = parseISO(s.shift_date);
+          const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
+          const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
+
+          if (start && end) {
+            return isWithinInterval(shiftDate, { start, end });
+          } else if (start) {
+            return shiftDate >= start;
+          } else if (end) {
+            return shiftDate <= end;
+          }
+        }
+
+        return true;
+      });
+
       const totalLateMinutes = employeeShifts.reduce((sum, s) => sum + (s.minuti_di_ritardo || 0), 0);
       const avgLateMinutes = employeeShifts.length > 0 ? totalLateMinutes / employeeShifts.length : 0;
-      
+
       // Calcolo ritardi
       const numeroRitardi = employeeShifts.filter(s => s.ritardo === true).length;
       const percentualeRitardi = employeeShifts.length > 0 ? (numeroRitardi / employeeShifts.length) * 100 : 0;
@@ -112,7 +133,7 @@ export default function Employees() {
         const assignedNames = r.employee_assigned_name.split(',').map(n => n.trim().toLowerCase());
         return assignedNames.includes(employee.full_name.toLowerCase());
       });
-      
+
       const googleReviews = assignedReviews.filter(r => r.source === 'google');
       const avgGoogleRating = googleReviews.length > 0
         ? googleReviews.reduce((sum, r) => sum + r.rating, 0) / googleReviews.length
@@ -129,9 +150,9 @@ export default function Employees() {
       performanceScore = Math.max(0, Math.min(100, performanceScore));
 
       // Performance level
-      const performanceLevel = performanceScore >= 80 ? 'excellent' : 
-                              performanceScore >= 60 ? 'good' : 
-                              performanceScore >= 40 ? 'needs_improvement' : 
+      const performanceLevel = performanceScore >= 80 ? 'excellent' :
+                              performanceScore >= 60 ? 'good' :
+                              performanceScore >= 40 ? 'needs_improvement' :
                               'poor';
 
       return {
@@ -193,19 +214,20 @@ export default function Employees() {
           valueA = a.percentualeRitardi;
           valueB = b.percentualeRitardi;
           break;
-        case 'satisfaction':
-          valueA = a.avgSatisfaction;
-          valueB = b.avgSatisfaction;
-          break;
         case 'googleRating':
           valueA = a.avgGoogleRating;
           valueB = b.avgGoogleRating;
           break;
+        // The 'satisfaction' sort option is removed as the column is no longer displayed.
+        // case 'satisfaction':
+        //   valueA = a.avgSatisfaction;
+        //   valueB = b.avgSatisfaction;
+        //   break;
         default:
           valueA = a.performanceScore;
           valueB = b.performanceScore;
       }
-      return sortOrder === 'desc' ? valueB - valueA : valueA - valueB;
+      return sortOrder === 'desc' ? valueB - valueA : valueA - b.valueB;
     });
 
     return filtered;
@@ -365,7 +387,7 @@ export default function Employees() {
                 <th className="text-left p-3 text-[#9b9b9b] font-medium">Rank</th>
                 <th className="text-left p-3 text-[#9b9b9b] font-medium">Employee</th>
                 <th className="text-left p-3 text-[#9b9b9b] font-medium">Position</th>
-                <th 
+                <th
                   className="text-center p-3 text-[#9b9b9b] font-medium cursor-pointer hover:text-[#6b6b6b]"
                   onClick={() => toggleSort('performance')}
                 >
@@ -376,7 +398,7 @@ export default function Employees() {
                     )}
                   </div>
                 </th>
-                <th 
+                <th
                   className="text-center p-3 text-[#9b9b9b] font-medium cursor-pointer hover:text-[#6b6b6b]"
                   onClick={() => toggleSort('googleRating')}
                 >
@@ -387,7 +409,7 @@ export default function Employees() {
                     )}
                   </div>
                 </th>
-                <th 
+                <th
                   className="text-center p-3 text-[#9b9b9b] font-medium cursor-pointer hover:text-[#6b6b6b]"
                   onClick={() => toggleSort('wrongOrders')}
                 >
@@ -398,7 +420,7 @@ export default function Employees() {
                     )}
                   </div>
                 </th>
-                <th 
+                <th
                   className="text-center p-3 text-[#9b9b9b] font-medium cursor-pointer hover:text-[#6b6b6b]"
                   onClick={() => toggleSort('lateness')}
                 >
@@ -409,7 +431,7 @@ export default function Employees() {
                     )}
                   </div>
                 </th>
-                <th 
+                <th
                   className="text-center p-3 text-[#9b9b9b] font-medium cursor-pointer hover:text-[#6b6b6b]"
                   onClick={() => toggleSort('numeroRitardi')}
                 >
@@ -420,7 +442,7 @@ export default function Employees() {
                     )}
                   </div>
                 </th>
-                <th 
+                <th
                   className="text-center p-3 text-[#9b9b9b] font-medium cursor-pointer hover:text-[#6b6b6b]"
                   onClick={() => toggleSort('percentualeRitardi')}
                 >
@@ -431,25 +453,14 @@ export default function Employees() {
                     )}
                   </div>
                 </th>
-                <th 
-                  className="text-center p-3 text-[#9b9b9b] font-medium cursor-pointer hover:text-[#6b6b6b]"
-                  onClick={() => toggleSort('satisfaction')}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    Satisfaction
-                    {sortBy === 'satisfaction' && (
-                      sortOrder === 'desc' ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />
-                    )}
-                  </div>
-                </th>
                 <th className="text-center p-3 text-[#9b9b9b] font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredEmployees.length > 0 ? (
                 filteredEmployees.map((employee, index) => (
-                  <tr 
-                    key={employee.id} 
+                  <tr
+                    key={employee.id}
                     className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors cursor-pointer"
                     onClick={() => setSelectedEmployee(employee)}
                   >
@@ -509,8 +520,8 @@ export default function Employees() {
                     <td className="p-3 text-center">
                       <div className="flex flex-col items-center gap-1">
                         <span className={`font-bold ${
-                          employee.wrongOrderRate > 10 ? 'text-red-600' : 
-                          employee.wrongOrderRate > 5 ? 'text-yellow-600' : 
+                          employee.wrongOrderRate > 10 ? 'text-red-600' :
+                          employee.wrongOrderRate > 5 ? 'text-yellow-600' :
                           'text-green-600'
                         }`}>
                           {employee.wrongOrders}
@@ -523,8 +534,8 @@ export default function Employees() {
                     <td className="p-3 text-center">
                       <div className="flex flex-col items-center gap-1">
                         <span className={`font-bold ${
-                          employee.avgLateMinutes > 10 ? 'text-red-600' : 
-                          employee.avgLateMinutes > 5 ? 'text-yellow-600' : 
+                          employee.avgLateMinutes > 10 ? 'text-red-600' :
+                          employee.avgLateMinutes > 5 ? 'text-yellow-600' :
                           'text-green-600'
                         }`}>
                           {employee.avgLateMinutes.toFixed(1)}
@@ -535,8 +546,8 @@ export default function Employees() {
                     <td className="p-3 text-center">
                       <div className="flex flex-col items-center gap-1">
                         <span className={`text-lg font-bold ${
-                          employee.numeroRitardi > 10 ? 'text-red-600' : 
-                          employee.numeroRitardi > 5 ? 'text-yellow-600' : 
+                          employee.numeroRitardi > 10 ? 'text-red-600' :
+                          employee.numeroRitardi > 5 ? 'text-yellow-600' :
                           'text-green-600'
                         }`}>
                           {employee.numeroRitardi}
@@ -549,26 +560,12 @@ export default function Employees() {
                     <td className="p-3 text-center">
                       <div className="flex flex-col items-center gap-1">
                         <span className={`text-lg font-bold ${
-                          employee.percentualeRitardi > 20 ? 'text-red-600' : 
-                          employee.percentualeRitardi > 10 ? 'text-yellow-600' : 
+                          employee.percentualeRitardi > 20 ? 'text-red-600' :
+                          employee.percentualeRitardi > 10 ? 'text-yellow-600' :
                           'text-green-600'
                         }`}>
                           {employee.percentualeRitardi.toFixed(1)}%
                         </span>
-                      </div>
-                    </td>
-                    <td className="p-3 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        {employee.avgSatisfaction > 0 ? (
-                          <>
-                            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                            <span className="font-bold text-[#6b6b6b]">
-                              {employee.avgSatisfaction.toFixed(1)}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-[#9b9b9b]">N/A</span>
-                        )}
                       </div>
                     </td>
                     <td className="p-3 text-center">
@@ -586,7 +583,7 @@ export default function Employees() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="11" className="p-8 text-center text-[#9b9b9b]">
+                  <td colSpan="10" className="p-8 text-center text-[#9b9b9b]">
                     No employees found matching the filters
                   </td>
                 </tr>
