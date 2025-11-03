@@ -52,10 +52,11 @@ export default function OrderItemsSetup() {
     try {
       const response = await base44.functions.invoke('importOrderItemFromZapier', {
         secret: webhookSecret,
-        store_name: stores[0].name, // Added store_name from the first available store for testing
+        // NO store_name - testing auto-detection from printedOrderItemChannel
+        printedOrderItemChannel: 'lct_21684', // Test with Ticinese code
         itemId: 'TEST-' + Date.now(),
         billNumber: 'BILL-TEST-001',
-        orderItemName: 'Pizza Margherita',
+        orderItemName: 'Pizza Margherita TEST',
         finalPrice: 8.50,
         quantity: 1,
         vatRate: 10,
@@ -75,7 +76,7 @@ export default function OrderItemsSetup() {
       } else {
         setTestResult({
           success: true,
-          message: 'Webhook testato con successo! L\'OrderItem di test è stato creato.',
+          message: `Webhook testato con successo! L'OrderItem di test è stato creato e assegnato automaticamente a ${response.data.orderItem.store_name || 'uno store non specificato'}`,
           data: response.data
         });
       }
@@ -122,9 +123,31 @@ export default function OrderItemsSetup() {
         </NeumorphicCard>
       )}
 
+      {/* Auto-Detection Info */}
+      <NeumorphicCard className="p-6 border-2 border-green-500">
+        <div className="flex items-start gap-3">
+          <CheckCircle className="w-6 h-6 text-green-600 mt-1" />
+          <div>
+            <h3 className="font-bold text-green-700 mb-2">✨ Rilevamento Automatico Store ATTIVO!</h3>
+            <p className="text-green-600 mb-3">
+              Il webhook rileva <strong>automaticamente</strong> il locale dal campo <code className="bg-white px-2 py-1 rounded">printedOrderItemChannel</code>:
+            </p>
+            <ul className="text-sm text-green-700 space-y-2 ml-4">
+              <li>• <code className="bg-white px-2 py-1 rounded">lct_21684</code> → Ticinese</li>
+              <li>• <code className="bg-white px-2 py-1 rounded">lct_21350</code> → Lanino</li>
+            </ul>
+            <div className="neumorphic-pressed p-3 rounded-lg mt-4 bg-green-50">
+              <p className="text-sm text-green-800">
+                🎯 <strong>Vantaggi:</strong> Non è più necessario creare Zap separati per ogni locale! Un solo Zap può importare ordini da tutti i locali automaticamente.
+              </p>
+            </div>
+          </div>
+        </div>
+      </NeumorphicCard>
+
       {/* Available Stores */}
       {stores.length > 0 && (
-        <NeumorphicCard className="p-6 border-2 border-[#8b7355]">
+        <NeumorphicCard className="p-6">
           <div className="flex items-center gap-3 mb-4">
             <Store className="w-5 h-5 text-[#8b7355]" />
             <h2 className="text-xl font-bold text-[#6b6b6b]">Locali Disponibili</h2>
@@ -134,14 +157,13 @@ export default function OrderItemsSetup() {
               <div key={store.id} className="neumorphic-pressed p-4 rounded-xl">
                 <p className="font-bold text-[#6b6b6b]">{store.name}</p>
                 <p className="text-sm text-[#9b9b9b]">{store.address}</p>
+                {(store.name === 'Ticinese' || store.name === 'Lanino') && (
+                  <p className="text-xs text-green-600 mt-2 font-mono">
+                    ✓ Auto-rilevamento: {store.name === 'Ticinese' ? 'lct_21684' : 'lct_21350'}
+                  </p>
+                )}
               </div>
             ))}
-          </div>
-          <div className="neumorphic-flat p-4 rounded-xl mt-4 bg-yellow-50">
-            <p className="text-sm text-yellow-800">
-              ⚠️ <strong>Importante:</strong> Dovrai creare uno <strong>Zap separato per ogni locale</strong> (o per ogni file Google Sheets). 
-              Il valore di <code className="bg-white px-2 py-1 rounded">store_name</code> deve corrispondere <strong>esattamente</strong> al nome del locale (maiuscole/minuscole incluse).
-            </p>
           </div>
         </NeumorphicCard>
       )}
@@ -229,10 +251,11 @@ export default function OrderItemsSetup() {
           <h2 className="text-xl font-bold text-[#6b6b6b]">⚙️ Step 3: Configurazione Zapier</h2>
         </div>
 
-        <div className="neumorphic-flat p-4 rounded-xl bg-blue-50 mb-6">
-          <p className="text-sm text-blue-800">
-            📁 <strong>Importante:</strong> Se hai <strong>un file Google Sheets per ogni locale</strong>, dovrai creare uno Zap separato per ogni file. 
-            Se invece hai <strong>un file con tab diversi per ogni locale</strong>, dovrai creare uno Zap per ogni tab.
+        <div className="neumorphic-flat p-4 rounded-xl bg-green-50 mb-6">
+          <p className="text-sm text-green-800">
+            ✨ <strong>Novità:</strong> Il locale viene <strong>rilevato automaticamente</strong> dal campo <code className="bg-white px-2 py-1 rounded">printedOrderItemChannel</code>!
+            <br/>Non è più necessario specificare manualmente il <code className="bg-white px-2 py-1 rounded">store_name</code>.
+            <br/>Puoi usare <strong>un solo Zap</strong> per importare ordini da TUTTI i locali contemporaneamente!
           </p>
         </div>
 
@@ -263,12 +286,12 @@ export default function OrderItemsSetup() {
                 <ul className="space-y-1 text-[#6b6b6b]">
                   <li>• <strong>App:</strong> Google Sheets</li>
                   <li>• <strong>Trigger:</strong> New Spreadsheet Row</li>
-                  <li>• <strong>Spreadsheet:</strong> Il file Google Sheet specifico per il locale (es. "Ordini_Ticinese")</li>
+                  <li>• <strong>Spreadsheet:</strong> Il file Google Sheet con gli ordini</li>
                   <li>• <strong>Worksheet:</strong> Seleziona il foglio corretto</li>
                 </ul>
-                <div className="neumorphic-pressed p-3 rounded-lg mt-3 bg-yellow-50">
-                  <p className="text-sm text-yellow-800">
-                    💡 <strong>Nota:</strong> Se hai più locali, dovrai ripetere questa configurazione creando uno Zap per ogni file/locale.
+                <div className="neumorphic-pressed p-3 rounded-lg mt-3 bg-green-50">
+                  <p className="text-sm text-green-800">
+                    💡 <strong>Nota:</strong> Ora puoi usare un SINGOLO Zap per tutti i locali! Il sistema riconosce automaticamente Ticinese/Lanino dal codice.
                   </p>
                 </div>
               </div>
@@ -311,13 +334,6 @@ export default function OrderItemsSetup() {
                         <span className="font-bold text-red-700">secret</span>
                         <span className="text-red-700"> → Il tuo ZAPIER_WEBHOOK_SECRET</span>
                       </div>
-                      <div className="border-t border-red-300 pt-2">
-                        <span className="font-bold text-red-700">store_name 🏪</span>
-                        <span className="text-red-700"> → <strong>NUOVO!</strong> Scrivi manualmente il nome esatto del locale</span>
-                        <p className="text-xs text-red-600 mt-1 ml-4">
-                          Esempio: "Ticinese" oppure "Lanino" (vedi lista "Locali Disponibili" sopra)
-                        </p>
-                      </div>
                       <div>
                         <span className="font-bold text-red-700">itemId</span>
                         <span className="text-red-700"> → Colonna "itemId" del Google Sheet</span>
@@ -329,6 +345,10 @@ export default function OrderItemsSetup() {
                       <div>
                         <span className="font-bold text-red-700">orderItemName</span>
                         <span className="text-red-700"> → Colonna "orderItemName"</span>
+                      </div>
+                      <div className="border-t border-red-300 pt-2">
+                        <span className="font-bold text-red-700">printedOrderItemChannel 🏪</span>
+                        <span className="text-red-700"> → Colonna "printedOrderItemChannel" (il sistema rileva automaticamente il locale!)</span>
                       </div>
                     </div>
                   </div>
@@ -354,9 +374,16 @@ export default function OrderItemsSetup() {
                     </div>
                   </div>
 
-                  <div className="neumorphic-flat p-4 rounded-xl bg-yellow-50">
-                    <p className="text-sm text-yellow-800">
-                      🚨 <strong>CRUCIALE:</strong> Il campo <code className="bg-white px-2 py-1 rounded">store_name</code> è OBBLIGATORIO e deve contenere il nome esatto del locale come appare nella lista "Locali Disponibili"!
+                  <div className="neumorphic-flat p-4 rounded-xl bg-green-50">
+                    <p className="text-sm text-green-800">
+                      🎯 <strong>Mapping automatico:</strong>
+                    </p>
+                    <ul className="text-sm text-green-700 ml-4 mt-2 space-y-1">
+                      <li>• <code className="bg-white px-2 py-1 rounded">lct_21684</code> → Store: <strong>Ticinese</strong></li>
+                      <li>• <code className="bg-white px-2 py-1 rounded">lct_21350</code> → Store: <strong>Lanino</strong></li>
+                    </ul>
+                    <p className="text-sm text-green-800 mt-3">
+                      Non serve più specificare <code className="bg-white px-2 py-1 rounded">store_name</code> manualmente!
                     </p>
                   </div>
                 </div>
@@ -390,7 +417,7 @@ export default function OrderItemsSetup() {
         
         <div className="neumorphic-pressed p-4 rounded-xl mb-4">
           <p className="text-[#6b6b6b] mb-3">
-            Ogni file Google Sheet (uno per locale) deve avere le seguenti colonne minime:
+            Il Google Sheet deve contenere le seguenti colonne minime:
           </p>
           <div className="bg-white rounded-lg p-4 overflow-x-auto">
             <table className="w-full text-xs">
@@ -399,8 +426,8 @@ export default function OrderItemsSetup() {
                   <th className="text-left p-2 text-[#8b7355]">itemId</th>
                   <th className="text-left p-2 text-[#8b7355]">billNumber</th>
                   <th className="text-left p-2 text-[#8b7355]">orderItemName</th>
+                  <th className="text-left p-2 text-[#8b7355]">printedOrderItemChannel</th>
                   <th className="text-left p-2 text-[#8b7355]">finalPrice</th>
-                  <th className="text-left p-2 text-[#8b7355]">quantity</th>
                   <th className="text-left p-2 text-[#8b7355]">...</th>
                 </tr>
               </thead>
@@ -409,8 +436,16 @@ export default function OrderItemsSetup() {
                   <td className="p-2 text-[#6b6b6b]">ITEM-001</td>
                   <td className="p-2 text-[#6b6b6b]">BILL-12345</td>
                   <td className="p-2 text-[#6b6b6b]">Pizza Margherita</td>
+                  <td className="p-2 text-[#6b6b6b] font-mono">lct_21684</td>
                   <td className="p-2 text-[#6b6b6b]">8.50</td>
-                  <td className="p-2 text-[#6b6b6b]">2</td>
+                  <td className="p-2 text-[#6b6b6b]">...</td>
+                </tr>
+                <tr className="border-b border-gray-200">
+                  <td className="p-2 text-[#6b6b6b]">ITEM-002</td>
+                  <td className="p-2 text-[#6b6b6b]">BILL-12346</td>
+                  <td className="p-2 text-[#6b6b6b]">Focaccia</td>
+                  <td className="p-2 text-[#6b6b6b] font-mono">lct_21350</td>
+                  <td className="p-2 text-[#6b6b6b]">5.00</td>
                   <td className="p-2 text-[#6b6b6b]">...</td>
                 </tr>
               </tbody>
@@ -423,12 +458,11 @@ export default function OrderItemsSetup() {
             💡 <strong>Setup consigliato:</strong>
           </p>
           <ul className="text-sm text-[#6b6b6b] ml-4 space-y-1">
-            <li>• <strong>File separati:</strong> "Ordini_Ticinese.xlsx", "Ordini_Lanino.xlsx", ecc.</li>
-            <li>• <strong>Oppure tab separati:</strong> Un file "Ordini.xlsx" con tab "Ticinese", "Lanino", ecc.</li>
-            <li>• Uno Zap per ogni file/tab che specifica il <code className="bg-white px-2 py-1 rounded">store_name</code> corretto</li>
+            <li>• <strong>Opzione 1 (CONSIGLIATA):</strong> Un singolo file con TUTTI gli ordini di tutti i locali → il sistema riconosce automaticamente il locale dal printedOrderItemChannel</li>
+            <li>• <strong>Opzione 2:</strong> File separati per locale, ma non è più necessario!</li>
           </ul>
           <p className="text-sm text-[#6b6b6b] mt-3">
-            📊 <strong>Nota:</strong> Il nome del locale NON va nel Google Sheet, ma va specificato manualmente in Zapier nel campo <code className="bg-white px-2 py-1 rounded">store_name</code>
+            📊 <strong>Importante:</strong> Assicurati che il file contenga la colonna <code className="bg-white px-2 py-1 rounded">printedOrderItemChannel</code> con i valori lct_21684 o lct_21350
           </p>
         </div>
       </NeumorphicCard>
