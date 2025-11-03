@@ -69,6 +69,34 @@ Deno.serve(async (req) => {
         const actualStart = body.timeclock_start ? parseDateTime(body.timeclock_start) : null;
         const actualEnd = body.timeclock_end ? parseDateTime(body.timeclock_end) : null;
 
+        // ✅ CHECK FOR DUPLICATES BEFORE CREATING
+        // A shift is duplicate if it has same:
+        // - employee_name, store_id, shift_date, scheduled_start, scheduled_end
+        const shiftDate = scheduledStart ? scheduledStart.split('T')[0] : new Date().toISOString().split('T')[0];
+        
+        const existingShifts = await base44.asServiceRole.entities.Shift.filter({
+            employee_name: body.employee_name,
+            store_id: stores[0].id,
+            shift_date: shiftDate,
+            scheduled_start: scheduledStart,
+            scheduled_end: scheduledEnd
+        });
+
+        if (existingShifts && existingShifts.length > 0) {
+            return Response.json({
+                success: false,
+                message: 'Duplicate shift detected - not created',
+                existing_shift_id: existingShifts[0].id,
+                shift_info: {
+                    employee_name: body.employee_name,
+                    store_name: body.department_name,
+                    shift_date: shiftDate,
+                    scheduled_start: scheduledStart,
+                    scheduled_end: scheduledEnd
+                }
+            }, { status: 409 }); // 409 Conflict
+        }
+
         // Calculate ritardo and minuti_di_ritardo
         let ritardo = false;
         let minuti_di_ritardo = 0;
@@ -100,7 +128,7 @@ Deno.serve(async (req) => {
             employee_id_external: body.employee_id || null,
             store_name: body.department_name,
             store_id: stores[0].id,
-            shift_date: scheduledStart ? scheduledStart.split('T')[0] : new Date().toISOString().split('T')[0],
+            shift_date: shiftDate,
             scheduled_start: scheduledStart,
             scheduled_end: scheduledEnd,
             scheduled_minutes: parseInt(body.minutes) || 0,

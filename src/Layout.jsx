@@ -16,7 +16,8 @@ import {
   ChevronRight,
   Clock,
   UserCheck,
-  BarChart3 // Added BarChart3 import
+  BarChart3,
+  AlertTriangle
 } from "lucide-react";
 
 const navigationStructure = [

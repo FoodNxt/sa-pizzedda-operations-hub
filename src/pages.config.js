@@ -11,6 +11,7 @@ import EmployeeReviewsPerformance from './pages/EmployeeReviewsPerformance';
 import OrderItemsSetup from './pages/OrderItemsSetup';
 import ChannelComparison from './pages/ChannelComparison';
 import RecalculateShifts from './pages/RecalculateShifts';
+import CleanupDuplicateShifts from './pages/CleanupDuplicateShifts';
 import Layout from './Layout.jsx';
 
 
@@ -28,6 +29,7 @@ export const PAGES = {
     "OrderItemsSetup": OrderItemsSetup,
     "ChannelComparison": ChannelComparison,
     "RecalculateShifts": RecalculateShifts,
+    "CleanupDuplicateShifts": CleanupDuplicateShifts,
 }
 
 export const pagesConfig = {
