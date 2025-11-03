@@ -79,6 +79,11 @@ const navigationStructure = [
         title: "Shifts",
         url: createPageUrl("Shifts"),
         icon: Clock,
+      },
+      {
+        title: "Ricalcola Ritardi",
+        url: createPageUrl("RecalculateShifts"),
+        icon: Clock,
       }
     ]
   },
