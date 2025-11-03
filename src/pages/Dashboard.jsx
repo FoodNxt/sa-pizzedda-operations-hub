@@ -61,6 +61,10 @@ export default function Dashboard() {
       sum + (item.finalPriceWithSessionDiscountsAndSurcharges || 0), 0
     );
 
+    // Count unique orders (not items)
+    const uniqueOrders = [...new Set(filteredOrders.map(item => item.order).filter(Boolean))];
+    const totalOrders = uniqueOrders.length;
+
     // Revenue by date for chart
     const revenueByDate = {};
     filteredOrders.forEach(item => {
@@ -80,7 +84,7 @@ export default function Dashboard() {
         revenue: parseFloat(d.revenue.toFixed(2))
       }));
 
-    return { totalRevenue, dailyRevenue };
+    return { totalRevenue, totalOrders, dailyRevenue };
   }, [orderItems, dateRange, startDate, endDate]);
 
   // Calculate metrics

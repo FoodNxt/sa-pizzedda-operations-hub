@@ -72,60 +72,83 @@ export default function Financials() {
       sum + (item.finalPriceWithSessionDiscountsAndSurcharges || 0), 0
     );
     
-    const totalOrders = filtered.length;
+    // Count unique orders (not items)
+    const uniqueOrders = [...new Set(filtered.map(item => item.order).filter(Boolean))];
+    const totalOrders = uniqueOrders.length;
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
     // Revenue by date (group by day)
     const revenueByDate = {};
+    const ordersByDate = {}; // To store unique orders per date
+    
     filtered.forEach(item => {
       if (item.modifiedDate) {
         const date = format(new Date(item.modifiedDate), 'yyyy-MM-dd');
         if (!revenueByDate[date]) {
-          revenueByDate[date] = { date, revenue: 0, orders: 0 };
+          revenueByDate[date] = { date, revenue: 0 };
+          ordersByDate[date] = new Set(); // Initialize a Set for unique orders
         }
         revenueByDate[date].revenue += item.finalPriceWithSessionDiscountsAndSurcharges || 0;
-        revenueByDate[date].orders += 1;
+        if (item.order) { // Add order ID to the set if it exists
+          ordersByDate[date].add(item.order);
+        }
       }
     });
 
     const dailyRevenue = Object.values(revenueByDate)
       .sort((a, b) => new Date(a.date) - new Date(b.date))
-      .map(d => ({
-        date: format(new Date(d.date), 'dd/MM'),
-        revenue: parseFloat(d.revenue.toFixed(2)),
-        orders: d.orders,
-        avgValue: parseFloat((d.revenue / d.orders).toFixed(2))
-      }));
+      .map(d => {
+        const orders = ordersByDate[d.date].size; // Get the count of unique orders for this date
+        return {
+          date: format(new Date(d.date), 'dd/MM'),
+          revenue: parseFloat(d.revenue.toFixed(2)),
+          orders: orders,
+          avgValue: orders > 0 ? parseFloat((d.revenue / orders).toFixed(2)) : 0
+        };
+      });
 
     // Revenue by store
     const revenueByStore = {};
+    const ordersByStore = {}; // To store unique orders per store
+    
     filtered.forEach(item => {
       const storeName = item.store_name || 'Unknown';
       if (!revenueByStore[storeName]) {
-        revenueByStore[storeName] = { name: storeName, revenue: 0, orders: 0 };
+        revenueByStore[storeName] = { name: storeName, revenue: 0 };
+        ordersByStore[storeName] = new Set(); // Initialize a Set for unique orders
       }
       revenueByStore[storeName].revenue += item.finalPriceWithSessionDiscountsAndSurcharges || 0;
-      revenueByStore[storeName].orders += 1;
+      if (item.order) { // Add order ID to the set if it exists
+        ordersByStore[storeName].add(item.order);
+      }
     });
 
     const storeBreakdown = Object.values(revenueByStore)
       .sort((a, b) => b.revenue - a.revenue)
-      .map(s => ({
-        name: s.name,
-        revenue: parseFloat(s.revenue.toFixed(2)),
-        orders: s.orders,
-        avgValue: parseFloat((s.revenue / s.orders).toFixed(2))
-      }));
+      .map(s => {
+        const orders = ordersByStore[s.name].size; // Get the count of unique orders for this store
+        return {
+          name: s.name,
+          revenue: parseFloat(s.revenue.toFixed(2)),
+          orders: orders,
+          avgValue: orders > 0 ? parseFloat((s.revenue / orders).toFixed(2)) : 0
+        };
+      });
 
     // Revenue by sales channel
     const revenueByChannel = {};
+    const ordersByChannel = {}; // To store unique orders per channel
+    
     filtered.forEach(item => {
       const channel = item.saleTypeName || 'Unknown';
       if (!revenueByChannel[channel]) {
-        revenueByChannel[channel] = { name: channel, value: 0, orders: 0 };
+        revenueByChannel[channel] = { name: channel, value: 0 };
+        ordersByChannel[channel] = new Set(); // Initialize a Set for unique orders
       }
       revenueByChannel[channel].value += item.finalPriceWithSessionDiscountsAndSurcharges || 0;
-      revenueByChannel[channel].orders += 1;
+      if (item.order) { // Add order ID to the set if it exists
+        ordersByChannel[channel].add(item.order);
+      }
     });
 
     const channelBreakdown = Object.values(revenueByChannel)
@@ -133,19 +156,24 @@ export default function Financials() {
       .map(c => ({
         name: c.name,
         value: parseFloat(c.value.toFixed(2)),
-        orders: c.orders
+        orders: ordersByChannel[c.name].size // Get the count of unique orders for this channel
       }));
 
     // Revenue by delivery app
     const revenueByApp = {};
+    const ordersByApp = {}; // To store unique orders per app
+    
     filtered.forEach(item => {
       if (item.sourceApp) {
         const app = item.sourceApp;
         if (!revenueByApp[app]) {
-          revenueByApp[app] = { name: app, value: 0, orders: 0 };
+          revenueByApp[app] = { name: app, value: 0 };
+          ordersByApp[app] = new Set(); // Initialize a Set for unique orders
         }
         revenueByApp[app].value += item.finalPriceWithSessionDiscountsAndSurcharges || 0;
-        revenueByApp[app].orders += 1;
+        if (item.order) { // Add order ID to the set if it exists
+          ordersByApp[app].add(item.order);
+        }
       }
     });
 
@@ -154,7 +182,7 @@ export default function Financials() {
       .map(a => ({
         name: a.name.charAt(0).toUpperCase() + a.name.slice(1),
         value: parseFloat(a.value.toFixed(2)),
-        orders: a.orders
+        orders: ordersByApp[a.name].size // Get the count of unique orders for this app
       }));
 
     return {

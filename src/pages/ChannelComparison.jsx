@@ -63,11 +63,14 @@ export default function ChannelComparison() {
       });
     };
 
-    const calculateMetrics = (orders) => {
-      const totalRevenue = orders.reduce((sum, item) => 
+    const calculateMetrics = (items) => { // Renamed 'orders' to 'items' for clarity, as it's a list of order items
+      const totalRevenue = items.reduce((sum, item) => 
         sum + (item.finalPriceWithSessionDiscountsAndSurcharges || 0), 0
       );
-      const totalOrders = orders.length;
+      
+      // Count unique orders (not items)
+      const uniqueOrders = [...new Set(items.map(item => item.order).filter(Boolean))];
+      const totalOrders = uniqueOrders.length;
       const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
       return { totalRevenue, totalOrders, avgOrderValue };
