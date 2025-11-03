@@ -1,12 +1,17 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Store, TrendingUp, Users, DollarSign, Star, AlertTriangle } from "lucide-react";
+import { Store, TrendingUp, Users, DollarSign, Star, AlertTriangle, Filter, Calendar, X } from "lucide-react";
 import StatsCard from "../components/dashboard/StatsCard";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { format, subDays, isAfter, isBefore, parseISO } from 'date-fns';
 
 export default function Dashboard() {
+  const [dateRange, setDateRange] = useState('30');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
     queryFn: () => base44.entities.Store.list(),
@@ -22,10 +27,60 @@ export default function Dashboard() {
     queryFn: () => base44.entities.Employee.list(),
   });
 
-  const { data: financials = [] } = useQuery({
-    queryKey: ['financials'],
-    queryFn: () => base44.entities.Financial.list(),
+  const { data: orderItems = [] } = useQuery({
+    queryKey: ['orderItems'],
+    queryFn: () => base44.entities.OrderItem.list('-modifiedDate', 10000),
   });
+
+  // Process data with date filters
+  const processedData = useMemo(() => {
+    let cutoffDate;
+    let endFilterDate;
+    
+    if (startDate || endDate) {
+      cutoffDate = startDate ? parseISO(startDate + 'T00:00:00') : new Date(0);
+      endFilterDate = endDate ? parseISO(endDate + 'T23:59:59') : new Date();
+    } else {
+      const days = parseInt(dateRange);
+      cutoffDate = subDays(new Date(), days);
+      endFilterDate = new Date();
+    }
+    
+    const filteredOrders = orderItems.filter(item => {
+      if (item.modifiedDate) {
+        const itemDate = new Date(item.modifiedDate);
+        if (isBefore(itemDate, cutoffDate) || isAfter(itemDate, endFilterDate)) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    const totalRevenue = filteredOrders.reduce((sum, item) => 
+      sum + (item.finalPriceWithSessionDiscountsAndSurcharges || item.finalPrice || 0), 0
+    );
+
+    // Revenue by date for chart
+    const revenueByDate = {};
+    filteredOrders.forEach(item => {
+      if (item.modifiedDate) {
+        const date = format(new Date(item.modifiedDate), 'yyyy-MM-dd');
+        if (!revenueByDate[date]) {
+          revenueByDate[date] = { date, revenue: 0 };
+        }
+        revenueByDate[date].revenue += item.finalPriceWithSessionDiscountsAndSurcharges || item.finalPrice || 0;
+      }
+    });
+
+    const dailyRevenue = Object.values(revenueByDate)
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .map(d => ({
+        date: format(new Date(d.date), 'dd MMM'),
+        revenue: parseFloat(d.revenue.toFixed(2))
+      }));
+
+    return { totalRevenue, dailyRevenue };
+  }, [orderItems, dateRange, startDate, endDate]);
 
   // Calculate metrics
   const totalStores = stores.length;
@@ -33,7 +88,6 @@ export default function Dashboard() {
   const averageRating = reviews.length > 0 
     ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
     : '0.0';
-  const totalRevenue = financials.reduce((sum, f) => sum + (f.revenue || 0), 0);
   const totalEmployees = employees.filter(e => e.status === 'active').length;
 
   // Low-rated stores
@@ -47,18 +101,13 @@ export default function Dashboard() {
 
   const alertStores = storeRatings.filter(s => s.avgRating < 3.5 && s.reviewCount > 0);
 
-  // Recent performance data
-  const recentFinancials = financials
-    .filter(f => f.period_type === 'daily')
-    .slice(-7)
-    .map(f => ({
-      date: new Date(f.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      revenue: f.revenue,
-      costs: (f.cost_ingredients || 0) + (f.cost_labor || 0) + (f.cost_overhead || 0),
-      profit: f.revenue - ((f.cost_ingredients || 0) + (f.cost_labor || 0) + (f.cost_overhead || 0))
-    }));
-
   const COLORS = ['#8b7355', '#a68a6a', '#c1a07f', '#dcb794'];
+
+  const clearCustomDates = () => {
+    setStartDate('');
+    setEndDate('');
+    setDateRange('30');
+  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -67,6 +116,77 @@ export default function Dashboard() {
         <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Dashboard Overview</h1>
         <p className="text-[#9b9b9b]">Monitor your business performance across all locations</p>
       </div>
+
+      {/* Date Range Filter */}
+      <NeumorphicCard className="p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <Filter className="w-5 h-5 text-[#8b7355]" />
+          <h2 className="text-lg font-bold text-[#6b6b6b]">Filtri Periodo</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="text-sm text-[#9b9b9b] mb-2 block">Periodo</label>
+            <select
+              value={dateRange}
+              onChange={(e) => {
+                setDateRange(e.target.value);
+                if (e.target.value !== 'custom') {
+                  setStartDate('');
+                  setEndDate('');
+                }
+              }}
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+            >
+              <option value="7">Ultimi 7 giorni</option>
+              <option value="30">Ultimi 30 giorni</option>
+              <option value="90">Ultimi 90 giorni</option>
+              <option value="365">Ultimo anno</option>
+              <option value="custom">Periodo Personalizzato</option>
+            </select>
+          </div>
+
+          {dateRange === 'custom' && (
+            <>
+              <div>
+                <label className="text-sm text-[#9b9b9b] mb-2 block flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Data Inizio
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-[#9b9b9b] mb-2 block flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Data Fine
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                  />
+                  {(startDate || endDate) && (
+                    <button
+                      onClick={clearCustomDates}
+                      className="neumorphic-flat px-3 rounded-xl text-[#9b9b9b] hover:text-red-600 transition-colors"
+                      title="Cancella date"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </NeumorphicCard>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -86,10 +206,10 @@ export default function Dashboard() {
         />
         <StatsCard
           title="Total Revenue"
-          value={`$${totalRevenue.toLocaleString()}`}
+          value={`€${processedData.totalRevenue.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           icon={DollarSign}
           trend="up"
-          trendValue="This period"
+          trendValue="From OrderItems"
         />
         <StatsCard
           title="Active Employees"
@@ -127,9 +247,9 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Revenue Trend */}
         <NeumorphicCard className="p-6">
-          <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Revenue Trend (Last 7 Days)</h2>
+          <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Revenue Trend</h2>
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={recentFinancials}>
+            <LineChart data={processedData.dailyRevenue}>
               <CartesianGrid strokeDasharray="3 3" stroke="#c1c1c1" />
               <XAxis dataKey="date" stroke="#9b9b9b" />
               <YAxis stroke="#9b9b9b" />
@@ -140,10 +260,10 @@ export default function Dashboard() {
                   borderRadius: '12px',
                   boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
                 }}
+                formatter={(value) => `€${value.toFixed(2)}`}
               />
               <Legend />
-              <Line type="monotone" dataKey="revenue" stroke="#8b7355" strokeWidth={3} name="Revenue" />
-              <Line type="monotone" dataKey="profit" stroke="#a68a6a" strokeWidth={3} name="Profit" />
+              <Line type="monotone" dataKey="revenue" stroke="#8b7355" strokeWidth={3} name="Revenue €" />
             </LineChart>
           </ResponsiveContainer>
         </NeumorphicCard>
@@ -188,7 +308,7 @@ export default function Dashboard() {
               <TrendingUp className="w-8 h-8 text-[#8b7355]" />
             </div>
             <h3 className="text-2xl font-bold text-[#6b6b6b] mb-1">
-              ${(totalRevenue / (stores.length || 1)).toFixed(0)}
+              €{(processedData.totalRevenue / (stores.length || 1)).toFixed(0)}
             </h3>
             <p className="text-sm text-[#9b9b9b]">Avg Revenue per Store</p>
           </div>
