@@ -70,8 +70,6 @@ Deno.serve(async (req) => {
         const actualEnd = body.timeclock_end ? parseDateTime(body.timeclock_end) : null;
 
         // ✅ CHECK FOR DUPLICATES BEFORE CREATING
-        // A shift is duplicate if it has same:
-        // - employee_name, store_id, shift_date, scheduled_start, scheduled_end
         const shiftDate = scheduledStart ? scheduledStart.split('T')[0] : new Date().toISOString().split('T')[0];
         
         const existingShifts = await base44.asServiceRole.entities.Shift.filter({
@@ -94,7 +92,7 @@ Deno.serve(async (req) => {
                     scheduled_start: scheduledStart,
                     scheduled_end: scheduledEnd
                 }
-            }, { status: 409 }); // 409 Conflict
+            }, { status: 409 });
         }
 
         // Calculate ritardo and minuti_di_ritardo
@@ -106,15 +104,12 @@ Deno.serve(async (req) => {
                 const actualStartDate = new Date(actualStart);
                 const scheduledStartDate = new Date(scheduledStart);
                 
-                // Check if dates are valid
                 if (!isNaN(actualStartDate.getTime()) && !isNaN(scheduledStartDate.getTime())) {
                     const differenzaMs = actualStartDate.getTime() - scheduledStartDate.getTime();
                     const minutiEffettivi = Math.round(differenzaMs / (1000 * 60));
                     
-                    // Se c'è ritardo (anche di 1 solo minuto)
                     if (minutiEffettivi > 0) {
                         ritardo = true;
-                        // Arrotonda a scaglioni di 15 minuti in eccesso
                         minuti_di_ritardo = Math.ceil(minutiEffettivi / 15) * 15;
                     }
                 }
@@ -122,6 +117,16 @@ Deno.serve(async (req) => {
                 console.error('Error calculating delay:', e);
             }
         }
+
+        // ✅ Calculate timbratura_mancata
+        const shiftType = body.timesheet_type_name || '';
+        const excludedTypes = [
+            'Malattia (Certificato)',
+            'Assenza non retribuita',
+            'Ferie'
+        ];
+        
+        const timbraturaMancata = !actualStart && !excludedTypes.includes(shiftType);
 
         const shiftData = {
             employee_name: body.employee_name,
@@ -135,10 +140,11 @@ Deno.serve(async (req) => {
             actual_start: actualStart,
             actual_end: actualEnd,
             actual_minutes: body.timeclock_minutes ? parseInt(body.timeclock_minutes) : null,
-            shift_type: body.timesheet_type_name || '',
+            shift_type: shiftType,
             employee_group_name: body.employee_group_name || null,
             ritardo: ritardo,
-            minuti_di_ritardo: minuti_di_ritardo
+            minuti_di_ritardo: minuti_di_ritardo,
+            timbratura_mancata: timbraturaMancata
         };
 
         const shift = await base44.asServiceRole.entities.Shift.create(shiftData);
@@ -152,7 +158,8 @@ Deno.serve(async (req) => {
                 scheduled_start: shift.scheduled_start,
                 actual_start: shift.actual_start,
                 ritardo: shift.ritardo,
-                minuti_di_ritardo: shift.minuti_di_ritardo
+                minuti_di_ritardo: shift.minuti_di_ritardo,
+                timbratura_mancata: shift.timbratura_mancata
             }
         }, { status: 201 });
 

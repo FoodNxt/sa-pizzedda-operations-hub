@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -50,6 +51,16 @@ export default function RecalculateShifts() {
     }
   };
 
+  const calculateTimbraturaMancata = (actualStart, shiftType) => {
+    const excludedTypes = [
+      'Malattia (Certificato)',
+      'Assenza non retribuita',
+      'Ferie'
+    ];
+    
+    return !actualStart && !excludedTypes.includes(shiftType || '');
+  };
+
   const handleRecalculate = async () => {
     setIsRecalculating(true);
     setProgress({ current: 0, total: shifts.length });
@@ -69,13 +80,21 @@ export default function RecalculateShifts() {
           shift.actual_start
         );
 
-        // Aggiorna solo se i valori sono cambiati
-        if (shift.ritardo !== ritardo || shift.minuti_di_ritardo !== minuti_di_ritardo) {
+        const timbratura_mancata = calculateTimbraturaMancata(
+          shift.actual_start,
+          shift.shift_type
+        );
+
+        // Aggiorna se qualsiasi valore è cambiato
+        if (shift.ritardo !== ritardo || 
+            shift.minuti_di_ritardo !== minuti_di_ritardo ||
+            shift.timbratura_mancata !== timbratura_mancata) {
           await updateShiftMutation.mutateAsync({
             shiftId: shift.id,
             data: {
               ritardo,
-              minuti_di_ritardo
+              minuti_di_ritardo,
+              timbratura_mancata
             }
           });
           updated++;
@@ -101,9 +120,12 @@ export default function RecalculateShifts() {
   };
 
   const shiftsWithDelay = shifts.filter(s => s.actual_start && s.scheduled_start);
-  const shiftsNeedingUpdate = shiftsWithDelay.filter(s => {
-    const calculated = calculateDelay(s.scheduled_start, s.actual_start);
-    return s.ritardo !== calculated.ritardo || s.minuti_di_ritardo !== calculated.minuti_di_ritardo;
+  const shiftsNeedingUpdate = shifts.filter(s => { // Changed from shiftsWithDelay to shifts to include cases for timbratura_mancata calculation
+    const calculatedDelay = calculateDelay(s.scheduled_start, s.actual_start);
+    const calculatedTimbratura = calculateTimbraturaMancata(s.actual_start, s.shift_type);
+    return s.ritardo !== calculatedDelay.ritardo || 
+           s.minuti_di_ritardo !== calculatedDelay.minuti_di_ritardo ||
+           s.timbratura_mancata !== calculatedTimbratura;
   });
 
   return (
@@ -111,7 +133,7 @@ export default function RecalculateShifts() {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Ricalcola Ritardi Turni</h1>
-        <p className="text-[#9b9b9b]">Aggiorna i campi ritardo e minuti_di_ritardo per tutti i turni esistenti</p>
+        <p className="text-[#9b9b9b]">Aggiorna i campi ritardo, minuti_di_ritardo e timbratura_mancata per tutti i turni esistenti</p>
       </div>
 
       {/* Info Card */}
@@ -121,10 +143,11 @@ export default function RecalculateShifts() {
           <div className="text-sm text-blue-800">
             <p className="font-bold mb-2">Come funziona:</p>
             <ul className="space-y-1 ml-4">
-              <li>• Questa operazione ricalcola i ritardi per <strong>tutti i turni esistenti</strong></li>
+              <li>• Ricalcola ritardi e timbrature mancate per <strong>tutti i turni esistenti</strong></li>
               <li>• Vengono aggiornati solo i turni con valori diversi da quelli correnti</li>
-              <li>• La logica: ritardo se actual_start &gt; scheduled_start</li>
-              <li>• I minuti vengono arrotondati a scaglioni di 15 (es: 6 min = 15, 16 min = 30)</li>
+              <li>• <strong>Ritardo:</strong> se actual_start &gt; scheduled_start</li>
+              <li>• <strong>Timbratura Mancata:</strong> se actual_start è null e shift_type NON è Ferie/Malattia/Assenza</li>
+              <li>• I minuti di ritardo vengono arrotondati a scaglioni di 15</li>
               <li>• L'operazione può richiedere alcuni minuti se hai molti turni</li>
             </ul>
           </div>
@@ -272,7 +295,8 @@ export default function RecalculateShifts() {
           </h2>
           <div className="space-y-3">
             {shiftsNeedingUpdate.slice(0, 10).map(shift => {
-              const calculated = calculateDelay(shift.scheduled_start, shift.actual_start);
+              const calculatedDelay = calculateDelay(shift.scheduled_start, shift.actual_start);
+              const calculatedTimbratura = calculateTimbraturaMancata(shift.actual_start, shift.shift_type);
               return (
                 <div key={shift.id} className="neumorphic-flat p-4 rounded-xl">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -288,15 +312,21 @@ export default function RecalculateShifts() {
                       <div className="neumorphic-pressed p-2 rounded">
                         <p className="text-[#9b9b9b] mb-1">Attuale:</p>
                         <p className="font-bold text-red-600">
-                          {shift.ritardo ? '✓' : '✗'} Ritardo
+                          {shift.ritardo ? '✓ Ritardo' : '✗ Nessun Ritardo'}
                           {shift.minuti_di_ritardo > 0 && ` (${shift.minuti_di_ritardo} min)`}
+                        </p>
+                        <p className="font-bold text-red-600 mt-1">
+                          {shift.timbratura_mancata ? '✓ Timb. Mancata' : '✗ Timb. Presente'}
                         </p>
                       </div>
                       <div className="neumorphic-pressed p-2 rounded bg-green-50">
                         <p className="text-[#9b9b9b] mb-1">Nuovo:</p>
                         <p className="font-bold text-green-600">
-                          {calculated.ritardo ? '✓' : '✗'} Ritardo
-                          {calculated.minuti_di_ritardo > 0 && ` (${calculated.minuti_di_ritardo} min)`}
+                          {calculatedDelay.ritardo ? '✓ Ritardo' : '✗ Nessun Ritardo'}
+                          {calculatedDelay.minuti_di_ritardo > 0 && ` (${calculatedDelay.minuti_di_ritardo} min)`}
+                        </p>
+                        <p className="font-bold text-green-600 mt-1">
+                          {calculatedTimbratura ? '✓ Timb. Mancata' : '✗ Timb. Presente'}
                         </p>
                       </div>
                     </div>

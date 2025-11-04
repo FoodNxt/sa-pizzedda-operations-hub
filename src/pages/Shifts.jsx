@@ -113,7 +113,7 @@ export default function Shifts() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-6">
         <NeumorphicCard className="p-6 text-center">
           <p className="text-sm text-[#9b9b9b] mb-2">Totale Turni</p>
           <p className="text-3xl font-bold text-[#6b6b6b]">{filteredShifts.length}</p>
@@ -139,6 +139,13 @@ export default function Shifts() {
             {filteredShifts.filter(s => !s.actual_start).length}
           </p>
         </NeumorphicCard>
+
+        <NeumorphicCard className="p-6 text-center">
+          <p className="text-sm text-[#9b9b9b] mb-2">Timbrature Mancate</p>
+          <p className="text-3xl font-bold text-red-600">
+            {filteredShifts.filter(s => s.timbratura_mancata === true).length}
+          </p>
+        </NeumorphicCard>
       </div>
 
       {/* Shifts Table */}
@@ -151,11 +158,11 @@ export default function Shifts() {
                 <th className="text-left p-3 text-[#9b9b9b] font-medium">Data</th>
                 <th className="text-left p-3 text-[#9b9b9b] font-medium">Dipendente</th>
                 <th className="text-left p-3 text-[#9b9b9b] font-medium">Locale</th>
-                <th className="text-left p-3 text-[#9b9b9b] font-medium">Store ID</th>
                 <th className="text-left p-3 text-[#9b9b9b] font-medium">Orario</th>
                 <th className="text-center p-3 text-[#9b9b9b] font-medium">Ruolo</th>
                 <th className="text-center p-3 text-[#9b9b9b] font-medium">Tipo Turno</th>
                 <th className="text-center p-3 text-[#9b9b9b] font-medium">Stato</th>
+                <th className="text-center p-3 text-[#9b9b9b] font-medium">Timbratura Mancata</th>
               </tr>
             </thead>
             <tbody>
@@ -176,11 +183,6 @@ export default function Shifts() {
                       </div>
                     </td>
                     <td className="p-3 text-[#6b6b6b]">{shift.store_name}</td>
-                    <td className="p-3">
-                      <code className="text-xs text-[#9b9b9b] bg-gray-100 px-2 py-1 rounded">
-                        {shift.store_id || 'N/A'}
-                      </code>
-                    </td>
                     <td className="p-3 text-[#6b6b6b] text-sm">
                       {shift.scheduled_start && format(new Date(shift.scheduled_start), 'HH:mm')} - {shift.scheduled_end && format(new Date(shift.scheduled_end), 'HH:mm')}
                       {shift.actual_start && (
@@ -204,6 +206,18 @@ export default function Shifts() {
                       <div className={`flex items-center justify-center gap-2 ${getStatusColor(shift)}`}>
                         {getStatusIcon(shift)}
                         <span className="text-sm font-medium">{getStatusText(shift)}</span>
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <div className="flex items-center justify-center">
+                        {shift.timbratura_mancata === true ? (
+                          <div className="flex items-center gap-2 text-red-600">
+                            <AlertCircle className="w-5 h-5" />
+                            <span className="text-sm font-medium">Sì</span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-[#9b9b9b]">-</span>
+                        )}
                       </div>
                     </td>
                   </tr>
