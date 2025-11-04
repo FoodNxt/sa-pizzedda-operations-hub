@@ -12,6 +12,7 @@ import OrderItemsSetup from './pages/OrderItemsSetup';
 import ChannelComparison from './pages/ChannelComparison';
 import RecalculateShifts from './pages/RecalculateShifts';
 import CleanupDuplicateShifts from './pages/CleanupDuplicateShifts';
+import InventorySetup from './pages/InventorySetup';
 import Layout from './Layout.jsx';
 
 
@@ -30,6 +31,7 @@ export const PAGES = {
     "ChannelComparison": ChannelComparison,
     "RecalculateShifts": RecalculateShifts,
     "CleanupDuplicateShifts": CleanupDuplicateShifts,
+    "InventorySetup": InventorySetup,
 }
 
 export const pagesConfig = {
