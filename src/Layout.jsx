@@ -68,7 +68,7 @@ const navigationStructure = [
     ]
   },
   {
-    title: "Inventory", // New section: Inventory
+    title: "Inventory",
     icon: Package,
     type: "section",
     items: [
@@ -76,11 +76,6 @@ const navigationStructure = [
         title: "Inventory Dashboard",
         url: createPageUrl("Inventory"),
         icon: Package,
-      },
-      {
-        title: "Zapier Setup",
-        url: createPageUrl("InventorySetup"),
-        icon: Zap,
       }
     ]
   },
@@ -130,8 +125,12 @@ const navigationStructure = [
         title: "Zapier Orders",
         url: createPageUrl("OrderItemsSetup"),
         icon: Zap,
+      },
+      {
+        title: "Zapier Inventory", // Moved here from Inventory section
+        url: createPageUrl("InventorySetup"),
+        icon: Zap,
       }
-      // Removed "Zapier Inventory" as it's now under the "Inventory" section
     ]
   }
 ];
