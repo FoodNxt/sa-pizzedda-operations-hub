@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useQuery } from '@tanstack/react-query';
 import { Package, Copy, CheckCircle, AlertCircle, FileSpreadsheet, Key, Store } from 'lucide-react';
@@ -97,6 +98,43 @@ export default function InventorySetup() {
         </div>
         <p className="text-[#9b9b9b]">Importa automaticamente i dati di inventario da Google Sheets</p>
       </div>
+
+      {/* Setup Options */}
+      <NeumorphicCard className="p-6 border-2 border-blue-500">
+        <div className="flex items-start gap-3">
+          <AlertCircle className="w-6 h-6 text-blue-600 mt-1" />
+          <div>
+            <h3 className="font-bold text-blue-700 mb-2">📋 Hai Google Sheet Separati per Locale?</h3>
+            <p className="text-blue-600 mb-3">
+              Perfetto! La configurazione funziona benissimo con entrambi gli scenari:
+            </p>
+            <div className="space-y-3">
+              <div className="neumorphic-pressed p-4 rounded-lg bg-blue-50">
+                <p className="font-bold text-blue-700 mb-2">Scenario 1: Google Sheet separati (il tuo caso)</p>
+                <ul className="text-sm text-blue-700 space-y-1 ml-4">
+                  <li>• <strong>File 1:</strong> Inventario Ticinese.xlsx</li>
+                  <li>• <strong>File 2:</strong> Inventario Lanino.xlsx</li>
+                  <li>• <strong>Zap necessari:</strong> 2 (uno per file)</li>
+                </ul>
+              </div>
+              <div className="neumorphic-pressed p-4 rounded-lg bg-green-50">
+                <p className="font-bold text-green-700 mb-2">Scenario 2: Un file con più tab</p>
+                <ul className="text-sm text-green-700 space-y-1 ml-4">
+                  <li>• <strong>File unico:</strong> Inventario.xlsx</li>
+                  <li>• <strong>Tab 1:</strong> Ticinese</li>
+                  <li>• <strong>Tab 2:</strong> Lanino</li>
+                  <li>• <strong>Zap necessari:</strong> 2 (uno per tab)</li>
+                </ul>
+              </div>
+            </div>
+            <div className="neumorphic-flat p-3 rounded-lg mt-3 bg-blue-50">
+              <p className="text-sm text-blue-800">
+                💡 <strong>In entrambi i casi:</strong> Serve uno Zap per ogni locale, e in ogni Zap devi specificare manualmente il <code className="bg-white px-2 py-1 rounded">store_name</code>
+              </p>
+            </div>
+          </div>
+        </div>
+      </NeumorphicCard>
 
       {/* Store Check */}
       {stores.length === 0 && (
@@ -227,8 +265,13 @@ export default function InventorySetup() {
                 <span className="font-bold text-[#8b7355]">1</span>
               </div>
               <div className="flex-1">
-                <h3 className="font-bold text-[#6b6b6b] mb-2">Crea nuovo Zap</h3>
-                <p className="text-[#6b6b6b]">Vai su Zapier.com e clicca "Create Zap"</p>
+                <h3 className="font-bold text-[#6b6b6b] mb-2">Crea nuovo Zap (uno per locale)</h3>
+                <p className="text-[#6b6b6b] mb-2">Vai su Zapier.com e clicca "Create Zap"</p>
+                <div className="neumorphic-pressed p-3 rounded-lg bg-yellow-50">
+                  <p className="text-sm text-yellow-800">
+                    ⚠️ <strong>IMPORTANTE:</strong> Devi creare uno Zap SEPARATO per ogni locale (ogni Google Sheet o ogni tab)
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -243,12 +286,27 @@ export default function InventorySetup() {
                 <ul className="space-y-1 text-[#6b6b6b]">
                   <li>• <strong>App:</strong> Google Sheets</li>
                   <li>• <strong>Trigger:</strong> New Spreadsheet Row</li>
-                  <li>• <strong>Spreadsheet:</strong> Il file Google Sheet con l'inventario</li>
-                  <li>• <strong>Worksheet:</strong> Seleziona il tab del locale</li>
                 </ul>
-                <div className="neumorphic-pressed p-3 rounded-lg mt-3">
+                
+                <div className="neumorphic-pressed p-3 rounded-lg mt-3 bg-blue-50">
+                  <p className="font-bold text-blue-700 mb-2">Se hai Google Sheet SEPARATI (uno per locale):</p>
+                  <ul className="text-sm text-blue-700 space-y-1 ml-4">
+                    <li>• <strong>Spreadsheet:</strong> Seleziona il file specifico del locale (es. "Inventario Ticinese")</li>
+                    <li>• <strong>Worksheet:</strong> Seleziona il primo tab (di solito "Sheet1" o "Inventario")</li>
+                  </ul>
+                </div>
+
+                <div className="neumorphic-pressed p-3 rounded-lg mt-3 bg-green-50">
+                  <p className="font-bold text-green-700 mb-2">Se hai UN file con più TAB:</p>
+                  <ul className="text-sm text-green-700 space-y-1 ml-4">
+                    <li>• <strong>Spreadsheet:</strong> Seleziona il file "Inventario" unico</li>
+                    <li>• <strong>Worksheet:</strong> Seleziona il tab specifico del locale (es. "Ticinese")</li>
+                  </ul>
+                </div>
+
+                <div className="neumorphic-flat p-3 rounded-lg mt-3">
                   <p className="text-sm text-[#6b6b6b]">
-                    ℹ️ Dovrai creare uno Zap separato per ogni locale (ogni tab del Google Sheet)
+                    ℹ️ In entrambi i casi, dovrai ripetere questa configurazione creando Zap separati per ogni locale
                   </p>
                 </div>
               </div>
@@ -285,14 +343,23 @@ export default function InventorySetup() {
                 {/* Campi Obbligatori */}
                 <div className="neumorphic-pressed p-4 rounded-lg bg-red-50 mb-4">
                   <p className="font-bold text-red-700 mb-3">⚠️ Campi OBBLIGATORI:</p>
-                  <div className="space-y-2 text-sm">
+                  <div className="space-y-3 text-sm">
                     <div className="flex items-start gap-2">
                       <span className="font-bold text-red-700">• secret</span>
-                      <span className="text-red-700">→ Il tuo ZAPIER_INVENTORY_WEBHOOK_SECRET</span>
+                      <span className="text-red-700">→ Il tuo ZAPIER_INVENTORY_WEBHOOK_SECRET (scrivi manualmente)</span>
                     </div>
-                    <div className="flex items-start gap-2">
-                      <span className="font-bold text-red-700">• store_name</span>
-                      <span className="text-red-700">→ Nome esatto del locale (manuale)</span>
+                    <div className="border-t border-red-300 pt-3">
+                      <span className="font-bold text-red-700">• store_name 🏪</span>
+                      <span className="text-red-700 block mt-1">→ <strong>SCRIVI MANUALMENTE</strong> il nome esatto del locale</span>
+                      <div className="mt-2 ml-4 space-y-1 text-xs">
+                        <div>✓ Per il file/tab di Ticinese → scrivi: <code className="bg-white px-2 py-1 rounded">Ticinese</code></div>
+                        <div>✓ Per il file/tab di Lanino → scrivi: <code className="bg-white px-2 py-1 rounded">Lanino</code></div>
+                      </div>
+                      <div className="mt-2 bg-red-100 p-2 rounded">
+                        <p className="text-xs text-red-800">
+                          🚨 <strong>NON mappare</strong> questo campo a una colonna del Google Sheet! Va scritto manualmente diverso per ogni Zap!
+                        </p>
+                      </div>
                     </div>
                     <div className="flex items-start gap-2">
                       <span className="font-bold text-red-700">• data</span>
@@ -423,18 +490,59 @@ export default function InventorySetup() {
           </div>
         </div>
 
-        <div className="neumorphic-flat p-4 rounded-xl space-y-2">
+        <div className="neumorphic-flat p-4 rounded-xl space-y-3">
           <p className="text-sm text-[#6b6b6b]">
-            📝 <strong>Ogni tab</strong> del Google Sheet rappresenta un locale diverso
+            <strong>Setup con Google Sheet separati (il tuo caso):</strong>
           </p>
-          <p className="text-sm text-[#6b6b6b]">
+          <ul className="text-sm text-[#6b6b6b] ml-4 space-y-2">
+            <li>
+              📄 <strong>Inventario Ticinese.xlsx</strong>
+              <div className="ml-4 mt-1 text-xs text-[#9b9b9b]">
+                → Crea Zap #1, specifica <code className="bg-white px-2 py-1 rounded">store_name = "Ticinese"</code>
+              </div>
+            </li>
+            <li>
+              📄 <strong>Inventario Lanino.xlsx</strong>
+              <div className="ml-4 mt-1 text-xs text-[#9b9b9b]">
+                → Crea Zap #2, specifica <code className="bg-white px-2 py-1 rounded">store_name = "Lanino"</code>
+              </div>
+            </li>
+          </ul>
+
+          <div className="border-t border-[#c1c1c1] pt-3 mt-3">
+            <p className="text-sm text-[#6b6b6b]">
+              <strong>Setup alternativo con un file e più tab:</strong>
+            </p>
+            <ul className="text-sm text-[#6b6b6b] ml-4 space-y-2 mt-2">
+              <li>
+                📄 <strong>Inventario.xlsx</strong>
+                <div className="ml-4 mt-1 text-xs text-[#9b9b9b]">
+                  → Tab "Ticinese" → Crea Zap #1, specifica <code className="bg-white px-2 py-1 rounded">store_name = "Ticinese"</code>
+                </div>
+                <div className="ml-4 mt-1 text-xs text-[#9b9b9b]">
+                  → Tab "Lanino" → Crea Zap #2, specifica <code className="bg-white px-2 py-1 rounded">store_name = "Lanino"</code>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <div className="neumorphic-pressed p-3 rounded-lg bg-blue-50 mt-3">
+            <p className="text-sm text-blue-800">
+              💡 <strong>Riepilogo:</strong>
+            </p>
+            <ul className="text-xs text-blue-700 ml-4 mt-2 space-y-1">
+              <li>✓ Ogni Google Sheet (o tab) = un locale</li>
+              <li>✓ Ogni locale = uno Zap separato</li>
+              <li>✓ In ogni Zap: specifica manualmente il <code className="bg-white px-1 rounded">store_name</code> corretto</li>
+              <li>✓ Il <code className="bg-white px-1 rounded">store_name</code> NON va nel Google Sheet, solo in Zapier!</li>
+            </ul>
+          </div>
+
+          <p className="text-sm text-[#6b6b6b] mt-3">
             📅 <strong>Formato Data:</strong> DD/MM/YYYY (esempio: 15/01/2025)
           </p>
           <p className="text-sm text-[#6b6b6b]">
             🔢 <strong>Valori numerici:</strong> Inserisci solo numeri (es: 10, 5.5, 250)
-          </p>
-          <p className="text-sm text-[#6b6b6b]">
-            🏪 <strong>store_name:</strong> Va specificato manualmente in Zapier, non nel Google Sheet
           </p>
         </div>
       </NeumorphicCard>
