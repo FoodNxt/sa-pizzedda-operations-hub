@@ -321,6 +321,17 @@ export default function Employees() {
     return deduplicateShifts(lateShifts).slice(0, 3);
   };
 
+  // Get latest missing clock-ins for selected employee
+  const getLatestMissingClockIns = (employeeName) => {
+    // Get all shifts with missing clock-ins for this employee
+    const missingClockIns = shifts
+      .filter(s => s.employee_name === employeeName && s.timbratura_mancata === true && s.shift_date)
+      .sort((a, b) => new Date(b.shift_date) - new Date(a.shift_date));
+
+    // Deduplicate and take first 3
+    return deduplicateShifts(missingClockIns).slice(0, 3);
+  };
+
   // Get latest Google reviews for selected employee
   const getLatestGoogleReviews = (employeeName) => {
     return reviews
@@ -828,6 +839,52 @@ export default function Employees() {
                   ) : (
                     <p className="text-sm text-[#9b9b9b] text-center py-2">
                       Nessun ritardo registrato 🎉
+                    </p>
+                  );
+                })()}
+              </div>
+
+              {/* Ultimi Turni con Timbratura Mancata */}
+              <div className="neumorphic-flat p-4 rounded-xl">
+                <div className="flex items-center gap-3 mb-3">
+                  <AlertCircle className="w-5 h-5 text-orange-600" />
+                  <h3 className="font-bold text-[#6b6b6b]">Ultimi 3 Turni con Timbratura Mancata</h3>
+                </div>
+                {(() => {
+                  const missingClockIns = getLatestMissingClockIns(selectedEmployee.full_name);
+                  return missingClockIns.length > 0 ? (
+                    <div className="space-y-2">
+                      {missingClockIns.map((shift, index) => (
+                        <div key={`${shift.id}-${index}`} className="neumorphic-pressed p-3 rounded-lg border-2 border-orange-200">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm font-medium text-[#6b6b6b]">
+                              {new Date(shift.shift_date).toLocaleDateString('it-IT')} - {shift.store_name}
+                            </span>
+                            <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded">
+                              NON TIMBRATO
+                            </span>
+                          </div>
+                          <div className="text-xs text-[#9b9b9b] space-y-1">
+                            <div>
+                              <strong>Orario Previsto:</strong> {shift.scheduled_start ? new Date(shift.scheduled_start).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                              {' - '}
+                              {shift.scheduled_end ? new Date(shift.scheduled_end).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                            </div>
+                            {shift.shift_type && (
+                              <div>
+                                <strong>Tipo Turno:</strong> {shift.shift_type}
+                              </div>
+                            )}
+                            <div className="text-[0.65rem] text-gray-400">
+                              ID: {shift.id} • Creato: {shift.created_date ? new Date(shift.created_date).toLocaleString('it-IT') : 'N/A'}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-[#9b9b9b] text-center py-2">
+                      Nessuna timbratura mancata 🎉
                     </p>
                   );
                 })()}
