@@ -262,7 +262,7 @@ export default function Employees() {
     }
   };
 
-  // Get latest late shifts for selected employee - WITH AUTOMATIC DEDUPLICATION
+  // Get latest late shifts for selected employee - WITH IMPROVED DEDUPLICATION
   const getLatestLateShifts = (employeeName) => {
     // Get all late shifts for this employee
     const lateShifts = shifts
@@ -273,12 +273,30 @@ export default function Employees() {
     const uniqueShiftsMap = new Map();
     
     lateShifts.forEach(shift => {
-      // Create unique key based on: employee_name, store_id, shift_date, scheduled_start, scheduled_end
-      const key = `${shift.employee_name}|${shift.store_id}|${shift.shift_date}|${shift.scheduled_start}|${shift.scheduled_end}`;
+      // Normalize date to YYYY-MM-DD format for comparison
+      const normalizedDate = shift.shift_date ? new Date(shift.shift_date).toISOString().split('T')[0] : 'no-date';
       
-      // Only keep the first occurrence (most recent due to sorting)
+      // Normalize scheduled times (extract just HH:mm or use 'no-time' if null)
+      const normalizedStart = shift.scheduled_start 
+        ? new Date(shift.scheduled_start).toISOString().substring(11, 16) // Gets HH:mm
+        : 'no-start';
+      const normalizedEnd = shift.scheduled_end
+        ? new Date(shift.scheduled_end).toISOString().substring(11, 16) // Gets HH:mm
+        : 'no-end';
+      
+      // Create unique key based on: employee_name, store_id, normalized_date, normalized_start, normalized_end
+      const key = `${shift.employee_name}|${shift.store_id || 'no-store'}|${normalizedDate}|${normalizedStart}|${normalizedEnd}`;
+      
+      // Only keep the first occurrence by default (most recent due to sorting)
+      // If key exists, keep the one with older created_date (assuming older created_date means the "original" shift record)
       if (!uniqueShiftsMap.has(key)) {
         uniqueShiftsMap.set(key, shift);
+      } else {
+        const existing = uniqueShiftsMap.get(key);
+        if (shift.created_date && existing.created_date && 
+            new Date(shift.created_date) < new Date(existing.created_date)) {
+          uniqueShiftsMap.set(key, shift);
+        }
       }
     });
     
@@ -732,17 +750,17 @@ export default function Employees() {
                 </div>
               </div>
 
-              {/* Ultimi Turni in Ritardo */}
+              {/* Ultimi Turni in Ritardo - IMPROVED DISPLAY */}
               <div className="neumorphic-flat p-4 rounded-xl">
                 <div className="flex items-center gap-3 mb-3">
                   <AlertCircle className="w-5 h-5 text-red-600" />
-                  <h3 className="font-bold text-[#6b6b6b]">Ultimi 3 Turni in Ritardo</h3>
+                  <h3 className="font-bold text-[#6b6b6b]">Ultime 3 Turni in Ritardo</h3>
                 </div>
                 {(() => {
                   const lateShifts = getLatestLateShifts(selectedEmployee.full_name);
                   return lateShifts.length > 0 ? (
                     <div className="space-y-2">
-                      {lateShifts.map((shift, index) => ( // Added index for key as shift.id might not be unique after dedupe for display
+                      {lateShifts.map((shift, index) => (
                         <div key={`${shift.id}-${index}`} className="neumorphic-pressed p-3 rounded-lg">
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-sm font-medium text-[#6b6b6b]">
@@ -752,10 +770,15 @@ export default function Employees() {
                               +{shift.minuti_di_ritardo} min
                             </span>
                           </div>
-                          <div className="text-xs text-[#9b9b9b]">
-                            Previsto: {shift.scheduled_start ? new Date(shift.scheduled_start).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
-                            {' → '}
-                            Effettivo: {shift.actual_start ? new Date(shift.actual_start).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                          <div className="text-xs text-[#9b9b9b] space-y-1">
+                            <div>
+                              <strong>Previsto:</strong> {shift.scheduled_start ? new Date(shift.scheduled_start).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                              {' → '}
+                              <strong>Effettivo:</strong> {shift.actual_start ? new Date(shift.actual_start).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                            </div>
+                            <div className="text-[0.65rem] text-gray-400">
+                              ID: {shift.id} • Creato: {shift.created_date ? new Date(shift.created_date).toLocaleString('it-IT') : 'N/A'}
+                            </div>
                           </div>
                         </div>
                       ))}
