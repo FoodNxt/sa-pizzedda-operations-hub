@@ -1,5 +1,5 @@
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DollarSign, ShoppingCart, TrendingUp, Clock, Zap, Filter, Store, RefreshCw } from 'lucide-react';
@@ -11,6 +11,7 @@ import { it } from 'date-fns/locale';
 export default function RealTime() {
   const [selectedStore, setSelectedStore] = useState('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastUpdateTime, setLastUpdateTime] = useState(new Date()); // Added new state
   const queryClient = useQueryClient();
 
   const { data: stores = [] } = useQuery({
@@ -24,10 +25,20 @@ export default function RealTime() {
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
+  // Update lastUpdateTime whenever orderItems changes (due to refetchInterval or initial load)
+  useEffect(() => {
+    // Only update if data is actually present, avoiding initial empty array state
+    if (orderItems && orderItems.length > 0) {
+      setLastUpdateTime(new Date());
+    }
+  }, [orderItems]);
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await queryClient.invalidateQueries({ queryKey: ['orderItems'] });
     await queryClient.invalidateQueries({ queryKey: ['stores'] });
+    // Update timestamp immediately after explicit refresh
+    setLastUpdateTime(new Date());
     setTimeout(() => setIsRefreshing(false), 1000);
   };
 
@@ -166,7 +177,7 @@ export default function RealTime() {
       storeBreakdown,
       channelBreakdown,
       deliveryAppBreakdown,
-      lastUpdate: new Date()
+      // Removed lastUpdate from here as it's now managed by state
     };
   }, [orderItems, selectedStore, stores]);
 
@@ -213,7 +224,7 @@ export default function RealTime() {
               <div className="flex items-center gap-2 neumorphic-pressed px-4 py-2 rounded-xl">
                 <Clock className="w-4 h-4 text-[#8b7355]" />
                 <span className="text-[#6b6b6b] font-medium">
-                  {format(todayData.lastUpdate, 'HH:mm:ss')}
+                  {format(lastUpdateTime, 'HH:mm:ss')} {/* Updated to use lastUpdateTime state */}
                 </span>
               </div>
               <p className="text-xs text-[#9b9b9b] mt-1">Auto-refresh ogni 30s</p>
