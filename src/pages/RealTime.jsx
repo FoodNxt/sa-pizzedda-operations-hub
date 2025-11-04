@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { DollarSign, ShoppingCart, TrendingUp, Clock, Zap, Filter } from 'lucide-react';
+import { DollarSign, ShoppingCart, TrendingUp, Clock, Zap, Filter, Store } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
@@ -28,33 +28,67 @@ export default function RealTime() {
     const todayStart = startOfDay(today);
     const todayEnd = endOfDay(today);
 
-    // Filter orders from today
-    let todayOrders = orderItems.filter(item => {
+    // Filter all orders from today
+    const allTodayOrders = orderItems.filter(item => {
       if (!item.modifiedDate) return false;
       const itemDate = new Date(item.modifiedDate);
       return isWithinInterval(itemDate, { start: todayStart, end: todayEnd });
     });
 
-    // Filter by store if selected
-    if (selectedStore !== 'all') {
-      todayOrders = todayOrders.filter(item => item.store_id === selectedStore);
-    }
+    // Filter by store if selected (for main KPIs and charts)
+    const filteredOrders = selectedStore !== 'all' 
+      ? allTodayOrders.filter(item => item.store_id === selectedStore)
+      : allTodayOrders;
 
     // Calculate total revenue
-    const totalRevenue = todayOrders.reduce((sum, item) => 
+    const totalRevenue = filteredOrders.reduce((sum, item) => 
       sum + (item.finalPriceWithSessionDiscountsAndSurcharges || 0), 0
     );
 
     // Count unique orders
-    const uniqueOrders = [...new Set(todayOrders.map(item => item.order).filter(Boolean))];
+    const uniqueOrders = [...new Set(filteredOrders.map(item => item.order).filter(Boolean))];
     const totalOrders = uniqueOrders.length;
 
     // Calculate average order value
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
+    // Revenue by store (always calculated on ALL today's orders for the table)
+    const revenueByStore = {};
+    const ordersByStore = {};
+    
+    allTodayOrders.forEach(item => {
+      const storeId = item.store_id || 'unknown';
+      const storeName = stores.find(s => s.id === storeId)?.name || 'Sconosciuto';
+      
+      if (!revenueByStore[storeId]) {
+        revenueByStore[storeId] = { 
+          store_id: storeId,
+          store_name: storeName, 
+          revenue: 0 
+        };
+        ordersByStore[storeId] = new Set();
+      }
+      revenueByStore[storeId].revenue += item.finalPriceWithSessionDiscountsAndSurcharges || 0;
+      if (item.order) {
+        ordersByStore[storeId].add(item.order);
+      }
+    });
+
+    const storeBreakdown = Object.values(revenueByStore)
+      .map(s => ({
+        store_id: s.store_id,
+        store_name: s.store_name,
+        revenue: parseFloat(s.revenue.toFixed(2)),
+        orders: ordersByStore[s.store_id].size,
+        avgOrderValue: ordersByStore[s.store_id].size > 0 
+          ? parseFloat((s.revenue / ordersByStore[s.store_id].size).toFixed(2)) 
+          : 0
+      }))
+      .sort((a, b) => b.revenue - a.revenue);
+
     // Get unique sales channels and delivery apps
-    const salesChannels = new Set(todayOrders.map(o => o.saleTypeName).filter(Boolean));
-    todayOrders.forEach(o => {
+    const salesChannels = new Set(filteredOrders.map(o => o.saleTypeName).filter(Boolean));
+    filteredOrders.forEach(o => {
       if (o.sourceApp && o.sourceApp.toLowerCase() === 'tabesto') {
         salesChannels.add('Tabesto');
       }
@@ -64,7 +98,7 @@ export default function RealTime() {
     const revenueByChannel = {};
     const ordersByChannel = {};
     
-    todayOrders.forEach(item => {
+    filteredOrders.forEach(item => {
       let channelName;
       if (item.sourceApp && item.sourceApp.toLowerCase() === 'tabesto') {
         channelName = 'Tabesto';
@@ -94,7 +128,7 @@ export default function RealTime() {
     const revenueByApp = {};
     const ordersByApp = {};
     
-    todayOrders.forEach(item => {
+    filteredOrders.forEach(item => {
       if (item.sourceApp && item.sourceApp.toLowerCase() !== 'tabesto') {
         const app = item.sourceApp;
         if (!revenueByApp[app]) {
@@ -120,11 +154,12 @@ export default function RealTime() {
       totalRevenue,
       totalOrders,
       avgOrderValue,
+      storeBreakdown,
       channelBreakdown,
       deliveryAppBreakdown,
       lastUpdate: new Date()
     };
-  }, [orderItems, selectedStore]);
+  }, [orderItems, selectedStore, stores]);
 
   const COLORS = ['#8b7355', '#a68a6a', '#c1a07f', '#dcb794', '#6b5d51', '#9d8770'];
 
@@ -173,8 +208,9 @@ export default function RealTime() {
           <h2 className="text-lg font-bold text-[#6b6b6b]">Filtri</h2>
         </div>
         <div>
-          <label className="text-sm text-[#9b9b9b] mb-2 block">Locale</label>
+          <label htmlFor="store-select" className="text-sm text-[#9b9b9b] mb-2 block">Locale</label>
           <select
+            id="store-select"
             value={selectedStore}
             onChange={(e) => setSelectedStore(e.target.value)}
             className="w-full md:w-64 neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
@@ -250,6 +286,92 @@ export default function RealTime() {
           </div>
         </NeumorphicCard>
       </div>
+
+      {/* Revenue per Negozio Table */}
+      <NeumorphicCard className="p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <Store className="w-6 h-6 text-[#8b7355]" />
+          <h2 className="text-xl font-bold text-[#6b6b6b]">Revenue per Negozio</h2>
+        </div>
+        
+        {todayData.storeBreakdown.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b-2 border-[#8b7355]">
+                  <th className="text-left p-4 text-[#9b9b9b] font-medium">Negozio</th>
+                  <th className="text-right p-4 text-[#9b9b9b] font-medium">Revenue Totale</th>
+                  <th className="text-right p-4 text-[#9b9b9b] font-medium">Ordini</th>
+                  <th className="text-right p-4 text-[#9b9b9b] font-medium">Scontrino Medio</th>
+                  <th className="text-right p-4 text-[#9b9b9b] font-medium">% Revenue Totale</th>
+                </tr>
+              </thead>
+              <tbody>
+                {todayData.storeBreakdown.map((store, index) => {
+                  const totalRevenueOverall = todayData.storeBreakdown.reduce((sum, s) => sum + s.revenue, 0);
+                  const percentage = totalRevenueOverall > 0 ? (store.revenue / totalRevenueOverall) * 100 : 0;
+                  
+                  return (
+                    <tr 
+                      key={store.store_id} 
+                      className={`border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors ${
+                        selectedStore === store.store_id ? 'bg-[#e8ecf3] neumorphic-flat' : ''
+                      }`}
+                    >
+                      <td className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div 
+                            className="w-4 h-4 rounded-full" 
+                            style={{ 
+                              background: `hsl(${(index * 60) % 360}, 45%, 55%)` 
+                            }}
+                          />
+                          <span className="text-[#6b6b6b] font-medium">{store.store_name}</span>
+                        </div>
+                      </td>
+                      <td className="p-4 text-right text-[#6b6b6b] font-bold text-lg">
+                        €{store.revenue.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                      <td className="p-4 text-right text-[#6b6b6b]">
+                        {store.orders}
+                      </td>
+                      <td className="p-4 text-right text-[#6b6b6b]">
+                        €{store.avgOrderValue.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                      <td className="p-4 text-right text-[#6b6b6b] font-medium">
+                        {percentage.toFixed(1)}%
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-[#8b7355] font-bold bg-[#e8ecf3] neumorphic-flat">
+                  <td className="p-4 text-[#6b6b6b]">TOTALE</td>
+                  <td className="p-4 text-right text-[#6b6b6b] text-lg">
+                    €{todayData.storeBreakdown.reduce((sum, s) => sum + s.revenue, 0).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </td>
+                  <td className="p-4 text-right text-[#6b6b6b]">
+                    {todayData.storeBreakdown.reduce((sum, s) => sum + s.orders, 0)}
+                  </td>
+                  <td className="p-4 text-right text-[#6b6b6b]">
+                    {todayData.storeBreakdown.reduce((sum, s) => sum + s.orders, 0) > 0 
+                      ? `€${(todayData.storeBreakdown.reduce((sum, s) => sum + s.revenue, 0) / todayData.storeBreakdown.reduce((sum, s) => sum + s.orders, 0)).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                      : '€0.00'
+                    }
+                  </td>
+                  <td className="p-4 text-right text-[#6b6b6b]">100%</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        ) : (
+          <div className="text-center py-12 text-[#9b9b9b]">
+            <Store className="w-12 h-12 mx-auto mb-3 opacity-50" />
+            <p>Nessun ordine oggi</p>
+          </div>
+        )}
+      </NeumorphicCard>
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -410,6 +532,7 @@ export default function RealTime() {
           <p>📊 Questa dashboard mostra i dati in tempo reale della giornata corrente (dalle 00:00 alle 23:59)</p>
           <p>🔄 I dati si aggiornano automaticamente ogni 30 secondi</p>
           <p>💡 Tutte le metriche sono calcolate solo sugli ordini completati oggi</p>
+          <p>📍 La tabella "Revenue per Negozio" mostra i dati aggregati di tutti i locali per oggi, indipendentemente dal filtro selezionato.</p>
         </div>
       </NeumorphicCard>
     </div>
