@@ -52,6 +52,42 @@ export default function Employees() {
     queryFn: () => base44.entities.Review.list(),
   });
 
+  // Helper function to deduplicate shifts
+  const deduplicateShifts = (shiftsArray) => {
+    const uniqueShiftsMap = new Map();
+
+    shiftsArray.forEach(shift => {
+      // Normalize date to YYYY-MM-DD format for comparison
+      const normalizedDate = shift.shift_date ? new Date(shift.shift_date).toISOString().split('T')[0] : 'no-date';
+
+      // Normalize scheduled times (extract just HH:mm or use 'no-time' if null)
+      const normalizedStart = shift.scheduled_start
+        ? new Date(shift.scheduled_start).toISOString().substring(11, 16)
+        : 'no-start';
+      const normalizedEnd = shift.scheduled_end
+        ? new Date(shift.scheduled_end).toISOString().substring(11, 16)
+        : 'no-end';
+
+      // Create unique key
+      const key = `${shift.employee_name}|${shift.store_id || 'no-store'}|${normalizedDate}|${normalizedStart}|${normalizedEnd}`;
+
+      // Only keep the first occurrence (or the one with older created_date)
+      // If key exists, keep the one with older created_date (assuming older created_date means the "original" shift record)
+      if (!uniqueShiftsMap.has(key)) {
+        uniqueShiftsMap.set(key, shift);
+      } else {
+        const existing = uniqueShiftsMap.get(key);
+        if (shift.created_date && existing.created_date &&
+            new Date(shift.created_date) < new Date(existing.created_date)) {
+          uniqueShiftsMap.set(key, shift);
+        }
+      }
+    });
+
+    return Array.from(uniqueShiftsMap.values());
+  };
+
+
   // Calculate employee metrics
   const employeeMetrics = useMemo(() => {
     // Filter reviews by date range
@@ -92,7 +128,7 @@ export default function Employees() {
         : 0;
 
       // Shift metrics (filtered by date)
-      const employeeShifts = shifts.filter(s => {
+      let employeeShifts = shifts.filter(s => {
         if (s.employee_name !== employee.full_name) return false;
 
         // Date filter
@@ -113,6 +149,9 @@ export default function Employees() {
 
         return true;
       });
+
+      // ✅ DEDUPLICATE SHIFTS BEFORE CALCULATING METRICS
+      employeeShifts = deduplicateShifts(employeeShifts);
 
       const totalLateMinutes = employeeShifts.reduce((sum, s) => sum + (s.minuti_di_ritardo || 0), 0);
       const avgLateMinutes = employeeShifts.length > 0 ? totalLateMinutes / employeeShifts.length : 0;
@@ -268,40 +307,9 @@ export default function Employees() {
     const lateShifts = shifts
       .filter(s => s.employee_name === employeeName && s.ritardo === true && s.shift_date)
       .sort((a, b) => new Date(b.shift_date) - new Date(a.shift_date));
-    
-    // Remove duplicates using a Map with composite key
-    const uniqueShiftsMap = new Map();
-    
-    lateShifts.forEach(shift => {
-      // Normalize date to YYYY-MM-DD format for comparison
-      const normalizedDate = shift.shift_date ? new Date(shift.shift_date).toISOString().split('T')[0] : 'no-date';
-      
-      // Normalize scheduled times (extract just HH:mm or use 'no-time' if null)
-      const normalizedStart = shift.scheduled_start 
-        ? new Date(shift.scheduled_start).toISOString().substring(11, 16) // Gets HH:mm
-        : 'no-start';
-      const normalizedEnd = shift.scheduled_end
-        ? new Date(shift.scheduled_end).toISOString().substring(11, 16) // Gets HH:mm
-        : 'no-end';
-      
-      // Create unique key based on: employee_name, store_id, normalized_date, normalized_start, normalized_end
-      const key = `${shift.employee_name}|${shift.store_id || 'no-store'}|${normalizedDate}|${normalizedStart}|${normalizedEnd}`;
-      
-      // Only keep the first occurrence by default (most recent due to sorting)
-      // If key exists, keep the one with older created_date (assuming older created_date means the "original" shift record)
-      if (!uniqueShiftsMap.has(key)) {
-        uniqueShiftsMap.set(key, shift);
-      } else {
-        const existing = uniqueShiftsMap.get(key);
-        if (shift.created_date && existing.created_date && 
-            new Date(shift.created_date) < new Date(existing.created_date)) {
-          uniqueShiftsMap.set(key, shift);
-        }
-      }
-    });
-    
-    // Convert back to array and take first 3
-    return Array.from(uniqueShiftsMap.values()).slice(0, 3);
+
+    // Deduplicate and take first 3
+    return deduplicateShifts(lateShifts).slice(0, 3);
   };
 
   // Get latest Google reviews for selected employee
