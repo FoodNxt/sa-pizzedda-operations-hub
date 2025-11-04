@@ -56,6 +56,11 @@ const navigationStructure = [
     type: "section",
     items: [
       {
+        title: "Real Time",
+        url: createPageUrl("RealTime"),
+        icon: Zap,
+      },
+      {
         title: "Financials",
         url: createPageUrl("Financials"),
         icon: DollarSign,

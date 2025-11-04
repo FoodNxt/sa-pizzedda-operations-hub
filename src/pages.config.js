@@ -14,6 +14,7 @@ import RecalculateShifts from './pages/RecalculateShifts';
 import CleanupDuplicateShifts from './pages/CleanupDuplicateShifts';
 import InventorySetup from './pages/InventorySetup';
 import Inventory from './pages/Inventory';
+import RealTime from './pages/RealTime';
 import Layout from './Layout.jsx';
 
 
@@ -34,6 +35,7 @@ export const PAGES = {
     "CleanupDuplicateShifts": CleanupDuplicateShifts,
     "InventorySetup": InventorySetup,
     "Inventory": Inventory,
+    "RealTime": RealTime,
 }
 
 export const pagesConfig = {
