@@ -104,16 +104,16 @@ export default function Payroll() {
         };
       }
 
-      // Calculate worked minutes (use scheduled if actual not available)
-      let workedMinutes = 0;
-      if (shift.actual_minutes) {
-        workedMinutes = shift.actual_minutes;
-      } else if (shift.scheduled_minutes) {
-        workedMinutes = shift.scheduled_minutes;
-      }
+      // ✅ USE scheduled_minutes for duration
+      let workedMinutes = shift.scheduled_minutes || 0;
 
       // Get shift type (null becomes "Turno normale")
-      const shiftType = shift.shift_type || 'Turno normale';
+      let shiftType = shift.shift_type || 'Turno normale';
+      
+      // ✅ Merge "Ritardo" into "Assenza non retribuita"
+      if (shiftType === 'Ritardo') {
+        shiftType = 'Assenza non retribuita';
+      }
       
       // Initialize shift type if not exists
       if (!employeeData[empName].shift_types[shiftType]) {
@@ -130,7 +130,7 @@ export default function Payroll() {
       }
     });
 
-    // Process each employee: subtract ritardi from "Turno normale" and create "Ritardo" entry
+    // Process each employee: subtract ritardi from "Turno normale" and add to "Assenza non retribuita"
     Object.keys(employeeData).forEach(empName => {
       const emp = employeeData[empName];
       
@@ -138,14 +138,16 @@ export default function Payroll() {
         // Subtract ritardi from "Turno normale"
         if (emp.shift_types['Turno normale']) {
           emp.shift_types['Turno normale'] -= emp.total_ritardo_minutes;
-          // Ensure it doesn't go negative
           if (emp.shift_types['Turno normale'] < 0) {
             emp.shift_types['Turno normale'] = 0;
           }
         }
         
-        // Add "Ritardo" as a separate shift type
-        emp.shift_types['Ritardo'] = emp.total_ritardo_minutes;
+        // ✅ Add ritardi to "Assenza non retribuita" instead of separate "Ritardo" column
+        if (!emp.shift_types['Assenza non retribuita']) {
+          emp.shift_types['Assenza non retribuita'] = 0;
+        }
+        emp.shift_types['Assenza non retribuita'] += emp.total_ritardo_minutes;
       }
     });
 
@@ -218,15 +220,16 @@ export default function Payroll() {
         };
       }
 
-      // Calculate worked minutes
-      let workedMinutes = 0;
-      if (shift.actual_minutes) {
-        workedMinutes = shift.actual_minutes;
-      } else if (shift.scheduled_minutes) {
-        workedMinutes = shift.scheduled_minutes;
-      }
+      // ✅ USE scheduled_minutes for duration
+      let workedMinutes = shift.scheduled_minutes || 0;
 
-      const shiftType = shift.shift_type || 'Turno normale';
+      let shiftType = shift.shift_type || 'Turno normale';
+      
+      // ✅ Merge "Ritardo" into "Assenza non retribuita"
+      if (shiftType === 'Ritardo') {
+        shiftType = 'Assenza non retribuita';
+      }
+      
       allShiftTypes.add(shiftType);
 
       if (!dailyData[date].shift_types[shiftType]) {
@@ -251,8 +254,12 @@ export default function Payroll() {
             day.shift_types['Turno normale'] = 0;
           }
         }
-        day.shift_types['Ritardo'] = day.ritardo_minutes;
-        allShiftTypes.add('Ritardo');
+        // ✅ Add to "Assenza non retribuita" instead of separate "Ritardo"
+        if (!day.shift_types['Assenza non retribuita']) {
+          day.shift_types['Assenza non retribuita'] = 0;
+        }
+        day.shift_types['Assenza non retribuita'] += day.ritardo_minutes;
+        allShiftTypes.add('Assenza non retribuita');
       }
     });
 
@@ -284,7 +291,7 @@ export default function Payroll() {
     
     // Add shift type columns
     payrollData.shiftTypes.forEach(type => {
-      csv += `"${type} (ore)",`;
+      csv += `"${type}",`;
     });
     csv += 'Totale Ore,Ore Nette\n';
 
@@ -293,21 +300,21 @@ export default function Payroll() {
       csv += `"${employee.employee_name}","${employee.store_name}",`;
       
       payrollData.shiftTypes.forEach(type => {
-        const hours = employee.shift_types[type] || 0;
-        csv += `${minutesToDecimal(hours)},`;
+        const minutes = employee.shift_types[type] || 0;
+        csv += `"${minutesToHours(minutes)}",`;
       });
       
       const netMinutes = employee.total_minutes - employee.total_ritardo_minutes;
-      csv += `${minutesToDecimal(employee.total_minutes)},${minutesToDecimal(netMinutes)}\n`;
+      csv += `"${minutesToHours(employee.total_minutes)}","${minutesToHours(netMinutes)}"\n`;
     });
 
     // Add total row
     csv += 'TOTALE,,';
     payrollData.shiftTypes.forEach(type => {
       const total = payrollData.employees.reduce((sum, emp) => sum + (emp.shift_types[type] || 0), 0);
-      csv += `${minutesToDecimal(total)},`;
+      csv += `"${minutesToHours(total)}",`;
     });
-    csv += `${minutesToDecimal(payrollData.totalMinutes)},${minutesToDecimal(payrollData.totalMinutes - payrollData.totalRitardoMinutes)}\n`;
+    csv += `"${minutesToHours(payrollData.totalMinutes)}","${minutesToHours(payrollData.totalMinutes - payrollData.totalRitardoMinutes)}"\n`;
 
     // Create download
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -333,7 +340,7 @@ export default function Payroll() {
     
     // Add shift type columns
     employeeDailyBreakdown.shiftTypes.forEach(type => {
-      csv += `"${type} (ore)",`;
+      csv += `"${type}",`;
     });
     csv += 'Totale Ore\n';
 
@@ -342,11 +349,11 @@ export default function Payroll() {
       csv += `${format(parseISO(day.date), 'dd/MM/yyyy')},`;
       
       employeeDailyBreakdown.shiftTypes.forEach(type => {
-        const hours = day.shift_types[type] || 0;
-        csv += `${minutesToDecimal(hours)},`;
+        const minutes = day.shift_types[type] || 0;
+        csv += `"${minutesToHours(minutes)}",`;
       });
       
-      csv += `${minutesToDecimal(day.total_minutes)}\n`;
+      csv += `"${minutesToHours(day.total_minutes)}"\n`;
     });
 
     // Create download
@@ -459,8 +466,8 @@ export default function Payroll() {
           <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
             <Clock className="w-8 h-8 text-[#8b7355]" />
           </div>
-          <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">
-            {minutesToDecimal(payrollData.totalMinutes)}
+          <h3 className="text-2xl font-bold text-[#6b6b6b] mb-1">
+            {minutesToHours(payrollData.totalMinutes)}
           </h3>
           <p className="text-sm text-[#9b9b9b]">Ore Totali</p>
         </NeumorphicCard>
@@ -469,8 +476,8 @@ export default function Payroll() {
           <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
             <Clock className="w-8 h-8 text-red-600" />
           </div>
-          <h3 className="text-3xl font-bold text-red-600 mb-1">
-            {minutesToDecimal(payrollData.totalRitardoMinutes)}
+          <h3 className="text-2xl font-bold text-red-600 mb-1">
+            {minutesToHours(payrollData.totalRitardoMinutes)}
           </h3>
           <p className="text-sm text-[#9b9b9b]">Ore Ritardo Totali</p>
         </NeumorphicCard>
@@ -479,8 +486,8 @@ export default function Payroll() {
           <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
             <DollarSign className="w-8 h-8 text-green-600" />
           </div>
-          <h3 className="text-3xl font-bold text-green-600 mb-1">
-            {minutesToDecimal(payrollData.totalMinutes - payrollData.totalRitardoMinutes)}
+          <h3 className="text-2xl font-bold text-green-600 mb-1">
+            {minutesToHours(payrollData.totalMinutes - payrollData.totalRitardoMinutes)}
           </h3>
           <p className="text-sm text-[#9b9b9b]">Ore Nette</p>
         </NeumorphicCard>
@@ -524,7 +531,7 @@ export default function Payroll() {
                   <th 
                     key={type} 
                     className={`text-center p-3 font-medium ${
-                      type === 'Ritardo' ? 'text-red-600' : 'text-[#9b9b9b]'
+                      type === 'Assenza non retribuita' ? 'text-red-600' : 'text-[#9b9b9b]'
                     }`}
                   >
                     {type}
@@ -559,17 +566,12 @@ export default function Payroll() {
                         <td 
                           key={type} 
                           className={`p-3 text-center ${
-                            type === 'Ritardo' ? 'text-red-600 font-bold' : 'text-[#6b6b6b]'
+                            type === 'Assenza non retribuita' ? 'text-red-600 font-bold' : 'text-[#6b6b6b]'
                           }`}
                         >
                           {employee.shift_types[type] ? (
-                            <div>
-                              <div className="font-bold">
-                                {minutesToDecimal(employee.shift_types[type])}h
-                              </div>
-                              <div className="text-xs text-[#9b9b9b]">
-                                {minutesToHours(employee.shift_types[type])}
-                              </div>
+                            <div className="font-bold">
+                              {minutesToHours(employee.shift_types[type])}
                             </div>
                           ) : (
                             <span className="text-[#9b9b9b]">-</span>
@@ -578,17 +580,11 @@ export default function Payroll() {
                       ))}
                       <td className="p-3 text-right">
                         <div className="font-bold text-[#6b6b6b]">
-                          {minutesToDecimal(employee.total_minutes)}h
-                        </div>
-                        <div className="text-xs text-[#9b9b9b]">
                           {minutesToHours(employee.total_minutes)}
                         </div>
                       </td>
                       <td className="p-3 text-right">
                         <div className="font-bold text-green-600">
-                          {minutesToDecimal(netMinutes)}h
-                        </div>
-                        <div className="text-xs text-[#9b9b9b]">
                           {minutesToHours(netMinutes)}
                         </div>
                       </td>
@@ -625,35 +621,24 @@ export default function Payroll() {
                     <td 
                       key={type} 
                       className={`p-3 text-center ${
-                        type === 'Ritardo' ? 'text-red-600' : 'text-[#6b6b6b]'
+                        type === 'Assenza non retribuita' ? 'text-red-600' : 'text-[#6b6b6b]'
                       }`}
                     >
                       {totalForType > 0 && (
-                        <div>
-                          <div>{minutesToDecimal(totalForType)}h</div>
-                          <div className="text-xs font-normal text-[#9b9b9b]">
-                            {minutesToHours(totalForType)}
-                          </div>
-                        </div>
+                        <div>{minutesToHours(totalForType)}</div>
                       )}
                     </td>
                   );
                 })}
                 <td className="p-3 text-right text-[#6b6b6b]">
-                  <div>{minutesToDecimal(payrollData.totalMinutes)}h</div>
-                  <div className="text-xs font-normal text-[#9b9b9b]">
-                    {minutesToHours(payrollData.totalMinutes)}
-                  </div>
+                  <div>{minutesToHours(payrollData.totalMinutes)}</div>
                 </td>
                 <td className="p-3 text-right text-green-600">
                   <div>
-                    {minutesToDecimal(payrollData.totalMinutes - payrollData.totalRitardoMinutes)}h
-                  </div>
-                  <div className="text-xs font-normal text-[#9b9b9b]">
                     {minutesToHours(payrollData.totalMinutes - payrollData.totalRitardoMinutes)}
                   </div>
                 </td>
-                <td className="p-3"></td> {/* Empty cell for Actions column in footer */}
+                <td className="p-3"></td>
               </tr>
             </tfoot>
           </table>
@@ -710,20 +695,20 @@ export default function Payroll() {
               </div>
               <div className="neumorphic-pressed p-4 rounded-xl text-center">
                 <p className="text-sm text-[#9b9b9b] mb-1">Ore Totali</p>
-                <p className="text-2xl font-bold text-[#6b6b6b]">
-                  {minutesToDecimal(selectedEmployee.total_minutes)}
+                <p className="text-xl font-bold text-[#6b6b6b]">
+                  {minutesToHours(selectedEmployee.total_minutes)}
                 </p>
               </div>
               <div className="neumorphic-pressed p-4 rounded-xl text-center">
                 <p className="text-sm text-[#9b9b9b] mb-1">Ore Ritardo</p>
-                <p className="text-2xl font-bold text-red-600">
-                  {minutesToDecimal(selectedEmployee.total_ritardo_minutes)}
+                <p className="text-xl font-bold text-red-600">
+                  {minutesToHours(selectedEmployee.total_ritardo_minutes)}
                 </p>
               </div>
               <div className="neumorphic-pressed p-4 rounded-xl text-center">
                 <p className="text-sm text-[#9b9b9b] mb-1">Ore Nette</p>
-                <p className="text-2xl font-bold text-green-600">
-                  {minutesToDecimal(selectedEmployee.total_minutes - selectedEmployee.total_ritardo_minutes)}
+                <p className="text-xl font-bold text-green-600">
+                  {minutesToHours(selectedEmployee.total_minutes - selectedEmployee.total_ritardo_minutes)}
                 </p>
               </div>
             </div>
@@ -738,7 +723,7 @@ export default function Payroll() {
                       <th 
                         key={type} 
                         className={`text-center p-3 font-medium ${
-                          type === 'Ritardo' ? 'text-red-600' : 'text-[#9b9b9b]'
+                          type === 'Assenza non retribuita' ? 'text-red-600' : 'text-[#9b9b9b]'
                         }`}
                       >
                         {type}
@@ -761,17 +746,12 @@ export default function Payroll() {
                           <td 
                             key={type} 
                             className={`p-3 text-center ${
-                              type === 'Ritardo' ? 'text-red-600 font-bold' : 'text-[#6b6b6b]'
+                              type === 'Assenza non retribuita' ? 'text-red-600 font-bold' : 'text-[#6b6b6b]'
                             }`}
                           >
                             {day.shift_types[type] ? (
-                              <div>
-                                <div className="font-bold">
-                                  {minutesToDecimal(day.shift_types[type])}h
-                                </div>
-                                <div className="text-xs text-[#9b9b9b]">
-                                  {minutesToHours(day.shift_types[type])}
-                                </div>
+                              <div className="font-bold">
+                                {minutesToHours(day.shift_types[type])}
                               </div>
                             ) : (
                               <span className="text-[#9b9b9b]">-</span>
@@ -780,9 +760,6 @@ export default function Payroll() {
                         ))}
                         <td className="p-3 text-right">
                           <div className="font-bold text-[#6b6b6b]">
-                            {minutesToDecimal(day.total_minutes)}h
-                          </div>
-                          <div className="text-xs text-[#9b9b9b]">
                             {minutesToHours(day.total_minutes)}
                           </div>
                         </td>
@@ -808,9 +785,10 @@ export default function Payroll() {
           <p className="font-bold">ℹ️ Note:</p>
           <ul className="space-y-1 ml-4">
             <li>• <strong>Turno normale</strong>: include tutti i turni senza tipo specifico</li>
-            <li>• <strong>Ritardo</strong>: somma dei minuti di ritardo (sottratti dai turni normali)</li>
+            <li>• <strong>Assenza non retribuita</strong>: include i minuti di ritardo e i turni di tipo "Ritardo"</li>
+            <li>• <strong>Ritardo</strong>: i minuti di ritardo sono sottratti dai turni normali e sommati alla categoria 'Assenza non retribuita'</li>
             <li>• <strong>Ore Nette</strong>: Ore totali meno ore di ritardo</li>
-            <li>• Le ore sono mostrate in formato decimale (es. 8.50h = 8 ore e 30 minuti)</li>
+            <li>• Le ore sono mostrate in formato ore e minuti (es. 8h 30m)</li>
             <li>• I turni duplicati vengono automaticamente filtrati</li>
           </ul>
         </div>
