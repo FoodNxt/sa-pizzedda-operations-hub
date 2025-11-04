@@ -160,6 +160,9 @@ export default function Employees() {
       const numeroRitardi = employeeShifts.filter(s => s.ritardo === true).length;
       const percentualeRitardi = employeeShifts.length > 0 ? (numeroRitardi / employeeShifts.length) * 100 : 0;
 
+      // ✅ Calcolo timbrature mancate
+      const numeroTimbratureMancate = employeeShifts.filter(s => s.timbratura_mancata === true).length;
+
       // Review mentions (filtered by date)
       const mentions = filteredReviews.filter(r => r.employee_mentioned === employee.id);
       const positiveMentions = mentions.filter(r => r.rating >= 4).length;
@@ -183,6 +186,7 @@ export default function Employees() {
       performanceScore -= wrongOrderRate * 2; // Penalty for wrong orders
       performanceScore -= avgLateMinutes * 0.5; // Penalty for lateness
       performanceScore -= percentualeRitardi * 0.3; // Penalty for delay percentage
+      performanceScore -= numeroTimbratureMancate * 1; // Penalty for missing clock-ins
       performanceScore += positiveMentions * 2; // Bonus for positive mentions
       performanceScore -= negativeMentions * 3; // Penalty for negative mentions
       performanceScore += (avgSatisfaction - 3) * 5; // Bonus/penalty based on satisfaction
@@ -204,6 +208,7 @@ export default function Employees() {
         avgLateMinutes,
         numeroRitardi,
         percentualeRitardi,
+        numeroTimbratureMancate,
         mentions: mentions.length,
         positiveMentions,
         negativeMentions,
@@ -252,6 +257,10 @@ export default function Employees() {
         case 'percentualeRitardi':
           valueA = a.percentualeRitardi;
           valueB = b.percentualeRitardi;
+          break;
+        case 'numeroTimbratureMancate':
+          valueA = a.numeroTimbratureMancate;
+          valueB = b.numeroTimbratureMancate;
           break;
         case 'googleRating':
           valueA = a.avgGoogleRating;
@@ -515,6 +524,17 @@ export default function Employees() {
                     )}
                   </div>
                 </th>
+                <th
+                  className="text-center p-3 text-[#9b9b9b] font-medium cursor-pointer hover:text-[#6b6b6b]"
+                  onClick={() => toggleSort('numeroTimbratureMancate')}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    N° Timbrature Mancate
+                    {sortBy === 'numeroTimbratureMancate' && (
+                      sortOrder === 'desc' ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />
+                    )}
+                  </div>
+                </th>
                 <th className="text-center p-3 text-[#9b9b9b] font-medium">Actions</th>
               </tr>
             </thead>
@@ -631,6 +651,20 @@ export default function Employees() {
                       </div>
                     </td>
                     <td className="p-3 text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        <span className={`text-lg font-bold ${
+                          employee.numeroTimbratureMancate > 5 ? 'text-red-600' :
+                          employee.numeroTimbratureMancate > 2 ? 'text-yellow-600' :
+                          'text-green-600'
+                        }`}>
+                          {employee.numeroTimbratureMancate}
+                        </span>
+                        <span className="text-xs text-[#9b9b9b]">
+                          su {employee.totalShifts} turni
+                        </span>
+                      </div>
+                    </td>
+                    <td className="p-3 text-center">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -645,7 +679,7 @@ export default function Employees() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="10" className="p-8 text-center text-[#9b9b9b]">
+                  <td colSpan="11" className="p-8 text-center text-[#9b9b9b]">
                     No employees found matching the filters
                   </td>
                 </tr>
