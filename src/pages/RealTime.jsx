@@ -1,3 +1,4 @@
+
 import { useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -5,6 +6,7 @@ import { DollarSign, ShoppingCart, TrendingUp, Clock, Zap } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
+import { it } from 'date-fns/locale';
 
 export default function RealTime() {
   const { data: orderItems = [], isLoading } = useQuery({
@@ -156,7 +158,7 @@ export default function RealTime() {
       <NeumorphicCard className="p-4 text-center border-2 border-[#8b7355]">
         <p className="text-[#9b9b9b] text-sm mb-1">Dati di oggi</p>
         <h2 className="text-2xl font-bold text-[#8b7355]">
-          {format(new Date(), "EEEE, d MMMM yyyy", { locale: require('date-fns/locale/it') })}
+          {format(new Date(), "EEEE, d MMMM yyyy", { locale: it })}
         </h2>
       </NeumorphicCard>
 
