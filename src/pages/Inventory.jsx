@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Package, TrendingUp, TrendingDown, Filter, Calendar, X, AlertTriangle, CheckCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
+import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, parseISO, isAfter, isBefore } from 'date-fns';
 
@@ -17,6 +18,7 @@ export default function Inventory() {
     warning: true,
     ok: true
   });
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -230,7 +232,7 @@ export default function Inventory() {
     }
   };
 
-  const COLORS = ['#8b7355', '#a68a6a', '#c1a07f', '#dcb794'];
+  const COLORS = ['#8b7355', '#a68a6a', '#c1a07f', '#dcb794']; // Keeping this from original, although not directly used in the new modal part.
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
@@ -260,6 +262,36 @@ export default function Inventory() {
 
     return { critical, warning, ok };
   }, [displayProducts, productTrends]);
+
+  // Get detailed product history
+  const getProductDetails = (productKey) => {
+    const allRecords = inventoryRecords
+      .filter(r => r[productKey] !== null && r[productKey] !== undefined)
+      .sort((a, b) => new Date(a.data) - new Date(b.data));
+
+    const history = allRecords.map(r => ({
+      date: format(parseISO(r.data), 'dd/MM/yyyy'),
+      value: r[productKey] || 0,
+      store: r.store_name
+    }));
+
+    // Group by store
+    const byStore = {};
+    stores.forEach(store => {
+      const storeRecords = allRecords.filter(r => r.store_id === store.id);
+      if (storeRecords.length > 0) {
+        const latest = storeRecords.sort((a,b) => new Date(b.data) - new Date(a.data))[0];
+        const avg = storeRecords.reduce((sum, r) => sum + (r[productKey] || 0), 0) / storeRecords.length;
+        byStore[store.name] = {
+          current: latest[productKey] || 0,
+          average: avg,
+          recordCount: storeRecords.length
+        };
+      }
+    });
+
+    return { history, byStore };
+  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -415,7 +447,11 @@ export default function Inventory() {
                 {productsByStatus.critical.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {productsByStatus.critical.map(({ product, trend }) => (
-                      <div key={product} className="neumorphic-pressed p-4 rounded-xl border-2 border-red-200">
+                      <div 
+                        key={product} 
+                        className="neumorphic-pressed p-4 rounded-xl border-2 border-red-200 cursor-pointer hover:border-red-400 transition-all"
+                        onClick={() => setSelectedProduct(product)}
+                      >
                         <div className="flex items-start justify-between mb-3">
                           <div>
                             <h3 className="font-bold text-[#6b6b6b]">{productLabels[product]}</h3>
@@ -490,7 +526,11 @@ export default function Inventory() {
                 {productsByStatus.warning.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {productsByStatus.warning.map(({ product, trend }) => (
-                      <div key={product} className="neumorphic-pressed p-4 rounded-xl border-2 border-yellow-200">
+                      <div 
+                        key={product} 
+                        className="neumorphic-pressed p-4 rounded-xl border-2 border-yellow-200 cursor-pointer hover:border-yellow-400 transition-all"
+                        onClick={() => setSelectedProduct(product)}
+                      >
                         <div className="flex items-start justify-between mb-3">
                           <div>
                             <h3 className="font-bold text-[#6b6b6b]">{productLabels[product]}</h3>
@@ -565,7 +605,11 @@ export default function Inventory() {
                 {productsByStatus.ok.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {productsByStatus.ok.map(({ product, trend }) => (
-                      <div key={product} className="neumorphic-pressed p-4 rounded-xl border-2 border-green-200">
+                      <div 
+                        key={product} 
+                        className="neumorphic-pressed p-4 rounded-xl border-2 border-green-200 cursor-pointer hover:border-green-400 transition-all"
+                        onClick={() => setSelectedProduct(product)}
+                      >
                         <div className="flex items-start justify-between mb-3">
                           <div>
                             <h3 className="font-bold text-[#6b6b6b]">{productLabels[product]}</h3>
@@ -617,6 +661,172 @@ export default function Inventory() {
           </div>
         </div>
       </NeumorphicCard>
+
+      {/* Product Detail Modal */}
+      {selectedProduct && productTrends[selectedProduct] && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4">
+          <NeumorphicCard className="max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-[#6b6b6b] mb-1">
+                  {productLabels[selectedProduct]}
+                </h2>
+                <p className="text-[#9b9b9b]">Analisi dettagliata andamento giacenze</p>
+              </div>
+              <NeumorphicButton onClick={() => setSelectedProduct(null)}>
+                Chiudi
+              </NeumorphicButton>
+            </div>
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                <p className="text-sm text-[#9b9b9b] mb-2">Quantità Attuale</p>
+                <p className={`text-3xl font-bold ${getStatusColor(productTrends[selectedProduct].status)}`}>
+                  {productTrends[selectedProduct].current.toFixed(0)}
+                </p>
+              </div>
+
+              <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                <p className="text-sm text-[#9b9b9b] mb-2">Media Storica</p>
+                <p className="text-3xl font-bold text-[#6b6b6b]">
+                  {productTrends[selectedProduct].average.toFixed(0)}
+                </p>
+              </div>
+
+              <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                <p className="text-sm text-[#9b9b9b] mb-2">Variazione</p>
+                <div className="flex items-center justify-center gap-2">
+                  {productTrends[selectedProduct].change > 0 ? (
+                    <TrendingUp className="w-6 h-6 text-green-600" />
+                  ) : productTrends[selectedProduct].change < 0 ? (
+                    <TrendingDown className="w-6 h-6 text-red-600" />
+                  ) : null}
+                  <p className={`text-2xl font-bold ${
+                    productTrends[selectedProduct].change > 0 ? 'text-green-600' : 
+                    productTrends[selectedProduct].change < 0 ? 'text-red-600' : 
+                    'text-[#6b6b6b]'
+                  }`}>
+                    {productTrends[selectedProduct].change > 0 ? '+' : ''}
+                    {productTrends[selectedProduct].change.toFixed(0)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                <p className="text-sm text-[#9b9b9b] mb-2">Rilevazioni</p>
+                <p className="text-3xl font-bold text-[#6b6b6b]">
+                  {productTrends[selectedProduct].recordCount}
+                </p>
+              </div>
+            </div>
+
+            {/* Trend Chart */}
+            <div className="neumorphic-flat p-6 rounded-xl mb-6">
+              <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Andamento Temporale</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={productTrends[selectedProduct].history}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#c1c1c1" />
+                  <XAxis dataKey="date" stroke="#9b9b9b" />
+                  <YAxis stroke="#9b9b9b" />
+                  <Tooltip
+                    contentStyle={{
+                      background: '#e0e5ec',
+                      border: 'none',
+                      borderRadius: '12px',
+                      boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#8b7355"
+                    strokeWidth={3}
+                    dot={{ fill: '#8b7355', r: 5 }}
+                    name="Quantità"
+                  />
+                  {/* Reference line for average */}
+                  <Line
+                    type="monotone"
+                    data={productTrends[selectedProduct].history.map(h => ({
+                      date: h.date,
+                      avg: productTrends[selectedProduct].average
+                    }))}
+                    dataKey="avg"
+                    stroke="#9b9b9b"
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    dot={false}
+                    name="Media"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Store Comparison */}
+            {selectedStore === 'all' && stores.length > 1 && (() => {
+              const productDetails = getProductDetails(selectedProduct);
+              return Object.keys(productDetails.byStore).length > 0 && (
+                <div className="neumorphic-flat p-6 rounded-xl">
+                  <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Confronto tra Locali</h3>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={Object.entries(productDetails.byStore).map(([store, data]) => ({
+                      store,
+                      current: data.current,
+                      average: data.average
+                    }))}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#c1c1c1" />
+                      <XAxis dataKey="store" stroke="#9b9b9b" />
+                      <YAxis stroke="#9b9b9b" />
+                      <Tooltip
+                        contentStyle={{
+                          background: '#e0e5ec',
+                          border: 'none',
+                          borderRadius: '12px',
+                          boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
+                        }}
+                      />
+                      <Legend />
+                      <Bar dataKey="current" fill="#8b7355" name="Attuale" radius={[8, 8, 0, 0]} />
+                      <Bar dataKey="average" fill="#a68a6a" name="Media" radius={[8, 8, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+
+                  {/* Store Details Table */}
+                  <div className="mt-6 overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b-2 border-[#8b7355]">
+                          <th className="text-left p-3 text-[#9b9b9b] font-medium">Locale</th>
+                          <th className="text-right p-3 text-[#9b9b9b] font-medium">Quantità Attuale</th>
+                          <th className="text-right p-3 text-[#9b9b9b] font-medium">Media</th>
+                          <th className="text-right p-3 text-[#9b9b9b] font-medium">Rilevazioni</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.entries(productDetails.byStore).map(([store, data]) => (
+                          <tr key={store} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
+                            <td className="p-3 text-[#6b6b6b] font-medium">{store}</td>
+                            <td className="p-3 text-right text-[#6b6b6b] font-bold">
+                              {data.current.toFixed(0)}
+                            </td>
+                            <td className="p-3 text-right text-[#6b6b6b]">
+                              {data.average.toFixed(0)}
+                            </td>
+                            <td className="p-3 text-right text-[#6b6b6b]">
+                              {data.recordCount}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })()}
+          </NeumorphicCard>
+        </div>
+      )}
 
       {/* Trend Charts - Top Products */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
