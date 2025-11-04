@@ -1,14 +1,21 @@
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { DollarSign, ShoppingCart, TrendingUp, Clock, Zap } from 'lucide-react';
+import { DollarSign, ShoppingCart, TrendingUp, Clock, Zap, Filter } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 import { it } from 'date-fns/locale';
 
 export default function RealTime() {
+  const [selectedStore, setSelectedStore] = useState('all');
+
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores'],
+    queryFn: () => base44.entities.Store.list(),
+  });
+
   const { data: orderItems = [], isLoading } = useQuery({
     queryKey: ['orderItems'],
     queryFn: () => base44.entities.OrderItem.list('-modifiedDate', 10000),
@@ -22,11 +29,16 @@ export default function RealTime() {
     const todayEnd = endOfDay(today);
 
     // Filter orders from today
-    const todayOrders = orderItems.filter(item => {
+    let todayOrders = orderItems.filter(item => {
       if (!item.modifiedDate) return false;
       const itemDate = new Date(item.modifiedDate);
       return isWithinInterval(itemDate, { start: todayStart, end: todayEnd });
     });
+
+    // Filter by store if selected
+    if (selectedStore !== 'all') {
+      todayOrders = todayOrders.filter(item => item.store_id === selectedStore);
+    }
 
     // Calculate total revenue
     const totalRevenue = todayOrders.reduce((sum, item) => 
@@ -112,7 +124,7 @@ export default function RealTime() {
       deliveryAppBreakdown,
       lastUpdate: new Date()
     };
-  }, [orderItems]);
+  }, [orderItems, selectedStore]);
 
   const COLORS = ['#8b7355', '#a68a6a', '#c1a07f', '#dcb794', '#6b5d51', '#9d8770'];
 
@@ -154,12 +166,38 @@ export default function RealTime() {
         </div>
       </div>
 
+      {/* Filter */}
+      <NeumorphicCard className="p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <Filter className="w-5 h-5 text-[#8b7355]" />
+          <h2 className="text-lg font-bold text-[#6b6b6b]">Filtri</h2>
+        </div>
+        <div>
+          <label className="text-sm text-[#9b9b9b] mb-2 block">Locale</label>
+          <select
+            value={selectedStore}
+            onChange={(e) => setSelectedStore(e.target.value)}
+            className="w-full md:w-64 neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+          >
+            <option value="all">Tutti i Locali</option>
+            {stores.map(store => (
+              <option key={store.id} value={store.id}>{store.name}</option>
+            ))}
+          </select>
+        </div>
+      </NeumorphicCard>
+
       {/* Date Badge */}
       <NeumorphicCard className="p-4 text-center border-2 border-[#8b7355]">
         <p className="text-[#9b9b9b] text-sm mb-1">Dati di oggi</p>
         <h2 className="text-2xl font-bold text-[#8b7355]">
           {format(new Date(), "EEEE, d MMMM yyyy", { locale: it })}
         </h2>
+        {selectedStore !== 'all' && (
+          <p className="text-sm text-[#9b9b9b] mt-1">
+            Locale: {stores.find(s => s.id === selectedStore)?.name || 'N/A'}
+          </p>
+        )}
       </NeumorphicCard>
 
       {/* Main KPIs */}
