@@ -1,7 +1,8 @@
+
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Package, TrendingUp, TrendingDown, Filter, Calendar, X, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Package, TrendingUp, TrendingDown, Filter, Calendar, X, AlertTriangle, CheckCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, parseISO, isAfter, isBefore } from 'date-fns';
@@ -11,6 +12,11 @@ export default function Inventory() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [expandedSections, setExpandedSections] = useState({
+    critical: true,
+    warning: true,
+    ok: true
+  });
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -226,6 +232,35 @@ export default function Inventory() {
 
   const COLORS = ['#8b7355', '#a68a6a', '#c1a07f', '#dcb794'];
 
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  // Raggruppa prodotti per stato
+  const productsByStatus = useMemo(() => {
+    const critical = [];
+    const warning = [];
+    const ok = [];
+
+    displayProducts.forEach(product => {
+      const trend = productTrends[product];
+      if (!trend) return;
+
+      if (trend.status === 'critical') {
+        critical.push({ product, trend });
+      } else if (trend.status === 'warning') {
+        warning.push({ product, trend });
+      } else { // 'normal' or 'high'
+        ok.push({ product, trend });
+      }
+    });
+
+    return { critical, warning, ok };
+  }, [displayProducts, productTrends]);
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -349,61 +384,237 @@ export default function Inventory() {
         </NeumorphicCard>
       </div>
 
-      {/* Product Status Grid */}
+      {/* Product Status Sections */}
       <NeumorphicCard className="p-6">
         <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">
           Stato Prodotti - {selectedCategory === 'all' ? 'Tutti' : productCategories[selectedCategory]?.label}
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {displayProducts.map(product => {
-            const trend = productTrends[product];
-            if (!trend) return null;
 
-            return (
-              <div key={product} className="neumorphic-flat p-4 rounded-xl">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 className="font-bold text-[#6b6b6b]">{productLabels[product]}</h3>
-                    <p className="text-xs text-[#9b9b9b]">{trend.recordCount} rilevazioni</p>
-                  </div>
-                  {getStatusIcon(trend.status)}
-                </div>
-
-                <div className="space-y-2">
-                  <div>
-                    <p className="text-xs text-[#9b9b9b]">Quantità Attuale</p>
-                    <p className={`text-2xl font-bold ${getStatusColor(trend.status)}`}>
-                      {trend.current.toFixed(0)}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-[#9b9b9b]">vs Precedente:</span>
-                    <div className="flex items-center gap-1">
-                      {trend.change > 0 ? (
-                        <TrendingUp className="w-4 h-4 text-green-600" />
-                      ) : trend.change < 0 ? (
-                        <TrendingDown className="w-4 h-4 text-red-600" />
-                      ) : null}
-                      <span className={trend.change > 0 ? 'text-green-600' : trend.change < 0 ? 'text-red-600' : 'text-[#6b6b6b]'}>
-                        {trend.change > 0 ? '+' : ''}{trend.change.toFixed(0)}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="neumorphic-pressed p-2 rounded-lg">
-                    <p className="text-xs text-[#9b9b9b] mb-1">Media: {trend.average.toFixed(0)}</p>
-                    <div className="h-1 neumorphic-pressed rounded-full overflow-hidden">
-                      <div
-                        className={`h-full ${trend.status === 'critical' ? 'bg-red-600' : trend.status === 'warning' ? 'bg-yellow-600' : 'bg-green-600'}`}
-                        style={{ width: `${Math.min((trend.current / trend.average) * 100, 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
+        <div className="space-y-4">
+          {/* Prodotti in Esaurimento */}
+          <div className="neumorphic-flat rounded-xl overflow-hidden">
+            <button
+              onClick={() => toggleSection('critical')}
+              className="w-full flex items-center justify-between p-4 hover:bg-[#d5dae3] transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+                <h3 className="font-bold text-red-700">
+                  Prodotti in Esaurimento ({productsByStatus.critical.length})
+                </h3>
               </div>
-            );
-          })}
+              {expandedSections.critical ? (
+                <ChevronDown className="w-5 h-5 text-[#6b6b6b]" />
+              ) : (
+                <ChevronRight className="w-5 h-5 text-[#6b6b6b]" />
+              )}
+            </button>
+
+            {expandedSections.critical && (
+              <div className="p-4 border-t border-[#c1c1c1]">
+                {productsByStatus.critical.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {productsByStatus.critical.map(({ product, trend }) => (
+                      <div key={product} className="neumorphic-pressed p-4 rounded-xl border-2 border-red-200">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h3 className="font-bold text-[#6b6b6b]">{productLabels[product]}</h3>
+                            <p className="text-xs text-[#9b9b9b]">{trend.recordCount} rilevazioni</p>
+                          </div>
+                          <AlertTriangle className="w-5 h-5 text-red-600" />
+                        </div>
+
+                        <div className="space-y-2">
+                          <div>
+                            <p className="text-xs text-[#9b9b9b]">Quantità Attuale</p>
+                            <p className="text-2xl font-bold text-red-600">
+                              {trend.current.toFixed(0)}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-[#9b9b9b]">vs Precedente:</span>
+                            <div className="flex items-center gap-1">
+                              {trend.change > 0 ? (
+                                <TrendingUp className="w-4 h-4 text-green-600" />
+                              ) : trend.change < 0 ? (
+                                <TrendingDown className="w-4 h-4 text-red-600" />
+                              ) : null}
+                              <span className={trend.change > 0 ? 'text-green-600' : trend.change < 0 ? 'text-red-600' : 'text-[#6b6b6b]'}>
+                                {trend.change > 0 ? '+' : ''}{trend.change.toFixed(0)}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="neumorphic-flat p-2 rounded-lg">
+                            <p className="text-xs text-[#9b9b9b] mb-1">Media: {trend.average.toFixed(0)}</p>
+                            <div className="h-1 neumorphic-pressed rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-red-600"
+                                style={{ width: `${Math.min((trend.current / trend.average) * 100, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-[#9b9b9b] py-4">Nessun prodotto in esaurimento 🎉</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Prodotti Attenzione */}
+          <div className="neumorphic-flat rounded-xl overflow-hidden">
+            <button
+              onClick={() => toggleSection('warning')}
+              className="w-full flex items-center justify-between p-4 hover:bg-[#d5dae3] transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="w-5 h-5 text-yellow-600" />
+                <h3 className="font-bold text-yellow-700">
+                  Prodotti Attenzione ({productsByStatus.warning.length})
+                </h3>
+              </div>
+              {expandedSections.warning ? (
+                <ChevronDown className="w-5 h-5 text-[#6b6b6b]" />
+              ) : (
+                <ChevronRight className="w-5 h-5 text-[#6b6b6b]" />
+              )}
+            </button>
+
+            {expandedSections.warning && (
+              <div className="p-4 border-t border-[#c1c1c1]">
+                {productsByStatus.warning.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {productsByStatus.warning.map(({ product, trend }) => (
+                      <div key={product} className="neumorphic-pressed p-4 rounded-xl border-2 border-yellow-200">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h3 className="font-bold text-[#6b6b6b]">{productLabels[product]}</h3>
+                            <p className="text-xs text-[#9b9b9b]">{trend.recordCount} rilevazioni</p>
+                          </div>
+                          <AlertTriangle className="w-5 h-5 text-yellow-600" />
+                        </div>
+
+                        <div className="space-y-2">
+                          <div>
+                            <p className="text-xs text-[#9b9b9b]">Quantità Attuale</p>
+                            <p className="text-2xl font-bold text-yellow-600">
+                              {trend.current.toFixed(0)}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-[#9b9b9b]">vs Precedente:</span>
+                            <div className="flex items-center gap-1">
+                              {trend.change > 0 ? (
+                                <TrendingUp className="w-4 h-4 text-green-600" />
+                              ) : trend.change < 0 ? (
+                                <TrendingDown className="w-4 h-4 text-red-600" />
+                              ) : null}
+                              <span className={trend.change > 0 ? 'text-green-600' : trend.change < 0 ? 'text-red-600' : 'text-[#6b6b6b]'}>
+                                {trend.change > 0 ? '+' : ''}{trend.change.toFixed(0)}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="neumorphic-flat p-2 rounded-lg">
+                            <p className="text-xs text-[#9b9b9b] mb-1">Media: {trend.average.toFixed(0)}</p>
+                            <div className="h-1 neumorphic-pressed rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-yellow-600"
+                                style={{ width: `${Math.min((trend.current / trend.average) * 100, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-[#9b9b9b] py-4">Nessun prodotto in attenzione</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Prodotti OK */}
+          <div className="neumorphic-flat rounded-xl overflow-hidden">
+            <button
+              onClick={() => toggleSection('ok')}
+              className="w-full flex items-center justify-between p-4 hover:bg-[#d5dae3] transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <h3 className="font-bold text-green-700">
+                  Prodotti OK ({productsByStatus.ok.length})
+                </h3>
+              </div>
+              {expandedSections.ok ? (
+                <ChevronDown className="w-5 h-5 text-[#6b6b6b]" />
+              ) : (
+                <ChevronRight className="w-5 h-5 text-[#6b6b6b]" />
+              )}
+            </button>
+
+            {expandedSections.ok && (
+              <div className="p-4 border-t border-[#c1c1c1]">
+                {productsByStatus.ok.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {productsByStatus.ok.map(({ product, trend }) => (
+                      <div key={product} className="neumorphic-pressed p-4 rounded-xl border-2 border-green-200">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h3 className="font-bold text-[#6b6b6b]">{productLabels[product]}</h3>
+                            <p className="text-xs text-[#9b9b9b]">{trend.recordCount} rilevazioni</p>
+                          </div>
+                          <CheckCircle className="w-5 h-5 text-green-600" />
+                        </div>
+
+                        <div className="space-y-2">
+                          <div>
+                            <p className="text-xs text-[#9b9b9b]">Quantità Attuale</p>
+                            <p className="text-2xl font-bold text-green-600">
+                              {trend.current.toFixed(0)}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-[#9b9b9b]">vs Precedente:</span>
+                            <div className="flex items-center gap-1">
+                              {trend.change > 0 ? (
+                                <TrendingUp className="w-4 h-4 text-green-600" />
+                              ) : trend.change < 0 ? (
+                                <TrendingDown className="w-4 h-4 text-red-600" />
+                              ) : null}
+                              <span className={trend.change > 0 ? 'text-green-600' : trend.change < 0 ? 'text-red-600' : 'text-[#6b6b6b]'}>
+                                {trend.change > 0 ? '+' : ''}{trend.change.toFixed(0)}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="neumorphic-flat p-2 rounded-lg">
+                            <p className="text-xs text-[#9b9b9b] mb-1">Media: {trend.average.toFixed(0)}</p>
+                            <div className="h-1 neumorphic-pressed rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-green-600"
+                                style={{ width: `${Math.min((trend.current / trend.average) * 100, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-[#9b9b9b] py-4">Nessun prodotto OK</p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </NeumorphicCard>
 
