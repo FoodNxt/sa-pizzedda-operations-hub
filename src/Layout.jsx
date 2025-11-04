@@ -100,6 +100,11 @@ const navigationStructure = [
         icon: Clock,
       },
       {
+        title: "Payroll",
+        url: createPageUrl("Payroll"),
+        icon: DollarSign,
+      },
+      {
         title: "Ricalcola Ritardi",
         url: createPageUrl("RecalculateShifts"),
         icon: Clock,
