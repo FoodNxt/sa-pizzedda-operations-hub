@@ -17,7 +17,8 @@ import {
   Clock,
   UserCheck,
   BarChart3,
-  AlertTriangle
+  AlertTriangle,
+  Package // Added Package icon for Inventory
 } from "lucide-react";
 
 const navigationStructure = [
@@ -67,6 +68,23 @@ const navigationStructure = [
     ]
   },
   {
+    title: "Inventory", // New section: Inventory
+    icon: Package,
+    type: "section",
+    items: [
+      {
+        title: "Inventory Dashboard",
+        url: createPageUrl("Inventory"),
+        icon: Package,
+      },
+      {
+        title: "Zapier Setup",
+        url: createPageUrl("InventorySetup"),
+        icon: Zap,
+      }
+    ]
+  },
+  {
     title: "People",
     icon: Users,
     type: "section",
@@ -112,12 +130,8 @@ const navigationStructure = [
         title: "Zapier Orders",
         url: createPageUrl("OrderItemsSetup"),
         icon: Zap,
-      },
-      {
-        title: "Zapier Inventory",
-        url: createPageUrl("InventorySetup"),
-        icon: Zap,
       }
+      // Removed "Zapier Inventory" as it's now under the "Inventory" section
     ]
   }
 ];
@@ -128,6 +142,7 @@ export default function Layout({ children, currentPageName }) {
   const [expandedSections, setExpandedSections] = useState({
     "Reviews": true,
     "Financials": true,
+    "Inventory": true, // Added new Inventory section to be expanded by default
     "People": true,
     "Zapier Guide": true
   });
