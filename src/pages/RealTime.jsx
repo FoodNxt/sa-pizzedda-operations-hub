@@ -1,8 +1,8 @@
 
 import { useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
-import { DollarSign, ShoppingCart, TrendingUp, Clock, Zap, Filter, Store } from 'lucide-react';
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { DollarSign, ShoppingCart, TrendingUp, Clock, Zap, Filter, Store, RefreshCw } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
@@ -10,6 +10,8 @@ import { it } from 'date-fns/locale';
 
 export default function RealTime() {
   const [selectedStore, setSelectedStore] = useState('all');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -21,6 +23,13 @@ export default function RealTime() {
     queryFn: () => base44.entities.OrderItem.list('-modifiedDate', 10000),
     refetchInterval: 30000, // Refresh every 30 seconds
   });
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ['orderItems'] });
+    await queryClient.invalidateQueries({ queryKey: ['stores'] });
+    setTimeout(() => setIsRefreshing(false), 1000);
+  };
 
   // Process today's data
   const todayData = useMemo(() => {
@@ -188,15 +197,27 @@ export default function RealTime() {
             </div>
             <p className="text-[#9b9b9b]">Monitoraggio in tempo reale della giornata corrente</p>
           </div>
-          <div className="text-right">
-            <p className="text-sm text-[#9b9b9b] mb-1">Ultimo aggiornamento</p>
-            <div className="flex items-center gap-2 neumorphic-pressed px-4 py-2 rounded-xl">
-              <Clock className="w-4 h-4 text-[#8b7355]" />
-              <span className="text-[#6b6b6b] font-medium">
-                {format(todayData.lastUpdate, 'HH:mm:ss')}
-              </span>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className={`neumorphic-flat px-4 py-3 rounded-xl flex items-center gap-2 text-[#6b6b6b] hover:text-[#8b7355] transition-all ${
+                isRefreshing ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'
+              }`}
+            >
+              <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span className="font-medium">Aggiorna Dati</span>
+            </button>
+            <div className="text-right">
+              <p className="text-sm text-[#9b9b9b] mb-1">Ultimo aggiornamento</p>
+              <div className="flex items-center gap-2 neumorphic-pressed px-4 py-2 rounded-xl">
+                <Clock className="w-4 h-4 text-[#8b7355]" />
+                <span className="text-[#6b6b6b] font-medium">
+                  {format(todayData.lastUpdate, 'HH:mm:ss')}
+                </span>
+              </div>
+              <p className="text-xs text-[#9b9b9b] mt-1">Auto-refresh ogni 30s</p>
             </div>
-            <p className="text-xs text-[#9b9b9b] mt-1">Auto-refresh ogni 30s</p>
           </div>
         </div>
       </div>
