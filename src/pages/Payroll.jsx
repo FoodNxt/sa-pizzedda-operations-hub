@@ -1,7 +1,8 @@
+
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Clock, Calendar, Users, Filter, Download, DollarSign } from 'lucide-react';
+import { Clock, Calendar, Users, Filter, Download, DollarSign, X, ChevronRight } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { parseISO, isWithinInterval, format } from 'date-fns';
 
@@ -9,6 +10,7 @@ export default function Payroll() {
   const [selectedStore, setSelectedStore] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -167,6 +169,104 @@ export default function Payroll() {
     };
   }, [shifts, selectedStore, startDate, endDate]);
 
+  // Calculate daily breakdown for selected employee
+  const employeeDailyBreakdown = useMemo(() => {
+    if (!selectedEmployee) return { days: [], shiftTypes: [] };
+
+    // Filter shifts for selected employee
+    let employeeShifts = shifts.filter(s => s.employee_name === selectedEmployee.employee_name);
+
+    // Apply store filter
+    if (selectedStore !== 'all') {
+      employeeShifts = employeeShifts.filter(s => s.store_id === selectedStore);
+    }
+
+    // Apply date filter
+    if (startDate || endDate) {
+      employeeShifts = employeeShifts.filter(shift => {
+        if (!shift.shift_date) return false;
+        const shiftDate = parseISO(shift.shift_date);
+        const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
+        const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
+
+        if (start && end) {
+          return isWithinInterval(shiftDate, { start, end });
+        } else if (start) {
+          return shiftDate >= start;
+        } else if (end) {
+          return shiftDate <= end;
+        }
+        return true;
+      });
+    }
+
+    // Deduplicate
+    employeeShifts = deduplicateShifts(employeeShifts);
+
+    // Group by date
+    const dailyData = {};
+    const allShiftTypes = new Set();
+
+    employeeShifts.forEach(shift => {
+      const date = shift.shift_date;
+      if (!dailyData[date]) {
+        dailyData[date] = {
+          date,
+          shift_types: {},
+          total_minutes: 0,
+          ritardo_minutes: 0
+        };
+      }
+
+      // Calculate worked minutes
+      let workedMinutes = 0;
+      if (shift.actual_minutes) {
+        workedMinutes = shift.actual_minutes;
+      } else if (shift.scheduled_minutes) {
+        workedMinutes = shift.scheduled_minutes;
+      }
+
+      const shiftType = shift.shift_type || 'Turno normale';
+      allShiftTypes.add(shiftType);
+
+      if (!dailyData[date].shift_types[shiftType]) {
+        dailyData[date].shift_types[shiftType] = 0;
+      }
+
+      dailyData[date].shift_types[shiftType] += workedMinutes;
+      dailyData[date].total_minutes += workedMinutes;
+
+      if (shift.minuti_di_ritardo && shift.minuti_di_ritardo > 0) {
+        dailyData[date].ritardo_minutes += shift.minuti_di_ritardo;
+      }
+    });
+
+    // Process ritardi for each day
+    Object.keys(dailyData).forEach(date => {
+      const day = dailyData[date];
+      if (day.ritardo_minutes > 0) {
+        if (day.shift_types['Turno normale']) {
+          day.shift_types['Turno normale'] -= day.ritardo_minutes;
+          if (day.shift_types['Turno normale'] < 0) {
+            day.shift_types['Turno normale'] = 0;
+          }
+        }
+        day.shift_types['Ritardo'] = day.ritardo_minutes;
+        allShiftTypes.add('Ritardo');
+      }
+    });
+
+    // Convert to array and sort by date
+    const dailyArray = Object.values(dailyData).sort((a, b) => 
+      new Date(b.date) - new Date(a.date)
+    );
+
+    return {
+      days: dailyArray,
+      shiftTypes: Array.from(allShiftTypes).sort()
+    };
+  }, [selectedEmployee, shifts, selectedStore, startDate, endDate]);
+
   const minutesToHours = (minutes) => {
     const hours = Math.floor(minutes / 60);
     const mins = Math.round(minutes % 60);
@@ -175,6 +275,92 @@ export default function Payroll() {
 
   const minutesToDecimal = (minutes) => {
     return (minutes / 60).toFixed(2);
+  };
+
+  // Export to CSV function
+  const exportToCSV = () => {
+    // Prepare CSV content
+    let csv = 'Dipendente,Locale,';
+    
+    // Add shift type columns
+    payrollData.shiftTypes.forEach(type => {
+      csv += `"${type} (ore)",`;
+    });
+    csv += 'Totale Ore,Ore Nette\n';
+
+    // Add data rows
+    payrollData.employees.forEach(employee => {
+      csv += `"${employee.employee_name}","${employee.store_name}",`;
+      
+      payrollData.shiftTypes.forEach(type => {
+        const hours = employee.shift_types[type] || 0;
+        csv += `${minutesToDecimal(hours)},`;
+      });
+      
+      const netMinutes = employee.total_minutes - employee.total_ritardo_minutes;
+      csv += `${minutesToDecimal(employee.total_minutes)},${minutesToDecimal(netMinutes)}\n`;
+    });
+
+    // Add total row
+    csv += 'TOTALE,,';
+    payrollData.shiftTypes.forEach(type => {
+      const total = payrollData.employees.reduce((sum, emp) => sum + (emp.shift_types[type] || 0), 0);
+      csv += `${minutesToDecimal(total)},`;
+    });
+    csv += `${minutesToDecimal(payrollData.totalMinutes)},${minutesToDecimal(payrollData.totalMinutes - payrollData.totalRitardoMinutes)}\n`;
+
+    // Create download
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    
+    const filename = `payroll_${startDate || 'all'}_${endDate || 'all'}.csv`;
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Export employee daily breakdown to CSV
+  const exportEmployeeDailyCSV = () => {
+    if (!selectedEmployee) return;
+
+    let csv = `Dipendente: ${selectedEmployee.employee_name}\n`;
+    csv += `Periodo: ${startDate || 'Tutti i turni'} - ${endDate || 'Tutti i turni'}\n\n`;
+    csv += 'Data,';
+    
+    // Add shift type columns
+    employeeDailyBreakdown.shiftTypes.forEach(type => {
+      csv += `"${type} (ore)",`;
+    });
+    csv += 'Totale Ore\n';
+
+    // Add data rows
+    employeeDailyBreakdown.days.forEach(day => {
+      csv += `${format(parseISO(day.date), 'dd/MM/yyyy')},`;
+      
+      employeeDailyBreakdown.shiftTypes.forEach(type => {
+        const hours = day.shift_types[type] || 0;
+        csv += `${minutesToDecimal(hours)},`;
+      });
+      
+      csv += `${minutesToDecimal(day.total_minutes)}\n`;
+    });
+
+    // Create download
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    
+    const filename = `payroll_${selectedEmployee.employee_name.replace(/\s+/g, '_')}_daily_${startDate || 'all'}_${endDate || 'all'}.csv`;
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   if (isLoading) {
@@ -304,18 +490,27 @@ export default function Payroll() {
       <NeumorphicCard className="p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-[#6b6b6b]">Dettaglio Ore per Dipendente</h2>
-          <div className="text-sm text-[#9b9b9b]">
-            {startDate && endDate ? (
-              <span>
-                Periodo: {format(parseISO(startDate), 'dd/MM/yyyy')} - {format(parseISO(endDate), 'dd/MM/yyyy')}
-              </span>
-            ) : startDate ? (
-              <span>Da: {format(parseISO(startDate), 'dd/MM/yyyy')}</span>
-            ) : endDate ? (
-              <span>Fino a: {format(parseISO(endDate), 'dd/MM/yyyy')}</span>
-            ) : (
-              <span>Tutti i turni</span>
-            )}
+          <div className="flex items-center gap-3">
+            <div className="text-sm text-[#9b9b9b]">
+              {startDate && endDate ? (
+                <span>
+                  Periodo: {format(parseISO(startDate), 'dd/MM/yyyy')} - {format(parseISO(endDate), 'dd/MM/yyyy')}
+                </span>
+              ) : startDate ? (
+                <span>Da: {format(parseISO(startDate), 'dd/MM/yyyy')}</span>
+              ) : endDate ? (
+                <span>Fino a: {format(parseISO(endDate), 'dd/MM/yyyy')}</span>
+              ) : (
+                <span>Tutti i turni</span>
+              )}
+            </div>
+            <button
+              onClick={exportToCSV}
+              className="neumorphic-flat px-4 py-2 rounded-lg flex items-center gap-2 text-[#6b6b6b] hover:text-[#8b7355] transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              Scarica CSV
+            </button>
           </div>
         </div>
 
@@ -337,6 +532,7 @@ export default function Payroll() {
                 ))}
                 <th className="text-right p-3 text-[#9b9b9b] font-medium">Totale Ore</th>
                 <th className="text-right p-3 text-green-600 font-medium">Ore Nette</th>
+                <th className="text-center p-3 text-[#9b9b9b] font-medium">Azioni</th>
               </tr>
             </thead>
             <tbody>
@@ -396,12 +592,21 @@ export default function Payroll() {
                           {minutesToHours(netMinutes)}
                         </div>
                       </td>
+                      <td className="p-3 text-center">
+                        <button
+                          onClick={() => setSelectedEmployee(employee)}
+                          className="neumorphic-flat px-3 py-2 rounded-lg flex items-center gap-1 text-[#6b6b6b] hover:text-[#8b7355] transition-colors mx-auto"
+                        >
+                          <span className="text-sm">Dettaglio</span>
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan={payrollData.shiftTypes.length + 4} className="p-8 text-center text-[#9b9b9b]">
+                  <td colSpan={payrollData.shiftTypes.length + 5} className="p-8 text-center text-[#9b9b9b]">
                     Nessun turno trovato per i filtri selezionati
                   </td>
                 </tr>
@@ -448,11 +653,154 @@ export default function Payroll() {
                     {minutesToHours(payrollData.totalMinutes - payrollData.totalRitardoMinutes)}
                   </div>
                 </td>
+                <td className="p-3"></td> {/* Empty cell for Actions column in footer */}
               </tr>
             </tfoot>
           </table>
         </div>
       </NeumorphicCard>
+
+      {/* Employee Daily Breakdown Modal */}
+      {selectedEmployee && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <NeumorphicCard className="max-w-6xl w-full max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-[#6b6b6b] mb-1">
+                  {selectedEmployee.employee_name} - Dettaglio Giornaliero
+                </h2>
+                <p className="text-[#9b9b9b]">
+                  {startDate && endDate ? (
+                    <span>
+                      Periodo: {format(parseISO(startDate), 'dd/MM/yyyy')} - {format(parseISO(endDate), 'dd/MM/yyyy')}
+                    </span>
+                  ) : startDate ? (
+                    <span>Da: {format(parseISO(startDate), 'dd/MM/yyyy')}</span>
+                  ) : endDate ? (
+                    <span>Fino a: {format(parseISO(endDate), 'dd/MM/yyyy')}</span>
+                  ) : (
+                    <span>Tutti i turni</span>
+                  )}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={exportEmployeeDailyCSV}
+                  className="neumorphic-flat px-4 py-2 rounded-lg flex items-center gap-2 text-[#6b6b6b] hover:text-[#8b7355] transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  Scarica CSV
+                </button>
+                <button
+                  onClick={() => setSelectedEmployee(null)}
+                  className="neumorphic-flat p-2 rounded-lg text-[#6b6b6b] hover:text-red-600 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                <p className="text-sm text-[#9b9b9b] mb-1">Giorni Lavorati</p>
+                <p className="text-2xl font-bold text-[#6b6b6b]">
+                  {employeeDailyBreakdown.days.length}
+                </p>
+              </div>
+              <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                <p className="text-sm text-[#9b9b9b] mb-1">Ore Totali</p>
+                <p className="text-2xl font-bold text-[#6b6b6b]">
+                  {minutesToDecimal(selectedEmployee.total_minutes)}
+                </p>
+              </div>
+              <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                <p className="text-sm text-[#9b9b9b] mb-1">Ore Ritardo</p>
+                <p className="text-2xl font-bold text-red-600">
+                  {minutesToDecimal(selectedEmployee.total_ritardo_minutes)}
+                </p>
+              </div>
+              <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                <p className="text-sm text-[#9b9b9b] mb-1">Ore Nette</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {minutesToDecimal(selectedEmployee.total_minutes - selectedEmployee.total_ritardo_minutes)}
+                </p>
+              </div>
+            </div>
+
+            {/* Daily Breakdown Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b-2 border-[#8b7355]">
+                    <th className="text-left p-3 text-[#9b9b9b] font-medium sticky left-0 bg-[#e0e5ec]">Data</th>
+                    {employeeDailyBreakdown.shiftTypes.map(type => (
+                      <th 
+                        key={type} 
+                        className={`text-center p-3 font-medium ${
+                          type === 'Ritardo' ? 'text-red-600' : 'text-[#9b9b9b]'
+                        }`}
+                      >
+                        {type}
+                      </th>
+                    ))}
+                    <th className="text-right p-3 text-[#9b9b9b] font-medium">Totale Ore</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {employeeDailyBreakdown.days.length > 0 ? (
+                    employeeDailyBreakdown.days.map((day, index) => (
+                      <tr 
+                        key={index} 
+                        className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors"
+                      >
+                        <td className="p-3 sticky left-0 bg-[#e0e5ec] font-medium text-[#6b6b6b]">
+                          {format(parseISO(day.date), 'dd/MM/yyyy')}
+                        </td>
+                        {employeeDailyBreakdown.shiftTypes.map(type => (
+                          <td 
+                            key={type} 
+                            className={`p-3 text-center ${
+                              type === 'Ritardo' ? 'text-red-600 font-bold' : 'text-[#6b6b6b]'
+                            }`}
+                          >
+                            {day.shift_types[type] ? (
+                              <div>
+                                <div className="font-bold">
+                                  {minutesToDecimal(day.shift_types[type])}h
+                                </div>
+                                <div className="text-xs text-[#9b9b9b]">
+                                  {minutesToHours(day.shift_types[type])}
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-[#9b9b9b]">-</span>
+                            )}
+                          </td>
+                        ))}
+                        <td className="p-3 text-right">
+                          <div className="font-bold text-[#6b6b6b]">
+                            {minutesToDecimal(day.total_minutes)}h
+                          </div>
+                          <div className="text-xs text-[#9b9b9b]">
+                            {minutesToHours(day.total_minutes)}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={employeeDailyBreakdown.shiftTypes.length + 2} className="p-8 text-center text-[#9b9b9b]">
+                        Nessun turno trovato per questo dipendente nel periodo selezionato
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </NeumorphicCard>
+        </div>
+      )}
 
       {/* Info Card */}
       <NeumorphicCard className="p-6 bg-blue-50 border-2 border-blue-300">
