@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
-import { format, parseISO, startOfDay, endOfDay } from 'npm:date-fns@3.0.0';
+import { format, parseISO, startOfDay, addDays } from 'npm:date-fns@3.0.0';
 
 Deno.serve(async (req) => {
     try {
@@ -33,11 +33,11 @@ Deno.serve(async (req) => {
 
         const dateStr = format(targetDate, 'yyyy-MM-dd');
         const dayStart = startOfDay(targetDate);
-        const dayEnd = endOfDay(targetDate);
+        const nextDayStart = startOfDay(addDays(targetDate, 1));
 
         console.log(`=== AGGREGATION START ===`);
         console.log(`Aggregating data for date: ${dateStr}`);
-        console.log(`Day range: ${dayStart.toISOString()} to ${dayEnd.toISOString()}`);
+        console.log(`Range: ${dayStart.toISOString()} <= modifiedDate < ${nextDayStart.toISOString()}`);
 
         // ✅ Fetch ALL active stores first
         let allStores = [];
@@ -58,16 +58,17 @@ Deno.serve(async (req) => {
             }, { status: 500 });
         }
 
-        // ✅ Use SERVER-SIDE FILTER with date range (most efficient)
+        // ✅ Use SERVER-SIDE FILTER with $lt for next day (more reliable than $lte)
         let orderItems = [];
         try {
             console.log('=== FETCHING ORDER ITEMS WITH SERVER-SIDE DATE FILTER ===');
-            console.log(`Filter: modifiedDate >= ${dayStart.toISOString()} AND <= ${dayEnd.toISOString()}`);
+            console.log(`Using $gte and $lt strategy`);
+            console.log(`Filter: modifiedDate >= ${dayStart.toISOString()} AND < ${nextDayStart.toISOString()}`);
             
             const result = await base44.asServiceRole.entities.OrderItem.filter({
                 modifiedDate: {
                     $gte: dayStart.toISOString(),
-                    $lte: endOfDay(targetDate).toISOString()
+                    $lt: nextDayStart.toISOString()
                 }
             }, '-modifiedDate', 10000);
             
@@ -83,10 +84,21 @@ Deno.serve(async (req) => {
             
             console.log(`Found ${orderItems.length} order items for ${dateStr}`);
             
+            // ✅ Log distribution by printedOrderItemChannel for debugging
+            const channelDistribution = {};
+            orderItems.forEach(item => {
+                const channel = item.printedOrderItemChannel || 'NO_CHANNEL';
+                channelDistribution[channel] = (channelDistribution[channel] || 0) + 1;
+            });
+            console.log('Distribution by printedOrderItemChannel:');
+            Object.entries(channelDistribution).forEach(([channel, count]) => {
+                console.log(`  - ${channel}: ${count} items`);
+            });
+            
             // Log sample items
             if (orderItems.length > 0) {
-                console.log('Sample order items (first 3):');
-                orderItems.slice(0, 3).forEach((item, i) => {
+                console.log('Sample order items (first 5):');
+                orderItems.slice(0, 5).forEach((item, i) => {
                     console.log(`  [${i+1}] ${item.orderItemName || 'N/A'}`);
                     console.log(`      modifiedDate: ${item.modifiedDate}`);
                     console.log(`      store_id: ${item.store_id}`);
@@ -173,7 +185,8 @@ Deno.serve(async (req) => {
         console.log(`Matched items for ${Object.keys(ordersByStore).length} stores`);
         Object.entries(ordersByStore).forEach(([storeId, items]) => {
             const store = allStores.find(s => s.id === storeId);
-            console.log(`  - ${store?.name || storeId}: ${items.length} items`);
+            const revenue = items.reduce((sum, item) => sum + (item.finalPriceWithSessionDiscountsAndSurcharges || 0), 0);
+            console.log(`  - ${store?.name || storeId}: ${items.length} items, €${revenue.toFixed(2)}`);
         });
         if (unmatchedItems.length > 0) {
             console.warn(`⚠️ ${unmatchedItems.length} items could not be matched to any store`);
