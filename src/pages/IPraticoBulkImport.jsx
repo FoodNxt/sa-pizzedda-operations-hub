@@ -102,7 +102,7 @@ export default function IPraticoBulkImport() {
   };
 
   const parseCsvToRecords = (csvText, storeName) => {
-    // Handle both Windows (\r\n) and Unix (\n) line endings, and filter out empty lines
+    // Handle both Windows (\r\n) and Unix (\n) line endings
     const lines = csvText.trim().split(/\r?\n/).filter(line => line.trim());
     
     if (lines.length < 2) {
@@ -110,11 +110,47 @@ export default function IPraticoBulkImport() {
     }
 
     console.log(`📊 CSV ha ${lines.length} righe totali (inclusa intestazione)`);
+    console.log(`📋 Prima riga (header): ${lines[0]}`);
+    console.log(`📋 Seconda riga (primo dato): ${lines[1]}`);
 
-    // Parse header - trim each value
-    const headers = lines[0].split(/[,;]/).map(h => h.trim());
+    // Helper function to parse CSV line (handles quoted values)
+    const parseCsvLine = (line) => {
+      const values = [];
+      let currentValue = '';
+      let insideQuotes = false;
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        const nextChar = line[i + 1];
+        
+        if (char === '"') {
+          if (insideQuotes && nextChar === '"') {
+            // Escaped quote
+            currentValue += '"';
+            i++; // Skip next quote
+          } else {
+            // Toggle quote state
+            insideQuotes = !insideQuotes;
+          }
+        } else if ((char === ',' || char === ';') && !insideQuotes) {
+          // End of value
+          values.push(currentValue.trim());
+          currentValue = '';
+        } else {
+          currentValue += char;
+        }
+      }
+      
+      // Add last value
+      values.push(currentValue.trim());
+      
+      return values;
+    };
+
+    // Parse header
+    const headers = parseCsvLine(lines[0]);
     
-    console.log(`📋 Colonne trovate: ${headers.join(', ')}`);
+    console.log(`📋 Colonne trovate (${headers.length}): ${headers.join(', ')}`);
     
     // Find required columns
     const requiredFields = ['order_date', 'total_orders', 'total_revenue'];
@@ -128,39 +164,56 @@ export default function IPraticoBulkImport() {
     const records = [];
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i].trim();
-      if (!line) { // This check might be redundant if filter(line => line.trim()) is used, but kept for robustness as per outline
+      if (!line) {
         console.log(`⏭️ Riga ${i + 1} vuota, saltata`);
         continue;
       }
 
-      const values = line.split(/[,;]/).map(v => v.trim());
+      const values = parseCsvLine(line);
       
       if (values.length !== headers.length) {
-        console.warn(`⚠️ Riga ${i + 1} ha ${values.length} colonne invece di ${headers.length}, saltata`);
-        console.warn(`   Contenuto: ${line.substring(0, 100)}...`);
-        continue;
+        console.warn(`⚠️ Riga ${i + 1} ha ${values.length} colonne invece di ${headers.length}`);
+        console.warn(`   Headers: ${headers.length} colonne`);
+        console.warn(`   Values: ${values.length} colonne`);
+        console.warn(`   Contenuto riga: ${line.substring(0, 150)}...`);
+        
+        // Try to continue anyway if we have at least the required fields
+        if (values.length < headers.length) {
+          console.warn(`   ⚠️ Saltata perché ha meno colonne del necessario`);
+          continue;
+        }
       }
 
       const record = { store_name: storeName };
       
       headers.forEach((header, idx) => {
+        if (idx >= values.length) {
+          console.warn(`   ⚠️ Valore mancante per colonna ${header} nella riga ${i + 1}`);
+          return;
+        }
+        
         const value = values[idx];
         
-        // Convert numeric fields
+        // Convert numeric fields, handling comma as decimal separator
         if (header.includes('orders') || header.includes('revenue') || 
             header.startsWith('sourceApp_') || header.startsWith('sourceType_') || 
-            header.startsWith('moneyType_')) { // Preserving startsWith for precision
-          record[header] = value && value !== '' ? parseFloat(value) : 0;
+            header.startsWith('moneyType_')) {
+          record[header] = value && value !== '' ? parseFloat(value.replace(',', '.')) : 0;
         } else {
           record[header] = value;
         }
       });
 
       records.push(record);
-      console.log(`✅ Riga ${i + 1} parsata con successo: ${record.order_date}, Revenue: ${record.total_revenue}`);
+      console.log(`✅ Riga ${i + 1} parsata: ${record.order_date}, Orders: ${record.total_orders}, Revenue: ${record.total_revenue}`);
     }
 
     console.log(`🎉 Totale record parsati: ${records.length}`);
+    
+    if (records.length === 0) {
+      throw new Error('Nessun record valido trovato nel CSV. Verifica il formato del file.');
+    }
+    
     return records;
   };
 
@@ -340,7 +393,8 @@ export default function IPraticoBulkImport() {
               <li>• Colonne obbligatorie: order_date, total_orders, total_revenue</li>
               <li>• Separatori supportati: virgola (,) o punto e virgola (;)</li>
               <li>• Formato data: YYYY-MM-DD (es: 2024-01-15)</li>
-              <li>• Decimali con punto (es: 2450.50)</li>
+              <li>• Decimali con punto (.) o virgola (,) (es: 2450.50 o 2450,50)</li>
+              <li>• Valori racchiusi tra virgolette doppie (") sono supportati</li>
               <li>• Colonne opzionali verranno impostate a 0 se mancanti</li>
             </ul>
           </div>
