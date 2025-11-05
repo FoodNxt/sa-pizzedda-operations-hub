@@ -172,7 +172,7 @@ export default function Payroll() {
     return deduplicated;
   }, [rawShifts]);
 
-  // ✅ IMPROVED: Process payroll data with NORMALIZED employee names
+  // ✅ IMPROVED: Process payroll data with NORMALIZED employee names AND total hours excluding overtime
   const payrollData = useMemo(() => {
     let filteredShifts = shifts;
     
@@ -253,6 +253,10 @@ export default function Payroll() {
         }
         emp.shift_types['Assenza non retribuita'] += emp.total_ritardo_minutes;
       }
+
+      // ✅ Calculate total excluding overtime (straordinari)
+      const overtimeMinutes = emp.shift_types['Straordinario'] || 0;
+      emp.total_minutes_excluding_overtime = emp.total_minutes - overtimeMinutes;
     });
 
     const employeeArray = Object.values(employeeData).sort((a, b) => 
@@ -272,7 +276,8 @@ export default function Payroll() {
       shiftTypes: Array.from(allShiftTypes).sort(),
       totalEmployees: employeeArray.length,
       totalMinutes: employeeArray.reduce((sum, emp) => sum + emp.total_minutes, 0),
-      totalRitardoMinutes: employeeArray.reduce((sum, emp) => sum + emp.total_ritardo_minutes, 0)
+      totalRitardoMinutes: employeeArray.reduce((sum, emp) => sum + emp.total_ritardo_minutes, 0),
+      totalMinutesExcludingOvertime: employeeArray.reduce((sum, emp) => sum + emp.total_minutes_excluding_overtime, 0)
     };
   }, [shifts, selectedStore, startDate, endDate]);
 
@@ -518,7 +523,7 @@ export default function Payroll() {
     return (minutes / 60).toFixed(2);
   };
 
-  // Export to CSV function
+  // ✅ UPDATED: Export to CSV with overtime exclusion column
   const exportToCSV = () => {
     // Prepare CSV content
     let csv = 'Dipendente,Locale,';
@@ -527,7 +532,7 @@ export default function Payroll() {
     payrollData.shiftTypes.forEach(type => {
       csv += `"${type}",`;
     });
-    csv += 'Totale Ore,Ore Nette\n';
+    csv += 'Totale Ore,Totale Ore (Esclusi Straordinari),Ore Nette\n';
 
     // Add data rows
     payrollData.employees.forEach(employee => {
@@ -539,7 +544,9 @@ export default function Payroll() {
       });
       
       const netMinutes = employee.total_minutes - employee.total_ritardo_minutes;
-      csv += `"${minutesToHours(employee.total_minutes)}","${minutesToHours(netMinutes)}"\n`;
+      csv += `"${minutesToHours(employee.total_minutes)}",`;
+      csv += `"${minutesToHours(employee.total_minutes_excluding_overtime)}",`;
+      csv += `"${minutesToHours(netMinutes)}"\n`;
     });
 
     // Add total row
@@ -548,7 +555,9 @@ export default function Payroll() {
       const total = payrollData.employees.reduce((sum, emp) => sum + (emp.shift_types[type] || 0), 0);
       csv += `"${minutesToHours(total)}",`;
     });
-    csv += `"${minutesToHours(payrollData.totalMinutes)}","${minutesToHours(payrollData.totalMinutes - payrollData.totalRitardoMinutes)}"\n`;
+    csv += `"${minutesToHours(payrollData.totalMinutes)}",`;
+    csv += `"${minutesToHours(payrollData.totalMinutesExcludingOvertime)}",`;
+    csv += `"${minutesToHours(payrollData.totalMinutes - payrollData.totalRitardoMinutes)}"\n`;
 
     // Create download
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -564,7 +573,7 @@ export default function Payroll() {
     document.body.removeChild(link);
   };
 
-  // Export employee daily breakdown to CSV
+  // ✅ UPDATED: Export employee daily breakdown to CSV with overtime exclusion
   const exportEmployeeDailyCSV = () => {
     if (!selectedEmployee) return;
 
@@ -580,7 +589,7 @@ export default function Payroll() {
       employeeDailyBreakdown.shiftTypes.forEach(type => {
         csv += `"${type}",`;
       });
-      csv += 'Totale Ore\n';
+      csv += 'Totale Ore,Totale Ore (Esclusi Straordinari)\n';
 
       employeeDailyBreakdown.days.forEach(day => {
         csv += `${format(parseISO(day.date), 'dd/MM/yyyy')},`;
@@ -590,7 +599,11 @@ export default function Payroll() {
           csv += `"${minutesToHours(minutes)}",`;
         });
         
-        csv += `"${minutesToHours(day.total_minutes)}"\n`;
+        const overtimeMinutes = day.shift_types['Straordinario'] || 0;
+        const totalExcludingOvertime = day.total_minutes - overtimeMinutes;
+        
+        csv += `"${minutesToHours(day.total_minutes)}",`;
+        csv += `"${minutesToHours(totalExcludingOvertime)}"\n`;
       });
     } else {
       // Weekly view
@@ -598,7 +611,7 @@ export default function Payroll() {
       employeeDailyBreakdown.shiftTypes.forEach(type => {
         csv += `"${type}",`;
       });
-      csv += 'Totale Ore\n';
+      csv += 'Totale Ore,Totale Ore (Esclusi Straordinari)\n';
 
       employeeDailyBreakdown.weeks.forEach(week => {
         const weekLabel = `Settimana ${format(week.weekStart, 'dd/MM', { locale: it })} - ${format(week.weekEnd, 'dd/MM/yyyy', { locale: it })}`;
@@ -609,7 +622,11 @@ export default function Payroll() {
           csv += `"${minutesToHours(minutes)}",`;
         });
         
-        csv += `"${minutesToHours(week.total_minutes)}"\n`;
+        const overtimeMinutes = week.shift_types['Straordinario'] || 0;
+        const totalExcludingOvertime = week.total_minutes - overtimeMinutes;
+
+        csv += `"${minutesToHours(week.total_minutes)}",`;
+        csv += `"${minutesToHours(totalExcludingOvertime)}"\n`;
       });
     }
 
@@ -627,7 +644,7 @@ export default function Payroll() {
     document.body.removeChild(link);
   };
 
-  // NEW: Export daily breakdown for ALL employees
+  // ✅ UPDATED: Export daily breakdown for ALL employees with overtime exclusion
   const exportAllEmployeesDailyCSV = () => {
     let csv = 'Report Giornaliero - Tutti i Dipendenti\n';
     csv += `Periodo: ${startDate || 'Tutti i turni'} - ${endDate || 'Tutti i turni'}\n`;
@@ -646,7 +663,7 @@ export default function Payroll() {
     shiftTypesArray.forEach(type => {
       csv += `"${type}",`;
     });
-    csv += 'Totale Ore\n';
+    csv += 'Totale Ore,Totale Ore (Esclusi Straordinari)\n';
 
     // Collect all daily data for all employees
     const allDailyData = [];
@@ -732,6 +749,8 @@ export default function Payroll() {
         
         // Calculate total minutes
         day.total_minutes = Object.values(day.shift_types).reduce((sum, mins) => sum + mins, 0);
+        const overtimeMinutes = day.shift_types['Straordinario'] || 0;
+        day.total_minutes_excluding_overtime = day.total_minutes - overtimeMinutes;
         
         // Convert store names set to string
         day.store_names_display = Array.from(day.store_names).sort().join(', ');
@@ -759,7 +778,8 @@ export default function Payroll() {
         csv += `"${minutesToHours(minutes)}",`;
       });
       
-      csv += `"${minutesToHours(day.total_minutes)}"\n`;
+      csv += `"${minutesToHours(day.total_minutes)}",`;
+      csv += `"${minutesToHours(day.total_minutes_excluding_overtime)}"\n`;
     });
 
     // Summary row
@@ -769,7 +789,9 @@ export default function Payroll() {
       csv += `"${minutesToHours(totalMinutes)}",`;
     });
     const grandTotal = allDailyData.reduce((sum, day) => sum + day.total_minutes, 0);
-    csv += `"${minutesToHours(grandTotal)}"\n`;
+    const grandTotalExcludingOvertime = allDailyData.reduce((sum, day) => sum + day.total_minutes_excluding_overtime, 0);
+    csv += `"${minutesToHours(grandTotal)}",`;
+    csv += `"${minutesToHours(grandTotalExcludingOvertime)}"\n`;
 
     // Create download
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -785,7 +807,7 @@ export default function Payroll() {
     document.body.removeChild(link);
   };
 
-  // NEW: Export weekly breakdown for ALL employees
+  // ✅ UPDATED: Export weekly report with overtime exclusion
   const exportWeeklyReport = () => {
     let csv = 'Report Settimanale - Tutti i Dipendenti\n';
     csv += `Periodo: ${startDate || 'Tutti i turni'} - ${endDate || 'Tutti i turni'}\n`;
@@ -930,6 +952,8 @@ export default function Payroll() {
         
         // Calculate total minutes
         weekData.total_minutes = Object.values(weekData.shift_types).reduce((sum, mins) => sum + mins, 0);
+        const overtimeMinutes = weekData.shift_types['Straordinario'] || 0;
+        weekData.total_minutes_excluding_overtime = weekData.total_minutes - overtimeMinutes;
         
         // Convert store names set to string
         weekData.store_names_display = Array.from(weekData.store_names).sort().join(', ');
@@ -941,7 +965,7 @@ export default function Payroll() {
     shiftTypesArray.forEach(type => {
       csv += `"${type}",`;
     });
-    csv += 'Totale Ore\n';
+    csv += 'Totale Ore,Totale Ore (Esclusi Straordinari)\n';
 
     // Collect all rows for sorting
     const allRows = [];
@@ -965,7 +989,8 @@ export default function Payroll() {
               weekEnd: endOfWeek(weekStartInPeriod, { weekStartsOn: 1 }),
               store_names_display: employee.store_names_display, // Show all stores for employee if no specific shifts for the week
               shift_types: Object.fromEntries(shiftTypesArray.map(type => [type, 0])), // All types with 0 minutes
-              total_minutes: 0
+              total_minutes: 0,
+              total_minutes_excluding_overtime: 0
             }
           });
         }
@@ -991,7 +1016,8 @@ export default function Payroll() {
         csv += `"${minutesToHours(minutes)}",`;
       });
       
-      csv += `"${minutesToHours(weekData.total_minutes)}"\n`;
+      csv += `"${minutesToHours(weekData.total_minutes)}",`;
+      csv += `"${minutesToHours(weekData.total_minutes_excluding_overtime)}"\n`;
     });
 
     // Summary row
@@ -1001,7 +1027,9 @@ export default function Payroll() {
       csv += `"${minutesToHours(totalMinutes)}",`;
     });
     const grandTotal = allRows.reduce((sum, row) => sum + row.weekData.total_minutes, 0);
-    csv += `"${minutesToHours(grandTotal)}"\n`;
+    const grandTotalExcludingOvertime = allRows.reduce((sum, row) => sum + (row.weekData.total_minutes_excluding_overtime || 0), 0);
+    csv += `"${minutesToHours(grandTotal)}",`;
+    csv += `"${minutesToHours(grandTotalExcludingOvertime)}"\n`;
 
     // Create download
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -1099,7 +1127,7 @@ export default function Payroll() {
         )}
       </NeumorphicCard>
 
-      {/* Summary Stats */}
+      {/* Summary Stats - UPDATED */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <NeumorphicCard className="p-6 text-center">
           <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -1114,9 +1142,9 @@ export default function Payroll() {
             <Clock className="w-8 h-8 text-[#8b7355]" />
           </div>
           <h3 className="text-2xl font-bold text-[#6b6b6b] mb-1">
-            {minutesToHours(payrollData.totalMinutes)}
+            {minutesToHours(payrollData.totalMinutesExcludingOvertime)}
           </h3>
-          <p className="text-sm text-[#9b9b9b]">Ore Totali</p>
+          <p className="text-sm text-[#9b9b9b]">Ore Totali (Esclusi Straordinari)</p>
         </NeumorphicCard>
 
         <NeumorphicCard className="p-6 text-center">
@@ -1134,13 +1162,13 @@ export default function Payroll() {
             <DollarSign className="w-8 h-8 text-green-600" />
           </div>
           <h3 className="text-2xl font-bold text-green-600 mb-1">
-            {minutesToHours(payrollData.totalMinutes - payrollData.totalRitardoMinutes)}
+            {minutesToHours(payrollData.totalMinutesExcludingOvertime - payrollData.totalRitardoMinutes)}
           </h3>
-          <p className="text-sm text-[#9b9b9b]">Ore Nette</p>
+          <p className="text-sm text-[#9b9b9b]">Ore Nette (Esclusi Straordinari)</p>
         </NeumorphicCard>
       </div>
 
-      {/* Payroll Table */}
+      {/* Payroll Table - UPDATED */}
       <NeumorphicCard className="p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-[#6b6b6b]">Dettaglio Ore per Dipendente</h2>
@@ -1201,6 +1229,7 @@ export default function Payroll() {
                   </th>
                 ))}
                 <th className="text-right p-3 text-[#9b9b9b] font-medium">Totale Ore</th>
+                <th className="text-right p-3 text-purple-600 font-medium">Totale Ore<br/>(Esclusi Straordinari)</th>
                 <th className="text-right p-3 text-green-600 font-medium">Ore Nette</th>
                 <th className="text-center p-3 text-[#9b9b9b] font-medium">Azioni</th>
               </tr>
@@ -1209,6 +1238,7 @@ export default function Payroll() {
               {payrollData.employees.length > 0 ? (
                 payrollData.employees.map((employee, index) => {
                   const netMinutes = employee.total_minutes - employee.total_ritardo_minutes;
+                  const netMinutesExcludingOvertime = employee.total_minutes_excluding_overtime - employee.total_ritardo_minutes;
                   return (
                     <tr 
                       key={employee.normalized_name || index} // Use normalized_name for key
@@ -1253,8 +1283,13 @@ export default function Payroll() {
                         </div>
                       </td>
                       <td className="p-3 text-right">
+                        <div className="font-bold text-purple-600">
+                          {minutesToHours(employee.total_minutes_excluding_overtime)}
+                        </div>
+                      </td>
+                      <td className="p-3 text-right">
                         <div className="font-bold text-green-600">
-                          {minutesToHours(netMinutes)}
+                          {minutesToHours(netMinutesExcludingOvertime)}
                         </div>
                       </td>
                       <td className="p-3 text-center">
@@ -1271,7 +1306,7 @@ export default function Payroll() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={payrollData.shiftTypes.length + 5} className="p-8 text-center text-[#9b9b9b]">
+                  <td colSpan={payrollData.shiftTypes.length + 6} className="p-8 text-center text-[#9b9b9b]">
                     Nessun turno trovato per i filtri selezionati
                   </td>
                 </tr>
@@ -1302,9 +1337,12 @@ export default function Payroll() {
                 <td className="p-3 text-right text-[#6b6b6b]">
                   <div>{minutesToHours(payrollData.totalMinutes)}</div>
                 </td>
+                <td className="p-3 text-right text-purple-600">
+                  <div>{minutesToHours(payrollData.totalMinutesExcludingOvertime)}</div>
+                </td>
                 <td className="p-3 text-right text-green-600">
                   <div>
-                    {minutesToHours(payrollData.totalMinutes - payrollData.totalRitardoMinutes)}
+                    {minutesToHours(payrollData.totalMinutesExcludingOvertime - payrollData.totalRitardoMinutes)}
                   </div>
                 </td>
                 <td className="p-3"></td>
@@ -1378,7 +1416,7 @@ export default function Payroll() {
               </div>
             </div>
 
-            {/* Summary Cards */}
+            {/* Summary Cards - UPDATED */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               <div className="neumorphic-pressed p-4 rounded-xl text-center">
                 <p className="text-sm text-[#9b9b9b] mb-1">
@@ -1388,27 +1426,27 @@ export default function Payroll() {
                   {viewMode === 'daily' ? employeeDailyBreakdown.days.length : employeeDailyBreakdown.weeks.length}
                 </p>
               </div>
-              <div className="neumorphic-pressed p-4 rounded-xl text-center">
-                <p className="text-sm text-[#9b9b9b] mb-1">Ore Totali</p>
+              <NeumorphicCard className="p-4 rounded-xl text-center">
+                <p className="text-sm text-[#9b9b9b] mb-1">Ore Totali (Esclusi Straordinari)</p>
                 <p className="text-xl font-bold text-[#6b6b6b]">
-                  {minutesToHours(selectedEmployee.total_minutes)}
+                  {minutesToHours(selectedEmployee.total_minutes_excluding_overtime)}
                 </p>
-              </div>
-              <div className="neumorphic-pressed p-4 rounded-xl text-center">
+              </NeumorphicCard>
+              <NeumorphicCard className="p-4 rounded-xl text-center">
                 <p className="text-sm text-[#9b9b9b] mb-1">Ore Ritardo</p>
                 <p className="text-xl font-bold text-red-600">
                   {minutesToHours(selectedEmployee.total_ritardo_minutes)}
                 </p>
-              </div>
-              <div className="neumorphic-pressed p-4 rounded-xl text-center">
-                <p className="text-sm text-[#9b9b9b] mb-1">Ore Nette</p>
+              </NeumorphicCard>
+              <NeumorphicCard className="p-4 rounded-xl text-center">
+                <p className="text-sm text-[#9b9b9b] mb-1">Ore Nette (Esclusi Straordinari)</p>
                 <p className="text-xl font-bold text-green-600">
-                  {minutesToHours(selectedEmployee.total_minutes - selectedEmployee.total_ritardo_minutes)}
+                  {minutesToHours(selectedEmployee.total_minutes_excluding_overtime - selectedEmployee.total_ritardo_minutes)}
                 </p>
-              </div>
+              </NeumorphicCard>
             </div>
 
-            {/* Daily/Weekly Breakdown Table */}
+            {/* Daily/Weekly Breakdown Table - UPDATED */}
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -1427,6 +1465,7 @@ export default function Payroll() {
                       </th>
                     ))}
                     <th className="text-right p-3 text-[#9b9b9b] font-medium">Totale Ore</th>
+                    <th className="text-right p-3 text-purple-600 font-medium">Totale Ore<br/>(Esclusi Straordinari)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1461,11 +1500,16 @@ export default function Payroll() {
                               {minutesToHours(day.total_minutes)}
                             </div>
                           </td>
+                          <td className="p-3 text-right">
+                            <div className="font-bold text-purple-600">
+                              {minutesToHours(day.total_minutes - (day.shift_types['Straordinario'] || 0))}
+                            </div>
+                          </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={employeeDailyBreakdown.shiftTypes.length + 2} className="p-8 text-center text-[#9b9b9b]">
+                        <td colSpan={employeeDailyBreakdown.shiftTypes.length + 3} className="p-8 text-center text-[#9b9b9b]">
                           Nessun turno trovato per questo dipendente nel periodo selezionato
                         </td>
                       </tr>
@@ -1506,11 +1550,16 @@ export default function Payroll() {
                               {minutesToHours(week.total_minutes)}
                             </div>
                           </td>
+                          <td className="p-3 text-right">
+                            <div className="font-bold text-purple-600">
+                              {minutesToHours(week.total_minutes - (week.shift_types['Straordinario'] || 0))}
+                            </div>
+                          </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={employeeDailyBreakdown.shiftTypes.length + 2} className="p-8 text-center text-[#9b9b9b]">
+                        <td colSpan={employeeDailyBreakdown.shiftTypes.length + 3} className="p-8 text-center text-[#9b9b9b]">
                           Nessun turno trovato per questo dipendente nel periodo selezionato
                         </td>
                       </tr>
@@ -1682,7 +1731,8 @@ export default function Payroll() {
             <li>• <strong>Turno normale</strong>: include tutti i turni senza tipo specifico e i turni di tipo "Affiancamento"</li>
             <li>• <strong>Assenza non retribuita</strong>: include i minuti di ritardo, i turni di tipo "Ritardo" e "Malattia (No Certificato)"</li>
             <li>• <strong>Ritardo</strong>: i minuti di ritardo sono sottratti dai turni normali e sommati alla categoria 'Assenza non retribuita'</li>
-            <li>• <strong>Ore Nette</strong>: Ore totali meno ore di ritardo</li>
+            <li>• <strong>Ore Totali (Esclusi Straordinari)</strong>: Ore totali meno i turni di tipo "Straordinario"</li>
+            <li>• <strong>Ore Nette (Esclusi Straordinari)</strong>: Ore totali (esclusi straordinari) meno le ore di ritardo</li>
             <li>• Le ore sono mostrate in formato ore e minuti (es. 8h 30m)</li>
             <li>• I turni duplicati vengono automaticamente filtrati</li>
           </ul>
