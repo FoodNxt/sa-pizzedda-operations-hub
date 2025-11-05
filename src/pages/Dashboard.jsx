@@ -6,7 +6,7 @@ import { Store, TrendingUp, Users, DollarSign, Star, AlertTriangle, Filter, Cale
 import StatsCard from "../components/dashboard/StatsCard";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { format, subDays, isAfter, isBefore, parseISO, isValid } from 'date-fns';
+import { format, subDays, isAfter, isBefore, parseISO } from 'date-fns';
 
 export default function Dashboard() {
   const [dateRange, setDateRange] = useState('30');
@@ -28,37 +28,9 @@ export default function Dashboard() {
     queryFn: () => base44.entities.Employee.list(),
   });
 
-  // Smart data fetching: use filter when custom dates, list otherwise
-  const { data: orderItems = [], isLoading: ordersLoading } = useQuery({
-    queryKey: ['orderItems', startDate, endDate, dateRange],
-    queryFn: async () => {
-      // If custom date range, use server-side filtering
-      if (startDate && endDate) {
-        try {
-          const start = parseISO(startDate + 'T00:00:00');
-          const end = parseISO(endDate + 'T23:59:59');
-          
-          if (!isValid(start) || !isValid(end)) {
-            console.warn("Invalid custom start or end date provided, fetching all order items.");
-            return base44.entities.OrderItem.list('-modifiedDate', 10000);
-          }
-          
-          return base44.entities.OrderItem.filter({
-            modifiedDate: {
-              $gte: start.toISOString(),
-              $lte: end.toISOString()
-            }
-          }, '-modifiedDate', 100000);
-        } catch (e) {
-          console.error('Date parsing error for custom range:', e);
-          // Fallback to listing all items if parsing fails
-          return base44.entities.OrderItem.list('-modifiedDate', 10000);
-        }
-      }
-      
-      // Otherwise, use list with reasonable limit
-      return base44.entities.OrderItem.list('-modifiedDate', 10000);
-    },
+  const { data: iPraticoData = [], isLoading: dataLoading } = useQuery({
+    queryKey: ['iPratico'],
+    queryFn: () => base44.entities.iPratico.list('-order_date', 1000),
   });
 
   // Process data with date filters
@@ -67,65 +39,41 @@ export default function Dashboard() {
     let endFilterDate;
     
     if (startDate || endDate) {
-      try {
-        cutoffDate = startDate ? parseISO(startDate + 'T00:00:00') : new Date(0);
-        endFilterDate = endDate ? parseISO(endDate + 'T23:59:59') : new Date();
-        
-        if (!isValid(cutoffDate)) cutoffDate = new Date(0);
-        if (!isValid(endFilterDate)) endFilterDate = new Date();
-      } catch (e) {
-        console.error('Date parsing error in filter logic:', e);
-        // Fallback to default 30 days if custom dates are invalid
-        cutoffDate = subDays(new Date(), 30);
-        endFilterDate = new Date();
-      }
+      cutoffDate = startDate ? parseISO(startDate) : new Date(0);
+      endFilterDate = endDate ? parseISO(endDate) : new Date();
     } else {
       const days = parseInt(dateRange);
       cutoffDate = subDays(new Date(), days);
       endFilterDate = new Date();
     }
     
-    const filteredOrders = orderItems.filter(item => {
-      if (item.modifiedDate) {
-        try {
-          const itemDate = parseISO(item.modifiedDate);
-          if (!isValid(itemDate)) return false; // Skip if itemDate is invalid
-          if (isBefore(itemDate, cutoffDate) || isAfter(itemDate, endFilterDate)) {
-            return false;
-          }
-        } catch (e) {
-          console.warn(`Could not parse item.modifiedDate: ${item.modifiedDate}. Skipping item.`, e);
-          return false; // Skip items with unparseable dates
+    const filteredData = iPraticoData.filter(item => {
+      if (item.order_date) {
+        const itemDate = parseISO(item.order_date);
+        if (isBefore(itemDate, cutoffDate) || isAfter(itemDate, endFilterDate)) {
+          return false;
         }
       }
       return true;
     });
 
-    const totalRevenue = filteredOrders.reduce((sum, item) => 
-      sum + (item.finalPriceWithSessionDiscountsAndSurcharges || 0), 0
+    const totalRevenue = filteredData.reduce((sum, item) => 
+      sum + (item.total_revenue || 0), 0
     );
 
-    // Count unique orders (not items)
-    const uniqueOrders = [...new Set(filteredOrders.map(item => item.order).filter(Boolean))];
-    const totalOrders = uniqueOrders.length;
+    const totalOrders = filteredData.reduce((sum, item) => 
+      sum + (item.total_orders || 0), 0
+    );
 
     // Revenue by date for chart
     const revenueByDate = {};
-    filteredOrders.forEach(item => {
-      if (item.modifiedDate) {
-        try {
-          const itemDate = parseISO(item.modifiedDate);
-          if (isValid(itemDate)) {
-            const date = format(itemDate, 'yyyy-MM-dd');
-            if (!revenueByDate[date]) {
-              revenueByDate[date] = { date, revenue: 0 };
-            }
-            revenueByDate[date].revenue += item.finalPriceWithSessionDiscountsAndSurcharges || 0;
-          }
-        } catch (e) {
-          console.warn(`Could not parse item.modifiedDate for chart: ${item.modifiedDate}. Skipping.`, e);
-          // Skip invalid dates
+    filteredData.forEach(item => {
+      if (item.order_date) {
+        const date = item.order_date;
+        if (!revenueByDate[date]) {
+          revenueByDate[date] = { date, revenue: 0 };
         }
+        revenueByDate[date].revenue += item.total_revenue || 0;
       }
     });
 
@@ -137,7 +85,7 @@ export default function Dashboard() {
       }));
 
     return { totalRevenue, totalOrders, dailyRevenue };
-  }, [orderItems, dateRange, startDate, endDate]);
+  }, [iPraticoData, dateRange, startDate, endDate]);
 
   // Calculate metrics
   const totalStores = stores.length;
@@ -266,7 +214,7 @@ export default function Dashboard() {
           value={`€${processedData.totalRevenue.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           icon={DollarSign}
           trend="up"
-          trendValue="From OrderItems"
+          trendValue="From iPratico"
         />
         <StatsCard
           title="Active Employees"
