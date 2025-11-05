@@ -10,7 +10,11 @@ import {
   User,
   Mail,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Phone,
+  Calendar,
+  MapPin,
+  ShoppingBag
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -18,8 +22,19 @@ import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 export default function UsersManagement() {
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({
-    full_name: '',
-    user_type: 'dipendente'
+    nome: '',
+    cognome: '',
+    initials: '',
+    user_type: 'dipendente',
+    employee_id_external: '',
+    employee_group: '',
+    function_name: '',
+    phone: '',
+    data_nascita: '',
+    codice_fiscale: '',
+    indirizzo_domicilio: '',
+    taglia_maglietta: '',
+    status: 'active'
   });
 
   const queryClient = useQueryClient();
@@ -40,26 +55,52 @@ export default function UsersManagement() {
   const handleEdit = (user) => {
     setEditingUser(user);
     setFormData({
-      full_name: user.full_name || '',
-      user_type: user.user_type || 'dipendente'
+      nome: user.nome || '',
+      cognome: user.cognome || '',
+      initials: user.initials || '',
+      user_type: user.user_type || 'dipendente',
+      employee_id_external: user.employee_id_external || '',
+      employee_group: user.employee_group || '',
+      function_name: user.function_name || '',
+      phone: user.phone || '',
+      data_nascita: user.data_nascita || '',
+      codice_fiscale: user.codice_fiscale || '',
+      indirizzo_domicilio: user.indirizzo_domicilio || '',
+      taglia_maglietta: user.taglia_maglietta || '',
+      status: user.status || 'active'
     });
   };
 
   const handleSave = () => {
-    if (!formData.full_name.trim()) {
-      alert('Il nome è obbligatorio');
-      return;
-    }
-
+    // Update full_name based on nome and cognome
+    const full_name = `${formData.nome?.trim() || ''} ${formData.cognome?.trim() || ''}`.trim();
+    
     updateMutation.mutate({
       id: editingUser.id,
-      data: formData
+      data: {
+        ...formData,
+        full_name: full_name || editingUser.full_name
+      }
     });
   };
 
   const handleCancel = () => {
     setEditingUser(null);
-    setFormData({ full_name: '', user_type: 'dipendente' });
+    setFormData({
+      nome: '',
+      cognome: '',
+      initials: '',
+      user_type: 'dipendente',
+      employee_id_external: '',
+      employee_group: '',
+      function_name: '',
+      phone: '',
+      data_nascita: '',
+      codice_fiscale: '',
+      indirizzo_domicilio: '',
+      taglia_maglietta: '',
+      status: 'active'
+    });
   };
 
   const getUserTypeLabel = (type) => {
@@ -132,6 +173,267 @@ export default function UsersManagement() {
         </NeumorphicCard>
       </div>
 
+      {/* Edit Modal */}
+      {editingUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <NeumorphicCard className="max-w-4xl w-full my-8 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-[#6b6b6b]">
+                Modifica Utente
+              </h2>
+              <button
+                onClick={handleCancel}
+                className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+              >
+                <X className="w-5 h-5 text-[#9b9b9b]" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Anagrafica */}
+              <div className="neumorphic-flat p-5 rounded-xl">
+                <h3 className="font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
+                  <User className="w-5 h-5 text-[#8b7355]" />
+                  Dati Anagrafici
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                      Nome
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.nome}
+                      onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                      placeholder="Mario"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                      Cognome
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.cognome}
+                      onChange={(e) => setFormData({ ...formData, cognome: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                      placeholder="Rossi"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                      Iniziali
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.initials}
+                      onChange={(e) => setFormData({ ...formData, initials: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                      placeholder="M.R."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      Data di Nascita
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.data_nascita}
+                      onChange={(e) => setFormData({ ...formData, data_nascita: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                      Codice Fiscale
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.codice_fiscale}
+                      onChange={(e) => setFormData({ ...formData, codice_fiscale: e.target.value.toUpperCase() })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none uppercase"
+                      placeholder="RSSMRA80A01H501Z"
+                      maxLength={16}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
+                      <Phone className="w-4 h-4" />
+                      Numero di Cellulare
+                    </label>
+                    <input
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                      placeholder="+39 333 1234567"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      Indirizzo di Domicilio
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.indirizzo_domicilio}
+                      onChange={(e) => setFormData({ ...formData, indirizzo_domicilio: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                      placeholder="Via Roma 123, 20100 Milano (MI)"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Dati Lavorativi */}
+              <div className="neumorphic-flat p-5 rounded-xl">
+                <h3 className="font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-[#8b7355]" />
+                  Dati Lavorativi
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                      Tipo Utente
+                    </label>
+                    <select
+                      value={formData.user_type}
+                      onChange={(e) => setFormData({ ...formData, user_type: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                    >
+                      <option value="dipendente">Dipendente</option>
+                      <option value="manager">Manager</option>
+                      <option value="admin">Amministratore</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                      ID Esterno (Planday)
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.employee_id_external}
+                      onChange={(e) => setFormData({ ...formData, employee_id_external: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                      placeholder="EMP001"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                      Gruppo Contrattuale
+                    </label>
+                    <select
+                      value={formData.employee_group}
+                      onChange={(e) => setFormData({ ...formData, employee_group: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                    >
+                      <option value="">-- Seleziona --</option>
+                      <option value="FT">FT - Full Time</option>
+                      <option value="PT">PT - Part Time</option>
+                      <option value="CM">CM - Contratto Misto</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                      Ruolo/Funzione
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.function_name}
+                      onChange={(e) => setFormData({ ...formData, function_name: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                      placeholder="Pizzaiolo, Cassiere, Manager..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
+                      <ShoppingBag className="w-4 h-4" />
+                      Taglia Maglietta
+                    </label>
+                    <select
+                      value={formData.taglia_maglietta}
+                      onChange={(e) => setFormData({ ...formData, taglia_maglietta: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                    >
+                      <option value="">-- Seleziona --</option>
+                      <option value="XS">XS</option>
+                      <option value="S">S</option>
+                      <option value="M">M</option>
+                      <option value="L">L</option>
+                      <option value="XL">XL</option>
+                      <option value="XXL">XXL</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                      Stato
+                    </label>
+                    <select
+                      value={formData.status}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                    >
+                      <option value="active">Attivo</option>
+                      <option value="inactive">Inattivo</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Email (Read-only) */}
+              <div className="neumorphic-pressed p-4 rounded-xl bg-gray-50">
+                <label className="text-sm font-medium text-[#9b9b9b] mb-2 block flex items-center gap-2">
+                  <Mail className="w-4 h-4" />
+                  Email (non modificabile)
+                </label>
+                <p className="text-[#6b6b6b] font-medium">{editingUser.email}</p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-6 border-t border-[#c1c1c1] mt-6">
+              <NeumorphicButton
+                onClick={handleCancel}
+                className="flex-1"
+              >
+                Annulla
+              </NeumorphicButton>
+              <NeumorphicButton
+                onClick={handleSave}
+                variant="primary"
+                className="flex-1 flex items-center justify-center gap-2"
+                disabled={updateMutation.isPending}
+              >
+                {updateMutation.isPending ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-[#8b7355] border-t-transparent rounded-full animate-spin" />
+                    Salvataggio...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-5 h-5" />
+                    Salva Modifiche
+                  </>
+                )}
+              </NeumorphicButton>
+            </div>
+          </NeumorphicCard>
+        </div>
+      )}
+
       {/* Users Table */}
       <NeumorphicCard className="p-6">
         <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Lista Utenti</h2>
@@ -152,8 +454,10 @@ export default function UsersManagement() {
                 <tr className="border-b-2 border-[#8b7355]">
                   <th className="text-left p-3 text-[#9b9b9b] font-medium">Utente</th>
                   <th className="text-left p-3 text-[#9b9b9b] font-medium">Email</th>
+                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Telefono</th>
+                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Ruolo</th>
                   <th className="text-left p-3 text-[#9b9b9b] font-medium">Tipo</th>
-                  <th className="text-center p-3 text-[#9b9b9b] font-medium">Profilo Completato</th>
+                  <th className="text-center p-3 text-[#9b9b9b] font-medium">Stato</th>
                   <th className="text-center p-3 text-[#9b9b9b] font-medium">Azioni</th>
                 </tr>
               </thead>
@@ -161,88 +465,64 @@ export default function UsersManagement() {
                 {users.map((user) => (
                   <tr key={user.id} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
                     <td className="p-3">
-                      {editingUser?.id === user.id ? (
-                        <input
-                          type="text"
-                          value={formData.full_name}
-                          onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                          className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-[#6b6b6b] outline-none"
-                          placeholder="Nome Cognome"
-                        />
-                      ) : (
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full neumorphic-flat flex items-center justify-center">
-                            <span className="text-sm font-bold text-[#8b7355]">
-                              {(user.full_name || user.email || 'U').charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <span className="font-medium text-[#6b6b6b]">
-                            {user.full_name || <span className="text-[#9b9b9b] italic">Nome non impostato</span>}
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full neumorphic-flat flex items-center justify-center">
+                          <span className="text-sm font-bold text-[#8b7355]">
+                            {user.initials || (user.full_name || user.email || 'U').charAt(0).toUpperCase()}
                           </span>
                         </div>
-                      )}
+                        <div>
+                          <p className="font-medium text-[#6b6b6b]">
+                            {user.nome && user.cognome ? `${user.nome} ${user.cognome}` : user.full_name || 'N/A'}
+                          </p>
+                          {user.employee_id_external && (
+                            <p className="text-xs text-[#9b9b9b]">ID: {user.employee_id_external}</p>
+                          )}
+                        </div>
+                      </div>
                     </td>
                     <td className="p-3">
                       <div className="flex items-center gap-2">
                         <Mail className="w-4 h-4 text-[#9b9b9b]" />
-                        <span className="text-[#6b6b6b]">{user.email}</span>
+                        <span className="text-[#6b6b6b] text-sm">{user.email}</span>
                       </div>
                     </td>
                     <td className="p-3">
-                      {editingUser?.id === user.id ? (
-                        <select
-                          value={formData.user_type}
-                          onChange={(e) => setFormData({ ...formData, user_type: e.target.value })}
-                          className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-[#6b6b6b] outline-none"
-                        >
-                          <option value="dipendente">Dipendente</option>
-                          <option value="manager">Manager</option>
-                          <option value="admin">Amministratore</option>
-                        </select>
+                      {user.phone ? (
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-[#9b9b9b]" />
+                          <span className="text-[#6b6b6b] text-sm">{user.phone}</span>
+                        </div>
                       ) : (
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${getUserTypeColor(user.user_type)}`}>
-                          {getUserTypeLabel(user.user_type)}
-                        </span>
+                        <span className="text-[#9b9b9b] text-sm">-</span>
                       )}
                     </td>
                     <td className="p-3">
+                      <span className="text-sm text-[#6b6b6b]">{user.function_name || '-'}</span>
+                    </td>
+                    <td className="p-3">
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${getUserTypeColor(user.user_type)}`}>
+                        {getUserTypeLabel(user.user_type)}
+                      </span>
+                    </td>
+                    <td className="p-3">
                       <div className="flex justify-center">
-                        {user.profile_manually_completed ? (
+                        {user.status === 'active' ? (
                           <CheckCircle className="w-5 h-5 text-green-600" />
                         ) : (
-                          <X className="w-5 h-5 text-gray-400" />
+                          <X className="w-5 h-5 text-red-600" />
                         )}
                       </div>
                     </td>
                     <td className="p-3">
-                      <div className="flex items-center justify-center gap-2">
-                        {editingUser?.id === user.id ? (
-                          <>
-                            <button
-                              onClick={handleSave}
-                              disabled={updateMutation.isPending}
-                              className="neumorphic-flat p-2 rounded-lg hover:bg-green-50 transition-colors disabled:opacity-50"
-                              title="Salva"
-                            >
-                              <Save className="w-4 h-4 text-green-600" />
-                            </button>
-                            <button
-                              onClick={handleCancel}
-                              className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
-                              title="Annulla"
-                            >
-                              <X className="w-4 h-4 text-red-600" />
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            onClick={() => handleEdit(user)}
-                            className="neumorphic-flat p-2 rounded-lg hover:bg-blue-50 transition-colors"
-                            title="Modifica"
-                          >
-                            <Edit className="w-4 h-4 text-blue-600" />
-                          </button>
-                        )}
+                      <div className="flex items-center justify-center">
+                        <button
+                          onClick={() => handleEdit(user)}
+                          className="neumorphic-flat p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                          title="Modifica"
+                        >
+                          <Edit className="w-4 h-4 text-blue-600" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -260,10 +540,10 @@ export default function UsersManagement() {
           <div className="text-sm text-blue-800">
             <p className="font-medium mb-1">ℹ️ Informazioni</p>
             <ul className="text-xs space-y-1 list-disc list-inside">
-              <li>Puoi modificare il nome e il tipo di utente</li>
-              <li>Il campo "Profilo Completato" indica se l'utente ha completato manualmente il profilo (protetto da Google)</li>
-              <li>Gli utenti <strong>dipendente</strong> hanno accesso limitato solo a Profilo, Foto Locale e Valutazione</li>
-              <li>Gli utenti <strong>manager</strong> hanno accesso a tutte le funzioni tranne gestione utenti</li>
+              <li>Puoi modificare tutti i dati dell'utente tranne l'email</li>
+              <li>I dipendenti possono modificare i propri dati dalla pagina "Profilo"</li>
+              <li>Il nome completo viene aggiornato automaticamente da nome e cognome</li>
+              <li>Gli utenti <strong>dipendente</strong> hanno accesso limitato</li>
               <li>Gli utenti <strong>admin</strong> hanno accesso completo al sistema</li>
             </ul>
           </div>

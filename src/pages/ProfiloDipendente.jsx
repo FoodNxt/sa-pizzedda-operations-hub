@@ -7,14 +7,26 @@ import {
   Save,
   AlertCircle,
   CheckCircle,
-  Edit
+  Edit,
+  Phone,
+  Calendar,
+  MapPin,
+  ShoppingBag
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 
 export default function ProfiloDipendente() {
   const [editing, setEditing] = useState(false);
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  const [formData, setFormData] = useState({
+    nome: '',
+    cognome: '',
+    initials: '',
+    phone: '',
+    data_nascita: '',
+    codice_fiscale: '',
+    indirizzo_domicilio: '',
+    taglia_maglietta: ''
+  });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -26,11 +38,16 @@ export default function ProfiloDipendente() {
     queryFn: async () => {
       const u = await base44.auth.me();
       // Pre-populate form
-      if (u.full_name && u.full_name.includes(' ')) {
-        const parts = u.full_name.split(' ');
-        setFirstName(parts[0]);
-        setLastName(parts.slice(1).join(' '));
-      }
+      setFormData({
+        nome: u.nome || '',
+        cognome: u.cognome || '',
+        initials: u.initials || '',
+        phone: u.phone || '',
+        data_nascita: u.data_nascita || '',
+        codice_fiscale: u.codice_fiscale || '',
+        indirizzo_domicilio: u.indirizzo_domicilio || '',
+        taglia_maglietta: u.taglia_maglietta || ''
+      });
       return u;
     },
   });
@@ -60,24 +77,15 @@ export default function ProfiloDipendente() {
     setSuccess('');
 
     // Validation
-    if (!firstName.trim() || !lastName.trim()) {
+    if (!formData.nome?.trim() || !formData.cognome?.trim()) {
       setError('Nome e cognome sono obbligatori');
       return;
     }
 
-    if (firstName.trim().length < 2) {
-      setError('Il nome deve avere almeno 2 caratteri');
-      return;
-    }
-
-    if (lastName.trim().length < 2) {
-      setError('Il cognome deve avere almeno 2 caratteri');
-      return;
-    }
-
-    const fullName = `${firstName.trim()} ${lastName.trim()}`;
+    const fullName = `${formData.nome.trim()} ${formData.cognome.trim()}`;
 
     await updateProfileMutation.mutateAsync({
+      ...formData,
       full_name: fullName,
       profile_manually_completed: true
     });
@@ -85,10 +93,17 @@ export default function ProfiloDipendente() {
 
   const handleCancel = () => {
     // Reset to current values
-    if (user?.full_name && user.full_name.includes(' ')) {
-      const parts = user.full_name.split(' ');
-      setFirstName(parts[0]);
-      setLastName(parts.slice(1).join(' '));
+    if (user) {
+      setFormData({
+        nome: user.nome || '',
+        cognome: user.cognome || '',
+        initials: user.initials || '',
+        phone: user.phone || '',
+        data_nascita: user.data_nascita || '',
+        codice_fiscale: user.codice_fiscale || '',
+        indirizzo_domicilio: user.indirizzo_domicilio || '',
+        taglia_maglietta: user.taglia_maglietta || ''
+      });
     }
     setEditing(false);
     setError('');
@@ -97,7 +112,7 @@ export default function ProfiloDipendente() {
 
   if (isLoading) {
     return (
-      <div className="max-w-3xl mx-auto p-8 text-center">
+      <div className="max-w-4xl mx-auto p-8 text-center">
         <NeumorphicCard className="p-8">
           <p className="text-[#9b9b9b]">Caricamento...</p>
         </NeumorphicCard>
@@ -106,7 +121,7 @@ export default function ProfiloDipendente() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Il Mio Profilo</h1>
@@ -123,16 +138,25 @@ export default function ProfiloDipendente() {
         </NeumorphicCard>
       )}
 
-      {/* Profile Card */}
+      {/* Profile Header */}
       <NeumorphicCard className="p-8">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
             <div className="w-20 h-20 rounded-full neumorphic-flat flex items-center justify-center">
-              <User className="w-10 h-10 text-[#8b7355]" />
+              <span className="text-3xl font-bold text-[#8b7355]">
+                {user?.initials || (user?.full_name || 'U').charAt(0).toUpperCase()}
+              </span>
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-[#6b6b6b]">{user?.full_name || 'N/A'}</h2>
-              <p className="text-[#9b9b9b]">{user?.user_type === 'admin' ? 'Amministratore' : user?.user_type === 'manager' ? 'Manager' : 'Dipendente'}</p>
+              <h2 className="text-2xl font-bold text-[#6b6b6b]">
+                {user?.nome && user?.cognome ? `${user.nome} ${user.cognome}` : user?.full_name || 'N/A'}
+              </h2>
+              <p className="text-[#9b9b9b]">
+                {user?.function_name || (user?.user_type === 'admin' ? 'Amministratore' : user?.user_type === 'manager' ? 'Manager' : 'Dipendente')}
+              </p>
+              {user?.employee_group && (
+                <p className="text-sm text-[#9b9b9b]">Contratto: {user.employee_group}</p>
+              )}
             </div>
           </div>
 
@@ -148,47 +172,138 @@ export default function ProfiloDipendente() {
         </div>
 
         {/* Email (Read-only) */}
-        <div className="mb-6">
+        <div className="neumorphic-pressed p-4 rounded-xl bg-gray-50">
           <label className="text-sm font-medium text-[#9b9b9b] mb-2 block flex items-center gap-2">
             <Mail className="w-4 h-4" />
-            Email
+            Email (non modificabile)
           </label>
-          <div className="neumorphic-pressed px-4 py-3 rounded-xl">
-            <p className="text-[#6b6b6b]">{user?.email}</p>
-          </div>
-          <p className="text-xs text-[#9b9b9b] mt-1">
-            L'email non può essere modificata
-          </p>
+          <p className="text-[#6b6b6b] font-medium">{user?.email}</p>
         </div>
+      </NeumorphicCard>
 
-        {/* Nome e Cognome */}
+      {/* Dati Anagrafici */}
+      <NeumorphicCard className="p-6">
+        <h3 className="text-lg font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
+          <User className="w-5 h-5 text-[#8b7355]" />
+          Dati Anagrafici
+        </h3>
+
         {editing ? (
           <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                Nome <span className="text-red-600">*</span>
-              </label>
-              <input
-                type="text"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                placeholder="es. Mario"
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                autoFocus
-              />
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                  Nome <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.nome}
+                  onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                  placeholder="Mario"
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                />
+              </div>
 
-            <div>
-              <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                Cognome <span className="text-red-600">*</span>
-              </label>
-              <input
-                type="text"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                placeholder="es. Rossi"
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-              />
+              <div>
+                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                  Cognome <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.cognome}
+                  onChange={(e) => setFormData({ ...formData, cognome: e.target.value })}
+                  placeholder="Rossi"
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                  Iniziali
+                </label>
+                <input
+                  type="text"
+                  value={formData.initials}
+                  onChange={(e) => setFormData({ ...formData, initials: e.target.value })}
+                  placeholder="M.R."
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Data di Nascita
+                </label>
+                <input
+                  type="date"
+                  value={formData.data_nascita}
+                  onChange={(e) => setFormData({ ...formData, data_nascita: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                  Codice Fiscale
+                </label>
+                <input
+                  type="text"
+                  value={formData.codice_fiscale}
+                  onChange={(e) => setFormData({ ...formData, codice_fiscale: e.target.value.toUpperCase() })}
+                  placeholder="RSSMRA80A01H501Z"
+                  maxLength={16}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none uppercase"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  Numero di Cellulare
+                </label>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="+39 333 1234567"
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  Indirizzo di Domicilio
+                </label>
+                <input
+                  type="text"
+                  value={formData.indirizzo_domicilio}
+                  onChange={(e) => setFormData({ ...formData, indirizzo_domicilio: e.target.value })}
+                  placeholder="Via Roma 123, 20100 Milano (MI)"
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
+                  <ShoppingBag className="w-4 h-4" />
+                  Taglia Maglietta
+                </label>
+                <select
+                  value={formData.taglia_maglietta}
+                  onChange={(e) => setFormData({ ...formData, taglia_maglietta: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                >
+                  <option value="">-- Seleziona --</option>
+                  <option value="XS">XS</option>
+                  <option value="S">S</option>
+                  <option value="M">M</option>
+                  <option value="L">L</option>
+                  <option value="XL">XL</option>
+                  <option value="XXL">XXL</option>
+                </select>
+              </div>
             </div>
 
             {/* Error Message */}
@@ -229,14 +344,59 @@ export default function ProfiloDipendente() {
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-[#9b9b9b] mb-2 block">
-                Nome Completo
-              </label>
-              <div className="neumorphic-pressed px-4 py-3 rounded-xl">
-                <p className="text-[#6b6b6b] font-medium">{user?.full_name || 'Non impostato'}</p>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <p className="text-sm text-[#9b9b9b] mb-1">Nome</p>
+              <p className="text-[#6b6b6b] font-medium">{user?.nome || '-'}</p>
+            </div>
+
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <p className="text-sm text-[#9b9b9b] mb-1">Cognome</p>
+              <p className="text-[#6b6b6b] font-medium">{user?.cognome || '-'}</p>
+            </div>
+
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <p className="text-sm text-[#9b9b9b] mb-1">Iniziali</p>
+              <p className="text-[#6b6b6b] font-medium">{user?.initials || '-'}</p>
+            </div>
+
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <p className="text-sm text-[#9b9b9b] mb-1 flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                Data di Nascita
+              </p>
+              <p className="text-[#6b6b6b] font-medium">
+                {user?.data_nascita ? new Date(user.data_nascita).toLocaleDateString('it-IT') : '-'}
+              </p>
+            </div>
+
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <p className="text-sm text-[#9b9b9b] mb-1">Codice Fiscale</p>
+              <p className="text-[#6b6b6b] font-medium uppercase">{user?.codice_fiscale || '-'}</p>
+            </div>
+
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <p className="text-sm text-[#9b9b9b] mb-1 flex items-center gap-2">
+                <Phone className="w-4 h-4" />
+                Cellulare
+              </p>
+              <p className="text-[#6b6b6b] font-medium">{user?.phone || '-'}</p>
+            </div>
+
+            <div className="neumorphic-pressed p-4 rounded-xl md:col-span-2">
+              <p className="text-sm text-[#9b9b9b] mb-1 flex items-center gap-2">
+                <MapPin className="w-4 h-4" />
+                Indirizzo di Domicilio
+              </p>
+              <p className="text-[#6b6b6b] font-medium">{user?.indirizzo_domicilio || '-'}</p>
+            </div>
+
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <p className="text-sm text-[#9b9b9b] mb-1 flex items-center gap-2">
+                <ShoppingBag className="w-4 h-4" />
+                Taglia Maglietta
+              </p>
+              <p className="text-[#6b6b6b] font-medium">{user?.taglia_maglietta || '-'}</p>
             </div>
           </div>
         )}
@@ -247,12 +407,13 @@ export default function ProfiloDipendente() {
         <div className="flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
           <div className="text-sm text-blue-800">
-            <p className="font-medium mb-1">📝 Perché il nome è importante?</p>
-            <p className="text-xs">
-              Il tuo nome e cognome vengono utilizzati per associare i tuoi turni, ritardi e recensioni.
-              Assicurati che corrispondano esattamente al nome nel sistema aziendale per visualizzare
-              correttamente i tuoi dati nella pagina "Valutazione".
-            </p>
+            <p className="font-medium mb-1">📝 Perché questi dati sono importanti?</p>
+            <ul className="text-xs space-y-1 list-disc list-inside">
+              <li>Il tuo nome e cognome vengono usati per associare turni e recensioni</li>
+              <li>I dati anagrafici sono necessari per la gestione amministrativa</li>
+              <li>La taglia maglietta serve per fornirti la divisa corretta</li>
+              <li>Assicurati che tutti i dati siano corretti e aggiornati</li>
+            </ul>
           </div>
         </div>
       </NeumorphicCard>
