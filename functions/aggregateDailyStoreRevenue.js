@@ -35,19 +35,33 @@ Deno.serve(async (req) => {
         const dayStart = startOfDay(targetDate);
         const dayEnd = endOfDay(targetDate);
 
+        console.log(`=== AGGREGATION START ===`);
         console.log(`Aggregating data for date: ${dateStr}`);
         console.log(`Day range: ${dayStart.toISOString()} to ${dayEnd.toISOString()}`);
+
+        // ✅ DEBUG: Fetch a sample of ALL OrderItems to inspect dates
+        let sampleItems = [];
+        try {
+            console.log('=== DEBUG: Fetching sample OrderItems to inspect dates ===');
+            sampleItems = await base44.asServiceRole.entities.OrderItem.list('-modifiedDate', 10);
+            console.log(`Sample of ${sampleItems.length} most recent OrderItems:`);
+            sampleItems.forEach((item, i) => {
+                console.log(`  [${i+1}] ${item.orderItemName} - modifiedDate: "${item.modifiedDate}" - store: ${item.store_name} (${item.store_id})`);
+            });
+        } catch (e) {
+            console.error('Error fetching sample items:', e);
+        }
 
         // ✅ Fetch ALL active stores first
         let allStores = [];
         try {
-            console.log('Fetching all stores...');
+            console.log('=== FETCHING STORES ===');
             allStores = await base44.asServiceRole.entities.Store.list();
-            console.log(`Found ${allStores.length} total stores`);
+            console.log(`Found ${allStores.length} total stores:`);
             
             // Log store details for debugging
             allStores.forEach(store => {
-                console.log(`Store: ${store.name} (ID: ${store.id})`);
+                console.log(`  - ${store.name} (ID: ${store.id})`);
             });
         } catch (e) {
             console.error('Error fetching stores:', e);
@@ -61,21 +75,34 @@ Deno.serve(async (req) => {
         // Fetch order items for the specific day using server-side filter
         let orderItems = [];
         try {
-            console.log('Fetching order items with server-side date filter...');
+            console.log('=== FETCHING ORDER ITEMS WITH FILTER ===');
+            console.log(`Filter: modifiedDate >= ${dayStart.toISOString()} AND <= ${dayEnd.toISOString()}`);
+            
             orderItems = await base44.asServiceRole.entities.OrderItem.filter({
                 modifiedDate: {
                     $gte: dayStart.toISOString(),
                     $lte: dayEnd.toISOString()
                 }
             }, '-modifiedDate', 10000);
+            
             console.log(`Found ${orderItems.length} order items for ${dateStr}`);
             
             // ✅ Log first few items to debug store matching
             if (orderItems.length > 0) {
-                console.log('Sample order items:');
-                orderItems.slice(0, 3).forEach(item => {
-                    console.log(`  Item: ${item.orderItemName}, store_id: ${item.store_id}, store_name: ${item.store_name}`);
+                console.log('Sample filtered order items:');
+                orderItems.slice(0, 5).forEach((item, i) => {
+                    console.log(`  [${i+1}] ${item.orderItemName}`);
+                    console.log(`      modifiedDate: ${item.modifiedDate}`);
+                    console.log(`      store_id: ${item.store_id}`);
+                    console.log(`      store_name: ${item.store_name}`);
+                    console.log(`      finalPrice: €${item.finalPriceWithSessionDiscountsAndSurcharges}`);
                 });
+            } else {
+                console.warn('⚠️ NO ORDER ITEMS FOUND FOR THIS DATE!');
+                console.warn('This could mean:');
+                console.warn('1. No orders were placed on this date');
+                console.warn('2. The modifiedDate field format is different than expected');
+                console.warn('3. The server-side filter is not working correctly');
             }
         } catch (e) {
             console.error('Error fetching order items:', e);
@@ -94,21 +121,29 @@ Deno.serve(async (req) => {
             storeByName[store.name.toLowerCase()] = store;
         });
 
+        console.log('=== STORE MAPPING ===');
+        console.log(`Created maps for ${allStores.length} stores`);
+
         // ✅ Group order items by store - improved matching logic
         const ordersByStore = {};
         const unmatchedItems = [];
         
+        console.log('=== MATCHING ORDER ITEMS TO STORES ===');
         orderItems.forEach(item => {
             let matchedStore = null;
             
             // Try to match by store_id first
             if (item.store_id && storeById[item.store_id]) {
                 matchedStore = storeById[item.store_id];
+                console.log(`✓ Matched by ID: ${item.orderItemName} -> ${matchedStore.name}`);
             } 
             // If no match by ID, try by name
             else if (item.store_name) {
                 const normalizedName = item.store_name.toLowerCase().trim();
                 matchedStore = storeByName[normalizedName];
+                if (matchedStore) {
+                    console.log(`✓ Matched by NAME: ${item.orderItemName} -> ${matchedStore.name}`);
+                }
             }
             
             if (matchedStore) {
@@ -119,18 +154,20 @@ Deno.serve(async (req) => {
                 ordersByStore[storeId].push(item);
             } else {
                 // Log unmatched items for debugging
-                console.warn(`Unmatched item: store_id="${item.store_id}", store_name="${item.store_name}"`);
+                console.warn(`✗ UNMATCHED: ${item.orderItemName} - store_id="${item.store_id}", store_name="${item.store_name}"`);
                 unmatchedItems.push(item);
             }
         });
 
+        console.log(`=== MATCHING SUMMARY ===`);
         console.log(`Matched items for ${Object.keys(ordersByStore).length} stores`);
         if (unmatchedItems.length > 0) {
-            console.warn(`Warning: ${unmatchedItems.length} items could not be matched to any store`);
+            console.warn(`⚠️ ${unmatchedItems.length} items could not be matched to any store`);
         }
 
         const results = [];
 
+        console.log('=== PROCESSING STORES ===');
         // ✅ Process EVERY store, even those without orders
         for (const store of allStores) {
             try {
@@ -138,7 +175,7 @@ Deno.serve(async (req) => {
                 const storeName = store.name;
                 const items = ordersByStore[storeId] || []; // Empty array if no orders
 
-                console.log(`Processing store: ${storeName} (${storeId}) - ${items.length} items`);
+                console.log(`Processing ${storeName} (${storeId}): ${items.length} items`);
                 
                 // Calculate totals (will be 0 if no items)
                 let totalFinalPriceWithDiscounts = 0;
@@ -207,7 +244,7 @@ Deno.serve(async (req) => {
                     breakdownBySaleTypeName[saleType].finalPrice += finalPrice;
                 });
                 
-                console.log(`Store ${storeName}: Revenue=${totalFinalPriceWithDiscounts}, Orders=${uniqueOrders.size}, Items=${items.length}`);
+                console.log(`  → Revenue: €${totalFinalPriceWithDiscounts.toFixed(2)}, Orders: ${uniqueOrders.size}, Items: ${items.length}`);
                 
                 // Round all numbers to 2 decimals
                 const roundBreakdown = (breakdown) => {
@@ -235,8 +272,6 @@ Deno.serve(async (req) => {
                     breakdown_by_saleTypeName: roundBreakdown(breakdownBySaleTypeName)
                 };
                 
-                console.log(`Checking for existing record for store ${storeId} on ${dateStr}`);
-                
                 // Check if record already exists for this store and date
                 let existing = [];
                 try {
@@ -244,7 +279,6 @@ Deno.serve(async (req) => {
                         store_id: storeId,
                         date: dateStr
                     });
-                    console.log(`Found ${existing.length} existing records`);
                 } catch (e) {
                     console.error('Error checking existing record:', e);
                 }
@@ -252,12 +286,11 @@ Deno.serve(async (req) => {
                 if (existing && existing.length > 0) {
                     // Update existing record
                     try {
-                        console.log(`Updating existing record ${existing[0].id}`);
                         await base44.asServiceRole.entities.DailyStoreRevenue.update(
                             existing[0].id,
                             aggregatedData
                         );
-                        console.log(`Successfully updated record for ${storeName}`);
+                        console.log(`  ✓ Updated DailyStoreRevenue record`);
                         results.push({
                             action: 'updated',
                             store_name: storeName,
@@ -276,9 +309,8 @@ Deno.serve(async (req) => {
                 } else {
                     // Create new record
                     try {
-                        console.log(`Creating new record for ${storeName}`);
                         await base44.asServiceRole.entities.DailyStoreRevenue.create(aggregatedData);
-                        console.log(`Successfully created record for ${storeName}`);
+                        console.log(`  ✓ Created new DailyStoreRevenue record`);
                         results.push({
                             action: 'created',
                             store_name: storeName,
@@ -306,7 +338,11 @@ Deno.serve(async (req) => {
             }
         }
 
-        console.log(`Aggregation complete for ${dateStr}`);
+        console.log(`=== AGGREGATION COMPLETE ===`);
+        console.log(`Date: ${dateStr}`);
+        console.log(`Stores processed: ${allStores.length}`);
+        console.log(`Total items: ${orderItems.length}`);
+        console.log(`Unmatched items: ${unmatchedItems.length}`);
         
         return Response.json({
             success: true,
@@ -315,6 +351,10 @@ Deno.serve(async (req) => {
             stores_processed: allStores.length,
             total_items_processed: orderItems.length,
             unmatched_items_count: unmatchedItems.length,
+            debug_info: {
+                sample_items_count: sampleItems.length,
+                sample_items_dates: sampleItems.map(i => i.modifiedDate).slice(0, 5)
+            },
             results
         }, { status: 200 });
 
