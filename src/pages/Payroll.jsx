@@ -2,9 +2,9 @@
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Clock, Calendar, Users, Filter, Download, DollarSign, X, ChevronRight, FileText } from 'lucide-react';
+import { Clock, Calendar, Users, Filter, Download, DollarSign, X, ChevronRight, FileText, CalendarRange } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
-import { parseISO, isWithinInterval, format, startOfWeek, endOfWeek, addDays } from 'date-fns';
+import { parseISO, isWithinInterval, format, startOfWeek, endOfWeek, addDays, eachWeekOfInterval } from 'date-fns';
 import { it } from 'date-fns/locale';
 
 export default function Payroll() {
@@ -629,6 +629,243 @@ export default function Payroll() {
     document.body.removeChild(link);
   };
 
+  // ✅ NEW: Export weekly breakdown for ALL employees
+  const exportWeeklyReport = () => {
+    let csv = 'Report Settimanale - Tutti i Dipendenti\n';
+    csv += `Periodo: ${startDate || 'Tutti i turni'} - ${endDate || 'Tutti i turni'}\n`;
+    csv += `Locale: ${selectedStore === 'all' ? 'Tutti i Locali' : stores.find(s => s.id === selectedStore)?.name || selectedStore}\n\n`;
+
+    // Get all unique shift types
+    const allShiftTypes = new Set();
+    payrollData.employees.forEach(employee => {
+      Object.keys(employee.shift_types).forEach(type => allShiftTypes.add(type));
+    });
+    const shiftTypesArray = Array.from(allShiftTypes).sort();
+
+    // Determine date range for all relevant shifts
+    let minDate = null;
+    let maxDate = null;
+
+    const relevantShifts = shifts.filter(s => {
+      // Apply store filter
+      if (selectedStore !== 'all' && s.store_id !== selectedStore) return false;
+      // Only shifts with a date are relevant for range calculation
+      return !!s.shift_date;
+    });
+
+    relevantShifts.forEach(shift => {
+      const shiftDate = parseISO(shift.shift_date);
+      if (!minDate || shiftDate < minDate) minDate = shiftDate;
+      if (!maxDate || shiftDate > maxDate) maxDate = shiftDate;
+    });
+
+    // If specific startDate/endDate filters are applied, use them to refine minDate/maxDate
+    if (startDate) {
+      const filterStart = parseISO(startDate);
+      if (!minDate || filterStart > minDate) minDate = filterStart;
+    }
+    if (endDate) {
+      const filterEnd = parseISO(endDate);
+      if (!maxDate || filterEnd < maxDate) maxDate = filterEnd;
+    }
+    
+    if (!minDate || !maxDate) {
+      alert('Nessun turno disponibile nel periodo selezionato per generare il report.');
+      return;
+    }
+
+    // Get all weeks in the period (starting Monday)
+    // Adjust maxDate to end of week if it's not already
+    const adjustedMaxDate = endOfWeek(maxDate, { weekStartsOn: 1 });
+    const weeks = eachWeekOfInterval(
+      { start: startOfWeek(minDate, { weekStartsOn: 1 }), end: adjustedMaxDate },
+      { weekStartsOn: 1 } // Monday
+    );
+
+    // Collect weekly data for all employees
+    const employeeWeeklyData = {};
+
+    payrollData.employees.forEach(employee => {
+      // Filter shifts for this employee
+      let employeeShifts = shifts.filter(s => {
+        if (s.employee_name !== employee.employee_name) return false;
+
+        // Apply store filter
+        if (selectedStore !== 'all' && s.store_id !== selectedStore) return false;
+
+        // Apply date filter
+        if (startDate || endDate) {
+          if (!s.shift_date) return false;
+          const shiftDate = parseISO(s.shift_date);
+          const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
+          const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
+
+          if (start && end) {
+            return isWithinInterval(shiftDate, { start, end });
+          } else if (start) {
+            return shiftDate >= start;
+          } else if (end) {
+            return shiftDate <= end;
+          }
+        }
+
+        return true;
+      });
+
+      // Deduplicate
+      employeeShifts = deduplicateShifts(employeeShifts);
+
+      if (!employeeWeeklyData[employee.employee_name]) {
+        employeeWeeklyData[employee.employee_name] = {};
+      }
+
+      // Group shifts by week
+      employeeShifts.forEach(shift => {
+        const shiftDate = parseISO(shift.shift_date);
+        const weekStart = startOfWeek(shiftDate, { weekStartsOn: 1 });
+        const weekKey = format(weekStart, 'yyyy-MM-dd');
+
+        if (!employeeWeeklyData[employee.employee_name][weekKey]) {
+          employeeWeeklyData[employee.employee_name][weekKey] = {
+            weekStart,
+            weekEnd: endOfWeek(shiftDate, { weekStartsOn: 1 }),
+            store_names: new Set(),
+            shift_types: {},
+            ritardo_minutes: 0
+          };
+        }
+
+        const weekData = employeeWeeklyData[employee.employee_name][weekKey];
+
+        // Add store name
+        if (shift.store_name) {
+          weekData.store_names.add(shift.store_name);
+        }
+
+        let workedMinutes = shift.scheduled_minutes || 0;
+        let shiftType = shift.shift_type || 'Turno normale';
+        
+        if (shiftType === 'Ritardo') {
+          shiftType = 'Assenza non retribuita';
+        }
+        
+        if (!weekData.shift_types[shiftType]) {
+          weekData.shift_types[shiftType] = 0;
+        }
+
+        weekData.shift_types[shiftType] += workedMinutes;
+
+        if (shift.minuti_di_ritardo && shift.minuti_di_ritardo > 0) {
+          weekData.ritardo_minutes += shift.minuti_di_ritardo;
+        }
+      });
+
+      // Process ritardi for each week
+      Object.keys(employeeWeeklyData[employee.employee_name]).forEach(weekKey => {
+        const weekData = employeeWeeklyData[employee.employee_name][weekKey];
+        
+        if (weekData.ritardo_minutes > 0) {
+          if (weekData.shift_types['Turno normale']) {
+            weekData.shift_types['Turno normale'] -= weekData.ritardo_minutes;
+            if (weekData.shift_types['Turno normale'] < 0) {
+              weekData.shift_types['Turno normale'] = 0;
+            }
+          }
+          if (!weekData.shift_types['Assenza non retribuita']) {
+            weekData.shift_types['Assenza non retribuita'] = 0;
+          }
+          weekData.shift_types['Assenza non retribuita'] += weekData.ritardo_minutes;
+        }
+        
+        // Calculate total minutes
+        weekData.total_minutes = Object.values(weekData.shift_types).reduce((sum, mins) => sum + mins, 0);
+        
+        // Convert store names set to string
+        weekData.store_names_display = Array.from(weekData.store_names).sort().join(', ');
+      });
+    });
+
+    // Write CSV header
+    csv += 'Settimana,Dipendente,Locali,';
+    shiftTypesArray.forEach(type => {
+      csv += `"${type}",`;
+    });
+    csv += 'Totale Ore\n';
+
+    // Collect all rows for sorting
+    const allRows = [];
+    weeks.forEach(weekStartInPeriod => { // Iterate over all weeks in the determined period
+      const weekKey = format(weekStartInPeriod, 'yyyy-MM-dd');
+      payrollData.employees.forEach(employee => { // For each employee
+        const weekDataForEmployee = employeeWeeklyData[employee.employee_name]?.[weekKey];
+        if (weekDataForEmployee) {
+          allRows.push({
+            employeeName: employee.employee_name,
+            weekKey,
+            weekData: weekDataForEmployee
+          });
+        } else {
+          // If no shifts for this employee in this week, create an empty row
+          allRows.push({
+            employeeName: employee.employee_name,
+            weekKey,
+            weekData: {
+              weekStart: weekStartInPeriod,
+              weekEnd: endOfWeek(weekStartInPeriod, { weekStartsOn: 1 }),
+              store_names_display: employee.store_names_display, // Show all stores for employee if no specific shifts for the week
+              shift_types: Object.fromEntries(shiftTypesArray.map(type => [type, 0])), // All types with 0 minutes
+              total_minutes: 0
+            }
+          });
+        }
+      });
+    });
+
+    // Sort by week (most recent first), then by employee name
+    allRows.sort((a, b) => {
+      const weekCompare = new Date(b.weekKey) - new Date(a.weekKey);
+      if (weekCompare !== 0) return weekCompare;
+      return a.employeeName.localeCompare(b.employeeName);
+    });
+
+    // Write data rows
+    allRows.forEach(row => {
+      const { employeeName, weekData } = row;
+      const weekLabel = `${format(weekData.weekStart, 'dd/MM/yyyy')} - ${format(weekData.weekEnd, 'dd/MM/yyyy')}`;
+      
+      csv += `"${weekLabel}","${employeeName}","${weekData.store_names_display}",`;
+      
+      shiftTypesArray.forEach(type => {
+        const minutes = weekData.shift_types[type] || 0;
+        csv += `"${minutesToHours(minutes)}",`;
+      });
+      
+      csv += `"${minutesToHours(weekData.total_minutes)}"\n`;
+    });
+
+    // Summary row
+    csv += '\nRIEPILOGO TOTALE,,';
+    shiftTypesArray.forEach(type => {
+      const totalMinutes = allRows.reduce((sum, row) => sum + (row.weekData.shift_types[type] || 0), 0);
+      csv += `"${minutesToHours(totalMinutes)}",`;
+    });
+    const grandTotal = allRows.reduce((sum, row) => sum + row.weekData.total_minutes, 0);
+    csv += `"${minutesToHours(grandTotal)}"\n`;
+
+    // Create download
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    
+    const filename = `payroll_weekly_all_employees_${startDate || 'all'}_${endDate || 'all'}.csv`;
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto space-y-6">
@@ -770,6 +1007,14 @@ export default function Payroll() {
                 <span>Tutti i turni</span>
               )}
             </div>
+            <button
+              onClick={exportWeeklyReport}
+              className="neumorphic-flat px-4 py-2 rounded-lg flex items-center gap-2 text-[#6b6b6b] hover:text-[#8b7355] transition-colors"
+              title="Scarica report settimanale di tutti i dipendenti"
+            >
+              <CalendarRange className="w-4 h-4" />
+              Report Settimanale
+            </button>
             <button
               onClick={exportAllEmployeesDailyCSV}
               className="neumorphic-flat px-4 py-2 rounded-lg flex items-center gap-2 text-[#6b6b6b] hover:text-[#8b7355] transition-colors"
