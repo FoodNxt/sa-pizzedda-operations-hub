@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
                     $gte: dayStart.toISOString(),
                     $lte: dayEnd.toISOString()
                 }
-            }, '-modifiedDate', 10000); // Use maximum allowed limit
+            }, '-modifiedDate', 10000);
             
             console.log(`Found ${orderItems.length} order items for ${dateStr}`);
             
@@ -82,6 +82,7 @@ Deno.serve(async (req) => {
                     console.log(`      modifiedDate: ${item.modifiedDate}`);
                     console.log(`      store_id: ${item.store_id}`);
                     console.log(`      store_name: ${item.store_name}`);
+                    console.log(`      printedOrderItemChannel: ${item.printedOrderItemChannel}`);
                     console.log(`      finalPrice: €${item.finalPriceWithSessionDiscountsAndSurcharges}`);
                 });
             } else {
@@ -96,39 +97,64 @@ Deno.serve(async (req) => {
             }, { status: 500 });
         }
 
-        // ✅ Create maps for matching - PRIORITIZE NAME OVER ID
+        // ✅ Create maps for matching - BY ID, NAME, AND CHANNEL CODE
         const storeById = {};
         const storeByName = {};
+        const storeByChannelCode = {
+            'lct_21684': null, // Will be set to Ticinese store
+            'lct_21350': null  // Will be set to Lanino store
+        };
+        
         allStores.forEach(store => {
             storeById[store.id] = store;
-            // Normalize name for matching (lowercase + trim)
             storeByName[store.name.toLowerCase().trim()] = store;
+            
+            // Map channel codes to stores
+            if (store.name.toLowerCase() === 'ticinese') {
+                storeByChannelCode['lct_21684'] = store;
+            } else if (store.name.toLowerCase() === 'lanino') {
+                storeByChannelCode['lct_21350'] = store;
+            }
         });
 
         console.log('=== STORE MAPPING ===');
         console.log(`Created maps for ${allStores.length} stores`);
         console.log('Store names (normalized):', Object.keys(storeByName));
+        console.log('Channel code mapping:', {
+            'lct_21684': storeByChannelCode['lct_21684']?.name,
+            'lct_21350': storeByChannelCode['lct_21350']?.name
+        });
 
-        // ✅ Group order items by store - PRIORITIZE MATCHING BY NAME
+        // ✅ Group order items by store - PRIORITY: CHANNEL CODE > NAME > ID
         const ordersByStore = {};
         const unmatchedItems = [];
         
         console.log('=== MATCHING ORDER ITEMS TO STORES ===');
         orderItems.forEach(item => {
             let matchedStore = null;
+            let matchMethod = '';
             
-            // ✅ PRIORITY 1: Match by store_name (most reliable)
-            if (item.store_name) {
+            // ✅ PRIORITY 1: Match by printedOrderItemChannel (MOST RELIABLE!)
+            if (item.printedOrderItemChannel && storeByChannelCode[item.printedOrderItemChannel]) {
+                matchedStore = storeByChannelCode[item.printedOrderItemChannel];
+                matchMethod = 'CHANNEL';
+                console.log(`✓ Matched by CHANNEL: ${item.orderItemName} (channel="${item.printedOrderItemChannel}") -> ${matchedStore.name}`);
+            }
+            
+            // ✅ PRIORITY 2: Match by store_name
+            if (!matchedStore && item.store_name) {
                 const normalizedName = item.store_name.toLowerCase().trim();
                 matchedStore = storeByName[normalizedName];
                 if (matchedStore) {
+                    matchMethod = 'NAME';
                     console.log(`✓ Matched by NAME: ${item.orderItemName} (store_name="${item.store_name}") -> ${matchedStore.name}`);
                 }
             }
             
-            // ✅ PRIORITY 2: Only if name matching failed, try by store_id
+            // ✅ PRIORITY 3: Match by store_id (fallback)
             if (!matchedStore && item.store_id && storeById[item.store_id]) {
                 matchedStore = storeById[item.store_id];
+                matchMethod = 'ID';
                 console.log(`✓ Matched by ID (fallback): ${item.orderItemName} (store_id="${item.store_id}") -> ${matchedStore.name}`);
             }
             
@@ -140,7 +166,7 @@ Deno.serve(async (req) => {
                 ordersByStore[storeId].push(item);
             } else {
                 // Log unmatched items for debugging
-                console.warn(`✗ UNMATCHED: ${item.orderItemName} - store_id="${item.store_id}", store_name="${item.store_name}"`);
+                console.warn(`✗ UNMATCHED: ${item.orderItemName} - store_id="${item.store_id}", store_name="${item.store_name}", channel="${item.printedOrderItemChannel}"`);
                 unmatchedItems.push(item);
             }
         });
@@ -163,11 +189,11 @@ Deno.serve(async (req) => {
             try {
                 const storeId = store.id;
                 const storeName = store.name;
-                const items = ordersByStore[storeId] || []; // Empty array if no orders
+                const items = ordersByStore[storeId] || [];
 
                 console.log(`Processing ${storeName} (${storeId}): ${items.length} items`);
                 
-                // Calculate totals (will be 0 if no items)
+                // Calculate totals
                 let totalFinalPriceWithDiscounts = 0;
                 let totalFinalPrice = 0;
                 const uniqueOrders = new Set();
