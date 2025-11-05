@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
-import { format, parseISO, startOfDay, endOfDay } from 'npm:date-fns@3.0.0';
+import { format, parseISO, startOfDay, endOfDay, isWithinInterval } from 'npm:date-fns@3.0.0';
 
 Deno.serve(async (req) => {
     try {
@@ -39,19 +39,6 @@ Deno.serve(async (req) => {
         console.log(`Aggregating data for date: ${dateStr}`);
         console.log(`Day range: ${dayStart.toISOString()} to ${dayEnd.toISOString()}`);
 
-        // ✅ DEBUG: Fetch a sample of ALL OrderItems to inspect dates
-        let sampleItems = [];
-        try {
-            console.log('=== DEBUG: Fetching sample OrderItems to inspect dates ===');
-            sampleItems = await base44.asServiceRole.entities.OrderItem.list('-modifiedDate', 10);
-            console.log(`Sample of ${sampleItems.length} most recent OrderItems:`);
-            sampleItems.forEach((item, i) => {
-                console.log(`  [${i+1}] ${item.orderItemName} - modifiedDate: "${item.modifiedDate}" - store: ${item.store_name} (${item.store_id})`);
-            });
-        } catch (e) {
-            console.error('Error fetching sample items:', e);
-        }
-
         // ✅ Fetch ALL active stores first
         let allStores = [];
         try {
@@ -72,37 +59,25 @@ Deno.serve(async (req) => {
             }, { status: 500 });
         }
 
-        // Fetch order items for the specific day using server-side filter
-        let orderItems = [];
+        // ✅ Fetch ALL OrderItems (no server-side filtering) and filter client-side
+        let allOrderItems = [];
         try {
-            console.log('=== FETCHING ORDER ITEMS WITH FILTER ===');
-            console.log(`Filter: modifiedDate >= ${dayStart.toISOString()} AND <= ${dayEnd.toISOString()}`);
+            console.log('=== FETCHING ALL ORDER ITEMS ===');
+            console.log('Fetching all OrderItems (no server-side date filter)...');
             
-            orderItems = await base44.asServiceRole.entities.OrderItem.filter({
-                modifiedDate: {
-                    $gte: dayStart.toISOString(),
-                    $lte: dayEnd.toISOString()
-                }
-            }, '-modifiedDate', 10000);
+            allOrderItems = await base44.asServiceRole.entities.OrderItem.list('-modifiedDate', 100000);
             
-            console.log(`Found ${orderItems.length} order items for ${dateStr}`);
+            console.log(`Fetched ${allOrderItems.length} total OrderItems from database`);
             
-            // ✅ Log first few items to debug store matching
-            if (orderItems.length > 0) {
-                console.log('Sample filtered order items:');
-                orderItems.slice(0, 5).forEach((item, i) => {
+            // Log first few items to see date format
+            if (allOrderItems.length > 0) {
+                console.log('Sample of fetched items (first 5):');
+                allOrderItems.slice(0, 5).forEach((item, i) => {
                     console.log(`  [${i+1}] ${item.orderItemName}`);
-                    console.log(`      modifiedDate: ${item.modifiedDate}`);
-                    console.log(`      store_id: ${item.store_id}`);
+                    console.log(`      modifiedDate: ${item.modifiedDate} (type: ${typeof item.modifiedDate})`);
                     console.log(`      store_name: ${item.store_name}`);
                     console.log(`      finalPrice: €${item.finalPriceWithSessionDiscountsAndSurcharges}`);
                 });
-            } else {
-                console.warn('⚠️ NO ORDER ITEMS FOUND FOR THIS DATE!');
-                console.warn('This could mean:');
-                console.warn('1. No orders were placed on this date');
-                console.warn('2. The modifiedDate field format is different than expected');
-                console.warn('3. The server-side filter is not working correctly');
             }
         } catch (e) {
             console.error('Error fetching order items:', e);
@@ -112,6 +87,31 @@ Deno.serve(async (req) => {
                 stack: e.stack
             }, { status: 500 });
         }
+
+        // ✅ CLIENT-SIDE DATE FILTERING
+        console.log('=== FILTERING BY DATE (CLIENT-SIDE) ===');
+        const orderItems = allOrderItems.filter(item => {
+            if (!item.modifiedDate) {
+                console.warn(`Item ${item.orderItemName} has no modifiedDate, skipping`);
+                return false;
+            }
+            
+            try {
+                const itemDate = parseISO(item.modifiedDate);
+                const isInRange = isWithinInterval(itemDate, { start: dayStart, end: dayEnd });
+                
+                if (isInRange) {
+                    console.log(`✓ Item in range: ${item.orderItemName} (${item.modifiedDate}) - ${item.store_name}`);
+                }
+                
+                return isInRange;
+            } catch (e) {
+                console.warn(`Could not parse modifiedDate for item ${item.orderItemName}: ${item.modifiedDate}`, e);
+                return false;
+            }
+        });
+            
+        console.log(`Found ${orderItems.length} order items for ${dateStr} after client-side filtering`);
 
         // ✅ Create maps for matching - PRIORITIZE NAME OVER ID
         const storeById = {};
@@ -164,6 +164,10 @@ Deno.serve(async (req) => {
 
         console.log(`=== MATCHING SUMMARY ===`);
         console.log(`Matched items for ${Object.keys(ordersByStore).length} stores`);
+        Object.entries(ordersByStore).forEach(([storeId, items]) => {
+            const store = allStores.find(s => s.id === storeId);
+            console.log(`  - ${store?.name || storeId}: ${items.length} items`);
+        });
         if (unmatchedItems.length > 0) {
             console.warn(`⚠️ ${unmatchedItems.length} items could not be matched to any store`);
         }
@@ -344,7 +348,8 @@ Deno.serve(async (req) => {
         console.log(`=== AGGREGATION COMPLETE ===`);
         console.log(`Date: ${dateStr}`);
         console.log(`Stores processed: ${allStores.length}`);
-        console.log(`Total items: ${orderItems.length}`);
+        console.log(`Total items fetched: ${allOrderItems.length}`);
+        console.log(`Items for target date: ${orderItems.length}`);
         console.log(`Unmatched items: ${unmatchedItems.length}`);
         
         return Response.json({
@@ -352,12 +357,9 @@ Deno.serve(async (req) => {
             message: `Aggregated data for ${dateStr}`,
             date: dateStr,
             stores_processed: allStores.length,
-            total_items_processed: orderItems.length,
+            total_items_fetched: allOrderItems.length,
+            items_for_date: orderItems.length,
             unmatched_items_count: unmatchedItems.length,
-            debug_info: {
-                sample_items_count: sampleItems.length,
-                sample_items_dates: sampleItems.map(i => i.modifiedDate).slice(0, 5)
-            },
             results
         }, { status: 200 });
 
