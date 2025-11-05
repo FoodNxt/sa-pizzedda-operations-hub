@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Zap, Copy, CheckCircle, AlertCircle, Store, FileSpreadsheet, Key, TrendingUp } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
@@ -55,24 +56,48 @@ export default function IPraticoSetup() {
         order_date: '2025-01-15',
         total_orders: 120,
         total_revenue: 2450.50,
+        
+        // Source App - Revenue
         sourceApp_glovo: 850.00,
         sourceApp_deliveroo: 620.00,
         sourceApp_justeat: 430.00,
         sourceApp_onlineordering: 0,
         sourceApp_ordertable: 0,
-        sourceApp_tabesto: 350.50,
-        sourceApp_instore: 200.00,
+        sourceApp_tabesto: 550.50,
+        
+        // Source App - Orders
+        sourceApp_glovo_orders: 30,
+        sourceApp_deliveroo_orders: 25,
+        sourceApp_justeat_orders: 18,
+        sourceApp_onlineordering_orders: 0,
+        sourceApp_ordertable_orders: 0,
+        sourceApp_tabesto_orders: 47,
+        
+        // Source Type - Revenue
         sourceType_delivery: 1900.00,
         sourceType_takeaway: 350.50,
-        sourceType_takeawayOnSite: 0,
-        sourceType_instore: 200.00,
+        sourceType_takeawayOnSite: 200.00,
+        
+        // Source Type - Orders
+        sourceType_delivery_orders: 73,
+        sourceType_takeaway_orders: 32,
+        sourceType_takeawayOnSite_orders: 15,
+        
+        // Money Type - Revenue
         moneyType_bancomat: 500.00,
         moneyType_cash: 300.00,
         moneyType_online: 1400.00,
         moneyType_satispay: 150.50,
         moneyType_credit_card: 100.00,
-        moneyType_fidelity_points: 0,
-        moneyType_instore: 0
+        moneyType_fidelity_card_points: 0,
+        
+        // Money Type - Orders
+        moneyType_bancomat_orders: 20,
+        moneyType_cash_orders: 15,
+        moneyType_online_orders: 73,
+        moneyType_satispay_orders: 8,
+        moneyType_credit_card_orders: 4,
+        moneyType_fidelity_card_points_orders: 0
       });
 
       if (response.data.error) {
@@ -372,7 +397,7 @@ export default function IPraticoSetup() {
             </div>
           </div>
 
-          {/* Step 5 - Field Mapping */}
+          {/* Step 5 - Field Mapping - UPDATED */}
           <div className="neumorphic-flat p-5 rounded-xl border-2 border-red-500">
             <div className="flex items-start gap-4">
               <div className="neumorphic-pressed w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
@@ -400,36 +425,72 @@ export default function IPraticoSetup() {
                   </div>
                 </div>
 
-                <div className="neumorphic-pressed p-4 rounded-lg bg-blue-50">
-                  <p className="text-sm font-bold text-blue-800 mb-3">📊 Campi Dati da Mappare alle Colonne del Google Sheet:</p>
+                <div className="neumorphic-pressed p-4 rounded-lg bg-blue-50 mb-4">
+                  <p className="text-sm font-bold text-blue-800 mb-3">📊 Campi Principali:</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
                     <div>• order_date</div>
                     <div>• total_orders</div>
                     <div>• total_revenue</div>
+                  </div>
+                </div>
+
+                <div className="neumorphic-pressed p-4 rounded-lg bg-purple-50 mb-4">
+                  <p className="text-sm font-bold text-purple-800 mb-3">📱 Source App (Revenue + Orders):</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
                     <div>• sourceApp_glovo</div>
+                    <div>• sourceApp_glovo_orders</div>
                     <div>• sourceApp_deliveroo</div>
+                    <div>• sourceApp_deliveroo_orders</div>
                     <div>• sourceApp_justeat</div>
+                    <div>• sourceApp_justeat_orders</div>
                     <div>• sourceApp_onlineordering</div>
+                    <div>• sourceApp_onlineordering_orders</div>
                     <div>• sourceApp_ordertable</div>
+                    <div>• sourceApp_ordertable_orders</div>
                     <div>• sourceApp_tabesto</div>
-                    <div>• sourceApp_instore</div>
+                    <div>• sourceApp_tabesto_orders</div>
+                  </div>
+                </div>
+
+                <div className="neumorphic-pressed p-4 rounded-lg bg-green-50 mb-4">
+                  <p className="text-sm font-bold text-green-800 mb-3">🚚 Source Type (Revenue + Orders):</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
                     <div>• sourceType_delivery</div>
+                    <div>• sourceType_delivery_orders</div>
                     <div>• sourceType_takeaway</div>
+                    <div>• sourceType_takeaway_orders</div>
                     <div>• sourceType_takeawayOnSite</div>
-                    <div>• sourceType_instore</div>
+                    <div>• sourceType_takeawayOnSite_orders</div>
+                  </div>
+                </div>
+
+                <div className="neumorphic-pressed p-4 rounded-lg bg-orange-50">
+                  <p className="text-sm font-bold text-orange-800 mb-3">💳 Money Type (Revenue + Orders):</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
                     <div>• moneyType_bancomat</div>
+                    <div>• moneyType_bancomat_orders</div>
                     <div>• moneyType_cash</div>
+                    <div>• moneyType_cash_orders</div>
                     <div>• moneyType_online</div>
+                    <div>• moneyType_online_orders</div>
                     <div>• moneyType_satispay</div>
+                    <div>• moneyType_satispay_orders</div>
                     <div>• moneyType_credit_card</div>
-                    <div>• moneyType_fidelity_points</div>
-                    <div>• moneyType_instore</div>
+                    <div>• moneyType_credit_card_orders</div>
+                    <div>• moneyType_fidelity_card_points</div>
+                    <div>• moneyType_fidelity_card_points_orders</div>
                   </div>
                 </div>
 
                 <div className="neumorphic-flat p-3 rounded-lg mt-4 bg-green-50">
                   <p className="text-sm text-green-800">
-                    💡 <strong>Suggerimento:</strong> Se una colonna non esiste nel tuo Google Sheet, lascia il valore vuoto o metti 0
+                    💡 <strong>Importante:</strong> Per ogni metrica ora hai sia il <strong>valore in €</strong> che il <strong>numero di ordini</strong>
+                  </p>
+                </div>
+
+                <div className="neumorphic-flat p-3 rounded-lg mt-4 bg-yellow-50">
+                  <p className="text-sm text-yellow-800">
+                    ⚠️ Se una colonna non esiste nel tuo Google Sheet, lascia il valore vuoto o metti 0
                   </p>
                 </div>
               </div>
@@ -458,7 +519,7 @@ export default function IPraticoSetup() {
         </div>
       </NeumorphicCard>
 
-      {/* Example Google Sheet Structure */}
+      {/* Example Google Sheet Structure - UPDATED */}
       <NeumorphicCard className="p-6">
         <div className="flex items-center gap-3 mb-4">
           <FileSpreadsheet className="w-5 h-5 text-[#8b7355]" />
@@ -477,7 +538,7 @@ export default function IPraticoSetup() {
                   <th className="text-left p-2 text-[#8b7355] font-bold">total_orders</th>
                   <th className="text-left p-2 text-[#8b7355] font-bold">total_revenue</th>
                   <th className="text-left p-2 text-[#8b7355] font-bold">sourceApp_glovo</th>
-                  <th className="text-left p-2 text-[#8b7355] font-bold">sourceApp_deliveroo</th>
+                  <th className="text-left p-2 text-[#8b7355] font-bold">sourceApp_glovo_orders</th>
                   <th className="text-left p-2 text-[#8b7355] font-bold">...</th>
                 </tr>
               </thead>
@@ -487,7 +548,7 @@ export default function IPraticoSetup() {
                   <td className="p-2 text-[#6b6b6b]">120</td>
                   <td className="p-2 text-[#6b6b6b]">2450.50</td>
                   <td className="p-2 text-[#6b6b6b]">850.00</td>
-                  <td className="p-2 text-[#6b6b6b]">620.00</td>
+                  <td className="p-2 text-[#6b6b6b]">30</td>
                   <td className="p-2 text-[#6b6b6b]">...</td>
                 </tr>
               </tbody>
@@ -504,6 +565,9 @@ export default function IPraticoSetup() {
           </p>
           <p className="text-sm text-[#6b6b6b]">
             📊 <strong>Ogni Tab:</strong> Rappresenta un locale diverso
+          </p>
+          <p className="text-sm text-[#6b6b6b]">
+            💰 <strong>Revenue + Orders:</strong> Per ogni categoria hai sia il valore € che il numero ordini
           </p>
           <p className="text-sm text-[#6b6b6b]">
             🔄 <strong>Aggiornamenti:</strong> Se importi lo stesso order_date per lo stesso locale, il record verrà <strong>aggiornato</strong> (non duplicato)

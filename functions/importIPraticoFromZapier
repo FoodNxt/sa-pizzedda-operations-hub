@@ -106,24 +106,48 @@ Deno.serve(async (req) => {
             order_date: parseDate(body.order_date),
             total_orders: parseNumber(body.total_orders),
             total_revenue: parseNumber(body.total_revenue),
+            
+            // Source App - Revenue
             sourceApp_glovo: parseNumber(body.sourceApp_glovo),
             sourceApp_deliveroo: parseNumber(body.sourceApp_deliveroo),
             sourceApp_justeat: parseNumber(body.sourceApp_justeat),
             sourceApp_onlineordering: parseNumber(body.sourceApp_onlineordering),
             sourceApp_ordertable: parseNumber(body.sourceApp_ordertable),
             sourceApp_tabesto: parseNumber(body.sourceApp_tabesto),
-            sourceApp_instore: parseNumber(body.sourceApp_instore),
+            
+            // Source App - Orders
+            sourceApp_glovo_orders: parseNumber(body.sourceApp_glovo_orders),
+            sourceApp_deliveroo_orders: parseNumber(body.sourceApp_deliveroo_orders),
+            sourceApp_justeat_orders: parseNumber(body.sourceApp_justeat_orders),
+            sourceApp_onlineordering_orders: parseNumber(body.sourceApp_onlineordering_orders),
+            sourceApp_ordertable_orders: parseNumber(body.sourceApp_ordertable_orders),
+            sourceApp_tabesto_orders: parseNumber(body.sourceApp_tabesto_orders),
+            
+            // Source Type - Revenue
             sourceType_delivery: parseNumber(body.sourceType_delivery),
             sourceType_takeaway: parseNumber(body.sourceType_takeaway),
             sourceType_takeawayOnSite: parseNumber(body.sourceType_takeawayOnSite),
-            sourceType_instore: parseNumber(body.sourceType_instore),
+            
+            // Source Type - Orders
+            sourceType_delivery_orders: parseNumber(body.sourceType_delivery_orders),
+            sourceType_takeaway_orders: parseNumber(body.sourceType_takeaway_orders),
+            sourceType_takeawayOnSite_orders: parseNumber(body.sourceType_takeawayOnSite_orders),
+            
+            // Money Type - Revenue
             moneyType_bancomat: parseNumber(body.moneyType_bancomat),
             moneyType_cash: parseNumber(body.moneyType_cash),
             moneyType_online: parseNumber(body.moneyType_online),
             moneyType_satispay: parseNumber(body.moneyType_satispay),
             moneyType_credit_card: parseNumber(body.moneyType_credit_card),
-            moneyType_fidelity_points: parseNumber(body.moneyType_fidelity_points),
-            moneyType_instore: parseNumber(body.moneyType_instore)
+            moneyType_fidelity_card_points: parseNumber(body.moneyType_fidelity_card_points),
+            
+            // Money Type - Orders
+            moneyType_bancomat_orders: parseNumber(body.moneyType_bancomat_orders),
+            moneyType_cash_orders: parseNumber(body.moneyType_cash_orders),
+            moneyType_online_orders: parseNumber(body.moneyType_online_orders),
+            moneyType_satispay_orders: parseNumber(body.moneyType_satispay_orders),
+            moneyType_credit_card_orders: parseNumber(body.moneyType_credit_card_orders),
+            moneyType_fidelity_card_points_orders: parseNumber(body.moneyType_fidelity_card_points_orders)
         };
 
         let record;
