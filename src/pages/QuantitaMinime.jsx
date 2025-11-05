@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -28,6 +29,7 @@ export default function QuantitaMinime() {
   const [formData, setFormData] = useState({
     nome_prodotto: '',
     unita_misura: 'pezzi',
+    peso_unitario: '', // Added peso_unitario
     quantita_minima: '',
     prezzo_unitario: '',
     fornitore: '',
@@ -72,10 +74,16 @@ export default function QuantitaMinime() {
     },
   });
 
+  // Unità di misura che richiedono peso/dimensione unitaria
+  const requiresWeight = (unitaMisura) => {
+    return ['sacchi', 'confezioni', 'barattoli', 'bottiglie', 'casse'].includes(unitaMisura);
+  };
+
   const resetForm = () => {
     setFormData({
       nome_prodotto: '',
       unita_misura: 'pezzi',
+      peso_unitario: '', // Reset peso_unitario
       quantita_minima: '',
       prezzo_unitario: '',
       fornitore: '',
@@ -95,6 +103,7 @@ export default function QuantitaMinime() {
     setFormData({
       nome_prodotto: product.nome_prodotto,
       unita_misura: product.unita_misura,
+      peso_unitario: product.peso_unitario || '', // Set peso_unitario from product
       quantita_minima: product.quantita_minima,
       prezzo_unitario: product.prezzo_unitario || '',
       fornitore: product.fornitore || '',
@@ -114,6 +123,7 @@ export default function QuantitaMinime() {
       ...formData,
       quantita_minima: parseFloat(formData.quantita_minima),
       prezzo_unitario: formData.prezzo_unitario ? parseFloat(formData.prezzo_unitario) : null,
+      peso_unitario: formData.peso_unitario || null, // Include peso_unitario, or null if empty
       store_specific_min_quantities: storeQuantities,
       assigned_stores: formData.assigned_stores.length > 0 ? formData.assigned_stores : []
     };
@@ -296,14 +306,20 @@ export default function QuantitaMinime() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> {/* Adjusted grid for unit and peso */}
                   <div>
                     <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
                       Unità di Misura <span className="text-red-600">*</span>
                     </label>
                     <select
                       value={formData.unita_misura}
-                      onChange={(e) => setFormData({ ...formData, unita_misura: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, unita_misura: e.target.value });
+                        // Clear peso_unitario if not required anymore
+                        if (!requiresWeight(e.target.value)) {
+                          setFormData(prev => ({ ...prev, peso_unitario: '' }));
+                        }
+                      }}
                       className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                       required
                     >
@@ -321,6 +337,34 @@ export default function QuantitaMinime() {
                     </select>
                   </div>
 
+                  {/* Peso Unitario - Condizionale */}
+                  {requiresWeight(formData.unita_misura) && (
+                    <div>
+                      <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                        Peso/Dimensione Unità <span className="text-red-600">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.peso_unitario}
+                        onChange={(e) => setFormData({ ...formData, peso_unitario: e.target.value })}
+                        placeholder="es. 25kg, 500g, 1L"
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                        required={requiresWeight(formData.unita_misura)}
+                      />
+                      <p className="text-xs text-[#9b9b9b] mt-1">
+                        Specifica il peso/dimensione di 1 {
+                          formData.unita_misura === 'sacchi' ? 'sacco' :
+                          formData.unita_misura === 'confezioni' ? 'confezione' :
+                          formData.unita_misura === 'barattoli' ? 'barattolo' :
+                          formData.unita_misura === 'bottiglie' ? 'bottiglia' :
+                          'cassa'
+                        }
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> {/* Separated Qty Min and Price */}
                   <div>
                     <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
                       Qtà Minima Generale <span className="text-red-600">*</span>
@@ -587,7 +631,14 @@ export default function QuantitaMinime() {
                             )}
                           </div>
                         </td>
-                        <td className="p-3 text-[#6b6b6b]">{product.unita_misura}</td>
+                        <td className="p-3 text-[#6b6b6b]">
+                          {product.unita_misura}
+                          {product.peso_unitario && (
+                            <span className="block text-xs text-[#9b9b9b]">
+                              ({product.peso_unitario})
+                            </span>
+                          )}
+                        </td>
                         <td className="p-3 text-right">
                           <span className="font-bold text-[#8b7355]">
                             {product.quantita_minima}
