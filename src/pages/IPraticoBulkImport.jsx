@@ -102,13 +102,19 @@ export default function IPraticoBulkImport() {
   };
 
   const parseCsvToRecords = (csvText, storeName) => {
-    const lines = csvText.trim().split('\n');
+    // Handle both Windows (\r\n) and Unix (\n) line endings, and filter out empty lines
+    const lines = csvText.trim().split(/\r?\n/).filter(line => line.trim());
+    
     if (lines.length < 2) {
       throw new Error('CSV deve contenere almeno una riga di intestazione e una di dati');
     }
 
-    // Parse header
+    console.log(`📊 CSV ha ${lines.length} righe totali (inclusa intestazione)`);
+
+    // Parse header - trim each value
     const headers = lines[0].split(/[,;]/).map(h => h.trim());
+    
+    console.log(`📋 Colonne trovate: ${headers.join(', ')}`);
     
     // Find required columns
     const requiredFields = ['order_date', 'total_orders', 'total_revenue'];
@@ -122,12 +128,16 @@ export default function IPraticoBulkImport() {
     const records = [];
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i].trim();
-      if (!line) continue; // Skip empty lines
+      if (!line) { // This check might be redundant if filter(line => line.trim()) is used, but kept for robustness as per outline
+        console.log(`⏭️ Riga ${i + 1} vuota, saltata`);
+        continue;
+      }
 
       const values = line.split(/[,;]/).map(v => v.trim());
       
       if (values.length !== headers.length) {
-        console.warn(`Riga ${i + 1} ha un numero diverso di colonne rispetto all'intestazione, saltata`);
+        console.warn(`⚠️ Riga ${i + 1} ha ${values.length} colonne invece di ${headers.length}, saltata`);
+        console.warn(`   Contenuto: ${line.substring(0, 100)}...`);
         continue;
       }
 
@@ -139,7 +149,7 @@ export default function IPraticoBulkImport() {
         // Convert numeric fields
         if (header.includes('orders') || header.includes('revenue') || 
             header.startsWith('sourceApp_') || header.startsWith('sourceType_') || 
-            header.startsWith('moneyType_')) {
+            header.startsWith('moneyType_')) { // Preserving startsWith for precision
           record[header] = value && value !== '' ? parseFloat(value) : 0;
         } else {
           record[header] = value;
@@ -147,8 +157,10 @@ export default function IPraticoBulkImport() {
       });
 
       records.push(record);
+      console.log(`✅ Riga ${i + 1} parsata con successo: ${record.order_date}, Revenue: ${record.total_revenue}`);
     }
 
+    console.log(`🎉 Totale record parsati: ${records.length}`);
     return records;
   };
 
