@@ -13,40 +13,10 @@ export default function SummaryAI() {
   const [aiSummary, setAiSummary] = useState(null);
   const [generatingAI, setGeneratingAI] = useState(false);
 
-  // Smart data fetching: use filter when dates selected, list otherwise
-  const { data: orderItems = [], isLoading: ordersLoading } = useQuery({
-    queryKey: ['orderItems', startDate, endDate],
-    queryFn: async () => {
-      // If custom date range, use server-side filtering
-      if (startDate && endDate) {
-        try {
-          const start = parseISO(startDate + 'T00:00:00');
-          const end = parseISO(endDate + 'T23:59:59');
-          
-          if (!isValid(start) || !isValid(end)) {
-            console.warn('Invalid start or end date for orderItems query, falling back to list.');
-            return base44.entities.OrderItem.list('-modifiedDate', 10000);
-          }
-          
-          // Add buffer to include comparison period
-          const daysDiff = differenceInDays(end, start) + 1;
-          const bufferStart = subDays(start, daysDiff + 5); // Extra buffer for comparison
-          
-          return base44.entities.OrderItem.filter({
-            modifiedDate: {
-              $gte: bufferStart.toISOString(),
-              $lte: end.toISOString()
-            }
-          }, '-modifiedDate', 100000);
-        } catch (e) {
-          console.error('Date parsing error in orderItems queryFn:', e);
-          return base44.entities.OrderItem.list('-modifiedDate', 10000);
-        }
-      }
-      
-      // Otherwise, use list with reasonable limit
-      return base44.entities.OrderItem.list('-modifiedDate', 10000);
-    },
+  // Fetch iPratico data instead of OrderItems
+  const { data: iPraticoData = [], isLoading: dataLoading } = useQuery({
+    queryKey: ['iPratico'],
+    queryFn: () => base44.entities.iPratico.list('-order_date', 1000), // Max 1000 items, client-side filtering
   });
 
   const { data: reviews = [] } = useQuery({
@@ -90,7 +60,7 @@ export default function SummaryAI() {
     return Array.from(uniqueShiftsMap.values());
   };
 
-  // Calculate metrics for a specific period
+  // Calculate metrics for a specific period using iPratico data
   const calculatePeriodMetrics = (start, end) => {
     if (!isValid(start) || !isValid(end)) {
       console.warn('Invalid start or end date passed to calculatePeriodMetrics.');
@@ -106,40 +76,42 @@ export default function SummaryAI() {
       };
     }
 
-    // Filter orders
-    const periodOrders = orderItems.filter(item => {
-      if (!item.modifiedDate) return false;
+    // Filter iPratico data by date
+    const periodData = iPraticoData.filter(item => {
+      if (!item.order_date) return false;
       try {
-        const itemDate = parseISO(item.modifiedDate);
+        const itemDate = parseISO(item.order_date);
         if (!isValid(itemDate)) return false;
         return isWithinInterval(itemDate, { start, end });
       } catch (e) {
-        console.warn('Error parsing item modifiedDate:', item.modifiedDate, e);
+        console.warn('Error parsing item order_date:', item.order_date, e);
         return false;
       }
     });
 
-    const totalRevenue = periodOrders.reduce((sum, item) => 
-      sum + (item.finalPriceWithSessionDiscountsAndSurcharges || 0), 0
+    const totalRevenue = periodData.reduce((sum, item) => 
+      sum + (item.total_revenue || 0), 0
     );
 
-    const uniqueOrders = [...new Set(periodOrders.map(item => item.order).filter(Boolean))];
-    const totalOrders = uniqueOrders.length;
+    const totalOrders = periodData.reduce((sum, item) => 
+      sum + (item.total_orders || 0), 0
+    );
+
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-    // Revenue by channel
+    // Revenue by source type (channel)
     const revenueByChannel = {};
-    periodOrders.forEach(item => {
-      let channelName;
-      if (item.sourceApp && item.sourceApp.toLowerCase() === 'tabesto') {
-        channelName = 'Tabesto';
-      } else {
-        channelName = item.saleTypeName || 'Unknown';
+    periodData.forEach(item => {
+      // Assuming item contains sourceType_delivery, sourceType_takeaway, sourceType_store directly
+      if (item.sourceType_delivery > 0) {
+        revenueByChannel['Delivery'] = (revenueByChannel['Delivery'] || 0) + item.sourceType_delivery;
       }
-      if (!revenueByChannel[channelName]) {
-        revenueByChannel[channelName] = 0;
+      if (item.sourceType_takeaway > 0) {
+        revenueByChannel['Takeaway'] = (revenueByChannel['Takeaway'] || 0) + item.sourceType_takeaway;
       }
-      revenueByChannel[channelName] += item.finalPriceWithSessionDiscountsAndSurcharges || 0;
+      if (item.sourceType_store > 0) {
+        revenueByChannel['Store'] = (revenueByChannel['Store'] || 0) + item.sourceType_store;
+      }
     });
 
     const channelPercentages = Object.entries(revenueByChannel).map(([name, revenue]) => ({
@@ -220,7 +192,7 @@ export default function SummaryAI() {
       console.error('Error calculating current metrics:', e);
       return null;
     }
-  }, [startDate, endDate, orderItems, reviews, shifts, cleaningInspections]);
+  }, [startDate, endDate, iPraticoData, reviews, shifts, cleaningInspections]);
 
   // Previous period metrics (for comparison)
   const previousMetrics = useMemo(() => {
@@ -245,7 +217,7 @@ export default function SummaryAI() {
       console.error('Error calculating previous metrics:', e);
       return null;
     }
-  }, [startDate, endDate, orderItems, reviews, shifts, cleaningInspections]);
+  }, [startDate, endDate, iPraticoData, reviews, shifts, cleaningInspections]);
 
   // Employee alerts
   const employeeAlerts = useMemo(() => {
@@ -410,14 +382,14 @@ Usa emojis per rendere il testo più leggibile. Sii specifico e actionable.`;
   };
 
   const getTrendIcon = (current, previous) => {
-    if (!previous || previous === 0) return null;
+    if (previous === 0) return null; // Avoid division by zero
     const change = ((current - previous) / previous) * 100;
     if (Math.abs(change) < 1) return null;
     return change > 0 ? '📈' : '📉';
   };
 
   const getTrendColor = (current, previous, inverse = false) => {
-    if (!previous || previous === 0) return 'text-[#6b6b6b]';
+    if (previous === 0) return 'text-[#6b6b6b]'; // Avoid division by zero
     const change = ((current - previous) / previous) * 100;
     if (Math.abs(change) < 1) return 'text-[#6b6b6b]';
     
@@ -429,7 +401,7 @@ Usa emojis per rendere il testo più leggibile. Sii specifico e actionable.`;
   };
 
   const getTrendValue = (current, previous) => {
-    if (!previous || previous === 0) return null;
+    if (previous === 0) return null; // Avoid division by zero
     const change = ((current - previous) / previous) * 100;
     return change.toFixed(1);
   };
@@ -473,9 +445,9 @@ Usa emojis per rendere il testo più leggibile. Sii specifico e actionable.`;
           <div className="flex items-end">
             <button
               onClick={generateAISummary}
-              disabled={!startDate || !endDate || generatingAI}
+              disabled={!startDate || !endDate || generatingAI || dataLoading}
               className={`w-full neumorphic-flat px-6 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 ${
-                startDate && endDate && !generatingAI
+                startDate && endDate && !generatingAI && !dataLoading
                   ? 'text-[#8b7355] hover:shadow-lg'
                   : 'text-[#9b9b9b] opacity-50 cursor-not-allowed'
               }`}
