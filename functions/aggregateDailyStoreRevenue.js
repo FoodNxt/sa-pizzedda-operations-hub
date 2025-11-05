@@ -113,18 +113,20 @@ Deno.serve(async (req) => {
             }, { status: 500 });
         }
 
-        // ✅ Create a map of store ID -> store for faster lookup
+        // ✅ Create maps for matching - PRIORITIZE NAME OVER ID
         const storeById = {};
         const storeByName = {};
         allStores.forEach(store => {
             storeById[store.id] = store;
-            storeByName[store.name.toLowerCase()] = store;
+            // Normalize name for matching (lowercase + trim)
+            storeByName[store.name.toLowerCase().trim()] = store;
         });
 
         console.log('=== STORE MAPPING ===');
         console.log(`Created maps for ${allStores.length} stores`);
+        console.log('Store names (normalized):', Object.keys(storeByName));
 
-        // ✅ Group order items by store - improved matching logic
+        // ✅ Group order items by store - PRIORITIZE MATCHING BY NAME
         const ordersByStore = {};
         const unmatchedItems = [];
         
@@ -132,18 +134,19 @@ Deno.serve(async (req) => {
         orderItems.forEach(item => {
             let matchedStore = null;
             
-            // Try to match by store_id first
-            if (item.store_id && storeById[item.store_id]) {
-                matchedStore = storeById[item.store_id];
-                console.log(`✓ Matched by ID: ${item.orderItemName} -> ${matchedStore.name}`);
-            } 
-            // If no match by ID, try by name
-            else if (item.store_name) {
+            // ✅ PRIORITY 1: Match by store_name (most reliable)
+            if (item.store_name) {
                 const normalizedName = item.store_name.toLowerCase().trim();
                 matchedStore = storeByName[normalizedName];
                 if (matchedStore) {
-                    console.log(`✓ Matched by NAME: ${item.orderItemName} -> ${matchedStore.name}`);
+                    console.log(`✓ Matched by NAME: ${item.orderItemName} (store_name="${item.store_name}") -> ${matchedStore.name}`);
                 }
+            }
+            
+            // ✅ PRIORITY 2: Only if name matching failed, try by store_id
+            if (!matchedStore && item.store_id && storeById[item.store_id]) {
+                matchedStore = storeById[item.store_id];
+                console.log(`✓ Matched by ID (fallback): ${item.orderItemName} (store_id="${item.store_id}") -> ${matchedStore.name}`);
             }
             
             if (matchedStore) {
