@@ -21,9 +21,10 @@ import {
   AlertTriangle,
   Package,
   Upload,
-  Camera, // Added Camera icon
-  ClipboardCheck // Added ClipboardCheck icon
+  Camera,
+  ClipboardCheck
 } from "lucide-react";
+import CompleteProfileModal from "./components/auth/CompleteProfileModal";
 
 const navigationStructure = [
   {
@@ -145,24 +146,22 @@ const navigationStructure = [
     title: "Pulizie",
     icon: Zap,
     type: "section",
-    requiredUserType: ["admin", "manager"], // Updated requiredUserType
+    requiredUserType: ["admin", "manager"],
     items: [
       {
         title: "Storico Pulizie",
         url: createPageUrl("Pulizie"),
         icon: Zap,
-        // requiredUserType removed as it now inherits from section
       },
       {
         title: "Foto Locale",
         url: createPageUrl("FotoLocale"),
-        icon: Camera, // Icon changed to Camera
-        // requiredUserType removed as it now inherits from section
+        icon: Camera,
       }
     ]
   },
   {
-    title: "View Dipendente", // New section added
+    title: "View Dipendente",
     icon: Users,
     type: "section",
     requiredUserType: ["dipendente"],
@@ -223,6 +222,7 @@ export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
     "Dashboard": true,
     "Reviews": true,
@@ -230,7 +230,7 @@ export default function Layout({ children, currentPageName }) {
     "Inventory": true,
     "People": true,
     "Pulizie": true,
-    "View Dipendente": true, // Added new section to initial expanded state
+    "View Dipendente": true,
     "Zapier Guide": true
   });
 
@@ -239,12 +239,35 @@ export default function Layout({ children, currentPageName }) {
       try {
         const user = await base44.auth.me();
         setCurrentUser(user);
+        
+        // Check if user needs to complete profile
+        // Show modal if:
+        // 1. User doesn't have a full_name, OR
+        // 2. User's full_name is the same as email (default from auth), OR
+        // 3. User's full_name is too short (less than 3 characters), OR
+        // 4. User's full_name does not contain a space (suggests only a first name)
+        const needsProfile = !user.full_name || 
+                            user.full_name === user.email || 
+                            user.full_name.trim().length < 3 ||
+                            !user.full_name.includes(' '); 
+        
+        setShowProfileModal(needsProfile);
       } catch (error) {
         console.error('Error fetching user:', error);
       }
     };
     fetchUser();
   }, []);
+
+  const handleProfileComplete = () => {
+    setShowProfileModal(false);
+    // Refresh user data
+    base44.auth.me().then(user => {
+      setCurrentUser(user);
+    }).catch(error => {
+      console.error('Error refreshing user after profile complete:', error);
+    });
+  };
 
   const toggleSection = (sectionTitle) => {
     setExpandedSections(prev => ({
@@ -298,6 +321,14 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <div className="min-h-screen bg-[#e0e5ec]">
+      {/* Complete Profile Modal */}
+      {showProfileModal && currentUser && (
+        <CompleteProfileModal 
+          user={currentUser} 
+          onComplete={handleProfileComplete}
+        />
+      )}
+
       <style>{`
         .neumorphic-card {
           background: #e0e5ec;
