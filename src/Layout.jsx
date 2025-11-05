@@ -18,7 +18,8 @@ import {
   UserCheck,
   BarChart3,
   AlertTriangle,
-  Package // Added Package icon for Inventory
+  Package, // Added Package icon for Inventory
+  Upload // Added Upload icon for Bulk Import iPratico
 } from "lucide-react";
 
 const navigationStructure = [
@@ -178,6 +179,11 @@ const navigationStructure = [
         title: "Zapier iPratico",
         url: createPageUrl("IPraticoSetup"),
         icon: Zap,
+      },
+      {
+        title: "Bulk Import iPratico",
+        url: createPageUrl("IPraticoBulkImport"),
+        icon: Upload,
       }
     ]
   }

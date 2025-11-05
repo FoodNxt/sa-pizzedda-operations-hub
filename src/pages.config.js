@@ -21,6 +21,7 @@ import FotoLocale from './pages/FotoLocale';
 import SummaryAI from './pages/SummaryAI';
 import DailyRevenueAggregation from './pages/DailyRevenueAggregation';
 import IPraticoSetup from './pages/IPraticoSetup';
+import IPraticoBulkImport from './pages/IPraticoBulkImport';
 import Layout from './Layout.jsx';
 
 
@@ -48,6 +49,7 @@ export const PAGES = {
     "SummaryAI": SummaryAI,
     "DailyRevenueAggregation": DailyRevenueAggregation,
     "IPraticoSetup": IPraticoSetup,
+    "IPraticoBulkImport": IPraticoBulkImport,
 }
 
 export const pagesConfig = {
