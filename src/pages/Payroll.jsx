@@ -4,13 +4,15 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Clock, Calendar, Users, Filter, Download, DollarSign, X, ChevronRight } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
-import { parseISO, isWithinInterval, format } from 'date-fns';
+import { parseISO, isWithinInterval, format, startOfWeek, endOfWeek, addDays } from 'date-fns';
+import { it } from 'date-fns/locale';
 
 export default function Payroll() {
   const [selectedStore, setSelectedStore] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [viewMode, setViewMode] = useState('daily'); // 'daily' or 'weekly'
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -56,7 +58,7 @@ export default function Payroll() {
     return Array.from(uniqueShiftsMap.values());
   };
 
-  // Process payroll data
+  // Process payroll data - ACCORPATO PER DIPENDENTE (non per dipendente+locale)
   const payrollData = useMemo(() => {
     // Filter by store
     let filteredShifts = shifts;
@@ -87,7 +89,7 @@ export default function Payroll() {
     // Deduplicate
     filteredShifts = deduplicateShifts(filteredShifts);
 
-    // Group by employee
+    // Group by employee ONLY (not by employee + store)
     const employeeData = {};
 
     filteredShifts.forEach(shift => {
@@ -96,21 +98,25 @@ export default function Payroll() {
       if (!employeeData[empName]) {
         employeeData[empName] = {
           employee_name: empName,
-          store_name: shift.store_name,
-          store_id: shift.store_id,
+          store_names: new Set(), // Collect all stores
           shift_types: {},
           total_minutes: 0,
           total_ritardo_minutes: 0
         };
       }
 
-      // ✅ USE scheduled_minutes for duration
+      // Add store name to set
+      if (shift.store_name) {
+        employeeData[empName].store_names.add(shift.store_name);
+      }
+
+      // USE scheduled_minutes for duration
       let workedMinutes = shift.scheduled_minutes || 0;
 
       // Get shift type (null becomes "Turno normale")
       let shiftType = shift.shift_type || 'Turno normale';
       
-      // ✅ Merge "Ritardo" into "Assenza non retribuita"
+      // Merge "Ritardo" into "Assenza non retribuita"
       if (shiftType === 'Ritardo') {
         shiftType = 'Assenza non retribuita';
       }
@@ -134,6 +140,9 @@ export default function Payroll() {
     Object.keys(employeeData).forEach(empName => {
       const emp = employeeData[empName];
       
+      // Convert store names set to string
+      emp.store_names_display = Array.from(emp.store_names).sort().join(', ');
+      
       if (emp.total_ritardo_minutes > 0) {
         // Subtract ritardi from "Turno normale"
         if (emp.shift_types['Turno normale']) {
@@ -143,7 +152,7 @@ export default function Payroll() {
           }
         }
         
-        // ✅ Add ritardi to "Assenza non retribuita" instead of separate "Ritardo" column
+        // Add ritardi to "Assenza non retribuita"
         if (!emp.shift_types['Assenza non retribuita']) {
           emp.shift_types['Assenza non retribuita'] = 0;
         }
@@ -171,9 +180,9 @@ export default function Payroll() {
     };
   }, [shifts, selectedStore, startDate, endDate]);
 
-  // Calculate daily breakdown for selected employee
+  // Calculate daily/weekly breakdown for selected employee
   const employeeDailyBreakdown = useMemo(() => {
-    if (!selectedEmployee) return { days: [], shiftTypes: [] };
+    if (!selectedEmployee) return { days: [], shiftTypes: [], weeks: [] };
 
     // Filter shifts for selected employee
     let employeeShifts = shifts.filter(s => s.employee_name === selectedEmployee.employee_name);
@@ -205,7 +214,7 @@ export default function Payroll() {
     // Deduplicate
     employeeShifts = deduplicateShifts(employeeShifts);
 
-    // Group by date
+    // Group by date for DAILY view
     const dailyData = {};
     const allShiftTypes = new Set();
 
@@ -215,17 +224,16 @@ export default function Payroll() {
         dailyData[date] = {
           date,
           shift_types: {},
-          total_minutes: 0,
           ritardo_minutes: 0
         };
       }
 
-      // ✅ USE scheduled_minutes for duration
+      // USE scheduled_minutes for duration
       let workedMinutes = shift.scheduled_minutes || 0;
 
       let shiftType = shift.shift_type || 'Turno normale';
       
-      // ✅ Merge "Ritardo" into "Assenza non retribuita"
+      // Merge "Ritardo" into "Assenza non retribuita"
       if (shiftType === 'Ritardo') {
         shiftType = 'Assenza non retribuita';
       }
@@ -237,7 +245,6 @@ export default function Payroll() {
       }
 
       dailyData[date].shift_types[shiftType] += workedMinutes;
-      dailyData[date].total_minutes += workedMinutes;
 
       if (shift.minuti_di_ritardo && shift.minuti_di_ritardo > 0) {
         dailyData[date].ritardo_minutes += shift.minuti_di_ritardo;
@@ -254,7 +261,6 @@ export default function Payroll() {
             day.shift_types['Turno normale'] = 0;
           }
         }
-        // ✅ Add to "Assenza non retribuita" instead of separate "Ritardo"
         if (!day.shift_types['Assenza non retribuita']) {
           day.shift_types['Assenza non retribuita'] = 0;
         }
@@ -263,13 +269,84 @@ export default function Payroll() {
       }
     });
 
-    // Convert to array and sort by date
+    // Convert to array and sort by date (most recent first)
     const dailyArray = Object.values(dailyData).sort((a, b) => 
       new Date(b.date) - new Date(a.date)
     );
 
+    // Calculate total_minutes for each day (sum of ALL shift_types)
+    dailyArray.forEach(day => {
+      day.total_minutes = Object.values(day.shift_types).reduce((sum, mins) => sum + mins, 0);
+    });
+
+    // Group by WEEK for WEEKLY view (Monday to Sunday)
+    const weeklyData = {};
+    
+    employeeShifts.forEach(shift => {
+      const date = parseISO(shift.shift_date);
+      // Get start of week (Monday)
+      const weekStart = startOfWeek(date, { weekStartsOn: 1 });
+      const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
+      const weekKey = format(weekStart, 'yyyy-MM-dd');
+      
+      if (!weeklyData[weekKey]) {
+        weeklyData[weekKey] = {
+          weekStart,
+          weekEnd,
+          weekKey,
+          shift_types: {},
+          ritardo_minutes: 0
+        };
+      }
+
+      let workedMinutes = shift.scheduled_minutes || 0;
+      let shiftType = shift.shift_type || 'Turno normale';
+      
+      if (shiftType === 'Ritardo') {
+        shiftType = 'Assenza non retribuita';
+      }
+      
+      if (!weeklyData[weekKey].shift_types[shiftType]) {
+        weeklyData[weekKey].shift_types[shiftType] = 0;
+      }
+
+      weeklyData[weekKey].shift_types[shiftType] += workedMinutes;
+
+      if (shift.minuti_di_ritardo && shift.minuti_di_ritardo > 0) {
+        weeklyData[weekKey].ritardo_minutes += shift.minuti_di_ritardo;
+      }
+    });
+
+    // Process ritardi for each week
+    Object.keys(weeklyData).forEach(weekKey => {
+      const week = weeklyData[weekKey];
+      if (week.ritardo_minutes > 0) {
+        if (week.shift_types['Turno normale']) {
+          week.shift_types['Turno normale'] -= week.ritardo_minutes;
+          if (week.shift_types['Turno normale'] < 0) {
+            week.shift_types['Turno normale'] = 0;
+          }
+        }
+        if (!week.shift_types['Assenza non retribuita']) {
+          week.shift_types['Assenza non retribuita'] = 0;
+        }
+        week.shift_types['Assenza non retribuita'] += week.ritardo_minutes;
+      }
+    });
+
+    // Convert to array and sort by week (most recent first)
+    const weeklyArray = Object.values(weeklyData).sort((a, b) => 
+      b.weekStart - a.weekStart
+    );
+
+    // Calculate total_minutes for each week
+    weeklyArray.forEach(week => {
+      week.total_minutes = Object.values(week.shift_types).reduce((sum, mins) => sum + mins, 0);
+    });
+
     return {
       days: dailyArray,
+      weeks: weeklyArray,
       shiftTypes: Array.from(allShiftTypes).sort()
     };
   }, [selectedEmployee, shifts, selectedStore, startDate, endDate]);
@@ -297,7 +374,7 @@ export default function Payroll() {
 
     // Add data rows
     payrollData.employees.forEach(employee => {
-      csv += `"${employee.employee_name}","${employee.store_name}",`;
+      csv += `"${employee.employee_name}","${employee.store_names_display}",`;
       
       payrollData.shiftTypes.forEach(type => {
         const minutes = employee.shift_types[type] || 0;
@@ -335,26 +412,46 @@ export default function Payroll() {
     if (!selectedEmployee) return;
 
     let csv = `Dipendente: ${selectedEmployee.employee_name}\n`;
-    csv += `Periodo: ${startDate || 'Tutti i turni'} - ${endDate || 'Tutti i turni'}\n\n`;
-    csv += 'Data,';
+    csv += `Periodo: ${startDate || 'Tutti i turni'} - ${endDate || 'Tutti i turni'}\n`;
+    csv += `Visualizzazione: ${viewMode === 'daily' ? 'Giornaliera' : 'Settimanale'}\n\n`;
     
-    // Add shift type columns
-    employeeDailyBreakdown.shiftTypes.forEach(type => {
-      csv += `"${type}",`;
-    });
-    csv += 'Totale Ore\n';
-
-    // Add data rows
-    employeeDailyBreakdown.days.forEach(day => {
-      csv += `${format(parseISO(day.date), 'dd/MM/yyyy')},`;
-      
+    if (viewMode === 'daily') {
+      csv += 'Data,';
       employeeDailyBreakdown.shiftTypes.forEach(type => {
-        const minutes = day.shift_types[type] || 0;
-        csv += `"${minutesToHours(minutes)}",`;
+        csv += `"${type}",`;
       });
-      
-      csv += `"${minutesToHours(day.total_minutes)}"\n`;
-    });
+      csv += 'Totale Ore\n';
+
+      employeeDailyBreakdown.days.forEach(day => {
+        csv += `${format(parseISO(day.date), 'dd/MM/yyyy')},`;
+        
+        employeeDailyBreakdown.shiftTypes.forEach(type => {
+          const minutes = day.shift_types[type] || 0;
+          csv += `"${minutesToHours(minutes)}",`;
+        });
+        
+        csv += `"${minutesToHours(day.total_minutes)}"\n`;
+      });
+    } else {
+      // Weekly view
+      csv += 'Settimana,';
+      employeeDailyBreakdown.shiftTypes.forEach(type => {
+        csv += `"${type}",`;
+      });
+      csv += 'Totale Ore\n';
+
+      employeeDailyBreakdown.weeks.forEach(week => {
+        const weekLabel = `Settimana ${format(week.weekStart, 'dd/MM', { locale: it })} - ${format(week.weekEnd, 'dd/MM/yyyy', { locale: it })}`;
+        csv += `"${weekLabel}",`;
+        
+        employeeDailyBreakdown.shiftTypes.forEach(type => {
+          const minutes = week.shift_types[type] || 0;
+          csv += `"${minutesToHours(minutes)}",`;
+        });
+        
+        csv += `"${minutesToHours(week.total_minutes)}"\n`;
+      });
+    }
 
     // Create download
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -362,7 +459,7 @@ export default function Payroll() {
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
     
-    const filename = `payroll_${selectedEmployee.employee_name.replace(/\s+/g, '_')}_daily_${startDate || 'all'}_${endDate || 'all'}.csv`;
+    const filename = `payroll_${selectedEmployee.employee_name.replace(/\s+/g, '_')}_${viewMode}_${startDate || 'all'}_${endDate || 'all'}.csv`;
     link.setAttribute('download', filename);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
@@ -526,7 +623,7 @@ export default function Payroll() {
             <thead>
               <tr className="border-b-2 border-[#8b7355]">
                 <th className="text-left p-3 text-[#9b9b9b] font-medium sticky left-0 bg-[#e0e5ec]">Dipendente</th>
-                <th className="text-left p-3 text-[#9b9b9b] font-medium">Locale</th>
+                <th className="text-left p-3 text-[#9b9b9b] font-medium">Locali</th>
                 {payrollData.shiftTypes.map(type => (
                   <th 
                     key={type} 
@@ -561,7 +658,9 @@ export default function Payroll() {
                           <span className="text-[#6b6b6b] font-medium">{employee.employee_name}</span>
                         </div>
                       </td>
-                      <td className="p-3 text-[#6b6b6b]">{employee.store_name}</td>
+                      <td className="p-3 text-[#6b6b6b] text-sm">
+                        {employee.store_names_display}
+                      </td>
                       {payrollData.shiftTypes.map(type => (
                         <td 
                           key={type} 
@@ -645,14 +744,14 @@ export default function Payroll() {
         </div>
       </NeumorphicCard>
 
-      {/* Employee Daily Breakdown Modal */}
+      {/* Employee Daily/Weekly Breakdown Modal */}
       {selectedEmployee && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <NeumorphicCard className="max-w-6xl w-full max-h-[90vh] overflow-y-auto p-6">
             <div className="flex items-start justify-between mb-6">
               <div>
                 <h2 className="text-2xl font-bold text-[#6b6b6b] mb-1">
-                  {selectedEmployee.employee_name} - Dettaglio Giornaliero
+                  {selectedEmployee.employee_name} - Dettaglio {viewMode === 'daily' ? 'Giornaliero' : 'Settimanale'}
                 </h2>
                 <p className="text-[#9b9b9b]">
                   {startDate && endDate ? (
@@ -669,6 +768,30 @@ export default function Payroll() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                {/* View Mode Toggle */}
+                <div className="neumorphic-pressed rounded-lg p-1 flex gap-1">
+                  <button
+                    onClick={() => setViewMode('daily')}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                      viewMode === 'daily' 
+                        ? 'neumorphic-flat text-[#6b6b6b]' 
+                        : 'text-[#9b9b9b] hover:text-[#6b6b6b]'
+                    }`}
+                  >
+                    Giornaliero
+                  </button>
+                  <button
+                    onClick={() => setViewMode('weekly')}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                      viewMode === 'weekly' 
+                        ? 'neumorphic-flat text-[#6b6b6b]' 
+                        : 'text-[#9b9b9b] hover:text-[#6b6b6b]'
+                    }`}
+                  >
+                    Settimanale
+                  </button>
+                </div>
+                
                 <button
                   onClick={exportEmployeeDailyCSV}
                   className="neumorphic-flat px-4 py-2 rounded-lg flex items-center gap-2 text-[#6b6b6b] hover:text-[#8b7355] transition-colors"
@@ -688,9 +811,11 @@ export default function Payroll() {
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               <div className="neumorphic-pressed p-4 rounded-xl text-center">
-                <p className="text-sm text-[#9b9b9b] mb-1">Giorni Lavorati</p>
+                <p className="text-sm text-[#9b9b9b] mb-1">
+                  {viewMode === 'daily' ? 'Giorni Lavorati' : 'Settimane Lavorate'}
+                </p>
                 <p className="text-2xl font-bold text-[#6b6b6b]">
-                  {employeeDailyBreakdown.days.length}
+                  {viewMode === 'daily' ? employeeDailyBreakdown.days.length : employeeDailyBreakdown.weeks.length}
                 </p>
               </div>
               <div className="neumorphic-pressed p-4 rounded-xl text-center">
@@ -713,12 +838,14 @@ export default function Payroll() {
               </div>
             </div>
 
-            {/* Daily Breakdown Table */}
+            {/* Daily/Weekly Breakdown Table */}
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b-2 border-[#8b7355]">
-                    <th className="text-left p-3 text-[#9b9b9b] font-medium sticky left-0 bg-[#e0e5ec]">Data</th>
+                    <th className="text-left p-3 text-[#9b9b9b] font-medium sticky left-0 bg-[#e0e5ec]">
+                      {viewMode === 'daily' ? 'Data' : 'Settimana'}
+                    </th>
                     {employeeDailyBreakdown.shiftTypes.map(type => (
                       <th 
                         key={type} 
@@ -733,44 +860,91 @@ export default function Payroll() {
                   </tr>
                 </thead>
                 <tbody>
-                  {employeeDailyBreakdown.days.length > 0 ? (
-                    employeeDailyBreakdown.days.map((day, index) => (
-                      <tr 
-                        key={index} 
-                        className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors"
-                      >
-                        <td className="p-3 sticky left-0 bg-[#e0e5ec] font-medium text-[#6b6b6b]">
-                          {format(parseISO(day.date), 'dd/MM/yyyy')}
-                        </td>
-                        {employeeDailyBreakdown.shiftTypes.map(type => (
-                          <td 
-                            key={type} 
-                            className={`p-3 text-center ${
-                              type === 'Assenza non retribuita' ? 'text-red-600 font-bold' : 'text-[#6b6b6b]'
-                            }`}
-                          >
-                            {day.shift_types[type] ? (
-                              <div className="font-bold">
-                                {minutesToHours(day.shift_types[type])}
-                              </div>
-                            ) : (
-                              <span className="text-[#9b9b9b]">-</span>
-                            )}
+                  {viewMode === 'daily' ? (
+                    employeeDailyBreakdown.days.length > 0 ? (
+                      employeeDailyBreakdown.days.map((day, index) => (
+                        <tr 
+                          key={index} 
+                          className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors"
+                        >
+                          <td className="p-3 sticky left-0 bg-[#e0e5ec] font-medium text-[#6b6b6b]">
+                            {format(parseISO(day.date), 'dd/MM/yyyy')}
                           </td>
-                        ))}
-                        <td className="p-3 text-right">
-                          <div className="font-bold text-[#6b6b6b]">
-                            {minutesToHours(day.total_minutes)}
-                          </div>
+                          {employeeDailyBreakdown.shiftTypes.map(type => (
+                            <td 
+                              key={type} 
+                              className={`p-3 text-center ${
+                                type === 'Assenza non retribuita' ? 'text-red-600 font-bold' : 'text-[#6b6b6b]'
+                              }`}
+                            >
+                              {day.shift_types[type] ? (
+                                <div className="font-bold">
+                                  {minutesToHours(day.shift_types[type])}
+                                </div>
+                              ) : (
+                                <span className="text-[#9b9b9b]">-</span>
+                              )}
+                            </td>
+                          ))}
+                          <td className="p-3 text-right">
+                            <div className="font-bold text-[#6b6b6b]">
+                              {minutesToHours(day.total_minutes)}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={employeeDailyBreakdown.shiftTypes.length + 2} className="p-8 text-center text-[#9b9b9b]">
+                          Nessun turno trovato per questo dipendente nel periodo selezionato
                         </td>
                       </tr>
-                    ))
+                    )
                   ) : (
-                    <tr>
-                      <td colSpan={employeeDailyBreakdown.shiftTypes.length + 2} className="p-8 text-center text-[#9b9b9b]">
-                        Nessun turno trovato per questo dipendente nel periodo selezionato
-                      </td>
-                    </tr>
+                    // Weekly view
+                    employeeDailyBreakdown.weeks.length > 0 ? (
+                      employeeDailyBreakdown.weeks.map((week, index) => (
+                        <tr 
+                          key={index} 
+                          className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors"
+                        >
+                          <td className="p-3 sticky left-0 bg-[#e0e5ec] font-medium text-[#6b6b6b]">
+                            <div>
+                              <div className="text-sm">
+                                Settimana {format(week.weekStart, 'dd/MM', { locale: it })} - {format(week.weekEnd, 'dd/MM/yyyy', { locale: it })}
+                              </div>
+                            </div>
+                          </td>
+                          {employeeDailyBreakdown.shiftTypes.map(type => (
+                            <td 
+                              key={type} 
+                              className={`p-3 text-center ${
+                                type === 'Assenza non retribuita' ? 'text-red-600 font-bold' : 'text-[#6b6b6b]'
+                              }`}
+                            >
+                              {week.shift_types[type] ? (
+                                <div className="font-bold">
+                                  {minutesToHours(week.shift_types[type])}
+                                </div>
+                              ) : (
+                                <span className="text-[#9b9b9b]">-</span>
+                              )}
+                            </td>
+                          ))}
+                          <td className="p-3 text-right">
+                            <div className="font-bold text-[#6b6b6b]">
+                              {minutesToHours(week.total_minutes)}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={employeeDailyBreakdown.shiftTypes.length + 2} className="p-8 text-center text-[#9b9b9b]">
+                          Nessun turno trovato per questo dipendente nel periodo selezionato
+                        </td>
+                      </tr>
+                    )
                   )}
                 </tbody>
               </table>
