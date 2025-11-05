@@ -117,6 +117,23 @@ const navigationStructure = [
     ]
   },
   {
+    title: "Pulizie",
+    icon: Zap,
+    type: "section",
+    items: [
+      {
+        title: "Storico Pulizie",
+        url: createPageUrl("Pulizie"),
+        icon: Zap,
+      },
+      {
+        title: "Foto Locale",
+        url: createPageUrl("FotoLocale"),
+        icon: Zap,
+      }
+    ]
+  },
+  {
     title: "Zapier Guide",
     icon: Zap,
     type: "section",
@@ -153,6 +170,7 @@ export default function Layout({ children, currentPageName }) {
     "Financials": true,
     "Inventory": true, // Added new Inventory section to be expanded by default
     "People": true,
+    "Pulizie": true, // Added new Pulizie section to be expanded by default
     "Zapier Guide": true
   });
 

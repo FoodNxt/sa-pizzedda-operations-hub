@@ -16,6 +16,8 @@ import InventorySetup from './pages/InventorySetup';
 import Inventory from './pages/Inventory';
 import RealTime from './pages/RealTime';
 import Payroll from './pages/Payroll';
+import Pulizie from './pages/Pulizie';
+import FotoLocale from './pages/FotoLocale';
 import Layout from './Layout.jsx';
 
 
@@ -38,6 +40,8 @@ export const PAGES = {
     "Inventory": Inventory,
     "RealTime": RealTime,
     "Payroll": Payroll,
+    "Pulizie": Pulizie,
+    "FotoLocale": FotoLocale,
 }
 
 export const pagesConfig = {
