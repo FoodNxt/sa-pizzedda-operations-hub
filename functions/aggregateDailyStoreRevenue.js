@@ -38,8 +38,22 @@ Deno.serve(async (req) => {
         console.log(`Aggregating data for date: ${dateStr}`);
         console.log(`Day range: ${dayStart.toISOString()} to ${dayEnd.toISOString()}`);
 
-        // ✅ FIXED: Use server-side filter ALWAYS - much more scalable
-        // This will only fetch orders for the specific day, not all 10k records
+        // ✅ Fetch ALL active stores first
+        let allStores = [];
+        try {
+            console.log('Fetching all stores...');
+            allStores = await base44.asServiceRole.entities.Store.list();
+            console.log(`Found ${allStores.length} total stores`);
+        } catch (e) {
+            console.error('Error fetching stores:', e);
+            return Response.json({ 
+                error: 'Error fetching stores',
+                details: e.message,
+                stack: e.stack
+            }, { status: 500 });
+        }
+
+        // Fetch order items for the specific day using server-side filter
         let orderItems = [];
         try {
             console.log('Fetching order items with server-side date filter...');
@@ -59,46 +73,30 @@ Deno.serve(async (req) => {
             }, { status: 500 });
         }
 
-        if (!orderItems || orderItems.length === 0) {
-            return Response.json({
-                success: true,
-                message: `No order items found for ${dateStr}`,
-                date: dateStr,
-                stores_processed: 0,
-                total_items_processed: 0,
-                results: []
-            }, { status: 200 });
-        }
-
-        // Group by store
-        const storeGroups = {};
-        
+        // Group order items by store
+        const ordersByStore = {};
         orderItems.forEach(item => {
             const storeId = item.store_id || 'unknown';
-            const storeName = item.store_name || 'Unknown';
-            
-            if (!storeGroups[storeId]) {
-                storeGroups[storeId] = {
-                    store_id: storeId,
-                    store_name: storeName,
-                    items: []
-                };
+            if (!ordersByStore[storeId]) {
+                ordersByStore[storeId] = [];
             }
-            
-            storeGroups[storeId].items.push(item);
+            ordersByStore[storeId].push(item);
         });
 
-        console.log(`Grouped items into ${Object.keys(storeGroups).length} stores`);
+        console.log(`Grouped items into ${Object.keys(ordersByStore).length} stores with orders`);
 
         const results = [];
 
-        // Process each store
-        for (const [storeId, storeData] of Object.entries(storeGroups)) {
+        // ✅ Process EVERY store, even those without orders
+        for (const store of allStores) {
             try {
-                console.log(`Processing store: ${storeData.store_name} (${storeId})`);
-                const items = storeData.items;
+                const storeId = store.id;
+                const storeName = store.name;
+                const items = ordersByStore[storeId] || []; // Empty array if no orders
+
+                console.log(`Processing store: ${storeName} (${storeId}) - ${items.length} items`);
                 
-                // Calculate totals
+                // Calculate totals (will be 0 if no items)
                 let totalFinalPriceWithDiscounts = 0;
                 let totalFinalPrice = 0;
                 const uniqueOrders = new Set();
@@ -165,7 +163,7 @@ Deno.serve(async (req) => {
                     breakdownBySaleTypeName[saleType].finalPrice += finalPrice;
                 });
                 
-                console.log(`Store ${storeData.store_name}: Revenue=${totalFinalPriceWithDiscounts}, Orders=${uniqueOrders.size}`);
+                console.log(`Store ${storeName}: Revenue=${totalFinalPriceWithDiscounts}, Orders=${uniqueOrders.size}`);
                 
                 // Round all numbers to 2 decimals
                 const roundBreakdown = (breakdown) => {
@@ -180,7 +178,7 @@ Deno.serve(async (req) => {
                 };
                 
                 const aggregatedData = {
-                    store_name: storeData.store_name,
+                    store_name: storeName,
                     store_id: storeId,
                     date: dateStr,
                     total_finalPriceWithSessionDiscountsAndSurcharges: parseFloat(totalFinalPriceWithDiscounts.toFixed(2)),
@@ -215,18 +213,18 @@ Deno.serve(async (req) => {
                             existing[0].id,
                             aggregatedData
                         );
-                        console.log(`Successfully updated record for ${storeData.store_name}`);
+                        console.log(`Successfully updated record for ${storeName}`);
                         results.push({
                             action: 'updated',
-                            store_name: storeData.store_name,
+                            store_name: storeName,
                             date: dateStr,
                             ...aggregatedData
                         });
                     } catch (e) {
-                        console.error(`Error updating record for ${storeData.store_name}:`, e);
+                        console.error(`Error updating record for ${storeName}:`, e);
                         results.push({
                             action: 'error',
-                            store_name: storeData.store_name,
+                            store_name: storeName,
                             error: e.message,
                             stack: e.stack
                         });
@@ -234,30 +232,30 @@ Deno.serve(async (req) => {
                 } else {
                     // Create new record
                     try {
-                        console.log(`Creating new record for ${storeData.store_name}`);
+                        console.log(`Creating new record for ${storeName}`);
                         await base44.asServiceRole.entities.DailyStoreRevenue.create(aggregatedData);
-                        console.log(`Successfully created record for ${storeData.store_name}`);
+                        console.log(`Successfully created record for ${storeName}`);
                         results.push({
                             action: 'created',
-                            store_name: storeData.store_name,
+                            store_name: storeName,
                             date: dateStr,
                             ...aggregatedData
                         });
                     } catch (e) {
-                        console.error(`Error creating record for ${storeData.store_name}:`, e);
+                        console.error(`Error creating record for ${storeName}:`, e);
                         results.push({
                             action: 'error',
-                            store_name: storeData.store_name,
+                            store_name: storeName,
                             error: e.message,
                             stack: e.stack
                         });
                     }
                 }
             } catch (storeError) {
-                console.error(`Error processing store ${storeId}:`, storeError);
+                console.error(`Error processing store ${store.id}:`, storeError);
                 results.push({
                     action: 'error',
-                    store_name: storeData.store_name,
+                    store_name: store.name,
                     error: storeError.message,
                     stack: storeError.stack
                 });
@@ -270,7 +268,7 @@ Deno.serve(async (req) => {
             success: true,
             message: `Aggregated data for ${dateStr}`,
             date: dateStr,
-            stores_processed: Object.keys(storeGroups).length,
+            stores_processed: allStores.length,
             total_items_processed: orderItems.length,
             results
         }, { status: 200 });
