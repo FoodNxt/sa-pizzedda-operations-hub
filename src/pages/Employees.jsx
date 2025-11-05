@@ -1160,7 +1160,8 @@ export default function Employees() {
                   </div>
                 </div>
               </div>
-            </NeumorphicCard>
+            </div>
+          </NeumorphicCard>
         </div>
       )}
     </div>
