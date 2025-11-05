@@ -22,7 +22,7 @@ export default function ChannelComparison() {
 
   const { data: orderItems = [] } = useQuery({
     queryKey: ['orderItems'],
-    queryFn: () => base44.entities.OrderItem.list('-modifiedDate', 10000),
+    queryFn: () => base44.entities.OrderItem.list('-modifiedDate', 100000), // Changed from 10000 to 100000
   });
 
   // Get unique sales channels and delivery apps

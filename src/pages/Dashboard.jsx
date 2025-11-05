@@ -30,7 +30,7 @@ export default function Dashboard() {
 
   const { data: orderItems = [] } = useQuery({
     queryKey: ['orderItems'],
-    queryFn: () => base44.entities.OrderItem.list('-modifiedDate', 10000),
+    queryFn: () => base44.entities.OrderItem.list('-modifiedDate', 100000),
   });
 
   // Process data with date filters
