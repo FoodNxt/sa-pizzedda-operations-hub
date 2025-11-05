@@ -42,7 +42,8 @@ Deno.serve(async (req) => {
         let allOrderItems = [];
         try {
             console.log('Fetching all order items...');
-            allOrderItems = await base44.asServiceRole.entities.OrderItem.list('-modifiedDate', 50000);
+            // ✅ FIXED: Maximum limit is 10000, not 50000
+            allOrderItems = await base44.asServiceRole.entities.OrderItem.list('-modifiedDate', 10000);
             console.log(`Fetched ${allOrderItems.length} total order items`);
         } catch (e) {
             console.error('Error fetching order items:', e);
