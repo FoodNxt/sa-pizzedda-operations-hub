@@ -34,6 +34,7 @@ Deno.serve(async (req) => {
 
         console.log(`=== AGGREGATION START ===`);
         console.log(`Aggregating data for date: ${dateStr}`);
+        console.log(`Day range: ${dayStart.toISOString()} to ${nextDayStart.toISOString()}`);
 
         // Fetch stores
         let allStores = [];
@@ -52,20 +53,18 @@ Deno.serve(async (req) => {
             }, { status: 500 });
         }
 
-        // ✅ USE SIMPLE DATE STRING FILTER (not datetime)
+        // ✅ FIXED: Use maximum allowed limit of 10000
         console.log('=== FETCHING ORDER ITEMS ===');
-        console.log(`Filtering by modifiedDate starting with: ${dateStr}`);
+        console.log(`Using filter with date range and limit 10000`);
         
         let orderItems = [];
         try {
-            // Try filtering with a simple date string prefix match approach
-            // Get items where modifiedDate is >= start of day AND < start of next day
             const result = await base44.asServiceRole.entities.OrderItem.filter({
                 modifiedDate: {
                     $gte: dayStart.toISOString(),
                     $lt: nextDayStart.toISOString()
                 }
-            }, null, 50000); // Try getting up to 50k for the day
+            }, '-modifiedDate', 10000); // ✅ FIXED: Changed from 50000 to 10000
             
             if (Array.isArray(result)) {
                 orderItems = result;
@@ -78,16 +77,19 @@ Deno.serve(async (req) => {
             
             console.log(`Found ${orderItems.length} order items`);
             
-            // If we got 0 items, log a warning
             if (orderItems.length === 0) {
                 console.warn(`⚠️ NO ORDER ITEMS FOUND FOR ${dateStr}`);
-                console.warn('This could mean:');
-                console.warn('1. No orders were placed on this date');
-                console.warn('2. The date filter is not working correctly');
-                console.warn('3. The modifiedDate field format is incompatible with the filter');
+                console.warn('Possible reasons:');
+                console.warn('1. No orders on this date');
+                console.warn('2. Date filter format issue');
+                console.warn('3. modifiedDate field format mismatch');
+            } else if (orderItems.length === 10000) {
+                console.warn(`⚠️ REACHED MAXIMUM LIMIT OF 10000 ITEMS!`);
+                console.warn('There might be more items for this date that were not fetched');
+                console.warn('Consider implementing pagination or splitting by time ranges');
             }
             
-            // Log first few items for debugging
+            // Log first few items
             if (orderItems.length > 0) {
                 console.log('Sample items:');
                 orderItems.slice(0, 3).forEach((item, i) => {
@@ -95,6 +97,7 @@ Deno.serve(async (req) => {
                     console.log(`      modifiedDate: ${item.modifiedDate}`);
                     console.log(`      store: ${item.store_name}`);
                     console.log(`      channel: ${item.printedOrderItemChannel}`);
+                    console.log(`      price: €${item.finalPriceWithSessionDiscountsAndSurcharges}`);
                 });
             }
         } catch (e) {
@@ -170,6 +173,9 @@ Deno.serve(async (req) => {
             const revenue = items.reduce((sum, item) => sum + (item.finalPriceWithSessionDiscountsAndSurcharges || 0), 0);
             console.log(`  - ${store?.name}: ${items.length} items, €${revenue.toFixed(2)}`);
         });
+        if (unmatchedItems.length > 0) {
+            console.warn(`⚠️ ${unmatchedItems.length} unmatched items`);
+        }
 
         const results = [];
 
@@ -315,6 +321,7 @@ Deno.serve(async (req) => {
             stores_processed: allStores.length,
             total_items: orderItems.length,
             unmatched_items: unmatchedItems.length,
+            reached_limit: orderItems.length === 10000,
             results
         }, { status: 200 });
 
