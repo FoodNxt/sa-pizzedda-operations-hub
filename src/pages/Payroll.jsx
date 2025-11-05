@@ -2,7 +2,7 @@
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Clock, Calendar, Users, Filter, Download, DollarSign, X, ChevronRight, FileText, CalendarRange } from 'lucide-react';
+import { Clock, Calendar, Users, Filter, Download, DollarSign, X, ChevronRight, FileText, CalendarRange, AlertCircle } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { parseISO, isWithinInterval, format, startOfWeek, endOfWeek, addDays, eachWeekOfInterval } from 'date-fns';
 import { it } from 'date-fns/locale';
@@ -13,6 +13,8 @@ export default function Payroll() {
   const [endDate, setEndDate] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [viewMode, setViewMode] = useState('daily');
+  const [showUnpaidAbsenceModal, setShowUnpaidAbsenceModal] = useState(false);
+  const [unpaidAbsenceDetails, setUnpaidAbsenceDetails] = useState(null);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -411,6 +413,83 @@ export default function Payroll() {
       shiftTypes: Array.from(allShiftTypes).sort()
     };
   }, [selectedEmployee, shifts, selectedStore, startDate, endDate]);
+
+  // ✅ NEW: Get unpaid absence shifts for an employee
+  const getUnpaidAbsenceShifts = (employeeName) => {
+    let employeeShifts = shifts.filter(s => {
+      if (s.employee_name !== employeeName) return false;
+
+      // Apply store filter
+      if (selectedStore !== 'all' && s.store_id !== selectedStore) return false;
+
+      // Apply date filter
+      if (startDate || endDate) {
+        if (!s.shift_date) return false;
+        const shiftDate = parseISO(s.shift_date);
+        const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
+        const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
+
+        if (start && end) {
+          return isWithinInterval(shiftDate, { start, end });
+        } else if (start) {
+          return shiftDate >= start;
+        } else if (end) {
+          return shiftDate <= end;
+        }
+      }
+
+      return true;
+    });
+
+    const unpaidShifts = [];
+
+    employeeShifts.forEach(shift => {
+      const originalType = shift.shift_type || 'Turno normale';
+      
+      // Case 1: Shifts with original type "Malattia (No Certificato)"
+      if (originalType === 'Malattia (No Certificato)') {
+        unpaidShifts.push({
+          ...shift,
+          unpaid_reason: 'Malattia senza certificato',
+          unpaid_minutes: shift.scheduled_minutes || 0
+        });
+      }
+      
+      // Case 2: Shifts with original type "Ritardo"
+      if (originalType === 'Ritardo') {
+        unpaidShifts.push({
+          ...shift,
+          unpaid_reason: 'Turno di tipo Ritardo',
+          unpaid_minutes: shift.scheduled_minutes || 0
+        });
+      }
+      
+      // Case 3: Shifts with delay minutes (ritardo field)
+      // This applies to any shift, including those already listed above if the data source
+      // provides separate 'ritardo' minutes on top of a 'Ritardo' shift type,
+      // reflecting how the payrollData aggregate total is computed.
+      if (shift.minuti_di_ritardo && shift.minuti_di_ritardo > 0) {
+        unpaidShifts.push({
+          ...shift,
+          unpaid_reason: 'Ritardo',
+          unpaid_minutes: shift.minuti_di_ritardo
+        });
+      }
+    });
+
+    // Sort by date (most recent first)
+    return unpaidShifts.sort((a, b) => new Date(b.shift_date) - new Date(a.shift_date));
+  };
+
+  const handleUnpaidAbsenceClick = (employee) => {
+    const unpaidShifts = getUnpaidAbsenceShifts(employee.employee_name);
+    setUnpaidAbsenceDetails({
+      employee,
+      shifts: unpaidShifts,
+      totalMinutes: unpaidShifts.reduce((sum, s) => sum + s.unpaid_minutes, 0)
+    });
+    setShowUnpaidAbsenceModal(true);
+  };
 
   const minutesToHours = (minutes) => {
     const hours = Math.floor(minutes / 60);
@@ -1130,8 +1209,12 @@ export default function Payroll() {
                         <td 
                           key={type} 
                           className={`p-3 text-center ${
-                            type === 'Assenza non retribuita' ? 'text-red-600 font-bold' : 'text-[#6b6b6b]'
+                            type === 'Assenza non retribuita' 
+                              ? 'text-red-600 font-bold cursor-pointer hover:bg-red-50 transition-colors' 
+                              : 'text-[#6b6b6b]'
                           }`}
+                          onClick={type === 'Assenza non retribuita' && employee.shift_types[type] ? () => handleUnpaidAbsenceClick(employee) : undefined}
+                          title={type === 'Assenza non retribuita' && employee.shift_types[type] ? 'Click per vedere i dettagli' : ''}
                         >
                           {employee.shift_types[type] ? (
                             <div className="font-bold">
@@ -1413,6 +1496,157 @@ export default function Payroll() {
                   )}
                 </tbody>
               </table>
+            </div>
+          </NeumorphicCard>
+        </div>
+      )}
+
+      {/* ✅ NEW: Unpaid Absence Detail Modal */}
+      {showUnpaidAbsenceModal && unpaidAbsenceDetails && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <NeumorphicCard className="max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-[#6b6b6b] mb-1">
+                  Dettaglio Assenze Non Retribuite
+                </h2>
+                <p className="text-[#9b9b9b] mb-1">{unpaidAbsenceDetails.employee.employee_name}</p>
+                <p className="text-sm text-[#9b9b9b]">
+                  {startDate && endDate ? (
+                    <span>
+                      Periodo: {format(parseISO(startDate), 'dd/MM/yyyy')} - {format(parseISO(endDate), 'dd/MM/yyyy')}
+                    </span>
+                  ) : startDate ? (
+                    <span>Da: {format(parseISO(startDate), 'dd/MM/yyyy')}</span>
+                  ) : endDate ? (
+                    <span>Fino a: {format(parseISO(endDate), 'dd/MM/yyyy')}</span>
+                  ) : (
+                    <span>Tutti i turni</span>
+                  )}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowUnpaidAbsenceModal(false)}
+                className="neumorphic-flat p-2 rounded-lg text-[#6b6b6b] hover:text-red-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Summary */}
+            <div className="neumorphic-pressed p-6 rounded-xl mb-6 text-center">
+              <p className="text-sm text-[#9b9b9b] mb-2">Totale Ore Non Retribuite</p>
+              <p className="text-4xl font-bold text-red-600">
+                {minutesToHours(unpaidAbsenceDetails.totalMinutes)}
+              </p>
+              <p className="text-sm text-[#9b9b9b] mt-2">
+                {unpaidAbsenceDetails.shifts.length} voci di assenza
+              </p>
+            </div>
+
+            {/* Shifts List */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Dettaglio Voci</h3>
+              
+              {unpaidAbsenceDetails.shifts.length > 0 ? (
+                unpaidAbsenceDetails.shifts.map((shift, index) => (
+                  <div key={`${shift.id}-${index}`} className="neumorphic-flat p-4 rounded-xl hover:bg-[#e8ecf3] transition-colors">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="text-lg font-bold text-[#6b6b6b]">
+                            {format(parseISO(shift.shift_date), 'dd/MM/yyyy')}
+                          </span>
+                          <span className="text-sm text-[#9b9b9b]">
+                            {shift.store_name}
+                          </span>
+                        </div>
+                        
+                        <div className="neumorphic-pressed px-3 py-1 rounded-lg inline-flex items-center gap-2 mb-2">
+                          <AlertCircle className="w-4 h-4 text-red-600" />
+                          <span className="text-sm font-bold text-red-600">
+                            {shift.unpaid_reason}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-red-600">
+                          {minutesToHours(shift.unpaid_minutes)}
+                        </p>
+                        <p className="text-xs text-[#9b9b9b]">non retribuite</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-[#d1d1d1]">
+                      <div>
+                        <p className="text-xs text-[#9b9b9b] mb-1">Orario Previsto</p>
+                        <p className="text-sm text-[#6b6b6b] font-medium">
+                          {shift.scheduled_start ? format(parseISO(shift.scheduled_start), 'HH:mm') : 'N/A'}
+                          {' - '}
+                          {shift.scheduled_end ? format(parseISO(shift.scheduled_end), 'HH:mm') : 'N/A'}
+                        </p>
+                      </div>
+                      
+                      {shift.actual_start && (
+                        <div>
+                          <p className="text-xs text-[#9b9b9b] mb-1">Orario Effettivo</p>
+                          <p className="text-sm text-[#6b6b6b] font-medium">
+                            {format(parseISO(shift.actual_start), 'HH:mm')}
+                            {shift.actual_end ? ` - ${format(parseISO(shift.actual_end), 'HH:mm')}` : ''}
+                          </p>
+                        </div>
+                      )}
+                      
+                      <div>
+                        <p className="text-xs text-[#9b9b9b] mb-1">Tipo Turno Originale</p>
+                        <p className="text-sm text-[#6b6b6b] font-medium">
+                          {shift.shift_type || 'Turno normale'}
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <p className="text-xs text-[#9b9b9b] mb-1">Minuti Previsti</p>
+                        <p className="text-sm text-[#6b6b6b] font-medium">
+                          {shift.scheduled_minutes || 0} min
+                        </p>
+                      </div>
+                    </div>
+
+                    {shift.minuti_di_ritardo > 0 && shift.unpaid_reason !== 'Turno di tipo Ritardo' && (
+                      // Only show this specific 'ritardo' if it's not already covered by 'Turno di tipo Ritardo' reason.
+                      // If the originalType check above is distinct from minuti_di_ritardo check, this conditional isn't strictly needed for correct data, but for clarity.
+                      // For this implementation, keeping the outline's logic. This means if a shift is type 'Ritardo' AND has minuti_di_ritardo, it will appear twice for its total,
+                      // and this additional section will only be for the 'minuti_di_ritardo' component, not the full shift.
+                      <div className="mt-3 pt-3 border-t border-[#d1d1d1]">
+                        <div className="flex items-center gap-2 text-red-600">
+                          <Clock className="w-4 h-4" />
+                          <span className="text-sm font-bold">
+                            Ritardo effettivo sul timbro: {shift.minuti_di_ritardo} minuti
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="mt-3 pt-3 border-t border-[#d1d1d1] text-xs text-[#9b9b9b]">
+                      ID Turno: {shift.id} • Creato: {shift.created_date ? format(parseISO(shift.created_date), 'dd/MM/yyyy HH:mm') : 'N/A'}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-[#9b9b9b]">Nessuna assenza non retribuita nel periodo selezionato</p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-[#c1c1c1]">
+              <button
+                onClick={() => setShowUnpaidAbsenceModal(false)}
+                className="neumorphic-flat px-6 py-3 rounded-lg text-[#6b6b6b] hover:text-[#8b7355] transition-colors mx-auto block"
+              >
+                Chiudi
+              </button>
             </div>
           </NeumorphicCard>
         </div>
