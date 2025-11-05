@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
-import { format, parseISO, startOfDay, addDays } from 'npm:date-fns@3.0.0';
+import { format, parseISO, startOfDay, endOfDay, isWithinInterval } from 'npm:date-fns@3.0.0';
 
 Deno.serve(async (req) => {
     try {
@@ -33,11 +33,11 @@ Deno.serve(async (req) => {
 
         const dateStr = format(targetDate, 'yyyy-MM-dd');
         const dayStart = startOfDay(targetDate);
-        const nextDayStart = startOfDay(addDays(targetDate, 1));
+        const dayEnd = endOfDay(targetDate);
 
         console.log(`=== AGGREGATION START ===`);
         console.log(`Aggregating data for date: ${dateStr}`);
-        console.log(`Range: ${dayStart.toISOString()} <= modifiedDate < ${nextDayStart.toISOString()}`);
+        console.log(`Day range: ${dayStart.toISOString()} to ${dayEnd.toISOString()}`);
 
         // ✅ Fetch ALL active stores first
         let allStores = [];
@@ -58,57 +58,17 @@ Deno.serve(async (req) => {
             }, { status: 500 });
         }
 
-        // ✅ Use SERVER-SIDE FILTER with $lt for next day (more reliable than $lte)
-        let orderItems = [];
+        // ✅ SOLUZIONE AFFIDABILE: list() + client-side filtering (stesso approccio di Financials/RealTime)
+        let allOrderItems = [];
         try {
-            console.log('=== FETCHING ORDER ITEMS WITH SERVER-SIDE DATE FILTER ===');
-            console.log(`Using $gte and $lt strategy`);
-            console.log(`Filter: modifiedDate >= ${dayStart.toISOString()} AND < ${nextDayStart.toISOString()}`);
+            console.log('=== FETCHING RECENT ORDER ITEMS (LAST 10000) ===');
+            console.log('Using list() with sorting, then client-side date filtering');
+            console.log('This is the SAME approach used by Financials and RealTime pages');
             
-            const result = await base44.asServiceRole.entities.OrderItem.filter({
-                modifiedDate: {
-                    $gte: dayStart.toISOString(),
-                    $lt: nextDayStart.toISOString()
-                }
-            }, '-modifiedDate', 10000);
+            // Fetch last 10000 OrderItems ordered by modifiedDate descending
+            allOrderItems = await base44.asServiceRole.entities.OrderItem.list('-modifiedDate', 10000);
             
-            // ✅ SAFETY: Ensure result is an array
-            if (Array.isArray(result)) {
-                orderItems = result;
-            } else if (result && typeof result === 'object' && Array.isArray(result.data)) {
-                orderItems = result.data;
-            } else {
-                console.error('Unexpected result format:', typeof result);
-                orderItems = [];
-            }
-            
-            console.log(`Found ${orderItems.length} order items for ${dateStr}`);
-            
-            // ✅ Log distribution by printedOrderItemChannel for debugging
-            const channelDistribution = {};
-            orderItems.forEach(item => {
-                const channel = item.printedOrderItemChannel || 'NO_CHANNEL';
-                channelDistribution[channel] = (channelDistribution[channel] || 0) + 1;
-            });
-            console.log('Distribution by printedOrderItemChannel:');
-            Object.entries(channelDistribution).forEach(([channel, count]) => {
-                console.log(`  - ${channel}: ${count} items`);
-            });
-            
-            // Log sample items
-            if (orderItems.length > 0) {
-                console.log('Sample order items (first 5):');
-                orderItems.slice(0, 5).forEach((item, i) => {
-                    console.log(`  [${i+1}] ${item.orderItemName || 'N/A'}`);
-                    console.log(`      modifiedDate: ${item.modifiedDate}`);
-                    console.log(`      store_id: ${item.store_id}`);
-                    console.log(`      store_name: ${item.store_name}`);
-                    console.log(`      printedOrderItemChannel: ${item.printedOrderItemChannel}`);
-                    console.log(`      finalPrice: €${item.finalPriceWithSessionDiscountsAndSurcharges || 0}`);
-                });
-            } else {
-                console.warn('⚠️ NO ORDER ITEMS FOUND FOR THIS DATE!');
-            }
+            console.log(`Fetched ${allOrderItems.length} recent OrderItems from database`);
         } catch (e) {
             console.error('Error fetching order items:', e);
             return Response.json({ 
@@ -116,6 +76,51 @@ Deno.serve(async (req) => {
                 details: e.message,
                 stack: e.stack
             }, { status: 500 });
+        }
+
+        // ✅ CLIENT-SIDE DATE FILTERING (same as Financials/RealTime)
+        console.log('=== FILTERING BY DATE (CLIENT-SIDE) ===');
+        const orderItems = allOrderItems.filter(item => {
+            if (!item.modifiedDate) {
+                return false;
+            }
+            
+            try {
+                const itemDate = parseISO(item.modifiedDate);
+                const isInRange = isWithinInterval(itemDate, { start: dayStart, end: dayEnd });
+                return isInRange;
+            } catch (e) {
+                console.warn(`Could not parse modifiedDate for item: ${item.modifiedDate}`);
+                return false;
+            }
+        });
+            
+        console.log(`Found ${orderItems.length} order items for ${dateStr} after client-side filtering`);
+        
+        // ✅ Log distribution by printedOrderItemChannel for debugging
+        const channelDistribution = {};
+        orderItems.forEach(item => {
+            const channel = item.printedOrderItemChannel || 'NO_CHANNEL';
+            channelDistribution[channel] = (channelDistribution[channel] || 0) + 1;
+        });
+        console.log('Distribution by printedOrderItemChannel:');
+        Object.entries(channelDistribution).forEach(([channel, count]) => {
+            console.log(`  - ${channel}: ${count} items`);
+        });
+        
+        // Log sample items
+        if (orderItems.length > 0) {
+            console.log('Sample order items (first 3):');
+            orderItems.slice(0, 3).forEach((item, i) => {
+                console.log(`  [${i+1}] ${item.orderItemName || 'N/A'}`);
+                console.log(`      modifiedDate: ${item.modifiedDate}`);
+                console.log(`      store_id: ${item.store_id}`);
+                console.log(`      store_name: ${item.store_name}`);
+                console.log(`      printedOrderItemChannel: ${item.printedOrderItemChannel}`);
+                console.log(`      finalPrice: €${item.finalPriceWithSessionDiscountsAndSurcharges || 0}`);
+            });
+        } else {
+            console.warn('⚠️ NO ORDER ITEMS FOUND FOR THIS DATE!');
         }
 
         // ✅ Create store mapping with CHANNEL CODES (priority!)
@@ -368,7 +373,8 @@ Deno.serve(async (req) => {
         console.log(`=== AGGREGATION COMPLETE ===`);
         console.log(`Date: ${dateStr}`);
         console.log(`Stores processed: ${allStores.length}`);
-        console.log(`Total items processed: ${orderItems.length}`);
+        console.log(`Total items fetched: ${allOrderItems.length}`);
+        console.log(`Items for target date: ${orderItems.length}`);
         console.log(`Unmatched items: ${unmatchedItems.length}`);
         
         return Response.json({
@@ -376,7 +382,8 @@ Deno.serve(async (req) => {
             message: `Aggregated data for ${dateStr}`,
             date: dateStr,
             stores_processed: allStores.length,
-            total_items_processed: orderItems.length,
+            total_items_fetched: allOrderItems.length,
+            items_for_date: orderItems.length,
             unmatched_items_count: unmatchedItems.length,
             results
         }, { status: 200 });
