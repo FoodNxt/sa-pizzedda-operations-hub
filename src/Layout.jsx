@@ -23,7 +23,8 @@ import {
   Upload,
   Camera,
   ClipboardCheck,
-  User // Added User icon import
+  User,
+  ClipboardList // Added ClipboardList icon import
 } from "lucide-react";
 import CompleteProfileModal from "./components/auth/CompleteProfileModal";
 
@@ -107,6 +108,16 @@ const navigationStructure = [
         title: "Inventory Dashboard",
         url: createPageUrl("Inventory"),
         icon: Package,
+      },
+      {
+        title: "Form Inventario",
+        url: createPageUrl("FormInventario"),
+        icon: ClipboardList,
+      },
+      {
+        title: "Quantità Minime",
+        url: createPageUrl("QuantitaMinime"),
+        icon: AlertTriangle,
       }
     ]
   },
