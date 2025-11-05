@@ -31,6 +31,13 @@ export default function Payroll() {
     queryFn: () => base44.entities.Employee.list(),
   });
 
+  // ✅ HELPER: Normalize employee name for consistent grouping
+  const normalizeEmployeeName = (name) => {
+    if (!name) return 'unknown';
+    // Trim, replace multiple spaces with a single space, then convert to lowercase
+    return name.trim().replace(/\s+/g, ' ').toLowerCase();
+  };
+
   // ✅ NORMALIZE SHIFT TYPE - Aggregate similar types
   const normalizeShiftType = (shiftType) => {
     if (!shiftType) return 'Turno normale';
@@ -165,7 +172,7 @@ export default function Payroll() {
     return deduplicated;
   }, [rawShifts]);
 
-  // Process payroll data
+  // ✅ IMPROVED: Process payroll data with NORMALIZED employee names
   const payrollData = useMemo(() => {
     let filteredShifts = shifts;
     
@@ -194,11 +201,13 @@ export default function Payroll() {
     const employeeData = {};
 
     filteredShifts.forEach(shift => {
-      const empName = shift.employee_name || 'Unknown';
+      // ✅ USE NORMALIZED NAME AS KEY
+      const normalizedName = normalizeEmployeeName(shift.employee_name);
       
-      if (!employeeData[empName]) {
-        employeeData[empName] = {
-          employee_name: empName,
+      if (!employeeData[normalizedName]) {
+        employeeData[normalizedName] = {
+          employee_name: shift.employee_name || 'Unknown', // Keep original name for display, fallback to Unknown
+          normalized_name: normalizedName,
           store_names: new Set(),
           shift_types: {},
           total_minutes: 0,
@@ -207,7 +216,7 @@ export default function Payroll() {
       }
 
       if (shift.store_name) {
-        employeeData[empName].store_names.add(shift.store_name);
+        employeeData[normalizedName].store_names.add(shift.store_name);
       }
 
       let workedMinutes = shift.scheduled_minutes || 0;
@@ -215,20 +224,20 @@ export default function Payroll() {
       // ✅ USE NORMALIZED SHIFT TYPE
       let shiftType = normalizeShiftType(shift.shift_type);
       
-      if (!employeeData[empName].shift_types[shiftType]) {
-        employeeData[empName].shift_types[shiftType] = 0;
+      if (!employeeData[normalizedName].shift_types[shiftType]) {
+        employeeData[normalizedName].shift_types[shiftType] = 0;
       }
 
-      employeeData[empName].shift_types[shiftType] += workedMinutes;
-      employeeData[empName].total_minutes += workedMinutes;
+      employeeData[normalizedName].shift_types[shiftType] += workedMinutes;
+      employeeData[normalizedName].total_minutes += workedMinutes;
 
       if (shift.minuti_di_ritardo && shift.minuti_di_ritardo > 0) {
-        employeeData[empName].total_ritardo_minutes += shift.minuti_di_ritardo;
+        employeeData[normalizedName].total_ritardo_minutes += shift.minuti_di_ritardo;
       }
     });
 
-    Object.keys(employeeData).forEach(empName => {
-      const emp = employeeData[empName];
+    Object.keys(employeeData).forEach(normalizedName => {
+      const emp = employeeData[normalizedName];
       emp.store_names_display = Array.from(emp.store_names).sort().join(', ');
       
       if (emp.total_ritardo_minutes > 0) {
@@ -255,6 +264,9 @@ export default function Payroll() {
       Object.keys(emp.shift_types).forEach(type => allShiftTypes.add(type));
     });
 
+    console.log(`👥 Dipendenti unici nella tabella Payroll: ${employeeArray.length}`);
+    console.log('📋 Nomi dipendenti:', employeeArray.map(e => e.employee_name));
+
     return {
       employees: employeeArray,
       shiftTypes: Array.from(allShiftTypes).sort(),
@@ -268,7 +280,9 @@ export default function Payroll() {
   const employeeDailyBreakdown = useMemo(() => {
     if (!selectedEmployee) return { days: [], shiftTypes: [], weeks: [] };
 
-    let employeeShifts = shifts.filter(s => s.employee_name === selectedEmployee.employee_name);
+    // Use normalized name to filter
+    const selectedEmployeeNormalizedName = normalizeEmployeeName(selectedEmployee.employee_name);
+    let employeeShifts = shifts.filter(s => normalizeEmployeeName(s.employee_name) === selectedEmployeeNormalizedName);
 
     if (selectedStore !== 'all') {
       employeeShifts = employeeShifts.filter(s => s.store_id === selectedStore);
@@ -412,12 +426,15 @@ export default function Payroll() {
       weeks: weeklyArray,
       shiftTypes: Array.from(allShiftTypes).sort()
     };
-  }, [selectedEmployee, shifts, selectedStore, startDate, endDate]);
+  }, [selectedEmployee, shifts, selectedStore, startDate, endDate, normalizeEmployeeName]); // Added normalizeEmployeeName to dependencies
 
   // ✅ NEW: Get unpaid absence shifts for an employee
   const getUnpaidAbsenceShifts = (employeeName) => {
+    // Use normalized name to filter
+    const targetNormalizedName = normalizeEmployeeName(employeeName);
+
     let employeeShifts = shifts.filter(s => {
-      if (s.employee_name !== employeeName) return false;
+      if (normalizeEmployeeName(s.employee_name) !== targetNormalizedName) return false;
 
       // Apply store filter
       if (selectedStore !== 'all' && s.store_id !== selectedStore) return false;
@@ -555,6 +572,9 @@ export default function Payroll() {
     csv += `Periodo: ${startDate || 'Tutti i turni'} - ${endDate || 'Tutti i turni'}\n`;
     csv += `Visualizzazione: ${viewMode === 'daily' ? 'Giornaliera' : 'Settimanale'}\n\n`;
     
+    // Use normalized name for filtering shifts
+    const selectedEmployeeNormalizedName = normalizeEmployeeName(selectedEmployee.employee_name);
+
     if (viewMode === 'daily') {
       csv += 'Data,';
       employeeDailyBreakdown.shiftTypes.forEach(type => {
@@ -633,8 +653,9 @@ export default function Payroll() {
 
     payrollData.employees.forEach(employee => {
       // Filter shifts for this employee
+      const employeeNormalizedName = normalizeEmployeeName(employee.employee_name); // Get normalized name for filtering
       let employeeShifts = shifts.filter(s => { // Using the already deduplicated 'shifts'
-        if (s.employee_name !== employee.employee_name) return false;
+        if (normalizeEmployeeName(s.employee_name) !== employeeNormalizedName) return false; // Filter by normalized name
 
         // Apply store filter
         if (selectedStore !== 'all' && s.store_id !== selectedStore) return false;
@@ -665,7 +686,7 @@ export default function Payroll() {
         if (!dailyData[date]) {
           dailyData[date] = {
             date,
-            employee_name: employee.employee_name,
+            employee_name: employee.employee_name, // Use original employee name for display
             store_names: new Set(),
             shift_types: {},
             ritardo_minutes: 0
@@ -821,8 +842,9 @@ export default function Payroll() {
     const employeeWeeklyData = {};
 
     payrollData.employees.forEach(employee => {
+      const employeeNormalizedName = normalizeEmployeeName(employee.employee_name); // Get normalized name for filtering
       let employeeShifts = shifts.filter(s => { // Using the already deduplicated 'shifts'
-        if (s.employee_name !== employee.employee_name) return false;
+        if (normalizeEmployeeName(s.employee_name) !== employeeNormalizedName) return false; // Filter by normalized name
 
         // Apply store filter
         if (selectedStore !== 'all' && s.store_id !== selectedStore) return false;
@@ -1189,7 +1211,7 @@ export default function Payroll() {
                   const netMinutes = employee.total_minutes - employee.total_ritardo_minutes;
                   return (
                     <tr 
-                      key={index} 
+                      key={employee.normalized_name || index} // Use normalized_name for key
                       className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors"
                     >
                       <td className="p-3 sticky left-0 bg-[#e0e5ec]">
