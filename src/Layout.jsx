@@ -1,7 +1,7 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { base44 } from "@/api/base44Client";
 import { 
   LayoutDashboard, 
   MapPin, 
@@ -18,8 +18,8 @@ import {
   UserCheck,
   BarChart3,
   AlertTriangle,
-  Package, // Added Package icon for Inventory
-  Upload // Added Upload icon for Bulk Import iPratico
+  Package,
+  Upload
 } from "lucide-react";
 
 const navigationStructure = [
@@ -27,6 +27,7 @@ const navigationStructure = [
     title: "Dashboard",
     icon: LayoutDashboard,
     type: "section",
+    requiredUserType: ["admin", "manager"],
     items: [
       {
         title: "Dashboard",
@@ -44,6 +45,7 @@ const navigationStructure = [
     title: "Reviews",
     icon: Star,
     type: "section",
+    requiredUserType: ["admin", "manager"],
     items: [
       {
         title: "Store Reviews",
@@ -66,6 +68,7 @@ const navigationStructure = [
     title: "Financials",
     icon: DollarSign,
     type: "section",
+    requiredUserType: ["admin", "manager"],
     items: [
       {
         title: "Real Time",
@@ -93,6 +96,7 @@ const navigationStructure = [
     title: "Inventory",
     icon: Package,
     type: "section",
+    requiredUserType: ["admin", "manager"],
     items: [
       {
         title: "Inventory Dashboard",
@@ -105,6 +109,7 @@ const navigationStructure = [
     title: "People",
     icon: Users,
     type: "section",
+    requiredUserType: ["admin", "manager"],
     items: [
       {
         title: "Employees",
@@ -137,16 +142,19 @@ const navigationStructure = [
     title: "Pulizie",
     icon: Zap,
     type: "section",
+    requiredUserType: ["admin", "manager", "dipendente"],
     items: [
       {
         title: "Storico Pulizie",
         url: createPageUrl("Pulizie"),
         icon: Zap,
+        requiredUserType: ["admin", "manager"],
       },
       {
         title: "Foto Locale",
         url: createPageUrl("FotoLocale"),
         icon: Zap,
+        requiredUserType: ["admin", "manager", "dipendente"],
       }
     ]
   },
@@ -154,6 +162,7 @@ const navigationStructure = [
     title: "Zapier Guide",
     icon: Zap,
     type: "section",
+    requiredUserType: ["admin"],
     items: [
       {
         title: "Zapier Reviews",
@@ -192,15 +201,28 @@ const navigationStructure = [
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const [expandedSections, setExpandedSections] = useState({
     "Dashboard": true,
     "Reviews": true,
     "Financials": true,
-    "Inventory": true, // Added new Inventory section to be expanded by default
+    "Inventory": true,
     "People": true,
-    "Pulizie": true, // Added new Pulizie section to be expanded by default
+    "Pulizie": true,
     "Zapier Guide": true
   });
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const user = await base44.auth.me();
+        setCurrentUser(user);
+      } catch (error) {
+        console.error('Error fetching user:', error);
+      }
+    };
+    fetchUser();
+  }, []);
 
   const toggleSection = (sectionTitle) => {
     setExpandedSections(prev => ({
@@ -221,6 +243,35 @@ export default function Layout({ children, currentPageName }) {
       return section.items.some(item => isActiveLink(item.url));
     }
     return false;
+  };
+
+  const hasAccess = (requiredUserType) => {
+    if (!requiredUserType) return true;
+    if (!currentUser) return false;
+    
+    const userType = currentUser.user_type || 'dipendente';
+    return requiredUserType.includes(userType);
+  };
+
+  const filteredNavigation = navigationStructure
+    .filter(section => hasAccess(section.requiredUserType))
+    .map(section => ({
+      ...section,
+      items: section.items.filter(item => hasAccess(item.requiredUserType))
+    }))
+    .filter(section => section.items.length > 0);
+
+  const getUserDisplayName = () => {
+    if (!currentUser) return 'Caricamento...';
+    return currentUser.full_name || currentUser.email || 'Utente';
+  };
+
+  const getUserTypeName = () => {
+    if (!currentUser) return '';
+    const userType = currentUser.user_type || 'dipendente';
+    return userType === 'admin' ? 'Amministratore' : 
+           userType === 'manager' ? 'Manager' : 
+           'Dipendente';
   };
 
   return (
@@ -302,7 +353,7 @@ export default function Layout({ children, currentPageName }) {
 
             {/* Navigation */}
             <nav className="flex-1 space-y-1">
-              {navigationStructure.map((item) => {
+              {filteredNavigation.map((item) => {
                 if (item.type === 'link') {
                   const isActive = isActiveLink(item.url);
                   return (
@@ -387,11 +438,13 @@ export default function Layout({ children, currentPageName }) {
             <div className="neumorphic-pressed p-4 rounded-xl mt-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full neumorphic-flat flex items-center justify-center">
-                  <span className="text-sm font-bold text-[#8b7355]">U</span>
+                  <span className="text-sm font-bold text-[#8b7355]">
+                    {getUserDisplayName().charAt(0).toUpperCase()}
+                  </span>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-[#6b6b6b]">Admin User</p>
-                  <p className="text-xs text-[#9b9b9b]">Workspace Admin</p>
+                  <p className="text-sm font-medium text-[#6b6b6b]">{getUserDisplayName()}</p>
+                  <p className="text-xs text-[#9b9b9b]">{getUserTypeName()}</p>
                 </div>
               </div>
             </div>
