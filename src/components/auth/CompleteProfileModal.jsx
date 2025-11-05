@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from "@/api/base44Client";
 import { User, CheckCircle, AlertCircle } from 'lucide-react';
 import NeumorphicCard from '../neumorphic/NeumorphicCard';
@@ -8,6 +8,15 @@ export default function CompleteProfileModal({ user, onComplete }) {
   const [lastName, setLastName] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  // Pre-fill with Google name if available
+  useEffect(() => {
+    if (user?.full_name && user.full_name.includes(' ')) {
+      const parts = user.full_name.split(' ');
+      setFirstName(parts[0]);
+      setLastName(parts.slice(1).join(' '));
+    }
+  }, [user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -41,6 +50,9 @@ export default function CompleteProfileModal({ user, onComplete }) {
         profile_manually_completed: true
       });
 
+      // Small delay to ensure the update is processed
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       // Notify parent component
       onComplete();
     } catch (error) {
@@ -71,10 +83,10 @@ export default function CompleteProfileModal({ user, onComplete }) {
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
             <div className="text-sm text-blue-800">
-              <p className="font-medium mb-1">Perché è importante?</p>
+              <p className="font-medium mb-1">Importante!</p>
               <p className="text-xs">
-                Il nome e cognome vengono utilizzati per associare la tua valutazione, 
-                turni e recensioni. Assicurati che corrispondano esattamente al tuo nome nel sistema aziendale.
+                Il nome e cognome che inserisci QUI verranno salvati e utilizzati per associare 
+                turni e recensioni. Inserisci il nome esattamente come compare nel sistema aziendale.
               </p>
             </div>
           </div>
@@ -125,11 +137,11 @@ export default function CompleteProfileModal({ user, onComplete }) {
 
           {/* Current Info */}
           <div className="neumorphic-pressed p-3 rounded-lg">
-            <p className="text-xs text-[#9b9b9b] mb-1">Account:</p>
+            <p className="text-xs text-[#9b9b9b] mb-1">Account email:</p>
             <p className="text-sm text-[#6b6b6b] font-medium">{user?.email}</p>
             {user?.full_name && (
               <p className="text-xs text-[#9b9b9b] mt-2">
-                Nome attuale: <span className="text-[#6b6b6b]">{user.full_name}</span>
+                Nome da Google: <span className="text-[#6b6b6b] line-through">{user.full_name}</span>
               </p>
             )}
           </div>
@@ -155,7 +167,7 @@ export default function CompleteProfileModal({ user, onComplete }) {
             ) : (
               <>
                 <CheckCircle className="w-6 h-6" />
-                Conferma Profilo
+                Salva e Continua
               </>
             )}
           </button>
@@ -164,7 +176,7 @@ export default function CompleteProfileModal({ user, onComplete }) {
         {/* Footer Note */}
         <div className="mt-6 text-center">
           <p className="text-xs text-[#9b9b9b]">
-            Potrai modificare questi dati in seguito contattando l'amministratore
+            Dopo aver salvato, potrai modificare il nome dalla Dashboard → Data → User
           </p>
         </div>
       </NeumorphicCard>
