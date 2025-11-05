@@ -1,11 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
-import { format, parseISO, startOfDay, endOfDay, isWithinInterval } from 'npm:date-fns@3.0.0';
+import { format, parseISO, startOfDay, addHours } from 'npm:date-fns@3.0.0';
 
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         
-        // Verify authentication
         const user = await base44.auth.me();
         if (!user) {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
@@ -13,7 +12,6 @@ Deno.serve(async (req) => {
 
         const body = await req.json().catch(() => ({}));
         
-        // Get date from request or use yesterday as default
         let targetDate;
         if (body.date) {
             try {
@@ -25,7 +23,6 @@ Deno.serve(async (req) => {
                 }, { status: 400 });
             }
         } else {
-            // Default to yesterday
             const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
             targetDate = yesterday;
@@ -33,73 +30,63 @@ Deno.serve(async (req) => {
 
         const dateStr = format(targetDate, 'yyyy-MM-dd');
         const dayStart = startOfDay(targetDate);
-        const dayEnd = endOfDay(targetDate);
 
         console.log(`=== AGGREGATION START ===`);
         console.log(`Aggregating data for date: ${dateStr}`);
-        console.log(`Day range: ${dayStart.toISOString()} to ${dayEnd.toISOString()}`);
 
-        // ✅ Fetch ALL active stores first
+        // ✅ Fetch stores
         let allStores = [];
         try {
             console.log('=== FETCHING STORES ===');
             allStores = await base44.asServiceRole.entities.Store.list();
-            console.log(`Found ${allStores.length} total stores:`);
-            
-            allStores.forEach(store => {
-                console.log(`  - ${store.name} (ID: ${store.id})`);
-            });
+            console.log(`Found ${allStores.length} total stores`);
         } catch (e) {
             console.error('Error fetching stores:', e);
             return Response.json({ 
                 error: 'Error fetching stores',
-                details: e.message,
-                stack: e.stack
+                details: e.message
             }, { status: 500 });
         }
 
-        // ✅ SOLUZIONE AFFIDABILE: list() + client-side filtering (stesso approccio di Financials/RealTime)
-        let allOrderItems = [];
-        try {
-            console.log('=== FETCHING RECENT ORDER ITEMS (LAST 10000) ===');
-            console.log('Using list() with sorting, then client-side date filtering');
-            console.log('This is the SAME approach used by Financials and RealTime pages');
+        // ✅ NEW STRATEGY: Fetch in 4-hour chunks (6 queries for 24 hours)
+        console.log('=== FETCHING ORDER ITEMS IN 4-HOUR CHUNKS ===');
+        const allOrderItems = [];
+        
+        for (let hour = 0; hour < 24; hour += 4) {
+            const chunkStart = addHours(dayStart, hour);
+            const chunkEnd = addHours(dayStart, hour + 4);
             
-            // Fetch last 10000 OrderItems ordered by modifiedDate descending
-            allOrderItems = await base44.asServiceRole.entities.OrderItem.list('-modifiedDate', 10000);
-            
-            console.log(`Fetched ${allOrderItems.length} recent OrderItems from database`);
-        } catch (e) {
-            console.error('Error fetching order items:', e);
-            return Response.json({ 
-                error: 'Error fetching order items',
-                details: e.message,
-                stack: e.stack
-            }, { status: 500 });
-        }
-
-        // ✅ CLIENT-SIDE DATE FILTERING (same as Financials/RealTime)
-        console.log('=== FILTERING BY DATE (CLIENT-SIDE) ===');
-        const orderItems = allOrderItems.filter(item => {
-            if (!item.modifiedDate) {
-                return false;
-            }
+            console.log(`Fetching chunk: ${format(chunkStart, 'HH:mm')} to ${format(chunkEnd, 'HH:mm')}`);
             
             try {
-                const itemDate = parseISO(item.modifiedDate);
-                const isInRange = isWithinInterval(itemDate, { start: dayStart, end: dayEnd });
-                return isInRange;
+                const chunk = await base44.asServiceRole.entities.OrderItem.filter({
+                    modifiedDate: {
+                        $gte: chunkStart.toISOString(),
+                        $lt: chunkEnd.toISOString()
+                    }
+                }, '-modifiedDate', 10000);
+                
+                // ✅ Ensure chunk is an array
+                const chunkArray = Array.isArray(chunk) ? chunk : 
+                                 (chunk && Array.isArray(chunk.data) ? chunk.data : []);
+                
+                console.log(`  - Found ${chunkArray.length} items in this chunk`);
+                allOrderItems.push(...chunkArray);
             } catch (e) {
-                console.warn(`Could not parse modifiedDate for item: ${item.modifiedDate}`);
-                return false;
+                console.warn(`Warning: Could not fetch chunk ${hour}-${hour+4}:`, e.message);
+                // Continue with other chunks
             }
-        });
-            
-        console.log(`Found ${orderItems.length} order items for ${dateStr} after client-side filtering`);
+        }
         
-        // ✅ Log distribution by printedOrderItemChannel for debugging
+        console.log(`Total OrderItems fetched: ${allOrderItems.length}`);
+        
+        if (allOrderItems.length === 0) {
+            console.warn('⚠️ NO ORDER ITEMS FOUND FOR THIS DATE!');
+        }
+
+        // ✅ Log distribution by channel
         const channelDistribution = {};
-        orderItems.forEach(item => {
+        allOrderItems.forEach(item => {
             const channel = item.printedOrderItemChannel || 'NO_CHANNEL';
             channelDistribution[channel] = (channelDistribution[channel] || 0) + 1;
         });
@@ -107,35 +94,19 @@ Deno.serve(async (req) => {
         Object.entries(channelDistribution).forEach(([channel, count]) => {
             console.log(`  - ${channel}: ${count} items`);
         });
-        
-        // Log sample items
-        if (orderItems.length > 0) {
-            console.log('Sample order items (first 3):');
-            orderItems.slice(0, 3).forEach((item, i) => {
-                console.log(`  [${i+1}] ${item.orderItemName || 'N/A'}`);
-                console.log(`      modifiedDate: ${item.modifiedDate}`);
-                console.log(`      store_id: ${item.store_id}`);
-                console.log(`      store_name: ${item.store_name}`);
-                console.log(`      printedOrderItemChannel: ${item.printedOrderItemChannel}`);
-                console.log(`      finalPrice: €${item.finalPriceWithSessionDiscountsAndSurcharges || 0}`);
-            });
-        } else {
-            console.warn('⚠️ NO ORDER ITEMS FOUND FOR THIS DATE!');
-        }
 
-        // ✅ Create store mapping with CHANNEL CODES (priority!)
+        // ✅ Create store mapping
         const storeById = {};
         const storeByName = {};
         const storeByChannelCode = {
-            'lct_21684': null, // Ticinese
-            'lct_21350': null  // Lanino
+            'lct_21684': null,
+            'lct_21350': null
         };
         
         allStores.forEach(store => {
             storeById[store.id] = store;
             storeByName[store.name.toLowerCase().trim()] = store;
             
-            // Map channel codes
             if (store.name.toLowerCase() === 'ticinese') {
                 storeByChannelCode['lct_21684'] = store;
             } else if (store.name.toLowerCase() === 'lanino') {
@@ -144,32 +115,28 @@ Deno.serve(async (req) => {
         });
 
         console.log('=== STORE MAPPING ===');
-        console.log(`Created maps for ${allStores.length} stores`);
         console.log('Channel code mapping:', {
             'lct_21684': storeByChannelCode['lct_21684']?.name,
             'lct_21350': storeByChannelCode['lct_21350']?.name
         });
 
-        // ✅ Group order items by store - PRIORITY: CHANNEL CODE > NAME > ID
+        // ✅ Match items to stores
         const ordersByStore = {};
         const unmatchedItems = [];
         
         console.log('=== MATCHING ORDER ITEMS TO STORES ===');
-        orderItems.forEach(item => {
+        allOrderItems.forEach(item => {
             let matchedStore = null;
             
-            // ✅ PRIORITY 1: Match by printedOrderItemChannel (MOST RELIABLE!)
             if (item.printedOrderItemChannel && storeByChannelCode[item.printedOrderItemChannel]) {
                 matchedStore = storeByChannelCode[item.printedOrderItemChannel];
             }
             
-            // ✅ PRIORITY 2: Match by store_name
             if (!matchedStore && item.store_name) {
                 const normalizedName = item.store_name.toLowerCase().trim();
                 matchedStore = storeByName[normalizedName];
             }
             
-            // ✅ PRIORITY 3: Match by store_id (fallback)
             if (!matchedStore && item.store_id && storeById[item.store_id]) {
                 matchedStore = storeById[item.store_id];
             }
@@ -181,40 +148,35 @@ Deno.serve(async (req) => {
                 }
                 ordersByStore[storeId].push(item);
             } else {
-                console.warn(`✗ UNMATCHED: ${item.orderItemName} - store_id="${item.store_id}", store_name="${item.store_name}", channel="${item.printedOrderItemChannel}"`);
                 unmatchedItems.push(item);
             }
         });
 
         console.log(`=== MATCHING SUMMARY ===`);
-        console.log(`Matched items for ${Object.keys(ordersByStore).length} stores`);
         Object.entries(ordersByStore).forEach(([storeId, items]) => {
             const store = allStores.find(s => s.id === storeId);
             const revenue = items.reduce((sum, item) => sum + (item.finalPriceWithSessionDiscountsAndSurcharges || 0), 0);
             console.log(`  - ${store?.name || storeId}: ${items.length} items, €${revenue.toFixed(2)}`);
         });
         if (unmatchedItems.length > 0) {
-            console.warn(`⚠️ ${unmatchedItems.length} items could not be matched to any store`);
+            console.warn(`⚠️ ${unmatchedItems.length} items could not be matched`);
         }
 
         const results = [];
 
         console.log('=== PROCESSING STORES ===');
-        // ✅ Process EVERY store, even those without orders
         for (const store of allStores) {
             try {
                 const storeId = store.id;
                 const storeName = store.name;
                 const items = ordersByStore[storeId] || [];
 
-                console.log(`Processing ${storeName} (${storeId}): ${items.length} items`);
+                console.log(`Processing ${storeName}: ${items.length} items`);
                 
-                // Calculate totals
                 let totalFinalPriceWithDiscounts = 0;
                 let totalFinalPrice = 0;
                 const uniqueOrders = new Set();
                 
-                // Breakdowns
                 const breakdownBySourceApp = {};
                 const breakdownBySourceType = {};
                 const breakdownByMoneyTypeName = {};
@@ -231,7 +193,6 @@ Deno.serve(async (req) => {
                         uniqueOrders.add(item.order);
                     }
                     
-                    // Breakdown by sourceApp
                     const sourceApp = item.sourceApp || 'no_app';
                     if (!breakdownBySourceApp[sourceApp]) {
                         breakdownBySourceApp[sourceApp] = {
@@ -242,7 +203,6 @@ Deno.serve(async (req) => {
                     breakdownBySourceApp[sourceApp].finalPriceWithSessionDiscountsAndSurcharges += finalPriceWithDiscounts;
                     breakdownBySourceApp[sourceApp].finalPrice += finalPrice;
                     
-                    // Breakdown by sourceType
                     const sourceType = item.sourceType || 'no_type';
                     if (!breakdownBySourceType[sourceType]) {
                         breakdownBySourceType[sourceType] = {
@@ -253,7 +213,6 @@ Deno.serve(async (req) => {
                     breakdownBySourceType[sourceType].finalPriceWithSessionDiscountsAndSurcharges += finalPriceWithDiscounts;
                     breakdownBySourceType[sourceType].finalPrice += finalPrice;
                     
-                    // Breakdown by moneyTypeName
                     const moneyType = item.moneyTypeName || 'no_payment_type';
                     if (!breakdownByMoneyTypeName[moneyType]) {
                         breakdownByMoneyTypeName[moneyType] = {
@@ -264,7 +223,6 @@ Deno.serve(async (req) => {
                     breakdownByMoneyTypeName[moneyType].finalPriceWithSessionDiscountsAndSurcharges += finalPriceWithDiscounts;
                     breakdownByMoneyTypeName[moneyType].finalPrice += finalPrice;
                     
-                    // Breakdown by saleTypeName
                     const saleType = item.saleTypeName || 'no_sale_type';
                     if (!breakdownBySaleTypeName[saleType]) {
                         breakdownBySaleTypeName[saleType] = {
@@ -276,9 +234,8 @@ Deno.serve(async (req) => {
                     breakdownBySaleTypeName[saleType].finalPrice += finalPrice;
                 });
                 
-                console.log(`  → Revenue: €${totalFinalPriceWithDiscounts.toFixed(2)}, Orders: ${uniqueOrders.size}, Items: ${items.length}`);
+                console.log(`  → Revenue: €${totalFinalPriceWithDiscounts.toFixed(2)}, Orders: ${uniqueOrders.size}`);
                 
-                // Round all numbers to 2 decimals
                 const roundBreakdown = (breakdown) => {
                     const rounded = {};
                     for (const [key, value] of Object.entries(breakdown)) {
@@ -304,7 +261,6 @@ Deno.serve(async (req) => {
                     breakdown_by_saleTypeName: roundBreakdown(breakdownBySaleTypeName)
                 };
                 
-                // Check if record already exists for this store and date
                 let existing = [];
                 try {
                     existing = await base44.asServiceRole.entities.DailyStoreRevenue.filter({
@@ -316,7 +272,6 @@ Deno.serve(async (req) => {
                 }
                 
                 if (existing && existing.length > 0) {
-                    // Update existing record
                     try {
                         await base44.asServiceRole.entities.DailyStoreRevenue.update(
                             existing[0].id,
@@ -334,12 +289,10 @@ Deno.serve(async (req) => {
                         results.push({
                             action: 'error',
                             store_name: storeName,
-                            error: e.message,
-                            stack: e.stack
+                            error: e.message
                         });
                     }
                 } else {
-                    // Create new record
                     try {
                         await base44.asServiceRole.entities.DailyStoreRevenue.create(aggregatedData);
                         console.log(`  ✓ Created new DailyStoreRevenue record`);
@@ -354,8 +307,7 @@ Deno.serve(async (req) => {
                         results.push({
                             action: 'error',
                             store_name: storeName,
-                            error: e.message,
-                            stack: e.stack
+                            error: e.message
                         });
                     }
                 }
@@ -364,8 +316,7 @@ Deno.serve(async (req) => {
                 results.push({
                     action: 'error',
                     store_name: store.name,
-                    error: storeError.message,
-                    stack: storeError.stack
+                    error: storeError.message
                 });
             }
         }
@@ -373,8 +324,7 @@ Deno.serve(async (req) => {
         console.log(`=== AGGREGATION COMPLETE ===`);
         console.log(`Date: ${dateStr}`);
         console.log(`Stores processed: ${allStores.length}`);
-        console.log(`Total items fetched: ${allOrderItems.length}`);
-        console.log(`Items for target date: ${orderItems.length}`);
+        console.log(`Total items: ${allOrderItems.length}`);
         console.log(`Unmatched items: ${unmatchedItems.length}`);
         
         return Response.json({
@@ -382,8 +332,7 @@ Deno.serve(async (req) => {
             message: `Aggregated data for ${dateStr}`,
             date: dateStr,
             stores_processed: allStores.length,
-            total_items_fetched: allOrderItems.length,
-            items_for_date: orderItems.length,
+            total_items: allOrderItems.length,
             unmatched_items_count: unmatchedItems.length,
             results
         }, { status: 200 });
