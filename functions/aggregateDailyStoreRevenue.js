@@ -16,7 +16,14 @@ Deno.serve(async (req) => {
         // Get date from request or use yesterday as default
         let targetDate;
         if (body.date) {
-            targetDate = parseISO(body.date);
+            try {
+                targetDate = parseISO(body.date);
+            } catch (e) {
+                return Response.json({ 
+                    error: 'Invalid date format',
+                    details: e.message 
+                }, { status: 400 });
+            }
         } else {
             // Default to yesterday
             const yesterday = new Date();
@@ -31,14 +38,34 @@ Deno.serve(async (req) => {
         console.log(`Aggregating data for date: ${dateStr}`);
 
         // Fetch all OrderItems for the target date
-        const orderItems = await base44.asServiceRole.entities.OrderItem.filter({
-            modifiedDate: {
-                $gte: dayStart.toISOString(),
-                $lte: dayEnd.toISOString()
-            }
-        }, '-modifiedDate', 100000);
+        let orderItems = [];
+        try {
+            orderItems = await base44.asServiceRole.entities.OrderItem.filter({
+                modifiedDate: {
+                    $gte: dayStart.toISOString(),
+                    $lte: dayEnd.toISOString()
+                }
+            }, '-modifiedDate', 100000);
+        } catch (e) {
+            console.error('Error fetching order items:', e);
+            return Response.json({ 
+                error: 'Error fetching order items',
+                details: e.message 
+            }, { status: 500 });
+        }
 
         console.log(`Found ${orderItems.length} order items for ${dateStr}`);
+
+        if (!orderItems || orderItems.length === 0) {
+            return Response.json({
+                success: true,
+                message: `No order items found for ${dateStr}`,
+                date: dateStr,
+                stores_processed: 0,
+                total_items_processed: 0,
+                results: []
+            }, { status: 200 });
+        }
 
         // Group by store
         const storeGroups = {};
@@ -62,127 +89,160 @@ Deno.serve(async (req) => {
 
         // Process each store
         for (const [storeId, storeData] of Object.entries(storeGroups)) {
-            const items = storeData.items;
-            
-            // Calculate totals
-            let totalFinalPriceWithDiscounts = 0;
-            let totalFinalPrice = 0;
-            const uniqueOrders = new Set();
-            
-            // Breakdowns
-            const breakdownBySourceApp = {};
-            const breakdownBySourceType = {};
-            const breakdownByMoneyTypeName = {};
-            const breakdownBySaleTypeName = {};
-            
-            items.forEach(item => {
-                const finalPriceWithDiscounts = item.finalPriceWithSessionDiscountsAndSurcharges || 0;
-                const finalPrice = item.finalPrice || 0;
+            try {
+                const items = storeData.items;
                 
-                totalFinalPriceWithDiscounts += finalPriceWithDiscounts;
-                totalFinalPrice += finalPrice;
+                // Calculate totals
+                let totalFinalPriceWithDiscounts = 0;
+                let totalFinalPrice = 0;
+                const uniqueOrders = new Set();
                 
-                if (item.order) {
-                    uniqueOrders.add(item.order);
-                }
+                // Breakdowns
+                const breakdownBySourceApp = {};
+                const breakdownBySourceType = {};
+                const breakdownByMoneyTypeName = {};
+                const breakdownBySaleTypeName = {};
                 
-                // Breakdown by sourceApp
-                const sourceApp = item.sourceApp || 'no_app';
-                if (!breakdownBySourceApp[sourceApp]) {
-                    breakdownBySourceApp[sourceApp] = {
-                        finalPriceWithSessionDiscountsAndSurcharges: 0,
-                        finalPrice: 0
-                    };
-                }
-                breakdownBySourceApp[sourceApp].finalPriceWithSessionDiscountsAndSurcharges += finalPriceWithDiscounts;
-                breakdownBySourceApp[sourceApp].finalPrice += finalPrice;
-                
-                // Breakdown by sourceType
-                const sourceType = item.sourceType || 'no_type';
-                if (!breakdownBySourceType[sourceType]) {
-                    breakdownBySourceType[sourceType] = {
-                        finalPriceWithSessionDiscountsAndSurcharges: 0,
-                        finalPrice: 0
-                    };
-                }
-                breakdownBySourceType[sourceType].finalPriceWithSessionDiscountsAndSurcharges += finalPriceWithDiscounts;
-                breakdownBySourceType[sourceType].finalPrice += finalPrice;
-                
-                // Breakdown by moneyTypeName
-                const moneyType = item.moneyTypeName || 'no_payment_type';
-                if (!breakdownByMoneyTypeName[moneyType]) {
-                    breakdownByMoneyTypeName[moneyType] = {
-                        finalPriceWithSessionDiscountsAndSurcharges: 0,
-                        finalPrice: 0
-                    };
-                }
-                breakdownByMoneyTypeName[moneyType].finalPriceWithSessionDiscountsAndSurcharges += finalPriceWithDiscounts;
-                breakdownByMoneyTypeName[moneyType].finalPrice += finalPrice;
-                
-                // Breakdown by saleTypeName
-                const saleType = item.saleTypeName || 'no_sale_type';
-                if (!breakdownBySaleTypeName[saleType]) {
-                    breakdownBySaleTypeName[saleType] = {
-                        finalPriceWithSessionDiscountsAndSurcharges: 0,
-                        finalPrice: 0
-                    };
-                }
-                breakdownBySaleTypeName[saleType].finalPriceWithSessionDiscountsAndSurcharges += finalPriceWithDiscounts;
-                breakdownBySaleTypeName[saleType].finalPrice += finalPrice;
-            });
-            
-            // Round all numbers to 2 decimals
-            const roundBreakdown = (breakdown) => {
-                const rounded = {};
-                for (const [key, value] of Object.entries(breakdown)) {
-                    rounded[key] = {
-                        finalPriceWithSessionDiscountsAndSurcharges: parseFloat(value.finalPriceWithSessionDiscountsAndSurcharges.toFixed(2)),
-                        finalPrice: parseFloat(value.finalPrice.toFixed(2))
-                    };
-                }
-                return rounded;
-            };
-            
-            const aggregatedData = {
-                store_name: storeData.store_name,
-                store_id: storeId,
-                date: dateStr,
-                total_finalPriceWithSessionDiscountsAndSurcharges: parseFloat(totalFinalPriceWithDiscounts.toFixed(2)),
-                total_finalPrice: parseFloat(totalFinalPrice.toFixed(2)),
-                total_orders: uniqueOrders.size,
-                total_items: items.length,
-                breakdown_by_sourceApp: roundBreakdown(breakdownBySourceApp),
-                breakdown_by_sourceType: roundBreakdown(breakdownBySourceType),
-                breakdown_by_moneyTypeName: roundBreakdown(breakdownByMoneyTypeName),
-                breakdown_by_saleTypeName: roundBreakdown(breakdownBySaleTypeName)
-            };
-            
-            // Check if record already exists for this store and date
-            const existing = await base44.asServiceRole.entities.DailyStoreRevenue.filter({
-                store_id: storeId,
-                date: dateStr
-            });
-            
-            if (existing && existing.length > 0) {
-                // Update existing record
-                await base44.asServiceRole.entities.DailyStoreRevenue.update(
-                    existing[0].id,
-                    aggregatedData
-                );
-                results.push({
-                    action: 'updated',
-                    store_name: storeData.store_name,
-                    date: dateStr,
-                    ...aggregatedData
+                items.forEach(item => {
+                    const finalPriceWithDiscounts = item.finalPriceWithSessionDiscountsAndSurcharges || 0;
+                    const finalPrice = item.finalPrice || 0;
+                    
+                    totalFinalPriceWithDiscounts += finalPriceWithDiscounts;
+                    totalFinalPrice += finalPrice;
+                    
+                    if (item.order) {
+                        uniqueOrders.add(item.order);
+                    }
+                    
+                    // Breakdown by sourceApp
+                    const sourceApp = item.sourceApp || 'no_app';
+                    if (!breakdownBySourceApp[sourceApp]) {
+                        breakdownBySourceApp[sourceApp] = {
+                            finalPriceWithSessionDiscountsAndSurcharges: 0,
+                            finalPrice: 0
+                        };
+                    }
+                    breakdownBySourceApp[sourceApp].finalPriceWithSessionDiscountsAndSurcharges += finalPriceWithDiscounts;
+                    breakdownBySourceApp[sourceApp].finalPrice += finalPrice;
+                    
+                    // Breakdown by sourceType
+                    const sourceType = item.sourceType || 'no_type';
+                    if (!breakdownBySourceType[sourceType]) {
+                        breakdownBySourceType[sourceType] = {
+                            finalPriceWithSessionDiscountsAndSurcharges: 0,
+                            finalPrice: 0
+                        };
+                    }
+                    breakdownBySourceType[sourceType].finalPriceWithSessionDiscountsAndSurcharges += finalPriceWithDiscounts;
+                    breakdownBySourceType[sourceType].finalPrice += finalPrice;
+                    
+                    // Breakdown by moneyTypeName
+                    const moneyType = item.moneyTypeName || 'no_payment_type';
+                    if (!breakdownByMoneyTypeName[moneyType]) {
+                        breakdownByMoneyTypeName[moneyType] = {
+                            finalPriceWithSessionDiscountsAndSurcharges: 0,
+                            finalPrice: 0
+                        };
+                    }
+                    breakdownByMoneyTypeName[moneyType].finalPriceWithSessionDiscountsAndSurcharges += finalPriceWithDiscounts;
+                    breakdownByMoneyTypeName[moneyType].finalPrice += finalPrice;
+                    
+                    // Breakdown by saleTypeName
+                    const saleType = item.saleTypeName || 'no_sale_type';
+                    if (!breakdownBySaleTypeName[saleType]) {
+                        breakdownBySaleTypeName[saleType] = {
+                            finalPriceWithSessionDiscountsAndSurcharges: 0,
+                            finalPrice: 0
+                        };
+                    }
+                    breakdownBySaleTypeName[saleType].finalPriceWithSessionDiscountsAndSurcharges += finalPriceWithDiscounts;
+                    breakdownBySaleTypeName[saleType].finalPrice += finalPrice;
                 });
-            } else {
-                // Create new record
-                await base44.asServiceRole.entities.DailyStoreRevenue.create(aggregatedData);
-                results.push({
-                    action: 'created',
+                
+                // Round all numbers to 2 decimals
+                const roundBreakdown = (breakdown) => {
+                    const rounded = {};
+                    for (const [key, value] of Object.entries(breakdown)) {
+                        rounded[key] = {
+                            finalPriceWithSessionDiscountsAndSurcharges: parseFloat(value.finalPriceWithSessionDiscountsAndSurcharges.toFixed(2)),
+                            finalPrice: parseFloat(value.finalPrice.toFixed(2))
+                        };
+                    }
+                    return rounded;
+                };
+                
+                const aggregatedData = {
                     store_name: storeData.store_name,
+                    store_id: storeId,
                     date: dateStr,
-                    ...aggregatedData
+                    total_finalPriceWithSessionDiscountsAndSurcharges: parseFloat(totalFinalPriceWithDiscounts.toFixed(2)),
+                    total_finalPrice: parseFloat(totalFinalPrice.toFixed(2)),
+                    total_orders: uniqueOrders.size,
+                    total_items: items.length,
+                    breakdown_by_sourceApp: roundBreakdown(breakdownBySourceApp),
+                    breakdown_by_sourceType: roundBreakdown(breakdownBySourceType),
+                    breakdown_by_moneyTypeName: roundBreakdown(breakdownByMoneyTypeName),
+                    breakdown_by_saleTypeName: roundBreakdown(breakdownBySaleTypeName)
+                };
+                
+                // Check if record already exists for this store and date
+                let existing = [];
+                try {
+                    existing = await base44.asServiceRole.entities.DailyStoreRevenue.filter({
+                        store_id: storeId,
+                        date: dateStr
+                    });
+                } catch (e) {
+                    console.error('Error checking existing record:', e);
+                    // Continue anyway and try to create
+                }
+                
+                if (existing && existing.length > 0) {
+                    // Update existing record
+                    try {
+                        await base44.asServiceRole.entities.DailyStoreRevenue.update(
+                            existing[0].id,
+                            aggregatedData
+                        );
+                        results.push({
+                            action: 'updated',
+                            store_name: storeData.store_name,
+                            date: dateStr,
+                            ...aggregatedData
+                        });
+                    } catch (e) {
+                        console.error(`Error updating record for ${storeData.store_name}:`, e);
+                        results.push({
+                            action: 'error',
+                            store_name: storeData.store_name,
+                            error: e.message
+                        });
+                    }
+                } else {
+                    // Create new record
+                    try {
+                        await base44.asServiceRole.entities.DailyStoreRevenue.create(aggregatedData);
+                        results.push({
+                            action: 'created',
+                            store_name: storeData.store_name,
+                            date: dateStr,
+                            ...aggregatedData
+                        });
+                    } catch (e) {
+                        console.error(`Error creating record for ${storeData.store_name}:`, e);
+                        results.push({
+                            action: 'error',
+                            store_name: storeData.store_name,
+                            error: e.message
+                        });
+                    }
+                }
+            } catch (storeError) {
+                console.error(`Error processing store ${storeId}:`, storeError);
+                results.push({
+                    action: 'error',
+                    store_name: storeData.store_name,
+                    error: storeError.message
                 });
             }
         }
