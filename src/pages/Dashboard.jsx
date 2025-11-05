@@ -6,7 +6,7 @@ import { Store, TrendingUp, Users, DollarSign, Star, AlertTriangle, Filter, Cale
 import StatsCard from "../components/dashboard/StatsCard";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { format, subDays, isAfter, isBefore, parseISO } from 'date-fns';
+import { format, subDays, isAfter, isBefore, parseISO, isValid } from 'date-fns';
 
 export default function Dashboard() {
   const [dateRange, setDateRange] = useState('30');
@@ -34,15 +34,26 @@ export default function Dashboard() {
     queryFn: async () => {
       // If custom date range, use server-side filtering
       if (startDate && endDate) {
-        const start = parseISO(startDate + 'T00:00:00');
-        const end = parseISO(endDate + 'T23:59:59');
-        
-        return base44.entities.OrderItem.filter({
-          modifiedDate: {
-            $gte: start.toISOString(),
-            $lte: end.toISOString()
+        try {
+          const start = parseISO(startDate + 'T00:00:00');
+          const end = parseISO(endDate + 'T23:59:59');
+          
+          if (!isValid(start) || !isValid(end)) {
+            console.warn("Invalid custom start or end date provided, fetching all order items.");
+            return base44.entities.OrderItem.list('-modifiedDate', 10000);
           }
-        }, '-modifiedDate', 100000);
+          
+          return base44.entities.OrderItem.filter({
+            modifiedDate: {
+              $gte: start.toISOString(),
+              $lte: end.toISOString()
+            }
+          }, '-modifiedDate', 100000);
+        } catch (e) {
+          console.error('Date parsing error for custom range:', e);
+          // Fallback to listing all items if parsing fails
+          return base44.entities.OrderItem.list('-modifiedDate', 10000);
+        }
       }
       
       // Otherwise, use list with reasonable limit
@@ -56,8 +67,18 @@ export default function Dashboard() {
     let endFilterDate;
     
     if (startDate || endDate) {
-      cutoffDate = startDate ? parseISO(startDate + 'T00:00:00') : new Date(0);
-      endFilterDate = endDate ? parseISO(endDate + 'T23:59:59') : new Date();
+      try {
+        cutoffDate = startDate ? parseISO(startDate + 'T00:00:00') : new Date(0);
+        endFilterDate = endDate ? parseISO(endDate + 'T23:59:59') : new Date();
+        
+        if (!isValid(cutoffDate)) cutoffDate = new Date(0);
+        if (!isValid(endFilterDate)) endFilterDate = new Date();
+      } catch (e) {
+        console.error('Date parsing error in filter logic:', e);
+        // Fallback to default 30 days if custom dates are invalid
+        cutoffDate = subDays(new Date(), 30);
+        endFilterDate = new Date();
+      }
     } else {
       const days = parseInt(dateRange);
       cutoffDate = subDays(new Date(), days);
@@ -66,9 +87,15 @@ export default function Dashboard() {
     
     const filteredOrders = orderItems.filter(item => {
       if (item.modifiedDate) {
-        const itemDate = new Date(item.modifiedDate);
-        if (isBefore(itemDate, cutoffDate) || isAfter(itemDate, endFilterDate)) {
-          return false;
+        try {
+          const itemDate = parseISO(item.modifiedDate);
+          if (!isValid(itemDate)) return false; // Skip if itemDate is invalid
+          if (isBefore(itemDate, cutoffDate) || isAfter(itemDate, endFilterDate)) {
+            return false;
+          }
+        } catch (e) {
+          console.warn(`Could not parse item.modifiedDate: ${item.modifiedDate}. Skipping item.`, e);
+          return false; // Skip items with unparseable dates
         }
       }
       return true;
@@ -86,11 +113,19 @@ export default function Dashboard() {
     const revenueByDate = {};
     filteredOrders.forEach(item => {
       if (item.modifiedDate) {
-        const date = format(new Date(item.modifiedDate), 'yyyy-MM-dd');
-        if (!revenueByDate[date]) {
-          revenueByDate[date] = { date, revenue: 0 };
+        try {
+          const itemDate = parseISO(item.modifiedDate);
+          if (isValid(itemDate)) {
+            const date = format(itemDate, 'yyyy-MM-dd');
+            if (!revenueByDate[date]) {
+              revenueByDate[date] = { date, revenue: 0 };
+            }
+            revenueByDate[date].revenue += item.finalPriceWithSessionDiscountsAndSurcharges || 0;
+          }
+        } catch (e) {
+          console.warn(`Could not parse item.modifiedDate for chart: ${item.modifiedDate}. Skipping.`, e);
+          // Skip invalid dates
         }
-        revenueByDate[date].revenue += item.finalPriceWithSessionDiscountsAndSurcharges || 0;
       }
     });
 

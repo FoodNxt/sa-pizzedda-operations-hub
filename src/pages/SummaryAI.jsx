@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Calendar, DollarSign, ShoppingCart, Star, TrendingUp, Users, AlertCircle, Clock, Sparkles, Loader2 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
-import { parseISO, isWithinInterval, differenceInDays, subDays, format } from 'date-fns';
+import { parseISO, isWithinInterval, differenceInDays, subDays, format, isValid } from 'date-fns';
 import { it } from 'date-fns/locale';
 
 export default function SummaryAI() {
@@ -19,19 +19,29 @@ export default function SummaryAI() {
     queryFn: async () => {
       // If custom date range, use server-side filtering
       if (startDate && endDate) {
-        const start = parseISO(startDate + 'T00:00:00');
-        const end = parseISO(endDate + 'T23:59:59');
-        
-        // Add buffer to include comparison period
-        const daysDiff = differenceInDays(end, start) + 1;
-        const bufferStart = subDays(start, daysDiff + 5); // Extra buffer for comparison
-        
-        return base44.entities.OrderItem.filter({
-          modifiedDate: {
-            $gte: bufferStart.toISOString(),
-            $lte: end.toISOString()
+        try {
+          const start = parseISO(startDate + 'T00:00:00');
+          const end = parseISO(endDate + 'T23:59:59');
+          
+          if (!isValid(start) || !isValid(end)) {
+            console.warn('Invalid start or end date for orderItems query, falling back to list.');
+            return base44.entities.OrderItem.list('-modifiedDate', 10000);
           }
-        }, '-modifiedDate', 100000);
+          
+          // Add buffer to include comparison period
+          const daysDiff = differenceInDays(end, start) + 1;
+          const bufferStart = subDays(start, daysDiff + 5); // Extra buffer for comparison
+          
+          return base44.entities.OrderItem.filter({
+            modifiedDate: {
+              $gte: bufferStart.toISOString(),
+              $lte: end.toISOString()
+            }
+          }, '-modifiedDate', 100000);
+        } catch (e) {
+          console.error('Date parsing error in orderItems queryFn:', e);
+          return base44.entities.OrderItem.list('-modifiedDate', 10000);
+        }
       }
       
       // Otherwise, use list with reasonable limit
@@ -82,11 +92,31 @@ export default function SummaryAI() {
 
   // Calculate metrics for a specific period
   const calculatePeriodMetrics = (start, end) => {
+    if (!isValid(start) || !isValid(end)) {
+      console.warn('Invalid start or end date passed to calculatePeriodMetrics.');
+      return {
+        totalRevenue: 0,
+        totalOrders: 0,
+        avgOrderValue: 0,
+        channelPercentages: [],
+        totalReviews: 0,
+        avgRating: 0,
+        shifts: [],
+        inspections: []
+      };
+    }
+
     // Filter orders
     const periodOrders = orderItems.filter(item => {
       if (!item.modifiedDate) return false;
-      const itemDate = parseISO(item.modifiedDate);
-      return isWithinInterval(itemDate, { start, end });
+      try {
+        const itemDate = parseISO(item.modifiedDate);
+        if (!isValid(itemDate)) return false;
+        return isWithinInterval(itemDate, { start, end });
+      } catch (e) {
+        console.warn('Error parsing item modifiedDate:', item.modifiedDate, e);
+        return false;
+      }
     });
 
     const totalRevenue = periodOrders.reduce((sum, item) => 
@@ -121,23 +151,41 @@ export default function SummaryAI() {
     // Filter reviews
     const periodReviews = reviews.filter(review => {
       if (!review.review_date) return false;
-      const reviewDate = parseISO(review.review_date);
-      return isWithinInterval(reviewDate, { start, end });
+      try {
+        const reviewDate = parseISO(review.review_date);
+        if (!isValid(reviewDate)) return false;
+        return isWithinInterval(reviewDate, { start, end });
+      } catch (e) {
+        console.warn('Error parsing review_date:', review.review_date, e);
+        return false;
+      }
     });
 
     // Filter shifts
     let periodShifts = shifts.filter(shift => {
       if (!shift.shift_date) return false;
-      const shiftDate = parseISO(shift.shift_date);
-      return isWithinInterval(shiftDate, { start, end });
+      try {
+        const shiftDate = parseISO(shift.shift_date);
+        if (!isValid(shiftDate)) return false;
+        return isWithinInterval(shiftDate, { start, end });
+      } catch (e) {
+        console.warn('Error parsing shift_date:', shift.shift_date, e);
+        return false;
+      }
     });
     periodShifts = deduplicateShifts(periodShifts);
 
     // Filter cleaning inspections
     const periodInspections = cleaningInspections.filter(inspection => {
       if (!inspection.inspection_date) return false;
-      const inspectionDate = parseISO(inspection.inspection_date);
-      return isWithinInterval(inspectionDate, { start, end });
+      try {
+        const inspectionDate = parseISO(inspection.inspection_date);
+        if (!isValid(inspectionDate)) return false;
+        return isWithinInterval(inspectionDate, { start, end });
+      } catch (e) {
+        console.warn('Error parsing inspection_date:', inspection.inspection_date, e);
+        return false;
+      }
     });
 
     return {
@@ -158,24 +206,45 @@ export default function SummaryAI() {
   const currentMetrics = useMemo(() => {
     if (!startDate || !endDate) return null;
     
-    const start = parseISO(startDate + 'T00:00:00');
-    const end = parseISO(endDate + 'T23:59:59');
-    
-    return calculatePeriodMetrics(start, end);
+    try {
+      const start = parseISO(startDate + 'T00:00:00');
+      const end = parseISO(endDate + 'T23:59:59');
+      
+      if (!isValid(start) || !isValid(end)) {
+        console.warn('Invalid current period dates, returning null metrics.');
+        return null;
+      }
+      
+      return calculatePeriodMetrics(start, end);
+    } catch (e) {
+      console.error('Error calculating current metrics:', e);
+      return null;
+    }
   }, [startDate, endDate, orderItems, reviews, shifts, cleaningInspections]);
 
   // Previous period metrics (for comparison)
   const previousMetrics = useMemo(() => {
     if (!startDate || !endDate) return null;
     
-    const start = parseISO(startDate + 'T00:00:00');
-    const end = parseISO(endDate + 'T23:59:59');
-    const daysDiff = differenceInDays(end, start) + 1;
-    
-    const prevEnd = subDays(start, 1);
-    const prevStart = subDays(prevEnd, daysDiff - 1);
-    
-    return calculatePeriodMetrics(prevStart, prevEnd);
+    try {
+      const start = parseISO(startDate + 'T00:00:00');
+      const end = parseISO(endDate + 'T23:59:59');
+      
+      if (!isValid(start) || !isValid(end)) {
+        console.warn('Invalid date range for previous metrics calculation.');
+        return null;
+      }
+      
+      const daysDiff = differenceInDays(end, start) + 1;
+      
+      const prevEnd = subDays(start, 1);
+      const prevStart = subDays(prevEnd, daysDiff - 1);
+      
+      return calculatePeriodMetrics(prevStart, prevEnd);
+    } catch (e) {
+      console.error('Error calculating previous metrics:', e);
+      return null;
+    }
   }, [startDate, endDate, orderItems, reviews, shifts, cleaningInspections]);
 
   // Employee alerts
@@ -214,7 +283,12 @@ export default function SummaryAI() {
       }
     });
     
-    return alerts.sort((a, b) => new Date(b.date) - new Date(a.date));
+    return alerts.sort((a, b) => {
+      // Handle potential invalid dates in sort
+      const dateA = a.date ? parseISO(a.date) : new Date(0);
+      const dateB = b.date ? parseISO(b.date) : new Date(0);
+      return (isValid(dateB) ? dateB.getTime() : 0) - (isValid(dateA) ? dateA.getTime() : 0);
+    });
   }, [currentMetrics]);
 
   // Cleaning alerts
@@ -254,7 +328,12 @@ export default function SummaryAI() {
       });
     });
     
-    return alerts.sort((a, b) => new Date(b.date) - new Date(a.date));
+    return alerts.sort((a, b) => {
+      // Handle potential invalid dates in sort
+      const dateA = a.date ? parseISO(a.date) : new Date(0);
+      const dateB = b.date ? parseISO(b.date) : new Date(0);
+      return (isValid(dateB) ? dateB.getTime() : 0) - (isValid(dateA) ? dateA.getTime() : 0);
+    });
   }, [currentMetrics]);
 
   // Generate AI Summary
@@ -571,7 +650,7 @@ Usa emojis per rendere il testo più leggibile. Sii specifico e actionable.`;
                         <td className="p-3 text-[#6b6b6b] font-medium">{alert.employee}</td>
                         <td className="p-3 text-[#6b6b6b]">{alert.store}</td>
                         <td className="p-3 text-[#6b6b6b]">
-                          {format(parseISO(alert.date), 'dd/MM/yyyy', { locale: it })}
+                          {alert.date && isValid(parseISO(alert.date)) ? format(parseISO(alert.date), 'dd/MM/yyyy', { locale: it }) : 'N/A'}
                         </td>
                         <td className="p-3 text-[#6b6b6b] text-sm">{alert.details}</td>
                         <td className="p-3">
@@ -627,7 +706,7 @@ Usa emojis per rendere il testo più leggibile. Sii specifico e actionable.`;
                         <td className="p-3 text-[#6b6b6b] font-medium">{alert.equipment}</td>
                         <td className="p-3 text-[#6b6b6b]">{alert.store}</td>
                         <td className="p-3 text-[#6b6b6b]">
-                          {format(parseISO(alert.date), 'dd/MM/yyyy HH:mm', { locale: it })}
+                          {alert.date && isValid(parseISO(alert.date)) ? format(parseISO(alert.date), 'dd/MM/yyyy HH:mm', { locale: it }) : 'N/A'}
                         </td>
                         <td className="p-3">
                           <div className="flex justify-center">

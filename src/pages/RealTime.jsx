@@ -1,5 +1,5 @@
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DollarSign, ShoppingCart, TrendingUp, Clock, Zap, Filter, Store, RefreshCw } from 'lucide-react';
@@ -35,15 +35,13 @@ export default function RealTime() {
       }, '-modifiedDate', 50000);
     },
     refetchInterval: 30000, // Refresh every 30 seconds
-  });
-
-  // Update lastUpdateTime whenever orderItems changes (due to refetchInterval or initial load)
-  useEffect(() => {
-    // Only update if data is actually present, avoiding initial empty array state
-    if (orderItems && orderItems.length > 0) {
+    onSuccess: () => {
       setLastUpdateTime(new Date());
     }
-  }, [orderItems]);
+  });
+
+  // The previous useEffect for updating lastUpdateTime is now replaced by the onSuccess callback in useQuery.
+  // This is a more direct and React Query idiomatic way to handle updates on successful data fetch.
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
