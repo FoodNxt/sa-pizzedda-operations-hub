@@ -1,0 +1,547 @@
+import { useState, useEffect } from "react";
+import { Zap, Copy, CheckCircle, AlertCircle, Store, FileSpreadsheet, Key, TrendingUp } from 'lucide-react';
+import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
+import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
+
+export default function IPraticoSetup() {
+  const [webhookUrl, setWebhookUrl] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [testResult, setTestResult] = useState(null);
+  const [testing, setTesting] = useState(false);
+  const [webhookSecret, setWebhookSecret] = useState('');
+
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores'],
+    queryFn: () => base44.entities.Store.list(),
+  });
+
+  useEffect(() => {
+    const baseUrl = window.location.origin;
+    setWebhookUrl(`${baseUrl}/api/functions/importIPraticoFromZapier`);
+  }, []);
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(webhookUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const testWebhook = async () => {
+    if (stores.length === 0) {
+      setTestResult({
+        success: false,
+        message: 'Devi prima creare almeno un locale nella sezione Store Reviews'
+      });
+      return;
+    }
+
+    if (!webhookSecret) {
+      setTestResult({
+        success: false,
+        message: 'Inserisci il Webhook Secret prima di testare'
+      });
+      return;
+    }
+
+    setTesting(true);
+    setTestResult(null);
+
+    try {
+      const response = await base44.functions.invoke('importIPraticoFromZapier', {
+        secret: webhookSecret,
+        store_name: stores[0].name,
+        order_date: '2025-01-15',
+        total_orders: 120,
+        total_revenue: 2450.50,
+        sourceApp_glovo: 850.00,
+        sourceApp_deliveroo: 620.00,
+        sourceApp_justeat: 430.00,
+        sourceApp_onlineordering: 0,
+        sourceApp_ordertable: 0,
+        sourceApp_tabesto: 350.50,
+        sourceApp_instore: 200.00,
+        sourceType_delivery: 1900.00,
+        sourceType_takeaway: 350.50,
+        sourceType_takeawayOnSite: 0,
+        sourceType_instore: 200.00,
+        moneyType_bancomat: 500.00,
+        moneyType_cash: 300.00,
+        moneyType_online: 1400.00,
+        moneyType_satispay: 150.50,
+        moneyType_credit_card: 100.00,
+        moneyType_fidelity_points: 0,
+        moneyType_instore: 0
+      });
+
+      if (response.data.error) {
+        setTestResult({
+          success: false,
+          message: response.data.error,
+          data: response.data
+        });
+      } else {
+        setTestResult({
+          success: true,
+          message: 'Webhook testato con successo! Il record di test è stato creato.',
+          data: response.data
+        });
+      }
+    } catch (error) {
+      setTestResult({
+        success: false,
+        message: 'Errore durante il test: ' + error.message,
+        data: {
+          error: error.message,
+          hint: 'Verifica che la funzione sia deployata correttamente in Dashboard → Code → Functions → importIPraticoFromZapier'
+        }
+      });
+    }
+
+    setTesting(false);
+  };
+
+  return (
+    <div className="max-w-5xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-3">
+          <TrendingUp className="w-10 h-10 text-[#8b7355]" />
+          <h1 className="text-3xl font-bold text-[#6b6b6b]">Configurazione iPratico Data Import</h1>
+        </div>
+        <p className="text-[#9b9b9b]">Importa automaticamente i dati di vendita giornalieri da Google Sheets</p>
+      </div>
+
+      {/* Store Check */}
+      {stores.length === 0 && (
+        <NeumorphicCard className="p-6 border-2 border-red-300">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-6 h-6 text-red-600 mt-1" />
+            <div>
+              <h3 className="font-bold text-red-700 mb-2">Attenzione: Nessun locale configurato</h3>
+              <p className="text-red-600 mb-3">
+                Prima di configurare Zapier, devi creare i tuoi locali nella sezione <strong>Store Reviews</strong>.
+              </p>
+            </div>
+          </div>
+        </NeumorphicCard>
+      )}
+
+      {/* Webhook Secret Setup */}
+      <NeumorphicCard className="p-6 border-2 border-[#8b7355]">
+        <div className="flex items-center gap-3 mb-4">
+          <Key className="w-6 h-6 text-[#8b7355]" />
+          <h2 className="text-xl font-bold text-[#6b6b6b]">🔐 Step 1: Configura Webhook Secret</h2>
+        </div>
+        
+        <div className="neumorphic-pressed p-4 rounded-xl mb-4">
+          <p className="text-[#6b6b6b] mb-4">
+            <strong>IMPORTANTE:</strong> Imposta un <strong>Webhook Secret</strong> dedicato per iPratico.
+          </p>
+          
+          <ol className="space-y-3 text-[#6b6b6b] mb-4">
+            <li className="flex items-start gap-2">
+              <span className="font-bold text-[#8b7355]">1.</span>
+              <span>Vai su <strong>Dashboard → Code → Secrets</strong></span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="font-bold text-[#8b7355]">2.</span>
+              <span>Aggiungi un nuovo secret con nome: <code className="bg-white px-2 py-1 rounded">ZAPIER_IPRATICO_WEBHOOK_SECRET</code></span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="font-bold text-[#8b7355]">3.</span>
+              <span>Imposta un valore sicuro (es: <code className="bg-white px-2 py-1 rounded">ipratico_2025_secret_xyz123</code>)</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="font-bold text-[#8b7355]">4.</span>
+              <span>Copia lo stesso valore qui sotto per testare:</span>
+            </li>
+          </ol>
+
+          <input
+            type="password"
+            placeholder="Incolla qui il tuo webhook secret..."
+            value={webhookSecret}
+            onChange={(e) => setWebhookSecret(e.target.value)}
+            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+          />
+        </div>
+      </NeumorphicCard>
+
+      {/* Available Stores */}
+      {stores.length > 0 && (
+        <NeumorphicCard className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <Store className="w-5 h-5 text-[#8b7355]" />
+            <h2 className="text-xl font-bold text-[#6b6b6b]">Locali Disponibili</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {stores.map(store => (
+              <div key={store.id} className="neumorphic-pressed p-4 rounded-xl">
+                <p className="font-bold text-[#6b6b6b]">{store.name}</p>
+                <p className="text-sm text-[#9b9b9b]">{store.address}</p>
+              </div>
+            ))}
+          </div>
+          <div className="neumorphic-flat p-4 rounded-xl mt-4">
+            <p className="text-sm text-[#6b6b6b]">
+              ⚠️ <strong>Importante:</strong> Il valore di <code className="bg-white px-2 py-1 rounded">store_name</code> in Zapier deve corrispondere <strong>esattamente</strong> al nome del locale.
+            </p>
+          </div>
+        </NeumorphicCard>
+      )}
+
+      {/* Webhook URL */}
+      <NeumorphicCard className="p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <Zap className="w-5 h-5 text-[#8b7355]" />
+          <h2 className="text-xl font-bold text-[#6b6b6b]">🔗 Step 2: URL Webhook</h2>
+        </div>
+        
+        <div className="neumorphic-pressed p-4 rounded-xl mb-4">
+          <div className="flex items-center gap-3">
+            <code className="flex-1 text-sm text-[#6b6b6b] break-all">
+              {webhookUrl || 'Caricamento...'}
+            </code>
+            <NeumorphicButton
+              onClick={copyToClipboard}
+              className="px-4 py-2"
+            >
+              {copied ? <CheckCircle className="w-5 h-5 text-green-600" /> : <Copy className="w-5 h-5" />}
+            </NeumorphicButton>
+          </div>
+        </div>
+
+        <NeumorphicButton
+          onClick={testWebhook}
+          disabled={testing || stores.length === 0 || !webhookSecret}
+          variant="primary"
+          className="w-full"
+        >
+          {testing ? 'Test in corso...' : 'Testa Webhook'}
+        </NeumorphicButton>
+
+        {testResult && (
+          <div className={`mt-4 p-4 rounded-xl ${testResult.success ? 'bg-green-50' : 'bg-red-50'}`}>
+            <div className="flex items-start gap-3">
+              {testResult.success ? (
+                <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+              ) : (
+                <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
+              )}
+              <div className="flex-1">
+                <p className={`font-medium ${testResult.success ? 'text-green-700' : 'text-red-700'}`}>
+                  {testResult.message}
+                </p>
+                {testResult.data && (
+                  <pre className="mt-2 text-xs overflow-auto">
+                    {JSON.stringify(testResult.data, null, 2)}
+                  </pre>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </NeumorphicCard>
+
+      {/* Step by Step Guide */}
+      <NeumorphicCard className="p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <FileSpreadsheet className="w-6 h-6 text-[#8b7355]" />
+          <h2 className="text-xl font-bold text-[#6b6b6b]">⚙️ Step 3: Guida Configurazione Zapier</h2>
+        </div>
+
+        <div className="space-y-6">
+          {/* Step 1 */}
+          <div className="neumorphic-flat p-5 rounded-xl">
+            <div className="flex items-start gap-4">
+              <div className="neumorphic-pressed w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="font-bold text-[#8b7355]">1</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-[#6b6b6b] mb-2">Crea un nuovo Zap</h3>
+                <p className="text-[#6b6b6b] mb-3">
+                  Vai su <a href="https://zapier.com" target="_blank" rel="noopener noreferrer" className="text-[#8b7355] hover:underline">Zapier.com</a> e clicca su "Create Zap"
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Step 2 */}
+          <div className="neumorphic-flat p-5 rounded-xl">
+            <div className="flex items-start gap-4">
+              <div className="neumorphic-pressed w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="font-bold text-[#8b7355]">2</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-[#6b6b6b] mb-2">Configura il Trigger</h3>
+                <ul className="space-y-2 text-[#6b6b6b]">
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#8b7355] mt-1">•</span>
+                    <span><strong>App:</strong> Google Sheets</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#8b7355] mt-1">•</span>
+                    <span><strong>Trigger Event:</strong> New Spreadsheet Row</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#8b7355] mt-1">•</span>
+                    <span><strong>Spreadsheet:</strong> Seleziona il tuo Google Sheet con i dati iPratico</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#8b7355] mt-1">•</span>
+                    <span><strong>Worksheet:</strong> Seleziona il tab del locale (es. "Ticinese", "Lanino")</span>
+                  </li>
+                </ul>
+                <div className="neumorphic-pressed p-3 rounded-lg mt-3">
+                  <p className="text-sm text-[#6b6b6b]">
+                    ℹ️ <strong>Nota:</strong> Dovrai creare uno Zap separato per ogni locale (ogni tab del Google Sheet)
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Step 3 */}
+          <div className="neumorphic-flat p-5 rounded-xl">
+            <div className="flex items-start gap-4">
+              <div className="neumorphic-pressed w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="font-bold text-[#8b7355]">3</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-[#6b6b6b] mb-2">Configura l'Action</h3>
+                <ul className="space-y-2 text-[#6b6b6b]">
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#8b7355] mt-1">•</span>
+                    <span><strong>App:</strong> Webhooks by Zapier</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#8b7355] mt-1">•</span>
+                    <span><strong>Action Event:</strong> POST</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#8b7355] mt-1">•</span>
+                    <span><strong>URL:</strong> Copia l'URL qui sopra ☝️</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Step 4 - Settings */}
+          <div className="neumorphic-flat p-5 rounded-xl border-2 border-[#8b7355]">
+            <div className="flex items-start gap-4">
+              <div className="neumorphic-pressed w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="font-bold text-[#8b7355]">4</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-[#6b6b6b] mb-3">⚠️ Impostazioni Webhook (IMPORTANTE)</h3>
+                
+                <div className="space-y-4">
+                  <div className="neumorphic-pressed p-4 rounded-lg bg-yellow-50">
+                    <p className="font-bold text-[#6b6b6b] mb-2">📌 Payload Type:</p>
+                    <p className="text-[#6b6b6b]">Seleziona: <strong className="text-[#8b7355]">JSON</strong></p>
+                  </div>
+
+                  <div className="neumorphic-pressed p-4 rounded-lg bg-blue-50">
+                    <p className="font-bold text-[#6b6b6b] mb-2">📌 Headers:</p>
+                    <div className="bg-white rounded p-3 font-mono text-sm">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <span className="text-[#8b7355] font-bold">Key:</span>
+                          <code className="ml-2 bg-gray-100 px-2 py-1 rounded">Content-Type</code>
+                        </div>
+                        <div>
+                          <span className="text-[#8b7355] font-bold">Value:</span>
+                          <code className="ml-2 bg-gray-100 px-2 py-1 rounded">application/json</code>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="neumorphic-pressed p-4 rounded-lg">
+                    <p className="font-bold text-[#6b6b6b] mb-2">📌 Altre Impostazioni:</p>
+                    <ul className="space-y-1 text-sm text-[#6b6b6b]">
+                      <li>• <strong>Wrap Request In Array:</strong> No</li>
+                      <li>• <strong>Unflatten:</strong> No</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Step 5 - Field Mapping */}
+          <div className="neumorphic-flat p-5 rounded-xl border-2 border-red-500">
+            <div className="flex items-start gap-4">
+              <div className="neumorphic-pressed w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="font-bold text-[#8b7355]">5</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-[#6b6b6b] mb-3">🗺️ Mappa i Campi (Data)</h3>
+                <p className="text-[#6b6b6b] mb-3">
+                  Nel campo <strong>Data</strong>, aggiungi questi campi mappati alle colonne del Google Sheet:
+                </p>
+                
+                <div className="space-y-2 mb-4">
+                  <div className="neumorphic-pressed p-3 rounded-lg bg-red-50 border-2 border-red-400">
+                    <div className="text-sm">
+                      <span className="font-bold text-red-700 block mb-1">secret 🔐</span>
+                      <span className="text-red-700">→ Scrivi manualmente il tuo <code className="bg-white px-2 py-1 rounded">ZAPIER_IPRATICO_WEBHOOK_SECRET</code></span>
+                    </div>
+                  </div>
+
+                  <div className="neumorphic-pressed p-3 rounded-lg bg-yellow-50">
+                    <div className="text-sm">
+                      <span className="font-bold text-[#8b7355] block mb-1">store_name</span>
+                      <span className="text-[#6b6b6b]">→ Scrivi manualmente il nome esatto del locale (es. "Ticinese")</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="neumorphic-pressed p-4 rounded-lg bg-blue-50">
+                  <p className="text-sm font-bold text-blue-800 mb-3">📊 Campi Dati da Mappare alle Colonne del Google Sheet:</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                    <div>• order_date</div>
+                    <div>• total_orders</div>
+                    <div>• total_revenue</div>
+                    <div>• sourceApp_glovo</div>
+                    <div>• sourceApp_deliveroo</div>
+                    <div>• sourceApp_justeat</div>
+                    <div>• sourceApp_onlineordering</div>
+                    <div>• sourceApp_ordertable</div>
+                    <div>• sourceApp_tabesto</div>
+                    <div>• sourceApp_instore</div>
+                    <div>• sourceType_delivery</div>
+                    <div>• sourceType_takeaway</div>
+                    <div>• sourceType_takeawayOnSite</div>
+                    <div>• sourceType_instore</div>
+                    <div>• moneyType_bancomat</div>
+                    <div>• moneyType_cash</div>
+                    <div>• moneyType_online</div>
+                    <div>• moneyType_satispay</div>
+                    <div>• moneyType_credit_card</div>
+                    <div>• moneyType_fidelity_points</div>
+                    <div>• moneyType_instore</div>
+                  </div>
+                </div>
+
+                <div className="neumorphic-flat p-3 rounded-lg mt-4 bg-green-50">
+                  <p className="text-sm text-green-800">
+                    💡 <strong>Suggerimento:</strong> Se una colonna non esiste nel tuo Google Sheet, lascia il valore vuoto o metti 0
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Step 6 */}
+          <div className="neumorphic-flat p-5 rounded-xl">
+            <div className="flex items-start gap-4">
+              <div className="neumorphic-pressed w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="font-bold text-[#8b7355]">6</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-[#6b6b6b] mb-2">Testa e Pubblica</h3>
+                <p className="text-[#6b6b6b] mb-3">
+                  Clicca su "Test & Continue" in Zapier per testare l'integrazione, poi "Publish" per attivare lo Zap.
+                </p>
+                <div className="neumorphic-pressed p-3 rounded-lg">
+                  <p className="text-sm text-[#6b6b6b]">
+                    ✅ Ogni nuova riga aggiunta al Google Sheet verrà automaticamente importata!
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </NeumorphicCard>
+
+      {/* Example Google Sheet Structure */}
+      <NeumorphicCard className="p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <FileSpreadsheet className="w-5 h-5 text-[#8b7355]" />
+          <h2 className="text-xl font-bold text-[#6b6b6b]">Struttura Google Sheet Richiesta</h2>
+        </div>
+        
+        <div className="neumorphic-pressed p-4 rounded-xl mb-4">
+          <p className="text-[#6b6b6b] mb-3">
+            Il tuo Google Sheet deve avere queste colonne (nell'ordine che preferisci):
+          </p>
+          <div className="bg-white rounded-lg p-4 overflow-x-auto">
+            <table className="w-full text-xs border-collapse">
+              <thead>
+                <tr className="border-b-2 border-[#8b7355]">
+                  <th className="text-left p-2 text-[#8b7355] font-bold">order_date</th>
+                  <th className="text-left p-2 text-[#8b7355] font-bold">total_orders</th>
+                  <th className="text-left p-2 text-[#8b7355] font-bold">total_revenue</th>
+                  <th className="text-left p-2 text-[#8b7355] font-bold">sourceApp_glovo</th>
+                  <th className="text-left p-2 text-[#8b7355] font-bold">sourceApp_deliveroo</th>
+                  <th className="text-left p-2 text-[#8b7355] font-bold">...</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-gray-200">
+                  <td className="p-2 text-[#6b6b6b]">2025-01-15</td>
+                  <td className="p-2 text-[#6b6b6b]">120</td>
+                  <td className="p-2 text-[#6b6b6b]">2450.50</td>
+                  <td className="p-2 text-[#6b6b6b]">850.00</td>
+                  <td className="p-2 text-[#6b6b6b]">620.00</td>
+                  <td className="p-2 text-[#6b6b6b]">...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="neumorphic-flat p-4 rounded-xl space-y-2">
+          <p className="text-sm text-[#6b6b6b]">
+            📅 <strong>Formato Data:</strong> YYYY-MM-DD (esempio: 2025-01-15)
+          </p>
+          <p className="text-sm text-[#6b6b6b]">
+            🔢 <strong>Formato Numeri:</strong> Usa il punto come separatore decimale (esempio: 2450.50)
+          </p>
+          <p className="text-sm text-[#6b6b6b]">
+            📊 <strong>Ogni Tab:</strong> Rappresenta un locale diverso
+          </p>
+          <p className="text-sm text-[#6b6b6b]">
+            🔄 <strong>Aggiornamenti:</strong> Se importi lo stesso order_date per lo stesso locale, il record verrà <strong>aggiornato</strong> (non duplicato)
+          </p>
+        </div>
+      </NeumorphicCard>
+
+      {/* Troubleshooting */}
+      <NeumorphicCard className="p-6 bg-yellow-50">
+        <div className="flex items-start gap-3 mb-4">
+          <AlertCircle className="w-6 h-6 text-yellow-700" />
+          <div>
+            <h3 className="font-bold text-yellow-800 mb-2">Risoluzione Errori</h3>
+            <ol className="space-y-2 text-yellow-700">
+              <li className="flex items-start gap-2">
+                <span className="font-bold">1.</span>
+                <span><strong>Secret configurato:</strong> Hai impostato ZAPIER_IPRATICO_WEBHOOK_SECRET nei secrets?</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="font-bold">2.</span>
+                <span><strong>store_name esatto:</strong> Il nome del locale deve essere identico a quello configurato</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="font-bold">3.</span>
+                <span><strong>Formato data:</strong> Usa YYYY-MM-DD (es. 2025-01-15)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="font-bold">4.</span>
+                <span><strong>Numeri decimali:</strong> Usa il punto (.) non la virgola (,)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="font-bold">5.</span>
+                <span>Usa il pulsante <strong>"Testa Webhook"</strong> prima di configurare Zapier</span>
+              </li>
+            </ol>
+          </div>
+        </div>
+      </NeumorphicCard>
+    </div>
+  );
+}

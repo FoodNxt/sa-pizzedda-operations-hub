@@ -20,6 +20,7 @@ import Pulizie from './pages/Pulizie';
 import FotoLocale from './pages/FotoLocale';
 import SummaryAI from './pages/SummaryAI';
 import DailyRevenueAggregation from './pages/DailyRevenueAggregation';
+import IPraticoSetup from './pages/IPraticoSetup';
 import Layout from './Layout.jsx';
 
 
@@ -46,6 +47,7 @@ export const PAGES = {
     "FotoLocale": FotoLocale,
     "SummaryAI": SummaryAI,
     "DailyRevenueAggregation": DailyRevenueAggregation,
+    "IPraticoSetup": IPraticoSetup,
 }
 
 export const pagesConfig = {
