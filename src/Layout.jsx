@@ -24,9 +24,20 @@ import {
 const navigationStructure = [
   {
     title: "Dashboard",
-    url: createPageUrl("Dashboard"),
     icon: LayoutDashboard,
-    type: "link"
+    type: "section",
+    items: [
+      {
+        title: "Dashboard",
+        url: createPageUrl("Dashboard"),
+        icon: LayoutDashboard,
+      },
+      {
+        title: "Summary AI",
+        url: createPageUrl("SummaryAI"),
+        icon: Zap,
+      }
+    ]
   },
   {
     title: "Reviews",
@@ -154,7 +165,7 @@ const navigationStructure = [
         icon: Zap,
       },
       {
-        title: "Zapier Inventory", // Moved here from Inventory section
+        title: "Zapier Inventory",
         url: createPageUrl("InventorySetup"),
         icon: Zap,
       }
@@ -166,6 +177,7 @@ export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
+    "Dashboard": true,
     "Reviews": true,
     "Financials": true,
     "Inventory": true, // Added new Inventory section to be expanded by default

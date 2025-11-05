@@ -18,6 +18,7 @@ import RealTime from './pages/RealTime';
 import Payroll from './pages/Payroll';
 import Pulizie from './pages/Pulizie';
 import FotoLocale from './pages/FotoLocale';
+import SummaryAI from './pages/SummaryAI';
 import Layout from './Layout.jsx';
 
 
@@ -42,6 +43,7 @@ export const PAGES = {
     "Payroll": Payroll,
     "Pulizie": Pulizie,
     "FotoLocale": FotoLocale,
+    "SummaryAI": SummaryAI,
 }
 
 export const pagesConfig = {
