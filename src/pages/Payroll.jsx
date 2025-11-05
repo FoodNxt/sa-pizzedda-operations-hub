@@ -19,7 +19,7 @@ export default function Payroll() {
     queryFn: () => base44.entities.Store.list(),
   });
 
-  const { data: shifts = [], isLoading } = useQuery({
+  const { data: rawShifts = [], isLoading } = useQuery({
     queryKey: ['shifts'],
     queryFn: () => base44.entities.Shift.list('-shift_date', 10000),
   });
@@ -48,6 +48,7 @@ export default function Payroll() {
         uniqueShiftsMap.set(key, shift);
       } else {
         const existing = uniqueShiftsMap.get(key);
+        // If an existing shift has an older created_date (meaning it's an older duplicate), replace it
         if (shift.created_date && existing.created_date &&
             new Date(shift.created_date) < new Date(existing.created_date)) {
           uniqueShiftsMap.set(key, shift);
@@ -57,6 +58,9 @@ export default function Payroll() {
 
     return Array.from(uniqueShiftsMap.values());
   };
+
+  // MEMO: Deduplicate shifts once when rawShifts changes
+  const shifts = useMemo(() => deduplicateShifts(rawShifts), [rawShifts]);
 
   // Process payroll data - ACCORPATO PER DIPENDENTE (non per dipendente+locale)
   const payrollData = useMemo(() => {
@@ -86,8 +90,7 @@ export default function Payroll() {
       });
     }
 
-    // Deduplicate
-    filteredShifts = deduplicateShifts(filteredShifts);
+    // The 'shifts' variable is already deduplicated, so no need to call deduplicateShifts again here.
 
     // Group by employee ONLY (not by employee + store)
     const employeeData = {};
@@ -211,8 +214,7 @@ export default function Payroll() {
       });
     }
 
-    // Deduplicate
-    employeeShifts = deduplicateShifts(employeeShifts);
+    // The 'shifts' variable (and thus employeeShifts derived from it) is already deduplicated.
 
     // Group by date for DAILY view
     const dailyData = {};
@@ -467,7 +469,7 @@ export default function Payroll() {
     document.body.removeChild(link);
   };
 
-  // ✅ NEW: Export daily breakdown for ALL employees
+  // NEW: Export daily breakdown for ALL employees
   const exportAllEmployeesDailyCSV = () => {
     let csv = 'Report Giornaliero - Tutti i Dipendenti\n';
     csv += `Periodo: ${startDate || 'Tutti i turni'} - ${endDate || 'Tutti i turni'}\n`;
@@ -493,7 +495,7 @@ export default function Payroll() {
 
     payrollData.employees.forEach(employee => {
       // Filter shifts for this employee
-      let employeeShifts = shifts.filter(s => {
+      let employeeShifts = shifts.filter(s => { // Using the already deduplicated 'shifts'
         if (s.employee_name !== employee.employee_name) return false;
 
         // Apply store filter
@@ -518,8 +520,7 @@ export default function Payroll() {
         return true;
       });
 
-      // Deduplicate
-      employeeShifts = deduplicateShifts(employeeShifts);
+      // 'shifts' is already deduplicated, no need to call deduplicateShifts again here.
 
       // Group by date
       const dailyData = {};
@@ -629,7 +630,7 @@ export default function Payroll() {
     document.body.removeChild(link);
   };
 
-  // ✅ NEW: Export weekly breakdown for ALL employees
+  // NEW: Export weekly breakdown for ALL employees
   const exportWeeklyReport = () => {
     let csv = 'Report Settimanale - Tutti i Dipendenti\n';
     csv += `Periodo: ${startDate || 'Tutti i turni'} - ${endDate || 'Tutti i turni'}\n`;
@@ -646,7 +647,7 @@ export default function Payroll() {
     let minDate = null;
     let maxDate = null;
 
-    const relevantShifts = shifts.filter(s => {
+    const relevantShifts = shifts.filter(s => { // Using the already deduplicated 'shifts'
       // Apply store filter
       if (selectedStore !== 'all' && s.store_id !== selectedStore) return false;
       // Only shifts with a date are relevant for range calculation
@@ -687,7 +688,7 @@ export default function Payroll() {
 
     payrollData.employees.forEach(employee => {
       // Filter shifts for this employee
-      let employeeShifts = shifts.filter(s => {
+      let employeeShifts = shifts.filter(s => { // Using the already deduplicated 'shifts'
         if (s.employee_name !== employee.employee_name) return false;
 
         // Apply store filter
@@ -712,8 +713,7 @@ export default function Payroll() {
         return true;
       });
 
-      // Deduplicate
-      employeeShifts = deduplicateShifts(employeeShifts);
+      // 'shifts' is already deduplicated, no need to call deduplicateShifts again here.
 
       if (!employeeWeeklyData[employee.employee_name]) {
         employeeWeeklyData[employee.employee_name] = {};
