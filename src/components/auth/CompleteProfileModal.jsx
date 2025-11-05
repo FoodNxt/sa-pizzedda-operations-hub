@@ -8,6 +8,7 @@ export default function CompleteProfileModal({ user, onComplete }) {
   const [lastName, setLastName] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [retryCount, setRetryCount] = useState(0);
 
   // Pre-fill with Google name if available
   useEffect(() => {
@@ -17,6 +18,22 @@ export default function CompleteProfileModal({ user, onComplete }) {
       setLastName(parts.slice(1).join(' '));
     }
   }, [user]);
+
+  const verifyUpdate = async (expectedName, maxRetries = 5) => {
+    for (let i = 0; i < maxRetries; i++) {
+      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // Increasing delay
+      
+      const updatedUser = await base44.auth.me();
+      
+      if (updatedUser.full_name === expectedName && updatedUser.profile_manually_completed === true) {
+        return { success: true, user: updatedUser };
+      }
+      
+      console.log(`Verifica ${i + 1}/${maxRetries}: Nome attuale="${updatedUser.full_name}", Atteso="${expectedName}", Completato=${updatedUser.profile_manually_completed}`);
+    }
+    
+    return { success: false };
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -40,31 +57,49 @@ export default function CompleteProfileModal({ user, onComplete }) {
 
     try {
       setSaving(true);
+      setRetryCount(prev => prev + 1);
 
-      // Combine first and last name
       const fullName = `${firstName.trim()} ${lastName.trim()}`;
 
-      // CRITICAL: Update user profile AND mark as manually completed
-      // This ensures the name won't be overwritten by Google
-      await base44.auth.updateMe({
-        full_name: fullName,
-        profile_manually_completed: true
-      });
+      console.log('💾 Tentativo salvataggio:', { fullName, attempt: retryCount + 1 });
 
-      // Wait for the update to be fully processed
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // MULTIPLE SAVE ATTEMPTS - Critical for Google OAuth
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        console.log(`🔄 Salvataggio tentativo ${attempt}/3...`);
+        
+        await base44.auth.updateMe({
+          full_name: fullName,
+          profile_manually_completed: true
+        });
 
-      // Verify the update was successful
-      const updatedUser = await base44.auth.me();
-      
-      if (updatedUser.full_name !== fullName) {
-        throw new Error('Il nome non è stato salvato correttamente. Riprova.');
+        // Wait a bit between attempts
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
 
-      // Notify parent component
+      console.log('✅ Salvataggio completato, inizio verifica...');
+
+      // Verify with retries
+      const verification = await verifyUpdate(fullName, 5);
+      
+      if (!verification.success) {
+        throw new Error(
+          `❌ ERRORE CRITICO: Il nome non è stato salvato correttamente dopo 5 tentativi.\n\n` +
+          `Nome inserito: "${fullName}"\n` +
+          `Prova a:\n` +
+          `1. Ricaricare la pagina (F5)\n` +
+          `2. Fare logout e re-login\n` +
+          `3. Modificare il nome dalla pagina "Profilo" dopo il login\n` +
+          `4. Contattare l'amministratore`
+        );
+      }
+
+      console.log('✅ Verifica completata con successo!');
+      
+      // Success!
       onComplete();
+
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error('❌ Errore durante il salvataggio:', error);
       setError(error.message || 'Errore durante il salvataggio. Riprova.');
       setSaving(false);
     }
@@ -93,10 +128,10 @@ export default function CompleteProfileModal({ user, onComplete }) {
             <div className="text-sm text-blue-800">
               <p className="font-medium mb-1">⚠️ IMPORTANTE!</p>
               <p className="text-xs mb-2">
-                Il nome che inserisci QUI verrà salvato PERMANENTEMENTE e NON verrà sovrascritto da Google.
+                Il nome che inserisci QUI verrà salvato PERMANENTEMENTE e protetto dalle sovrascritture di Google.
               </p>
               <p className="text-xs font-bold">
-                ✅ Inserisci il nome ESATTAMENTE come appare nel sistema aziendale per associare correttamente i tuoi turni e recensioni.
+                ✅ Inserisci nome e cognome ESATTAMENTE come nel sistema aziendale
               </p>
             </div>
           </div>
@@ -137,10 +172,10 @@ export default function CompleteProfileModal({ user, onComplete }) {
 
           {/* Error Message */}
           {error && (
-            <div className="neumorphic-pressed p-3 rounded-lg bg-red-50">
-              <div className="flex items-center gap-2 text-red-700 text-sm">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                <p>{error}</p>
+            <div className="neumorphic-pressed p-3 rounded-lg bg-red-50 max-h-40 overflow-y-auto">
+              <div className="flex items-start gap-2 text-red-700 text-sm">
+                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <p className="whitespace-pre-wrap">{error}</p>
               </div>
             </div>
           )}
@@ -153,6 +188,11 @@ export default function CompleteProfileModal({ user, onComplete }) {
               <p className="text-xs text-[#9b9b9b] mt-2">
                 Nome da Google: <span className="text-[#6b6b6b] line-through">{user.full_name}</span>
                 <span className="text-red-600 ml-1">(verrà sostituito)</span>
+              </p>
+            )}
+            {retryCount > 0 && (
+              <p className="text-xs text-yellow-600 mt-2">
+                Tentativi effettuati: {retryCount}
               </p>
             )}
           </div>
@@ -173,12 +213,12 @@ export default function CompleteProfileModal({ user, onComplete }) {
             {saving ? (
               <>
                 <div className="w-5 h-5 border-2 border-[#8b7355] border-t-transparent rounded-full animate-spin" />
-                Salvataggio e verifica...
+                Salvataggio e verifica in corso...
               </>
             ) : (
               <>
                 <CheckCircle className="w-6 h-6" />
-                Salva Nome
+                Salva Nome (Protetto da Google)
               </>
             )}
           </button>
@@ -187,7 +227,10 @@ export default function CompleteProfileModal({ user, onComplete }) {
         {/* Footer Note */}
         <div className="mt-6 text-center">
           <p className="text-xs text-[#9b9b9b]">
-            Dopo aver salvato, potrai modificare il nome dalla pagina Profilo
+            Dopo il salvataggio, potrai modificare il nome dalla pagina "Profilo"
+          </p>
+          <p className="text-xs text-yellow-600 mt-2 font-medium">
+            ⚠️ Se il problema persiste, modifica il nome da "Profilo" dopo aver effettuato l'accesso
           </p>
         </div>
       </NeumorphicCard>
