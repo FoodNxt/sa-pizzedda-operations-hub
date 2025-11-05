@@ -44,6 +44,11 @@ Deno.serve(async (req) => {
             console.log('Fetching all stores...');
             allStores = await base44.asServiceRole.entities.Store.list();
             console.log(`Found ${allStores.length} total stores`);
+            
+            // Log store details for debugging
+            allStores.forEach(store => {
+                console.log(`Store: ${store.name} (ID: ${store.id})`);
+            });
         } catch (e) {
             console.error('Error fetching stores:', e);
             return Response.json({ 
@@ -64,6 +69,14 @@ Deno.serve(async (req) => {
                 }
             }, '-modifiedDate', 10000);
             console.log(`Found ${orderItems.length} order items for ${dateStr}`);
+            
+            // ✅ Log first few items to debug store matching
+            if (orderItems.length > 0) {
+                console.log('Sample order items:');
+                orderItems.slice(0, 3).forEach(item => {
+                    console.log(`  Item: ${item.orderItemName}, store_id: ${item.store_id}, store_name: ${item.store_name}`);
+                });
+            }
         } catch (e) {
             console.error('Error fetching order items:', e);
             return Response.json({ 
@@ -73,17 +86,48 @@ Deno.serve(async (req) => {
             }, { status: 500 });
         }
 
-        // Group order items by store
-        const ordersByStore = {};
-        orderItems.forEach(item => {
-            const storeId = item.store_id || 'unknown';
-            if (!ordersByStore[storeId]) {
-                ordersByStore[storeId] = [];
-            }
-            ordersByStore[storeId].push(item);
+        // ✅ Create a map of store ID -> store for faster lookup
+        const storeById = {};
+        const storeByName = {};
+        allStores.forEach(store => {
+            storeById[store.id] = store;
+            storeByName[store.name.toLowerCase()] = store;
         });
 
-        console.log(`Grouped items into ${Object.keys(ordersByStore).length} stores with orders`);
+        // ✅ Group order items by store - improved matching logic
+        const ordersByStore = {};
+        const unmatchedItems = [];
+        
+        orderItems.forEach(item => {
+            let matchedStore = null;
+            
+            // Try to match by store_id first
+            if (item.store_id && storeById[item.store_id]) {
+                matchedStore = storeById[item.store_id];
+            } 
+            // If no match by ID, try by name
+            else if (item.store_name) {
+                const normalizedName = item.store_name.toLowerCase().trim();
+                matchedStore = storeByName[normalizedName];
+            }
+            
+            if (matchedStore) {
+                const storeId = matchedStore.id;
+                if (!ordersByStore[storeId]) {
+                    ordersByStore[storeId] = [];
+                }
+                ordersByStore[storeId].push(item);
+            } else {
+                // Log unmatched items for debugging
+                console.warn(`Unmatched item: store_id="${item.store_id}", store_name="${item.store_name}"`);
+                unmatchedItems.push(item);
+            }
+        });
+
+        console.log(`Matched items for ${Object.keys(ordersByStore).length} stores`);
+        if (unmatchedItems.length > 0) {
+            console.warn(`Warning: ${unmatchedItems.length} items could not be matched to any store`);
+        }
 
         const results = [];
 
@@ -163,7 +207,7 @@ Deno.serve(async (req) => {
                     breakdownBySaleTypeName[saleType].finalPrice += finalPrice;
                 });
                 
-                console.log(`Store ${storeName}: Revenue=${totalFinalPriceWithDiscounts}, Orders=${uniqueOrders.size}`);
+                console.log(`Store ${storeName}: Revenue=${totalFinalPriceWithDiscounts}, Orders=${uniqueOrders.size}, Items=${items.length}`);
                 
                 // Round all numbers to 2 decimals
                 const roundBreakdown = (breakdown) => {
@@ -270,6 +314,7 @@ Deno.serve(async (req) => {
             date: dateStr,
             stores_processed: allStores.length,
             total_items_processed: orderItems.length,
+            unmatched_items_count: unmatchedItems.length,
             results
         }, { status: 200 });
 
