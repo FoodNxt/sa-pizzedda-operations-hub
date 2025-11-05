@@ -1,10 +1,11 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
-import { format, parseISO, startOfDay, addHours } from 'npm:date-fns@3.0.0';
+import { format, parseISO, startOfDay, endOfDay, isWithinInterval } from 'npm:date-fns@3.0.0';
 
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         
+        // Verify authentication
         const user = await base44.auth.me();
         if (!user) {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
@@ -12,6 +13,7 @@ Deno.serve(async (req) => {
 
         const body = await req.json().catch(() => ({}));
         
+        // Get date from request or use yesterday as default
         let targetDate;
         if (body.date) {
             try {
@@ -23,6 +25,7 @@ Deno.serve(async (req) => {
                 }, { status: 400 });
             }
         } else {
+            // Default to yesterday
             const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
             targetDate = yesterday;
@@ -30,63 +33,129 @@ Deno.serve(async (req) => {
 
         const dateStr = format(targetDate, 'yyyy-MM-dd');
         const dayStart = startOfDay(targetDate);
+        const dayEnd = endOfDay(targetDate);
 
         console.log(`=== AGGREGATION START ===`);
         console.log(`Aggregating data for date: ${dateStr}`);
+        console.log(`Day range: ${dayStart.toISOString()} to ${dayEnd.toISOString()}`);
 
-        // ✅ Fetch stores
+        // ✅ Fetch ALL active stores first
         let allStores = [];
         try {
             console.log('=== FETCHING STORES ===');
-            allStores = await base44.asServiceRole.entities.Store.list();
-            console.log(`Found ${allStores.length} total stores`);
+            const storesResult = await base44.asServiceRole.entities.Store.list();
+            
+            // ✅ ROBUST: Handle different response formats
+            if (Array.isArray(storesResult)) {
+                allStores = storesResult;
+            } else if (storesResult && typeof storesResult === 'object' && Array.isArray(storesResult.data)) {
+                allStores = storesResult.data;
+            } else {
+                console.error('Unexpected stores result format:', typeof storesResult);
+                allStores = [];
+            }
+            
+            console.log(`Found ${allStores.length} total stores:`);
+            allStores.forEach(store => {
+                console.log(`  - ${store.name} (ID: ${store.id})`);
+            });
         } catch (e) {
             console.error('Error fetching stores:', e);
             return Response.json({ 
                 error: 'Error fetching stores',
-                details: e.message
+                details: e.message,
+                stack: e.stack
             }, { status: 500 });
         }
 
-        // ✅ NEW STRATEGY: Fetch in 4-hour chunks (6 queries for 24 hours)
-        console.log('=== FETCHING ORDER ITEMS IN 4-HOUR CHUNKS ===');
-        const allOrderItems = [];
-        
-        for (let hour = 0; hour < 24; hour += 4) {
-            const chunkStart = addHours(dayStart, hour);
-            const chunkEnd = addHours(dayStart, hour + 4);
+        // ✅ Fetch order items with ROBUST error handling
+        let allOrderItems = [];
+        try {
+            console.log('=== FETCHING RECENT ORDER ITEMS ===');
+            console.log('Using list() with sorting, then client-side date filtering');
             
-            console.log(`Fetching chunk: ${format(chunkStart, 'HH:mm')} to ${format(chunkEnd, 'HH:mm')}`);
+            const result = await base44.asServiceRole.entities.OrderItem.list('-modifiedDate', 10000);
             
-            try {
-                const chunk = await base44.asServiceRole.entities.OrderItem.filter({
-                    modifiedDate: {
-                        $gte: chunkStart.toISOString(),
-                        $lt: chunkEnd.toISOString()
-                    }
-                }, '-modifiedDate', 10000);
-                
-                // ✅ Ensure chunk is an array
-                const chunkArray = Array.isArray(chunk) ? chunk : 
-                                 (chunk && Array.isArray(chunk.data) ? chunk.data : []);
-                
-                console.log(`  - Found ${chunkArray.length} items in this chunk`);
-                allOrderItems.push(...chunkArray);
-            } catch (e) {
-                console.warn(`Warning: Could not fetch chunk ${hour}-${hour+4}:`, e.message);
-                // Continue with other chunks
+            console.log(`Raw result type: ${typeof result}`);
+            console.log(`Is result an array? ${Array.isArray(result)}`);
+            
+            // ✅ EXTREMELY ROBUST: Handle multiple possible response formats
+            if (Array.isArray(result)) {
+                allOrderItems = result;
+                console.log(`✓ Got array directly with ${allOrderItems.length} items`);
+            } else if (result && typeof result === 'object') {
+                if (Array.isArray(result.data)) {
+                    allOrderItems = result.data;
+                    console.log(`✓ Got object with data array: ${allOrderItems.length} items`);
+                } else if (Array.isArray(result.items)) {
+                    allOrderItems = result.items;
+                    console.log(`✓ Got object with items array: ${allOrderItems.length} items`);
+                } else if (Array.isArray(result.results)) {
+                    allOrderItems = result.results;
+                    console.log(`✓ Got object with results array: ${allOrderItems.length} items`);
+                } else {
+                    console.error('Result is object but has no recognized array property');
+                    console.error('Result keys:', Object.keys(result));
+                    allOrderItems = [];
+                }
+            } else {
+                console.error('Unexpected result format:', result);
+                allOrderItems = [];
             }
-        }
-        
-        console.log(`Total OrderItems fetched: ${allOrderItems.length}`);
-        
-        if (allOrderItems.length === 0) {
-            console.warn('⚠️ NO ORDER ITEMS FOUND FOR THIS DATE!');
+            
+            console.log(`Successfully fetched ${allOrderItems.length} order items from database`);
+        } catch (e) {
+            console.error('Error fetching order items:', e);
+            return Response.json({ 
+                error: 'Error fetching order items',
+                details: e.message,
+                stack: e.stack
+            }, { status: 500 });
         }
 
-        // ✅ Log distribution by channel
+        // ✅ Safety check before filtering
+        if (!Array.isArray(allOrderItems)) {
+            console.error('FATAL: allOrderItems is not an array after all checks!');
+            return Response.json({
+                error: 'Failed to get order items as array',
+                details: `Got type: ${typeof allOrderItems}`
+            }, { status: 500 });
+        }
+
+        // ✅ CLIENT-SIDE DATE FILTERING
+        console.log('=== FILTERING BY DATE (CLIENT-SIDE) ===');
+        let orderItems = [];
+        try {
+            orderItems = allOrderItems.filter(item => {
+                if (!item || !item.modifiedDate) {
+                    return false;
+                }
+                
+                try {
+                    const itemDate = parseISO(item.modifiedDate);
+                    if (!itemDate || isNaN(itemDate.getTime())) {
+                        return false;
+                    }
+                    const isInRange = isWithinInterval(itemDate, { start: dayStart, end: dayEnd });
+                    return isInRange;
+                } catch (e) {
+                    return false;
+                }
+            });
+        } catch (filterError) {
+            console.error('Error during client-side filtering:', filterError);
+            return Response.json({
+                error: 'Error filtering order items',
+                details: filterError.message,
+                stack: filterError.stack
+            }, { status: 500 });
+        }
+            
+        console.log(`Found ${orderItems.length} order items for ${dateStr} after client-side filtering`);
+        
+        // ✅ Log distribution by printedOrderItemChannel
         const channelDistribution = {};
-        allOrderItems.forEach(item => {
+        orderItems.forEach(item => {
             const channel = item.printedOrderItemChannel || 'NO_CHANNEL';
             channelDistribution[channel] = (channelDistribution[channel] || 0) + 1;
         });
@@ -94,19 +163,35 @@ Deno.serve(async (req) => {
         Object.entries(channelDistribution).forEach(([channel, count]) => {
             console.log(`  - ${channel}: ${count} items`);
         });
+        
+        // Log sample items
+        if (orderItems.length > 0) {
+            console.log('Sample order items (first 3):');
+            orderItems.slice(0, 3).forEach((item, i) => {
+                console.log(`  [${i+1}] ${item.orderItemName || 'N/A'}`);
+                console.log(`      modifiedDate: ${item.modifiedDate}`);
+                console.log(`      store_id: ${item.store_id}`);
+                console.log(`      store_name: ${item.store_name}`);
+                console.log(`      printedOrderItemChannel: ${item.printedOrderItemChannel}`);
+                console.log(`      finalPrice: €${item.finalPriceWithSessionDiscountsAndSurcharges || 0}`);
+            });
+        } else {
+            console.warn('⚠️ NO ORDER ITEMS FOUND FOR THIS DATE!');
+        }
 
-        // ✅ Create store mapping
+        // ✅ Create store mapping with CHANNEL CODES
         const storeById = {};
         const storeByName = {};
         const storeByChannelCode = {
-            'lct_21684': null,
-            'lct_21350': null
+            'lct_21684': null, // Ticinese
+            'lct_21350': null  // Lanino
         };
         
         allStores.forEach(store => {
             storeById[store.id] = store;
             storeByName[store.name.toLowerCase().trim()] = store;
             
+            // Map channel codes
             if (store.name.toLowerCase() === 'ticinese') {
                 storeByChannelCode['lct_21684'] = store;
             } else if (store.name.toLowerCase() === 'lanino') {
@@ -115,28 +200,32 @@ Deno.serve(async (req) => {
         });
 
         console.log('=== STORE MAPPING ===');
+        console.log(`Created maps for ${allStores.length} stores`);
         console.log('Channel code mapping:', {
             'lct_21684': storeByChannelCode['lct_21684']?.name,
             'lct_21350': storeByChannelCode['lct_21350']?.name
         });
 
-        // ✅ Match items to stores
+        // ✅ Group order items by store
         const ordersByStore = {};
         const unmatchedItems = [];
         
         console.log('=== MATCHING ORDER ITEMS TO STORES ===');
-        allOrderItems.forEach(item => {
+        orderItems.forEach(item => {
             let matchedStore = null;
             
+            // PRIORITY 1: Match by printedOrderItemChannel
             if (item.printedOrderItemChannel && storeByChannelCode[item.printedOrderItemChannel]) {
                 matchedStore = storeByChannelCode[item.printedOrderItemChannel];
             }
             
+            // PRIORITY 2: Match by store_name
             if (!matchedStore && item.store_name) {
                 const normalizedName = item.store_name.toLowerCase().trim();
                 matchedStore = storeByName[normalizedName];
             }
             
+            // PRIORITY 3: Match by store_id
             if (!matchedStore && item.store_id && storeById[item.store_id]) {
                 matchedStore = storeById[item.store_id];
             }
@@ -148,35 +237,40 @@ Deno.serve(async (req) => {
                 }
                 ordersByStore[storeId].push(item);
             } else {
+                console.warn(`✗ UNMATCHED: ${item.orderItemName} - store_id="${item.store_id}", store_name="${item.store_name}", channel="${item.printedOrderItemChannel}"`);
                 unmatchedItems.push(item);
             }
         });
 
         console.log(`=== MATCHING SUMMARY ===`);
+        console.log(`Matched items for ${Object.keys(ordersByStore).length} stores`);
         Object.entries(ordersByStore).forEach(([storeId, items]) => {
             const store = allStores.find(s => s.id === storeId);
             const revenue = items.reduce((sum, item) => sum + (item.finalPriceWithSessionDiscountsAndSurcharges || 0), 0);
             console.log(`  - ${store?.name || storeId}: ${items.length} items, €${revenue.toFixed(2)}`);
         });
         if (unmatchedItems.length > 0) {
-            console.warn(`⚠️ ${unmatchedItems.length} items could not be matched`);
+            console.warn(`⚠️ ${unmatchedItems.length} items could not be matched to any store`);
         }
 
         const results = [];
 
         console.log('=== PROCESSING STORES ===');
+        // Process EVERY store
         for (const store of allStores) {
             try {
                 const storeId = store.id;
                 const storeName = store.name;
                 const items = ordersByStore[storeId] || [];
 
-                console.log(`Processing ${storeName}: ${items.length} items`);
+                console.log(`Processing ${storeName} (${storeId}): ${items.length} items`);
                 
+                // Calculate totals
                 let totalFinalPriceWithDiscounts = 0;
                 let totalFinalPrice = 0;
                 const uniqueOrders = new Set();
                 
+                // Breakdowns
                 const breakdownBySourceApp = {};
                 const breakdownBySourceType = {};
                 const breakdownByMoneyTypeName = {};
@@ -193,6 +287,7 @@ Deno.serve(async (req) => {
                         uniqueOrders.add(item.order);
                     }
                     
+                    // Breakdown by sourceApp
                     const sourceApp = item.sourceApp || 'no_app';
                     if (!breakdownBySourceApp[sourceApp]) {
                         breakdownBySourceApp[sourceApp] = {
@@ -203,6 +298,7 @@ Deno.serve(async (req) => {
                     breakdownBySourceApp[sourceApp].finalPriceWithSessionDiscountsAndSurcharges += finalPriceWithDiscounts;
                     breakdownBySourceApp[sourceApp].finalPrice += finalPrice;
                     
+                    // Breakdown by sourceType
                     const sourceType = item.sourceType || 'no_type';
                     if (!breakdownBySourceType[sourceType]) {
                         breakdownBySourceType[sourceType] = {
@@ -213,6 +309,7 @@ Deno.serve(async (req) => {
                     breakdownBySourceType[sourceType].finalPriceWithSessionDiscountsAndSurcharges += finalPriceWithDiscounts;
                     breakdownBySourceType[sourceType].finalPrice += finalPrice;
                     
+                    // Breakdown by moneyTypeName
                     const moneyType = item.moneyTypeName || 'no_payment_type';
                     if (!breakdownByMoneyTypeName[moneyType]) {
                         breakdownByMoneyTypeName[moneyType] = {
@@ -223,6 +320,7 @@ Deno.serve(async (req) => {
                     breakdownByMoneyTypeName[moneyType].finalPriceWithSessionDiscountsAndSurcharges += finalPriceWithDiscounts;
                     breakdownByMoneyTypeName[moneyType].finalPrice += finalPrice;
                     
+                    // Breakdown by saleTypeName
                     const saleType = item.saleTypeName || 'no_sale_type';
                     if (!breakdownBySaleTypeName[saleType]) {
                         breakdownBySaleTypeName[saleType] = {
@@ -234,8 +332,9 @@ Deno.serve(async (req) => {
                     breakdownBySaleTypeName[saleType].finalPrice += finalPrice;
                 });
                 
-                console.log(`  → Revenue: €${totalFinalPriceWithDiscounts.toFixed(2)}, Orders: ${uniqueOrders.size}`);
+                console.log(`  → Revenue: €${totalFinalPriceWithDiscounts.toFixed(2)}, Orders: ${uniqueOrders.size}, Items: ${items.length}`);
                 
+                // Round all numbers
                 const roundBreakdown = (breakdown) => {
                     const rounded = {};
                     for (const [key, value] of Object.entries(breakdown)) {
@@ -261,6 +360,7 @@ Deno.serve(async (req) => {
                     breakdown_by_saleTypeName: roundBreakdown(breakdownBySaleTypeName)
                 };
                 
+                // Check if record exists
                 let existing = [];
                 try {
                     existing = await base44.asServiceRole.entities.DailyStoreRevenue.filter({
@@ -272,12 +372,13 @@ Deno.serve(async (req) => {
                 }
                 
                 if (existing && existing.length > 0) {
+                    // Update
                     try {
                         await base44.asServiceRole.entities.DailyStoreRevenue.update(
                             existing[0].id,
                             aggregatedData
                         );
-                        console.log(`  ✓ Updated DailyStoreRevenue record`);
+                        console.log(`  ✓ Updated DailyStoreRevenue`);
                         results.push({
                             action: 'updated',
                             store_name: storeName,
@@ -285,7 +386,7 @@ Deno.serve(async (req) => {
                             ...aggregatedData
                         });
                     } catch (e) {
-                        console.error(`Error updating record for ${storeName}:`, e);
+                        console.error(`Error updating: ${e.message}`);
                         results.push({
                             action: 'error',
                             store_name: storeName,
@@ -293,9 +394,10 @@ Deno.serve(async (req) => {
                         });
                     }
                 } else {
+                    // Create
                     try {
                         await base44.asServiceRole.entities.DailyStoreRevenue.create(aggregatedData);
-                        console.log(`  ✓ Created new DailyStoreRevenue record`);
+                        console.log(`  ✓ Created DailyStoreRevenue`);
                         results.push({
                             action: 'created',
                             store_name: storeName,
@@ -303,7 +405,7 @@ Deno.serve(async (req) => {
                             ...aggregatedData
                         });
                     } catch (e) {
-                        console.error(`Error creating record for ${storeName}:`, e);
+                        console.error(`Error creating: ${e.message}`);
                         results.push({
                             action: 'error',
                             store_name: storeName,
@@ -322,23 +424,20 @@ Deno.serve(async (req) => {
         }
 
         console.log(`=== AGGREGATION COMPLETE ===`);
-        console.log(`Date: ${dateStr}`);
-        console.log(`Stores processed: ${allStores.length}`);
-        console.log(`Total items: ${allOrderItems.length}`);
-        console.log(`Unmatched items: ${unmatchedItems.length}`);
         
         return Response.json({
             success: true,
             message: `Aggregated data for ${dateStr}`,
             date: dateStr,
             stores_processed: allStores.length,
-            total_items: allOrderItems.length,
+            total_items_fetched: allOrderItems.length,
+            items_for_date: orderItems.length,
             unmatched_items_count: unmatchedItems.length,
             results
         }, { status: 200 });
 
     } catch (error) {
-        console.error('Error aggregating daily store revenue:', error);
+        console.error('FATAL ERROR:', error);
         return Response.json({ 
             error: 'Errore durante aggregazione',
             details: error.message,
