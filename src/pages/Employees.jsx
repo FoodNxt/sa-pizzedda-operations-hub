@@ -18,7 +18,8 @@ import {
   X
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
-import { parseISO, isWithinInterval } from 'date-fns';
+import { parseISO, isWithinInterval, isValid, format as formatDate } from 'date-fns';
+import { it } from 'date-fns/locale';
 
 export default function Employees() {
   const [selectedStore, setSelectedStore] = useState('all');
@@ -90,6 +91,53 @@ export default function Employees() {
     return Array.from(uniqueShiftsMap.values());
   };
 
+  // Helper function to safely format dates
+  const safeFormatDate = (dateString, formatString, options = {}) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = parseISO(dateString);
+      if (!isValid(date)) return 'N/A';
+      return formatDate(date, formatString, { locale: it, ...options });
+    } catch (e) {
+      return 'N/A';
+    }
+  };
+
+  // Helper function to safely format time from datetime
+  const safeFormatTime = (dateTimeString) => {
+    if (!dateTimeString) return 'N/A';
+    try {
+      const date = new Date(dateTimeString);
+      if (!isValid(date)) return 'N/A';
+      return date.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+      return 'N/A';
+    }
+  };
+
+  // Helper function to safely format date to locale string
+  const safeFormatDateLocale = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      if (!isValid(date)) return 'N/A';
+      return date.toLocaleDateString('it-IT');
+    } catch (e) {
+      return 'N/A';
+    }
+  };
+
+  // Helper function to safely format datetime to locale string
+  const safeFormatDateTimeLocale = (dateTimeString) => {
+    if (!dateTimeString) return 'N/A';
+    try {
+      const date = new Date(dateTimeString);
+      if (!isValid(date)) return 'N/A';
+      return date.toLocaleString('it-IT');
+    } catch (e) {
+      return 'N/A';
+    }
+  };
 
   // Calculate employee metrics
   const employeeMetrics = useMemo(() => {
@@ -278,7 +326,7 @@ export default function Employees() {
           valueA = a.performanceScore;
           valueB = b.performanceScore;
       }
-      return sortOrder === 'desc' ? valueB - valueA : valueA - b.performanceScore;
+      return sortOrder === 'desc' ? valueB - valueA : valueA - valueB; // Corrected sort logic
     });
 
     return filtered;
@@ -917,20 +965,20 @@ export default function Employees() {
                         <div key={`${shift.id}-${index}`} className="neumorphic-pressed p-3 rounded-lg">
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-sm font-medium text-[#6b6b6b]">
-                              {new Date(shift.shift_date).toLocaleDateString('it-IT')} - {shift.store_name}
+                              {safeFormatDateLocale(shift.shift_date)} - {shift.store_name || 'N/A'}
                             </span>
                             <span className="text-sm font-bold text-red-600">
-                              +{shift.minuti_di_ritardo} min
+                              +{shift.minuti_di_ritardo || 0} min
                             </span>
                           </div>
                           <div className="text-xs text-[#9b9b9b] space-y-1">
                             <div>
-                              <strong>Previsto:</strong> {shift.scheduled_start ? new Date(shift.scheduled_start).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                              <strong>Previsto:</strong> {safeFormatTime(shift.scheduled_start)}
                               {' → '}
-                              <strong>Effettivo:</strong> {shift.actual_start ? new Date(shift.actual_start).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                              <strong>Effettivo:</strong> {safeFormatTime(shift.actual_start)}
                             </div>
                             <div className="text-[0.65rem] text-gray-400">
-                              ID: {shift.id} • Creato: {shift.created_date ? new Date(shift.created_date).toLocaleString('it-IT') : 'N/A'}
+                              ID: {shift.id} • Creato: {safeFormatDateTimeLocale(shift.created_date)}
                             </div>
                           </div>
                         </div>
@@ -986,7 +1034,7 @@ export default function Employees() {
                         <div key={`${shift.id}-${index}`} className="neumorphic-pressed p-3 rounded-lg border-2 border-orange-200">
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-sm font-medium text-[#6b6b6b]">
-                              {new Date(shift.shift_date).toLocaleDateString('it-IT')} - {shift.store_name}
+                              {safeFormatDateLocale(shift.shift_date)} - {shift.store_name || 'N/A'}
                             </span>
                             <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded">
                               NON TIMBRATO
@@ -994,9 +1042,9 @@ export default function Employees() {
                           </div>
                           <div className="text-xs text-[#9b9b9b] space-y-1">
                             <div>
-                              <strong>Orario Previsto:</strong> {shift.scheduled_start ? new Date(shift.scheduled_start).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                              <strong>Orario Previsto:</strong> {safeFormatTime(shift.scheduled_start)}
                               {' - '}
-                              {shift.scheduled_end ? new Date(shift.scheduled_end).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                              {safeFormatTime(shift.scheduled_end)}
                             </div>
                             {shift.shift_type && (
                               <div>
@@ -1004,7 +1052,7 @@ export default function Employees() {
                               </div>
                             )}
                             <div className="text-[0.65rem] text-gray-400">
-                              ID: {shift.id} • Creato: {shift.created_date ? new Date(shift.created_date).toLocaleString('it-IT') : 'N/A'}
+                              ID: {shift.id} • Creato: {safeFormatDateTimeLocale(shift.created_date)}
                             </div>
                           </div>
                         </div>
@@ -1079,7 +1127,7 @@ export default function Employees() {
                             <p className="text-xs text-[#6b6b6b] mb-1">{review.comment}</p>
                           )}
                           <p className="text-xs text-[#9b9b9b]">
-                            {new Date(review.review_date).toLocaleDateString('it-IT')}
+                            {safeFormatDateLocale(review.review_date)}
                           </p>
                         </div>
                       ))}
@@ -1112,8 +1160,7 @@ export default function Employees() {
                   </div>
                 </div>
               </div>
-            </div>
-          </NeumorphicCard>
+            </NeumorphicCard>
         </div>
       )}
     </div>
