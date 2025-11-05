@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
-import { format, parseISO, startOfDay, endOfDay, isWithinInterval } from 'npm:date-fns@3.0.0';
+import { format, parseISO, startOfDay, endOfDay } from 'npm:date-fns@3.0.0';
 
 Deno.serve(async (req) => {
     try {
@@ -46,7 +46,6 @@ Deno.serve(async (req) => {
             allStores = await base44.asServiceRole.entities.Store.list();
             console.log(`Found ${allStores.length} total stores:`);
             
-            // Log store details for debugging
             allStores.forEach(store => {
                 console.log(`  - ${store.name} (ID: ${store.id})`);
             });
@@ -59,17 +58,45 @@ Deno.serve(async (req) => {
             }, { status: 500 });
         }
 
-        // ✅ NUOVA STRATEGIA: recupero ultimi 10000 OrderItem e filtro lato client
-        let allOrderItems = [];
+        // ✅ Use SERVER-SIDE FILTER with date range (most efficient)
+        let orderItems = [];
         try {
-            console.log('=== FETCHING RECENT ORDER ITEMS (NO DATE FILTER) ===');
-            console.log('Getting last 10000 OrderItems ordered by modifiedDate descending...');
+            console.log('=== FETCHING ORDER ITEMS WITH SERVER-SIDE DATE FILTER ===');
+            console.log(`Filter: modifiedDate >= ${dayStart.toISOString()} AND <= ${dayEnd.toISOString()}`);
             
-            // Recupero gli ultimi 10000 OrderItem ordinati per data decrescente
-            // Questo include sicuramente tutti gli item del giorno target
-            allOrderItems = await base44.asServiceRole.entities.OrderItem.list('-modifiedDate', 10000);
+            const result = await base44.asServiceRole.entities.OrderItem.filter({
+                modifiedDate: {
+                    $gte: dayStart.toISOString(),
+                    $lte: endOfDay(targetDate).toISOString()
+                }
+            }, '-modifiedDate', 10000);
             
-            console.log(`Fetched ${allOrderItems.length} recent OrderItems from database`);
+            // ✅ SAFETY: Ensure result is an array
+            if (Array.isArray(result)) {
+                orderItems = result;
+            } else if (result && typeof result === 'object' && Array.isArray(result.data)) {
+                orderItems = result.data;
+            } else {
+                console.error('Unexpected result format:', typeof result);
+                orderItems = [];
+            }
+            
+            console.log(`Found ${orderItems.length} order items for ${dateStr}`);
+            
+            // Log sample items
+            if (orderItems.length > 0) {
+                console.log('Sample order items (first 3):');
+                orderItems.slice(0, 3).forEach((item, i) => {
+                    console.log(`  [${i+1}] ${item.orderItemName || 'N/A'}`);
+                    console.log(`      modifiedDate: ${item.modifiedDate}`);
+                    console.log(`      store_id: ${item.store_id}`);
+                    console.log(`      store_name: ${item.store_name}`);
+                    console.log(`      printedOrderItemChannel: ${item.printedOrderItemChannel}`);
+                    console.log(`      finalPrice: €${item.finalPriceWithSessionDiscountsAndSurcharges || 0}`);
+                });
+            } else {
+                console.warn('⚠️ NO ORDER ITEMS FOUND FOR THIS DATE!');
+            }
         } catch (e) {
             console.error('Error fetching order items:', e);
             return Response.json({ 
@@ -79,55 +106,19 @@ Deno.serve(async (req) => {
             }, { status: 500 });
         }
 
-        // ✅ CLIENT-SIDE DATE FILTERING
-        console.log('=== FILTERING BY DATE (CLIENT-SIDE) ===');
-        const orderItems = allOrderItems.filter(item => {
-            if (!item.modifiedDate) {
-                console.warn(`Item ${item.orderItemName} has no modifiedDate, skipping`);
-                return false;
-            }
-            
-            try {
-                const itemDate = parseISO(item.modifiedDate);
-                const isInRange = isWithinInterval(itemDate, { start: dayStart, end: dayEnd });
-                return isInRange;
-            } catch (e) {
-                console.warn(`Could not parse modifiedDate for item ${item.orderItemName}: ${item.modifiedDate}`, e);
-                return false;
-            }
-        });
-            
-        console.log(`Found ${orderItems.length} order items for ${dateStr} after client-side filtering`);
-        
-        // Log sample items for debugging
-        if (orderItems.length > 0) {
-            console.log('Sample filtered order items:');
-            orderItems.slice(0, 5).forEach((item, i) => {
-                console.log(`  [${i+1}] ${item.orderItemName}`);
-                console.log(`      modifiedDate: ${item.modifiedDate}`);
-                console.log(`      store_id: ${item.store_id}`);
-                console.log(`      store_name: ${item.store_name}`);
-                console.log(`      printedOrderItemChannel: ${item.printedOrderItemChannel}`);
-                console.log(`      finalPrice: €${item.finalPriceWithSessionDiscountsAndSurcharges}`);
-                console.log(`      order: ${item.order}`);
-            });
-        } else {
-            console.warn('⚠️ NO ORDER ITEMS FOUND FOR THIS DATE!');
-        }
-
-        // ✅ Create maps for matching - BY ID, NAME, AND CHANNEL CODE
+        // ✅ Create store mapping with CHANNEL CODES (priority!)
         const storeById = {};
         const storeByName = {};
         const storeByChannelCode = {
-            'lct_21684': null, // Will be set to Ticinese store
-            'lct_21350': null  // Will be set to Lanino store
+            'lct_21684': null, // Ticinese
+            'lct_21350': null  // Lanino
         };
         
         allStores.forEach(store => {
             storeById[store.id] = store;
             storeByName[store.name.toLowerCase().trim()] = store;
             
-            // Map channel codes to stores
+            // Map channel codes
             if (store.name.toLowerCase() === 'ticinese') {
                 storeByChannelCode['lct_21684'] = store;
             } else if (store.name.toLowerCase() === 'lanino') {
@@ -137,7 +128,6 @@ Deno.serve(async (req) => {
 
         console.log('=== STORE MAPPING ===');
         console.log(`Created maps for ${allStores.length} stores`);
-        console.log('Store names (normalized):', Object.keys(storeByName));
         console.log('Channel code mapping:', {
             'lct_21684': storeByChannelCode['lct_21684']?.name,
             'lct_21350': storeByChannelCode['lct_21350']?.name
@@ -365,8 +355,7 @@ Deno.serve(async (req) => {
         console.log(`=== AGGREGATION COMPLETE ===`);
         console.log(`Date: ${dateStr}`);
         console.log(`Stores processed: ${allStores.length}`);
-        console.log(`Total items fetched: ${allOrderItems.length}`);
-        console.log(`Items for target date: ${orderItems.length}`);
+        console.log(`Total items processed: ${orderItems.length}`);
         console.log(`Unmatched items: ${unmatchedItems.length}`);
         
         return Response.json({
@@ -374,8 +363,7 @@ Deno.serve(async (req) => {
             message: `Aggregated data for ${dateStr}`,
             date: dateStr,
             stores_processed: allStores.length,
-            total_items_fetched: allOrderItems.length,
-            items_for_date: orderItems.length,
+            total_items_processed: orderItems.length,
             unmatched_items_count: unmatchedItems.length,
             results
         }, { status: 200 });
