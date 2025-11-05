@@ -20,9 +20,9 @@ export default function ChannelComparison() {
   const [channel2, setChannel2] = useState('all');
   const [app2, setApp2] = useState('all');
 
-  const { data: orderItems = [] } = useQuery({
+  const { data: orderItems = [], isLoading: ordersLoading } = useQuery({
     queryKey: ['orderItems'],
-    queryFn: () => base44.entities.OrderItem.list('-modifiedDate', 100000), // Changed from 10000 to 100000
+    queryFn: () => base44.entities.OrderItem.list('-modifiedDate', 50000), // Changed from 100000 to 50000, and added isLoading
   });
 
   // Get unique sales channels and delivery apps
@@ -172,6 +172,14 @@ export default function ChannelComparison() {
       'Combinazione 2': parseFloat(comparisonData.combination2.avgOrderValue.toFixed(2))
     }
   ];
+
+  if (ordersLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen text-2xl font-bold text-[#6b6b6b]">
+        Caricamento dati ordini...
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">

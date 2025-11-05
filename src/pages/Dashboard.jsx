@@ -28,9 +28,9 @@ export default function Dashboard() {
     queryFn: () => base44.entities.Employee.list(),
   });
 
-  const { data: orderItems = [] } = useQuery({
+  const { data: orderItems = [], isLoading: ordersLoading } = useQuery({
     queryKey: ['orderItems'],
-    queryFn: () => base44.entities.OrderItem.list('-modifiedDate', 100000),
+    queryFn: () => base44.entities.OrderItem.list('-modifiedDate', 50000),
   });
 
   // Process data with date filters

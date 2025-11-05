@@ -13,9 +13,9 @@ export default function SummaryAI() {
   const [aiSummary, setAiSummary] = useState(null);
   const [generatingAI, setGeneratingAI] = useState(false);
 
-  const { data: orderItems = [] } = useQuery({
+  const { data: orderItems = [], isLoading: ordersLoading } = useQuery({
     queryKey: ['orderItems'],
-    queryFn: () => base44.entities.OrderItem.list('-modifiedDate', 100000), // Changed from 10000 to 100000
+    queryFn: () => base44.entities.OrderItem.list('-modifiedDate', 50000), // Changed from 100000 to 50000
   });
 
   const { data: reviews = [] } = useQuery({
@@ -492,17 +492,15 @@ Usa emojis per rendere il testo più leggibile. Sii specifico e actionable.`;
                     <span className="font-medium text-[#6b6b6b]">{channel.name}</span>
                     <span className="font-bold text-[#8b7355]">{channel.percentage.toFixed(1)}%</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 h-3 bg-white rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-[#8b7355] to-[#c1a07f] rounded-full transition-all"
-                        style={{ width: `${channel.percentage}%` }}
-                      />
-                    </div>
-                    <span className="text-sm text-[#6b6b6b] font-medium">
-                      €{channel.revenue.toFixed(2)}
-                    </span>
+                  <div className="flex-1 h-3 bg-white rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-[#8b7355] to-[#c1a07f] rounded-full transition-all"
+                      style={{ width: `${channel.percentage}%` }}
+                    />
                   </div>
+                  <span className="text-sm text-[#6b6b6b] font-medium">
+                    €{channel.revenue.toFixed(2)}
+                  </span>
                 </div>
               ))}
             </div>

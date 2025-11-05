@@ -21,7 +21,7 @@ export default function RealTime() {
 
   const { data: orderItems = [], isLoading } = useQuery({
     queryKey: ['orderItems'],
-    queryFn: () => base44.entities.OrderItem.list('-modifiedDate', 100000), // Changed limit from 10000 to 100000
+    queryFn: () => base44.entities.OrderItem.list('-modifiedDate', 50000), // Changed limit from 100000 to 50000
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 

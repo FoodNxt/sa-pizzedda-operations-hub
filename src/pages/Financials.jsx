@@ -20,9 +20,9 @@ export default function Financials() {
     queryFn: () => base44.entities.Store.list(),
   });
 
-  const { data: orderItems = [] } = useQuery({
+  const { data: orderItems = [], isLoading: ordersLoading } = useQuery({
     queryKey: ['orderItems'],
-    queryFn: () => base44.entities.OrderItem.list('-modifiedDate', 100000), // Changed from 10000 to 100000
+    queryFn: () => base44.entities.OrderItem.list('-modifiedDate', 50000), // Changed from 100000 to 50000 and added isLoading
   });
 
   // Get unique sales channels and delivery apps
