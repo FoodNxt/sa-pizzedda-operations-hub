@@ -1,18 +1,16 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query"; // useMutation and useQueryClient removed
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Camera, Upload, Sparkles, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'; // Image as ImageIcon and NeumorphicButton removed
+import { Camera, Upload, Sparkles, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 
 export default function FotoLocale() {
   const navigate = useNavigate();
-  // queryClient removed
   
   const [selectedStore, setSelectedStore] = useState('');
-  const [inspectorName, setInspectorName] = useState('');
+  const [currentUser, setCurrentUser] = useState(null);
   const [photos, setPhotos] = useState({
     forno: null,
     impastatrice: null,
@@ -23,9 +21,22 @@ export default function FotoLocale() {
   });
   const [previews, setPreviews] = useState({});
   const [uploading, setUploading] = useState(false);
-  // analyzing state removed
   const [uploadProgress, setUploadProgress] = useState('');
   const [error, setError] = useState('');
+
+  // Get current user
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const user = await base44.auth.me();
+        setCurrentUser(user);
+      } catch (error) {
+        console.error('Error fetching user:', error);
+        setError('Errore nel caricamento utente');
+      }
+    };
+    fetchUser();
+  }, []);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -45,7 +56,6 @@ export default function FotoLocale() {
     if (file) {
       setPhotos(prev => ({ ...prev, [equipmentKey]: file }));
       
-      // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviews(prev => ({ ...prev, [equipmentKey]: reader.result }));
@@ -63,7 +73,11 @@ export default function FotoLocale() {
       return;
     }
 
-    // Check if all photos are uploaded
+    if (!currentUser) {
+      setError('Utente non identificato');
+      return;
+    }
+
     const missingPhotos = equipment.filter(eq => !photos[eq.key]);
     if (missingPhotos.length > 0) {
       setError(`Carica le foto mancanti: ${missingPhotos.map(eq => eq.label).join(', ')}`);
@@ -74,7 +88,6 @@ export default function FotoLocale() {
       setUploading(true);
       setUploadProgress('Caricamento foto in corso...');
 
-      // Upload all photos
       const uploadedUrls = {};
       for (const eq of equipment) {
         const file = photos[eq.key];
@@ -87,17 +100,15 @@ export default function FotoLocale() {
 
       setUploadProgress('Creazione ispezione...');
 
-      // Create inspection record with "processing" status
       const store = stores.find(s => s.id === selectedStore);
       const inspectionData = {
         store_name: store.name,
         store_id: store.id,
         inspection_date: new Date().toISOString(),
-        inspector_name: inspectorName || 'Anonimo',
-        analysis_status: 'processing' // New status for background analysis
+        inspector_name: currentUser.full_name || currentUser.email,
+        analysis_status: 'processing'
       };
 
-      // Add photo URLs
       equipment.forEach(eq => {
         inspectionData[`${eq.key}_foto_url`] = uploadedUrls[eq.key];
       });
@@ -106,7 +117,6 @@ export default function FotoLocale() {
 
       setUploadProgress('Avvio analisi AI in background...');
 
-      // Start AI analysis in background (don't wait for response)
       base44.functions.invoke('analyzeCleaningInspection', {
         inspection_id: inspection.id,
         equipment_photos: uploadedUrls
@@ -114,25 +124,23 @@ export default function FotoLocale() {
         console.error('Error starting AI analysis:', error);
       });
 
-      // Navigate immediately - analysis will complete in background
       navigate(createPageUrl('Pulizie'));
 
     } catch (error) {
       console.error('Error processing inspection:', error);
       setError('Errore durante il caricamento: ' + error.message);
       setUploading(false);
-      // setAnalyzing(false); // Removed
     }
   };
 
-  const canSubmit = selectedStore && equipment.every(eq => photos[eq.key]);
+  const canSubmit = selectedStore && equipment.every(eq => photos[eq.key]) && currentUser;
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Nuova Ispezione Pulizia</h1>
-        <p className="text-[#9b9b9b]">Carica le foto - l'analisi AI avverrà in background</p>
+        <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Controllo pulizia locale</h1>
+        <p className="text-[#9b9b9b]">Carica le foto delle attrezzature</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -161,16 +169,11 @@ export default function FotoLocale() {
 
             <div>
               <label className="text-sm text-[#9b9b9b] mb-2 block">
-                Nome Ispettore
+                Ispettore
               </label>
-              <input
-                type="text"
-                value={inspectorName}
-                onChange={(e) => setInspectorName(e.target.value)}
-                placeholder="Il tuo nome (opzionale)"
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                disabled={uploading}
-              />
+              <div className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] bg-gray-50">
+                {currentUser ? (currentUser.full_name || currentUser.email) : 'Caricamento...'}
+              </div>
             </div>
           </div>
         </NeumorphicCard>
