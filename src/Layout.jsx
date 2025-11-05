@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom"; // Added useNavigate
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { 
@@ -24,7 +24,7 @@ import {
   Camera,
   ClipboardCheck,
   User,
-  ClipboardList // Added ClipboardList icon import
+  ClipboardList
 } from "lucide-react";
 import CompleteProfileModal from "./components/auth/CompleteProfileModal";
 
@@ -179,19 +179,19 @@ const navigationStructure = [
     requiredUserType: ["dipendente"],
     items: [
       {
-        title: "Profilo", // New item added
-        url: createPageUrl("ProfiloDipendente"), // New item added
-        icon: User, // New item added
-      },
-      {
-        title: "Foto Locale",
-        url: createPageUrl("FotoLocale"),
-        icon: Camera,
-      },
-      {
         title: "Valutazione",
         url: createPageUrl("Valutazione"),
         icon: ClipboardCheck,
+      },
+      {
+        title: "Profilo", // Reordered
+        url: createPageUrl("ProfiloDipendente"), // Reordered
+        icon: User, // Reordered
+      },
+      {
+        title: "Foto Locale", // Reordered
+        url: createPageUrl("FotoLocale"),
+        icon: Camera,
       }
     ]
   },
@@ -232,11 +232,25 @@ const navigationStructure = [
         icon: Upload,
       }
     ]
+  },
+  { // New "Sistema" section
+    title: "Sistema",
+    icon: User,
+    type: "section",
+    requiredUserType: ["admin"],
+    items: [
+      {
+        title: "Gestione Utenti",
+        url: createPageUrl("UsersManagement"),
+        icon: Users,
+      }
+    ]
   }
 ];
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
+  const navigate = useNavigate(); // Initialized useNavigate
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -248,7 +262,8 @@ export default function Layout({ children, currentPageName }) {
     "People": true,
     "Pulizie": true,
     "View Dipendente": true,
-    "Zapier Guide": true
+    "Zapier Guide": true,
+    "Sistema": true // Added new section to expandedSections
   });
 
   useEffect(() => {
@@ -262,12 +277,29 @@ export default function Layout({ children, currentPageName }) {
         const needsProfile = !user.profile_manually_completed;
         
         setShowProfileModal(needsProfile);
+
+        // REDIRECT DIPENDENTE to Valutazione if on Dashboard or other restricted pages
+        if (user.user_type === 'dipendente') {
+          const isOnRestrictedPage = 
+            location.pathname === createPageUrl("Dashboard") ||
+            location.pathname === createPageUrl("StoreReviews") ||
+            location.pathname === createPageUrl("Financials") ||
+            location.pathname === createPageUrl("RealTime") ||
+            location.pathname === createPageUrl("ChannelComparison") ||
+            location.pathname === createPageUrl("Inventory") ||
+            location.pathname === '/' ||
+            location.pathname === '';
+          
+          if (isOnRestrictedPage) {
+            navigate(createPageUrl("Valutazione"), { replace: true });
+          }
+        }
       } catch (error) {
         console.error('Error fetching user:', error);
       }
     };
     fetchUser();
-  }, []);
+  }, [location.pathname, navigate]); // Added navigate to dependency array
 
   const handleProfileComplete = () => {
     setShowProfileModal(false);
