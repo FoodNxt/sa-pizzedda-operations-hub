@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useQuery } from '@tanstack/react-query'; // Assuming @tanstack/react-query is installed and used
-import { ShoppingCart, Copy, CheckCircle, AlertCircle, FileSpreadsheet, Key, Store, TrendingUp } from 'lucide-react';
+import { ShoppingCart, Copy, CheckCircle, AlertCircle, FileSpreadsheet, Key, Store } from 'lucide-react'; // Removed TrendingUp
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { base44 } from "@/api/base44Client";
@@ -105,6 +105,28 @@ export default function OrderItemsSetup() {
         <p className="text-[#9b9b9b]">Importa automaticamente gli ordini dal tuo sistema POS</p>
       </div>
 
+      {/* Deprecation Notice */}
+      <NeumorphicCard className="p-6 border-2 border-yellow-500">
+        <div className="flex items-start gap-3">
+          <AlertCircle className="w-6 h-6 text-yellow-600 mt-1" />
+          <div>
+            <h3 className="font-bold text-yellow-700 mb-2">⚠️ Questa funzionalità è deprecata</h3>
+            <p className="text-yellow-600 mb-3">
+              L'import di OrderItems è stato sostituito dall'import diretto da <strong>iPratico</strong>.
+            </p>
+            <div className="neumorphic-pressed p-3 rounded-lg bg-yellow-50">
+              <p className="text-sm text-yellow-800 mb-2">
+                📌 <strong>Usa invece:</strong>
+              </p>
+              <ul className="text-sm text-yellow-700 ml-4 space-y-1">
+                <li>• <strong>Zapier iPratico</strong> - per import automatico da Google Sheets</li>
+                <li>• <strong>Bulk Import iPratico</strong> - per import massivo di dati storici</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </NeumorphicCard>
+
       {/* Store Check */}
       {stores.length === 0 && (
         <NeumorphicCard className="p-6 border-2 border-red-300">
@@ -114,9 +136,6 @@ export default function OrderItemsSetup() {
               <h3 className="font-bold text-red-700 mb-2">Attenzione: Nessun locale configurato</h3>
               <p className="text-red-600 mb-3">
                 Prima di configurare Zapier, devi creare i tuoi locali nella sezione <strong>Store Reviews</strong>.
-              </p>
-              <p className="text-sm text-red-600">
-                Il webhook ha bisogno di associare gli ordini ai locali esistenti tramite il nome.
               </p>
             </div>
           </div>
@@ -128,7 +147,7 @@ export default function OrderItemsSetup() {
         <div className="flex items-start gap-3">
           <CheckCircle className="w-6 h-6 text-green-600 mt-1" />
           <div>
-            <h3 className="font-bold text-green-700 mb-2">✨ Rilevamento Automatico Store ATTIVO!</h3>
+            <h3 className="font-bold text-green-700 mb-2">✨ Rilevamento Automatico Store</h3>
             <p className="text-green-600 mb-3">
               Il webhook rileva <strong>automaticamente</strong> il locale dal campo <code className="bg-white px-2 py-1 rounded">printedOrderItemChannel</code>:
             </p>
@@ -136,37 +155,6 @@ export default function OrderItemsSetup() {
               <li>• <code className="bg-white px-2 py-1 rounded">lct_21684</code> → Ticinese</li>
               <li>• <code className="bg-white px-2 py-1 rounded">lct_21350</code> → Lanino</li>
             </ul>
-            <div className="neumorphic-pressed p-3 rounded-lg mt-4 bg-green-50">
-              <p className="text-sm text-green-800">
-                🎯 <strong>Vantaggi:</strong> Non è più necessario creare Zap separati per ogni locale! Un solo Zap può importare ordini da tutti i locali automaticamente.
-              </p>
-            </div>
-          </div>
-        </div>
-      </NeumorphicCard>
-
-      {/* Auto-Revenue Update Info - NEW */}
-      <NeumorphicCard className="p-6 border-2 border-blue-500">
-        <div className="flex items-start gap-3">
-          <TrendingUp className="w-6 h-6 text-blue-600 mt-1" />
-          <div>
-            <h3 className="font-bold text-blue-700 mb-2">🚀 Auto-Update Revenue Giornaliera</h3>
-            <p className="text-blue-600 mb-3">
-              Dopo aver importato un OrderItem, Zapier può <strong>automaticamente aggiornare</strong> la tabella DailyStoreRevenue!
-            </p>
-            <div className="neumorphic-pressed p-3 rounded-lg bg-blue-50">
-              <p className="text-sm text-blue-800 font-medium mb-2">
-                📋 Setup consigliato in Zapier:
-              </p>
-              <ol className="text-sm text-blue-700 space-y-1 ml-4 list-decimal">
-                <li><strong>Step 1:</strong> Trigger da Google Sheet (nuova riga)</li>
-                <li><strong>Step 2:</strong> Webhook POST a <code className="bg-white px-2 py-1 rounded">importOrderItemFromZapier</code></li>
-                <li><strong>Step 3:</strong> Webhook POST a <code className="bg-white px-2 py-1 rounded">updateDailyRevenueForOrder</code> (con gli stessi dati)</li>
-              </ol>
-              <p className="text-xs text-blue-600 mt-3">
-                💡 In questo modo ogni nuovo ordine aggiorna automaticamente le statistiche giornaliere in tempo reale!
-              </p>
-            </div>
           </div>
         </div>
       </NeumorphicCard>
@@ -280,14 +268,13 @@ export default function OrderItemsSetup() {
       <NeumorphicCard className="p-6">
         <div className="flex items-center gap-3 mb-6">
           <FileSpreadsheet className="w-6 h-6 text-[#8b7355]" />
-          <h2 className="text-xl font-bold text-[#6b6b6b]">⚙️ Configurazione Zapier con Auto-Update Revenue</h2>
+          <h2 className="text-xl font-bold text-[#6b6b6b]">⚙️ Configurazione Zapier</h2>
         </div>
 
-        <div className="neumorphic-flat p-4 rounded-xl bg-green-50 mb-6">
-          <p className="text-sm text-green-800">
-            ✨ <strong>Novità:</strong> Il locale viene <strong>rilevato automaticamente</strong> dal campo <code className="bg-white px-2 py-1 rounded">printedOrderItemChannel</code>!
-            <br/>Non è più necessario specificare manualmente il <code className="bg-white px-2 py-1 rounded">store_name</code>.
-            <br/>Puoi usare <strong>un solo Zap</strong> per importare ordini da TUTTI i locali contemporaneamente!
+        <div className="neumorphic-flat p-4 rounded-xl bg-yellow-50 mb-6">
+          <p className="text-sm text-yellow-800">
+            ⚠️ <strong>Nota importante:</strong> Questa configurazione è mantenuta per retrocompatibilità. 
+            <br/>Per nuove implementazioni, usa <strong>iPratico</strong> invece di OrderItems.
           </p>
         </div>
 
@@ -319,172 +306,62 @@ export default function OrderItemsSetup() {
                   <li>• <strong>App:</strong> Google Sheets</li>
                   <li>• <strong>Trigger:</strong> New Spreadsheet Row</li>
                   <li>• <strong>Spreadsheet:</strong> Il file Google Sheet con gli ordini</li>
-                  <li>• <strong>Worksheet:</strong> Seleziona il foglio corretto</li>
                 </ul>
               </div>
             </div>
           </div>
 
-          {/* Step 3 - Import OrderItem */}
+          {/* Step 3 */}
           <div className="neumorphic-flat p-5 rounded-xl border-2 border-[#8b7355]">
             <div className="flex items-start gap-4">
               <div className="neumorphic-pressed w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
                 <span className="font-bold text-[#8b7355]">3</span>
               </div>
               <div className="flex-1">
-                <h3 className="font-bold text-[#6b6b6b] mb-2">Action 1: Import OrderItem</h3>
+                <h3 className="font-bold text-[#6b6b6b] mb-2">Action: Webhooks by Zapier</h3>
                 <ul className="space-y-1 text-[#6b6b6b]">
-                  <li>• <strong>App:</strong> Webhooks by Zapier</li>
                   <li>• <strong>Action:</strong> POST</li>
                   <li>• <strong>URL:</strong> <code className="bg-white px-2 py-1 rounded text-xs">{webhookUrl}</code></li>
                   <li>• <strong>Payload Type:</strong> JSON</li>
-                  <li>• <strong>Data:</strong> Mappa tutti i campi dell'OrderItem (vedi sotto)</li>
+                  <li>• <strong>Data:</strong> Mappa i campi richiesti (vedi sotto)</li>
                 </ul>
               </div>
             </div>
           </div>
 
-          {/* Step 4 - Update Revenue - NEW */}
-          <div className="neumorphic-flat p-5 rounded-xl border-2 border-blue-500">
-            <div className="flex items-start gap-4">
-              <div className="neumorphic-pressed w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-blue-50">
-                <span className="font-bold text-blue-600">4</span>
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-blue-700 mb-2">🚀 Action 2: Auto-Update Revenue (NUOVO!)</h3>
-                <ul className="space-y-1 text-blue-700">
-                  <li>• <strong>App:</strong> Webhooks by Zapier</li>
-                  <li>• <strong>Action:</strong> POST</li>
-                  <li>• <strong>URL:</strong> <code className="bg-white px-2 py-1 rounded text-xs">{webhookUrl?.replace('importOrderItemFromZapier', 'updateDailyRevenueForOrder')}</code></li>
-                  <li>• <strong>Payload Type:</strong> JSON</li>
-                </ul>
-                
-                <div className="neumorphic-pressed p-4 rounded-lg mt-3 bg-blue-50">
-                  <p className="font-bold text-blue-700 mb-2">📋 Campi richiesti (Data):</p>
-                  <div className="space-y-2 text-sm text-blue-800">
-                    <div>
-                      <span className="font-bold">secret</span>
-                      <span> → Il tuo ZAPIER_ORDERS_WEBHOOK_SECRET</span>
-                    </div>
-                    <div>
-                      <span className="font-bold">modifiedDate</span>
-                      <span> → Stessa colonna dell'OrderItem</span>
-                    </div>
-                    <div>
-                      <span className="font-bold">store_id</span>
-                      <span> → Output dello Step 3 (response.orderItem.store_id)</span>
-                    </div>
-                    <div>
-                      <span className="font-bold">store_name</span>
-                      <span> → Output dello Step 3 (response.orderItem.store_name)</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="neumorphic-flat p-3 rounded-lg mt-3 bg-green-50">
-                  <p className="text-sm text-green-800">
-                    ✅ <strong>Risultato:</strong> Ogni volta che importi un ordine, la tabella DailyStoreRevenue si aggiorna automaticamente con i dati più recenti!
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Step 5 - Field Mapping */}
+          {/* Step 4 - Field Mapping */}
           <div className="neumorphic-flat p-5 rounded-xl border-2 border-[#8b7355]">
             <div className="flex items-start gap-4">
               <div className="neumorphic-pressed w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="font-bold text-[#8b7355]">5</span>
+                <span className="font-bold text-[#8b7355]">4</span>
               </div>
               <div className="flex-1">
-                <h3 className="font-bold text-[#6b6b6b] mb-3">🔐 Mappa i Campi OrderItem (Action 1)</h3>
+                <h3 className="font-bold text-[#6b6b6b] mb-3">🔐 Campi Richiesti</h3>
                 
-                <div className="space-y-3">
-                  <div className="neumorphic-pressed p-4 rounded-lg bg-red-50 mb-4">
-                    <p className="font-bold text-red-700 mb-3">⚠️ Campi OBBLIGATORI:</p>
-                    <div className="space-y-2 text-sm">
-                      <div>
-                        <span className="font-bold text-red-700">secret</span>
-                        <span className="text-red-700"> → Il tuo ZAPIER_ORDERS_WEBHOOK_SECRET</span>
-                      </div>
-                      <div>
-                        <span className="font-bold text-red-700">itemId</span>
-                        <span className="text-red-700"> → Colonna "itemId" del Google Sheet</span>
-                      </div>
-                      <div>
-                        <span className="font-bold text-red-700">billNumber</span>
-                        <span className="text-red-700"> → Colonna "billNumber"</span>
-                      </div>
-                      <div>
-                        <span className="font-bold text-red-700">orderItemName</span>
-                        <span className="text-red-700"> → Colonna "orderItemName"</span>
-                      </div>
-                      <div className="border-t border-red-300 pt-2">
-                        <span className="font-bold text-red-700">printedOrderItemChannel 🏪</span>
-                        <span className="text-red-700"> → Colonna "printedOrderItemChannel" (il sistema rileva automaticamente il locale!)</span>
-                      </div>
+                <div className="neumorphic-pressed p-4 rounded-lg bg-red-50">
+                  <p className="font-bold text-red-700 mb-3">⚠️ Campi OBBLIGATORI:</p>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <span className="font-bold text-red-700">secret</span>
+                      <span className="text-red-700"> → Il tuo ZAPIER_ORDERS_WEBHOOK_SECRET</span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-red-700">itemId</span>
+                      <span className="text-red-700"> → ID univoco dell'item</span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-red-700">billNumber</span>
+                      <span className="text-red-700"> → Numero scontrino</span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-red-700">orderItemName</span>
+                      <span className="text-red-700"> → Nome prodotto</span>
+                    </div>
+                    <div className="border-t border-red-300 pt-2">
+                      <span className="font-bold text-red-700">printedOrderItemChannel 🏪</span>
+                      <span className="text-red-700"> → Codice locale (lct_21684 o lct_21350)</span>
                     </div>
                   </div>
-
-                  <div className="neumorphic-pressed p-4 rounded-lg bg-blue-50">
-                    <p className="font-bold text-blue-700 mb-2">📋 Campi Opzionali Principali:</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-blue-700">
-                      <div>• finalPrice</div>
-                      <div>• finalPriceWithSessionDiscountsAndSurcharges</div>
-                      <div>• modifiedBy</div>
-                      <div>• modifiedDate</div>
-                      <div>• order</div>
-                      <div>• quantity</div>
-                      <div>• vatRate</div>
-                      <div>• deviceCode</div>
-                      <div>• sourceApp</div>
-                      <div>• sourceType</div>
-                      <div>• moneyTypeName</div>
-                      <div>• saleTypeName</div>
-                      <div>• variation0_name, variation0_price...</div>
-                      <div>• variation1_name, variation1_price...</div>
-                      <div>• ... fino a variation8</div>
-                    </div>
-                  </div>
-
-                  <div className="neumorphic-flat p-4 rounded-xl bg-green-50">
-                    <p className="text-sm text-green-800">
-                      🎯 <strong>Mapping automatico:</strong>
-                    </p>
-                    <ul className="text-sm text-green-700 ml-4 mt-2 space-y-1">
-                      <li>• <code className="bg-white px-2 py-1 rounded">lct_21684</code> → Store: <strong>Ticinese</strong></li>
-                      <li>• <code className="bg-white px-2 py-1 rounded">lct_21350</code> → Store: <strong>Lanino</strong></li>
-                    </ul>
-                    <p className="text-sm text-green-800 mt-3">
-                      Non serve più specificare <code className="bg-white px-2 py-1 rounded">store_name</code> manualmente!
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Step 6 */}
-          <div className="neumorphic-flat p-5 rounded-xl">
-            <div className="flex items-start gap-4">
-              <div className="neumorphic-pressed w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="font-bold text-[#8b7355]">6</span>
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-[#6b6b6b] mb-2">Testa e Pubblica</h3>
-                <p className="text-[#6b6b6b]">
-                  Clicca "Test & Continue" in Zapier per entrambi gli step, poi "Publish". Ogni nuova riga nel Google Sheet sarà importata e aggregata automaticamente!
-                </p>
-                <div className="neumorphic-pressed p-3 rounded-lg mt-3 bg-green-50">
-                  <p className="text-sm text-green-800">
-                    🎉 <strong>Vantaggi dell'automazione:</strong>
-                  </p>
-                  <ul className="text-sm text-green-700 ml-4 mt-2 space-y-1">
-                    <li>✅ Revenue sempre aggiornata in tempo reale</li>
-                    <li>✅ Nessuna aggregazione manuale necessaria</li>
-                    <li>✅ Dashboard sempre accurata</li>
-                    <li>✅ Analytics istantanee</li>
-                  </ul>
                 </div>
               </div>
             </div>
