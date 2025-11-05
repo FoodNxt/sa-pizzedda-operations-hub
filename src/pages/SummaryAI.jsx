@@ -13,9 +13,30 @@ export default function SummaryAI() {
   const [aiSummary, setAiSummary] = useState(null);
   const [generatingAI, setGeneratingAI] = useState(false);
 
+  // Smart data fetching: use filter when dates selected, list otherwise
   const { data: orderItems = [], isLoading: ordersLoading } = useQuery({
-    queryKey: ['orderItems'],
-    queryFn: () => base44.entities.OrderItem.list('-modifiedDate', 50000), // Changed from 100000 to 50000
+    queryKey: ['orderItems', startDate, endDate],
+    queryFn: async () => {
+      // If custom date range, use server-side filtering
+      if (startDate && endDate) {
+        const start = parseISO(startDate + 'T00:00:00');
+        const end = parseISO(endDate + 'T23:59:59');
+        
+        // Add buffer to include comparison period
+        const daysDiff = differenceInDays(end, start) + 1;
+        const bufferStart = subDays(start, daysDiff + 5); // Extra buffer for comparison
+        
+        return base44.entities.OrderItem.filter({
+          modifiedDate: {
+            $gte: bufferStart.toISOString(),
+            $lte: end.toISOString()
+          }
+        }, '-modifiedDate', 100000);
+      }
+      
+      // Otherwise, use list with reasonable limit
+      return base44.entities.OrderItem.list('-modifiedDate', 10000);
+    },
   });
 
   const { data: reviews = [] } = useQuery({

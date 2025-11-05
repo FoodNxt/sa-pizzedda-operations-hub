@@ -20,9 +20,26 @@ export default function ChannelComparison() {
   const [channel2, setChannel2] = useState('all');
   const [app2, setApp2] = useState('all');
 
+  // Smart data fetching: use filter when custom dates, list otherwise
   const { data: orderItems = [], isLoading: ordersLoading } = useQuery({
-    queryKey: ['orderItems'],
-    queryFn: () => base44.entities.OrderItem.list('-modifiedDate', 50000), // Changed from 100000 to 50000, and added isLoading
+    queryKey: ['orderItems', startDate, endDate, dateRange],
+    queryFn: async () => {
+      // If custom date range, use server-side filtering
+      if (startDate && endDate) {
+        const start = parseISO(startDate + 'T00:00:00');
+        const end = parseISO(endDate + 'T23:59:59');
+        
+        return base44.entities.OrderItem.filter({
+          modifiedDate: {
+            $gte: start.toISOString(),
+            $lte: end.toISOString()
+          }
+        }, '-modifiedDate', 100000); // Fetch up to 100,000 for custom filtered range
+      }
+      
+      // Otherwise, use list with a reasonable limit
+      return base44.entities.OrderItem.list('-modifiedDate', 10000); // Fetch up to 10,000 for predefined ranges
+    },
   });
 
   // Get unique sales channels and delivery apps
@@ -51,9 +68,11 @@ export default function ChannelComparison() {
     let cutoffDate;
     let endFilterDate;
     
+    // If custom dates are set, these have priority
     if (startDate || endDate) {
-      cutoffDate = startDate ? parseISO(startDate + 'T00:00:00') : new Date(0);
-      endFilterDate = endDate ? parseISO(endDate + 'T23:59:59') : new Date();
+      // Use startDate and endDate directly for filtering, parseISO already handles 'YYYY-MM-DD'
+      cutoffDate = startDate ? parseISO(startDate + 'T00:00:00') : new Date(0); // If no start date, effectively include all past
+      endFilterDate = endDate ? parseISO(endDate + 'T23:59:59') : new Date(); // If no end date, effectively include up to now
     } else {
       const days = parseInt(dateRange);
       cutoffDate = subDays(new Date(), days);
@@ -130,7 +149,7 @@ export default function ChannelComparison() {
   const clearCustomDates = () => {
     setStartDate('');
     setEndDate('');
-    setDateRange('30');
+    setDateRange('30'); // Reset to a default date range
   };
 
   const getCombinationLabel = (channel, app) => {

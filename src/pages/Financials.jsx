@@ -20,9 +20,26 @@ export default function Financials() {
     queryFn: () => base44.entities.Store.list(),
   });
 
+  // Smart data fetching: use filter when custom dates, list otherwise
   const { data: orderItems = [], isLoading: ordersLoading } = useQuery({
-    queryKey: ['orderItems'],
-    queryFn: () => base44.entities.OrderItem.list('-modifiedDate', 50000), // Changed from 100000 to 50000 and added isLoading
+    queryKey: ['orderItems', startDate, endDate, dateRange],
+    queryFn: async () => {
+      // If custom date range, use server-side filtering
+      if (startDate && endDate) {
+        const start = parseISO(startDate + 'T00:00:00');
+        const end = parseISO(endDate + 'T23:59:59');
+        
+        return base44.entities.OrderItem.filter({
+          modifiedDate: {
+            $gte: start.toISOString(),
+            $lte: end.toISOString()
+          }
+        }, '-modifiedDate', 100000);
+      }
+      
+      // Otherwise, use list with reasonable limit
+      return base44.entities.OrderItem.list('-modifiedDate', 10000);
+    },
   });
 
   // Get unique sales channels and delivery apps

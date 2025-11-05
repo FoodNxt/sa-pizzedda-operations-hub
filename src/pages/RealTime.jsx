@@ -19,9 +19,21 @@ export default function RealTime() {
     queryFn: () => base44.entities.Store.list(),
   });
 
+  // Always filter for today's data using server-side filtering
   const { data: orderItems = [], isLoading } = useQuery({
-    queryKey: ['orderItems'],
-    queryFn: () => base44.entities.OrderItem.list('-modifiedDate', 50000), // Changed limit from 100000 to 50000
+    queryKey: ['orderItems-today'],
+    queryFn: async () => {
+      const today = new Date();
+      const todayStart = startOfDay(today);
+      const todayEnd = endOfDay(today);
+      
+      return base44.entities.OrderItem.filter({
+        modifiedDate: {
+          $gte: todayStart.toISOString(),
+          $lte: todayEnd.toISOString()
+        }
+      }, '-modifiedDate', 50000);
+    },
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
@@ -35,7 +47,7 @@ export default function RealTime() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await queryClient.invalidateQueries({ queryKey: ['orderItems'] });
+    await queryClient.invalidateQueries({ queryKey: ['orderItems-today'] });
     await queryClient.invalidateQueries({ queryKey: ['stores'] });
     // Update timestamp immediately after explicit refresh
     setLastUpdateTime(new Date());
@@ -44,16 +56,9 @@ export default function RealTime() {
 
   // Process today's data
   const todayData = useMemo(() => {
-    const today = new Date();
-    const todayStart = startOfDay(today);
-    const todayEnd = endOfDay(today);
-
-    // Filter all orders from today
-    const allTodayOrders = orderItems.filter(item => {
-      if (!item.modifiedDate) return false;
-      const itemDate = new Date(item.modifiedDate);
-      return isWithinInterval(itemDate, { start: todayStart, end: todayEnd });
-    });
+    // With server-side filtering, all `orderItems` are already from today.
+    // We no longer need the client-side `allTodayOrders` filtering logic.
+    const allTodayOrders = orderItems; // Renamed for clarity, but it's already filtered by server
 
     // Filter by store if selected (for main KPIs and charts)
     const filteredOrders = selectedStore !== 'all' 
