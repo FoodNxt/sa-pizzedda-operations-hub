@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -14,7 +15,7 @@ export default function SummaryAI() {
 
   const { data: orderItems = [] } = useQuery({
     queryKey: ['orderItems'],
-    queryFn: () => base44.entities.OrderItem.list('-modifiedDate', 10000),
+    queryFn: () => base44.entities.OrderItem.list('-modifiedDate', 100000), // Changed from 10000 to 100000
   });
 
   const { data: reviews = [] } = useQuery({
@@ -483,7 +484,7 @@ Usa emojis per rendere il testo più leggibile. Sii specifico e actionable.`;
 
           {/* Revenue by Channel */}
           <NeumorphicCard className="p-6">
-            <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">% Revenue per Canale di Vendita</h2>
+            <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">% Revenue per Canale di Vendita</h2 >
             <div className="space-y-3">
               {currentMetrics.channelPercentages.map((channel, index) => (
                 <div key={index} className="neumorphic-pressed p-4 rounded-xl">
