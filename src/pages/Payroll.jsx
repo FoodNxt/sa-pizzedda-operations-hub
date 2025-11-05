@@ -29,26 +29,45 @@ export default function Payroll() {
     queryFn: () => base44.entities.Employee.list(),
   });
 
-  // Deduplicate shifts
+  // ✅ IMPROVED: More aggressive deduplication
   const deduplicateShifts = (shiftsArray) => {
     const uniqueShiftsMap = new Map();
+    let duplicatesFound = 0;
 
     shiftsArray.forEach(shift => {
-      const normalizedDate = shift.shift_date ? new Date(shift.shift_date).toISOString().split('T')[0] : 'no-date';
-      const normalizedStart = shift.scheduled_start
-        ? new Date(shift.scheduled_start).toISOString().substring(11, 16)
-        : 'no-start';
-      const normalizedEnd = shift.scheduled_end
-        ? new Date(shift.scheduled_end).toISOString().substring(11, 16)
-        : 'no-end';
+      // Normalize date - use only YYYY-MM-DD
+      // Handle both ISO (e.g., "2023-10-27T10:00:00Z") and space-separated formats (e.g., "2023-10-27 10:00:00")
+      const normalizedDate = shift.shift_date
+        ? shift.shift_date.split('T')[0].split(' ')[0]
+        : 'no-date';
 
-      const key = `${shift.employee_name}|${shift.store_id || 'no-store'}|${normalizedDate}|${normalizedStart}|${normalizedEnd}`;
+      // Helper to extract HH:mm from various time/datetime string formats
+      const extractTime = (dateTimeString) => {
+        if (!dateTimeString) return 'no-time';
+        // If it contains 'T', assume ISO format and get time part
+        if (dateTimeString.includes('T')) {
+          return dateTimeString.split('T')[1]?.substring(0, 5) || 'no-time';
+        }
+        // Otherwise, assume it's a time string (e.g., "10:00:00" or "10:00")
+        return dateTimeString.substring(0, 5);
+      };
+
+      const normalizedStart = extractTime(shift.scheduled_start);
+      const normalizedEnd = extractTime(shift.scheduled_end);
+
+      // Use both store_id AND store_name for matching (in case one is missing)
+      const storeIdentifier = shift.store_id || shift.store_name || 'no-store';
+      
+      // Create unique key with normalized values
+      const key = `${shift.employee_name}|${storeIdentifier}|${normalizedDate}|${normalizedStart}|${normalizedEnd}`;
 
       if (!uniqueShiftsMap.has(key)) {
         uniqueShiftsMap.set(key, shift);
       } else {
+        duplicatesFound++;
+        // Keep the one with the OLDEST created_date (original record)
+        // If the current 'shift' is older than the 'existing' one for the same key, replace it.
         const existing = uniqueShiftsMap.get(key);
-        // If an existing shift has an older created_date (meaning it's an older duplicate), replace it
         if (shift.created_date && existing.created_date &&
             new Date(shift.created_date) < new Date(existing.created_date)) {
           uniqueShiftsMap.set(key, shift);
@@ -56,11 +75,19 @@ export default function Payroll() {
       }
     });
 
+    if (duplicatesFound > 0) {
+      console.log(`🔍 Deduplica: rimossi ${duplicatesFound} turni duplicati`);
+    }
+
     return Array.from(uniqueShiftsMap.values());
   };
 
-  // MEMO: Deduplicate shifts once when rawShifts changes
-  const shifts = useMemo(() => deduplicateShifts(rawShifts), [rawShifts]);
+  // ✅ MEMO: Deduplicate shifts una sola volta
+  const shifts = useMemo(() => {
+    const deduplicated = deduplicateShifts(rawShifts);
+    console.log(`📊 Turni totali: ${rawShifts.length} → Dopo deduplica: ${deduplicated.length}`);
+    return deduplicated;
+  }, [rawShifts]);
 
   // Process payroll data - ACCORPATO PER DIPENDENTE (non per dipendente+locale)
   const payrollData = useMemo(() => {
