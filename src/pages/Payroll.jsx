@@ -29,15 +29,21 @@ export default function Payroll() {
     queryFn: () => base44.entities.Employee.list(),
   });
 
-  // ✅ IMPROVED: More aggressive deduplication
+  // ✅ ULTRA-IMPROVED: Aggressive deduplication with name normalization
   const deduplicateShifts = (shiftsArray) => {
     const uniqueShiftsMap = new Map();
     let duplicatesFound = 0;
 
     shiftsArray.forEach(shift => {
+      // ✅ NORMALIZE EMPLOYEE NAME: remove multiple spaces, trim, lowercase
+      const normalizedEmployeeName = (shift.employee_name || 'unknown')
+        .trim()
+        .replace(/\s+/g, ' ')  // Replace multiple spaces with single space
+        .toLowerCase();
+
       // Normalize date - use only YYYY-MM-DD
       // Handle both ISO (e.g., "2023-10-27T10:00:00Z") and space-separated formats (e.g., "2023-10-27 10:00:00")
-      const normalizedDate = shift.shift_date
+      const normalizedDate = shift.shift_date 
         ? shift.shift_date.split('T')[0].split(' ')[0]
         : 'no-date';
 
@@ -55,11 +61,15 @@ export default function Payroll() {
       const normalizedStart = extractTime(shift.scheduled_start);
       const normalizedEnd = extractTime(shift.scheduled_end);
 
-      // Use both store_id AND store_name for matching (in case one is missing)
-      const storeIdentifier = shift.store_id || shift.store_name || 'no-store';
+      // ✅ NORMALIZE STORE: use both store_id and store_name, normalize store_name too
+      const normalizedStoreName = (shift.store_name || 'no-store')
+        .trim()
+        .replace(/\s+/g, ' ')
+        .toLowerCase();
+      const storeIdentifier = shift.store_id || normalizedStoreName;
       
-      // Create unique key with normalized values
-      const key = `${shift.employee_name}|${storeIdentifier}|${normalizedDate}|${normalizedStart}|${normalizedEnd}`;
+      // Create unique key with ALL normalized values
+      const key = `${normalizedEmployeeName}|${storeIdentifier}|${normalizedDate}|${normalizedStart}|${normalizedEnd}`;
 
       if (!uniqueShiftsMap.has(key)) {
         uniqueShiftsMap.set(key, shift);
@@ -68,15 +78,18 @@ export default function Payroll() {
         // Keep the one with the OLDEST created_date (original record)
         // If the current 'shift' is older than the 'existing' one for the same key, replace it.
         const existing = uniqueShiftsMap.get(key);
-        if (shift.created_date && existing.created_date &&
-            new Date(shift.created_date) < new Date(existing.created_date)) {
-          uniqueShiftsMap.set(key, shift);
+        if (shift.created_date && existing.created_date) { // Ensure both dates exist before comparing
+          const shiftDate = new Date(shift.created_date);
+          const existingDate = new Date(existing.created_date);
+          if (shiftDate < existingDate) {
+            uniqueShiftsMap.set(key, shift);
+          }
         }
       }
     });
 
     if (duplicatesFound > 0) {
-      console.log(`🔍 Deduplica: rimossi ${duplicatesFound} turni duplicati`);
+      console.log(`🔍 Deduplica ULTRA: rimossi ${duplicatesFound} turni duplicati`);
     }
 
     return Array.from(uniqueShiftsMap.values());
@@ -85,7 +98,7 @@ export default function Payroll() {
   // ✅ MEMO: Deduplicate shifts una sola volta
   const shifts = useMemo(() => {
     const deduplicated = deduplicateShifts(rawShifts);
-    console.log(`📊 Turni totali: ${rawShifts.length} → Dopo deduplica: ${deduplicated.length}`);
+    console.log(`📊 Turni totali: ${rawShifts.length} → Dopo deduplica ULTRA: ${deduplicated.length}`);
     return deduplicated;
   }, [rawShifts]);
 
