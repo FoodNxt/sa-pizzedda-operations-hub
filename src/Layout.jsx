@@ -240,16 +240,9 @@ export default function Layout({ children, currentPageName }) {
         const user = await base44.auth.me();
         setCurrentUser(user);
         
-        // Check if user needs to complete profile
-        // Show modal if:
-        // 1. User doesn't have a full_name, OR
-        // 2. User's full_name is the same as email (default from auth), OR
-        // 3. User's full_name is too short (less than 3 characters), OR
-        // 4. User's full_name does not contain a space (suggests only a first name)
-        const needsProfile = !user.full_name || 
-                            user.full_name === user.email || 
-                            user.full_name.trim().length < 3 ||
-                            !user.full_name.includes(' '); 
+        // ALWAYS show modal if profile was not manually completed
+        // This catches both new registrations and Google logins
+        const needsProfile = !user.profile_manually_completed;
         
         setShowProfileModal(needsProfile);
       } catch (error) {

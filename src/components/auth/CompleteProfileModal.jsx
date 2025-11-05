@@ -35,9 +35,10 @@ export default function CompleteProfileModal({ user, onComplete }) {
       // Combine first and last name
       const fullName = `${firstName.trim()} ${lastName.trim()}`;
 
-      // Update user profile
+      // Update user profile AND mark as manually completed
       await base44.auth.updateMe({
-        full_name: fullName
+        full_name: fullName,
+        profile_manually_completed: true
       });
 
       // Notify parent component
@@ -61,7 +62,7 @@ export default function CompleteProfileModal({ user, onComplete }) {
             Completa il tuo Profilo
           </h2>
           <p className="text-[#9b9b9b] text-sm">
-            Per continuare, inserisci il tuo nome e cognome
+            Conferma o modifica il tuo nome e cognome
           </p>
         </div>
 
@@ -73,7 +74,7 @@ export default function CompleteProfileModal({ user, onComplete }) {
               <p className="font-medium mb-1">Perché è importante?</p>
               <p className="text-xs">
                 Il nome e cognome vengono utilizzati per associare la tua valutazione, 
-                turni e recensioni. Assicurati che corrispondano al tuo nome nel sistema aziendale.
+                turni e recensioni. Assicurati che corrispondano esattamente al tuo nome nel sistema aziendale.
               </p>
             </div>
           </div>
@@ -122,10 +123,15 @@ export default function CompleteProfileModal({ user, onComplete }) {
             </div>
           )}
 
-          {/* Current Email Info */}
+          {/* Current Info */}
           <div className="neumorphic-pressed p-3 rounded-lg">
-            <p className="text-xs text-[#9b9b9b] mb-1">Email registrata:</p>
+            <p className="text-xs text-[#9b9b9b] mb-1">Account:</p>
             <p className="text-sm text-[#6b6b6b] font-medium">{user?.email}</p>
+            {user?.full_name && (
+              <p className="text-xs text-[#9b9b9b] mt-2">
+                Nome attuale: <span className="text-[#6b6b6b]">{user.full_name}</span>
+              </p>
+            )}
           </div>
 
           {/* Submit Button */}
@@ -149,7 +155,7 @@ export default function CompleteProfileModal({ user, onComplete }) {
             ) : (
               <>
                 <CheckCircle className="w-6 h-6" />
-                Completa Profilo
+                Conferma Profilo
               </>
             )}
           </button>
