@@ -350,7 +350,8 @@ export default function Layout({ children, currentPageName }) {
 
   const getUserDisplayName = () => {
     if (!currentUser) return 'Caricamento...';
-    return currentUser.full_name || currentUser.email || 'Utente';
+    // Prioritize nome_cognome, fallback to full_name
+    return currentUser.nome_cognome || currentUser.full_name || currentUser.email || 'Utente';
   };
 
   const getUserTypeName = () => {

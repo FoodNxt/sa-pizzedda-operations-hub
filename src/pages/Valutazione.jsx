@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -17,7 +18,7 @@ import { it } from 'date-fns/locale';
 
 export default function Valutazione() {
   const [expandedView, setExpandedView] = useState(null); // 'late', 'missing', 'reviews'
-  const [currentUser, setCurrentUser] = useState(null);
+  // const [currentUser, setCurrentUser] = useState(null); // Removed: user data now directly from useQuery
   const [matchedEmployee, setMatchedEmployee] = useState(null);
 
   // Fetch current user
@@ -25,7 +26,7 @@ export default function Valutazione() {
     queryKey: ['currentUser'],
     queryFn: async () => {
       const u = await base44.auth.me();
-      setCurrentUser(u);
+      // setCurrentUser(u); // Removed: user data now directly from useQuery
       return u;
     },
   });
@@ -48,15 +49,16 @@ export default function Valutazione() {
     queryFn: () => base44.entities.Review.list('-review_date'),
   });
 
-  // Match employee by full_name
+  // Match employee by full_name or nome_cognome
   React.useEffect(() => {
-    if (currentUser && employees.length > 0) {
-      const matched = employees.find(emp => 
-        emp.full_name?.toLowerCase().trim() === currentUser.full_name?.toLowerCase().trim()
+    if (user && employees.length > 0) {
+      const userDisplayName = (user.nome_cognome || user.full_name)?.toLowerCase().trim();
+      const matched = employees.find(emp =>
+        emp.full_name?.toLowerCase().trim() === userDisplayName
       );
       setMatchedEmployee(matched);
     }
-  }, [currentUser, employees]);
+  }, [user, employees]); // Changed dependency from currentUser to user
 
   // Helper function to safely format dates
   const safeFormatDate = (dateString, formatString, options = {}) => {
@@ -92,9 +94,29 @@ export default function Valutazione() {
     }
   };
 
+  // Filter shifts for current user - UPDATED TO USE nome_cognome
+  const myShifts = useMemo(() => {
+    if (!user || !shifts.length) return [];
+    const userDisplayName = (user.nome_cognome || user.full_name)?.toLowerCase().trim();
+    return shifts.filter(s =>
+      s.employee_name?.toLowerCase().trim() === userDisplayName
+    );
+  }, [user, shifts]);
+
+  // Filter reviews assigned to current user - UPDATED TO USE nome_cognome
+  const myReviews = useMemo(() => {
+    if (!user || !reviews.length) return [];
+    const userDisplayName = (user.nome_cognome || user.full_name || '').toLowerCase().trim();
+    return reviews.filter(r => {
+      if (!r.employee_assigned_name) return false;
+      const assignedNames = r.employee_assigned_name.split(',').map(n => n.trim().toLowerCase());
+      return assignedNames.includes(userDisplayName);
+    });
+  }, [user, reviews]);
+
   // Filter data for current employee
   const employeeData = useMemo(() => {
-    if (!matchedEmployee) {
+    if (!matchedEmployee || !user) { // Added !user for safety, as myShifts/myReviews depend on user
       return {
         lateShifts: [],
         missingClockIns: [],
@@ -104,32 +126,25 @@ export default function Valutazione() {
       };
     }
 
-    const employeeShifts = shifts.filter(s => 
-      s.employee_name?.toLowerCase().trim() === matchedEmployee.full_name?.toLowerCase().trim()
-    );
+    // Use the pre-filtered myShifts and myReviews
+    const lateShifts = myShifts.filter(s => s.ritardo === true);
+    const missingClockIns = myShifts.filter(s => s.timbratura_mancata === true);
+    // myReviews is already filtered by employee_assigned_name, just filter by source
+    const googleReviews = myReviews.filter(r => r.source === 'google');
 
-    const lateShifts = employeeShifts.filter(s => s.ritardo === true);
-    
-    const missingClockIns = employeeShifts.filter(s => s.timbratura_mancata === true);
-
-    const googleReviews = reviews.filter(r => {
-      if (!r.employee_assigned_name || r.source !== 'google') return false;
-      const assignedNames = r.employee_assigned_name.split(',').map(n => n.trim().toLowerCase());
-      return assignedNames.includes(matchedEmployee.full_name.toLowerCase());
-    });
-
-    const latePercentage = employeeShifts.length > 0 
-      ? (lateShifts.length / employeeShifts.length) * 100 
+    const totalShifts = myShifts.length; // total shifts are myShifts length
+    const latePercentage = totalShifts > 0
+      ? (lateShifts.length / totalShifts) * 100
       : 0;
 
     return {
       lateShifts: lateShifts.sort((a, b) => new Date(b.shift_date) - new Date(a.shift_date)),
       missingClockIns: missingClockIns.sort((a, b) => new Date(b.shift_date) - new Date(a.shift_date)),
       googleReviews: googleReviews.sort((a, b) => new Date(b.review_date) - new Date(a.review_date)),
-      totalShifts: employeeShifts.length,
+      totalShifts,
       latePercentage
     };
-  }, [matchedEmployee, shifts, reviews]);
+  }, [user, matchedEmployee, myShifts, myReviews]); // Dependencies adjusted
 
   if (userLoading) {
     return (
@@ -153,7 +168,7 @@ export default function Valutazione() {
           <AlertCircle className="w-16 h-16 text-yellow-600 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-[#6b6b6b] mb-2">Profilo Non Trovato</h2>
           <p className="text-[#9b9b9b] mb-4">
-            Non è stato trovato un dipendente con il nome: <strong>{currentUser?.full_name || 'N/A'}</strong>
+            Non è stato trovato un dipendente con il nome: <strong>{user?.full_name || 'N/A'}</strong>
           </p>
           <p className="text-sm text-[#9b9b9b]">
             Contatta l'amministratore per verificare che il tuo profilo dipendente sia stato creato correttamente.
