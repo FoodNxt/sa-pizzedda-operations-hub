@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
-import { format, parseISO, startOfDay, endOfDay } from 'npm:date-fns@3.0.0';
+import { format, parseISO, startOfDay, endOfDay, isWithinInterval } from 'npm:date-fns@3.0.0';
 
 Deno.serve(async (req) => {
     try {
@@ -36,25 +36,35 @@ Deno.serve(async (req) => {
         const dayEnd = endOfDay(targetDate);
 
         console.log(`Aggregating data for date: ${dateStr}`);
+        console.log(`Day range: ${dayStart.toISOString()} to ${dayEnd.toISOString()}`);
 
-        // Fetch all OrderItems for the target date
-        let orderItems = [];
+        // Fetch ALL OrderItems and filter in JavaScript for better reliability
+        let allOrderItems = [];
         try {
-            orderItems = await base44.asServiceRole.entities.OrderItem.filter({
-                modifiedDate: {
-                    $gte: dayStart.toISOString(),
-                    $lte: dayEnd.toISOString()
-                }
-            }, '-modifiedDate', 100000);
+            console.log('Fetching all order items...');
+            allOrderItems = await base44.asServiceRole.entities.OrderItem.list('-modifiedDate', 50000);
+            console.log(`Fetched ${allOrderItems.length} total order items`);
         } catch (e) {
             console.error('Error fetching order items:', e);
             return Response.json({ 
                 error: 'Error fetching order items',
-                details: e.message 
+                details: e.message,
+                stack: e.stack
             }, { status: 500 });
         }
 
-        console.log(`Found ${orderItems.length} order items for ${dateStr}`);
+        // Filter items for the target date in JavaScript
+        const orderItems = allOrderItems.filter(item => {
+            if (!item.modifiedDate) return false;
+            try {
+                const itemDate = parseISO(item.modifiedDate);
+                return isWithinInterval(itemDate, { start: dayStart, end: dayEnd });
+            } catch (e) {
+                return false;
+            }
+        });
+
+        console.log(`Found ${orderItems.length} order items for ${dateStr} after filtering`);
 
         if (!orderItems || orderItems.length === 0) {
             return Response.json({
@@ -85,11 +95,14 @@ Deno.serve(async (req) => {
             storeGroups[storeId].items.push(item);
         });
 
+        console.log(`Grouped items into ${Object.keys(storeGroups).length} stores`);
+
         const results = [];
 
         // Process each store
         for (const [storeId, storeData] of Object.entries(storeGroups)) {
             try {
+                console.log(`Processing store: ${storeData.store_name} (${storeId})`);
                 const items = storeData.items;
                 
                 // Calculate totals
@@ -159,6 +172,8 @@ Deno.serve(async (req) => {
                     breakdownBySaleTypeName[saleType].finalPrice += finalPrice;
                 });
                 
+                console.log(`Store ${storeData.store_name}: Revenue=${totalFinalPriceWithDiscounts}, Orders=${uniqueOrders.size}`);
+                
                 // Round all numbers to 2 decimals
                 const roundBreakdown = (breakdown) => {
                     const rounded = {};
@@ -185,6 +200,8 @@ Deno.serve(async (req) => {
                     breakdown_by_saleTypeName: roundBreakdown(breakdownBySaleTypeName)
                 };
                 
+                console.log(`Checking for existing record for store ${storeId} on ${dateStr}`);
+                
                 // Check if record already exists for this store and date
                 let existing = [];
                 try {
@@ -192,6 +209,7 @@ Deno.serve(async (req) => {
                         store_id: storeId,
                         date: dateStr
                     });
+                    console.log(`Found ${existing.length} existing records`);
                 } catch (e) {
                     console.error('Error checking existing record:', e);
                     // Continue anyway and try to create
@@ -200,10 +218,12 @@ Deno.serve(async (req) => {
                 if (existing && existing.length > 0) {
                     // Update existing record
                     try {
+                        console.log(`Updating existing record ${existing[0].id}`);
                         await base44.asServiceRole.entities.DailyStoreRevenue.update(
                             existing[0].id,
                             aggregatedData
                         );
+                        console.log(`Successfully updated record for ${storeData.store_name}`);
                         results.push({
                             action: 'updated',
                             store_name: storeData.store_name,
@@ -215,13 +235,16 @@ Deno.serve(async (req) => {
                         results.push({
                             action: 'error',
                             store_name: storeData.store_name,
-                            error: e.message
+                            error: e.message,
+                            stack: e.stack
                         });
                     }
                 } else {
                     // Create new record
                     try {
+                        console.log(`Creating new record for ${storeData.store_name}`);
                         await base44.asServiceRole.entities.DailyStoreRevenue.create(aggregatedData);
+                        console.log(`Successfully created record for ${storeData.store_name}`);
                         results.push({
                             action: 'created',
                             store_name: storeData.store_name,
@@ -233,7 +256,8 @@ Deno.serve(async (req) => {
                         results.push({
                             action: 'error',
                             store_name: storeData.store_name,
-                            error: e.message
+                            error: e.message,
+                            stack: e.stack
                         });
                     }
                 }
@@ -242,11 +266,14 @@ Deno.serve(async (req) => {
                 results.push({
                     action: 'error',
                     store_name: storeData.store_name,
-                    error: storeError.message
+                    error: storeError.message,
+                    stack: storeError.stack
                 });
             }
         }
 
+        console.log(`Aggregation complete for ${dateStr}`);
+        
         return Response.json({
             success: true,
             message: `Aggregated data for ${dateStr}`,
