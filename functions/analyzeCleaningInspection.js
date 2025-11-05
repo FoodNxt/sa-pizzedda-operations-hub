@@ -13,8 +13,10 @@ Deno.serve(async (req) => {
             }, { status: 400 });
         }
 
-        // Analyze each photo with AI
-        const analysisResults = {};
+        // FETCH PREVIOUS CORRECTIONS FOR LEARNING
+        const allInspections = await base44.asServiceRole.entities.CleaningInspection.list('-inspection_date', 100);
+        const correctionsHistory = allInspections.filter(i => i.has_corrections === true);
+
         const equipment = [
             { key: 'forno', label: 'Forno' },
             { key: 'impastatrice', label: 'Impastatrice' },
@@ -23,11 +25,43 @@ Deno.serve(async (req) => {
             { key: 'cassa', label: 'Cassa' },
             { key: 'lavandino', label: 'Lavandino' }
         ];
+
+        // Analyze each photo with AI
+        const analysisResults = {};
         
         for (const eq of equipment) {
             const url = equipment_photos[eq.key];
             if (url) {
+                // BUILD LEARNING EXAMPLES FROM CORRECTIONS
+                const relevantCorrections = correctionsHistory
+                    .filter(i => i[`${eq.key}_corrected`] === true)
+                    .slice(0, 5) // Use last 5 corrections
+                    .map(i => ({
+                        ai_said: i[`${eq.key}_pulizia_status`],
+                        correct_answer: i[`${eq.key}_corrected_status`],
+                        user_note: i[`${eq.key}_correction_note`],
+                        ai_note: i[`${eq.key}_note_ai`]
+                    }));
+
+                // BUILD ENHANCED PROMPT WITH LEARNING
+                let learningSection = '';
+                if (relevantCorrections.length > 0) {
+                    learningSection = `\n\n🎓 ESEMPI DI APPRENDIMENTO (da correzioni precedenti):
+Questi sono esempi reali di come hai corretto l'AI in passato per ${eq.label}. Usa questi esempi per migliorare la tua valutazione.
+
+${relevantCorrections.map((c, idx) => `
+Esempio ${idx + 1}:
+- L'AI aveva valutato: "${c.ai_said}"
+- La valutazione CORRETTA era: "${c.correct_answer}"
+- Nota AI originale: "${c.ai_note}"
+- Feedback utente: "${c.user_note || 'Nessuna nota'}"
+`).join('\n')}
+
+⚠️ IMPORTANTE: Impara da questi esempi! Se vedi situazioni simili, applica gli stessi criteri di valutazione.`;
+                }
+
                 const prompt = `Analizza questa foto di ${eq.label} in una pizzeria e valuta lo stato di pulizia.
+${learningSection}
 
 Rispondi in formato JSON con questa struttura esatta:
 {
@@ -44,7 +78,7 @@ Criteri di valutazione:
 
 IMPORTANTE: Nelle note, specifica sempre la POSIZIONE ESATTA dello sporco (es. "Residui di farina nell'angolo in alto a destra", "Macchie di unto sulla superficie centrale", "Incrostazioni sul bordo inferiore").
 
-Sii molto critico e attento ai dettagli di igiene in una cucina professionale.`;
+Sii molto critico e attento ai dettagli di igiene in una cucina professionale. ${relevantCorrections.length > 0 ? 'APPLICA GLI INSEGNAMENTI dagli esempi sopra!' : ''}`;
 
                 try {
                     const aiResponse = await base44.integrations.Core.InvokeLLM({
@@ -105,7 +139,8 @@ Sii molto critico e attento ai dettagli di igiene in una cucina professionale.`;
             success: true,
             inspection_id,
             overall_score: overallScore,
-            analysis_results: analysisResults
+            analysis_results: analysisResults,
+            learned_from_corrections: correctionsHistory.length
         }, { status: 200 });
 
     } catch (error) {
