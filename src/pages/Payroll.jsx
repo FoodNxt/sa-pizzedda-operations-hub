@@ -2,7 +2,7 @@
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Clock, Calendar, Users, Filter, Download, DollarSign, X, ChevronRight } from 'lucide-react';
+import { Clock, Calendar, Users, Filter, Download, DollarSign, X, ChevronRight, FileText } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { parseISO, isWithinInterval, format, startOfWeek, endOfWeek, addDays } from 'date-fns';
 import { it } from 'date-fns/locale';
@@ -399,7 +399,7 @@ export default function Payroll() {
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
     
-    const filename = `payroll_${startDate || 'all'}_${endDate || 'all'}.csv`;
+    const filename = `payroll_sintesi_${startDate || 'all'}_${endDate || 'all'}.csv`;
     link.setAttribute('download', filename);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
@@ -460,6 +460,168 @@ export default function Payroll() {
     link.setAttribute('href', url);
     
     const filename = `payroll_${selectedEmployee.employee_name.replace(/\s+/g, '_')}_${viewMode}_${startDate || 'all'}_${endDate || 'all'}.csv`;
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // ✅ NEW: Export daily breakdown for ALL employees
+  const exportAllEmployeesDailyCSV = () => {
+    let csv = 'Report Giornaliero - Tutti i Dipendenti\n';
+    csv += `Periodo: ${startDate || 'Tutti i turni'} - ${endDate || 'Tutti i turni'}\n`;
+    csv += `Locale: ${selectedStore === 'all' ? 'Tutti i Locali' : stores.find(s => s.id === selectedStore)?.name || selectedStore}\n\n`;
+    
+    // Header
+    csv += 'Data,Dipendente,Locale,';
+    
+    // Get all unique shift types across all employees
+    const allShiftTypes = new Set();
+    payrollData.employees.forEach(employee => { // Use payrollData's shiftTypes for consistency
+      Object.keys(employee.shift_types).forEach(type => allShiftTypes.add(type));
+    });
+    const shiftTypesArray = Array.from(allShiftTypes).sort();
+    
+    shiftTypesArray.forEach(type => {
+      csv += `"${type}",`;
+    });
+    csv += 'Totale Ore\n';
+
+    // Collect all daily data for all employees
+    const allDailyData = [];
+
+    payrollData.employees.forEach(employee => {
+      // Filter shifts for this employee
+      let employeeShifts = shifts.filter(s => {
+        if (s.employee_name !== employee.employee_name) return false;
+
+        // Apply store filter
+        if (selectedStore !== 'all' && s.store_id !== selectedStore) return false;
+
+        // Apply date filter
+        if (startDate || endDate) {
+          if (!s.shift_date) return false;
+          const shiftDate = parseISO(s.shift_date);
+          const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
+          const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
+
+          if (start && end) {
+            return isWithinInterval(shiftDate, { start, end });
+          } else if (start) {
+            return shiftDate >= start;
+          } else if (end) {
+            return shiftDate <= end;
+          }
+        }
+
+        return true;
+      });
+
+      // Deduplicate
+      employeeShifts = deduplicateShifts(employeeShifts);
+
+      // Group by date
+      const dailyData = {};
+      employeeShifts.forEach(shift => {
+        const date = shift.shift_date;
+        if (!dailyData[date]) {
+          dailyData[date] = {
+            date,
+            employee_name: employee.employee_name,
+            store_names: new Set(),
+            shift_types: {},
+            ritardo_minutes: 0
+          };
+        }
+
+        // Add store name
+        if (shift.store_name) {
+          dailyData[date].store_names.add(shift.store_name);
+        }
+
+        let workedMinutes = shift.scheduled_minutes || 0;
+        let shiftType = shift.shift_type || 'Turno normale';
+        
+        if (shiftType === 'Ritardo') {
+          shiftType = 'Assenza non retribuita';
+        }
+        
+        if (!dailyData[date].shift_types[shiftType]) {
+          dailyData[date].shift_types[shiftType] = 0;
+        }
+
+        dailyData[date].shift_types[shiftType] += workedMinutes;
+
+        if (shift.minuti_di_ritardo && shift.minuti_di_ritardo > 0) {
+          dailyData[date].ritardo_minutes += shift.minuti_di_ritardo;
+        }
+      });
+
+      // Process ritardi for each day
+      Object.keys(dailyData).forEach(date => {
+        const day = dailyData[date];
+        if (day.ritardo_minutes > 0) {
+          if (day.shift_types['Turno normale']) {
+            day.shift_types['Turno normale'] -= day.ritardo_minutes;
+            if (day.shift_types['Turno normale'] < 0) {
+              day.shift_types['Turno normale'] = 0;
+            }
+          }
+          if (!day.shift_types['Assenza non retribuita']) {
+            day.shift_types['Assenza non retribuita'] = 0;
+          }
+          day.shift_types['Assenza non retribuita'] += day.ritardo_minutes;
+        }
+        
+        // Calculate total minutes
+        day.total_minutes = Object.values(day.shift_types).reduce((sum, mins) => sum + mins, 0);
+        
+        // Convert store names set to string
+        day.store_names_display = Array.from(day.store_names).sort().join(', ');
+      });
+
+      // Add to all daily data
+      Object.values(dailyData).forEach(day => {
+        allDailyData.push(day);
+      });
+    });
+
+    // Sort by date (most recent first), then by employee name
+    allDailyData.sort((a, b) => {
+      const dateCompare = new Date(b.date) - new Date(a.date);
+      if (dateCompare !== 0) return dateCompare;
+      return a.employee_name.localeCompare(b.employee_name);
+    });
+
+    // Write data rows
+    allDailyData.forEach(day => {
+      csv += `${format(parseISO(day.date), 'dd/MM/yyyy')},"${day.employee_name}","${day.store_names_display}",`;
+      
+      shiftTypesArray.forEach(type => {
+        const minutes = day.shift_types[type] || 0;
+        csv += `"${minutesToHours(minutes)}",`;
+      });
+      
+      csv += `"${minutesToHours(day.total_minutes)}"\n`;
+    });
+
+    // Summary row
+    csv += '\nRIEPILOGO TOTALE,,';
+    shiftTypesArray.forEach(type => {
+      const totalMinutes = allDailyData.reduce((sum, day) => sum + (day.shift_types[type] || 0), 0);
+      csv += `"${minutesToHours(totalMinutes)}",`;
+    });
+    const grandTotal = allDailyData.reduce((sum, day) => sum + day.total_minutes, 0);
+    csv += `"${minutesToHours(grandTotal)}"\n`;
+
+    // Create download
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    
+    const filename = `payroll_daily_all_employees_${startDate || 'all'}_${endDate || 'all'}.csv`;
     link.setAttribute('download', filename);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
@@ -608,6 +770,14 @@ export default function Payroll() {
                 <span>Tutti i turni</span>
               )}
             </div>
+            <button
+              onClick={exportAllEmployeesDailyCSV}
+              className="neumorphic-flat px-4 py-2 rounded-lg flex items-center gap-2 text-[#6b6b6b] hover:text-[#8b7355] transition-colors"
+              title="Scarica report giornaliero di tutti i dipendenti"
+            >
+              <FileText className="w-4 h-4" />
+              Report Giornaliero
+            </button>
             <button
               onClick={exportToCSV}
               className="neumorphic-flat px-4 py-2 rounded-lg flex items-center gap-2 text-[#6b6b6b] hover:text-[#8b7355] transition-colors"
