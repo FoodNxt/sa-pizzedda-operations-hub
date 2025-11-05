@@ -35,74 +35,121 @@ export default function Payroll() {
     
     const type = shiftType.trim();
     
-    // Aggregate Affiancamento into Turno normale
     if (type === 'Affiancamento') return 'Turno normale';
-    
-    // Aggregate Malattia (No Certificato) into Assenza non retribuita
     if (type === 'Malattia (No Certificato)') return 'Assenza non retribuita';
-    
-    // Aggregate Ritardo into Assenza non retribuita
     if (type === 'Ritardo') return 'Assenza non retribuita';
     
     return type;
   };
 
-  // ✅ ULTRA-IMPROVED: Most aggressive deduplication
+  // ✅ ULTRA MEGA AGGRESSIVE DEDUPLICATION
   const deduplicateShifts = (shiftsArray) => {
     const uniqueShiftsMap = new Map();
+    const duplicatesDetailed = [];
     let duplicatesFound = 0;
 
     shiftsArray.forEach(shift => {
-      // ✅ NORMALIZE EMPLOYEE NAME: remove ALL spaces, trim, lowercase
-      const normalizedEmployeeName = (shift.employee_name || 'unknown')
-        .trim()
-        .replace(/\s+/g, '')  // Remove ALL spaces (including double spaces)
-        .toLowerCase();
-
-      // Normalize date - use only YYYY-MM-DD
-      const normalizedDate = shift.shift_date 
-        ? shift.shift_date.split('T')[0].split(' ')[0]
-        : 'no-date';
-
-      // Helper to extract HH:mm from various time/datetime string formats
-      const extractTime = (dateTimeString) => {
-        if (!dateTimeString) return 'no-time';
-        if (dateTimeString.includes('T')) {
-          return dateTimeString.split('T')[1]?.substring(0, 5) || 'no-time';
-        }
-        return dateTimeString.substring(0, 5);
+      // Helper to normalize and extract date/time components
+      const normalizeEmployeeName = (name) => {
+        if (!name) return 'unknown';
+        return name.toLowerCase().replace(/\s+/g, '').trim();
       };
 
+      const extractDate = (dateStr) => {
+        if (!dateStr) return 'no-date';
+        try {
+          const date = new Date(dateStr);
+          if (isNaN(date.getTime())) return 'no-date';
+          // Return only YYYY-MM-DD
+          return date.toISOString().split('T')[0];
+        } catch {
+          return 'no-date';
+        }
+      };
+
+      const extractTime = (dateTimeStr) => {
+        if (!dateTimeStr) return 'no-time';
+        try {
+          const date = new Date(dateTimeStr);
+          if (isNaN(date.getTime())) return 'no-time';
+          // Return only HH:MM
+          const hours = String(date.getHours()).padStart(2, '0');
+          const minutes = String(date.getMinutes()).padStart(2, '0');
+          return `${hours}:${minutes}`;
+        } catch {
+          return 'no-time';
+        }
+      };
+
+      // Create normalized values
+      const normalizedEmployee = normalizeEmployeeName(shift.employee_name);
+      const normalizedDate = extractDate(shift.shift_date);
       const normalizedStart = extractTime(shift.scheduled_start);
       const normalizedEnd = extractTime(shift.scheduled_end);
+      const normalizedStore = (shift.store_id || shift.store_name || 'no-store').toString().toLowerCase().replace(/\s+/g, '');
 
-      // ✅ NORMALIZE STORE: remove all spaces, lowercase
-      const normalizedStoreName = (shift.store_name || 'no-store')
-        .trim()
-        .replace(/\s+/g, '')
-        .toLowerCase();
-      const storeIdentifier = shift.store_id || normalizedStoreName;
-      
-      // Create unique key with ALL normalized values
-      const key = `${normalizedEmployeeName}|${storeIdentifier}|${normalizedDate}|${normalizedStart}|${normalizedEnd}`;
+      // Create comprehensive unique key
+      const key = `${normalizedEmployee}|${normalizedStore}|${normalizedDate}|${normalizedStart}|${normalizedEnd}`;
 
       if (!uniqueShiftsMap.has(key)) {
         uniqueShiftsMap.set(key, shift);
       } else {
         duplicatesFound++;
         const existing = uniqueShiftsMap.get(key);
-        if (shift.created_date && existing.created_date) {
-          const shiftDate = new Date(shift.created_date);
-          const existingDate = new Date(existing.created_date);
-          if (shiftDate < existingDate) {
-            uniqueShiftsMap.set(key, shift);
+        
+        // Log duplicates for debugging
+        duplicatesDetailed.push({
+          key,
+          employee_name: shift.employee_name,
+          shift_date: shift.shift_date,
+          existing_id: existing.id,
+          duplicate_id: shift.id,
+          existing_created: existing.created_date,
+          duplicate_created: shift.created_date
+        });
+
+        // Keep the one with the LOWEST ID (assuming lower ID = older/original)
+        if (shift.id < existing.id) {
+          uniqueShiftsMap.set(key, shift);
+        } else if (shift.id === existing.id) {
+          // Same ID?! Check created_date
+          if (shift.created_date && existing.created_date) {
+            const shiftDate = new Date(shift.created_date);
+            const existingDate = new Date(existing.created_date);
+            if (shiftDate < existingDate) {
+              uniqueShiftsMap.set(key, shift);
+            }
           }
         }
       }
     });
 
     if (duplicatesFound > 0) {
-      console.log(`🔍 Deduplica ULTRA: rimossi ${duplicatesFound} turni duplicati`);
+      console.group('🔍 DEDUPLICA PAYROLL - DETTAGLI');
+      console.log(`📊 Totale duplicati rimossi: ${duplicatesFound}`);
+      console.log(`📋 Turni originali: ${shiftsArray.length}`);
+      console.log(`✅ Turni unici: ${uniqueShiftsMap.size}`);
+      
+      // Group duplicates by employee
+      const duplicatesByEmployee = {};
+      duplicatesDetailed.forEach(dup => {
+        if (!duplicatesByEmployee[dup.employee_name]) {
+          duplicatesByEmployee[dup.employee_name] = [];
+        }
+        duplicatesByEmployee[dup.employee_name].push(dup);
+      });
+      
+      console.log('👥 Duplicati per dipendente:');
+      Object.entries(duplicatesByEmployee).forEach(([name, dups]) => {
+        console.log(`  ${name}: ${dups.length} duplicati`);
+        dups.slice(0, 3).forEach(dup => {
+          console.log(`    → ${dup.shift_date} | IDs: ${dup.existing_id} vs ${dup.duplicate_id}`);
+        });
+      });
+      
+      console.groupEnd();
+    } else {
+      console.log('✅ Payroll: Nessun duplicato trovato');
     }
 
     return Array.from(uniqueShiftsMap.values());
@@ -110,8 +157,9 @@ export default function Payroll() {
 
   // ✅ MEMO: Deduplicate shifts once
   const shifts = useMemo(() => {
+    console.log('🔄 Inizio deduplica turni per Payroll...');
     const deduplicated = deduplicateShifts(rawShifts);
-    console.log(`📊 Turni totali: ${rawShifts.length} → Dopo deduplica: ${deduplicated.length}`);
+    console.log(`✅ Deduplica completata: ${rawShifts.length} → ${deduplicated.length} turni`);
     return deduplicated;
   }, [rawShifts]);
 
