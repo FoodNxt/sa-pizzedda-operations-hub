@@ -1,5 +1,6 @@
+
 import { useState } from "react";
-import { Upload, FileText, CheckCircle, AlertCircle, Download, Copy } from 'lucide-react';
+import { Upload, FileText, CheckCircle, AlertCircle, Download, Copy, FileSpreadsheet } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { base44 } from "@/api/base44Client";
@@ -10,6 +11,7 @@ export default function IPraticoBulkImport() {
   const [webhookSecret, setWebhookSecret] = useState('');
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState(null);
+  const [selectedStore, setSelectedStore] = useState('');
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -62,6 +64,92 @@ export default function IPraticoBulkImport() {
       };
       reader.readAsText(file);
     }
+  };
+
+  const handleCsvUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      if (!selectedStore) {
+        alert('Seleziona prima il locale di riferimento per questo import');
+        event.target.value = ''; // Reset file input
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const csvText = e.target.result;
+          const records = parseCsvToRecords(csvText, selectedStore);
+          
+          if (records.length === 0) {
+            alert('Nessun record valido trovato nel CSV');
+            return;
+          }
+
+          const jsonData = {
+            secret: webhookSecret || "your_ZAPIER_IPRATICO_WEBHOOK_SECRET",
+            records: records
+          };
+          
+          setJsonInput(JSON.stringify(jsonData, null, 2));
+          alert(`✅ CSV caricato con successo! ${records.length} record pronti per l'importazione`);
+        } catch (error) {
+          alert('Errore nel leggere il file CSV: ' + error.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const parseCsvToRecords = (csvText, storeName) => {
+    const lines = csvText.trim().split('\n');
+    if (lines.length < 2) {
+      throw new Error('CSV deve contenere almeno una riga di intestazione e una di dati');
+    }
+
+    // Parse header
+    const headers = lines[0].split(/[,;]/).map(h => h.trim());
+    
+    // Find required columns
+    const requiredFields = ['order_date', 'total_orders', 'total_revenue'];
+    const missingFields = requiredFields.filter(field => !headers.includes(field));
+    
+    if (missingFields.length > 0) {
+      throw new Error(`Colonne obbligatorie mancanti nel CSV: ${missingFields.join(', ')}`);
+    }
+
+    // Parse data rows
+    const records = [];
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue; // Skip empty lines
+
+      const values = line.split(/[,;]/).map(v => v.trim());
+      
+      if (values.length !== headers.length) {
+        console.warn(`Riga ${i + 1} ha un numero diverso di colonne rispetto all'intestazione, saltata`);
+        continue;
+      }
+
+      const record = { store_name: storeName };
+      
+      headers.forEach((header, idx) => {
+        const value = values[idx];
+        
+        // Convert numeric fields
+        if (header.includes('orders') || header.includes('revenue') || 
+            header.startsWith('sourceApp_') || header.startsWith('sourceType_') || 
+            header.startsWith('moneyType_')) {
+          record[header] = value && value !== '' ? parseFloat(value) : 0;
+        } else {
+          record[header] = value;
+        }
+      });
+
+      records.push(record);
+    }
+
+    return records;
   };
 
   const handleImport = async () => {
@@ -125,12 +213,26 @@ export default function IPraticoBulkImport() {
     URL.revokeObjectURL(url);
   };
 
+  const downloadCsvExample = () => {
+    const csvContent = `order_date,total_orders,total_revenue,sourceApp_glovo,sourceApp_glovo_orders,sourceApp_deliveroo,sourceApp_deliveroo_orders,sourceApp_justeat,sourceApp_justeat_orders,sourceApp_store,sourceApp_store_orders
+2024-01-01,120,2450.50,850.00,30,620.00,25,430.00,18,550.50,47
+2024-01-02,135,2680.00,920.00,32,680.00,28,450.00,20,630.00,55`;
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ipratico-example.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">📦 Bulk Import iPratico</h1>
-        <p className="text-[#9b9b9b]">Importa velocemente dati storici per più locali</p>
+        <p className="text-[#9b9b9b]">Importa velocemente dati storici per più locali (JSON o CSV)</p>
       </div>
 
       {/* Stores Available */}
@@ -162,12 +264,83 @@ export default function IPraticoBulkImport() {
         />
       </NeumorphicCard>
 
+      {/* CSV Import Section - NEW */}
+      <NeumorphicCard className="p-6 border-2 border-[#8b7355]">
+        <div className="flex items-center gap-3 mb-4">
+          <FileSpreadsheet className="w-5 h-5 text-[#8b7355]" />
+          <h2 className="text-xl font-bold text-[#6b6b6b]">📊 Step 2a: Import da CSV</h2>
+        </div>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm text-[#9b9b9b] mb-2 block font-medium">
+              Seleziona Locale (obbligatorio per CSV)
+            </label>
+            <select
+              value={selectedStore}
+              onChange={(e) => setSelectedStore(e.target.value)}
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+            >
+              <option value="">-- Seleziona un locale --</option>
+              {stores.map(store => (
+                <option key={store.id} value={store.name}>{store.name}</option>
+              ))}
+            </select>
+            <p className="text-xs text-[#9b9b9b] mt-2">
+              ⚠️ Il locale selezionato verrà applicato a tutti i record del CSV
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <label className="flex-1 neumorphic-flat px-4 py-3 rounded-lg cursor-pointer text-[#6b6b6b] hover:text-[#8b7355] transition-colors text-center">
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleCsvUpload}
+                className="hidden"
+                disabled={!selectedStore}
+              />
+              <div className="flex items-center justify-center gap-2">
+                <Upload className="w-5 h-5" />
+                <span className="font-medium">
+                  {selectedStore ? 'Carica CSV' : 'Seleziona prima il locale'}
+                </span>
+              </div>
+            </label>
+
+            <button
+              onClick={downloadCsvExample}
+              className="neumorphic-flat px-4 py-3 rounded-lg text-[#6b6b6b] hover:text-[#8b7355] transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Download className="w-5 h-5" />
+                <span className="text-sm">CSV Esempio</span>
+              </div>
+            </button>
+          </div>
+
+          <div className="neumorphic-pressed p-4 rounded-xl bg-blue-50">
+            <p className="text-sm text-blue-800 mb-2">
+              <strong>📋 Formato CSV:</strong>
+            </p>
+            <ul className="text-xs text-blue-700 space-y-1">
+              <li>• Prima riga: intestazioni colonne</li>
+              <li>• Colonne obbligatorie: order_date, total_orders, total_revenue</li>
+              <li>• Separatori supportati: virgola (,) o punto e virgola (;)</li>
+              <li>• Formato data: YYYY-MM-DD (es: 2024-01-15)</li>
+              <li>• Decimali con punto (es: 2450.50)</li>
+              <li>• Colonne opzionali verranno impostate a 0 se mancanti</li>
+            </ul>
+          </div>
+        </div>
+      </NeumorphicCard>
+
       {/* JSON Input */}
       <NeumorphicCard className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <FileText className="w-5 h-5 text-[#8b7355]" />
-            <h2 className="text-xl font-bold text-[#6b6b6b]">📝 Step 2: Dati da Importare</h2>
+            <h2 className="text-xl font-bold text-[#6b6b6b]">📝 Step 2b: Dati da Importare (JSON)</h2>
           </div>
           <div className="flex gap-2">
             <label className="neumorphic-flat px-4 py-2 rounded-lg cursor-pointer text-[#6b6b6b] hover:text-[#8b7355] transition-colors">
@@ -197,7 +370,7 @@ export default function IPraticoBulkImport() {
             >
               <div className="flex items-center gap-2">
                 <Download className="w-4 h-4" />
-                <span className="text-sm">Scarica Esempio</span>
+                <span className="text-sm">Scarica JSON</span>
               </div>
             </button>
           </div>
@@ -206,7 +379,7 @@ export default function IPraticoBulkImport() {
         <textarea
           value={jsonInput}
           onChange={(e) => setJsonInput(e.target.value)}
-          placeholder="Incolla qui il JSON con i dati..."
+          placeholder="Incolla qui il JSON con i dati o carica un file CSV sopra..."
           className="w-full h-96 neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none font-mono text-sm"
         />
 
