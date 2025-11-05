@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
-import { format, parseISO, startOfDay, endOfDay, isWithinInterval } from 'npm:date-fns@3.0.0';
+import { format, parseISO, startOfDay, endOfDay } from 'npm:date-fns@3.0.0';
 
 Deno.serve(async (req) => {
     try {
@@ -38,13 +38,18 @@ Deno.serve(async (req) => {
         console.log(`Aggregating data for date: ${dateStr}`);
         console.log(`Day range: ${dayStart.toISOString()} to ${dayEnd.toISOString()}`);
 
-        // Fetch ALL OrderItems and filter in JavaScript for better reliability
-        let allOrderItems = [];
+        // ✅ FIXED: Use server-side filter ALWAYS - much more scalable
+        // This will only fetch orders for the specific day, not all 10k records
+        let orderItems = [];
         try {
-            console.log('Fetching all order items...');
-            // ✅ FIXED: Maximum limit is 10000, not 50000
-            allOrderItems = await base44.asServiceRole.entities.OrderItem.list('-modifiedDate', 10000);
-            console.log(`Fetched ${allOrderItems.length} total order items`);
+            console.log('Fetching order items with server-side date filter...');
+            orderItems = await base44.asServiceRole.entities.OrderItem.filter({
+                modifiedDate: {
+                    $gte: dayStart.toISOString(),
+                    $lte: dayEnd.toISOString()
+                }
+            }, '-modifiedDate', 10000);
+            console.log(`Found ${orderItems.length} order items for ${dateStr}`);
         } catch (e) {
             console.error('Error fetching order items:', e);
             return Response.json({ 
@@ -53,19 +58,6 @@ Deno.serve(async (req) => {
                 stack: e.stack
             }, { status: 500 });
         }
-
-        // Filter items for the target date in JavaScript
-        const orderItems = allOrderItems.filter(item => {
-            if (!item.modifiedDate) return false;
-            try {
-                const itemDate = parseISO(item.modifiedDate);
-                return isWithinInterval(itemDate, { start: dayStart, end: dayEnd });
-            } catch (e) {
-                return false;
-            }
-        });
-
-        console.log(`Found ${orderItems.length} order items for ${dateStr} after filtering`);
 
         if (!orderItems || orderItems.length === 0) {
             return Response.json({
@@ -213,7 +205,6 @@ Deno.serve(async (req) => {
                     console.log(`Found ${existing.length} existing records`);
                 } catch (e) {
                     console.error('Error checking existing record:', e);
-                    // Continue anyway and try to create
                 }
                 
                 if (existing && existing.length > 0) {
