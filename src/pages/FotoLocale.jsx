@@ -1,15 +1,15 @@
+
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query"; // useMutation and useQueryClient removed
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Camera, Upload, Sparkles, CheckCircle, AlertCircle, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Camera, Upload, Sparkles, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'; // Image as ImageIcon and NeumorphicButton removed
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
-import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 
 export default function FotoLocale() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  // queryClient removed
   
   const [selectedStore, setSelectedStore] = useState('');
   const [inspectorName, setInspectorName] = useState('');
@@ -23,7 +23,7 @@ export default function FotoLocale() {
   });
   const [previews, setPreviews] = useState({});
   const [uploading, setUploading] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
+  // analyzing state removed
   const [uploadProgress, setUploadProgress] = useState('');
   const [error, setError] = useState('');
 
@@ -85,107 +85,46 @@ export default function FotoLocale() {
         }
       }
 
-      setUploading(false);
-      setAnalyzing(true);
-      setUploadProgress('Analisi AI in corso...');
+      setUploadProgress('Creazione ispezione...');
 
-      // Analyze each photo with AI
-      const analysisResults = {};
+      // Create inspection record with "processing" status
       const store = stores.find(s => s.id === selectedStore);
-      
-      for (const eq of equipment) {
-        const url = uploadedUrls[eq.key];
-        if (url) {
-          setUploadProgress(`Analisi ${eq.label} con AI...`);
-          
-          const prompt = `Analizza questa foto di ${eq.label} in una pizzeria e valuta lo stato di pulizia.
-
-Rispondi in formato JSON con questa struttura esatta:
-{
-  "pulizia_status": "pulito" | "medio" | "sporco" | "non_valutabile",
-  "note": "Descrizione dettagliata dello stato di pulizia",
-  "problemi_critici": ["lista", "di", "problemi"] oppure []
-}
-
-Criteri di valutazione:
-- "pulito": Attrezzatura perfettamente pulita, senza residui visibili
-- "medio": Presenza di piccoli residui o macchie, ma condizioni accettabili
-- "sporco": Sporco evidente, incrostazioni, residui di cibo, necessita pulizia urgente
-- "non_valutabile": Foto non chiara o non mostra l'attrezzatura
-
-Sii molto critico e attento ai dettagli di igiene in una cucina professionale.`;
-
-          try {
-            const aiResponse = await base44.integrations.Core.InvokeLLM({
-              prompt,
-              file_urls: [url],
-              response_json_schema: {
-                type: "object",
-                properties: {
-                  pulizia_status: { type: "string" },
-                  note: { type: "string" },
-                  problemi_critici: { type: "array", items: { type: "string" } }
-                }
-              }
-            });
-
-            analysisResults[eq.key] = aiResponse;
-          } catch (aiError) {
-            console.error(`Error analyzing ${eq.key}:`, aiError);
-            analysisResults[eq.key] = {
-              pulizia_status: 'non_valutabile',
-              note: 'Errore durante l\'analisi',
-              problemi_critici: []
-            };
-          }
-        }
-      }
-
-      // Calculate overall score
-      const statusScores = { pulito: 100, medio: 60, sporco: 20, non_valutabile: 50 };
-      const scores = equipment.map(eq => statusScores[analysisResults[eq.key]?.pulizia_status] || 50);
-      const overallScore = Math.round(scores.reduce((sum, s) => sum + s, 0) / scores.length);
-
-      // Collect critical issues
-      const allCriticalIssues = equipment
-        .map(eq => analysisResults[eq.key]?.problemi_critici || [])
-        .flat()
-        .filter(Boolean);
-
-      // Create inspection record
-      setUploadProgress('Salvataggio dati...');
       const inspectionData = {
         store_name: store.name,
         store_id: store.id,
         inspection_date: new Date().toISOString(),
         inspector_name: inspectorName || 'Anonimo',
-        overall_score: overallScore,
-        critical_issues: allCriticalIssues.length > 0 ? allCriticalIssues.join('; ') : null
+        analysis_status: 'processing' // New status for background analysis
       };
 
-      // Add all equipment data
+      // Add photo URLs
       equipment.forEach(eq => {
-        const result = analysisResults[eq.key];
         inspectionData[`${eq.key}_foto_url`] = uploadedUrls[eq.key];
-        inspectionData[`${eq.key}_pulizia_status`] = result?.pulizia_status || 'non_valutabile';
-        inspectionData[`${eq.key}_note_ai`] = result?.note || '';
       });
 
-      await base44.entities.CleaningInspection.create(inspectionData);
+      const inspection = await base44.entities.CleaningInspection.create(inspectionData);
 
-      // Invalidate queries and navigate
-      queryClient.invalidateQueries({ queryKey: ['cleaningInspections'] });
+      setUploadProgress('Avvio analisi AI in background...');
+
+      // Start AI analysis in background (don't wait for response)
+      base44.functions.invoke('analyzeCleaningInspection', {
+        inspection_id: inspection.id,
+        equipment_photos: uploadedUrls
+      }).catch(error => {
+        console.error('Error starting AI analysis:', error);
+      });
+
+      // Navigate immediately - analysis will complete in background
       navigate(createPageUrl('Pulizie'));
 
     } catch (error) {
       console.error('Error processing inspection:', error);
       setError('Errore durante il caricamento: ' + error.message);
       setUploading(false);
-      setAnalyzing(false);
+      // setAnalyzing(false); // Removed
     }
   };
 
-  const isProcessing = uploading || analyzing;
   const canSubmit = selectedStore && equipment.every(eq => photos[eq.key]);
 
   return (
@@ -193,7 +132,7 @@ Sii molto critico e attento ai dettagli di igiene in una cucina professionale.`;
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Nuova Ispezione Pulizia</h1>
-        <p className="text-[#9b9b9b]">Carica le foto delle attrezzature per l'analisi AI</p>
+        <p className="text-[#9b9b9b]">Carica le foto - l'analisi AI avverrà in background</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -210,7 +149,7 @@ Sii molto critico e attento ai dettagli di igiene in una cucina professionale.`;
                 value={selectedStore}
                 onChange={(e) => setSelectedStore(e.target.value)}
                 className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                disabled={isProcessing}
+                disabled={uploading}
                 required
               >
                 <option value="">Seleziona locale...</option>
@@ -230,7 +169,7 @@ Sii molto critico e attento ai dettagli di igiene in una cucina professionale.`;
                 onChange={(e) => setInspectorName(e.target.value)}
                 placeholder="Il tuo nome (opzionale)"
                 className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                disabled={isProcessing}
+                disabled={uploading}
               />
             </div>
           </div>
@@ -266,7 +205,7 @@ Sii molto critico e attento ai dettagli di igiene in una cucina professionale.`;
                         setPreviews(prev => ({ ...prev, [eq.key]: null }));
                       }}
                       className="absolute top-2 right-2 neumorphic-flat p-2 rounded-full text-red-600 hover:text-red-700"
-                      disabled={isProcessing}
+                      disabled={uploading}
                     >
                       ✕
                     </button>
@@ -283,7 +222,7 @@ Sii molto critico e attento ai dettagli di igiene in una cucina professionale.`;
                       capture="environment"
                       onChange={(e) => handlePhotoChange(eq.key, e.target.files[0])}
                       className="hidden"
-                      disabled={isProcessing}
+                      disabled={uploading}
                     />
                   </label>
                 )}
@@ -310,13 +249,17 @@ Sii molto critico e attento ai dettagli di igiene in una cucina professionale.`;
         )}
 
         {/* Processing Status */}
-        {isProcessing && (
+        {uploading && (
           <NeumorphicCard className="p-6 bg-blue-50">
             <div className="flex items-center gap-3">
               <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
               <div>
                 <p className="font-bold text-blue-800">{uploadProgress}</p>
-                <p className="text-sm text-blue-600">Attendere prego, non chiudere la pagina...</p>
+                <p className="text-sm text-blue-600">
+                  {uploadProgress.includes('background') 
+                    ? 'Puoi navigare via - l\'analisi continuerà automaticamente'
+                    : 'Attendere prego...'}
+                </p>
               </div>
             </div>
           </NeumorphicCard>
@@ -328,29 +271,29 @@ Sii molto critico e attento ai dettagli di igiene in una cucina professionale.`;
             type="button"
             onClick={() => navigate(createPageUrl('Pulizie'))}
             className="neumorphic-flat px-6 py-3 rounded-xl text-[#6b6b6b] hover:text-[#9b9b9b] transition-colors"
-            disabled={isProcessing}
+            disabled={uploading}
           >
             Annulla
           </button>
           
           <button
             type="submit"
-            disabled={!canSubmit || isProcessing}
+            disabled={!canSubmit || uploading}
             className={`flex-1 neumorphic-flat px-6 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 ${
-              canSubmit && !isProcessing
+              canSubmit && !uploading
                 ? 'text-[#8b7355] hover:shadow-lg'
                 : 'text-[#9b9b9b] opacity-50 cursor-not-allowed'
             }`}
           >
-            {isProcessing ? (
+            {uploading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Elaborazione...
+                Caricamento...
               </>
             ) : (
               <>
                 <Sparkles className="w-5 h-5" />
-                Analizza con AI
+                Carica e Avvia Analisi
               </>
             )}
           </button>
@@ -362,12 +305,13 @@ Sii molto critico e attento ai dettagli di igiene in una cucina professionale.`;
         <div className="flex items-start gap-3">
           <Sparkles className="w-6 h-6 text-green-600 flex-shrink-0 mt-1" />
           <div>
-            <h3 className="font-bold text-green-800 mb-2">💡 Suggerimenti per foto ottimali</h3>
+            <h3 className="font-bold text-green-800 mb-2">💡 Come funziona</h3>
             <ul className="text-sm text-green-700 space-y-1">
               <li>• Scatta foto ben illuminate e a fuoco</li>
               <li>• Inquadra l'intera attrezzatura</li>
-              <li>• Mostra eventuali punti problematici da vicino</li>
-              <li>• L'AI analizzerà automaticamente ogni foto per valutare la pulizia</li>
+              <li>• Dopo il caricamento, l'analisi AI continuerà in background</li>
+              <li>• Puoi navigare liberamente - riceverai i risultati nella pagina Storico Pulizie</li>
+              <li>• L'analisi richiede circa 1-2 minuti</li>
             </ul>
           </div>
         </div>
