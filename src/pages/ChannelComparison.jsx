@@ -20,141 +20,163 @@ export default function ChannelComparison() {
   const [channel2, setChannel2] = useState('all');
   const [app2, setApp2] = useState('all');
 
-  // Smart data fetching: use filter when custom dates, list otherwise
-  const { data: orderItems = [], isLoading: ordersLoading } = useQuery({
-    queryKey: ['orderItems', startDate, endDate, dateRange],
+  // Fetch iPratico data
+  const { data: iPraticoData = [], isLoading } = useQuery({
+    queryKey: ['iPratico', startDate, endDate, dateRange], // Add dateRange to queryKey for refetch
     queryFn: async () => {
-      // If custom date range, use server-side filtering
-      if (startDate && endDate) {
-        const start = parseISO(startDate + 'T00:00:00');
-        const end = parseISO(endDate + 'T23:59:59');
-        
-        return base44.entities.OrderItem.filter({
-          modifiedDate: {
-            $gte: start.toISOString(),
-            $lte: end.toISOString()
-          }
-        }, '-modifiedDate', 100000); // Fetch up to 100,000 for custom filtered range
-      }
-      
-      // Otherwise, use list with a reasonable limit
-      return base44.entities.OrderItem.list('-modifiedDate', 10000); // Fetch up to 10,000 for predefined ranges
+      // For iPratico, we typically fetch a larger set and filter locally
+      // The outline suggests a limit of 1000, but for custom date ranges, it might need to be larger or server-side filtered if performance is an issue.
+      // For now, let's fetch a reasonable amount that would cover most typical date ranges.
+      // If startDate/endDate are used, we might want to adjust the query to fetch within that period if the API supports it efficiently.
+      // Given the outline's `list('-order_date', 1000)`, we'll stick to that.
+      return base44.entities.iPratico.list('-order_date', 1000);
     },
   });
 
   // Get unique sales channels and delivery apps
-  const salesChannels = useMemo(() => {
-    const channels = new Set(orderItems.map(o => o.saleTypeName).filter(Boolean));
+  const { salesChannels, deliveryApps } = useMemo(() => {
+    const channels = new Set();
+    const apps = new Set();
     
-    // Add Tabesto as a sales channel if it exists in sourceApp
-    orderItems.forEach(o => {
-      if (o.sourceApp && o.sourceApp.toLowerCase() === 'tabesto') {
-        channels.add('Tabesto');
-      }
+    iPraticoData.forEach(item => {
+      // Source types as channels, checking if they exist / have values
+      if ((item.sourceType_delivery || 0) > 0 || (item.sourceType_delivery_orders || 0) > 0) channels.add('Delivery');
+      if ((item.sourceType_takeaway || 0) > 0 || (item.sourceType_takeaway_orders || 0) > 0) channels.add('Takeaway');
+      if ((item.sourceType_store || 0) > 0 || (item.sourceType_store_orders || 0) > 0) channels.add('Store');
+      
+      // Source apps, checking if they exist / have values
+      if ((item.sourceApp_glovo || 0) > 0 || (item.sourceApp_glovo_orders || 0) > 0) apps.add('Glovo');
+      if ((item.sourceApp_deliveroo || 0) > 0 || (item.sourceApp_deliveroo_orders || 0) > 0) apps.add('Deliveroo');
+      if ((item.sourceApp_justeat || 0) > 0 || (item.sourceApp_justeat_orders || 0) > 0) apps.add('JustEat');
+      if ((item.sourceApp_tabesto || 0) > 0 || (item.sourceApp_tabesto_orders || 0) > 0) apps.add('Tabesto');
+      if ((item.sourceApp_store || 0) > 0 || (item.sourceApp_store_orders || 0) > 0) apps.add('Store');
     });
     
-    return [...channels].sort(); // Sort for consistent order
-  }, [orderItems]);
-  
-  const deliveryApps = useMemo(() => {
-    return [...new Set(orderItems
-      .map(o => o.sourceApp)
-      .filter(app => app && app.toLowerCase() !== 'tabesto') // Exclude Tabesto from delivery apps
-    )].sort(); // Sort for consistent order
-  }, [orderItems]);
+    return {
+      salesChannels: [...channels].sort(),
+      deliveryApps: [...apps].sort()
+    };
+  }, [iPraticoData]);
 
   // Filter and calculate metrics
   const comparisonData = useMemo(() => {
     let cutoffDate;
     let endFilterDate;
     
-    // If custom dates are set, these have priority
-    if (startDate || endDate) {
-      // Use startDate and endDate directly for filtering, parseISO already handles 'YYYY-MM-DD'
-      cutoffDate = startDate ? parseISO(startDate + 'T00:00:00') : new Date(0); // If no start date, effectively include all past
-      endFilterDate = endDate ? parseISO(endDate + 'T23:59:59') : new Date(); // If no end date, effectively include up to now
+    if (startDate && endDate) { // Check both to ensure a valid custom range
+      cutoffDate = parseISO(startDate + 'T00:00:00'); // Ensure start of day
+      endFilterDate = parseISO(endDate + 'T23:59:59'); // Ensure end of day
     } else {
       const days = parseInt(dateRange);
       cutoffDate = subDays(new Date(), days);
       endFilterDate = new Date();
     }
 
-    const filterOrders = (channel, app) => {
-      return orderItems.filter(item => {
-        if (item.modifiedDate) {
-          const itemDate = new Date(item.modifiedDate);
-          if (isBefore(itemDate, cutoffDate) || isAfter(itemDate, endFilterDate)) {
-            return false;
-          }
+    const filterByDate = () => {
+      return iPraticoData.filter(item => {
+        if (item.order_date) {
+          const itemDate = parseISO(item.order_date);
+          // Compare only date part
+          return !isBefore(itemDate, cutoffDate) && !isAfter(itemDate, endFilterDate);
         }
-        
-        // Channel filter - include Tabesto as a channel
-        if (channel !== 'all') {
-          if (channel === 'Tabesto') {
-            // If channel selected is "Tabesto", it must come from sourceApp "Tabesto"
-            if (!item.sourceApp || item.sourceApp.toLowerCase() !== 'tabesto') return false;
-          } else {
-            // For other channels, use saleTypeName
-            if (item.saleTypeName !== channel) return false;
-          }
-        }
-        
-        // App filter - exclude Tabesto from the general app selection logic
-        // The deliveryApps list already excludes Tabesto, so this should work correctly.
-        if (app !== 'all' && item.sourceApp !== app) return false;
-        
-        return true;
+        return false;
       });
     };
 
-    const calculateMetrics = (items) => { // Renamed 'orders' to 'items' for clarity, as it's a list of order items
-      const totalRevenue = items.reduce((sum, item) => 
-        sum + (item.finalPriceWithSessionDiscountsAndSurcharges || 0), 0
-      );
+    const calculateMetrics = (channel, app) => {
+      const filteredData = filterByDate(); // First filter by date
       
-      // Count unique orders (not items)
-      const uniqueOrders = [...new Set(items.map(item => item.order).filter(Boolean))];
-      const totalOrders = uniqueOrders.length;
+      let totalRevenue = 0;
+      let totalOrders = 0;
+      
+      filteredData.forEach(item => {
+        let currentChannelRevenue = 0;
+        let currentChannelOrders = 0;
+        
+        // Calculate revenue and orders based on channel filter
+        if (channel === 'all') {
+          currentChannelRevenue = item.total_revenue || 0;
+          currentChannelOrders = item.total_orders || 0;
+        } else if (channel === 'Delivery') {
+          currentChannelRevenue = item.sourceType_delivery || 0;
+          currentChannelOrders = item.sourceType_delivery_orders || 0;
+        } else if (channel === 'Takeaway') {
+          currentChannelRevenue = item.sourceType_takeaway || 0;
+          currentChannelOrders = item.sourceType_takeaway_orders || 0;
+        } else if (channel === 'Store') {
+          currentChannelRevenue = item.sourceType_store || 0;
+          currentChannelOrders = item.sourceType_store_orders || 0;
+        }
+        
+        // Apply app filter if not 'all'
+        if (app !== 'all') {
+          let appRevenue = 0;
+          let appOrders = 0;
+          
+          if (app === 'Glovo') {
+            appRevenue = item.sourceApp_glovo || 0;
+            appOrders = item.sourceApp_glovo_orders || 0;
+          } else if (app === 'Deliveroo') {
+            appRevenue = item.sourceApp_deliveroo || 0;
+            appOrders = item.sourceApp_deliveroo_orders || 0;
+          } else if (app === 'JustEat') {
+            appRevenue = item.sourceApp_justeat || 0;
+            appOrders = item.sourceApp_justeat_orders || 0;
+          } else if (app === 'Tabesto') {
+            appRevenue = item.sourceApp_tabesto || 0;
+            appOrders = item.sourceApp_tabesto_orders || 0;
+          } else if (app === 'Store') { // Note: 'Store' as an app usually means direct, matching sourceType_store
+            appRevenue = item.sourceApp_store || 0;
+            appOrders = item.sourceApp_store_orders || 0;
+          }
+          
+          // Use minimum of channel and app (intersection logic from outline)
+          // This implies the revenue/orders for a combination are the minimum of the two category totals for that item.
+          currentChannelRevenue = Math.min(currentChannelRevenue, appRevenue);
+          currentChannelOrders = Math.min(currentChannelOrders, appOrders);
+        }
+        
+        totalRevenue += currentChannelRevenue;
+        totalOrders += currentChannelOrders;
+      });
+
       const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
       return { totalRevenue, totalOrders, avgOrderValue };
     };
 
-    const combination1Orders = filterOrders(channel1, app1);
-    const combination2Orders = filterOrders(channel2, app2);
-
-    const metrics1 = calculateMetrics(combination1Orders);
-    const metrics2 = calculateMetrics(combination2Orders);
+    const metrics1 = calculateMetrics(channel1, app1);
+    const metrics2 = calculateMetrics(channel2, app2);
 
     // Calculate comparison percentages
-    const revenueDiff = metrics2.totalRevenue > 0 
+    const revenueDiff = metrics2.totalRevenue !== 0 
       ? ((metrics1.totalRevenue - metrics2.totalRevenue) / metrics2.totalRevenue) * 100 
-      : 0;
-    const ordersDiff = metrics2.totalOrders > 0 
+      : (metrics1.totalRevenue === 0 && metrics2.totalRevenue === 0 ? 0 : (metrics1.totalRevenue > 0 ? Infinity : -Infinity));
+    const ordersDiff = metrics2.totalOrders !== 0 
       ? ((metrics1.totalOrders - metrics2.totalOrders) / metrics2.totalOrders) * 100 
-      : 0;
-    const avgDiff = metrics2.avgOrderValue > 0 
+      : (metrics1.totalOrders === 0 && metrics2.totalOrders === 0 ? 0 : (metrics1.totalOrders > 0 ? Infinity : -Infinity));
+    const avgDiff = metrics2.avgOrderValue !== 0 
       ? ((metrics1.avgOrderValue - metrics2.avgOrderValue) / metrics2.avgOrderValue) * 100 
-      : 0;
+      : (metrics1.avgOrderValue === 0 && metrics2.avgOrderValue === 0 ? 0 : (metrics1.avgOrderValue > 0 ? Infinity : -Infinity));
 
     return {
       combination1: metrics1,
       combination2: metrics2,
-      revenueDiff,
-      ordersDiff,
-      avgDiff
+      revenueDiff: isFinite(revenueDiff) ? revenueDiff : (revenueDiff > 0 ? 100 : -100), // Cap infinite diff for display
+      ordersDiff: isFinite(ordersDiff) ? ordersDiff : (ordersDiff > 0 ? 100 : -100),
+      avgDiff: isFinite(avgDiff) ? avgDiff : (avgDiff > 0 ? 100 : -100)
     };
-  }, [orderItems, channel1, app1, channel2, app2, dateRange, startDate, endDate]);
+  }, [iPraticoData, channel1, app1, channel2, app2, dateRange, startDate, endDate]);
 
   const clearCustomDates = () => {
     setStartDate('');
     setEndDate('');
-    setDateRange('30'); // Reset to a default date range
+    setDateRange('30');
   };
 
   const getCombinationLabel = (channel, app) => {
     const channelLabel = channel === 'all' ? 'Tutti i canali' : channel;
-    const appLabel = app === 'all' ? 'Tutte le app' : app.charAt(0).toUpperCase() + app.slice(1);
+    const appLabel = app === 'all' ? 'Tutte le app' : app; // Use app name directly, assuming already capitalized
     
     if (channel === 'all' && app === 'all') return 'Tutti i canali e app';
     if (channel === 'all') return appLabel;
@@ -163,6 +185,8 @@ export default function ChannelComparison() {
   };
 
   const formatDiff = (diff) => {
+    if (diff === Infinity) return '+100%+'; // Custom formatting for very large positive diffs
+    if (diff === -Infinity) return '-100%-'; // Custom formatting for very large negative diffs
     const absValue = Math.abs(diff);
     const sign = diff > 0 ? '+' : '';
     return `${sign}${absValue.toFixed(1)}%`;
@@ -192,10 +216,10 @@ export default function ChannelComparison() {
     }
   ];
 
-  if (ordersLoading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-screen text-2xl font-bold text-[#6b6b6b]">
-        Caricamento dati ordini...
+        Caricamento dati iPratico...
       </div>
     );
   }
@@ -205,7 +229,7 @@ export default function ChannelComparison() {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Confronto Canali e App Delivery</h1>
-        <p className="text-[#9b9b9b]">Confronta le performance tra diverse combinazioni</p>
+        <p className="text-[#9b9b9b]">Confronta le performance tra diverse combinazioni (dati iPratico)</p>
       </div>
 
       {/* Date Range Filter */}
@@ -312,7 +336,7 @@ export default function ChannelComparison() {
               >
                 <option value="all">Tutte le App</option>
                 {deliveryApps.map(app => (
-                  <option key={app} value={app}>{app.charAt(0).toUpperCase() + app.slice(1)}</option>
+                  <option key={app} value={app}>{app}</option>
                 ))}
               </select>
             </div>
@@ -356,7 +380,7 @@ export default function ChannelComparison() {
               >
                 <option value="all">Tutte le App</option>
                 {deliveryApps.map(app => (
-                  <option key={app} value={app}>{app.charAt(0).toUpperCase() + app.slice(1)}</option>
+                  <option key={app} value={app}>{app}</option>
                 ))}
               </select>
             </div>
