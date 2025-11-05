@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useQuery } from '@tanstack/react-query'; // Assuming @tanstack/react-query is installed and used
-import { ShoppingCart, Copy, CheckCircle, AlertCircle, FileSpreadsheet, Key, Store } from 'lucide-react';
+import { ShoppingCart, Copy, CheckCircle, AlertCircle, FileSpreadsheet, Key, Store, TrendingUp } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { base44 } from "@/api/base44Client";
@@ -145,6 +145,32 @@ export default function OrderItemsSetup() {
         </div>
       </NeumorphicCard>
 
+      {/* Auto-Revenue Update Info - NEW */}
+      <NeumorphicCard className="p-6 border-2 border-blue-500">
+        <div className="flex items-start gap-3">
+          <TrendingUp className="w-6 h-6 text-blue-600 mt-1" />
+          <div>
+            <h3 className="font-bold text-blue-700 mb-2">🚀 Auto-Update Revenue Giornaliera</h3>
+            <p className="text-blue-600 mb-3">
+              Dopo aver importato un OrderItem, Zapier può <strong>automaticamente aggiornare</strong> la tabella DailyStoreRevenue!
+            </p>
+            <div className="neumorphic-pressed p-3 rounded-lg bg-blue-50">
+              <p className="text-sm text-blue-800 font-medium mb-2">
+                📋 Setup consigliato in Zapier:
+              </p>
+              <ol className="text-sm text-blue-700 space-y-1 ml-4 list-decimal">
+                <li><strong>Step 1:</strong> Trigger da Google Sheet (nuova riga)</li>
+                <li><strong>Step 2:</strong> Webhook POST a <code className="bg-white px-2 py-1 rounded">importOrderItemFromZapier</code></li>
+                <li><strong>Step 3:</strong> Webhook POST a <code className="bg-white px-2 py-1 rounded">updateDailyRevenueForOrder</code> (con gli stessi dati)</li>
+              </ol>
+              <p className="text-xs text-blue-600 mt-3">
+                💡 In questo modo ogni nuovo ordine aggiorna automaticamente le statistiche giornaliere in tempo reale!
+              </p>
+            </div>
+          </div>
+        </div>
+      </NeumorphicCard>
+
       {/* Available Stores */}
       {stores.length > 0 && (
         <NeumorphicCard className="p-6">
@@ -254,7 +280,7 @@ export default function OrderItemsSetup() {
       <NeumorphicCard className="p-6">
         <div className="flex items-center gap-3 mb-6">
           <FileSpreadsheet className="w-6 h-6 text-[#8b7355]" />
-          <h2 className="text-xl font-bold text-[#6b6b6b]">⚙️ Step 3: Configurazione Zapier</h2>
+          <h2 className="text-xl font-bold text-[#6b6b6b]">⚙️ Configurazione Zapier con Auto-Update Revenue</h2>
         </div>
 
         <div className="neumorphic-flat p-4 rounded-xl bg-green-50 mb-6">
@@ -295,42 +321,83 @@ export default function OrderItemsSetup() {
                   <li>• <strong>Spreadsheet:</strong> Il file Google Sheet con gli ordini</li>
                   <li>• <strong>Worksheet:</strong> Seleziona il foglio corretto</li>
                 </ul>
-                <div className="neumorphic-pressed p-3 rounded-lg mt-3 bg-green-50">
+              </div>
+            </div>
+          </div>
+
+          {/* Step 3 - Import OrderItem */}
+          <div className="neumorphic-flat p-5 rounded-xl border-2 border-[#8b7355]">
+            <div className="flex items-start gap-4">
+              <div className="neumorphic-pressed w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="font-bold text-[#8b7355]">3</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-[#6b6b6b] mb-2">Action 1: Import OrderItem</h3>
+                <ul className="space-y-1 text-[#6b6b6b]">
+                  <li>• <strong>App:</strong> Webhooks by Zapier</li>
+                  <li>• <strong>Action:</strong> POST</li>
+                  <li>• <strong>URL:</strong> <code className="bg-white px-2 py-1 rounded text-xs">{webhookUrl}</code></li>
+                  <li>• <strong>Payload Type:</strong> JSON</li>
+                  <li>• <strong>Data:</strong> Mappa tutti i campi dell'OrderItem (vedi sotto)</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Step 4 - Update Revenue - NEW */}
+          <div className="neumorphic-flat p-5 rounded-xl border-2 border-blue-500">
+            <div className="flex items-start gap-4">
+              <div className="neumorphic-pressed w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-blue-50">
+                <span className="font-bold text-blue-600">4</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-blue-700 mb-2">🚀 Action 2: Auto-Update Revenue (NUOVO!)</h3>
+                <ul className="space-y-1 text-blue-700">
+                  <li>• <strong>App:</strong> Webhooks by Zapier</li>
+                  <li>• <strong>Action:</strong> POST</li>
+                  <li>• <strong>URL:</strong> <code className="bg-white px-2 py-1 rounded text-xs">{webhookUrl?.replace('importOrderItemFromZapier', 'updateDailyRevenueForOrder')}</code></li>
+                  <li>• <strong>Payload Type:</strong> JSON</li>
+                </ul>
+                
+                <div className="neumorphic-pressed p-4 rounded-lg mt-3 bg-blue-50">
+                  <p className="font-bold text-blue-700 mb-2">📋 Campi richiesti (Data):</p>
+                  <div className="space-y-2 text-sm text-blue-800">
+                    <div>
+                      <span className="font-bold">secret</span>
+                      <span> → Il tuo ZAPIER_ORDERS_WEBHOOK_SECRET</span>
+                    </div>
+                    <div>
+                      <span className="font-bold">modifiedDate</span>
+                      <span> → Stessa colonna dell'OrderItem</span>
+                    </div>
+                    <div>
+                      <span className="font-bold">store_id</span>
+                      <span> → Output dello Step 3 (response.orderItem.store_id)</span>
+                    </div>
+                    <div>
+                      <span className="font-bold">store_name</span>
+                      <span> → Output dello Step 3 (response.orderItem.store_name)</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="neumorphic-flat p-3 rounded-lg mt-3 bg-green-50">
                   <p className="text-sm text-green-800">
-                    💡 <strong>Nota:</strong> Ora puoi usare un SINGOLO Zap per tutti i locali! Il sistema riconosce automaticamente Ticinese/Lanino dal codice.
+                    ✅ <strong>Risultato:</strong> Ogni volta che importi un ordine, la tabella DailyStoreRevenue si aggiorna automaticamente con i dati più recenti!
                   </p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Step 3 */}
-          <div className="neumorphic-flat p-5 rounded-xl">
-            <div className="flex items-start gap-4">
-              <div className="neumorphic-pressed w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="font-bold text-[#8b7355]">3</span>
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-[#6b6b6b] mb-2">Configura Action</h3>
-                <ul className="space-y-1 text-[#6b6b6b]">
-                  <li>• <strong>App:</strong> Webhooks by Zapier</li>
-                  <li>• <strong>Action:</strong> POST</li>
-                  <li>• <strong>URL:</strong> Copia l'URL qui sopra</li>
-                  <li>• <strong>Payload Type:</strong> JSON</li>
-                  <li>• <strong>Header:</strong> Content-Type = application/json</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          {/* Step 4 - Field Mapping UPDATED */}
+          {/* Step 5 - Field Mapping */}
           <div className="neumorphic-flat p-5 rounded-xl border-2 border-[#8b7355]">
             <div className="flex items-start gap-4">
               <div className="neumorphic-pressed w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="font-bold text-[#8b7355]">4</span>
+                <span className="font-bold text-[#8b7355]">5</span>
               </div>
               <div className="flex-1">
-                <h3 className="font-bold text-[#6b6b6b] mb-3">🔐 Mappa i Campi (Data)</h3>
+                <h3 className="font-bold text-[#6b6b6b] mb-3">🔐 Mappa i Campi OrderItem (Action 1)</h3>
                 
                 <div className="space-y-3">
                   <div className="neumorphic-pressed p-4 rounded-lg bg-red-50 mb-4">
@@ -397,17 +464,28 @@ export default function OrderItemsSetup() {
             </div>
           </div>
 
-          {/* Step 5 */}
+          {/* Step 6 */}
           <div className="neumorphic-flat p-5 rounded-xl">
             <div className="flex items-start gap-4">
               <div className="neumorphic-pressed w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="font-bold text-[#8b7355]">5</span>
+                <span className="font-bold text-[#8b7355]">6</span>
               </div>
               <div className="flex-1">
                 <h3 className="font-bold text-[#6b6b6b] mb-2">Testa e Pubblica</h3>
                 <p className="text-[#6b6b6b]">
-                  Clicca "Test & Continue" in Zapier, poi "Publish". Ogni nuova riga nel Google Sheet sarà importata automaticamente!
+                  Clicca "Test & Continue" in Zapier per entrambi gli step, poi "Publish". Ogni nuova riga nel Google Sheet sarà importata e aggregata automaticamente!
                 </p>
+                <div className="neumorphic-pressed p-3 rounded-lg mt-3 bg-green-50">
+                  <p className="text-sm text-green-800">
+                    🎉 <strong>Vantaggi dell'automazione:</strong>
+                  </p>
+                  <ul className="text-sm text-green-700 ml-4 mt-2 space-y-1">
+                    <li>✅ Revenue sempre aggiornata in tempo reale</li>
+                    <li>✅ Nessuna aggregazione manuale necessaria</li>
+                    <li>✅ Dashboard sempre accurata</li>
+                    <li>✅ Analytics istantanee</li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
