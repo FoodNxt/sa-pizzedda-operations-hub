@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
-import { format, parseISO, startOfDay, endOfDay } from 'npm:date-fns@3.0.0';
+import { format, parseISO, startOfDay, endOfDay, isWithinInterval } from 'npm:date-fns@3.0.0';
 
 Deno.serve(async (req) => {
     try {
@@ -59,35 +59,17 @@ Deno.serve(async (req) => {
             }, { status: 500 });
         }
 
-        // ✅ Fetch order items using SERVER-SIDE FILTER with maximum allowed limit
-        let orderItems = [];
+        // ✅ NUOVA STRATEGIA: recupero ultimi 10000 OrderItem e filtro lato client
+        let allOrderItems = [];
         try {
-            console.log('=== FETCHING ORDER ITEMS WITH SERVER-SIDE FILTER ===');
-            console.log(`Filter: modifiedDate >= ${dayStart.toISOString()} AND <= ${dayEnd.toISOString()}`);
+            console.log('=== FETCHING RECENT ORDER ITEMS (NO DATE FILTER) ===');
+            console.log('Getting last 10000 OrderItems ordered by modifiedDate descending...');
             
-            orderItems = await base44.asServiceRole.entities.OrderItem.filter({
-                modifiedDate: {
-                    $gte: dayStart.toISOString(),
-                    $lte: dayEnd.toISOString()
-                }
-            }, '-modifiedDate', 10000);
+            // Recupero gli ultimi 10000 OrderItem ordinati per data decrescente
+            // Questo include sicuramente tutti gli item del giorno target
+            allOrderItems = await base44.asServiceRole.entities.OrderItem.list('-modifiedDate', 10000);
             
-            console.log(`Found ${orderItems.length} order items for ${dateStr}`);
-            
-            // ✅ Log first few items to debug store matching
-            if (orderItems.length > 0) {
-                console.log('Sample filtered order items:');
-                orderItems.slice(0, 5).forEach((item, i) => {
-                    console.log(`  [${i+1}] ${item.orderItemName}`);
-                    console.log(`      modifiedDate: ${item.modifiedDate}`);
-                    console.log(`      store_id: ${item.store_id}`);
-                    console.log(`      store_name: ${item.store_name}`);
-                    console.log(`      printedOrderItemChannel: ${item.printedOrderItemChannel}`);
-                    console.log(`      finalPrice: €${item.finalPriceWithSessionDiscountsAndSurcharges}`);
-                });
-            } else {
-                console.warn('⚠️ NO ORDER ITEMS FOUND FOR THIS DATE!');
-            }
+            console.log(`Fetched ${allOrderItems.length} recent OrderItems from database`);
         } catch (e) {
             console.error('Error fetching order items:', e);
             return Response.json({ 
@@ -95,6 +77,42 @@ Deno.serve(async (req) => {
                 details: e.message,
                 stack: e.stack
             }, { status: 500 });
+        }
+
+        // ✅ CLIENT-SIDE DATE FILTERING
+        console.log('=== FILTERING BY DATE (CLIENT-SIDE) ===');
+        const orderItems = allOrderItems.filter(item => {
+            if (!item.modifiedDate) {
+                console.warn(`Item ${item.orderItemName} has no modifiedDate, skipping`);
+                return false;
+            }
+            
+            try {
+                const itemDate = parseISO(item.modifiedDate);
+                const isInRange = isWithinInterval(itemDate, { start: dayStart, end: dayEnd });
+                return isInRange;
+            } catch (e) {
+                console.warn(`Could not parse modifiedDate for item ${item.orderItemName}: ${item.modifiedDate}`, e);
+                return false;
+            }
+        });
+            
+        console.log(`Found ${orderItems.length} order items for ${dateStr} after client-side filtering`);
+        
+        // Log sample items for debugging
+        if (orderItems.length > 0) {
+            console.log('Sample filtered order items:');
+            orderItems.slice(0, 5).forEach((item, i) => {
+                console.log(`  [${i+1}] ${item.orderItemName}`);
+                console.log(`      modifiedDate: ${item.modifiedDate}`);
+                console.log(`      store_id: ${item.store_id}`);
+                console.log(`      store_name: ${item.store_name}`);
+                console.log(`      printedOrderItemChannel: ${item.printedOrderItemChannel}`);
+                console.log(`      finalPrice: €${item.finalPriceWithSessionDiscountsAndSurcharges}`);
+                console.log(`      order: ${item.order}`);
+            });
+        } else {
+            console.warn('⚠️ NO ORDER ITEMS FOUND FOR THIS DATE!');
         }
 
         // ✅ Create maps for matching - BY ID, NAME, AND CHANNEL CODE
@@ -132,30 +150,21 @@ Deno.serve(async (req) => {
         console.log('=== MATCHING ORDER ITEMS TO STORES ===');
         orderItems.forEach(item => {
             let matchedStore = null;
-            let matchMethod = '';
             
             // ✅ PRIORITY 1: Match by printedOrderItemChannel (MOST RELIABLE!)
             if (item.printedOrderItemChannel && storeByChannelCode[item.printedOrderItemChannel]) {
                 matchedStore = storeByChannelCode[item.printedOrderItemChannel];
-                matchMethod = 'CHANNEL';
-                console.log(`✓ Matched by CHANNEL: ${item.orderItemName} (channel="${item.printedOrderItemChannel}") -> ${matchedStore.name}`);
             }
             
             // ✅ PRIORITY 2: Match by store_name
             if (!matchedStore && item.store_name) {
                 const normalizedName = item.store_name.toLowerCase().trim();
                 matchedStore = storeByName[normalizedName];
-                if (matchedStore) {
-                    matchMethod = 'NAME';
-                    console.log(`✓ Matched by NAME: ${item.orderItemName} (store_name="${item.store_name}") -> ${matchedStore.name}`);
-                }
             }
             
             // ✅ PRIORITY 3: Match by store_id (fallback)
             if (!matchedStore && item.store_id && storeById[item.store_id]) {
                 matchedStore = storeById[item.store_id];
-                matchMethod = 'ID';
-                console.log(`✓ Matched by ID (fallback): ${item.orderItemName} (store_id="${item.store_id}") -> ${matchedStore.name}`);
             }
             
             if (matchedStore) {
@@ -165,7 +174,6 @@ Deno.serve(async (req) => {
                 }
                 ordersByStore[storeId].push(item);
             } else {
-                // Log unmatched items for debugging
                 console.warn(`✗ UNMATCHED: ${item.orderItemName} - store_id="${item.store_id}", store_name="${item.store_name}", channel="${item.printedOrderItemChannel}"`);
                 unmatchedItems.push(item);
             }
@@ -357,7 +365,8 @@ Deno.serve(async (req) => {
         console.log(`=== AGGREGATION COMPLETE ===`);
         console.log(`Date: ${dateStr}`);
         console.log(`Stores processed: ${allStores.length}`);
-        console.log(`Total items: ${orderItems.length}`);
+        console.log(`Total items fetched: ${allOrderItems.length}`);
+        console.log(`Items for target date: ${orderItems.length}`);
         console.log(`Unmatched items: ${unmatchedItems.length}`);
         
         return Response.json({
@@ -365,7 +374,8 @@ Deno.serve(async (req) => {
             message: `Aggregated data for ${dateStr}`,
             date: dateStr,
             stores_processed: allStores.length,
-            total_items_processed: orderItems.length,
+            total_items_fetched: allOrderItems.length,
+            items_for_date: orderItems.length,
             unmatched_items_count: unmatchedItems.length,
             results
         }, { status: 200 });
