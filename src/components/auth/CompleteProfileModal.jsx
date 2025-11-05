@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { base44 } from "@/api/base44Client";
 import { User, CheckCircle, AlertCircle } from 'lucide-react';
 import NeumorphicCard from '../neumorphic/NeumorphicCard';
 
 export default function CompleteProfileModal({ user, onComplete }) {
-  const [fullName, setFullName] = useState('');
+  const [nomeCognome, setNomeCognome] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [retryCount, setRetryCount] = useState(0);
@@ -12,7 +13,7 @@ export default function CompleteProfileModal({ user, onComplete }) {
   // Pre-fill with Google name if available
   useEffect(() => {
     if (user?.full_name) {
-      setFullName(user.full_name);
+      setNomeCognome(user.full_name);
     }
   }, [user]);
 
@@ -22,11 +23,11 @@ export default function CompleteProfileModal({ user, onComplete }) {
       
       const updatedUser = await base44.auth.me();
       
-      if (updatedUser.full_name === expectedName && updatedUser.profile_manually_completed === true) {
+      if (updatedUser.nome_cognome === expectedName && updatedUser.profile_manually_completed === true) {
         return { success: true, user: updatedUser };
       }
       
-      console.log(`Verifica ${i + 1}/${maxRetries}: Nome attuale="${updatedUser.full_name}", Atteso="${expectedName}", Completato=${updatedUser.profile_manually_completed}`);
+      console.log(`Verifica ${i + 1}/${maxRetries}: Nome attuale="${updatedUser.nome_cognome}", Atteso="${expectedName}", Completato=${updatedUser.profile_manually_completed}`);
     }
     
     return { success: false };
@@ -37,13 +38,13 @@ export default function CompleteProfileModal({ user, onComplete }) {
     setError('');
 
     // Validation
-    if (!fullName.trim()) {
-      setError('Il nome completo è obbligatorio');
+    if (!nomeCognome.trim()) {
+      setError('Il Nome Cognome è obbligatorio');
       return;
     }
 
-    if (fullName.trim().length < 3) {
-      setError('Il nome completo deve avere almeno 3 caratteri');
+    if (nomeCognome.trim().length < 3) {
+      setError('Il Nome Cognome deve avere almeno 3 caratteri');
       return;
     }
 
@@ -51,16 +52,16 @@ export default function CompleteProfileModal({ user, onComplete }) {
       setSaving(true);
       setRetryCount(prev => prev + 1);
 
-      const trimmedName = fullName.trim();
+      const trimmedName = nomeCognome.trim();
 
-      console.log('💾 Tentativo salvataggio:', { fullName: trimmedName, attempt: retryCount + 1 });
+      console.log('💾 Tentativo salvataggio:', { nome_cognome: trimmedName, attempt: retryCount + 1 });
 
       // MULTIPLE SAVE ATTEMPTS - Critical for Google OAuth
       for (let attempt = 1; attempt <= 3; attempt++) {
         console.log(`🔄 Salvataggio tentativo ${attempt}/3...`);
         
         await base44.auth.updateMe({
-          full_name: trimmedName,
+          nome_cognome: trimmedName,
           profile_manually_completed: true
         });
 
@@ -109,7 +110,7 @@ export default function CompleteProfileModal({ user, onComplete }) {
             Completa il tuo Profilo
           </h2>
           <p className="text-[#9b9b9b] text-sm">
-            Inserisci il tuo nome completo come appare nel sistema aziendale
+            Inserisci il tuo Nome Cognome come appare nel sistema aziendale
           </p>
         </div>
 
@@ -123,7 +124,7 @@ export default function CompleteProfileModal({ user, onComplete }) {
                 Il nome che inserisci QUI verrà salvato PERMANENTEMENTE e protetto dalle sovrascritture di Google.
               </p>
               <p className="text-xs font-bold">
-                ✅ Inserisci il nome completo ESATTAMENTE come appare nei turni<br/>
+                ✅ Inserisci il Nome Cognome ESATTAMENTE come appare nei turni<br/>
                 (es. "Mario Rossi" non "mario rossi" né "Rossi Mario")
               </p>
             </div>
@@ -134,12 +135,12 @@ export default function CompleteProfileModal({ user, onComplete }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-              Nome Completo <span className="text-red-600">*</span>
+              Nome Cognome <span className="text-red-600">*</span>
             </label>
             <input
               type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
+              value={nomeCognome}
+              onChange={(e) => setNomeCognome(e.target.value)}
               placeholder="es. Mario Rossi"
               className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
               disabled={saving}
@@ -181,11 +182,11 @@ export default function CompleteProfileModal({ user, onComplete }) {
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={saving || !fullName.trim()}
+            disabled={saving || !nomeCognome.trim()}
             className={`
               w-full neumorphic-flat px-6 py-4 rounded-xl font-bold text-lg
               transition-all flex items-center justify-center gap-3
-              ${saving || !fullName.trim()
+              ${saving || !nomeCognome.trim()
                 ? 'opacity-50 cursor-not-allowed text-[#9b9b9b]'
                 : 'text-[#8b7355] hover:shadow-lg'
               }

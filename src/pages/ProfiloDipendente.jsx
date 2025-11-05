@@ -19,7 +19,7 @@ import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 export default function ProfiloDipendente() {
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({
-    full_name: '',
+    nome_cognome: '', // Changed from full_name
     initials: '',
     phone: '',
     data_nascita: '',
@@ -39,7 +39,7 @@ export default function ProfiloDipendente() {
       const u = await base44.auth.me();
       // Pre-populate form
       setFormData({
-        full_name: u.full_name || '',
+        nome_cognome: u.nome_cognome || u.full_name || '', // Prioritize nome_cognome, fallback to full_name
         initials: u.initials || '',
         phone: u.phone || '',
         data_nascita: u.data_nascita || '',
@@ -76,13 +76,13 @@ export default function ProfiloDipendente() {
     setSuccess('');
 
     // Validation
-    if (!formData.full_name?.trim()) {
-      setError('Il nome completo è obbligatorio');
+    if (!formData.nome_cognome?.trim()) { // Changed from full_name
+      setError('Il Nome Cognome è obbligatorio'); // Updated message
       return;
     }
 
-    if (formData.full_name.trim().length < 3) {
-      setError('Il nome completo deve avere almeno 3 caratteri');
+    if (formData.nome_cognome.trim().length < 3) { // Changed from full_name
+      setError('Il Nome Cognome deve avere almeno 3 caratteri'); // Updated message
       return;
     }
 
@@ -96,7 +96,7 @@ export default function ProfiloDipendente() {
     // Reset to current values
     if (user) {
       setFormData({
-        full_name: user.full_name || '',
+        nome_cognome: user.nome_cognome || user.full_name || '', // Prioritize nome_cognome, fallback to full_name
         initials: user.initials || '',
         phone: user.phone || '',
         data_nascita: user.data_nascita || '',
@@ -144,12 +144,12 @@ export default function ProfiloDipendente() {
           <div className="flex items-center gap-4">
             <div className="w-20 h-20 rounded-full neumorphic-flat flex items-center justify-center">
               <span className="text-3xl font-bold text-[#8b7355]">
-                {user?.initials || (user?.full_name || 'U').charAt(0).toUpperCase()}
+                {user?.initials || (user?.nome_cognome || user?.full_name || 'U').charAt(0).toUpperCase()} {/* Prioritize nome_cognome, fallback to full_name */}
               </span>
             </div>
             <div>
               <h2 className="text-2xl font-bold text-[#6b6b6b]">
-                {user?.full_name || 'Nome non impostato'}
+                {user?.nome_cognome || user?.full_name || 'Nome non impostato'} {/* Prioritize nome_cognome, fallback to full_name */}
               </h2>
               <p className="text-[#9b9b9b]">
                 {user?.function_name || (user?.user_type === 'admin' ? 'Amministratore' : user?.user_type === 'manager' ? 'Manager' : 'Dipendente')}
@@ -193,12 +193,12 @@ export default function ProfiloDipendente() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
                 <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                  Nome Completo <span className="text-red-600">*</span>
+                  Nome Cognome <span className="text-red-600">*</span> {/* Updated label */}
                 </label>
                 <input
                   type="text"
-                  value={formData.full_name}
-                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                  value={formData.nome_cognome} // Changed from full_name
+                  onChange={(e) => setFormData({ ...formData, nome_cognome: e.target.value })} // Changed from full_name
                   placeholder="Mario Rossi"
                   className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                 />
@@ -336,8 +336,8 @@ export default function ProfiloDipendente() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="neumorphic-pressed p-4 rounded-xl md:col-span-2">
-              <p className="text-sm text-[#9b9b9b] mb-1">Nome Completo</p>
-              <p className="text-[#6b6b6b] font-medium">{user?.full_name || '-'}</p>
+              <p className="text-sm text-[#9b9b9b] mb-1">Nome Cognome</p> {/* Updated label */}
+              <p className="text-[#6b6b6b] font-medium">{user?.nome_cognome || user?.full_name || '-'}</p> {/* Prioritize nome_cognome, fallback to full_name */}
             </div>
 
             <div className="neumorphic-pressed p-4 rounded-xl">
@@ -394,7 +394,7 @@ export default function ProfiloDipendente() {
           <div className="text-sm text-blue-800">
             <p className="font-medium mb-1">📝 Perché questi dati sono importanti?</p>
             <ul className="text-xs space-y-1 list-disc list-inside">
-              <li><strong>Il tuo Nome Completo</strong> viene usato per associare turni e recensioni automaticamente</li>
+              <li><strong>Il tuo Nome Cognome</strong> viene usato per associare turni e recensioni automaticamente</li> {/* Updated text */}
               <li>Deve corrispondere ESATTAMENTE a come appare nel sistema turni (es. "Mario Rossi")</li>
               <li>Il matching viene fatto in modo intelligente (case-insensitive, ignora spazi multipli)</li>
               <li>I dati anagrafici sono necessari per la gestione amministrativa</li>

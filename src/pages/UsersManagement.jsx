@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -22,7 +23,7 @@ import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 export default function UsersManagement() {
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({
-    full_name: '',
+    nome_cognome: '', // Changed from full_name
     initials: '',
     user_type: 'dipendente',
     employee_id_external: '',
@@ -54,7 +55,7 @@ export default function UsersManagement() {
   const handleEdit = (user) => {
     setEditingUser(user);
     setFormData({
-      full_name: user.full_name || '',
+      nome_cognome: user.nome_cognome || '', // Changed from full_name
       initials: user.initials || '',
       user_type: user.user_type || 'dipendente',
       employee_id_external: user.employee_id_external || '',
@@ -70,8 +71,8 @@ export default function UsersManagement() {
   };
 
   const handleSave = () => {
-    if (!formData.full_name?.trim()) {
-      alert('Il nome completo è obbligatorio');
+    if (!formData.nome_cognome?.trim()) { // Changed from full_name
+      alert('Il Nome Cognome è obbligatorio'); // Updated alert message
       return;
     }
 
@@ -84,7 +85,7 @@ export default function UsersManagement() {
   const handleCancel = () => {
     setEditingUser(null);
     setFormData({
-      full_name: '',
+      nome_cognome: '', // Changed from full_name
       initials: '',
       user_type: 'dipendente',
       employee_id_external: '',
@@ -195,12 +196,12 @@ export default function UsersManagement() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
                     <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                      Nome Completo <span className="text-red-600">*</span>
+                      Nome Cognome <span className="text-red-600">*</span> {/* Updated label */}
                     </label>
                     <input
                       type="text"
-                      value={formData.full_name}
-                      onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                      value={formData.nome_cognome} // Changed from full_name
+                      onChange={(e) => setFormData({ ...formData, nome_cognome: e.target.value })} // Changed from full_name
                       className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                       placeholder="Mario Rossi"
                     />
@@ -454,12 +455,12 @@ export default function UsersManagement() {
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full neumorphic-flat flex items-center justify-center">
                           <span className="text-sm font-bold text-[#8b7355]">
-                            {user.initials || (user.full_name || user.email || 'U').charAt(0).toUpperCase()}
+                            {user.initials || (user.nome_cognome || user.full_name || user.email || 'U').charAt(0).toUpperCase()} {/* Added nome_cognome fallback */}
                           </span>
                         </div>
                         <div>
                           <p className="font-medium text-[#6b6b6b]">
-                            {user.full_name || 'Nome non impostato'}
+                            {user.nome_cognome || user.full_name || 'Nome non impostato'} {/* Added nome_cognome fallback */}
                           </p>
                           {user.employee_id_external && (
                             <p className="text-xs text-[#9b9b9b]">ID: {user.employee_id_external}</p>
@@ -526,11 +527,11 @@ export default function UsersManagement() {
           <div className="text-sm text-blue-800">
             <p className="font-medium mb-1">ℹ️ Informazioni sul Matching Automatico</p>
             <ul className="text-xs space-y-1 list-disc list-inside">
-              <li><strong>Nome Completo</strong> viene usato per il matching con <strong>employee_name</strong> negli Shifts</li>
+              <li><strong>Nome Cognome</strong> (campo editabile) viene usato per il matching con <strong>employee_name</strong> negli Shifts</li> {/* Updated text */}
               <li>Il matching viene fatto in modo <strong>case-insensitive</strong> e ignora spazi multipli</li>
-              <li>Il nome deve corrispondere ESATTAMENTE (es. "Mario Rossi" nello User deve matchare con "Mario Rossi" negli Shifts)</li>
+              <li>Il nome deve corrispondere ESATTAMENTE (es. "Mario Rossi" nell'User deve matchare con "Mario Rossi" negli Shifts)</li>
               <li>Questo matching viene usato per assegnare: <strong>recensioni, ritardi e timbrature mancate</strong></li>
-              <li>I dipendenti possono modificare i propri dati dalla pagina "Profilo"</li>
+              <li>I dipendenti possono modificare il proprio <strong>Nome Cognome</strong> dalla pagina "Profilo"</li> {/* Updated text */}
               <li>Gli utenti <strong>admin</strong> hanno accesso completo al sistema</li>
             </ul>
           </div>
