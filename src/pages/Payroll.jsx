@@ -12,7 +12,7 @@ export default function Payroll() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
-  const [viewMode, setViewMode] = useState('daily'); // 'daily' or 'weekly'
+  const [viewMode, setViewMode] = useState('daily');
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -29,20 +29,37 @@ export default function Payroll() {
     queryFn: () => base44.entities.Employee.list(),
   });
 
-  // ✅ ULTRA-IMPROVED: Aggressive deduplication with name normalization
+  // ✅ NORMALIZE SHIFT TYPE - Aggregate similar types
+  const normalizeShiftType = (shiftType) => {
+    if (!shiftType) return 'Turno normale';
+    
+    const type = shiftType.trim();
+    
+    // Aggregate Affiancamento into Turno normale
+    if (type === 'Affiancamento') return 'Turno normale';
+    
+    // Aggregate Malattia (No Certificato) into Assenza non retribuita
+    if (type === 'Malattia (No Certificato)') return 'Assenza non retribuita';
+    
+    // Aggregate Ritardo into Assenza non retribuita
+    if (type === 'Ritardo') return 'Assenza non retribuita';
+    
+    return type;
+  };
+
+  // ✅ ULTRA-IMPROVED: Most aggressive deduplication
   const deduplicateShifts = (shiftsArray) => {
     const uniqueShiftsMap = new Map();
     let duplicatesFound = 0;
 
     shiftsArray.forEach(shift => {
-      // ✅ NORMALIZE EMPLOYEE NAME: remove multiple spaces, trim, lowercase
+      // ✅ NORMALIZE EMPLOYEE NAME: remove ALL spaces, trim, lowercase
       const normalizedEmployeeName = (shift.employee_name || 'unknown')
         .trim()
-        .replace(/\s+/g, ' ')  // Replace multiple spaces with single space
+        .replace(/\s+/g, '')  // Remove ALL spaces (including double spaces)
         .toLowerCase();
 
       // Normalize date - use only YYYY-MM-DD
-      // Handle both ISO (e.g., "2023-10-27T10:00:00Z") and space-separated formats (e.g., "2023-10-27 10:00:00")
       const normalizedDate = shift.shift_date 
         ? shift.shift_date.split('T')[0].split(' ')[0]
         : 'no-date';
@@ -50,21 +67,19 @@ export default function Payroll() {
       // Helper to extract HH:mm from various time/datetime string formats
       const extractTime = (dateTimeString) => {
         if (!dateTimeString) return 'no-time';
-        // If it contains 'T', assume ISO format and get time part
         if (dateTimeString.includes('T')) {
           return dateTimeString.split('T')[1]?.substring(0, 5) || 'no-time';
         }
-        // Otherwise, assume it's a time string (e.g., "10:00:00" or "10:00")
         return dateTimeString.substring(0, 5);
       };
 
       const normalizedStart = extractTime(shift.scheduled_start);
       const normalizedEnd = extractTime(shift.scheduled_end);
 
-      // ✅ NORMALIZE STORE: use both store_id and store_name, normalize store_name too
+      // ✅ NORMALIZE STORE: remove all spaces, lowercase
       const normalizedStoreName = (shift.store_name || 'no-store')
         .trim()
-        .replace(/\s+/g, ' ')
+        .replace(/\s+/g, '')
         .toLowerCase();
       const storeIdentifier = shift.store_id || normalizedStoreName;
       
@@ -75,10 +90,8 @@ export default function Payroll() {
         uniqueShiftsMap.set(key, shift);
       } else {
         duplicatesFound++;
-        // Keep the one with the OLDEST created_date (original record)
-        // If the current 'shift' is older than the 'existing' one for the same key, replace it.
         const existing = uniqueShiftsMap.get(key);
-        if (shift.created_date && existing.created_date) { // Ensure both dates exist before comparing
+        if (shift.created_date && existing.created_date) {
           const shiftDate = new Date(shift.created_date);
           const existingDate = new Date(existing.created_date);
           if (shiftDate < existingDate) {
@@ -95,23 +108,21 @@ export default function Payroll() {
     return Array.from(uniqueShiftsMap.values());
   };
 
-  // ✅ MEMO: Deduplicate shifts una sola volta
+  // ✅ MEMO: Deduplicate shifts once
   const shifts = useMemo(() => {
     const deduplicated = deduplicateShifts(rawShifts);
-    console.log(`📊 Turni totali: ${rawShifts.length} → Dopo deduplica ULTRA: ${deduplicated.length}`);
+    console.log(`📊 Turni totali: ${rawShifts.length} → Dopo deduplica: ${deduplicated.length}`);
     return deduplicated;
   }, [rawShifts]);
 
-  // Process payroll data - ACCORPATO PER DIPENDENTE (non per dipendente+locale)
+  // Process payroll data
   const payrollData = useMemo(() => {
-    // Filter by store
     let filteredShifts = shifts;
     
     if (selectedStore !== 'all') {
       filteredShifts = filteredShifts.filter(s => s.store_id === selectedStore);
     }
 
-    // Filter by date range
     if (startDate || endDate) {
       filteredShifts = filteredShifts.filter(shift => {
         if (!shift.shift_date) return false;
@@ -130,9 +141,6 @@ export default function Payroll() {
       });
     }
 
-    // The 'shifts' variable is already deduplicated, so no need to call deduplicateShifts again here.
-
-    // Group by employee ONLY (not by employee + store)
     const employeeData = {};
 
     filteredShifts.forEach(shift => {
@@ -141,53 +149,39 @@ export default function Payroll() {
       if (!employeeData[empName]) {
         employeeData[empName] = {
           employee_name: empName,
-          store_names: new Set(), // Collect all stores
+          store_names: new Set(),
           shift_types: {},
           total_minutes: 0,
           total_ritardo_minutes: 0
         };
       }
 
-      // Add store name to set
       if (shift.store_name) {
         employeeData[empName].store_names.add(shift.store_name);
       }
 
-      // USE scheduled_minutes for duration
       let workedMinutes = shift.scheduled_minutes || 0;
 
-      // Get shift type (null becomes "Turno normale")
-      let shiftType = shift.shift_type || 'Turno normale';
+      // ✅ USE NORMALIZED SHIFT TYPE
+      let shiftType = normalizeShiftType(shift.shift_type);
       
-      // Merge "Ritardo" into "Assenza non retribuita"
-      if (shiftType === 'Ritardo') {
-        shiftType = 'Assenza non retribuita';
-      }
-      
-      // Initialize shift type if not exists
       if (!employeeData[empName].shift_types[shiftType]) {
         employeeData[empName].shift_types[shiftType] = 0;
       }
 
-      // Add worked minutes to shift type
       employeeData[empName].shift_types[shiftType] += workedMinutes;
       employeeData[empName].total_minutes += workedMinutes;
 
-      // Track ritardi separately
       if (shift.minuti_di_ritardo && shift.minuti_di_ritardo > 0) {
         employeeData[empName].total_ritardo_minutes += shift.minuti_di_ritardo;
       }
     });
 
-    // Process each employee: subtract ritardi from "Turno normale" and add to "Assenza non retribuita"
     Object.keys(employeeData).forEach(empName => {
       const emp = employeeData[empName];
-      
-      // Convert store names set to string
       emp.store_names_display = Array.from(emp.store_names).sort().join(', ');
       
       if (emp.total_ritardo_minutes > 0) {
-        // Subtract ritardi from "Turno normale"
         if (emp.shift_types['Turno normale']) {
           emp.shift_types['Turno normale'] -= emp.total_ritardo_minutes;
           if (emp.shift_types['Turno normale'] < 0) {
@@ -195,7 +189,6 @@ export default function Payroll() {
           }
         }
         
-        // Add ritardi to "Assenza non retribuita"
         if (!emp.shift_types['Assenza non retribuita']) {
           emp.shift_types['Assenza non retribuita'] = 0;
         }
@@ -203,12 +196,10 @@ export default function Payroll() {
       }
     });
 
-    // Convert to array and sort by employee name
     const employeeArray = Object.values(employeeData).sort((a, b) => 
       a.employee_name.localeCompare(b.employee_name)
     );
 
-    // Get all unique shift types
     const allShiftTypes = new Set();
     employeeArray.forEach(emp => {
       Object.keys(emp.shift_types).forEach(type => allShiftTypes.add(type));
@@ -227,15 +218,12 @@ export default function Payroll() {
   const employeeDailyBreakdown = useMemo(() => {
     if (!selectedEmployee) return { days: [], shiftTypes: [], weeks: [] };
 
-    // Filter shifts for selected employee
     let employeeShifts = shifts.filter(s => s.employee_name === selectedEmployee.employee_name);
 
-    // Apply store filter
     if (selectedStore !== 'all') {
       employeeShifts = employeeShifts.filter(s => s.store_id === selectedStore);
     }
 
-    // Apply date filter
     if (startDate || endDate) {
       employeeShifts = employeeShifts.filter(shift => {
         if (!shift.shift_date) return false;
@@ -254,9 +242,6 @@ export default function Payroll() {
       });
     }
 
-    // The 'shifts' variable (and thus employeeShifts derived from it) is already deduplicated.
-
-    // Group by date for DAILY view
     const dailyData = {};
     const allShiftTypes = new Set();
 
@@ -270,15 +255,10 @@ export default function Payroll() {
         };
       }
 
-      // USE scheduled_minutes for duration
       let workedMinutes = shift.scheduled_minutes || 0;
-
-      let shiftType = shift.shift_type || 'Turno normale';
       
-      // Merge "Ritardo" into "Assenza non retribuita"
-      if (shiftType === 'Ritardo') {
-        shiftType = 'Assenza non retribuita';
-      }
+      // ✅ USE NORMALIZED SHIFT TYPE
+      let shiftType = normalizeShiftType(shift.shift_type);
       
       allShiftTypes.add(shiftType);
 
@@ -293,7 +273,6 @@ export default function Payroll() {
       }
     });
 
-    // Process ritardi for each day
     Object.keys(dailyData).forEach(date => {
       const day = dailyData[date];
       if (day.ritardo_minutes > 0) {
@@ -311,22 +290,19 @@ export default function Payroll() {
       }
     });
 
-    // Convert to array and sort by date (most recent first)
     const dailyArray = Object.values(dailyData).sort((a, b) => 
       new Date(b.date) - new Date(a.date)
     );
 
-    // Calculate total_minutes for each day (sum of ALL shift_types)
     dailyArray.forEach(day => {
       day.total_minutes = Object.values(day.shift_types).reduce((sum, mins) => sum + mins, 0);
     });
 
-    // Group by WEEK for WEEKLY view (Monday to Sunday)
+    // Weekly data
     const weeklyData = {};
     
     employeeShifts.forEach(shift => {
       const date = parseISO(shift.shift_date);
-      // Get start of week (Monday)
       const weekStart = startOfWeek(date, { weekStartsOn: 1 });
       const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
       const weekKey = format(weekStart, 'yyyy-MM-dd');
@@ -342,11 +318,9 @@ export default function Payroll() {
       }
 
       let workedMinutes = shift.scheduled_minutes || 0;
-      let shiftType = shift.shift_type || 'Turno normale';
       
-      if (shiftType === 'Ritardo') {
-        shiftType = 'Assenza non retribuita';
-      }
+      // ✅ USE NORMALIZED SHIFT TYPE
+      let shiftType = normalizeShiftType(shift.shift_type);
       
       if (!weeklyData[weekKey].shift_types[shiftType]) {
         weeklyData[weekKey].shift_types[shiftType] = 0;
@@ -359,7 +333,6 @@ export default function Payroll() {
       }
     });
 
-    // Process ritardi for each week
     Object.keys(weeklyData).forEach(weekKey => {
       const week = weeklyData[weekKey];
       if (week.ritardo_minutes > 0) {
@@ -376,12 +349,10 @@ export default function Payroll() {
       }
     });
 
-    // Convert to array and sort by week (most recent first)
     const weeklyArray = Object.values(weeklyData).sort((a, b) => 
       b.weekStart - a.weekStart
     );
 
-    // Calculate total_minutes for each week
     weeklyArray.forEach(week => {
       week.total_minutes = Object.values(week.shift_types).reduce((sum, mins) => sum + mins, 0);
     });
@@ -560,8 +531,6 @@ export default function Payroll() {
         return true;
       });
 
-      // 'shifts' is already deduplicated, no need to call deduplicateShifts again here.
-
       // Group by date
       const dailyData = {};
       employeeShifts.forEach(shift => {
@@ -582,11 +551,9 @@ export default function Payroll() {
         }
 
         let workedMinutes = shift.scheduled_minutes || 0;
-        let shiftType = shift.shift_type || 'Turno normale';
         
-        if (shiftType === 'Ritardo') {
-          shiftType = 'Assenza non retribuita';
-        }
+        // ✅ USE NORMALIZED SHIFT TYPE
+        let shiftType = normalizeShiftType(shift.shift_type);
         
         if (!dailyData[date].shift_types[shiftType]) {
           dailyData[date].shift_types[shiftType] = 0;
@@ -727,7 +694,6 @@ export default function Payroll() {
     const employeeWeeklyData = {};
 
     payrollData.employees.forEach(employee => {
-      // Filter shifts for this employee
       let employeeShifts = shifts.filter(s => { // Using the already deduplicated 'shifts'
         if (s.employee_name !== employee.employee_name) return false;
 
@@ -752,8 +718,6 @@ export default function Payroll() {
 
         return true;
       });
-
-      // 'shifts' is already deduplicated, no need to call deduplicateShifts again here.
 
       if (!employeeWeeklyData[employee.employee_name]) {
         employeeWeeklyData[employee.employee_name] = {};
@@ -783,11 +747,9 @@ export default function Payroll() {
         }
 
         let workedMinutes = shift.scheduled_minutes || 0;
-        let shiftType = shift.shift_type || 'Turno normale';
         
-        if (shiftType === 'Ritardo') {
-          shiftType = 'Assenza non retribuita';
-        }
+        // ✅ USE NORMALIZED SHIFT TYPE
+        let shiftType = normalizeShiftType(shift.shift_type);
         
         if (!weekData.shift_types[shiftType]) {
           weekData.shift_types[shiftType] = 0;
@@ -1413,8 +1375,8 @@ export default function Payroll() {
         <div className="text-sm text-blue-800 space-y-2">
           <p className="font-bold">ℹ️ Note:</p>
           <ul className="space-y-1 ml-4">
-            <li>• <strong>Turno normale</strong>: include tutti i turni senza tipo specifico</li>
-            <li>• <strong>Assenza non retribuita</strong>: include i minuti di ritardo e i turni di tipo "Ritardo"</li>
+            <li>• <strong>Turno normale</strong>: include tutti i turni senza tipo specifico e i turni di tipo "Affiancamento"</li>
+            <li>• <strong>Assenza non retribuita</strong>: include i minuti di ritardo, i turni di tipo "Ritardo" e "Malattia (No Certificato)"</li>
             <li>• <strong>Ritardo</strong>: i minuti di ritardo sono sottratti dai turni normali e sommati alla categoria 'Assenza non retribuita'</li>
             <li>• <strong>Ore Nette</strong>: Ore totali meno ore di ritardo</li>
             <li>• Le ore sono mostrate in formato ore e minuti (es. 8h 30m)</li>
