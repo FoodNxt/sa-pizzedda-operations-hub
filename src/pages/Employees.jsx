@@ -13,7 +13,9 @@ import {
   Star,
   ChevronDown,
   ChevronUp,
-  Calendar
+  Calendar,
+  Eye,
+  X
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { parseISO, isWithinInterval } from 'date-fns';
@@ -26,6 +28,7 @@ export default function Employees() {
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [expandedView, setExpandedView] = useState(null); // 'late', 'missing', 'reviews', null
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -275,7 +278,7 @@ export default function Employees() {
           valueA = a.performanceScore;
           valueB = b.performanceScore;
       }
-      return sortOrder === 'desc' ? valueB - valueA : valueA - valueB;
+      return sortOrder === 'desc' ? valueB - valueA : valueA - b.performanceScore;
     });
 
     return filtered;
@@ -310,38 +313,104 @@ export default function Employees() {
     }
   };
 
-  // Get latest late shifts for selected employee - WITH IMPROVED DEDUPLICATION
-  const getLatestLateShifts = (employeeName) => {
-    // Get all late shifts for this employee
+  // Get ALL late shifts for selected employee (not just 3)
+  const getAllLateShifts = (employeeName) => {
     const lateShifts = shifts
-      .filter(s => s.employee_name === employeeName && s.ritardo === true && s.shift_date)
+      .filter(s => {
+        if (s.employee_name !== employeeName || s.ritardo !== true || !s.shift_date) return false;
+        
+        // Apply date filter if set
+        if (startDate || endDate) {
+          const shiftDate = parseISO(s.shift_date);
+          const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
+          const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
+
+          if (start && end) {
+            return isWithinInterval(shiftDate, { start, end });
+          } else if (start) {
+            return shiftDate >= start;
+          } else if (end) {
+            return shiftDate <= end;
+          }
+        }
+        
+        return true;
+      })
       .sort((a, b) => new Date(b.shift_date) - new Date(a.shift_date));
 
-    // Deduplicate and take first 3
-    return deduplicateShifts(lateShifts).slice(0, 3);
+    return deduplicateShifts(lateShifts);
   };
 
-  // Get latest missing clock-ins for selected employee
-  const getLatestMissingClockIns = (employeeName) => {
-    // Get all shifts with missing clock-ins for this employee
+  // Get latest 3 late shifts for selected employee
+  const getLatestLateShifts = (employeeName) => {
+    return getAllLateShifts(employeeName).slice(0, 3);
+  };
+
+  // Get ALL missing clock-ins for selected employee
+  const getAllMissingClockIns = (employeeName) => {
     const missingClockIns = shifts
-      .filter(s => s.employee_name === employeeName && s.timbratura_mancata === true && s.shift_date)
+      .filter(s => {
+        if (s.employee_name !== employeeName || s.timbratura_mancata !== true || !s.shift_date) return false;
+        
+        // Apply date filter if set
+        if (startDate || endDate) {
+          const shiftDate = parseISO(s.shift_date);
+          const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
+          const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
+
+          if (start && end) {
+            return isWithinInterval(shiftDate, { start, end });
+          } else if (start) {
+            return shiftDate >= start;
+          } else if (end) {
+            return shiftDate <= end;
+          }
+        }
+        
+        return true;
+      })
       .sort((a, b) => new Date(b.shift_date) - new Date(a.shift_date));
 
-    // Deduplicate and take first 3
-    return deduplicateShifts(missingClockIns).slice(0, 3);
+    return deduplicateShifts(missingClockIns);
   };
 
-  // Get latest Google reviews for selected employee
-  const getLatestGoogleReviews = (employeeName) => {
+  // Get latest 3 missing clock-ins for selected employee
+  const getLatestMissingClockIns = (employeeName) => {
+    return getAllMissingClockIns(employeeName).slice(0, 3);
+  };
+
+  // Get ALL Google reviews for selected employee
+  const getAllGoogleReviews = (employeeName) => {
     return reviews
       .filter(r => {
         if (!r.employee_assigned_name || r.source !== 'google' || !r.review_date) return false;
+        
         const assignedNames = r.employee_assigned_name.split(',').map(n => n.trim().toLowerCase());
-        return assignedNames.includes(employeeName.toLowerCase());
+        if (!assignedNames.includes(employeeName.toLowerCase())) return false;
+        
+        // Apply date filter if set
+        if (startDate || endDate) {
+          const reviewDate = parseISO(r.review_date);
+          const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
+          const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
+
+          if (start && end) {
+            return isWithinInterval(reviewDate, { start, end });
+          } else if (start) {
+            return reviewDate >= start;
+          } else if (end) {
+            return reviewDate <= end;
+          }
+        }
+        
+        return true;
       })
-      .sort((a, b) => new Date(b.review_date) - new Date(a.review_date))
-      .slice(0, 3);
+      .sort((a, b) => new Date(b.review_date) - new Date(a.review_date));
+  };
+
+  // Get latest 3 Google reviews for selected employee
+  const getLatestGoogleReviews = (employeeName) => {
+    return getAllGoogleReviews(employeeName).slice(0, 3);
   };
 
   return (
@@ -710,7 +779,10 @@ export default function Employees() {
                 <p className="text-[#9b9b9b] capitalize">{selectedEmployee.position?.replace(/_/g, ' ')}</p>
               </div>
               <button
-                onClick={() => setSelectedEmployee(null)}
+                onClick={() => {
+                  setSelectedEmployee(null);
+                  setExpandedView(null); // Reset expanded view when closing modal
+                }}
                 className="neumorphic-flat px-4 py-2 rounded-lg text-[#6b6b6b]"
               >
                 Close
@@ -805,14 +877,42 @@ export default function Employees() {
 
               {/* Ultimi Turni in Ritardo - IMPROVED DISPLAY */}
               <div className="neumorphic-flat p-4 rounded-xl">
-                <div className="flex items-center gap-3 mb-3">
-                  <AlertCircle className="w-5 h-5 text-red-600" />
-                  <h3 className="font-bold text-[#6b6b6b]">Ultime 3 Turni in Ritardo</h3>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-600" />
+                    <h3 className="font-bold text-[#6b6b6b]">
+                      {expandedView === 'late' ? 'Tutti i Turni in Ritardo' : 'Ultimi 3 Turni in Ritardo'}
+                    </h3>
+                  </div>
+                  {(() => {
+                    const allLateShifts = getAllLateShifts(selectedEmployee.full_name);
+                    return allLateShifts.length > 3 && (
+                      <button
+                        onClick={() => setExpandedView(expandedView === 'late' ? null : 'late')}
+                        className="neumorphic-flat px-3 py-1 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-1"
+                      >
+                        {expandedView === 'late' ? (
+                          <>
+                            <X className="w-4 h-4" />
+                            Chiudi
+                          </>
+                        ) : (
+                          <>
+                            <Eye className="w-4 h-4" />
+                            Vedi tutti ({allLateShifts.length})
+                          </>
+                        )}
+                      </button>
+                    );
+                  })()}
                 </div>
                 {(() => {
-                  const lateShifts = getLatestLateShifts(selectedEmployee.full_name);
+                  const lateShifts = expandedView === 'late' 
+                    ? getAllLateShifts(selectedEmployee.full_name)
+                    : getLatestLateShifts(selectedEmployee.full_name);
+                    
                   return lateShifts.length > 0 ? (
-                    <div className="space-y-2">
+                    <div className={`space-y-2 ${expandedView === 'late' ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
                       {lateShifts.map((shift, index) => (
                         <div key={`${shift.id}-${index}`} className="neumorphic-pressed p-3 rounded-lg">
                           <div className="flex items-center justify-between mb-1">
@@ -846,14 +946,42 @@ export default function Employees() {
 
               {/* Ultimi Turni con Timbratura Mancata */}
               <div className="neumorphic-flat p-4 rounded-xl">
-                <div className="flex items-center gap-3 mb-3">
-                  <AlertCircle className="w-5 h-5 text-orange-600" />
-                  <h3 className="font-bold text-[#6b6b6b]">Ultimi 3 Turni con Timbratura Mancata</h3>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <AlertCircle className="w-5 h-5 text-orange-600" />
+                    <h3 className="font-bold text-[#6b6b6b]">
+                      {expandedView === 'missing' ? 'Tutti i Turni con Timbratura Mancata' : 'Ultimi 3 Turni con Timbratura Mancata'}
+                    </h3>
+                  </div>
+                  {(() => {
+                    const allMissingClockIns = getAllMissingClockIns(selectedEmployee.full_name);
+                    return allMissingClockIns.length > 3 && (
+                      <button
+                        onClick={() => setExpandedView(expandedView === 'missing' ? null : 'missing')}
+                        className="neumorphic-flat px-3 py-1 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-1"
+                      >
+                        {expandedView === 'missing' ? (
+                          <>
+                            <X className="w-4 h-4" />
+                            Chiudi
+                          </>
+                        ) : (
+                          <>
+                            <Eye className="w-4 h-4" />
+                            Vedi tutti ({allMissingClockIns.length})
+                          </>
+                        )}
+                      </button>
+                    );
+                  })()}
                 </div>
                 {(() => {
-                  const missingClockIns = getLatestMissingClockIns(selectedEmployee.full_name);
+                  const missingClockIns = expandedView === 'missing'
+                    ? getAllMissingClockIns(selectedEmployee.full_name)
+                    : getLatestMissingClockIns(selectedEmployee.full_name);
+                    
                   return missingClockIns.length > 0 ? (
-                    <div className="space-y-2">
+                    <div className={`space-y-2 ${expandedView === 'missing' ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
                       {missingClockIns.map((shift, index) => (
                         <div key={`${shift.id}-${index}`} className="neumorphic-pressed p-3 rounded-lg border-2 border-orange-200">
                           <div className="flex items-center justify-between mb-1">
@@ -892,14 +1020,42 @@ export default function Employees() {
 
               {/* Ultime Recensioni Google */}
               <div className="neumorphic-flat p-4 rounded-xl">
-                <div className="flex items-center gap-3 mb-3">
-                  <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                  <h3 className="font-bold text-[#6b6b6b]">Ultime 3 Recensioni Google Maps</h3>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+                    <h3 className="font-bold text-[#6b6b6b]">
+                      {expandedView === 'reviews' ? 'Tutte le Recensioni Google Maps' : 'Ultime 3 Recensioni Google Maps'}
+                    </h3>
+                  </div>
+                  {(() => {
+                    const allGoogleReviews = getAllGoogleReviews(selectedEmployee.full_name);
+                    return allGoogleReviews.length > 3 && (
+                      <button
+                        onClick={() => setExpandedView(expandedView === 'reviews' ? null : 'reviews')}
+                        className="neumorphic-flat px-3 py-1 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-1"
+                      >
+                        {expandedView === 'reviews' ? (
+                          <>
+                            <X className="w-4 h-4" />
+                            Chiudi
+                          </>
+                        ) : (
+                          <>
+                            <Eye className="w-4 h-4" />
+                            Vedi tutte ({allGoogleReviews.length})
+                          </>
+                        )}
+                      </button>
+                    );
+                  })()}
                 </div>
                 {(() => {
-                  const googleReviews = getLatestGoogleReviews(selectedEmployee.full_name);
+                  const googleReviews = expandedView === 'reviews'
+                    ? getAllGoogleReviews(selectedEmployee.full_name)
+                    : getLatestGoogleReviews(selectedEmployee.full_name);
+                    
                   return googleReviews.length > 0 ? (
-                    <div className="space-y-2">
+                    <div className={`space-y-2 ${expandedView === 'reviews' ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
                       {googleReviews.map((review) => (
                         <div key={review.id} className="neumorphic-pressed p-3 rounded-lg">
                           <div className="flex items-center justify-between mb-2">
@@ -922,7 +1078,7 @@ export default function Employees() {
                           {review.comment && (
                             <p className="text-xs text-[#6b6b6b] mb-1">{review.comment}</p>
                           )}
-                          <p className="text-xs text-[#9b9b9b] ">
+                          <p className="text-xs text-[#9b9b9b]">
                             {new Date(review.review_date).toLocaleDateString('it-IT')}
                           </p>
                         </div>
