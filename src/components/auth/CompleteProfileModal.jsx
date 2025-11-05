@@ -44,20 +44,28 @@ export default function CompleteProfileModal({ user, onComplete }) {
       // Combine first and last name
       const fullName = `${firstName.trim()} ${lastName.trim()}`;
 
-      // Update user profile AND mark as manually completed
+      // CRITICAL: Update user profile AND mark as manually completed
+      // This ensures the name won't be overwritten by Google
       await base44.auth.updateMe({
         full_name: fullName,
         profile_manually_completed: true
       });
 
-      // Small delay to ensure the update is processed
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Wait for the update to be fully processed
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Verify the update was successful
+      const updatedUser = await base44.auth.me();
+      
+      if (updatedUser.full_name !== fullName) {
+        throw new Error('Il nome non è stato salvato correttamente. Riprova.');
+      }
 
       // Notify parent component
       onComplete();
     } catch (error) {
       console.error('Error updating profile:', error);
-      setError('Errore durante il salvataggio. Riprova.');
+      setError(error.message || 'Errore durante il salvataggio. Riprova.');
       setSaving(false);
     }
   };
@@ -74,7 +82,7 @@ export default function CompleteProfileModal({ user, onComplete }) {
             Completa il tuo Profilo
           </h2>
           <p className="text-[#9b9b9b] text-sm">
-            Conferma o modifica il tuo nome e cognome
+            Inserisci il tuo nome come appare nel sistema aziendale
           </p>
         </div>
 
@@ -83,10 +91,12 @@ export default function CompleteProfileModal({ user, onComplete }) {
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
             <div className="text-sm text-blue-800">
-              <p className="font-medium mb-1">Importante!</p>
-              <p className="text-xs">
-                Il nome e cognome che inserisci QUI verranno salvati e utilizzati per associare 
-                turni e recensioni. Inserisci il nome esattamente come compare nel sistema aziendale.
+              <p className="font-medium mb-1">⚠️ IMPORTANTE!</p>
+              <p className="text-xs mb-2">
+                Il nome che inserisci QUI verrà salvato PERMANENTEMENTE e NON verrà sovrascritto da Google.
+              </p>
+              <p className="text-xs font-bold">
+                ✅ Inserisci il nome ESATTAMENTE come appare nel sistema aziendale per associare correttamente i tuoi turni e recensioni.
               </p>
             </div>
           </div>
@@ -142,6 +152,7 @@ export default function CompleteProfileModal({ user, onComplete }) {
             {user?.full_name && (
               <p className="text-xs text-[#9b9b9b] mt-2">
                 Nome da Google: <span className="text-[#6b6b6b] line-through">{user.full_name}</span>
+                <span className="text-red-600 ml-1">(verrà sostituito)</span>
               </p>
             )}
           </div>
@@ -162,12 +173,12 @@ export default function CompleteProfileModal({ user, onComplete }) {
             {saving ? (
               <>
                 <div className="w-5 h-5 border-2 border-[#8b7355] border-t-transparent rounded-full animate-spin" />
-                Salvataggio...
+                Salvataggio e verifica...
               </>
             ) : (
               <>
                 <CheckCircle className="w-6 h-6" />
-                Salva e Continua
+                Salva Nome
               </>
             )}
           </button>
@@ -176,7 +187,7 @@ export default function CompleteProfileModal({ user, onComplete }) {
         {/* Footer Note */}
         <div className="mt-6 text-center">
           <p className="text-xs text-[#9b9b9b]">
-            Dopo aver salvato, potrai modificare il nome dalla Dashboard → Data → User
+            Dopo aver salvato, potrai modificare il nome dalla pagina Profilo
           </p>
         </div>
       </NeumorphicCard>

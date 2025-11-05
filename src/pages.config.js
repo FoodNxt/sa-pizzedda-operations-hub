@@ -23,6 +23,7 @@ import DailyRevenueAggregation from './pages/DailyRevenueAggregation';
 import IPraticoSetup from './pages/IPraticoSetup';
 import IPraticoBulkImport from './pages/IPraticoBulkImport';
 import Valutazione from './pages/Valutazione';
+import ProfiloDipendente from './pages/ProfiloDipendente';
 import Layout from './Layout.jsx';
 
 
@@ -52,6 +53,7 @@ export const PAGES = {
     "IPraticoSetup": IPraticoSetup,
     "IPraticoBulkImport": IPraticoBulkImport,
     "Valutazione": Valutazione,
+    "ProfiloDipendente": ProfiloDipendente,
 }
 
 export const pagesConfig = {

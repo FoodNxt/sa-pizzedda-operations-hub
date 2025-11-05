@@ -22,7 +22,8 @@ import {
   Package,
   Upload,
   Camera,
-  ClipboardCheck
+  ClipboardCheck,
+  User // Added User icon import
 } from "lucide-react";
 import CompleteProfileModal from "./components/auth/CompleteProfileModal";
 
@@ -166,6 +167,11 @@ const navigationStructure = [
     type: "section",
     requiredUserType: ["dipendente"],
     items: [
+      {
+        title: "Profilo", // New item added
+        url: createPageUrl("ProfiloDipendente"), // New item added
+        icon: User, // New item added
+      },
       {
         title: "Foto Locale",
         url: createPageUrl("FotoLocale"),
