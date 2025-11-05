@@ -5,13 +5,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DollarSign, ShoppingCart, TrendingUp, Clock, Zap, Filter, Store, RefreshCw } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { format, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
+import { format, startOfDay, parseISO } from 'date-fns';
 import { it } from 'date-fns/locale';
 
 export default function RealTime() {
   const [selectedStore, setSelectedStore] = useState('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastUpdateTime, setLastUpdateTime] = useState(new Date()); // Added new state
+  const [lastUpdateTime, setLastUpdateTime] = useState(new Date());
   const queryClient = useQueryClient();
 
   const { data: stores = [] } = useQuery({
@@ -19,20 +19,14 @@ export default function RealTime() {
     queryFn: () => base44.entities.Store.list(),
   });
 
-  // Always filter for today's data using server-side filtering
-  const { data: orderItems = [], isLoading } = useQuery({
-    queryKey: ['orderItems-today'],
+  // Get today's iPratico data
+  const { data: iPraticoData = [], isLoading } = useQuery({
+    queryKey: ['iPratico-today'],
     queryFn: async () => {
-      const today = new Date();
-      const todayStart = startOfDay(today);
-      const todayEnd = endOfDay(today);
-      
-      return base44.entities.OrderItem.filter({
-        modifiedDate: {
-          $gte: todayStart.toISOString(),
-          $lte: todayEnd.toISOString()
-        }
-      }, '-modifiedDate', 50000);
+      const today = format(new Date(), 'yyyy-MM-dd');
+      return base44.entities.iPratico.filter({
+        order_date: today
+      }, '-order_date', 1000);
     },
     refetchInterval: 30000, // Refresh every 30 seconds
     onSuccess: () => {
@@ -40,137 +34,143 @@ export default function RealTime() {
     }
   });
 
-  // The previous useEffect for updating lastUpdateTime is now replaced by the onSuccess callback in useQuery.
-  // This is a more direct and React Query idiomatic way to handle updates on successful data fetch.
-
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await queryClient.invalidateQueries({ queryKey: ['orderItems-today'] });
+    await queryClient.invalidateQueries({ queryKey: ['iPratico-today'] });
     await queryClient.invalidateQueries({ queryKey: ['stores'] });
-    // Update timestamp immediately after explicit refresh
     setLastUpdateTime(new Date());
     setTimeout(() => setIsRefreshing(false), 1000);
   };
 
   // Process today's data
   const todayData = useMemo(() => {
-    // With server-side filtering, all `orderItems` are already from today.
-    // We no longer need the client-side `allTodayOrders` filtering logic.
-    const allTodayOrders = orderItems; // Renamed for clarity, but it's already filtered by server
+    // Filter by store if selected
+    const filteredData = selectedStore !== 'all' 
+      ? iPraticoData.filter(item => item.store_id === selectedStore)
+      : iPraticoData;
 
-    // Filter by store if selected (for main KPIs and charts)
-    const filteredOrders = selectedStore !== 'all' 
-      ? allTodayOrders.filter(item => item.store_id === selectedStore)
-      : allTodayOrders;
-
-    // Calculate total revenue
-    const totalRevenue = filteredOrders.reduce((sum, item) => 
-      sum + (item.finalPriceWithSessionDiscountsAndSurcharges || 0), 0
+    // Calculate total revenue and orders
+    const totalRevenue = filteredData.reduce((sum, item) => 
+      sum + (item.total_revenue || 0), 0
     );
 
-    // Count unique orders
-    const uniqueOrders = [...new Set(filteredOrders.map(item => item.order).filter(Boolean))];
-    const totalOrders = uniqueOrders.length;
+    const totalOrders = filteredData.reduce((sum, item) => 
+      sum + (item.total_orders || 0), 0
+    );
 
-    // Calculate average order value
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-    // Revenue by store (always calculated on ALL today's orders for the table)
-    const revenueByStore = {};
-    const ordersByStore = {};
-    
-    allTodayOrders.forEach(item => {
-      const storeId = item.store_id || 'unknown';
-      const storeName = stores.find(s => s.id === storeId)?.name || 'Sconosciuto';
-      
-      if (!revenueByStore[storeId]) {
-        revenueByStore[storeId] = { 
-          store_id: storeId,
-          store_name: storeName, 
-          revenue: 0 
-        };
-        ordersByStore[storeId] = new Set();
+    // Revenue by store (always use all data for the table)
+    const storeBreakdown = iPraticoData.map(item => ({
+      store_id: item.store_id,
+      store_name: item.store_name,
+      revenue: item.total_revenue || 0,
+      orders: item.total_orders || 0,
+      avgOrderValue: item.total_orders > 0 
+        ? (item.total_revenue || 0) / item.total_orders 
+        : 0
+    })).sort((a, b) => b.revenue - a.revenue);
+
+    // Revenue by source app (for filtered data)
+    const appBreakdown = [];
+    filteredData.forEach(item => {
+      if ((item.sourceApp_glovo || 0) > 0) {
+        appBreakdown.push({
+          name: 'Glovo',
+          value: item.sourceApp_glovo || 0,
+          orders: item.sourceApp_glovo_orders || 0
+        });
       }
-      revenueByStore[storeId].revenue += item.finalPriceWithSessionDiscountsAndSurcharges || 0;
-      if (item.order) {
-        ordersByStore[storeId].add(item.order);
+      if ((item.sourceApp_deliveroo || 0) > 0) {
+        appBreakdown.push({
+          name: 'Deliveroo',
+          value: item.sourceApp_deliveroo || 0,
+          orders: item.sourceApp_deliveroo_orders || 0
+        });
+      }
+      if ((item.sourceApp_justeat || 0) > 0) {
+        appBreakdown.push({
+          name: 'JustEat',
+          value: item.sourceApp_justeat || 0,
+          orders: item.sourceApp_justeat_orders || 0
+        });
+      }
+      if ((item.sourceApp_tabesto || 0) > 0) {
+        appBreakdown.push({
+          name: 'Tabesto',
+          value: item.sourceApp_tabesto || 0,
+          orders: item.sourceApp_tabesto_orders || 0
+        });
+      }
+      if ((item.sourceApp_store || 0) > 0) {
+        appBreakdown.push({
+          name: 'Store',
+          value: item.sourceApp_store || 0,
+          orders: item.sourceApp_store_orders || 0
+        });
       }
     });
 
-    const storeBreakdown = Object.values(revenueByStore)
-      .map(s => ({
-        store_id: s.store_id,
-        store_name: s.store_name,
-        revenue: parseFloat(s.revenue.toFixed(2)),
-        orders: ordersByStore[s.store_id].size,
-        avgOrderValue: ordersByStore[s.store_id].size > 0 
-          ? parseFloat((s.revenue / ordersByStore[s.store_id].size).toFixed(2)) 
-          : 0
-      }))
-      .sort((a, b) => b.revenue - a.revenue);
+    // Aggregate delivery apps by name
+    const deliveryAppMap = {};
+    appBreakdown.forEach(app => {
+      if (!deliveryAppMap[app.name]) {
+        deliveryAppMap[app.name] = { name: app.name, value: 0, orders: 0 };
+      }
+      deliveryAppMap[app.name].value += app.value;
+      deliveryAppMap[app.name].orders += app.orders;
+    });
 
-    // Get unique sales channels and delivery apps
-    const salesChannels = new Set(filteredOrders.map(o => o.saleTypeName).filter(Boolean));
-    filteredOrders.forEach(o => {
-      if (o.sourceApp && o.sourceApp.toLowerCase() === 'tabesto') {
-        salesChannels.add('Tabesto');
+    const deliveryAppBreakdown = Object.values(deliveryAppMap)
+      .sort((a, b) => b.value - a.value)
+      .map(a => ({
+        name: a.name,
+        value: parseFloat(a.value.toFixed(2)),
+        orders: a.orders
+      }));
+
+    // Revenue by source type (for filtered data)
+    const channelBreakdown = [];
+    filteredData.forEach(item => {
+      if ((item.sourceType_delivery || 0) > 0) {
+        channelBreakdown.push({
+          name: 'Delivery',
+          value: item.sourceType_delivery || 0,
+          orders: item.sourceType_delivery_orders || 0
+        });
+      }
+      if ((item.sourceType_takeaway || 0) > 0) {
+        channelBreakdown.push({
+          name: 'Takeaway',
+          value: item.sourceType_takeaway || 0,
+          orders: item.sourceType_takeaway_orders || 0
+        });
+      }
+      if ((item.sourceType_store || 0) > 0) {
+        channelBreakdown.push({
+          name: 'Store',
+          value: item.sourceType_store || 0,
+          orders: item.sourceType_store_orders || 0
+        });
       }
     });
 
-    // Revenue by sales channel
-    const revenueByChannel = {};
-    const ordersByChannel = {};
-    
-    filteredOrders.forEach(item => {
-      let channelName;
-      if (item.sourceApp && item.sourceApp.toLowerCase() === 'tabesto') {
-        channelName = 'Tabesto';
-      } else {
-        channelName = item.saleTypeName || 'Unknown';
+    // Aggregate channels by name
+    const channelMap = {};
+    channelBreakdown.forEach(channel => {
+      if (!channelMap[channel.name]) {
+        channelMap[channel.name] = { name: channel.name, value: 0, orders: 0 };
       }
-
-      if (!revenueByChannel[channelName]) {
-        revenueByChannel[channelName] = { name: channelName, value: 0 };
-        ordersByChannel[channelName] = new Set();
-      }
-      revenueByChannel[channelName].value += item.finalPriceWithSessionDiscountsAndSurcharges || 0;
-      if (item.order) {
-        ordersByChannel[channelName].add(item.order);
-      }
+      channelMap[channel.name].value += channel.value;
+      channelMap[channel.name].orders += channel.orders;
     });
 
-    const channelBreakdown = Object.values(revenueByChannel)
+    const aggregatedChannels = Object.values(channelMap)
       .sort((a, b) => b.value - a.value)
       .map(c => ({
         name: c.name,
         value: parseFloat(c.value.toFixed(2)),
-        orders: ordersByChannel[c.name].size
-      }));
-
-    // Revenue by delivery app
-    const revenueByApp = {};
-    const ordersByApp = {};
-    
-    filteredOrders.forEach(item => {
-      if (item.sourceApp && item.sourceApp.toLowerCase() !== 'tabesto') {
-        const app = item.sourceApp;
-        if (!revenueByApp[app]) {
-          revenueByApp[app] = { name: app, value: 0 };
-          ordersByApp[app] = new Set();
-        }
-        revenueByApp[app].value += item.finalPriceWithSessionDiscountsAndSurcharges || 0;
-        if (item.order) {
-          ordersByApp[app].add(item.order);
-        }
-      }
-    });
-
-    const deliveryAppBreakdown = Object.values(revenueByApp)
-      .sort((a, b) => b.value - a.value)
-      .map(a => ({
-        name: a.name.charAt(0).toUpperCase() + a.name.slice(1),
-        value: parseFloat(a.value.toFixed(2)),
-        orders: ordersByApp[a.name].size
+        orders: c.orders
       }));
 
     return {
@@ -178,11 +178,10 @@ export default function RealTime() {
       totalOrders,
       avgOrderValue,
       storeBreakdown,
-      channelBreakdown,
+      channelBreakdown: aggregatedChannels,
       deliveryAppBreakdown,
-      // Removed lastUpdate from here as it's now managed by state
     };
-  }, [orderItems, selectedStore, stores]);
+  }, [iPraticoData, selectedStore]);
 
   const COLORS = ['#8b7355', '#a68a6a', '#c1a07f', '#dcb794', '#6b5d51', '#9d8770'];
 
@@ -209,7 +208,7 @@ export default function RealTime() {
               <Zap className="w-8 h-8 text-[#8b7355]" />
               <h1 className="text-3xl font-bold text-[#6b6b6b]">Real Time Dashboard</h1>
             </div>
-            <p className="text-[#9b9b9b]">Monitoraggio in tempo reale della giornata corrente</p>
+            <p className="text-[#9b9b9b]">Monitoraggio in tempo reale della giornata corrente (dati iPratico)</p>
           </div>
           <div className="flex items-center gap-4">
             <button
@@ -227,7 +226,7 @@ export default function RealTime() {
               <div className="flex items-center gap-2 neumorphic-pressed px-4 py-2 rounded-xl">
                 <Clock className="w-4 h-4 text-[#8b7355]" />
                 <span className="text-[#6b6b6b] font-medium">
-                  {format(lastUpdateTime, 'HH:mm:ss')} {/* Updated to use lastUpdateTime state */}
+                  {format(lastUpdateTime, 'HH:mm:ss')}
                 </span>
               </div>
               <p className="text-xs text-[#9b9b9b] mt-1">Auto-refresh ogni 30s</p>
@@ -273,7 +272,6 @@ export default function RealTime() {
 
       {/* Main KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Revenue Totale */}
         <NeumorphicCard className="p-6">
           <div className="flex items-start justify-between">
             <div>
@@ -289,7 +287,6 @@ export default function RealTime() {
           </div>
         </NeumorphicCard>
 
-        {/* Ordini Totali */}
         <NeumorphicCard className="p-6">
           <div className="flex items-start justify-between">
             <div>
@@ -305,7 +302,6 @@ export default function RealTime() {
           </div>
         </NeumorphicCard>
 
-        {/* Scontrino Medio */}
         <NeumorphicCard className="p-6">
           <div className="flex items-start justify-between">
             <div>
@@ -403,7 +399,7 @@ export default function RealTime() {
         ) : (
           <div className="text-center py-12 text-[#9b9b9b]">
             <Store className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p>Nessun ordine oggi</p>
+            <p>Nessun dato negozio oggi</p>
           </div>
         )}
       </NeumorphicCard>
@@ -442,7 +438,6 @@ export default function RealTime() {
                 </PieChart>
               </ResponsiveContainer>
               
-              {/* Details Table */}
               <div className="mt-6 overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -499,7 +494,6 @@ export default function RealTime() {
                 </BarChart>
               </ResponsiveContainer>
 
-              {/* Details Table */}
               <div className="mt-6 overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -529,7 +523,7 @@ export default function RealTime() {
                           {app.orders}
                         </td>
                         <td className="p-2 text-right text-[#6b6b6b]">
-                          €{(app.value / app.orders).toFixed(2)}
+                          €{app.orders > 0 ? (app.value / app.orders).toFixed(2) : '0.00'}
                         </td>
                       </tr>
                     ))}
@@ -564,10 +558,10 @@ export default function RealTime() {
           <h3 className="text-lg font-bold text-[#6b6b6b]">Informazioni</h3>
         </div>
         <div className="neumorphic-pressed p-4 rounded-xl space-y-2 text-sm text-[#6b6b6b]">
-          <p>📊 Questa dashboard mostra i dati in tempo reale della giornata corrente (dalle 00:00 alle 23:59)</p>
+          <p>📊 Questa dashboard mostra i dati iPratico in tempo reale della giornata corrente</p>
           <p>🔄 I dati si aggiornano automaticamente ogni 30 secondi</p>
-          <p>💡 Tutte le metriche sono calcolate solo sugli ordini completati oggi</p>
-          <p>📍 La tabella "Revenue per Negozio" mostra i dati aggregati di tutti i locali per oggi, indipendentemente dal filtro selezionato.</p>
+          <p>💡 Fonte dati: iPratico (importato da Google Sheets)</p>
+          <p>📍 La tabella "Revenue per Negozio" mostra i dati aggregati di tutti i locali per oggi</p>
         </div>
       </NeumorphicCard>
     </div>
