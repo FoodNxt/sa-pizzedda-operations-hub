@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -105,7 +106,7 @@ export default function FotoLocale() {
         store_name: store.name,
         store_id: store.id,
         inspection_date: new Date().toISOString(),
-        inspector_name: currentUser.full_name || currentUser.email,
+        inspector_name: currentUser.nome_cognome || currentUser.full_name || currentUser.email,
         analysis_status: 'processing'
       };
 
@@ -172,7 +173,7 @@ export default function FotoLocale() {
                 Ispettore
               </label>
               <div className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] bg-gray-50">
-                {currentUser ? (currentUser.full_name || currentUser.email) : 'Caricamento...'}
+                {currentUser ? (currentUser.nome_cognome || currentUser.full_name || currentUser.email) : 'Caricamento...'}
               </div>
             </div>
           </div>

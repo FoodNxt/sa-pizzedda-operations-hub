@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -96,7 +97,7 @@ export default function FormInventario() {
             store_name: store.name,
             store_id: store.id,
             data_rilevazione: dataRilevazione,
-            rilevato_da: currentUser?.full_name || currentUser?.email || 'N/A',
+            rilevato_da: currentUser?.nome_cognome || currentUser?.full_name || currentUser?.email || 'N/A', // UPDATED: use nome_cognome
             prodotto_id: productId,
             nome_prodotto: product.nome_prodotto,
             quantita_rilevata: quantitaRilevata,
@@ -274,7 +275,7 @@ export default function FormInventario() {
               </label>
               <div className="neumorphic-pressed px-4 py-3 rounded-xl">
                 <p className="text-[#6b6b6b]">
-                  {currentUser?.full_name || currentUser?.email || 'Caricamento...'}
+                  {currentUser?.nome_cognome || currentUser?.full_name || currentUser?.email || 'Caricamento...'} {/* UPDATED: use nome_cognome */}
                 </p>
               </div>
             </div>
