@@ -4,18 +4,15 @@ import { User, CheckCircle, AlertCircle } from 'lucide-react';
 import NeumorphicCard from '../neumorphic/NeumorphicCard';
 
 export default function CompleteProfileModal({ user, onComplete }) {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  const [fullName, setFullName] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [retryCount, setRetryCount] = useState(0);
 
   // Pre-fill with Google name if available
   useEffect(() => {
-    if (user?.full_name && user.full_name.includes(' ')) {
-      const parts = user.full_name.split(' ');
-      setFirstName(parts[0]);
-      setLastName(parts.slice(1).join(' '));
+    if (user?.full_name) {
+      setFullName(user.full_name);
     }
   }, [user]);
 
@@ -40,18 +37,13 @@ export default function CompleteProfileModal({ user, onComplete }) {
     setError('');
 
     // Validation
-    if (!firstName.trim() || !lastName.trim()) {
-      setError('Nome e cognome sono obbligatori');
+    if (!fullName.trim()) {
+      setError('Il nome completo è obbligatorio');
       return;
     }
 
-    if (firstName.trim().length < 2) {
-      setError('Il nome deve avere almeno 2 caratteri');
-      return;
-    }
-
-    if (lastName.trim().length < 2) {
-      setError('Il cognome deve avere almeno 2 caratteri');
+    if (fullName.trim().length < 3) {
+      setError('Il nome completo deve avere almeno 3 caratteri');
       return;
     }
 
@@ -59,16 +51,16 @@ export default function CompleteProfileModal({ user, onComplete }) {
       setSaving(true);
       setRetryCount(prev => prev + 1);
 
-      const fullName = `${firstName.trim()} ${lastName.trim()}`;
+      const trimmedName = fullName.trim();
 
-      console.log('💾 Tentativo salvataggio:', { fullName, attempt: retryCount + 1 });
+      console.log('💾 Tentativo salvataggio:', { fullName: trimmedName, attempt: retryCount + 1 });
 
       // MULTIPLE SAVE ATTEMPTS - Critical for Google OAuth
       for (let attempt = 1; attempt <= 3; attempt++) {
         console.log(`🔄 Salvataggio tentativo ${attempt}/3...`);
         
         await base44.auth.updateMe({
-          full_name: fullName,
+          full_name: trimmedName,
           profile_manually_completed: true
         });
 
@@ -79,12 +71,12 @@ export default function CompleteProfileModal({ user, onComplete }) {
       console.log('✅ Salvataggio completato, inizio verifica...');
 
       // Verify with retries
-      const verification = await verifyUpdate(fullName, 5);
+      const verification = await verifyUpdate(trimmedName, 5);
       
       if (!verification.success) {
         throw new Error(
           `❌ ERRORE CRITICO: Il nome non è stato salvato correttamente dopo 5 tentativi.\n\n` +
-          `Nome inserito: "${fullName}"\n` +
+          `Nome inserito: "${trimmedName}"\n` +
           `Prova a:\n` +
           `1. Ricaricare la pagina (F5)\n` +
           `2. Fare logout e re-login\n` +
@@ -117,7 +109,7 @@ export default function CompleteProfileModal({ user, onComplete }) {
             Completa il tuo Profilo
           </h2>
           <p className="text-[#9b9b9b] text-sm">
-            Inserisci il tuo nome come appare nel sistema aziendale
+            Inserisci il tuo nome completo come appare nel sistema aziendale
           </p>
         </div>
 
@@ -131,7 +123,8 @@ export default function CompleteProfileModal({ user, onComplete }) {
                 Il nome che inserisci QUI verrà salvato PERMANENTEMENTE e protetto dalle sovrascritture di Google.
               </p>
               <p className="text-xs font-bold">
-                ✅ Inserisci nome e cognome ESATTAMENTE come nel sistema aziendale
+                ✅ Inserisci il nome completo ESATTAMENTE come appare nei turni<br/>
+                (es. "Mario Rossi" non "mario rossi" né "Rossi Mario")
               </p>
             </div>
           </div>
@@ -141,33 +134,21 @@ export default function CompleteProfileModal({ user, onComplete }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-              Nome <span className="text-red-600">*</span>
+              Nome Completo <span className="text-red-600">*</span>
             </label>
             <input
               type="text"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              placeholder="es. Mario"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="es. Mario Rossi"
               className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
               disabled={saving}
               autoFocus
               required
             />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-              Cognome <span className="text-red-600">*</span>
-            </label>
-            <input
-              type="text"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              placeholder="es. Rossi"
-              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-              disabled={saving}
-              required
-            />
+            <p className="text-xs text-[#9b9b9b] mt-1">
+              Verrà usato per il matching automatico con i turni, recensioni e ritardi
+            </p>
           </div>
 
           {/* Error Message */}
@@ -200,11 +181,11 @@ export default function CompleteProfileModal({ user, onComplete }) {
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={saving || !firstName.trim() || !lastName.trim()}
+            disabled={saving || !fullName.trim()}
             className={`
               w-full neumorphic-flat px-6 py-4 rounded-xl font-bold text-lg
               transition-all flex items-center justify-center gap-3
-              ${saving || !firstName.trim() || !lastName.trim()
+              ${saving || !fullName.trim()
                 ? 'opacity-50 cursor-not-allowed text-[#9b9b9b]'
                 : 'text-[#8b7355] hover:shadow-lg'
               }

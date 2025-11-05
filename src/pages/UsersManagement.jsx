@@ -22,8 +22,7 @@ import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 export default function UsersManagement() {
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({
-    nome: '',
-    cognome: '',
+    full_name: '',
     initials: '',
     user_type: 'dipendente',
     employee_id_external: '',
@@ -55,8 +54,7 @@ export default function UsersManagement() {
   const handleEdit = (user) => {
     setEditingUser(user);
     setFormData({
-      nome: user.nome || '',
-      cognome: user.cognome || '',
+      full_name: user.full_name || '',
       initials: user.initials || '',
       user_type: user.user_type || 'dipendente',
       employee_id_external: user.employee_id_external || '',
@@ -72,23 +70,21 @@ export default function UsersManagement() {
   };
 
   const handleSave = () => {
-    // Update full_name based on nome and cognome
-    const full_name = `${formData.nome?.trim() || ''} ${formData.cognome?.trim() || ''}`.trim();
-    
+    if (!formData.full_name?.trim()) {
+      alert('Il nome completo è obbligatorio');
+      return;
+    }
+
     updateMutation.mutate({
       id: editingUser.id,
-      data: {
-        ...formData,
-        full_name: full_name || editingUser.full_name
-      }
+      data: formData
     });
   };
 
   const handleCancel = () => {
     setEditingUser(null);
     setFormData({
-      nome: '',
-      cognome: '',
+      full_name: '',
       initials: '',
       user_type: 'dipendente',
       employee_id_external: '',
@@ -197,30 +193,20 @@ export default function UsersManagement() {
                   Dati Anagrafici
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
+                  <div className="md:col-span-2">
                     <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                      Nome
+                      Nome Completo <span className="text-red-600">*</span>
                     </label>
                     <input
                       type="text"
-                      value={formData.nome}
-                      onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                      value={formData.full_name}
+                      onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                       className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                      placeholder="Mario"
+                      placeholder="Mario Rossi"
                     />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                      Cognome
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.cognome}
-                      onChange={(e) => setFormData({ ...formData, cognome: e.target.value })}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                      placeholder="Rossi"
-                    />
+                    <p className="text-xs text-[#9b9b9b] mt-1">
+                      ⚠️ Deve corrispondere ESATTAMENTE a "employee_name" negli Shifts per il matching automatico
+                    </p>
                   </div>
 
                   <div>
@@ -473,7 +459,7 @@ export default function UsersManagement() {
                         </div>
                         <div>
                           <p className="font-medium text-[#6b6b6b]">
-                            {user.nome && user.cognome ? `${user.nome} ${user.cognome}` : user.full_name || 'N/A'}
+                            {user.full_name || 'Nome non impostato'}
                           </p>
                           {user.employee_id_external && (
                             <p className="text-xs text-[#9b9b9b]">ID: {user.employee_id_external}</p>
@@ -538,12 +524,13 @@ export default function UsersManagement() {
         <div className="flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
           <div className="text-sm text-blue-800">
-            <p className="font-medium mb-1">ℹ️ Informazioni</p>
+            <p className="font-medium mb-1">ℹ️ Informazioni sul Matching Automatico</p>
             <ul className="text-xs space-y-1 list-disc list-inside">
-              <li>Puoi modificare tutti i dati dell'utente tranne l'email</li>
+              <li><strong>Nome Completo</strong> viene usato per il matching con <strong>employee_name</strong> negli Shifts</li>
+              <li>Il matching viene fatto in modo <strong>case-insensitive</strong> e ignora spazi multipli</li>
+              <li>Il nome deve corrispondere ESATTAMENTE (es. "Mario Rossi" nello User deve matchare con "Mario Rossi" negli Shifts)</li>
+              <li>Questo matching viene usato per assegnare: <strong>recensioni, ritardi e timbrature mancate</strong></li>
               <li>I dipendenti possono modificare i propri dati dalla pagina "Profilo"</li>
-              <li>Il nome completo viene aggiornato automaticamente da nome e cognome</li>
-              <li>Gli utenti <strong>dipendente</strong> hanno accesso limitato</li>
               <li>Gli utenti <strong>admin</strong> hanno accesso completo al sistema</li>
             </ul>
           </div>

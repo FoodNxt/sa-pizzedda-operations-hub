@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tantml:react-query";
 import {
   User,
   Mail,
@@ -18,8 +18,7 @@ import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 export default function ProfiloDipendente() {
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({
-    nome: '',
-    cognome: '',
+    full_name: '',
     initials: '',
     phone: '',
     data_nascita: '',
@@ -39,8 +38,7 @@ export default function ProfiloDipendente() {
       const u = await base44.auth.me();
       // Pre-populate form
       setFormData({
-        nome: u.nome || '',
-        cognome: u.cognome || '',
+        full_name: u.full_name || '',
         initials: u.initials || '',
         phone: u.phone || '',
         data_nascita: u.data_nascita || '',
@@ -77,16 +75,18 @@ export default function ProfiloDipendente() {
     setSuccess('');
 
     // Validation
-    if (!formData.nome?.trim() || !formData.cognome?.trim()) {
-      setError('Nome e cognome sono obbligatori');
+    if (!formData.full_name?.trim()) {
+      setError('Il nome completo è obbligatorio');
       return;
     }
 
-    const fullName = `${formData.nome.trim()} ${formData.cognome.trim()}`;
+    if (formData.full_name.trim().length < 3) {
+      setError('Il nome completo deve avere almeno 3 caratteri');
+      return;
+    }
 
     await updateProfileMutation.mutateAsync({
       ...formData,
-      full_name: fullName,
       profile_manually_completed: true
     });
   };
@@ -95,8 +95,7 @@ export default function ProfiloDipendente() {
     // Reset to current values
     if (user) {
       setFormData({
-        nome: user.nome || '',
-        cognome: user.cognome || '',
+        full_name: user.full_name || '',
         initials: user.initials || '',
         phone: user.phone || '',
         data_nascita: user.data_nascita || '',
@@ -149,7 +148,7 @@ export default function ProfiloDipendente() {
             </div>
             <div>
               <h2 className="text-2xl font-bold text-[#6b6b6b]">
-                {user?.nome && user?.cognome ? `${user.nome} ${user.cognome}` : user?.full_name || 'N/A'}
+                {user?.full_name || 'Nome non impostato'}
               </h2>
               <p className="text-[#9b9b9b]">
                 {user?.function_name || (user?.user_type === 'admin' ? 'Amministratore' : user?.user_type === 'manager' ? 'Manager' : 'Dipendente')}
@@ -191,30 +190,20 @@ export default function ProfiloDipendente() {
         {editing ? (
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div className="md:col-span-2">
                 <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                  Nome <span className="text-red-600">*</span>
+                  Nome Completo <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="text"
-                  value={formData.nome}
-                  onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                  placeholder="Mario"
+                  value={formData.full_name}
+                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                  placeholder="Mario Rossi"
                   className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                 />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                  Cognome <span className="text-red-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.cognome}
-                  onChange={(e) => setFormData({ ...formData, cognome: e.target.value })}
-                  placeholder="Rossi"
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                />
+                <p className="text-xs text-[#9b9b9b] mt-1">
+                  ⚠️ Deve corrispondere ESATTAMENTE a come appare nei turni per il matching automatico
+                </p>
               </div>
 
               <div>
@@ -345,14 +334,9 @@ export default function ProfiloDipendente() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="neumorphic-pressed p-4 rounded-xl">
-              <p className="text-sm text-[#9b9b9b] mb-1">Nome</p>
-              <p className="text-[#6b6b6b] font-medium">{user?.nome || '-'}</p>
-            </div>
-
-            <div className="neumorphic-pressed p-4 rounded-xl">
-              <p className="text-sm text-[#9b9b9b] mb-1">Cognome</p>
-              <p className="text-[#6b6b6b] font-medium">{user?.cognome || '-'}</p>
+            <div className="neumorphic-pressed p-4 rounded-xl md:col-span-2">
+              <p className="text-sm text-[#9b9b9b] mb-1">Nome Completo</p>
+              <p className="text-[#6b6b6b] font-medium">{user?.full_name || '-'}</p>
             </div>
 
             <div className="neumorphic-pressed p-4 rounded-xl">
@@ -409,7 +393,9 @@ export default function ProfiloDipendente() {
           <div className="text-sm text-blue-800">
             <p className="font-medium mb-1">📝 Perché questi dati sono importanti?</p>
             <ul className="text-xs space-y-1 list-disc list-inside">
-              <li>Il tuo nome e cognome vengono usati per associare turni e recensioni</li>
+              <li><strong>Il tuo Nome Completo</strong> viene usato per associare turni e recensioni automaticamente</li>
+              <li>Deve corrispondere ESATTAMENTE a come appare nel sistema turni (es. "Mario Rossi")</li>
+              <li>Il matching viene fatto in modo intelligente (case-insensitive, ignora spazi multipli)</li>
               <li>I dati anagrafici sono necessari per la gestione amministrativa</li>
               <li>La taglia maglietta serve per fornirti la divisa corretta</li>
               <li>Assicurati che tutti i dati siano corretti e aggiornati</li>
