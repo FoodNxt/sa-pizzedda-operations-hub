@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -19,7 +20,9 @@ import {
   BarChart3,
   AlertTriangle,
   Package,
-  Upload
+  Upload,
+  Camera, // Added Camera icon
+  ClipboardCheck // Added ClipboardCheck icon
 } from "lucide-react";
 
 const navigationStructure = [
@@ -142,19 +145,37 @@ const navigationStructure = [
     title: "Pulizie",
     icon: Zap,
     type: "section",
-    requiredUserType: ["admin", "manager", "dipendente"],
+    requiredUserType: ["admin", "manager"], // Updated requiredUserType
     items: [
       {
         title: "Storico Pulizie",
         url: createPageUrl("Pulizie"),
         icon: Zap,
-        requiredUserType: ["admin", "manager"],
+        // requiredUserType removed as it now inherits from section
       },
       {
         title: "Foto Locale",
         url: createPageUrl("FotoLocale"),
-        icon: Zap,
-        requiredUserType: ["admin", "manager", "dipendente"],
+        icon: Camera, // Icon changed to Camera
+        // requiredUserType removed as it now inherits from section
+      }
+    ]
+  },
+  {
+    title: "View Dipendente", // New section added
+    icon: Users,
+    type: "section",
+    requiredUserType: ["dipendente"],
+    items: [
+      {
+        title: "Foto Locale",
+        url: createPageUrl("FotoLocale"),
+        icon: Camera,
+      },
+      {
+        title: "Valutazione",
+        url: createPageUrl("Valutazione"),
+        icon: ClipboardCheck,
       }
     ]
   },
@@ -209,6 +230,7 @@ export default function Layout({ children, currentPageName }) {
     "Inventory": true,
     "People": true,
     "Pulizie": true,
+    "View Dipendente": true, // Added new section to initial expanded state
     "Zapier Guide": true
   });
 
