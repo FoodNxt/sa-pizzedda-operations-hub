@@ -63,7 +63,8 @@ export default function IPraticoSetup() {
         sourceApp_justeat: 430.00,
         sourceApp_onlineordering: 0,
         sourceApp_ordertable: 0,
-        sourceApp_tabesto: 550.50,
+        sourceApp_tabesto: 350.50,
+        sourceApp_store: 200.00,
         
         // Source App - Orders
         sourceApp_glovo_orders: 30,
@@ -71,17 +72,20 @@ export default function IPraticoSetup() {
         sourceApp_justeat_orders: 18,
         sourceApp_onlineordering_orders: 0,
         sourceApp_ordertable_orders: 0,
-        sourceApp_tabesto_orders: 47,
+        sourceApp_tabesto_orders: 32,
+        sourceApp_store_orders: 15,
         
         // Source Type - Revenue
         sourceType_delivery: 1900.00,
         sourceType_takeaway: 350.50,
-        sourceType_takeawayOnSite: 200.00,
+        sourceType_takeawayOnSite: 0,
+        sourceType_store: 200.00,
         
         // Source Type - Orders
         sourceType_delivery_orders: 73,
         sourceType_takeaway_orders: 32,
-        sourceType_takeawayOnSite_orders: 15,
+        sourceType_takeawayOnSite_orders: 0,
+        sourceType_store_orders: 15,
         
         // Money Type - Revenue
         moneyType_bancomat: 500.00,
@@ -449,6 +453,8 @@ export default function IPraticoSetup() {
                     <div>• sourceApp_ordertable_orders</div>
                     <div>• sourceApp_tabesto</div>
                     <div>• sourceApp_tabesto_orders</div>
+                    <div className="font-bold text-purple-900">• sourceApp_store</div>
+                    <div className="font-bold text-purple-900">• sourceApp_store_orders</div>
                   </div>
                 </div>
 
@@ -461,6 +467,8 @@ export default function IPraticoSetup() {
                     <div>• sourceType_takeaway_orders</div>
                     <div>• sourceType_takeawayOnSite</div>
                     <div>• sourceType_takeawayOnSite_orders</div>
+                    <div className="font-bold text-green-900">• sourceType_store</div>
+                    <div className="font-bold text-green-900">• sourceType_store_orders</div>
                   </div>
                 </div>
 

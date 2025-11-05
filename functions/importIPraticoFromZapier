@@ -1,3 +1,4 @@
+
 import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
 
 Deno.serve(async (req) => {
@@ -114,6 +115,7 @@ Deno.serve(async (req) => {
             sourceApp_onlineordering: parseNumber(body.sourceApp_onlineordering),
             sourceApp_ordertable: parseNumber(body.sourceApp_ordertable),
             sourceApp_tabesto: parseNumber(body.sourceApp_tabesto),
+            sourceApp_store: parseNumber(body.sourceApp_store),
             
             // Source App - Orders
             sourceApp_glovo_orders: parseNumber(body.sourceApp_glovo_orders),
@@ -122,16 +124,19 @@ Deno.serve(async (req) => {
             sourceApp_onlineordering_orders: parseNumber(body.sourceApp_onlineordering_orders),
             sourceApp_ordertable_orders: parseNumber(body.sourceApp_ordertable_orders),
             sourceApp_tabesto_orders: parseNumber(body.sourceApp_tabesto_orders),
+            sourceApp_store_orders: parseNumber(body.sourceApp_store_orders),
             
             // Source Type - Revenue
             sourceType_delivery: parseNumber(body.sourceType_delivery),
             sourceType_takeaway: parseNumber(body.sourceType_takeaway),
             sourceType_takeawayOnSite: parseNumber(body.sourceType_takeawayOnSite),
+            sourceType_store: parseNumber(body.sourceType_store),
             
             // Source Type - Orders
             sourceType_delivery_orders: parseNumber(body.sourceType_delivery_orders),
             sourceType_takeaway_orders: parseNumber(body.sourceType_takeaway_orders),
             sourceType_takeawayOnSite_orders: parseNumber(body.sourceType_takeawayOnSite_orders),
+            sourceType_store_orders: parseNumber(body.sourceType_store_orders),
             
             // Money Type - Revenue
             moneyType_bancomat: parseNumber(body.moneyType_bancomat),
