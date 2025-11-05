@@ -80,6 +80,11 @@ const navigationStructure = [
         title: "Channel Comparison",
         url: createPageUrl("ChannelComparison"),
         icon: BarChart3,
+      },
+      {
+        title: "Daily Aggregation",
+        url: createPageUrl("DailyRevenueAggregation"),
+        icon: BarChart3,
       }
     ]
   },

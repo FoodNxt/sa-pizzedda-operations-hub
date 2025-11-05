@@ -19,6 +19,7 @@ import Payroll from './pages/Payroll';
 import Pulizie from './pages/Pulizie';
 import FotoLocale from './pages/FotoLocale';
 import SummaryAI from './pages/SummaryAI';
+import DailyRevenueAggregation from './pages/DailyRevenueAggregation';
 import Layout from './Layout.jsx';
 
 
@@ -44,6 +45,7 @@ export const PAGES = {
     "Pulizie": Pulizie,
     "FotoLocale": FotoLocale,
     "SummaryAI": SummaryAI,
+    "DailyRevenueAggregation": DailyRevenueAggregation,
 }
 
 export const pagesConfig = {
