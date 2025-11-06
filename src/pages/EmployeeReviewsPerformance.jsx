@@ -36,7 +36,7 @@ export default function EmployeeReviewsPerformance() {
         try {
           const reviewDate = parseISO(review.review_date);
           // Check if parseISO resulted in an invalid date
-          if (isNaN(reviewDate.getTime())) return false; 
+          if (isNaN(reviewDate.getTime())) return false; // Invalid date
           
           const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
           const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
@@ -50,7 +50,7 @@ export default function EmployeeReviewsPerformance() {
           }
         } catch (e) {
           // Catch any errors during date parsing and skip the review
-          return false; 
+          return false; // Skip invalid dates
         }
         return true;
       });
