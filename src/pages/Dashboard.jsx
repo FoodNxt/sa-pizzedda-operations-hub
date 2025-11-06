@@ -49,9 +49,14 @@ export default function Dashboard() {
     
     const filteredData = iPraticoData.filter(item => {
       if (item.order_date) {
-        const itemDate = parseISO(item.order_date);
-        if (isBefore(itemDate, cutoffDate) || isAfter(itemDate, endFilterDate)) {
-          return false;
+        try {
+          const itemDate = parseISO(item.order_date);
+          if (isNaN(itemDate.getTime())) return false; // Check if date is valid
+          if (isBefore(itemDate, cutoffDate) || isAfter(itemDate, endFilterDate)) {
+            return false;
+          }
+        } catch (e) {
+          return false; // Skip items with invalid dates
         }
       }
       return true;

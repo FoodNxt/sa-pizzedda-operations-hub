@@ -41,68 +41,76 @@ export default function AssignReviews() {
   const findMatchingEmployees = (review) => {
     if (!review.review_date || !review.store_id) return [];
 
-    const reviewDate = parseISO(review.review_date);
-    
-    // Use a Map to track unique employees by name (case-insensitive, trimmed)
-    const employeeMap = new Map();
-    
-    shifts.forEach(shift => {
-      // Same store check
-      if (shift.store_id !== review.store_id) return;
+    try {
+      const reviewDate = parseISO(review.review_date);
+      if (isNaN(reviewDate.getTime())) return []; // Invalid date
       
-      // Normalize employee name (trim whitespace, lowercase for comparison)
-      const normalizedName = (shift.employee_name || '').trim();
-      const mapKey = normalizedName.toLowerCase();
+      // Use a Map to track unique employees by name (case-insensitive, trimmed)
+      const employeeMap = new Map();
       
-      // Skip if empty name
-      if (!normalizedName) return;
-      
-      // Skip if employee already processed (case-insensitive)
-      if (employeeMap.has(mapKey)) return;
-      
-      // Exclude certain shift types
-      const excludedTypes = [
-        'Malattia (Certificato)', 
-        'Malattia (No Certificato)',
-        'Ferie',
-        'Assenza non retribuita'
-      ];
-      if (excludedTypes.includes(shift.shift_type)) return;
-      
-      // Exclude certain roles
-      if (shift.employee_group_name === 'Preparazioni' || shift.employee_group_name === 'Volantinaggio') return;
-      
-      // Use ONLY scheduled times
-      if (!shift.scheduled_start || !shift.scheduled_end) return;
-      
-      try {
-        const shiftStart = parseISO(shift.scheduled_start);
-        const shiftEnd = parseISO(shift.scheduled_end);
+      shifts.forEach(shift => {
+        // Same store check
+        if (shift.store_id !== review.store_id) return;
         
-        // Check if review time falls within shift time
-        if (isWithinInterval(reviewDate, { start: shiftStart, end: shiftEnd })) {
-          // Add to map using lowercase key, but keep original name for display
-          employeeMap.set(mapKey, {
-            employee_name: normalizedName, // Use normalized (trimmed) name
-            shift
-          });
+        // Normalize employee name (trim whitespace, lowercase for comparison)
+        const normalizedName = (shift.employee_name || '').trim();
+        const mapKey = normalizedName.toLowerCase();
+        
+        // Skip if empty name
+        if (!normalizedName) return;
+        
+        // Skip if employee already processed (case-insensitive)
+        if (employeeMap.has(mapKey)) return;
+        
+        // Exclude certain shift types
+        const excludedTypes = [
+          'Malattia (Certificato)', 
+          'Malattia (No Certificato)',
+          'Ferie',
+          'Assenza non retribuita'
+        ];
+        if (excludedTypes.includes(shift.shift_type)) return;
+        
+        // Exclude certain roles
+        if (shift.employee_group_name === 'Preparazioni' || shift.employee_group_name === 'Volantinaggio') return;
+        
+        // Use ONLY scheduled times
+        if (!shift.scheduled_start || !shift.scheduled_end) return;
+        
+        try {
+          const shiftStart = parseISO(shift.scheduled_start);
+          const shiftEnd = parseISO(shift.scheduled_end);
+          
+          // Validate shift dates
+          if (isNaN(shiftStart.getTime()) || isNaN(shiftEnd.getTime())) return;
+          
+          // Check if review time falls within shift time
+          if (isWithinInterval(reviewDate, { start: shiftStart, end: shiftEnd })) {
+            // Add to map using lowercase key, but keep original name for display
+            employeeMap.set(mapKey, {
+              employee_name: normalizedName,
+              shift
+            });
+          }
+        } catch (e) {
+          // Skip this shift if date parsing fails
         }
-      } catch (e) {
-        // Skip this shift if date parsing fails
-      }
-    });
+      });
 
-    // Convert map to array
-    const uniqueEmployees = Array.from(employeeMap.values());
+      // Convert map to array
+      const uniqueEmployees = Array.from(employeeMap.values());
 
-    // Calculate confidence based on number of unique employees
-    const confidence = uniqueEmployees.length === 1 ? 'high' : 
-                      uniqueEmployees.length === 2 ? 'medium' : 'low';
+      // Calculate confidence based on number of unique employees
+      const confidence = uniqueEmployees.length === 1 ? 'high' : 
+                        uniqueEmployees.length === 2 ? 'medium' : 'low';
 
-    return uniqueEmployees.map(emp => ({
-      ...emp,
-      confidence
-    }));
+      return uniqueEmployees.map(emp => ({
+        ...emp,
+        confidence
+      }));
+    } catch (e) {
+      return []; // Return empty array if any error occurs
+    }
   };
 
   // Enriched reviews with matching employees

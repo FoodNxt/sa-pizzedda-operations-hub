@@ -43,16 +43,25 @@ export default function Financials() {
     let filtered = iPraticoData.filter(item => {
       // Date filter
       if (item.order_date) {
-        // iPratico data's order_date is assumed to be 'YYYY-MM-DD'.
-        // To compare against cutoffDate and endFilterDate (which include time),
-        // we define the full day range for the item's order_date.
-        const itemDateStart = parseISO(item.order_date + 'T00:00:00');
-        const itemDateEnd = parseISO(item.order_date + 'T23:59:59');
+        try {
+          // iPratico data's order_date is assumed to be 'YYYY-MM-DD'.
+          // To compare against cutoffDate and endFilterDate (which include time),
+          // we define the full day range for the item's order_date.
+          const itemDateStart = parseISO(item.order_date + 'T00:00:00');
+          const itemDateEnd = parseISO(item.order_date + 'T23:59:59');
+          
+          // Check if dates are valid
+          if (isNaN(itemDateStart.getTime()) || isNaN(itemDateEnd.getTime())) {
+            return false;
+          }
 
-        // Check for overlap: an item is within range if its start date is before or equal to the filter's end date,
-        // AND its end date is after or equal to the filter's start date.
-        if (isBefore(itemDateEnd, cutoffDate) || isAfter(itemDateStart, endFilterDate)) {
-          return false;
+          // Check for overlap: an item is within range if its start date is before or equal to the filter's end date,
+          // AND its end date is after or equal to the filter's start date.
+          if (isBefore(itemDateEnd, cutoffDate) || isAfter(itemDateStart, endFilterDate)) {
+            return false;
+          }
+        } catch (e) {
+          return false; // Skip items with invalid dates
         }
       }
       

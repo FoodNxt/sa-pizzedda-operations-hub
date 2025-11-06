@@ -30,16 +30,27 @@ export default function EmployeeReviewsPerformance() {
     // Date filter
     if (startDate || endDate) {
       filteredReviews = filteredReviews.filter(review => {
-        const reviewDate = parseISO(review.review_date);
-        const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
-        const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
+        // Ensure review_date exists before attempting to parse
+        if (!review.review_date) return false;
+        
+        try {
+          const reviewDate = parseISO(review.review_date);
+          // Check if parseISO resulted in an invalid date
+          if (isNaN(reviewDate.getTime())) return false; 
+          
+          const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
+          const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
 
-        if (start && end) {
-          return isWithinInterval(reviewDate, { start, end });
-        } else if (start) {
-          return reviewDate >= start;
-        } else if (end) {
-          return reviewDate <= end;
+          if (start && end) {
+            return isWithinInterval(reviewDate, { start, end });
+          } else if (start) {
+            return reviewDate >= start;
+          } else if (end) {
+            return reviewDate <= end;
+          }
+        } catch (e) {
+          // Catch any errors during date parsing and skip the review
+          return false; 
         }
         return true;
       });

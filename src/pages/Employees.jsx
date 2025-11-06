@@ -148,16 +148,22 @@ export default function Employees() {
         // Ensure review_date exists before parsing
         if (!review.review_date) return false;
 
-        const reviewDate = parseISO(review.review_date);
-        const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
-        const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
+        try {
+          const reviewDate = parseISO(review.review_date);
+          if (isNaN(reviewDate.getTime())) return false; // Check if date is valid
+          
+          const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
+          const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
 
-        if (start && end) {
-          return isWithinInterval(reviewDate, { start, end });
-        } else if (start) {
-          return reviewDate >= start;
-        } else if (end) {
-          return reviewDate <= end;
+          if (start && end) {
+            return isWithinInterval(reviewDate, { start, end });
+          } else if (start) {
+            return reviewDate >= start;
+          } else if (end) {
+            return reviewDate <= end;
+          }
+        } catch (e) {
+          return false; // Skip reviews with invalid dates
         }
         return true;
       });
@@ -185,16 +191,23 @@ export default function Employees() {
         // Date filter
         if (startDate || endDate) {
           if (!s.shift_date) return false;
-          const shiftDate = parseISO(s.shift_date);
-          const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
-          const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
+          
+          try {
+            const shiftDate = parseISO(s.shift_date);
+            if (isNaN(shiftDate.getTime())) return false; // Check if date is valid
+            
+            const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
+            const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
 
-          if (start && end) {
-            return isWithinInterval(shiftDate, { start, end });
-          } else if (start) {
-            return shiftDate >= start;
-          } else if (end) {
-            return shiftDate <= end;
+            if (start && end) {
+              return isWithinInterval(shiftDate, { start, end });
+            } else if (start) {
+              return shiftDate >= start;
+            } else if (end) {
+              return shiftDate <= end;
+            }
+          } catch (e) {
+            return false; // Skip shifts with invalid dates
           }
         }
 
