@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Camera, Upload, Sparkles, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Camera, Upload, Sparkles, CheckCircle, AlertCircle, Loader2, ClipboardCheck } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 
 export default function FotoLocale() {
@@ -21,6 +21,17 @@ export default function FotoLocale() {
     lavandino: null
   });
   const [previews, setPreviews] = useState({});
+  
+  // NEW: Manual inspection fields
+  const [manualInspection, setManualInspection] = useState({
+    pulizia_pavimenti_angoli: '',
+    pulizia_tavoli_sala: '',
+    pulizia_vetrata_ingresso: '',
+    pulizia_tavolette_takeaway: '',
+    etichette_prodotti_aperti: '',
+    cartoni_pizza_pronti: ''
+  });
+  
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
   const [error, setError] = useState('');
@@ -85,6 +96,20 @@ export default function FotoLocale() {
       return;
     }
 
+    // NEW: Validate manual inspection fields
+    const missingFields = [];
+    if (!manualInspection.pulizia_pavimenti_angoli) missingFields.push('Pulizia pavimenti');
+    if (!manualInspection.pulizia_tavoli_sala) missingFields.push('Pulizia tavoli');
+    if (!manualInspection.pulizia_vetrata_ingresso) missingFields.push('Pulizia vetrata');
+    if (!manualInspection.pulizia_tavolette_takeaway) missingFields.push('Pulizia tavolette');
+    if (!manualInspection.etichette_prodotti_aperti) missingFields.push('Etichette prodotti');
+    if (!manualInspection.cartoni_pizza_pronti) missingFields.push('Cartoni pizza');
+    
+    if (missingFields.length > 0) {
+      setError(`Completa i seguenti campi: ${missingFields.join(', ')}`);
+      return;
+    }
+
     try {
       setUploading(true);
       setUploadProgress('Caricamento foto in corso...');
@@ -107,7 +132,8 @@ export default function FotoLocale() {
         store_id: store.id,
         inspection_date: new Date().toISOString(),
         inspector_name: currentUser.nome_cognome || currentUser.full_name || currentUser.email,
-        analysis_status: 'processing'
+        analysis_status: 'processing',
+        ...manualInspection // NEW: Add manual inspection data
       };
 
       equipment.forEach(eq => {
@@ -134,7 +160,15 @@ export default function FotoLocale() {
     }
   };
 
-  const canSubmit = selectedStore && equipment.every(eq => photos[eq.key]) && currentUser;
+  const canSubmit = selectedStore && 
+    equipment.every(eq => photos[eq.key]) && 
+    currentUser &&
+    manualInspection.pulizia_pavimenti_angoli &&
+    manualInspection.pulizia_tavoli_sala &&
+    manualInspection.pulizia_vetrata_ingresso &&
+    manualInspection.pulizia_tavolette_takeaway &&
+    manualInspection.etichette_prodotti_aperti &&
+    manualInspection.cartoni_pizza_pronti;
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -239,6 +273,148 @@ export default function FotoLocale() {
                 )}
               </div>
             ))}
+          </div>
+        </NeumorphicCard>
+
+        {/* NEW: Manual Inspection Questions */}
+        <NeumorphicCard className="p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <ClipboardCheck className="w-6 h-6 text-[#8b7355]" />
+            <h2 className="text-xl font-bold text-[#6b6b6b]">Questionario Ispezione</h2>
+          </div>
+
+          <div className="space-y-6">
+            {/* Pulizia pavimenti e angoli */}
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                Pulizia pavimenti e angoli <span className="text-red-600">*</span>
+              </label>
+              <p className="text-xs text-[#9b9b9b] mb-3">
+                Verifica la pulizia del pavimento e di tutti gli angoli della sala clienti
+              </p>
+              <select
+                value={manualInspection.pulizia_pavimenti_angoli}
+                onChange={(e) => setManualInspection({...manualInspection, pulizia_pavimenti_angoli: e.target.value})}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                disabled={uploading}
+                required
+              >
+                <option value="">Seleziona...</option>
+                <option value="pulito">Pulito</option>
+                <option value="sporco">Sporco</option>
+                <option value="da_migliorare">Da migliorare</option>
+              </select>
+            </div>
+
+            {/* Pulizia tavoli sala clienti */}
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                Pulizia tavoli sala clienti <span className="text-red-600">*</span>
+              </label>
+              <p className="text-xs text-[#9b9b9b] mb-3">
+                Verifica che i tavoli della sala siano puliti
+              </p>
+              <select
+                value={manualInspection.pulizia_tavoli_sala}
+                onChange={(e) => setManualInspection({...manualInspection, pulizia_tavoli_sala: e.target.value})}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                disabled={uploading}
+                required
+              >
+                <option value="">Seleziona...</option>
+                <option value="pulito">Pulito</option>
+                <option value="sporco">Sporco</option>
+                <option value="da_migliorare">Da migliorare</option>
+              </select>
+            </div>
+
+            {/* Pulizia vetrata ingresso */}
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                Pulizia vetrata ingresso <span className="text-red-600">*</span>
+              </label>
+              <p className="text-xs text-[#9b9b9b] mb-3">
+                Verifica che la vetrata di ingresso del locale sia pulita
+              </p>
+              <select
+                value={manualInspection.pulizia_vetrata_ingresso}
+                onChange={(e) => setManualInspection({...manualInspection, pulizia_vetrata_ingresso: e.target.value})}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                disabled={uploading}
+                required
+              >
+                <option value="">Seleziona...</option>
+                <option value="pulito">Pulito</option>
+                <option value="sporco">Sporco</option>
+                <option value="da_migliorare">Da migliorare</option>
+              </select>
+            </div>
+
+            {/* Pulizia tavolette takeaway */}
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                Pulizia tavolette takeaway <span className="text-red-600">*</span>
+              </label>
+              <p className="text-xs text-[#9b9b9b] mb-3">
+                Verifica che le tavolette di legno usate per i clienti siano pulite
+              </p>
+              <select
+                value={manualInspection.pulizia_tavolette_takeaway}
+                onChange={(e) => setManualInspection({...manualInspection, pulizia_tavolette_takeaway: e.target.value})}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                disabled={uploading}
+                required
+              >
+                <option value="">Seleziona...</option>
+                <option value="pulito">Pulito</option>
+                <option value="sporco">Sporco</option>
+                <option value="da_migliorare">Da migliorare</option>
+              </select>
+            </div>
+
+            {/* Etichette prodotti aperti */}
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                Etichette prodotti aperti <span className="text-red-600">*</span>
+              </label>
+              <p className="text-xs text-[#9b9b9b] mb-3">
+                Verifica che i prodotti aperti in frigo abbiano le loro etichette con la data in cui sono stati aperti
+              </p>
+              <select
+                value={manualInspection.etichette_prodotti_aperti}
+                onChange={(e) => setManualInspection({...manualInspection, etichette_prodotti_aperti: e.target.value})}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                disabled={uploading}
+                required
+              >
+                <option value="">Seleziona...</option>
+                <option value="tutti_con_etichette">Tutti i prodotti hanno le etichette</option>
+                <option value="nessuno_con_etichette">Nessun prodotto ha le etichette</option>
+                <option value="alcuni_senza_etichette">Alcuni prodotti non hanno le etichette</option>
+              </select>
+            </div>
+
+            {/* 40 Cartoni Pizza pronti */}
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                40 Cartoni Pizza pronti <span className="text-red-600">*</span>
+              </label>
+              <p className="text-xs text-[#9b9b9b] mb-3">
+                Verifica che ci siano almeno 40 cartoni pronti
+              </p>
+              <select
+                value={manualInspection.cartoni_pizza_pronti}
+                onChange={(e) => setManualInspection({...manualInspection, cartoni_pizza_pronti: e.target.value})}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                disabled={uploading}
+                required
+              >
+                <option value="">Seleziona...</option>
+                <option value="piu_di_40">Ci sono più di 40 cartoni pronti</option>
+                <option value="meno_di_40">Ci sono meno di 40 cartoni pronti</option>
+                <option value="nessun_cartone">Non ci sono cartoni pronti</option>
+              </select>
+            </div>
           </div>
         </NeumorphicCard>
 

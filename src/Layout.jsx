@@ -192,6 +192,16 @@ const navigationStructure = [
         title: "Foto Locale", // Reordered
         url: createPageUrl("FotoLocale"),
         icon: Camera,
+      },
+      {
+        title: "Form Inventario", // ADDED for dipendente
+        url: createPageUrl("FormInventario"),
+        icon: ClipboardList,
+      },
+      {
+        title: "Conteggio Cassa", // ADDED for dipendente
+        url: createPageUrl("ConteggioCassa"),
+        icon: DollarSign,
       }
     ]
   },

@@ -27,6 +27,7 @@ import ProfiloDipendente from './pages/ProfiloDipendente';
 import QuantitaMinime from './pages/QuantitaMinime';
 import FormInventario from './pages/FormInventario';
 import UsersManagement from './pages/UsersManagement';
+import ConteggioCassa from './pages/ConteggioCassa';
 import Layout from './Layout.jsx';
 
 
@@ -60,6 +61,7 @@ export const PAGES = {
     "QuantitaMinime": QuantitaMinime,
     "FormInventario": FormInventario,
     "UsersManagement": UsersManagement,
+    "ConteggioCassa": ConteggioCassa,
 }
 
 export const pagesConfig = {

@@ -7,7 +7,7 @@ import {
   Save,
   AlertTriangle,
   CheckCircle,
-  Calendar,
+  Calendar, // This import is no longer needed but was part of the original, keeping for safety unless explicitly told to remove.
   Store,
   User,
   Package,
@@ -16,14 +16,12 @@ import {
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
-import { format } from 'date-fns';
-import { it } from 'date-fns/locale';
+import { format } from 'date-fns'; // This import is no longer needed for dataRilevazione state initialization, but might be used elsewhere. Keeping for safety.
+import { it } from 'date-fns/locale'; // Same as above.
 
 export default function FormInventario() {
   const [selectedStore, setSelectedStore] = useState('');
-  const [dataRilevazione, setDataRilevazione] = useState(
-    format(new Date(), 'yyyy-MM-dd\'T\'HH:mm')
-  );
+  // Removed dataRilevazione state and its initialization as per outline.
   const [quantities, setQuantities] = useState({});
   const [notes, setNotes] = useState({});
   const [saving, setSaving] = useState(false);
@@ -86,6 +84,7 @@ export default function FormInventario() {
 
     try {
       const store = stores.find(s => s.id === selectedStore);
+      const now = new Date().toISOString(); // Timestamp automatico
       
       const rilevazioni = Object.entries(quantities)
         .filter(([_, qty]) => qty !== '' && qty !== null && qty !== undefined)
@@ -96,8 +95,8 @@ export default function FormInventario() {
           return {
             store_name: store.name,
             store_id: store.id,
-            data_rilevazione: dataRilevazione,
-            rilevato_da: currentUser?.nome_cognome || currentUser?.full_name || currentUser?.email || 'N/A', // UPDATED: use nome_cognome
+            data_rilevazione: now, // Usa timestamp automatico
+            rilevato_da: currentUser?.nome_cognome || currentUser?.full_name || currentUser?.email || 'N/A',
             prodotto_id: productId,
             nome_prodotto: product.nome_prodotto,
             quantita_rilevata: quantitaRilevata,
@@ -235,7 +234,8 @@ export default function FormInventario() {
         <NeumorphicCard className="p-6">
           <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Informazioni Rilevazione</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* UPDATED: Removed Data e Ora field, adjusted grid to md:grid-cols-2 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
                 <Store className="w-4 h-4" />
@@ -256,29 +256,21 @@ export default function FormInventario() {
 
             <div>
               <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                Data e Ora <span className="text-red-600">*</span>
-              </label>
-              <input
-                type="datetime-local"
-                value={dataRilevazione}
-                onChange={(e) => setDataRilevazione(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
                 <User className="w-4 h-4" />
                 Rilevato da
               </label>
               <div className="neumorphic-pressed px-4 py-3 rounded-xl">
                 <p className="text-[#6b6b6b]">
-                  {currentUser?.nome_cognome || currentUser?.full_name || currentUser?.email || 'Caricamento...'} {/* UPDATED: use nome_cognome */}
+                  {currentUser?.nome_cognome || currentUser?.full_name || currentUser?.email || 'Caricamento...'}
                 </p>
               </div>
             </div>
+          </div>
+          {/* New informational message */}
+          <div className="neumorphic-pressed p-3 rounded-xl mt-4 bg-blue-50">
+            <p className="text-xs text-blue-800">
+              ℹ️ La data e l'ora verranno registrate automaticamente al momento del salvataggio
+            </p>
           </div>
         </NeumorphicCard>
 
@@ -312,11 +304,7 @@ export default function FormInventario() {
                             <p className="text-sm text-[#9b9b9b]">
                               Min: {product.quantita_minima} {product.unita_misura}
                             </p>
-                            {product.fornitore && (
-                              <p className="text-xs text-[#9b9b9b] mt-1">
-                                Fornitore: {product.fornitore}
-                              </p>
-                            )}
+                            {/* REMOVED fornitore display */}
                           </div>
                           {isUnderMinimum && (
                             <AlertTriangle className="w-5 h-5 text-red-600 ml-2 flex-shrink-0" />
