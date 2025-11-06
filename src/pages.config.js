@@ -32,6 +32,9 @@ import TeglieButtate from './pages/TeglieButtate';
 import Preparazioni from './pages/Preparazioni';
 import StoricoCassa from './pages/StoricoCassa';
 import FormCantina from './pages/FormCantina';
+import ControlloPuliziaCassiere from './pages/ControlloPuliziaCassiere';
+import ControlloPuliziaPizzaiolo from './pages/ControlloPuliziaPizzaiolo';
+import ControlloPuliziaStoreManager from './pages/ControlloPuliziaStoreManager';
 import Layout from './Layout.jsx';
 
 
@@ -70,6 +73,9 @@ export const PAGES = {
     "Preparazioni": Preparazioni,
     "StoricoCassa": StoricoCassa,
     "FormCantina": FormCantina,
+    "ControlloPuliziaCassiere": ControlloPuliziaCassiere,
+    "ControlloPuliziaPizzaiolo": ControlloPuliziaPizzaiolo,
+    "ControlloPuliziaStoreManager": ControlloPuliziaStoreManager,
 }
 
 export const pagesConfig = {

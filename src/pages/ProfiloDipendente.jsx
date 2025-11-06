@@ -196,12 +196,12 @@ export default function ProfiloDipendente() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
                 <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                  Nome Cognome <span className="text-red-600">*</span> {/* Updated label */}
+                  Nome Cognome <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="text"
-                  value={formData.nome_cognome} // Changed from full_name
-                  onChange={(e) => setFormData({ ...formData, nome_cognome: e.target.value })} // Changed from full_name
+                  value={formData.nome_cognome}
+                  onChange={(e) => setFormData({ ...formData, nome_cognome: e.target.value })}
                   placeholder="Mario Rossi"
                   className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                 />
@@ -223,21 +223,18 @@ export default function ProfiloDipendente() {
                 />
               </div>
 
-              {/* NEW: Ruolo Dipendente (only for dipendente users) */}
+              {/* Ruolo Dipendente - READ ONLY for dipendente */}
               {user?.user_type === 'dipendente' && (
                 <div>
                   <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                    Ruolo
+                    Ruolo (non modificabile)
                   </label>
-                  <select
-                    value={formData.ruolo_dipendente}
-                    onChange={(e) => setFormData({ ...formData, ruolo_dipendente: e.target.value })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                  >
-                    <option value="">-- Seleziona --</option>
-                    <option value="Pizzaiolo">Pizzaiolo</option>
-                    <option value="Cassiere">Cassiere</option>
-                  </select>
+                  <div className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] bg-gray-50">
+                    {user.ruolo_dipendente || 'Non assegnato'}
+                  </div>
+                  <p className="text-xs text-[#9b9b9b] mt-1">
+                    ℹ️ Il ruolo può essere modificato solo dall'amministratore
+                  </p>
                 </div>
               )}
 
@@ -357,8 +354,8 @@ export default function ProfiloDipendente() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="neumorphic-pressed p-4 rounded-xl md:col-span-2">
-              <p className="text-sm text-[#9b9b9b] mb-1">Nome Cognome</p> {/* Updated label */}
-              <p className="text-[#6b6b6b] font-medium">{user?.nome_cognome || user?.full_name || '-'}</p> {/* Prioritize nome_cognome, fallback to full_name */}
+              <p className="text-sm text-[#9b9b9b] mb-1">Nome Cognome</p>
+              <p className="text-[#6b6b6b] font-medium">{user?.nome_cognome || user?.full_name || '-'}</p>
             </div>
 
             <div className="neumorphic-pressed p-4 rounded-xl">
@@ -369,7 +366,7 @@ export default function ProfiloDipendente() {
             {user?.user_type === 'dipendente' && (
               <div className="neumorphic-pressed p-4 rounded-xl">
                 <p className="text-sm text-[#9b9b9b] mb-1">Ruolo</p>
-                <p className="text-[#6b6b6b] font-medium">{user?.ruolo_dipendente || '-'}</p>
+                <p className="text-[#6b6b6b] font-medium">{user?.ruolo_dipendente || 'Non assegnato'}</p>
               </div>
             )}
 
@@ -422,7 +419,7 @@ export default function ProfiloDipendente() {
           <div className="text-sm text-blue-800">
             <p className="font-medium mb-1">📝 Perché questi dati sono importanti?</p>
             <ul className="text-xs space-y-1 list-disc list-inside">
-              <li><strong>Il tuo Nome Cognome</strong> viene usato per associare turni e recensioni automaticamente</li> {/* Updated text */}
+              <li><strong>Il tuo Nome Cognome</strong> viene usato per associare turni e recensioni automaticamente</li>
               <li>Deve corrispondere ESATTAMENTE a come appare nel sistema turni (es. "Mario Rossi")</li>
               <li>Il matching viene fatto in modo intelligente (case-insensitive, ignora spazi multipli)</li>
               <li>I dati anagrafici sono necessari per la gestione amministrativa</li>

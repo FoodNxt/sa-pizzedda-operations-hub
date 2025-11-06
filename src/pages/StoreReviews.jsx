@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -7,8 +8,11 @@ import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns'; // Added parseISO
 import { it } from 'date-fns/locale';
+
+// New imports for Recharts
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 // Fix Leaflet default icon issue
 delete L.Icon.Default.prototype._getIconUrl;
@@ -103,6 +107,35 @@ export default function StoreReviews() {
       iconAnchor: [15, 30],
     });
   };
+
+  // NEW: Calculate rating trend data for selected store
+  const ratingTrendData = useMemo(() => {
+    if (!selectedStore) return [];
+    
+    // Group reviews by date and calculate average rating
+    const reviewsByDate = {};
+    selectedStore.allReviews.forEach(review => {
+      const date = format(parseISO(review.review_date), 'yyyy-MM-dd');
+      if (!reviewsByDate[date]) {
+        reviewsByDate[date] = { ratings: [], count: 0 };
+      }
+      reviewsByDate[date].ratings.push(review.rating);
+      reviewsByDate[date].count++;
+    });
+
+    // Convert to array and calculate averages
+    const trendData = Object.entries(reviewsByDate)
+      .map(([date, data]) => ({
+        date,
+        avgRating: (data.ratings.reduce((sum, r) => sum + r, 0) / data.count).toFixed(1),
+        count: data.count
+      }))
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .slice(-30); // Last 30 days
+
+    return trendData;
+  }, [selectedStore]);
+
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -284,6 +317,53 @@ export default function StoreReviews() {
               </div>
             </div>
           </div>
+
+          {/* NEW: Rating Trend Chart */}
+          {ratingTrendData.length > 0 && (
+            <NeumorphicCard className="p-6 mb-6">
+              <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Andamento Punteggio Medio</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={ratingTrendData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#c1c1c1" />
+                  <XAxis 
+                    dataKey="date" 
+                    stroke="#9b9b9b"
+                    tickFormatter={(date) => format(parseISO(date), 'dd/MM')}
+                  />
+                  <YAxis 
+                    stroke="#9b9b9b"
+                    domain={[0, 5]}
+                    ticks={[0, 1, 2, 3, 4, 5]}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      background: '#e0e5ec', 
+                      border: 'none',
+                      borderRadius: '12px',
+                      boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
+                    }}
+                    labelFormatter={(date) => format(parseISO(date), 'dd/MM/yyyy')}
+                    formatter={(value, name) => {
+                      if (name === 'avgRating') return [value + ' ⭐', 'Media'];
+                      return [value, name];
+                    }}
+                  />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="avgRating" 
+                    stroke="#8b7355" 
+                    strokeWidth={3}
+                    name="Punteggio Medio"
+                    dot={{ fill: '#8b7355', r: 4 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+              <p className="text-xs text-[#9b9b9b] text-center mt-2">
+                Ultimi 30 giorni di recensioni Google Maps
+              </p>
+            </NeumorphicCard>
+          )}
 
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-[#6b6b6b]">

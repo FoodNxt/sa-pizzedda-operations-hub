@@ -186,9 +186,25 @@ const navigationStructure = [
         icon: Zap,
       },
       {
-        title: "Foto Locale",
-        url: createPageUrl("FotoLocale"),
+        title: "Controllo Pulizia Cassiere",
+        url: createPageUrl("ControlloPuliziaCassiere"),
         icon: Camera,
+        requiredUserType: ["admin", "manager"],
+        requiredRole: null // Accessible to admin/manager without role restriction
+      },
+      {
+        title: "Controllo Pulizia Pizzaiolo",
+        url: createPageUrl("ControlloPuliziaPizzaiolo"),
+        icon: Camera,
+        requiredUserType: ["admin", "manager"],
+        requiredRole: null
+      },
+      {
+        title: "Controllo Pulizia Store Manager",
+        url: createPageUrl("ControlloPuliziaStoreManager"),
+        icon: Camera,
+        requiredUserType: ["admin", "manager"],
+        requiredRole: null
       }
     ]
   },
@@ -209,9 +225,22 @@ const navigationStructure = [
         icon: User, 
       },
       {
-        title: "Foto Locale", 
-        url: createPageUrl("FotoLocale"),
+        title: "Controllo Pulizia Cassiere",
+        url: createPageUrl("ControlloPuliziaCassiere"),
         icon: Camera,
+        requiredRole: "Cassiere"
+      },
+      {
+        title: "Controllo Pulizia Pizzaiolo",
+        url: createPageUrl("ControlloPuliziaPizzaiolo"),
+        icon: Camera,
+        requiredRole: "Pizzaiolo"
+      },
+      {
+        title: "Controllo Pulizia Store Manager",
+        url: createPageUrl("ControlloPuliziaStoreManager"),
+        icon: Camera,
+        requiredRole: "Store Manager"
       },
       {
         title: "Form Inventario", 
@@ -372,19 +401,29 @@ export default function Layout({ children, currentPageName }) {
     return false;
   };
 
-  const hasAccess = (requiredUserType) => {
+  const hasAccess = (requiredUserType, requiredRole) => {
     if (!requiredUserType) return true;
     if (!currentUser) return false;
     
     const userType = currentUser.user_type || 'dipendente';
-    return requiredUserType.includes(userType);
+    const userRole = currentUser.ruolo_dipendente; // Assuming currentUser has ruolo_dipendente field
+    
+    // Check user type
+    if (!requiredUserType.includes(userType)) return false;
+    
+    // Check role if specified and user is a dipendente
+    if (requiredRole && userType === 'dipendente') {
+      return userRole === requiredRole;
+    }
+    
+    return true;
   };
 
   const filteredNavigation = navigationStructure
     .filter(section => hasAccess(section.requiredUserType))
     .map(section => ({
       ...section,
-      items: section.items.filter(item => hasAccess(item.requiredUserType))
+      items: section.items.filter(item => hasAccess(item.requiredUserType, item.requiredRole))
     }))
     .filter(section => section.items.length > 0);
 
