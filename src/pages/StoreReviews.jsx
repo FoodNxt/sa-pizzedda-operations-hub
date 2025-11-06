@@ -108,28 +108,49 @@ export default function StoreReviews() {
     });
   };
 
-  // NEW: Calculate rating trend data for selected store
+  // Calculate rating trend data for selected store - FIXED with date validation
   const ratingTrendData = useMemo(() => {
     if (!selectedStore) return [];
     
     // Group reviews by date and calculate average rating
     const reviewsByDate = {};
     selectedStore.allReviews.forEach(review => {
-      const date = format(parseISO(review.review_date), 'yyyy-MM-dd');
-      if (!reviewsByDate[date]) {
-        reviewsByDate[date] = { ratings: [], count: 0 };
+      if (!review.review_date) return; // Skip if no date
+      
+      try {
+        // Validate date before parsing
+        const reviewDate = parseISO(review.review_date);
+        if (isNaN(reviewDate.getTime())) return; // Skip invalid dates
+        
+        const date = format(reviewDate, 'yyyy-MM-dd');
+        if (!reviewsByDate[date]) {
+          reviewsByDate[date] = { ratings: [], count: 0 };
+        }
+        reviewsByDate[date].ratings.push(review.rating);
+        reviewsByDate[date].count++;
+      } catch (e) {
+        // Skip reviews with invalid dates
+        return;
       }
-      reviewsByDate[date].ratings.push(review.rating);
-      reviewsByDate[date].count++;
     });
 
     // Convert to array and calculate averages
     const trendData = Object.entries(reviewsByDate)
-      .map(([date, data]) => ({
-        date,
-        avgRating: (data.ratings.reduce((sum, r) => sum + r, 0) / data.count).toFixed(1),
-        count: data.count
-      }))
+      .map(([date, data]) => {
+        try {
+          const parsedDate = parseISO(date);
+          if (isNaN(parsedDate.getTime())) return null; // Skip invalid dates
+          
+          return {
+            date,
+            avgRating: (data.ratings.reduce((sum, r) => sum + r, 0) / data.count).toFixed(1),
+            count: data.count
+          };
+        } catch (e) {
+          return null;
+        }
+      })
+      .filter(item => item !== null) // Remove null entries
       .sort((a, b) => new Date(a.date) - new Date(b.date))
       .slice(-30); // Last 30 days
 
@@ -318,7 +339,7 @@ export default function StoreReviews() {
             </div>
           </div>
 
-          {/* NEW: Rating Trend Chart */}
+          {/* Rating Trend Chart - FIXED with date validation */}
           {ratingTrendData.length > 0 && (
             <NeumorphicCard className="p-6 mb-6">
               <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Andamento Punteggio Medio</h3>
@@ -328,7 +349,15 @@ export default function StoreReviews() {
                   <XAxis 
                     dataKey="date" 
                     stroke="#9b9b9b"
-                    tickFormatter={(date) => format(parseISO(date), 'dd/MM')}
+                    tickFormatter={(date) => {
+                      try {
+                        const parsedDate = parseISO(date);
+                        if (isNaN(parsedDate.getTime())) return '';
+                        return format(parsedDate, 'dd/MM');
+                      } catch (e) {
+                        return '';
+                      }
+                    }}
                   />
                   <YAxis 
                     stroke="#9b9b9b"
@@ -342,7 +371,15 @@ export default function StoreReviews() {
                       borderRadius: '12px',
                       boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
                     }}
-                    labelFormatter={(date) => format(parseISO(date), 'dd/MM/yyyy')}
+                    labelFormatter={(date) => {
+                      try {
+                        const parsedDate = parseISO(date);
+                        if (isNaN(parsedDate.getTime())) return date;
+                        return format(parsedDate, 'dd/MM/yyyy');
+                      } catch (e) {
+                        return date;
+                      }
+                    }}
                     formatter={(value, name) => {
                       if (name === 'avgRating') return [value + ' ⭐', 'Media'];
                       return [value, name];
@@ -427,7 +464,7 @@ export default function StoreReviews() {
                       </div>
                     </div>
                     <span className="text-sm text-[#9b9b9b]">
-                      {format(new Date(review.review_date), 'dd/MM/yyyy HH:mm', { locale: it })}
+                      {review.review_date ? format(parseISO(review.review_date), 'dd/MM/yyyy HH:mm', { locale: it }) : 'N/A'}
                     </span>
                   </div>
                   {review.comment && (
