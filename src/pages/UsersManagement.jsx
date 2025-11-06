@@ -15,7 +15,8 @@ import {
   Phone,
   Calendar,
   MapPin,
-  ShoppingBag
+  ShoppingBag,
+  Store // Added Store icon
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -23,9 +24,11 @@ import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 export default function UsersManagement() {
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({
-    nome_cognome: '', // Changed from full_name
+    nome_cognome: '',
     initials: '',
     user_type: 'dipendente',
+    ruolo_dipendente: '', // Added
+    assigned_stores: [], // Added
     employee_id_external: '',
     employee_group: '',
     function_name: '',
@@ -44,20 +47,45 @@ export default function UsersManagement() {
     queryFn: () => base44.entities.User.list('-created_date'),
   });
 
+  // New query for stores
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores'],
+    queryFn: () => base44.entities.Store.list(),
+  });
+
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.User.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       setEditingUser(null);
+      // Optional: reset form data after successful save
+      setFormData({
+        nome_cognome: '',
+        initials: '',
+        user_type: 'dipendente',
+        ruolo_dipendente: '',
+        assigned_stores: [],
+        employee_id_external: '',
+        employee_group: '',
+        function_name: '',
+        phone: '',
+        data_nascita: '',
+        codice_fiscale: '',
+        indirizzo_domicilio: '',
+        taglia_maglietta: '',
+        status: 'active'
+      });
     },
   });
 
   const handleEdit = (user) => {
     setEditingUser(user);
     setFormData({
-      nome_cognome: user.nome_cognome || '', // Changed from full_name
+      nome_cognome: user.nome_cognome || '',
       initials: user.initials || '',
       user_type: user.user_type || 'dipendente',
+      ruolo_dipendente: user.ruolo_dipendente || '', // Populating new field
+      assigned_stores: user.assigned_stores || [], // Populating new field
       employee_id_external: user.employee_id_external || '',
       employee_group: user.employee_group || '',
       function_name: user.function_name || '',
@@ -68,11 +96,12 @@ export default function UsersManagement() {
       taglia_maglietta: user.taglia_maglietta || '',
       status: user.status || 'active'
     });
+    // Removed setShowForm(true) as editingUser state already controls modal visibility
   };
 
   const handleSave = () => {
-    if (!formData.nome_cognome?.trim()) { // Changed from full_name
-      alert('Il Nome Cognome è obbligatorio'); // Updated alert message
+    if (!formData.nome_cognome?.trim()) {
+      alert('Il Nome Cognome è obbligatorio');
       return;
     }
 
@@ -85,9 +114,11 @@ export default function UsersManagement() {
   const handleCancel = () => {
     setEditingUser(null);
     setFormData({
-      nome_cognome: '', // Changed from full_name
+      nome_cognome: '',
       initials: '',
       user_type: 'dipendente',
+      ruolo_dipendente: '', // Resetting new field
+      assigned_stores: [], // Resetting new field
       employee_id_external: '',
       employee_group: '',
       function_name: '',
@@ -99,6 +130,29 @@ export default function UsersManagement() {
       status: 'active'
     });
   };
+
+  // New function to toggle store assignment
+  const handleStoreToggle = (storeId) => {
+    setFormData(prev => {
+      const isCurrentlyAssigned = prev.assigned_stores.includes(storeId);
+      let newAssignedStores;
+
+      if (prev.assigned_stores.length === 0 && stores.length > 0) {
+        // If it was "all assigned" and we uncheck one, it means we are now picking specific stores.
+        // So, initialize with all stores minus the one being unchecked.
+        newAssignedStores = stores.filter(s => s.id !== storeId).map(s => s.id);
+      } else if (isCurrentlyAssigned) {
+        // If it's explicitly assigned and we uncheck it
+        newAssignedStores = prev.assigned_stores.filter(id => id !== storeId);
+      } else {
+        // If it's not explicitly assigned and we check it
+        newAssignedStores = [...prev.assigned_stores, storeId];
+      }
+
+      return { ...prev, assigned_stores: newAssignedStores };
+    });
+  };
+
 
   const getUserTypeLabel = (type) => {
     switch(type) {
@@ -196,12 +250,12 @@ export default function UsersManagement() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
                     <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                      Nome Cognome <span className="text-red-600">*</span> {/* Updated label */}
+                      Nome Cognome <span className="text-red-600">*</span>
                     </label>
                     <input
                       type="text"
-                      value={formData.nome_cognome} // Changed from full_name
-                      onChange={(e) => setFormData({ ...formData, nome_cognome: e.target.value })} // Changed from full_name
+                      value={formData.nome_cognome}
+                      onChange={(e) => setFormData({ ...formData, nome_cognome: e.target.value })}
                       className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                       placeholder="Mario Rossi"
                     />
@@ -302,6 +356,24 @@ export default function UsersManagement() {
                     </select>
                   </div>
 
+                  {/* NEW: Ruolo Dipendente (only for dipendente user_type) */}
+                  {formData.user_type === 'dipendente' && (
+                    <div>
+                      <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                        Ruolo Dipendente
+                      </label>
+                      <select
+                        value={formData.ruolo_dipendente}
+                        onChange={(e) => setFormData({ ...formData, ruolo_dipendente: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                      >
+                        <option value="">-- Seleziona --</option>
+                        <option value="Pizzaiolo">Pizzaiolo</option>
+                        <option value="Cassiere">Cassiere</option>
+                      </select>
+                    </div>
+                  )}
+
                   <div>
                     <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
                       ID Esterno (Planday)
@@ -380,6 +452,48 @@ export default function UsersManagement() {
                 </div>
               </div>
 
+              {/* NEW: Assegnazione Locali */}
+              <div className="neumorphic-flat p-5 rounded-xl">
+                <div className="flex items-center gap-3 mb-4">
+                  <Store className="w-5 h-5 text-[#8b7355]" />
+                  <h3 className="font-bold text-[#6b6b6b]">Assegnazione Locali</h3>
+                </div>
+                <p className="text-sm text-[#9b9b9b] mb-4">
+                  {formData.assigned_stores.length === 0
+                    ? '✓ Utente assegnato a TUTTI i locali'
+                    : `Utente assegnato a ${formData.assigned_stores.length} locale/i su ${stores.length}`}
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {stores.map(store => (
+                    <div key={store.id} className="neumorphic-pressed p-3 rounded-lg">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.assigned_stores.length === 0 || formData.assigned_stores.includes(store.id)}
+                          onChange={() => handleStoreToggle(store.id)}
+                          className="w-5 h-5 rounded"
+                        />
+                        <div className="flex-1">
+                          <p className="font-medium text-[#6b6b6b]">{store.name}</p>
+                          <p className="text-xs text-[#9b9b9b]">{store.address}</p>
+                        </div>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+
+                {formData.assigned_stores.length > 0 && formData.assigned_stores.length < stores.length && (
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, assigned_stores: [] })}
+                    className="mt-3 text-sm text-blue-600 hover:underline"
+                  >
+                    Assegna a tutti i locali
+                  </button>
+                )}
+              </div>
+
               {/* Email (Read-only) */}
               <div className="neumorphic-pressed p-4 rounded-xl bg-gray-50">
                 <label className="text-sm font-medium text-[#9b9b9b] mb-2 block flex items-center gap-2">
@@ -444,76 +558,97 @@ export default function UsersManagement() {
                   <th className="text-left p-3 text-[#9b9b9b] font-medium">Telefono</th>
                   <th className="text-left p-3 text-[#9b9b9b] font-medium">Ruolo</th>
                   <th className="text-left p-3 text-[#9b9b9b] font-medium">Tipo</th>
+                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Locali</th> {/* New Table Header */}
                   <th className="text-center p-3 text-[#9b9b9b] font-medium">Stato</th>
                   <th className="text-center p-3 text-[#9b9b9b] font-medium">Azioni</th>
                 </tr>
               </thead>
               <tbody>
-                {users.map((user) => (
-                  <tr key={user.id} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
-                    <td className="p-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full neumorphic-flat flex items-center justify-center">
-                          <span className="text-sm font-bold text-[#8b7355]">
-                            {user.initials || (user.nome_cognome || user.full_name || user.email || 'U').charAt(0).toUpperCase()} {/* Added nome_cognome fallback */}
-                          </span>
+                {users.map((user) => {
+                  const assignedStoresCount = !user.assigned_stores || user.assigned_stores.length === 0
+                    ? stores.length
+                    : user.assigned_stores.length;
+
+                  return (
+                    <tr key={user.id} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
+                      <td className="p-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full neumorphic-flat flex items-center justify-center">
+                            <span className="text-sm font-bold text-[#8b7355]">
+                              {user.initials || (user.nome_cognome || user.full_name || user.email || 'U').charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-medium text-[#6b6b6b]">
+                              {user.nome_cognome || user.full_name || 'Nome non impostato'}
+                            </p>
+                            {user.employee_id_external && (
+                              <p className="text-xs text-[#9b9b9b]">ID: {user.employee_id_external}</p>
+                            )}
+                          </div>
                         </div>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-[#9b9b9b]" />
+                          <span className="text-[#6b6b6b] text-sm">{user.email}</span>
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        {user.phone ? (
+                          <div className="flex items-center gap-2">
+                            <Phone className="w-4 h-4 text-[#9b9b9b]" />
+                            <span className="text-[#6b6b6b] text-sm">{user.phone}</span>
+                          </div>
+                        ) : (
+                          <span className="text-[#9b9b9b] text-sm">-</span>
+                        )}
+                      </td>
+                      <td className="p-3">
                         <div>
-                          <p className="font-medium text-[#6b6b6b]">
-                            {user.nome_cognome || user.full_name || 'Nome non impostato'} {/* Added nome_cognome fallback */}
-                          </p>
-                          {user.employee_id_external && (
-                            <p className="text-xs text-[#9b9b9b]">ID: {user.employee_id_external}</p>
+                          <span className="text-sm text-[#6b6b6b]">{user.function_name || '-'}</span>
+                          {user.user_type === 'dipendente' && user.ruolo_dipendente && (
+                            <span className="block text-xs text-blue-600 font-medium">
+                              {user.ruolo_dipendente}
+                            </span>
                           )}
                         </div>
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-[#9b9b9b]" />
-                        <span className="text-[#6b6b6b] text-sm">{user.email}</span>
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      {user.phone ? (
-                        <div className="flex items-center gap-2">
-                          <Phone className="w-4 h-4 text-[#9b9b9b]" />
-                          <span className="text-[#6b6b6b] text-sm">{user.phone}</span>
+                      </td>
+                      <td className="p-3">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${getUserTypeColor(user.user_type)}`}>
+                          {getUserTypeLabel(user.user_type)}
+                        </span>
+                      </td>
+                      <td className="p-3"> {/* New Table Data for Stores */}
+                        <span className="text-sm text-[#6b6b6b]">
+                          {assignedStoresCount === stores.length
+                            ? 'Tutti'
+                            : `${assignedStoresCount}/${stores.length}`}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex justify-center">
+                          {user.status === 'active' ? (
+                            <CheckCircle className="w-5 h-5 text-green-600" />
+                          ) : (
+                            <X className="w-5 h-5 text-red-600" />
+                          )}
                         </div>
-                      ) : (
-                        <span className="text-[#9b9b9b] text-sm">-</span>
-                      )}
-                    </td>
-                    <td className="p-3">
-                      <span className="text-sm text-[#6b6b6b]">{user.function_name || '-'}</span>
-                    </td>
-                    <td className="p-3">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${getUserTypeColor(user.user_type)}`}>
-                        {getUserTypeLabel(user.user_type)}
-                      </span>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex justify-center">
-                        {user.status === 'active' ? (
-                          <CheckCircle className="w-5 h-5 text-green-600" />
-                        ) : (
-                          <X className="w-5 h-5 text-red-600" />
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex items-center justify-center">
-                        <button
-                          onClick={() => handleEdit(user)}
-                          className="neumorphic-flat p-2 rounded-lg hover:bg-blue-50 transition-colors"
-                          title="Modifica"
-                        >
-                          <Edit className="w-4 h-4 text-blue-600" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center justify-center">
+                          <button
+                            onClick={() => handleEdit(user)}
+                            className="neumorphic-flat p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                            title="Modifica"
+                          >
+                            <Edit className="w-4 h-4 text-blue-600" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -527,11 +662,11 @@ export default function UsersManagement() {
           <div className="text-sm text-blue-800">
             <p className="font-medium mb-1">ℹ️ Informazioni sul Matching Automatico</p>
             <ul className="text-xs space-y-1 list-disc list-inside">
-              <li><strong>Nome Cognome</strong> (campo editabile) viene usato per il matching con <strong>employee_name</strong> negli Shifts</li> {/* Updated text */}
+              <li><strong>Nome Cognome</strong> (campo editabile) viene usato per il matching con <strong>employee_name</strong> negli Shifts</li>
               <li>Il matching viene fatto in modo <strong>case-insensitive</strong> e ignora spazi multipli</li>
               <li>Il nome deve corrispondere ESATTAMENTE (es. "Mario Rossi" nell'User deve matchare con "Mario Rossi" negli Shifts)</li>
               <li>Questo matching viene usato per assegnare: <strong>recensioni, ritardi e timbrature mancate</strong></li>
-              <li>I dipendenti possono modificare il proprio <strong>Nome Cognome</strong> dalla pagina "Profilo"</li> {/* Updated text */}
+              <li>I dipendenti possono modificare il proprio <strong>Nome Cognome</strong> dalla pagina "Profilo"</li>
               <li>Gli utenti <strong>admin</strong> hanno accesso completo al sistema</li>
             </ul>
           </div>

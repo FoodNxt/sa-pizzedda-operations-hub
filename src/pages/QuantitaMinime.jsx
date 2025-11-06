@@ -656,6 +656,7 @@ export default function QuantitaMinime() {
                   <tr className="border-b-2 border-[#8b7355]">
                     <th className="text-left p-3 text-[#9b9b9b] font-medium">Prodotto</th>
                     <th className="text-left p-3 text-[#9b9b9b] font-medium">Unità</th>
+                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Posizione</th>
                     <th className="text-right p-3 text-[#9b9b9b] font-medium">Qtà Min</th>
                     <th className="text-right p-3 text-[#9b9b9b] font-medium">Prezzo</th>
                     <th className="text-left p-3 text-[#9b9b9b] font-medium">Locali</th>
@@ -689,6 +690,15 @@ export default function QuantitaMinime() {
                               ({product.peso_dimensione_unita} {product.unita_misura_peso})
                             </span>
                           )}
+                        </td>
+                        <td className="p-3">
+                          <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                            product.posizione === 'cantina' 
+                              ? 'bg-purple-100 text-purple-700' 
+                              : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {product.posizione === 'cantina' ? '📦 Cantina' : '🏪 Negozio'}
+                          </span>
                         </td>
                         <td className="p-3 text-right">
                           <span className="font-bold text-[#8b7355]">

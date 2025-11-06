@@ -21,6 +21,7 @@ export default function ProfiloDipendente() {
   const [formData, setFormData] = useState({
     nome_cognome: '', // Changed from full_name
     initials: '',
+    ruolo_dipendente: '', // Added new field
     phone: '',
     data_nascita: '',
     codice_fiscale: '',
@@ -41,6 +42,7 @@ export default function ProfiloDipendente() {
       setFormData({
         nome_cognome: u.nome_cognome || u.full_name || '', // Prioritize nome_cognome, fallback to full_name
         initials: u.initials || '',
+        ruolo_dipendente: u.ruolo_dipendente || '', // Populating new field
         phone: u.phone || '',
         data_nascita: u.data_nascita || '',
         codice_fiscale: u.codice_fiscale || '',
@@ -98,6 +100,7 @@ export default function ProfiloDipendente() {
       setFormData({
         nome_cognome: user.nome_cognome || user.full_name || '', // Prioritize nome_cognome, fallback to full_name
         initials: user.initials || '',
+        ruolo_dipendente: user.ruolo_dipendente || '', // Resetting new field
         phone: user.phone || '',
         data_nascita: user.data_nascita || '',
         codice_fiscale: user.codice_fiscale || '',
@@ -152,7 +155,7 @@ export default function ProfiloDipendente() {
                 {user?.nome_cognome || user?.full_name || 'Nome non impostato'} {/* Prioritize nome_cognome, fallback to full_name */}
               </h2>
               <p className="text-[#9b9b9b]">
-                {user?.function_name || (user?.user_type === 'admin' ? 'Amministratore' : user?.user_type === 'manager' ? 'Manager' : 'Dipendente')}
+                {user?.ruolo_dipendente || user?.function_name || (user?.user_type === 'admin' ? 'Amministratore' : user?.user_type === 'manager' ? 'Manager' : 'Dipendente')}
               </p>
               {user?.employee_group && (
                 <p className="text-sm text-[#9b9b9b]">Contratto: {user.employee_group}</p>
@@ -219,6 +222,24 @@ export default function ProfiloDipendente() {
                   className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                 />
               </div>
+
+              {/* NEW: Ruolo Dipendente (only for dipendente users) */}
+              {user?.user_type === 'dipendente' && (
+                <div>
+                  <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                    Ruolo
+                  </label>
+                  <select
+                    value={formData.ruolo_dipendente}
+                    onChange={(e) => setFormData({ ...formData, ruolo_dipendente: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                  >
+                    <option value="">-- Seleziona --</option>
+                    <option value="Pizzaiolo">Pizzaiolo</option>
+                    <option value="Cassiere">Cassiere</option>
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
@@ -344,6 +365,13 @@ export default function ProfiloDipendente() {
               <p className="text-sm text-[#9b9b9b] mb-1">Iniziali</p>
               <p className="text-[#6b6b6b] font-medium">{user?.initials || '-'}</p>
             </div>
+
+            {user?.user_type === 'dipendente' && (
+              <div className="neumorphic-pressed p-4 rounded-xl">
+                <p className="text-sm text-[#9b9b9b] mb-1">Ruolo</p>
+                <p className="text-[#6b6b6b] font-medium">{user?.ruolo_dipendente || '-'}</p>
+              </div>
+            )}
 
             <div className="neumorphic-pressed p-4 rounded-xl">
               <p className="text-sm text-[#9b9b9b] mb-1 flex items-center gap-2">
