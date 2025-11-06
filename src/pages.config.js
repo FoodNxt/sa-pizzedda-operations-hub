@@ -28,6 +28,9 @@ import QuantitaMinime from './pages/QuantitaMinime';
 import FormInventario from './pages/FormInventario';
 import UsersManagement from './pages/UsersManagement';
 import ConteggioCassa from './pages/ConteggioCassa';
+import TeglieButtate from './pages/TeglieButtate';
+import Preparazioni from './pages/Preparazioni';
+import StoricoCassa from './pages/StoricoCassa';
 import Layout from './Layout.jsx';
 
 
@@ -62,6 +65,9 @@ export const PAGES = {
     "FormInventario": FormInventario,
     "UsersManagement": UsersManagement,
     "ConteggioCassa": ConteggioCassa,
+    "TeglieButtate": TeglieButtate,
+    "Preparazioni": Preparazioni,
+    "StoricoCassa": StoricoCassa,
 }
 
 export const pagesConfig = {
