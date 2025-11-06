@@ -204,24 +204,34 @@ const navigationStructure = [
         icon: ClipboardCheck,
       },
       {
-        title: "Profilo", // Reordered
-        url: createPageUrl("ProfiloDipendente"), // Reordered
-        icon: User, // Reordered
+        title: "Profilo", 
+        url: createPageUrl("ProfiloDipendente"), 
+        icon: User, 
       },
       {
-        title: "Foto Locale", // Reordered
+        title: "Foto Locale", 
         url: createPageUrl("FotoLocale"),
         icon: Camera,
       },
       {
-        title: "Form Inventario", // ADDED for dipendente
+        title: "Form Inventario", 
         url: createPageUrl("FormInventario"),
         icon: ClipboardList,
       },
       {
-        title: "Conteggio Cassa", // ADDED for dipendente
+        title: "Conteggio Cassa", 
         url: createPageUrl("ConteggioCassa"),
         icon: DollarSign,
+      },
+      {
+        title: "Teglie Buttate",
+        url: createPageUrl("TeglieButtate"),
+        icon: AlertTriangle,
+      },
+      {
+        title: "Preparazioni",
+        url: createPageUrl("Preparazioni"),
+        icon: Package,
       }
     ]
   },

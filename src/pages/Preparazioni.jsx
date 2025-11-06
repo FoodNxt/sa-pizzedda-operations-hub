@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -24,6 +25,7 @@ export default function Preparazioni() {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [userType, setUserType] = useState(null); // Added userType state
 
   const queryClient = useQueryClient();
 
@@ -32,6 +34,7 @@ export default function Preparazioni() {
       try {
         const user = await base44.auth.me();
         setCurrentUser(user);
+        setUserType(user.user_type); // Set userType here
       } catch (error) {
         console.error('Error fetching user:', error);
       }
@@ -290,56 +293,59 @@ export default function Preparazioni() {
         </NeumorphicCard>
       </form>
 
-      <NeumorphicCard className="p-6">
-        <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Ultime Preparazioni</h2>
-        
-        {preparazioniList.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b-2 border-[#8b7355]">
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Data e Ora</th>
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Locale</th>
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Preparazione</th>
-                  <th className="text-right p-3 text-[#9b9b9b] font-medium">Peso (g)</th>
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Rilevato da</th>
-                </tr>
-              </thead>
-              <tbody>
-                {preparazioniList.map((p) => (
-                  <tr key={p.id} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
-                    <td className="p-3">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-[#9b9b9b]" />
-                        <span className="text-[#6b6b6b]">
-                          {format(new Date(p.data_rilevazione), 'dd/MM/yyyy HH:mm', { locale: it })}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <span className="text-[#6b6b6b]">{p.store_name}</span>
-                    </td>
-                    <td className="p-3">
-                      <span className="text-[#6b6b6b] font-medium">{p.tipo_preparazione}</span>
-                    </td>
-                    <td className="p-3 text-right">
-                      <span className="text-[#8b7355] font-bold text-lg">{p.peso_grammi}g</span>
-                    </td>
-                    <td className="p-3">
-                      <span className="text-[#6b6b6b] text-sm">{p.rilevato_da}</span>
-                    </td>
+      {/* Ultime Preparazioni - HIDDEN for dipendente */}
+      {userType !== 'dipendente' && (
+        <NeumorphicCard className="p-6">
+          <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Ultime Preparazioni</h2>
+          
+          {preparazioniList.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b-2 border-[#8b7355]">
+                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Data e Ora</th>
+                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Locale</th>
+                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Preparazione</th>
+                    <th className="text-right p-3 text-[#9b9b9b] font-medium">Peso (g)</th>
+                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Rilevato da</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <Package className="w-16 h-16 text-[#9b9b9b] opacity-50 mx-auto mb-4" />
-            <p className="text-[#9b9b9b]">Nessuna preparazione registrata</p>
-          </div>
-        )}
-      </NeumorphicCard>
+                </thead>
+                <tbody>
+                  {preparazioniList.map((p) => (
+                    <tr key={p.id} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-[#9b9b9b]" />
+                          <span className="text-[#6b6b6b]">
+                            {format(new Date(p.data_rilevazione), 'dd/MM/yyyy HH:mm', { locale: it })}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <span className="text-[#6b6b6b]">{p.store_name}</span>
+                      </td>
+                      <td className="p-3">
+                        <span className="text-[#6b6b6b] font-medium">{p.tipo_preparazione}</span>
+                      </td>
+                      <td className="p-3 text-right">
+                        <span className="text-[#8b7355] font-bold text-lg">{p.peso_grammi}g</span>
+                      </td>
+                      <td className="p-3">
+                        <span className="text-[#6b6b6b] text-sm">{p.rilevato_da}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Package className="w-16 h-16 text-[#9b9b9b] opacity-50 mx-auto mb-4" />
+              <p className="text-[#9b9b9b]">Nessuna preparazione registrata</p>
+            </div>
+          )}
+        </NeumorphicCard>
+      )}
     </div>
   );
 }

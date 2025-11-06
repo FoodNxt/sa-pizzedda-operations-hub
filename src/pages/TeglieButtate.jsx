@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -21,6 +22,7 @@ export default function TeglieButtate() {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [userType, setUserType] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -29,6 +31,7 @@ export default function TeglieButtate() {
       try {
         const user = await base44.auth.me();
         setCurrentUser(user);
+        setUserType(user.user_type);
       } catch (error) {
         console.error('Error fetching user:', error);
       }
@@ -248,56 +251,59 @@ export default function TeglieButtate() {
         </NeumorphicCard>
       </form>
 
-      <NeumorphicCard className="p-6">
-        <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Ultime Rilevazioni</h2>
-        
-        {teglie.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b-2 border-[#8b7355]">
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Data e Ora</th>
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Locale</th>
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Rilevato da</th>
-                  <th className="text-right p-3 text-[#9b9b9b] font-medium">Rosse</th>
-                  <th className="text-right p-3 text-[#9b9b9b] font-medium">Bianche</th>
-                </tr>
-              </thead>
-              <tbody>
-                {teglie.map((t) => (
-                  <tr key={t.id} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
-                    <td className="p-3">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-[#9b9b9b]" />
-                        <span className="text-[#6b6b6b]">
-                          {format(new Date(t.data_rilevazione), 'dd/MM/yyyy HH:mm', { locale: it })}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <span className="text-[#6b6b6b]">{t.store_name}</span>
-                    </td>
-                    <td className="p-3">
-                      <span className="text-[#6b6b6b] text-sm">{t.rilevato_da}</span>
-                    </td>
-                    <td className="p-3 text-right">
-                      <span className="text-red-600 font-bold text-lg">{t.teglie_rosse_buttate}</span>
-                    </td>
-                    <td className="p-3 text-right">
-                      <span className="text-gray-600 font-bold text-lg">{t.teglie_bianche_buttate}</span>
-                    </td>
+      {/* Ultime Rilevazioni - HIDDEN for dipendente */}
+      {userType !== 'dipendente' && (
+        <NeumorphicCard className="p-6">
+          <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Ultime Rilevazioni</h2>
+          
+          {teglie.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b-2 border-[#8b7355]">
+                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Data e Ora</th>
+                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Locale</th>
+                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Rilevato da</th>
+                    <th className="text-right p-3 text-[#9b9b9b] font-medium">Rosse</th>
+                    <th className="text-right p-3 text-[#9b9b9b] font-medium">Bianche</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <Trash2 className="w-16 h-16 text-[#9b9b9b] opacity-50 mx-auto mb-4" />
-            <p className="text-[#9b9b9b]">Nessuna rilevazione registrata</p>
-          </div>
-        )}
-      </NeumorphicCard>
+                </thead>
+                <tbody>
+                  {teglie.map((t) => (
+                    <tr key={t.id} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-[#9b9b9b]" />
+                          <span className="text-[#6b6b6b]">
+                            {format(new Date(t.data_rilevazione), 'dd/MM/yyyy HH:mm', { locale: it })}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <span className="text-[#6b6b6b]">{t.store_name}</span>
+                      </td>
+                      <td className="p-3">
+                        <span className="text-[#6b6b6b] text-sm">{t.rilevato_da}</span>
+                      </td>
+                      <td className="p-3 text-right">
+                        <span className="text-red-600 font-bold text-lg">{t.teglie_rosse_buttate}</span>
+                      </td>
+                      <td className="p-3 text-right">
+                        <span className="text-gray-600 font-bold text-lg">{t.teglie_bianche_buttate}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Trash2 className="w-16 h-16 text-[#9b9b9b] opacity-50 mx-auto mb-4" />
+              <p className="text-[#9b9b9b]">Nessuna rilevazione registrata</p>
+            </div>
+          )}
+        </NeumorphicCard>
+      )}
     </div>
   );
 }
