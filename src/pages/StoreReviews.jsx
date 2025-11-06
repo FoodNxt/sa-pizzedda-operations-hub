@@ -157,6 +157,18 @@ export default function StoreReviews() {
     return trendData;
   }, [selectedStore]);
 
+  // Helper function to safely format dates
+  const safeFormatDate = (dateString, formatStr = 'dd/MM/yyyy HH:mm') => {
+    if (!dateString) return 'N/A';
+    
+    try {
+      const date = parseISO(dateString);
+      if (isNaN(date.getTime())) return 'N/A';
+      return format(date, formatStr, { locale: it });
+    } catch (e) {
+      return 'N/A';
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -464,7 +476,7 @@ export default function StoreReviews() {
                       </div>
                     </div>
                     <span className="text-sm text-[#9b9b9b]">
-                      {review.review_date ? format(parseISO(review.review_date), 'dd/MM/yyyy HH:mm', { locale: it }) : 'N/A'}
+                      {safeFormatDate(review.review_date)}
                     </span>
                   </div>
                   {review.comment && (
