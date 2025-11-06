@@ -95,6 +95,11 @@ const navigationStructure = [
         title: "Daily Aggregation",
         url: createPageUrl("DailyRevenueAggregation"),
         icon: BarChart3,
+      },
+      {
+        title: "Storico Cassa",
+        url: createPageUrl("StoricoCassa"),
+        icon: DollarSign,
       }
     ]
   },
@@ -115,9 +120,24 @@ const navigationStructure = [
         icon: ClipboardList,
       },
       {
+        title: "Form Cantina",
+        url: createPageUrl("FormCantina"),
+        icon: ClipboardList,
+      },
+      {
         title: "Quantità Minime",
         url: createPageUrl("QuantitaMinime"),
         icon: AlertTriangle,
+      },
+      {
+        title: "Teglie Buttate",
+        url: createPageUrl("TeglieButtate"),
+        icon: AlertTriangle,
+      },
+      {
+        title: "Preparazioni",
+        url: createPageUrl("Preparazioni"),
+        icon: Package,
       }
     ]
   },

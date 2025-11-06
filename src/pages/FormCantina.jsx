@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ClipboardList,
   Save,
@@ -15,7 +14,7 @@ import {
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 
-export default function FormInventario() {
+export default function FormCantina() {
   const [selectedStore, setSelectedStore] = useState('');
   const [quantities, setQuantities] = useState({});
   const [notes, setNotes] = useState({});
@@ -43,10 +42,10 @@ export default function FormInventario() {
   });
 
   const { data: products = [], isLoading: productsLoading } = useQuery({
-    queryKey: ['materie-prime-negozio'],
+    queryKey: ['materie-prime-cantina'],
     queryFn: async () => {
       const allProducts = await base44.entities.MateriePrime.filter({ attivo: true });
-      return allProducts.filter(p => !p.posizione || p.posizione === 'negozio');
+      return allProducts.filter(p => p.posizione === 'cantina');
     },
   });
 
@@ -105,13 +104,13 @@ export default function FormInventario() {
           };
         });
 
-      await base44.entities.RilevazioneInventario.bulkCreate(rilevazioni);
+      await base44.entities.RilevazioneInventarioCantina.bulkCreate(rilevazioni);
 
       setSaveSuccess(true);
       setQuantities({});
       setNotes({});
       
-      queryClient.invalidateQueries({ queryKey: ['rilevazioni-inventario'] });
+      queryClient.invalidateQueries({ queryKey: ['rilevazioni-inventario-cantina'] });
 
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (error) {
@@ -154,15 +153,15 @@ export default function FormInventario() {
     return (
       <div className="max-w-5xl mx-auto space-y-6">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Form Inventario</h1>
-          <p className="text-[#9b9b9b]">Compila il questionario per registrare le giacenze</p>
+          <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Form Cantina</h1>
+          <p className="text-[#9b9b9b]">Compila il questionario per registrare le giacenze in cantina</p>
         </div>
 
         <NeumorphicCard className="p-12 text-center border-2 border-yellow-300">
           <AlertTriangle className="w-16 h-16 text-yellow-600 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-[#6b6b6b] mb-2">Nessun Prodotto Configurato</h2>
+          <h2 className="text-xl font-bold text-[#6b6b6b] mb-2">Nessun Prodotto in Cantina</h2>
           <p className="text-[#9b9b9b] mb-4">
-            Prima di compilare l'inventario, devi configurare i prodotti nella sezione "Quantità Minime"
+            Prima di compilare l'inventario cantina, devi configurare i prodotti nella sezione "Quantità Minime" e selezionare "Cantina" come posizione
           </p>
         </NeumorphicCard>
       </div>
@@ -174,9 +173,9 @@ export default function FormInventario() {
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-3">
           <ClipboardList className="w-10 h-10 text-[#8b7355]" />
-          <h1 className="text-3xl font-bold text-[#6b6b6b]">Form Inventario</h1>
+          <h1 className="text-3xl font-bold text-[#6b6b6b]">Form Cantina</h1>
         </div>
-        <p className="text-[#9b9b9b]">Compila il questionario per registrare le giacenze</p>
+        <p className="text-[#9b9b9b]">Compila il questionario per registrare le giacenze in cantina</p>
       </div>
 
       {saveSuccess && (
@@ -184,7 +183,7 @@ export default function FormInventario() {
           <div className="flex items-center gap-3">
             <CheckCircle className="w-5 h-5 text-green-600" />
             <p className="text-sm text-green-800 font-medium">
-              Rilevazione salvata con successo! ✅
+              Rilevazione cantina salvata con successo! ✅
             </p>
           </div>
         </NeumorphicCard>
@@ -357,7 +356,7 @@ export default function FormInventario() {
             ) : (
               <>
                 <Save className="w-6 h-6" />
-                Salva Rilevazione
+                Salva Rilevazione Cantina
               </>
             )}
           </NeumorphicButton>
@@ -369,7 +368,7 @@ export default function FormInventario() {
                 <div className="text-sm text-yellow-800">
                   <p className="font-bold mb-1">Attenzione!</p>
                   <p>
-                    Hai {getSottoMinimo()} prodotti sotto la quantità minima. 
+                    Hai {getSottoMinimo()} prodotti sotto la quantità minima in cantina. 
                     Considera di effettuare un ordine al più presto.
                   </p>
                 </div>

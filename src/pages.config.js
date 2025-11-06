@@ -31,6 +31,7 @@ import ConteggioCassa from './pages/ConteggioCassa';
 import TeglieButtate from './pages/TeglieButtate';
 import Preparazioni from './pages/Preparazioni';
 import StoricoCassa from './pages/StoricoCassa';
+import FormCantina from './pages/FormCantina';
 import Layout from './Layout.jsx';
 
 
@@ -68,6 +69,7 @@ export const PAGES = {
     "TeglieButtate": TeglieButtate,
     "Preparazioni": Preparazioni,
     "StoricoCassa": StoricoCassa,
+    "FormCantina": FormCantina,
 }
 
 export const pagesConfig = {
