@@ -19,7 +19,6 @@ import Payroll from './pages/Payroll';
 import Pulizie from './pages/Pulizie';
 import FotoLocale from './pages/FotoLocale';
 import SummaryAI from './pages/SummaryAI';
-import DailyRevenueAggregation from './pages/DailyRevenueAggregation';
 import IPraticoSetup from './pages/IPraticoSetup';
 import IPraticoBulkImport from './pages/IPraticoBulkImport';
 import Valutazione from './pages/Valutazione';
@@ -35,6 +34,7 @@ import FormCantina from './pages/FormCantina';
 import ControlloPuliziaCassiere from './pages/ControlloPuliziaCassiere';
 import ControlloPuliziaPizzaiolo from './pages/ControlloPuliziaPizzaiolo';
 import ControlloPuliziaStoreManager from './pages/ControlloPuliziaStoreManager';
+import Ricette from './pages/Ricette';
 import Layout from './Layout.jsx';
 
 
@@ -60,7 +60,6 @@ export const PAGES = {
     "Pulizie": Pulizie,
     "FotoLocale": FotoLocale,
     "SummaryAI": SummaryAI,
-    "DailyRevenueAggregation": DailyRevenueAggregation,
     "IPraticoSetup": IPraticoSetup,
     "IPraticoBulkImport": IPraticoBulkImport,
     "Valutazione": Valutazione,
@@ -76,6 +75,7 @@ export const PAGES = {
     "ControlloPuliziaCassiere": ControlloPuliziaCassiere,
     "ControlloPuliziaPizzaiolo": ControlloPuliziaPizzaiolo,
     "ControlloPuliziaStoreManager": ControlloPuliziaStoreManager,
+    "Ricette": Ricette,
 }
 
 export const pagesConfig = {

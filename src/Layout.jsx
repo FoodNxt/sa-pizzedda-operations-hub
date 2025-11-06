@@ -24,7 +24,8 @@ import {
   Camera,
   ClipboardCheck,
   User,
-  ClipboardList
+  ClipboardList,
+  ChefHat // Added ChefHat icon
 } from "lucide-react";
 import CompleteProfileModal from "./components/auth/CompleteProfileModal";
 
@@ -113,6 +114,11 @@ const navigationStructure = [
         title: "Inventory Dashboard",
         url: createPageUrl("Inventory"),
         icon: Package,
+      },
+      {
+        title: "Ricette", // Added new item
+        url: createPageUrl("Ricette"), // Added new item
+        icon: ChefHat, // Added new item
       },
       {
         title: "Form Inventario",
