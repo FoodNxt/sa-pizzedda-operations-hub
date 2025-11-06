@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -143,17 +144,55 @@ export default function Ricette() {
       const materiaPrima = materiePrime.find(m => m.id === ing.materia_prima_id);
       if (!materiaPrima || !materiaPrima.prezzo_unitario) return;
 
-      // Convert quantity to the same unit as prezzo_unitario
-      let quantityInBaseUnit = ing.quantita;
+      // Calculate base unit price
+      let pricePerBaseUnit = materiaPrima.prezzo_unitario;
       
-      // Convert to kg if needed
-      if (ing.unita_misura === 'g' && materiaPrima.unita_misura === 'kg') {
-        quantityInBaseUnit = ing.quantita / 1000;
-      } else if (ing.unita_misura === 'ml' && materiaPrima.unita_misura === 'litri') {
-        quantityInBaseUnit = ing.quantita / 1000;
+      // If the product has peso_dimensione_unita, we need to calculate the price per base unit
+      // Example: Sacco da 25kg costs €10 -> €10/25kg = €0.4 per kg
+      if (materiaPrima.peso_dimensione_unita && materiaPrima.unita_misura_peso) {
+        pricePerBaseUnit = materiaPrima.prezzo_unitario / materiaPrima.peso_dimensione_unita;
       }
 
-      totalCost += quantityInBaseUnit * materiaPrima.prezzo_unitario;
+      // Convert recipe quantity to base unit
+      let quantityInBaseUnit = ing.quantita;
+      
+      // If product has peso_dimensione_unita, convert recipe quantity to that base unit
+      if (materiaPrima.peso_dimensione_unita && materiaPrima.unita_misura_peso) {
+        const baseUnit = materiaPrima.unita_misura_peso;
+        
+        // Convert recipe quantity to base unit
+        if (ing.unita_misura === 'g' && baseUnit === 'kg') {
+          quantityInBaseUnit = ing.quantita / 1000;
+        } else if (ing.unita_misura === 'kg' && baseUnit === 'kg') {
+          quantityInBaseUnit = ing.quantita;
+        } else if (ing.unita_misura === 'ml' && baseUnit === 'litri') {
+          quantityInBaseUnit = ing.quantita / 1000;
+        } else if (ing.unita_misura === 'litri' && baseUnit === 'litri') {
+          quantityInBaseUnit = ing.quantita;
+        } else if (ing.unita_misura === 'g' && baseUnit === 'g') {
+          quantityInBaseUnit = ing.quantita;
+        } else if (ing.unita_misura === 'ml' && baseUnit === 'ml') {
+          quantityInBaseUnit = ing.quantita;
+        } else {
+          // If units don't match, use quantity as is (e.g., pezzi)
+          quantityInBaseUnit = ing.quantita;
+        }
+      } else {
+        // No peso_dimensione_unita, so prezzo_unitario is already per unita_misura
+        // Convert if needed
+        if (ing.unita_misura === 'g' && materiaPrima.unita_misura === 'kg') {
+          quantityInBaseUnit = ing.quantita / 1000;
+        } else if (ing.unita_misura === 'ml' && materiaPrima.unita_misura === 'litri') {
+          quantityInBaseUnit = ing.quantita / 1000;
+        } else if (ing.unita_misura === materiaPrima.unita_misura) {
+          quantityInBaseUnit = ing.quantita;
+        } else {
+          // Units don't match, use as is
+          quantityInBaseUnit = ing.quantita;
+        }
+      }
+
+      totalCost += quantityInBaseUnit * pricePerBaseUnit;
     });
 
     return totalCost;
@@ -341,6 +380,7 @@ export default function Ricette() {
                           .map(mp => (
                             <option key={mp.id} value={mp.id}>
                               {mp.nome_prodotto} - €{mp.prezzo_unitario?.toFixed(2)}/{mp.unita_misura}
+                              {mp.peso_dimensione_unita ? ` (${mp.peso_dimensione_unita}${mp.unita_misura_peso})` : ''}
                             </option>
                           ))}
                       </select>
