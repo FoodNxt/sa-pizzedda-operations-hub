@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -41,9 +42,12 @@ export default function ControlloPuliziaPizzaiolo() {
         const user = await base44.auth.me();
         setCurrentUser(user);
         
-        // Check if user has correct role
-        if (user.user_type === 'dipendente' && user.ruolo_dipendente !== 'Pizzaiolo') {
-          setError('⚠️ Accesso negato. Questa pagina è riservata ai Pizzaioli.');
+        // Check if user has correct role - UPDATED to check array
+        if (user.user_type === 'dipendente') {
+          const userRoles = user.ruoli_dipendente || [];
+          if (!userRoles.includes('Pizzaiolo')) {
+            setError('⚠️ Accesso negato. Questa pagina è riservata ai Pizzaioli.');
+          }
         }
       } catch (error) {
         console.error('Error fetching user:', error);
@@ -83,10 +87,13 @@ export default function ControlloPuliziaPizzaiolo() {
     e.preventDefault();
     setError('');
 
-    // Check role access
-    if (currentUser?.user_type === 'dipendente' && currentUser?.ruolo_dipendente !== 'Pizzaiolo') {
-      setError('⚠️ Solo i Pizzaioli possono compilare questo form');
-      return;
+    // Check role access - UPDATED to check array
+    if (currentUser?.user_type === 'dipendente') {
+      const userRoles = currentUser.ruoli_dipendente || [];
+      if (!userRoles.includes('Pizzaiolo')) {
+        setError('⚠️ Solo i Pizzaioli possono compilare questo form');
+        return;
+      }
     }
 
     if (!selectedStore) {
@@ -178,24 +185,27 @@ export default function ControlloPuliziaPizzaiolo() {
     manualInspection.pulizia_tavolette_takeaway &&
     manualInspection.etichette_prodotti_aperti &&
     manualInspection.cartoni_pizza_pronti &&
-    !(currentUser?.user_type === 'dipendente' && currentUser?.ruolo_dipendente !== 'Pizzaiolo');
+    !(currentUser?.user_type === 'dipendente' && !(currentUser.ruoli_dipendente || []).includes('Pizzaiolo'));
 
-  // Block access if wrong role
-  if (currentUser?.user_type === 'dipendente' && currentUser?.ruolo_dipendente !== 'Pizzaiolo') {
-    return (
-      <div className="max-w-5xl mx-auto space-y-6">
-        <NeumorphicCard className="p-8 text-center">
-          <AlertCircle className="w-16 h-16 text-red-600 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-[#6b6b6b] mb-2">Accesso Negato</h2>
-          <p className="text-[#9b9b9b] mb-4">
-            Questa pagina è riservata ai dipendenti con ruolo <strong>Pizzaiolo</strong>.
-          </p>
-          <p className="text-sm text-[#9b9b9b]">
-            Il tuo ruolo attuale: <strong>{currentUser?.ruolo_dipendente || 'Non assegnato'}</strong>
-          </p>
-        </NeumorphicCard>
-      </div>
-    );
+  // Block access if wrong role - UPDATED to check array
+  if (currentUser?.user_type === 'dipendente') {
+    const userRoles = currentUser.ruoli_dipendente || [];
+    if (!userRoles.includes('Pizzaiolo')) {
+      return (
+        <div className="max-w-5xl mx-auto space-y-6">
+          <NeumorphicCard className="p-8 text-center">
+            <AlertCircle className="w-16 h-16 text-red-600 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-[#6b6b6b] mb-2">Accesso Negato</h2>
+            <p className="text-[#9b9b9b] mb-4">
+              Questa pagina è riservata ai dipendenti con ruolo <strong>Pizzaiolo</strong>.
+            </p>
+            <p className="text-sm text-[#9b9b9b]">
+              I tuoi ruoli attuali: <strong>{userRoles.length > 0 ? userRoles.join(', ') : 'Nessun ruolo assegnato'}</strong>
+            </p>
+          </NeumorphicCard>
+        </div>
+      );
+    }
   }
 
   return (
@@ -313,7 +323,107 @@ export default function ControlloPuliziaPizzaiolo() {
           </div>
 
           <div className="space-y-6">
-            {/* ... keep existing code (all manual inspection fields) ... */}
+            <div>
+              <label className="text-sm text-[#9b9b9b] mb-2 block">
+                Pulizia pavimenti e angoli <span className="text-red-600">*</span>
+              </label>
+              <select
+                value={manualInspection.pulizia_pavimenti_angoli}
+                onChange={(e) => setManualInspection(prev => ({ ...prev, pulizia_pavimenti_angoli: e.target.value }))}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                disabled={uploading}
+                required
+              >
+                <option value="">Seleziona...</option>
+                <option value="Pulito">Pulito</option>
+                <option value="Sporco">Sporco</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-sm text-[#9b9b9b] mb-2 block">
+                Pulizia tavoli e sala <span className="text-red-600">*</span>
+              </label>
+              <select
+                value={manualInspection.pulizia_tavoli_sala}
+                onChange={(e) => setManualInspection(prev => ({ ...prev, pulizia_tavoli_sala: e.target.value }))}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                disabled={uploading}
+                required
+              >
+                <option value="">Seleziona...</option>
+                <option value="Pulito">Pulito</option>
+                <option value="Sporco">Sporco</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-sm text-[#9b9b9b] mb-2 block">
+                Pulizia vetrata d'ingresso <span className="text-red-600">*</span>
+              </label>
+              <select
+                value={manualInspection.pulizia_vetrata_ingresso}
+                onChange={(e) => setManualInspection(prev => ({ ...prev, pulizia_vetrata_ingresso: e.target.value }))}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                disabled={uploading}
+                required
+              >
+                <option value="">Seleziona...</option>
+                <option value="Pulito">Pulito</option>
+                <option value="Sporco">Sporco</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-sm text-[#9b9b9b] mb-2 block">
+                Pulizia tavolette takeaway <span className="text-red-600">*</span>
+              </label>
+              <select
+                value={manualInspection.pulizia_tavolette_takeaway}
+                onChange={(e) => setManualInspection(prev => ({ ...prev, pulizia_tavolette_takeaway: e.target.value }))}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                disabled={uploading}
+                required
+              >
+                <option value="">Seleziona...</option>
+                <option value="Pulito">Pulito</option>
+                <option value="Sporco">Sporco</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-sm text-[#9b9b9b] mb-2 block">
+                Etichette prodotti aperti corrette <span className="text-red-600">*</span>
+              </label>
+              <select
+                value={manualInspection.etichette_prodotti_aperti}
+                onChange={(e) => setManualInspection(prev => ({ ...prev, etichette_prodotti_aperti: e.target.value }))}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                disabled={uploading}
+                required
+              >
+                <option value="">Seleziona...</option>
+                <option value="Si">Si</option>
+                <option value="No">No</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-sm text-[#9b9b9b] mb-2 block">
+                Cartoni pizza pronti e in ordine <span className="text-red-600">*</span>
+              </label>
+              <select
+                value={manualInspection.cartoni_pizza_pronti}
+                onChange={(e) => setManualInspection(prev => ({ ...prev, cartoni_pizza_pronti: e.target.value }))}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                disabled={uploading}
+                required
+              >
+                <option value="">Seleziona...</option>
+                <option value="Si">Si</option>
+                <option value="No">No</option>
+              </select>
+            </div>
           </div>
         </NeumorphicCard>
 

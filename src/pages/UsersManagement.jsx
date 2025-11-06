@@ -27,8 +27,8 @@ export default function UsersManagement() {
     nome_cognome: '',
     initials: '',
     user_type: 'dipendente',
-    ruolo_dipendente: '', // Added
-    assigned_stores: [], // Added
+    ruoli_dipendente: [], // Changed from ruolo_dipendente to ruoli_dipendente (array)
+    assigned_stores: [],
     employee_id_external: '',
     employee_group: '',
     function_name: '',
@@ -63,7 +63,7 @@ export default function UsersManagement() {
         nome_cognome: '',
         initials: '',
         user_type: 'dipendente',
-        ruolo_dipendente: '',
+        ruoli_dipendente: [], // Changed
         assigned_stores: [],
         employee_id_external: '',
         employee_group: '',
@@ -84,7 +84,7 @@ export default function UsersManagement() {
       nome_cognome: user.nome_cognome || '',
       initials: user.initials || '',
       user_type: user.user_type || 'dipendente',
-      ruolo_dipendente: user.ruolo_dipendente || '', // Populating new field
+      ruoli_dipendente: user.ruoli_dipendente || [], // Changed
       assigned_stores: user.assigned_stores || [], // Populating new field
       employee_id_external: user.employee_id_external || '',
       employee_group: user.employee_group || '',
@@ -117,7 +117,7 @@ export default function UsersManagement() {
       nome_cognome: '',
       initials: '',
       user_type: 'dipendente',
-      ruolo_dipendente: '', // Resetting new field
+      ruoli_dipendente: [], // Changed
       assigned_stores: [], // Resetting new field
       employee_id_external: '',
       employee_group: '',
@@ -149,6 +149,19 @@ export default function UsersManagement() {
       }
 
       return { ...prev, assigned_stores: newAssignedStores };
+    });
+  };
+
+  // Function to toggle role - NEW
+  const handleRoleToggle = (role) => {
+    setFormData(prev => {
+      const hasRole = prev.ruoli_dipendente.includes(role);
+      return {
+        ...prev,
+        ruoli_dipendente: hasRole
+          ? prev.ruoli_dipendente.filter(r => r !== role)
+          : [...prev.ruoli_dipendente, role]
+      };
     });
   };
 
@@ -356,22 +369,30 @@ export default function UsersManagement() {
                       </select>
                     </div>
 
-                    {/* Ruolo Dipendente - UPDATED with Store Manager */}
+                    {/* Ruoli Dipendente - UPDATED to multi-select */}
                     {formData.user_type === 'dipendente' && (
-                      <div>
-                        <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                          Ruolo Dipendente
+                      <div className="md:col-span-2">
+                        <label className="text-sm font-medium text-[#6b6b6b] mb-3 block">
+                          Ruoli Dipendente (può avere più ruoli)
                         </label>
-                        <select
-                          value={formData.ruolo_dipendente}
-                          onChange={(e) => setFormData({ ...formData, ruolo_dipendente: e.target.value })}
-                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                        >
-                          <option value="">-- Seleziona --</option>
-                          <option value="Pizzaiolo">Pizzaiolo</option>
-                          <option value="Cassiere">Cassiere</option>
-                          <option value="Store Manager">Store Manager</option>
-                        </select>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          {['Pizzaiolo', 'Cassiere', 'Store Manager'].map(role => (
+                            <div key={role} className="neumorphic-pressed p-3 rounded-lg">
+                              <label className="flex items-center gap-3 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={formData.ruoli_dipendente.includes(role)}
+                                  onChange={() => handleRoleToggle(role)}
+                                  className="w-5 h-5 rounded"
+                                />
+                                <span className="text-[#6b6b6b] font-medium">{role}</span>
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-xs text-[#9b9b9b] mt-2">
+                          ℹ️ Seleziona uno o più ruoli per questo dipendente
+                        </p>
                       </div>
                     )}
 
@@ -537,7 +558,7 @@ export default function UsersManagement() {
         </div>
       )}
 
-      {/* Users Table - UPDATED to show store names */}
+      {/* Users Table - UPDATED to show roles */}
       <NeumorphicCard className="p-6">
         <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Lista Utenti</h2>
         
@@ -611,10 +632,14 @@ export default function UsersManagement() {
                       <td className="p-3">
                         <div>
                           <span className="text-sm text-[#6b6b6b]">{user.function_name || '-'}</span>
-                          {user.user_type === 'dipendente' && user.ruolo_dipendente && (
-                            <span className="block text-xs text-blue-600 font-medium">
-                              {user.ruolo_dipendente}
-                            </span>
+                          {user.user_type === 'dipendente' && user.ruoli_dipendente && user.ruoli_dipendente.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {user.ruoli_dipendente.map((role, idx) => (
+                                <span key={idx} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                                  {role}
+                                </span>
+                              ))}
+                            </div>
                           )}
                         </div>
                       </td>

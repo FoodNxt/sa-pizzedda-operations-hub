@@ -406,14 +406,15 @@ export default function Layout({ children, currentPageName }) {
     if (!currentUser) return false;
     
     const userType = currentUser.user_type || 'dipendente';
-    const userRole = currentUser.ruolo_dipendente; // Assuming currentUser has ruolo_dipendente field
+    const userRoles = currentUser.ruoli_dipendente || []; // Changed from ruolo_dipendente to ruoli_dipendente (array)
     
     // Check user type
     if (!requiredUserType.includes(userType)) return false;
     
     // Check role if specified and user is a dipendente
     if (requiredRole && userType === 'dipendente') {
-      return userRole === requiredRole;
+      // User must have the required role in their roles array
+      return userRoles.includes(requiredRole);
     }
     
     return true;
