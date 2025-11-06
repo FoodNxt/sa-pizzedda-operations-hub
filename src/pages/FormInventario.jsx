@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -7,21 +6,16 @@ import {
   Save,
   AlertTriangle,
   CheckCircle,
-  Calendar, // This import is no longer needed but was part of the original, keeping for safety unless explicitly told to remove.
   Store,
   User,
   Package,
-  TrendingDown,
-  TrendingUp
+  TrendingDown
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
-import { format } from 'date-fns'; // This import is no longer needed for dataRilevazione state initialization, but might be used elsewhere. Keeping for safety.
-import { it } from 'date-fns/locale'; // Same as above.
 
 export default function FormInventario() {
   const [selectedStore, setSelectedStore] = useState('');
-  // Removed dataRilevazione state and its initialization as per outline.
   const [quantities, setQuantities] = useState({});
   const [notes, setNotes] = useState({});
   const [saving, setSaving] = useState(false);
@@ -84,7 +78,7 @@ export default function FormInventario() {
 
     try {
       const store = stores.find(s => s.id === selectedStore);
-      const now = new Date().toISOString(); // Timestamp automatico
+      const now = new Date().toISOString();
       
       const rilevazioni = Object.entries(quantities)
         .filter(([_, qty]) => qty !== '' && qty !== null && qty !== undefined)
@@ -95,7 +89,7 @@ export default function FormInventario() {
           return {
             store_name: store.name,
             store_id: store.id,
-            data_rilevazione: now, // Usa timestamp automatico
+            data_rilevazione: now,
             rilevato_da: currentUser?.nome_cognome || currentUser?.full_name || currentUser?.email || 'N/A',
             prodotto_id: productId,
             nome_prodotto: product.nome_prodotto,
@@ -107,14 +101,12 @@ export default function FormInventario() {
           };
         });
 
-      // Bulk create
       await base44.entities.RilevazioneInventario.bulkCreate(rilevazioni);
 
       setSaveSuccess(true);
       setQuantities({});
       setNotes({});
       
-      // Refresh data
       queryClient.invalidateQueries({ queryKey: ['rilevazioni-inventario'] });
 
       setTimeout(() => setSaveSuccess(false), 3000);
@@ -175,7 +167,6 @@ export default function FormInventario() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-3">
           <ClipboardList className="w-10 h-10 text-[#8b7355]" />
@@ -184,7 +175,6 @@ export default function FormInventario() {
         <p className="text-[#9b9b9b]">Compila il questionario per registrare le giacenze</p>
       </div>
 
-      {/* Success Message */}
       {saveSuccess && (
         <NeumorphicCard className="p-4 bg-green-50 border-2 border-green-400">
           <div className="flex items-center gap-3">
@@ -196,7 +186,6 @@ export default function FormInventario() {
         </NeumorphicCard>
       )}
 
-      {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <NeumorphicCard className="p-6 text-center">
           <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -230,11 +219,9 @@ export default function FormInventario() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Form Header */}
         <NeumorphicCard className="p-6">
           <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Informazioni Rilevazione</h2>
           
-          {/* UPDATED: Removed Data e Ora field, adjusted grid to md:grid-cols-2 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
@@ -266,7 +253,7 @@ export default function FormInventario() {
               </div>
             </div>
           </div>
-          {/* New informational message */}
+
           <div className="neumorphic-pressed p-3 rounded-xl mt-4 bg-blue-50">
             <p className="text-xs text-blue-800">
               ℹ️ La data e l'ora verranno registrate automaticamente al momento del salvataggio
@@ -274,7 +261,6 @@ export default function FormInventario() {
           </div>
         </NeumorphicCard>
 
-        {/* Products by Category */}
         {Object.entries(productsByCategory).map(([categoria, categoryProducts]) => (
           <NeumorphicCard key={categoria} className="p-6">
             <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">
@@ -304,7 +290,6 @@ export default function FormInventario() {
                             <p className="text-sm text-[#9b9b9b]">
                               Min: {product.quantita_minima} {product.unita_misura}
                             </p>
-                            {/* REMOVED fornitore display */}
                           </div>
                           {isUnderMinimum && (
                             <AlertTriangle className="w-5 h-5 text-red-600 ml-2 flex-shrink-0" />
@@ -353,7 +338,6 @@ export default function FormInventario() {
           </NeumorphicCard>
         ))}
 
-        {/* Submit Button */}
         <NeumorphicCard className="p-6">
           <NeumorphicButton
             type="submit"
