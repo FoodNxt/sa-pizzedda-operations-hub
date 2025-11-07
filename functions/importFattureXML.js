@@ -1,3 +1,4 @@
+
 import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
 import { XMLParser } from 'npm:fast-xml-parser@4.3.4';
 
@@ -76,17 +77,17 @@ Deno.serve(async (req) => {
       ragione_sociale: anagrafica?.Denominazione || 
                        `${anagrafica?.Nome || ''} ${anagrafica?.Cognome || ''}`.trim() ||
                        'Fornitore Sconosciuto',
-      partita_iva: datiAnagrafici?.IdFiscaleIVA?.IdCodice || 
-                   datiAnagrafici?.CodiceFiscale || '',
+      partita_iva: String(datiAnagrafici?.IdFiscaleIVA?.IdCodice || 
+                   datiAnagrafici?.CodiceFiscale || ''),
       sede_legale: sede?.Indirizzo ? 
         `${sede.Indirizzo}, ${sede.CAP || ''} ${sede.Comune || ''} ${sede.Provincia || ''}`.trim() : '',
       tipo_fornitore: 'altro',
       attivo: true
     };
 
-    // Check if fornitore exists (by P.IVA)
+    // Check if fornitore exists (by P.IVA) - only if we have a valid P.IVA
     let fornitore = null;
-    if (fornitoreData.partita_iva) {
+    if (fornitoreData.partita_iva && fornitoreData.partita_iva.length > 0) {
       const existing = await base44.asServiceRole.entities.Fornitore.filter({
         partita_iva: fornitoreData.partita_iva
       });
@@ -100,8 +101,15 @@ Deno.serve(async (req) => {
         summary.fornitori_creati++;
       }
     } else {
-      errors.push('Fornitore senza P.IVA, impossibile creare/aggiornare');
-      summary.errori++;
+      // If no P.IVA, try to create with ragione_sociale only
+      try {
+        fornitore = await base44.asServiceRole.entities.Fornitore.create(fornitoreData);
+        summary.fornitori_creati++;
+        errors.push('Fornitore creato senza P.IVA - verifica i dati');
+      } catch (e) {
+        errors.push('Impossibile creare fornitore senza P.IVA valida: ' + e.message);
+        summary.errori++;
+      }
     }
 
     // Extract Fattura Info
