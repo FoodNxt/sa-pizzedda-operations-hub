@@ -145,6 +145,11 @@ const navigationStructure = [
         icon: Truck,
       },
       {
+        title: "Upload Fatture XML", // NEW
+        url: createPageUrl("UploadFattureXML"),
+        icon: Upload,
+      },
+      {
         title: "Teglie Buttate",
         url: createPageUrl("TeglieButtate"),
         icon: AlertTriangle,

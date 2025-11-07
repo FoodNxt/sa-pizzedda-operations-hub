@@ -41,6 +41,7 @@ import OrdiniSbagliati from './pages/OrdiniSbagliati';
 import MatchingOrdiniSbagliati from './pages/MatchingOrdiniSbagliati';
 import InventarioAdmin from './pages/InventarioAdmin';
 import ElencoFornitori from './pages/ElencoFornitori';
+import UploadFattureXML from './pages/UploadFattureXML';
 import Layout from './Layout.jsx';
 
 
@@ -88,6 +89,7 @@ export const PAGES = {
     "MatchingOrdiniSbagliati": MatchingOrdiniSbagliati,
     "InventarioAdmin": InventarioAdmin,
     "ElencoFornitori": ElencoFornitori,
+    "UploadFattureXML": UploadFattureXML,
 }
 
 export const pagesConfig = {
