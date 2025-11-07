@@ -25,7 +25,8 @@ import {
   ClipboardCheck,
   User,
   ClipboardList,
-  ChefHat // Added ChefHat icon
+  ChefHat, // Added ChefHat icon
+  CheckSquare // Added CheckSquare icon
 } from "lucide-react";
 import CompleteProfileModal from "./components/auth/CompleteProfileModal";
 
@@ -192,6 +193,11 @@ const navigationStructure = [
         icon: Zap,
       },
       {
+        title: "Controllo Pulizie Master", // New item added here
+        url: createPageUrl("ControlloPulizieMaster"),
+        icon: CheckSquare,
+      },
+      {
         title: "Controllo Pulizia Cassiere",
         url: createPageUrl("ControlloPuliziaCassiere"),
         icon: Camera,
@@ -353,8 +359,19 @@ export default function Layout({ children, currentPageName }) {
         
         setShowProfileModal(needsProfile);
 
-        // REDIRECT DIPENDENTE to Valutazione if on Dashboard or other restricted pages
+        // REDIRECT DIPENDENTE logic
         if (user.user_type === 'dipendente') {
+          const userRoles = user.ruoli_dipendente || [];
+          
+          // If dipendente has NO roles, redirect to profile
+          if (userRoles.length === 0) {
+            if (location.pathname !== createPageUrl("ProfiloDipendente")) {
+              navigate(createPageUrl("ProfiloDipendente"), { replace: true });
+            }
+            return; // Stop further checks if user needs to complete profile
+          }
+
+          // If dipendente has roles, check restricted pages
           const isOnRestrictedPage = 
             location.pathname === createPageUrl("Dashboard") ||
             location.pathname === createPageUrl("StoreReviews") ||

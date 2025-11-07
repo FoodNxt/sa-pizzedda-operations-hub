@@ -35,6 +35,7 @@ import ControlloPuliziaCassiere from './pages/ControlloPuliziaCassiere';
 import ControlloPuliziaPizzaiolo from './pages/ControlloPuliziaPizzaiolo';
 import ControlloPuliziaStoreManager from './pages/ControlloPuliziaStoreManager';
 import Ricette from './pages/Ricette';
+import ControlloPulizieMaster from './pages/ControlloPulizieMaster';
 import Layout from './Layout.jsx';
 
 
@@ -76,6 +77,7 @@ export const PAGES = {
     "ControlloPuliziaPizzaiolo": ControlloPuliziaPizzaiolo,
     "ControlloPuliziaStoreManager": ControlloPuliziaStoreManager,
     "Ricette": Ricette,
+    "ControlloPulizieMaster": ControlloPulizieMaster,
 }
 
 export const pagesConfig = {
