@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Camera, Upload, Sparkles, CheckCircle, AlertCircle, Loader2, ClipboardCheck } from 'lucide-react';
+import { Camera, Upload, CheckCircle, AlertCircle, Loader2, ClipboardCheck } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 
 export default function ControlloPuliziaCassiere() {
@@ -12,24 +11,9 @@ export default function ControlloPuliziaCassiere() {
   
   const [selectedStore, setSelectedStore] = useState('');
   const [currentUser, setCurrentUser] = useState(null);
-  const [photos, setPhotos] = useState({
-    forno: null,
-    impastatrice: null,
-    tavolo_lavoro: null,
-    frigo: null,
-    cassa: null,
-    lavandino: null
-  });
+  const [photos, setPhotos] = useState({});
   const [previews, setPreviews] = useState({});
-  
-  const [manualInspection, setManualInspection] = useState({
-    pulizia_pavimenti_angoli: '',
-    pulizia_tavoli_sala: '',
-    pulizia_vetrata_ingresso: '',
-    pulizia_tavolette_takeaway: '',
-    etichette_prodotti_aperti: '',
-    cartoni_pizza_pronti: ''
-  });
+  const [risposte, setRisposte] = useState({});
   
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
@@ -42,7 +26,6 @@ export default function ControlloPuliziaCassiere() {
         const user = await base44.auth.me();
         setCurrentUser(user);
         
-        // Check if user has correct role - UPDATED to check array
         if (user.user_type === 'dipendente') {
           const userRoles = user.ruoli_dipendente || [];
           if (!userRoles.includes('Cassiere')) {
@@ -62,22 +45,25 @@ export default function ControlloPuliziaCassiere() {
     queryFn: () => base44.entities.Store.list(),
   });
 
-  const equipment = [
-    { key: 'forno', label: 'Forno', icon: '🔥' },
-    { key: 'impastatrice', label: 'Impastatrice', icon: '⚙️' },
-    { key: 'tavolo_lavoro', label: 'Tavolo Lavoro', icon: '📋' },
-    { key: 'frigo', label: 'Frigo', icon: '❄️' },
-    { key: 'cassa', label: 'Cassa', icon: '💰' },
-    { key: 'lavandino', label: 'Lavandino', icon: '🚰' }
-  ];
+  // Load domande for Cassiere
+  const { data: domande = [], isLoading: isLoadingDomande } = useQuery({
+    queryKey: ['domande-pulizia-cassiere'],
+    queryFn: async () => {
+      const allDomande = await base44.entities.DomandaPulizia.list('ordine');
+      return allDomande.filter(d => 
+        d.attiva !== false && 
+        d.ruoli_assegnati?.includes('Cassiere')
+      );
+    },
+  });
 
-  const handlePhotoChange = (equipmentKey, file) => {
+  const handlePhotoChange = (questionId, file) => {
     if (file) {
-      setPhotos(prev => ({ ...prev, [equipmentKey]: file }));
+      setPhotos(prev => ({ ...prev, [questionId]: file }));
       
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPreviews(prev => ({ ...prev, [equipmentKey]: reader.result }));
+        setPreviews(prev => ({ ...prev, [questionId]: reader.result }));
       };
       reader.readAsDataURL(file);
     }
@@ -87,7 +73,6 @@ export default function ControlloPuliziaCassiere() {
     e.preventDefault();
     setError('');
 
-    // Check role access - UPDATED to check array
     if (currentUser?.user_type === 'dipendente') {
       const userRoles = currentUser.ruoli_dipendente || [];
       if (!userRoles.includes('Cassiere')) {
@@ -106,36 +91,32 @@ export default function ControlloPuliziaCassiere() {
       return;
     }
 
-    const missingPhotos = equipment.filter(eq => !photos[eq.key]);
-    if (missingPhotos.length > 0) {
-      setError(`Carica le foto mancanti: ${missingPhotos.map(eq => eq.label).join(', ')}`);
-      return;
-    }
-
-    const missingFields = [];
-    if (!manualInspection.pulizia_pavimenti_angoli) missingFields.push('Pulizia pavimenti');
-    if (!manualInspection.pulizia_tavoli_sala) missingFields.push('Pulizia tavoli');
-    if (!manualInspection.pulizia_vetrata_ingresso) missingFields.push('Pulizia vetrata');
-    if (!manualInspection.pulizia_tavolette_takeaway) missingFields.push('Pulizia tavolette');
-    if (!manualInspection.etichette_prodotti_aperti) missingFields.push('Etichette prodotti');
-    if (!manualInspection.cartoni_pizza_pronti) missingFields.push('Cartoni pizza');
-    
-    if (missingFields.length > 0) {
-      setError(`Completa i seguenti campi: ${missingFields.join(', ')}`);
-      return;
+    // Validate all required questions
+    const domandeObbligatorie = domande.filter(d => d.obbligatoria !== false);
+    for (const domanda of domandeObbligatorie) {
+      if (domanda.tipo_controllo === 'foto' && !photos[domanda.id]) {
+        setError(`Carica la foto: ${domanda.attrezzatura}`);
+        return;
+      }
+      if (domanda.tipo_controllo === 'multipla' && !risposte[domanda.id]) {
+        setError(`Rispondi alla domanda: ${domanda.testo_domanda}`);
+        return;
+      }
     }
 
     try {
       setUploading(true);
       setUploadProgress('Caricamento foto in corso...');
 
+      // Upload photos
       const uploadedUrls = {};
-      for (const eq of equipment) {
-        const file = photos[eq.key];
+      const fotoDomande = domande.filter(d => d.tipo_controllo === 'foto');
+      for (const domanda of fotoDomande) {
+        const file = photos[domanda.id];
         if (file) {
-          setUploadProgress(`Caricamento ${eq.label}...`);
+          setUploadProgress(`Caricamento ${domanda.attrezzatura}...`);
           const { file_url } = await base44.integrations.Core.UploadFile({ file });
-          uploadedUrls[eq.key] = file_url;
+          uploadedUrls[domanda.id] = file_url;
         }
       }
 
@@ -149,11 +130,23 @@ export default function ControlloPuliziaCassiere() {
         inspector_name: currentUser.nome_cognome || currentUser.full_name || currentUser.email,
         analysis_status: 'processing',
         inspection_type: 'cassiere',
-        ...manualInspection
+        domande_risposte: domande.map(d => ({
+          domanda_id: d.id,
+          domanda_testo: d.tipo_controllo === 'foto' ? `Foto: ${d.attrezzatura}` : d.testo_domanda,
+          tipo_controllo: d.tipo_controllo,
+          risposta: d.tipo_controllo === 'foto' ? uploadedUrls[d.id] : risposte[d.id],
+          attrezzatura: d.attrezzatura
+        }))
       };
 
-      equipment.forEach(eq => {
-        inspectionData[`${eq.key}_foto_url`] = uploadedUrls[eq.key];
+      // Add photo URLs for backward compatibility with analyzeCleaningInspection
+      const equipmentPhotos = {};
+      fotoDomande.forEach(d => {
+        if (uploadedUrls[d.id]) {
+          const key = d.attrezzatura.toLowerCase().replace(/\s+/g, '_');
+          inspectionData[`${key}_foto_url`] = uploadedUrls[d.id];
+          equipmentPhotos[key] = uploadedUrls[d.id];
+        }
       });
 
       const inspection = await base44.entities.CleaningInspection.create(inspectionData);
@@ -162,7 +155,7 @@ export default function ControlloPuliziaCassiere() {
 
       base44.functions.invoke('analyzeCleaningInspection', {
         inspection_id: inspection.id,
-        equipment_photos: uploadedUrls
+        equipment_photos: equipmentPhotos
       }).catch(error => {
         console.error('Error starting AI analysis:', error);
       });
@@ -176,18 +169,20 @@ export default function ControlloPuliziaCassiere() {
     }
   };
 
-  const canSubmit = selectedStore && 
-    equipment.every(eq => photos[eq.key]) && 
-    currentUser &&
-    manualInspection.pulizia_pavimenti_angoli &&
-    manualInspection.pulizia_tavoli_sala &&
-    manualInspection.pulizia_vetrata_ingresso &&
-    manualInspection.pulizia_tavolette_takeaway &&
-    manualInspection.etichette_prodotti_aperti &&
-    manualInspection.cartoni_pizza_pronti &&
-    !(currentUser?.user_type === 'dipendente' && !(currentUser.ruoli_dipendente || []).includes('Cassiere'));
+  // Calculate if can submit
+  const canSubmit = () => {
+    if (!selectedStore || !currentUser || uploading) return false;
+    if (currentUser?.user_type === 'dipendente' && !(currentUser.ruoli_dipendente || []).includes('Cassiere')) return false;
+    
+    const domandeObbligatorie = domande.filter(d => d.obbligatoria !== false);
+    for (const domanda of domandeObbligatorie) {
+      if (domanda.tipo_controllo === 'foto' && !photos[domanda.id]) return false;
+      if (domanda.tipo_controllo === 'multipla' && !risposte[domanda.id]) return false;
+    }
+    return true;
+  };
 
-  // Block access if wrong role - UPDATED to check array
+  // Block access if wrong role
   if (currentUser?.user_type === 'dipendente') {
     const userRoles = currentUser.ruoli_dipendente || [];
     if (!userRoles.includes('Cassiere')) {
@@ -212,124 +207,231 @@ export default function ControlloPuliziaCassiere() {
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Controllo Pulizia Cassiere</h1>
-        <p className="text-[#9b9b9b]">Carica le foto delle attrezzature e compila il check di pulizia.</p>
+        <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Controllo Pulizia Cassiere 💰</h1>
+        <p className="text-[#9b9b9b]">Compila il form di controllo pulizia</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Store Selection */}
-        <NeumorphicCard className="p-6">
-          <h2 className="text-xl font-semibold text-[#6b6b6b] mb-4 flex items-center">
-            <ClipboardCheck className="mr-2" size={20} /> Selezione Locale
-          </h2>
-          <select
-            className="w-full p-3 bg-[#e0e0e0] text-[#6b6b6b] rounded-md shadow-inner-neumorphic focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={selectedStore}
-            onChange={(e) => setSelectedStore(e.target.value)}
-            disabled={uploading}
-          >
-            <option value="">Seleziona un locale</option>
-            {stores.map((store) => (
-              <option key={store.id} value={store.id}>
-                {store.name}
-              </option>
-            ))}
-          </select>
+      {isLoadingDomande ? (
+        <NeumorphicCard className="p-12 text-center">
+          <Loader2 className="w-12 h-12 text-[#8b7355] animate-spin mx-auto mb-4" />
+          <p className="text-[#9b9b9b]">Caricamento domande...</p>
         </NeumorphicCard>
-
-        {/* Photo Upload Grid */}
-        <NeumorphicCard className="p-6">
-          <h2 className="text-xl font-semibold text-[#6b6b6b] mb-4 flex items-center">
-            <Camera className="mr-2" size={20} /> Carica Foto Attrezzature
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {equipment.map((item) => (
-              <div key={item.key} className="flex flex-col items-center">
-                <label className="block text-sm font-medium text-[#6b6b6b] mb-2 cursor-pointer neumorphic-button hover:neumorphic-button-hover active:neumorphic-button-active">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => handlePhotoChange(item.key, e.target.files[0])}
-                    disabled={uploading}
-                  />
-                  <span className="flex items-center justify-center p-3">
-                    <Upload className="mr-2" size={20} /> Carica Foto {item.label} {item.icon}
-                  </span>
-                </label>
-                {previews[item.key] && (
-                  <img
-                    src={previews[item.key]}
-                    alt={item.label}
-                    className="mt-2 rounded-md w-32 h-32 object-cover shadow-neumorphic-card"
-                  />
-                )}
-                {photos[item.key] && (
-                  <p className="text-sm text-green-600 mt-1 flex items-center">
-                    <CheckCircle className="mr-1" size={16} /> Caricata
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
+      ) : domande.length === 0 ? (
+        <NeumorphicCard className="p-12 text-center">
+          <AlertCircle className="w-16 h-16 text-[#9b9b9b] mx-auto mb-4 opacity-50" />
+          <h3 className="text-xl font-bold text-[#6b6b6b] mb-2">Nessuna domanda configurata</h3>
+          <p className="text-[#9b9b9b]">Contatta l'amministratore per configurare le domande di controllo</p>
         </NeumorphicCard>
-
-        {/* Manual Inspection */}
-        <NeumorphicCard className="p-6">
-          <h2 className="text-xl font-semibold text-[#6b6b6b] mb-4 flex items-center">
-            <Sparkles className="mr-2" size={20} /> Controllo Pulizia Manuale
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {Object.keys(manualInspection).map((key) => (
-              <div key={key}>
-                <label htmlFor={key} className="block text-sm font-medium text-[#6b6b6b] mb-1">
-                  {key.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase())}
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Store Selection */}
+          <NeumorphicCard className="p-6">
+            <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">Informazioni Ispezione</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm text-[#9b9b9b] mb-2 block">
+                  Locale <span className="text-red-600">*</span>
                 </label>
                 <select
-                  id={key}
-                  className="w-full p-3 bg-[#e0e0e0] text-[#6b6b6b] rounded-md shadow-inner-neumorphic focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={manualInspection[key]}
-                  onChange={(e) => setManualInspection({ ...manualInspection, [key]: e.target.value })}
+                  value={selectedStore}
+                  onChange={(e) => setSelectedStore(e.target.value)}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                   disabled={uploading}
+                  required
                 >
-                  <option value="">Seleziona stato</option>
-                  <option value="ottimo">Ottimo</option>
-                  <option value="buono">Buono</option>
-                  <option value="sufficiente">Sufficiente</option>
-                  <option value="insufficiente">Insufficiente</option>
+                  <option value="">Seleziona locale...</option>
+                  {stores.map(store => (
+                    <option key={store.id} value={store.id}>{store.name}</option>
+                  ))}
                 </select>
               </div>
-            ))}
+
+              <div>
+                <label className="text-sm text-[#9b9b9b] mb-2 block">
+                  Ispettore
+                </label>
+                <div className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] bg-gray-50">
+                  {currentUser ? (currentUser.nome_cognome || currentUser.full_name || currentUser.email) : 'Caricamento...'}
+                </div>
+              </div>
+            </div>
+          </NeumorphicCard>
+
+          {/* Dynamic Questions */}
+          <NeumorphicCard className="p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <ClipboardCheck className="w-6 h-6 text-[#8b7355]" />
+              <h2 className="text-xl font-bold text-[#6b6b6b]">Controlli di Pulizia</h2>
+            </div>
+
+            <div className="space-y-6">
+              {domande.map((domanda, index) => (
+                <div key={domanda.id} className="neumorphic-pressed p-5 rounded-xl">
+                  {domanda.tipo_controllo === 'foto' ? (
+                    /* Photo Question */
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <Camera className="w-5 h-5 text-[#8b7355]" />
+                        <h3 className="font-bold text-[#6b6b6b]">
+                          Foto: {domanda.attrezzatura}
+                          {domanda.obbligatoria !== false && <span className="text-red-600 ml-1">*</span>}
+                        </h3>
+                      </div>
+
+                      {previews[domanda.id] ? (
+                        <div className="relative">
+                          <img 
+                            src={previews[domanda.id]} 
+                            alt={domanda.attrezzatura}
+                            className="w-full h-64 object-cover rounded-lg mb-3"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPhotos(prev => {
+                                const newPhotos = {...prev};
+                                delete newPhotos[domanda.id];
+                                return newPhotos;
+                              });
+                              setPreviews(prev => {
+                                const newPreviews = {...prev};
+                                delete newPreviews[domanda.id];
+                                return newPreviews;
+                              });
+                            }}
+                            className="absolute top-2 right-2 neumorphic-flat p-2 rounded-full text-red-600 hover:text-red-700"
+                            disabled={uploading}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="block cursor-pointer">
+                          <div className="neumorphic-flat p-8 rounded-lg text-center hover:shadow-lg transition-all">
+                            <Upload className="w-8 h-8 text-[#9b9b9b] mx-auto mb-2" />
+                            <p className="text-sm text-[#9b9b9b]">Clicca per caricare foto</p>
+                          </div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            onChange={(e) => handlePhotoChange(domanda.id, e.target.files[0])}
+                            className="hidden"
+                            disabled={uploading}
+                          />
+                        </label>
+                      )}
+
+                      {photos[domanda.id] && (
+                        <div className="flex items-center gap-2 text-sm text-green-600 mt-2">
+                          <CheckCircle className="w-4 h-4" />
+                          <span>Foto caricata</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* Multiple Choice Question */
+                    <div>
+                      <label className="text-sm font-medium text-[#6b6b6b] mb-3 block">
+                        {index + 1}. {domanda.testo_domanda}
+                        {domanda.obbligatoria !== false && <span className="text-red-600 ml-1">*</span>}
+                      </label>
+                      <div className="space-y-2">
+                        {domanda.opzioni_risposta?.map((opzione, idx) => (
+                          <label
+                            key={idx}
+                            className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${
+                              risposte[domanda.id] === opzione
+                                ? 'neumorphic-flat border-2 border-[#8b7355]'
+                                : 'neumorphic-pressed hover:shadow-md'
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name={`domanda_${domanda.id}`}
+                              value={opzione}
+                              checked={risposte[domanda.id] === opzione}
+                              onChange={(e) => setRisposte(prev => ({
+                                ...prev,
+                                [domanda.id]: e.target.value
+                              }))}
+                              className="w-5 h-5"
+                              disabled={uploading}
+                            />
+                            <span className="text-[#6b6b6b] font-medium">{opzione}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </NeumorphicCard>
+
+          {/* Error Message */}
+          {error && (
+            <NeumorphicCard className="p-4 bg-red-50">
+              <div className="flex items-center gap-2 text-red-700">
+                <AlertCircle className="w-5 h-5" />
+                <p className="text-sm font-medium">{error}</p>
+              </div>
+            </NeumorphicCard>
+          )}
+
+          {/* Processing Status */}
+          {uploading && (
+            <NeumorphicCard className="p-6 bg-blue-50">
+              <div className="flex items-center gap-3">
+                <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+                <div>
+                  <p className="font-bold text-blue-800">{uploadProgress}</p>
+                  <p className="text-sm text-blue-600">
+                    {uploadProgress.includes('background') 
+                      ? 'Puoi navigare via - l\'analisi continuerà automaticamente'
+                      : 'Attendere prego...'}
+                  </p>
+                </div>
+              </div>
+            </NeumorphicCard>
+          )}
+
+          {/* Submit Button */}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => navigate(createPageUrl('Pulizie'))}
+              className="neumorphic-flat px-6 py-3 rounded-xl text-[#6b6b6b] hover:text-[#9b9b9b] transition-colors"
+              disabled={uploading}
+            >
+              Annulla
+            </button>
+            
+            <button
+              type="submit"
+              disabled={!canSubmit()}
+              className={`flex-1 neumorphic-flat px-6 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 ${
+                canSubmit()
+                  ? 'text-[#8b7355] hover:shadow-lg'
+                  : 'text-[#9b9b9b] opacity-50 cursor-not-allowed'
+              }`}
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Caricamento...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-5 h-5" />
+                  Invia Controllo
+                </>
+              )}
+            </button>
           </div>
-        </NeumorphicCard>
-
-        {/* Error Message */}
-        {error && (
-          <NeumorphicCard className="p-4 bg-red-100 border border-red-400 text-red-700">
-            <AlertCircle className="inline mr-2" size={20} /> {error}
-          </NeumorphicCard>
-        )}
-
-        {/* Processing Status */}
-        {uploading && (
-          <NeumorphicCard className="p-4 bg-blue-100 border border-blue-400 text-blue-700 flex items-center">
-            <Loader2 className="animate-spin mr-2" size={20} /> {uploadProgress}
-          </NeumorphicCard>
-        )}
-
-        {/* Submit Button */}
-        <button
-          type="submit"
-          className={`w-full p-4 text-lg font-bold rounded-xl shadow-neumorphic-button 
-            ${canSubmit && !uploading 
-              ? 'bg-[#A8E6CF] text-[#3a7d5b] hover:shadow-neumorphic-button-hover active:shadow-neumorphic-button-active' 
-              : 'bg-[#cccccc] text-[#9b9b9b] cursor-not-allowed'
-            }`}
-          disabled={!canSubmit || uploading}
-        >
-          {uploading ? 'Invio in corso...' : 'Invia Controllo Pulizia'}
-        </button>
-      </form>
+        </form>
+      )}
     </div>
   );
 }
