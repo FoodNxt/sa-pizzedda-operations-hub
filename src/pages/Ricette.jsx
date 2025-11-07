@@ -25,6 +25,7 @@ export default function Ricette() {
   const [formData, setFormData] = useState({
     nome_prodotto: '',
     categoria: 'pizza',
+    is_semilavorato: false, // NEW
     ingredienti: [],
     prezzo_vendita_online: '',
     prezzo_vendita_offline: '',
@@ -36,6 +37,13 @@ export default function Ricette() {
   const [selectedIngredient, setSelectedIngredient] = useState('');
   const [ingredientQuantity, setIngredientQuantity] = useState('');
   const [ingredientUnit, setIngredientUnit] = useState('g');
+  const [ingredientUnitOptions, setIngredientUnitOptions] = useState([
+    { value: 'g', label: 'Grammi (g)' },
+    { value: 'kg', label: 'Kg' },
+    { value: 'ml', label: 'Millilitri (ml)' },
+    { value: 'litri', label: 'Litri' },
+    { value: 'pezzi', label: 'Pezzi' },
+  ]);
 
   const queryClient = useQueryClient();
 
@@ -76,6 +84,7 @@ export default function Ricette() {
     setFormData({
       nome_prodotto: '',
       categoria: 'pizza',
+      is_semilavorato: false, // NEW
       ingredienti: [],
       prezzo_vendita_online: '',
       prezzo_vendita_offline: '',
@@ -85,6 +94,13 @@ export default function Ricette() {
     setSelectedIngredient('');
     setIngredientQuantity('');
     setIngredientUnit('g');
+    setIngredientUnitOptions([
+      { value: 'g', label: 'Grammi (g)' },
+      { value: 'kg', label: 'Kg' },
+      { value: 'ml', label: 'Millilitri (ml)' },
+      { value: 'litri', label: 'Litri' },
+      { value: 'pezzi', label: 'Pezzi' },
+    ]);
     setEditingRecipe(null);
     setShowForm(false);
   };
@@ -94,6 +110,7 @@ export default function Ricette() {
     setFormData({
       nome_prodotto: ricetta.nome_prodotto,
       categoria: ricetta.categoria || 'pizza',
+      is_semilavorato: ricetta.is_semilavorato || false, // NEW
       ingredienti: ricetta.ingredienti || [],
       prezzo_vendita_online: ricetta.prezzo_vendita_online,
       prezzo_vendita_offline: ricetta.prezzo_vendita_offline,
@@ -103,22 +120,63 @@ export default function Ricette() {
     setShowForm(true);
   };
 
+  const handleSelectedIngredientChange = (e) => {
+    const value = e.target.value;
+    setSelectedIngredient(value);
+
+    if (value.startsWith('ricetta-')) {
+      // If a semilavorato is selected, restrict unit to 'pezzi'
+      setIngredientUnit('pezzi');
+      setIngredientUnitOptions([{ value: 'pezzi', label: 'Pezzi' }]);
+    } else {
+      // For materie prime or empty selection, restore full unit options
+      setIngredientUnit('g'); // default unit
+      setIngredientUnitOptions([
+        { value: 'g', label: 'Grammi (g)' },
+        { value: 'kg', label: 'Kg' },
+        { value: 'ml', label: 'Millilitri (ml)' },
+        { value: 'litri', label: 'Litri' },
+        { value: 'pezzi', label: 'Pezzi' },
+      ]);
+    }
+  };
+
   const addIngredient = () => {
     if (!selectedIngredient || !ingredientQuantity) {
       alert('Seleziona un ingrediente e inserisci la quantità');
       return;
     }
 
-    const materiaPrima = materiePrime.find(m => m.id === selectedIngredient);
-    if (!materiaPrima) return;
+    const [type, id] = selectedIngredient.split('-');
+    let newIngredient = {};
 
-    const newIngredient = {
-      materia_prima_id: materiaPrima.id,
-      nome_prodotto: materiaPrima.nome_prodotto,
-      quantita: parseFloat(ingredientQuantity),
-      unita_misura: ingredientUnit,
-      prezzo_unitario: materiaPrima.prezzo_unitario || 0
-    };
+    if (type === 'mp') {
+      const materiaPrima = materiePrime.find(m => m.id === id);
+      if (!materiaPrima) return;
+      newIngredient = {
+        tipo_ingrediente: 'materia_prima',
+        materia_prima_id: materiaPrima.id,
+        nome_prodotto: materiaPrima.nome_prodotto,
+        quantita: parseFloat(ingredientQuantity),
+        unita_misura: ingredientUnit,
+        prezzo_unitario: materiaPrima.prezzo_unitario || 0, // Base price of the MP
+      };
+    } else if (type === 'ricetta') {
+      const semilavorato = ricette.find(r => r.id === id);
+      if (!semilavorato) return;
+
+      // For semilavorati, ingredientUnit is always 'pezzi' due to UI restriction.
+      newIngredient = {
+        tipo_ingrediente: 'semilavorato',
+        ricetta_id: semilavorato.id,
+        nome_prodotto: semilavorato.nome_prodotto,
+        quantita: parseFloat(ingredientQuantity),
+        unita_misura: 'pezzi', // Enforced to 'pezzi' for semilavorati
+        prezzo_unitario: semilavorato.costo_unitario || 0, // Cost of one 'piece' of the semilavorato
+      };
+    } else {
+      return; // Invalid selection
+    }
 
     setFormData(prev => ({
       ...prev,
@@ -127,7 +185,14 @@ export default function Ricette() {
 
     setSelectedIngredient('');
     setIngredientQuantity('');
-    setIngredientUnit('g');
+    setIngredientUnit('g'); // Reset to default after adding
+    setIngredientUnitOptions([ // Reset unit options
+      { value: 'g', label: 'Grammi (g)' },
+      { value: 'kg', label: 'Kg' },
+      { value: 'ml', label: 'Millilitri (ml)' },
+      { value: 'litri', label: 'Litri' },
+      { value: 'pezzi', label: 'Pezzi' },
+    ]);
   };
 
   const removeIngredient = (index) => {
@@ -141,58 +206,56 @@ export default function Ricette() {
     let totalCost = 0;
 
     formData.ingredienti.forEach(ing => {
-      const materiaPrima = materiePrime.find(m => m.id === ing.materia_prima_id);
-      if (!materiaPrima || !materiaPrima.prezzo_unitario) return;
+      let ingredientCost = 0;
 
-      // Calculate base unit price
-      let pricePerBaseUnit = materiaPrima.prezzo_unitario;
-      
-      // If the product has peso_dimensione_unita, we need to calculate the price per base unit
-      // Example: Sacco da 25kg costs €10 -> €10/25kg = €0.4 per kg
-      if (materiaPrima.peso_dimensione_unita && materiaPrima.unita_misura_peso) {
-        pricePerBaseUnit = materiaPrima.prezzo_unitario / materiaPrima.peso_dimensione_unita;
-      }
+      if (ing.tipo_ingrediente === 'materia_prima') {
+        const materiaPrima = materiePrime.find(m => m.id === ing.materia_prima_id);
+        if (!materiaPrima || typeof materiaPrima.prezzo_unitario === 'undefined') return;
 
-      // Convert recipe quantity to base unit
-      let quantityInBaseUnit = ing.quantita;
-      
-      // If product has peso_dimensione_unita, convert recipe quantity to that base unit
-      if (materiaPrima.peso_dimensione_unita && materiaPrima.unita_misura_peso) {
-        const baseUnit = materiaPrima.unita_misura_peso;
-        
-        // Convert recipe quantity to base unit
-        if (ing.unita_misura === 'g' && baseUnit === 'kg') {
-          quantityInBaseUnit = ing.quantita / 1000;
-        } else if (ing.unita_misura === 'kg' && baseUnit === 'kg') {
-          quantityInBaseUnit = ing.quantita;
-        } else if (ing.unita_misura === 'ml' && baseUnit === 'litri') {
-          quantityInBaseUnit = ing.quantita / 1000;
-        } else if (ing.unita_misura === 'litri' && baseUnit === 'litri') {
-          quantityInBaseUnit = ing.quantita;
-        } else if (ing.unita_misura === 'g' && baseUnit === 'g') {
-          quantityInBaseUnit = ing.quantita;
-        } else if (ing.unita_misura === 'ml' && baseUnit === 'ml') {
-          quantityInBaseUnit = ing.quantita;
-        } else {
-          // If units don't match, use quantity as is (e.g., pezzi)
-          quantityInBaseUnit = ing.quantita;
+        // Calculate price per base unit of the raw material (e.g., price per kg if sold in a 25kg bag)
+        let pricePerBaseUnit = materiaPrima.prezzo_unitario;
+        const baseUnitOfRawMaterial = materiaPrima.unita_misura; // Unit corresponding to materiaPrima.prezzo_unitario
+        let actualBaseUnitForConversion = baseUnitOfRawMaterial; // The unit that pricePerBaseUnit refers to
+
+        if (materiaPrima.peso_dimensione_unita && materiaPrima.unita_misura_peso) {
+          pricePerBaseUnit = materiaPrima.prezzo_unitario / materiaPrima.peso_dimensione_unita;
+          actualBaseUnitForConversion = materiaPrima.unita_misura_peso; // e.g., 'kg' if 25kg bag
         }
-      } else {
-        // No peso_dimensione_unita, so prezzo_unitario is already per unita_misura
-        // Convert if needed
-        if (ing.unita_misura === 'g' && materiaPrima.unita_misura === 'kg') {
-          quantityInBaseUnit = ing.quantita / 1000;
-        } else if (ing.unita_misura === 'ml' && materiaPrima.unita_misura === 'litri') {
-          quantityInBaseUnit = ing.quantita / 1000;
-        } else if (ing.unita_misura === materiaPrima.unita_misura) {
-          quantityInBaseUnit = ing.quantita;
-        } else {
-          // Units don't match, use as is
-          quantityInBaseUnit = ing.quantita;
-        }
-      }
 
-      totalCost += quantityInBaseUnit * pricePerBaseUnit;
+        // Convert the recipe's ingredient quantity to the actualBaseUnitForConversion
+        let quantityInActualBaseUnit = ing.quantita;
+
+        if (ing.unita_misura === 'g' && actualBaseUnitForConversion === 'kg') {
+          quantityInActualBaseUnit = ing.quantita / 1000;
+        } else if (ing.unita_misura === 'kg' && actualBaseUnitForConversion === 'g') {
+          quantityInActualBaseUnit = ing.quantita * 1000;
+        } else if (ing.unita_misura === 'ml' && actualBaseUnitForConversion === 'litri') {
+          quantityInActualBaseUnit = ing.quantita / 1000;
+        } else if (ing.unita_misura === 'litri' && actualBaseUnitForConversion === 'ml') {
+          quantityInActualBaseUnit = ing.quantita * 1000;
+        } else if (ing.unita_misura === actualBaseUnitForConversion) {
+          quantityInActualBaseUnit = ing.quantita;
+        } else if (ing.unita_misura === 'pezzi' && actualBaseUnitForConversion === 'pezzi') {
+          quantityInActualBaseUnit = ing.quantita;
+        } else {
+          // Fallback for incompatible units (e.g., using 'g' for a 'pezzi' priced item)
+          // This scenario should ideally be prevented or warned about.
+          // For now, treat it as direct usage, but this might be inaccurate.
+          console.warn(`Unit mismatch for Materia Prima ${ing.nome_prodotto}: ingredient uses ${ing.unita_misura}, raw material priced per ${actualBaseUnitForConversion}. Assuming direct quantity use.`);
+          quantityInActualBaseUnit = ing.quantita;
+        }
+        ingredientCost = quantityInActualBaseUnit * pricePerBaseUnit;
+
+      } else if (ing.tipo_ingrediente === 'semilavorato') {
+        const semilavorato = ricette.find(r => r.id === ing.ricetta_id);
+        if (!semilavorato || typeof semilavorato.costo_unitario === 'undefined') return;
+
+        // For semilavorati, we assume costo_unitario is the cost of ONE piece/unit of the semilavorato.
+        // The `unita_misura` for semilavorati is enforced to 'pezzi' in `addIngredient` through UI restriction.
+        // So we can directly multiply quantity by the semilavorato's cost_unitario.
+        ingredientCost = ing.quantita * semilavorato.costo_unitario;
+      }
+      totalCost += ingredientCost;
     });
 
     return totalCost;
@@ -359,6 +422,24 @@ export default function Ricette() {
                   </div>
                 </div>
 
+                {/* NEW: Semilavorato Checkbox */}
+                <div className="neumorphic-flat p-4 rounded-xl">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.is_semilavorato}
+                      onChange={(e) => setFormData({ ...formData, is_semilavorato: e.target.checked })}
+                      className="w-5 h-5 rounded"
+                    />
+                    <div>
+                      <span className="font-medium text-[#6b6b6b]">Semilavorato</span>
+                      <p className="text-xs text-[#9b9b9b]">
+                        Spunta se questo prodotto è un semilavorato che può essere usato come ingrediente di altre ricette
+                      </p>
+                    </div>
+                  </label>
+                </div>
+
                 {/* Ingredienti Section */}
                 <div className="neumorphic-flat p-6 rounded-xl">
                   <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Ingredienti</h3>
@@ -371,18 +452,29 @@ export default function Ricette() {
                       </label>
                       <select
                         value={selectedIngredient}
-                        onChange={(e) => setSelectedIngredient(e.target.value)}
+                        onChange={handleSelectedIngredientChange}
                         className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                       >
                         <option value="">Seleziona ingrediente...</option>
-                        {materiePrime
-                          .filter(m => m.attivo !== false && m.prezzo_unitario)
-                          .map(mp => (
-                            <option key={mp.id} value={mp.id}>
-                              {mp.nome_prodotto} - €{mp.prezzo_unitario?.toFixed(2)}/{mp.unita_misura}
-                              {mp.peso_dimensione_unita ? ` (${mp.peso_dimensione_unita}${mp.unita_misura_peso})` : ''}
-                            </option>
-                          ))}
+                        <optgroup label="Materie Prime">
+                          {materiePrime
+                            .filter(m => m.attivo !== false && m.prezzo_unitario)
+                            .map(mp => (
+                              <option key={`mp-${mp.id}`} value={`mp-${mp.id}`}>
+                                {mp.nome_prodotto} - €{mp.prezzo_unitario?.toFixed(2)}/{mp.unita_misura}
+                                {mp.peso_dimensione_unita ? ` (${mp.peso_dimensione_unita}${mp.unita_misura_peso})` : ''}
+                              </option>
+                            ))}
+                        </optgroup>
+                        <optgroup label="Semilavorati">
+                          {ricette
+                            .filter(r => r.is_semilavorato && r.attivo !== false && r.id !== editingRecipe?.id) // Don't allow a recipe to be ingredient of itself
+                            .map(r => (
+                              <option key={`ricetta-${r.id}`} value={`ricetta-${r.id}`}>
+                                {r.nome_prodotto} - €{r.costo_unitario?.toFixed(2)} (Semilavorato)
+                              </option>
+                            ))}
+                        </optgroup>
                       </select>
                     </div>
 
@@ -409,11 +501,9 @@ export default function Ricette() {
                         onChange={(e) => setIngredientUnit(e.target.value)}
                         className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                       >
-                        <option value="g">Grammi (g)</option>
-                        <option value="kg">Kg</option>
-                        <option value="ml">Millilitri (ml)</option>
-                        <option value="litri">Litri</option>
-                        <option value="pezzi">Pezzi</option>
+                        {ingredientUnitOptions.map(option => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -433,7 +523,14 @@ export default function Ricette() {
                       {formData.ingredienti.map((ing, index) => (
                         <div key={index} className="neumorphic-pressed p-4 rounded-lg flex items-center justify-between">
                           <div className="flex-1">
-                            <p className="font-medium text-[#6b6b6b]">{ing.nome_prodotto}</p>
+                            <p className="font-medium text-[#6b6b6b]">
+                              {ing.nome_prodotto}
+                              {ing.tipo_ingrediente === 'semilavorato' && (
+                                <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                                  Semilavorato
+                                </span>
+                              )}
+                            </p>
                             <p className="text-sm text-[#9b9b9b]">
                               {ing.quantita} {ing.unita_misura} - €{ing.prezzo_unitario?.toFixed(2)}
                             </p>
@@ -660,7 +757,14 @@ export default function Ricette() {
                   <tr key={ricetta.id} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
                     <td className="p-3">
                       <div>
-                        <p className="font-medium text-[#6b6b6b]">{ricetta.nome_prodotto}</p>
+                        <p className="font-medium text-[#6b6b6b]">
+                          {ricetta.nome_prodotto}
+                          {ricetta.is_semilavorato && (
+                            <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                              Semilavorato
+                            </span>
+                          )}
+                        </p>
                         <p className="text-xs text-[#9b9b9b]">{ricetta.categoria}</p>
                       </div>
                     </td>

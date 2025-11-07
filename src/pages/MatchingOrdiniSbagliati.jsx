@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -11,7 +10,10 @@ import {
   Edit,
   Save,
   X,
-  Loader2
+  Loader2,
+  ChevronDown,
+  ChevronUp,
+  Eye
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -21,13 +23,14 @@ import { it } from 'date-fns/locale';
 export default function MatchingOrdiniSbagliati() {
   const [matching, setMatching] = useState(false);
   const [matchResult, setMatchResult] = useState(null);
-  const [editingMatch, setEditingMatch] = useState(null);
-  const [newEmployeeName, setNewEmployeeName] = useState('');
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [viewMode, setViewMode] = useState('matched'); // 'matched' or 'unmatched'
+  const [expandedList, setExpandedList] = useState(false);
 
   const queryClient = useQueryClient();
 
   const { data: wrongOrders = [] } = useQuery({
-    queryKey: ['wrong-orders-unmatched'],
+    queryKey: ['wrong-orders-all'],
     queryFn: async () => {
       const orders = await base44.entities.WrongOrder.list('-order_date');
       return orders.filter(o => o.store_matched);
@@ -46,21 +49,13 @@ export default function MatchingOrdiniSbagliati() {
 
   const { data: shifts = [] } = useQuery({
     queryKey: ['shifts'],
-    queryFn: () => base44.entities.Shift.list('-shift_date', 500),
+    queryFn: () => base44.entities.Shift.list('-shift_date', 1000),
   });
 
   const createMatchMutation = useMutation({
     mutationFn: (data) => base44.entities.WrongOrderMatch.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wrong-order-matches'] });
-    },
-  });
-
-  const updateMatchMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.WrongOrderMatch.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['wrong-order-matches'] });
-      setEditingMatch(null);
     },
   });
 
@@ -94,34 +89,42 @@ export default function MatchingOrdiniSbagliati() {
           continue;
         }
 
-        // Find shift that overlaps with order time
+        // Find ALL shifts that overlap with order time
         const orderTime = orderDate.getTime();
-        let bestShift = null;
+        const oneHour = 60 * 60 * 1000;
+        const matchedShifts = [];
         let bestConfidence = 'low';
 
         for (const shift of relevantShifts) {
           const shiftStart = new Date(shift.scheduled_start).getTime();
           const shiftEnd = new Date(shift.scheduled_end).getTime();
 
+          // Exact overlap
           if (orderTime >= shiftStart && orderTime <= shiftEnd) {
-            bestShift = shift;
-            bestConfidence = 'high';
-            break;
+            matchedShifts.push({
+              employee_name: shift.employee_name,
+              shift_id: shift.id
+            });
+            if (bestConfidence !== 'high') bestConfidence = 'high';
           }
-
-          // Check within 1 hour before/after shift
-          const oneHour = 60 * 60 * 1000;
-          if (orderTime >= (shiftStart - oneHour) && orderTime <= (shiftEnd + oneHour)) {
-            if (!bestShift) {
-              bestShift = shift;
-              bestConfidence = 'medium';
-            }
+          // Within 1 hour
+          else if (orderTime >= (shiftStart - oneHour) && orderTime <= (shiftEnd + oneHour)) {
+            matchedShifts.push({
+              employee_name: shift.employee_name,
+              shift_id: shift.id
+            });
+            if (bestConfidence === 'low') bestConfidence = 'medium';
           }
         }
 
-        if (!bestShift) {
-          // Default to first shift of the day
-          bestShift = relevantShifts[0];
+        // If no overlaps found, use all shifts of the day
+        if (matchedShifts.length === 0) {
+          relevantShifts.forEach(shift => {
+            matchedShifts.push({
+              employee_name: shift.employee_name,
+              shift_id: shift.id
+            });
+          });
           bestConfidence = 'low';
         }
 
@@ -132,12 +135,13 @@ export default function MatchingOrdiniSbagliati() {
           order_date: order.order_date,
           store_id: order.store_id,
           store_name: order.store_name,
-          matched_employee_name: bestShift.employee_name,
-          matched_shift_id: bestShift.id,
+          matched_employees: matchedShifts,
           match_confidence: bestConfidence,
           match_method: 'auto',
           matched_by: user.email,
-          match_date: new Date().toISOString()
+          match_date: new Date().toISOString(),
+          order_total: order.order_total,
+          refund_value: order.refund_value
         };
 
         await createMatchMutation.mutateAsync(matchData);
@@ -162,39 +166,18 @@ export default function MatchingOrdiniSbagliati() {
     setMatching(false);
   };
 
-  const handleEditMatch = (match) => {
-    setEditingMatch(match);
-    setNewEmployeeName(match.matched_employee_name);
-  };
+  const matchedOrderIds = new Set(matches.map(m => m.wrong_order_id));
+  const matchedOrders = wrongOrders.filter(o => matchedOrderIds.has(o.id));
+  const unmatchedOrders = wrongOrders.filter(o => !matchedOrderIds.has(o.id));
 
-  const handleSaveEdit = async () => {
-    if (!newEmployeeName.trim()) {
-      alert('Inserisci un nome dipendente');
-      return;
-    }
-
-    try {
-      const user = await base44.auth.me();
-      await updateMatchMutation.mutateAsync({
-        id: editingMatch.id,
-        data: {
-          matched_employee_name: newEmployeeName,
-          match_confidence: 'manual',
-          match_method: 'manual',
-          matched_by: user.email,
-          notes: `Modificato manualmente da ${editingMatch.matched_employee_name} a ${newEmployeeName}`
-        }
-      });
-    } catch (error) {
-      console.error('Error saving edit:', error);
-      alert('Errore nel salvataggio');
-    }
-  };
+  const displayedOrders = viewMode === 'matched' 
+    ? (expandedList ? matchedOrders : matchedOrders.slice(0, 50))
+    : (expandedList ? unmatchedOrders : unmatchedOrders.slice(0, 50));
 
   const stats = {
     totalOrders: wrongOrders.length,
-    matchedOrders: matches.length,
-    unmatchedOrders: wrongOrders.length - matches.filter(m => wrongOrders.find(o => o.id === m.wrong_order_id)).length,
+    matchedOrders: matchedOrders.length,
+    unmatchedOrders: unmatchedOrders.length,
     highConfidence: matches.filter(m => m.match_confidence === 'high').length,
     mediumConfidence: matches.filter(m => m.match_confidence === 'medium').length,
     lowConfidence: matches.filter(m => m.match_confidence === 'low').length,
@@ -222,7 +205,7 @@ export default function MatchingOrdiniSbagliati() {
           </div>
           <NeumorphicButton
             onClick={handleAutoMatch}
-            disabled={matching || wrongOrders.length === 0}
+            disabled={matching || unmatchedOrders.length === 0}
             variant="primary"
             className="flex items-center gap-2"
           >
@@ -332,104 +315,276 @@ export default function MatchingOrdiniSbagliati() {
         </div>
       </NeumorphicCard>
 
-      {/* Matches List */}
+      {/* View Mode Slider */}
       <NeumorphicCard className="p-6">
-        <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Abbinamenti Effettuati</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-[#6b6b6b]">Visualizza Ordini</h2>
+          
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setViewMode('matched');
+                setExpandedList(false);
+              }}
+              className={`px-6 py-3 rounded-xl font-medium transition-all ${
+                viewMode === 'matched'
+                  ? 'neumorphic-pressed text-[#8b7355]'
+                  : 'neumorphic-flat text-[#9b9b9b]'
+              }`}
+            >
+              ✅ Abbinati ({stats.matchedOrders})
+            </button>
+            <button
+              onClick={() => {
+                setViewMode('unmatched');
+                setExpandedList(false);
+              }}
+              className={`px-6 py-3 rounded-xl font-medium transition-all ${
+                viewMode === 'unmatched'
+                  ? 'neumorphic-pressed text-[#8b7355]'
+                  : 'neumorphic-flat text-[#9b9b9b]'
+              }`}
+            >
+              ⚠️ Non Abbinati ({stats.unmatchedOrders})
+            </button>
+          </div>
+        </div>
 
-        {matches.length === 0 ? (
+        {displayedOrders.length === 0 ? (
           <div className="text-center py-12">
-            <LinkIcon className="w-16 h-16 text-[#9b9b9b] mx-auto mb-4 opacity-50" />
-            <h3 className="text-xl font-bold text-[#6b6b6b] mb-2">Nessun abbinamento</h3>
-            <p className="text-[#9b9b9b]">Clicca "Fai Match" per iniziare l'abbinamento automatico</p>
+            <Package className="w-16 h-16 text-[#9b9b9b] mx-auto mb-4 opacity-50" />
+            <h3 className="text-xl font-bold text-[#6b6b6b] mb-2">
+              {viewMode === 'matched' ? 'Nessun ordine abbinato' : 'Nessun ordine da abbinare'}
+            </h3>
+            <p className="text-[#9b9b9b]">
+              {viewMode === 'matched' 
+                ? 'Clicca "Fai Match" per iniziare'
+                : 'Tutti gli ordini sono stati abbinati!'}
+            </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b-2 border-[#8b7355]">
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Piattaforma</th>
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Order ID</th>
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Data</th>
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Negozio</th>
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Dipendente</th>
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Affidabilità</th>
-                  <th className="text-center p-3 text-[#9b9b9b] font-medium">Azioni</th>
-                </tr>
-              </thead>
-              <tbody>
-                {matches.slice(0, 50).map((match) => (
-                  <tr key={match.id} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
-                    <td className="p-3">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                        match.platform === 'glovo' 
-                          ? 'bg-orange-100 text-orange-700' 
-                          : 'bg-teal-100 text-teal-700'
-                      }`}>
-                        {match.platform}
-                      </span>
-                    </td>
-                    <td className="p-3">
-                      <span className="font-mono text-sm text-[#6b6b6b]">{match.order_id}</span>
-                    </td>
-                    <td className="p-3 text-sm text-[#6b6b6b]">
-                      {format(new Date(match.order_date), 'dd/MM HH:mm', { locale: it })}
-                    </td>
-                    <td className="p-3 text-sm text-[#6b6b6b]">
-                      {match.store_name}
-                    </td>
-                    <td className="p-3">
-                      {editingMatch?.id === match.id ? (
-                        <input
-                          type="text"
-                          value={newEmployeeName}
-                          onChange={(e) => setNewEmployeeName(e.target.value)}
-                          className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm text-[#6b6b6b] outline-none"
-                        />
-                      ) : (
-                        <span className="text-sm font-medium text-[#6b6b6b]">{match.matched_employee_name}</span>
-                      )}
-                    </td>
-                    <td className="p-3">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${getConfidenceBadgeColor(match.match_confidence)}`}>
-                        {match.match_confidence === 'high' ? 'Alta' :
-                         match.match_confidence === 'medium' ? 'Media' :
-                         match.match_confidence === 'low' ? 'Bassa' :
-                         'Manuale'}
-                      </span>
-                    </td>
-                    <td className="p-3 text-center">
-                      {editingMatch?.id === match.id ? (
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={handleSaveEdit}
-                            disabled={updateMatchMutation.isPending}
-                            className="neumorphic-flat p-2 rounded-lg hover:bg-green-50 transition-colors"
-                          >
-                            <Save className="w-4 h-4 text-green-600" />
-                          </button>
-                          <button
-                            onClick={() => setEditingMatch(null)}
-                            className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
-                          >
-                            <X className="w-4 h-4 text-red-600" />
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => handleEditMatch(match)}
-                          className="neumorphic-flat p-2 rounded-lg hover:bg-blue-50 transition-colors"
-                        >
-                          <Edit className="w-4 h-4 text-blue-600" />
-                        </button>
-                      )}
-                    </td>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b-2 border-[#8b7355]">
+                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Piattaforma</th>
+                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Order ID</th>
+                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Data</th>
+                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Negozio</th>
+                    <th className="text-right p-3 text-[#9b9b9b] font-medium">Totale</th>
+                    <th className="text-right p-3 text-[#9b9b9b] font-medium">Rimborso</th>
+                    {viewMode === 'matched' && (
+                      <>
+                        <th className="text-left p-3 text-[#9b9b9b] font-medium">Dipendenti</th>
+                        <th className="text-left p-3 text-[#9b9b9b] font-medium">Affidabilità</th>
+                      </>
+                    )}
+                    <th className="text-center p-3 text-[#9b9b9b] font-medium">Azioni</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {displayedOrders.map((order) => {
+                    const match = matches.find(m => m.wrong_order_id === order.id);
+                    
+                    return (
+                      <tr 
+                        key={order.id} 
+                        className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors cursor-pointer"
+                        onClick={() => viewMode === 'matched' && setSelectedOrder(order)}
+                      >
+                        <td className="p-3">
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                            order.platform === 'glovo' 
+                              ? 'bg-orange-100 text-orange-700' 
+                              : 'bg-teal-100 text-teal-700'
+                          }`}>
+                            {order.platform}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <span className="font-mono text-sm text-[#6b6b6b]">{order.order_id}</span>
+                        </td>
+                        <td className="p-3 text-sm text-[#6b6b6b]">
+                          {format(new Date(order.order_date), 'dd/MM HH:mm', { locale: it })}
+                        </td>
+                        <td className="p-3 text-sm text-[#6b6b6b]">
+                          {order.store_name}
+                        </td>
+                        <td className="p-3 text-right font-medium text-[#6b6b6b]">
+                          €{order.order_total?.toFixed(2) || '0.00'}
+                        </td>
+                        <td className="p-3 text-right font-bold text-red-600">
+                          €{order.refund_value?.toFixed(2) || '0.00'}
+                        </td>
+                        {viewMode === 'matched' && match && (
+                          <>
+                            <td className="p-3">
+                              <div className="flex flex-wrap gap-1">
+                                {match.matched_employees?.map((emp, idx) => (
+                                  <span key={idx} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                                    {emp.employee_name}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <span className={`px-3 py-1 rounded-full text-xs font-bold ${getConfidenceBadgeColor(match.match_confidence)}`}>
+                                {match.match_confidence === 'high' ? 'Alta' :
+                                 match.match_confidence === 'medium' ? 'Media' :
+                                 match.match_confidence === 'low' ? 'Bassa' :
+                                 'Manuale'}
+                              </span>
+                            </td>
+                          </>
+                        )}
+                        <td className="p-3 text-center">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedOrder(order);
+                            }}
+                            className="neumorphic-flat p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                          >
+                            <Eye className="w-4 h-4 text-blue-600" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Expand button */}
+            {(viewMode === 'matched' ? matchedOrders.length : unmatchedOrders.length) > 50 && (
+              <div className="mt-4 text-center">
+                <button
+                  onClick={() => setExpandedList(!expandedList)}
+                  className="neumorphic-flat px-6 py-3 rounded-xl text-[#8b7355] hover:shadow-lg transition-all flex items-center gap-2 mx-auto"
+                >
+                  {expandedList ? (
+                    <>
+                      <ChevronUp className="w-5 h-5" />
+                      Mostra meno
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="w-5 h-5" />
+                      Mostra tutti ({viewMode === 'matched' ? matchedOrders.length : unmatchedOrders.length})
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </>
         )}
       </NeumorphicCard>
+
+      {/* Order Detail Modal */}
+      {selectedOrder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-[#6b6b6b]">Dettagli Ordine</h2>
+                <button
+                  onClick={() => setSelectedOrder(null)}
+                  className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+                >
+                  <X className="w-5 h-5 text-[#9b9b9b]" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Basic Info */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="neumorphic-pressed p-4 rounded-xl">
+                    <p className="text-sm text-[#9b9b9b] mb-1">Piattaforma</p>
+                    <p className="text-lg font-bold text-[#6b6b6b]">{selectedOrder.platform}</p>
+                  </div>
+                  <div className="neumorphic-pressed p-4 rounded-xl">
+                    <p className="text-sm text-[#9b9b9b] mb-1">Order ID</p>
+                    <p className="text-lg font-mono text-[#6b6b6b]">{selectedOrder.order_id}</p>
+                  </div>
+                  <div className="neumorphic-pressed p-4 rounded-xl">
+                    <p className="text-sm text-[#9b9b9b] mb-1">Data e Ora</p>
+                    <p className="text-lg font-bold text-[#6b6b6b]">
+                      {format(new Date(selectedOrder.order_date), 'dd/MM/yyyy HH:mm', { locale: it })}
+                    </p>
+                  </div>
+                  <div className="neumorphic-pressed p-4 rounded-xl">
+                    <p className="text-sm text-[#9b9b9b] mb-1">Negozio</p>
+                    <p className="text-lg font-bold text-[#6b6b6b]">{selectedOrder.store_name}</p>
+                  </div>
+                  <div className="neumorphic-pressed p-4 rounded-xl">
+                    <p className="text-sm text-[#9b9b9b] mb-1">Totale Ordine</p>
+                    <p className="text-xl font-bold text-green-600">€{selectedOrder.order_total?.toFixed(2)}</p>
+                  </div>
+                  <div className="neumorphic-pressed p-4 rounded-xl">
+                    <p className="text-sm text-[#9b9b9b] mb-1">Valore Rimborso</p>
+                    <p className="text-xl font-bold text-red-600">€{selectedOrder.refund_value?.toFixed(2)}</p>
+                  </div>
+                </div>
+
+                {/* Matched Employees */}
+                {(() => {
+                  const match = matches.find(m => m.wrong_order_id === selectedOrder.id);
+                  if (match) {
+                    return (
+                      <div className="neumorphic-flat p-5 rounded-xl">
+                        <h3 className="font-bold text-[#6b6b6b] mb-4">Dipendenti Abbinati</h3>
+                        <div className="space-y-2">
+                          {match.matched_employees?.map((emp, idx) => (
+                            <div key={idx} className="neumorphic-pressed p-3 rounded-lg flex items-center justify-between">
+                              <span className="font-medium text-[#6b6b6b]">{emp.employee_name}</span>
+                              <span className="text-xs text-[#9b9b9b]">Turno: {emp.shift_id}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-[#c1c1c1]">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-[#9b9b9b]">Affidabilità Match:</span>
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${getConfidenceBadgeColor(match.match_confidence)}`}>
+                              {match.match_confidence === 'high' ? 'Alta' :
+                               match.match_confidence === 'medium' ? 'Media' :
+                               match.match_confidence === 'low' ? 'Bassa' :
+                               'Manuale'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
+                {/* Additional Info */}
+                {selectedOrder.complaint_reason && (
+                  <div className="neumorphic-pressed p-4 rounded-xl">
+                    <p className="text-sm text-[#9b9b9b] mb-2">Motivo Reclamo</p>
+                    <p className="text-[#6b6b6b]">{selectedOrder.complaint_reason}</p>
+                  </div>
+                )}
+
+                {selectedOrder.cancellation_reason && (
+                  <div className="neumorphic-pressed p-4 rounded-xl">
+                    <p className="text-sm text-[#9b9b9b] mb-2">Motivo Cancellazione</p>
+                    <p className="text-[#6b6b6b]">{selectedOrder.cancellation_reason}</p>
+                  </div>
+                )}
+
+                {selectedOrder.customer_refund_status && (
+                  <div className="neumorphic-pressed p-4 rounded-xl">
+                    <p className="text-sm text-[#9b9b9b] mb-2">Stato Rimborso</p>
+                    <p className="text-[#6b6b6b]">{selectedOrder.customer_refund_status}</p>
+                  </div>
+                )}
+              </div>
+            </NeumorphicCard>
+          </div>
+        </div>
+      )}
 
       {/* Info */}
       <NeumorphicCard className="p-6 bg-blue-50">
@@ -440,10 +595,10 @@ export default function MatchingOrdiniSbagliati() {
             <ul className="text-xs space-y-1 list-disc list-inside">
               <li><strong>Alta confidenza:</strong> Ordine ricevuto durante l'orario esatto del turno</li>
               <li><strong>Media confidenza:</strong> Ordine ricevuto entro 1 ora dall'inizio/fine turno</li>
-              <li><strong>Bassa confidenza:</strong> Primo turno del giorno (nessuna sovrapposizione oraria)</li>
-              <li><strong>Manuale:</strong> Modificato manualmente dall'utente</li>
-              <li>Puoi modificare qualsiasi abbinamento cliccando sul pulsante "Modifica"</li>
-              <li>Gli abbinamenti vengono usati per analizzare responsabilità e performance</li>
+              <li><strong>Bassa confidenza:</strong> Tutti i dipendenti in turno quel giorno</li>
+              <li><strong>Multi-match:</strong> Un ordine viene assegnato a TUTTI i dipendenti in turno</li>
+              <li>Usa lo slider per visualizzare ordini abbinati o non abbinati</li>
+              <li>Clicca su un ordine per vedere tutti i dettagli</li>
             </ul>
           </div>
         </div>

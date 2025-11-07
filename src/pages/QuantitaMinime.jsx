@@ -205,7 +205,7 @@ export default function QuantitaMinime() {
           <div>
             <div className="flex items-center gap-3 mb-3">
               <Package className="w-10 h-10 text-[#8b7355]" />
-              <h1 className="text-3xl font-bold text-[#6b6b6b]">Quantità Minime</h1>
+              <h1 className="text-3xl font-bold text-[#6b6b6b]">Inventario</h1>
             </div>
             <p className="text-[#9b9b9b]">Gestisci le materie prime e le scorte minime</p>
           </div>

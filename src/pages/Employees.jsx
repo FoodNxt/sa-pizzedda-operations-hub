@@ -56,6 +56,11 @@ export default function Employees() {
     queryFn: () => base44.entities.Review.list(),
   });
 
+  const { data: wrongOrderMatches = [] } = useQuery({
+    queryKey: ['wrong-order-matches'],
+    queryFn: () => base44.entities.WrongOrderMatch.list(),
+  });
+
   // Helper function to deduplicate shifts
   const deduplicateShifts = (shiftsArray) => {
     const uniqueShiftsMap = new Map();
@@ -170,18 +175,58 @@ export default function Employees() {
     }
 
     return employees.map(employee => {
-      // Orders metrics
+      // Orders metrics (from existing 'orders' entity, for processing time and satisfaction)
       const employeeOrders = orders.filter(o => o.employee_id === employee.id);
-      const wrongOrders = employeeOrders.filter(o => o.is_wrong_order).length;
-      const wrongOrderRate = employeeOrders.length > 0
-        ? (wrongOrders / employeeOrders.length) * 100
-        : 0;
       const avgProcessingTime = employeeOrders.length > 0
         ? employeeOrders.reduce((sum, o) => sum + (o.processing_time_minutes || 0), 0) / employeeOrders.length
         : 0;
       const avgSatisfaction = employeeOrders.filter(o => o.customer_satisfaction).length > 0
         ? employeeOrders.reduce((sum, o) => sum + (o.customer_satisfaction || 0), 0) /
           employeeOrders.filter(o => o.customer_satisfaction).length
+        : 0;
+
+      // ✅ WRONG ORDERS from WrongOrderMatch (replaces old orders logic)
+      const employeeWrongOrdersMatches = wrongOrderMatches.filter(match => {
+        if (!match.matched_employees || !Array.isArray(match.matched_employees)) return false;
+        
+        // Check if employee name is in the matched_employees array
+        const isMatched = match.matched_employees.some(emp => 
+          emp.employee_name?.toLowerCase() === employee.full_name?.toLowerCase()
+        );
+        
+        if (!isMatched) return false;
+        
+        // Apply date filter
+        if (startDate || endDate) {
+          if (!match.order_date) return false;
+          
+          try {
+            const orderDate = parseISO(match.order_date);
+            if (isNaN(orderDate.getTime())) return false;
+            
+            const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
+            const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
+
+            if (start && end) {
+              return isWithinInterval(orderDate, { start, end });
+            } else if (start) {
+              return orderDate >= start;
+            } else if (end) {
+              return orderDate <= end;
+            }
+          } catch (e) {
+            return false;
+          }
+        }
+        
+        return true;
+      });
+
+      const wrongOrders = employeeWrongOrdersMatches.length;
+      // Calculate wrongOrderRate: the count of wrong orders from 'wrongOrderMatches'
+      // divided by the total orders handled by the employee (from the 'orders' entity).
+      const wrongOrderRate = employeeOrders.length > 0
+        ? (wrongOrders / employeeOrders.length) * 100
         : 0;
 
       // Shift metrics (filtered by date)
@@ -284,7 +329,7 @@ export default function Employees() {
         googleReviewCount: googleReviews.length
       };
     });
-  }, [employees, orders, shifts, reviews, startDate, endDate]);
+  }, [employees, orders, shifts, reviews, wrongOrderMatches, startDate, endDate]);
 
   // Filter and sort employees
   const filteredEmployees = useMemo(() => {
