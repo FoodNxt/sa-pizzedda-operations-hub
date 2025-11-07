@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -192,13 +193,13 @@ export default function UploadFattureXML() {
                     Supporta file multipli (fatture elettroniche formato FatturaPA)
                   </p>
                   <p className="text-xs text-[#9b9b9b]">
-                    Formati supportati: .xml
+                    Formati supportati: .xml, .p7m, .xml.p7m
                   </p>
                 </div>
               </div>
               <input
                 type="file"
-                accept=".xml"
+                accept=".xml,.p7m,.xml.p7m"
                 multiple
                 onChange={handleFileSelect}
                 className="hidden"
