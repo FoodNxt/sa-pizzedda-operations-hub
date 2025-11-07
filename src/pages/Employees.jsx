@@ -29,7 +29,7 @@ export default function Employees() {
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [expandedView, setExpandedView] = useState(null); // 'late', 'missing', 'reviews', null
+  const [expandedView, setExpandedView] = useState(null); // 'late', 'missing', 'reviews', 'wrongOrders', null
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -60,6 +60,12 @@ export default function Employees() {
   const { data: wrongOrderMatches = [] } = useQuery({
     queryKey: ['wrong-order-matches'],
     queryFn: () => base44.entities.WrongOrderMatch.list(),
+  });
+
+  // NEW: Load wrong orders for details
+  const { data: wrongOrders = [] } = useQuery({
+    queryKey: ['wrong-orders'],
+    queryFn: () => base44.entities.WrongOrder.list(),
   });
 
   // Helper function to deduplicate shifts
@@ -503,6 +509,62 @@ export default function Employees() {
     return getAllGoogleReviews(employeeName).slice(0, 3);
   };
 
+  // NEW: Get ALL wrong orders for selected employee
+  const getAllWrongOrders = (employeeName) => {
+    const employeeMatches = wrongOrderMatches.filter(m => {
+      if (m.matched_employee_name !== employeeName) return false;
+      
+      // Apply date filter if set
+      if (startDate || endDate) {
+        if (!m.order_date) return false;
+        
+        try {
+          const orderDate = parseISO(m.order_date);
+          if (isNaN(orderDate.getTime())) return false;
+          
+          const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
+          const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
+
+          if (start && end) {
+            return isWithinInterval(orderDate, { start, end });
+          } else if (start) {
+            return orderDate >= start;
+          } else if (end) {
+            return orderDate <= end;
+          }
+        } catch (e) {
+          return false;
+        }
+      }
+      
+      return true;
+    }).sort((a, b) => new Date(b.order_date) - new Date(a.order_date));
+
+    // Enrich with order details
+    return employeeMatches.map(match => {
+      const orderDetails = wrongOrders.find(o => o.id === match.wrong_order_id);
+      return {
+        ...match,
+        orderDetails
+      };
+    });
+  };
+
+  // NEW: Get latest 3 wrong orders for selected employee
+  const getLatestWrongOrders = (employeeName) => {
+    return getAllWrongOrders(employeeName).slice(0, 3);
+  };
+
+  const getConfidenceBadgeColor = (confidence) => {
+    switch(confidence) {
+      case 'high': return 'bg-green-100 text-green-700';
+      case 'medium': return 'bg-yellow-100 text-yellow-700';
+      case 'low': return 'bg-orange-100 text-orange-700';
+      case 'manual': return 'bg-blue-100 text-blue-700';
+      default: return 'bg-gray-100 text-gray-700';
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -521,7 +583,7 @@ export default function Employees() {
           >
             <option value="all">All Stores</option>
             {stores.map(store => (
-              <option key={store.id} value={store.id}>{store.name}</option>
+              <option key={store.id} value={store.name}>{store.name}</option>
             ))}
           </select>
         </NeumorphicCard>
@@ -961,6 +1023,100 @@ export default function Employees() {
                     </p>
                   </div>
                 </div>
+              </div>
+
+              {/* NEW: Ultimi Ordini Sbagliati */}
+              <div className="neumorphic-flat p-4 rounded-xl">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <ShoppingCart className="w-5 h-5 text-red-600" />
+                    <h3 className="font-bold text-[#6b6b6b]">
+                      {expandedView === 'wrongOrders' ? 'Tutti gli Ordini Sbagliati' : 'Ultimi 3 Ordini Sbagliati'}
+                    </h3>
+                  </div>
+                  {(() => {
+                    const allWrongOrders = getAllWrongOrders(selectedEmployee.full_name);
+                    return allWrongOrders.length > 3 && (
+                      <button
+                        onClick={() => setExpandedView(expandedView === 'wrongOrders' ? null : 'wrongOrders')}
+                        className="neumorphic-flat px-3 py-1 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-1"
+                      >
+                        {expandedView === 'wrongOrders' ? (
+                          <>
+                            <X className="w-4 h-4" />
+                            Chiudi
+                          </>
+                        ) : (
+                          <>
+                            <Eye className="w-4 h-4" />
+                            Vedi tutti ({allWrongOrders.length})
+                          </>
+                        )}
+                      </button>
+                    );
+                  })()}
+                </div>
+                {(() => {
+                  const wrongOrdersList = expandedView === 'wrongOrders' 
+                    ? getAllWrongOrders(selectedEmployee.full_name)
+                    : getLatestWrongOrders(selectedEmployee.full_name);
+                    
+                  return wrongOrdersList.length > 0 ? (
+                    <div className={`space-y-2 ${expandedView === 'wrongOrders' ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
+                      {wrongOrdersList.map((match, index) => (
+                        <div key={`${match.id}-${index}`} className="neumorphic-pressed p-3 rounded-lg border-2 border-red-200">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                match.platform === 'glovo' 
+                                  ? 'bg-orange-100 text-orange-700' 
+                                  : 'bg-teal-100 text-teal-700'
+                              }`}>
+                                {match.platform}
+                              </span>
+                              <span className="font-mono text-sm text-[#6b6b6b]">#{match.order_id}</span>
+                            </div>
+                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${getConfidenceBadgeColor(match.match_confidence)}`}>
+                              {match.match_confidence === 'high' ? 'Alta' :
+                               match.match_confidence === 'medium' ? 'Media' :
+                               match.match_confidence === 'low' ? 'Bassa' : 'Manuale'}
+                            </span>
+                          </div>
+                          <div className="text-xs text-[#9b9b9b] space-y-1">
+                            <div>
+                              <strong>Data:</strong> {safeFormatDateTimeLocale(match.order_date)}
+                            </div>
+                            <div>
+                              <strong>Negozio:</strong> {match.store_name || 'N/A'}
+                            </div>
+                            {match.orderDetails && (
+                              <>
+                                <div className="flex items-center justify-between mt-2 pt-2 border-t border-red-200">
+                                  <span className="font-medium text-[#6b6b6b]">Rimborso:</span>
+                                  <span className="text-sm font-bold text-red-600">
+                                    €{match.orderDetails.refund_value?.toFixed(2) || '0.00'}
+                                  </span>
+                                </div>
+                                {match.orderDetails.complaint_reason && (
+                                  <div>
+                                    <strong>Motivo:</strong> {match.orderDetails.complaint_reason}
+                                  </div>
+                                )}
+                              </>
+                            )}
+                            <div className="text-[0.65rem] text-gray-400 mt-1">
+                              Match ID: {match.id} • {match.match_method === 'auto' ? 'Automatico' : 'Manuale'}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-[#9b9b9b] text-center py-2">
+                      Nessun ordine sbagliato abbinato 🎉
+                    </p>
+                  );
+                })()}
               </div>
 
               {/* Ultimi Turni in Ritardo - IMPROVED DISPLAY */}
