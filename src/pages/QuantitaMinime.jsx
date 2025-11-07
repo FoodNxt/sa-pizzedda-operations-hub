@@ -53,6 +53,12 @@ export default function QuantitaMinime() {
     queryFn: () => base44.entities.Store.list(),
   });
 
+  // NEW: Load fornitori
+  const { data: fornitori = [] } = useQuery({
+    queryKey: ['fornitori'],
+    queryFn: () => base44.entities.Fornitore.list(),
+  });
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.MateriePrime.create(data),
     onSuccess: () => {
@@ -205,7 +211,7 @@ export default function QuantitaMinime() {
           <div>
             <div className="flex items-center gap-3 mb-3">
               <Package className="w-10 h-10 text-[#8b7355]" />
-              <h1 className="text-3xl font-bold text-[#6b6b6b]">Inventario</h1>
+              <h1 className="text-3xl font-bold text-[#6b6b6b]">Quantità Minime</h1>
             </div>
             <p className="text-[#9b9b9b]">Gestisci le materie prime e le scorte minime</p>
           </div>
@@ -436,13 +442,32 @@ export default function QuantitaMinime() {
                   <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
                     Fornitore
                   </label>
-                  <input
-                    type="text"
-                    value={formData.fornitore}
-                    onChange={(e) => setFormData({ ...formData, fornitore: e.target.value })}
-                    placeholder="es. Molino Rossi"
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                  />
+                  {fornitori.length > 0 ? (
+                    <select
+                      value={formData.fornitore}
+                      onChange={(e) => setFormData({ ...formData, fornitore: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                    >
+                      <option value="">Seleziona fornitore...</option>
+                      {fornitori
+                        .filter(f => f.attivo !== false)
+                        .sort((a, b) => a.ragione_sociale.localeCompare(b.ragione_sociale))
+                        .map(fornitore => (
+                          <option key={fornitore.id} value={fornitore.ragione_sociale}>
+                            {fornitore.ragione_sociale}
+                          </option>
+                        ))}
+                    </select>
+                  ) : (
+                    <div className="neumorphic-pressed p-4 rounded-xl">
+                      <p className="text-sm text-[#9b9b9b] text-center">
+                        Nessun fornitore disponibile. 
+                        <a href="/ElencoFornitori" className="text-blue-600 hover:underline ml-1">
+                          Aggiungi un fornitore
+                        </a>
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div>

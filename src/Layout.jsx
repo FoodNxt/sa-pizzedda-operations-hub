@@ -140,6 +140,11 @@ const navigationStructure = [
         icon: AlertTriangle,
       },
       {
+        title: "Elenco Fornitori", // NEW
+        url: createPageUrl("ElencoFornitori"),
+        icon: Truck,
+      },
+      {
         title: "Teglie Buttate",
         url: createPageUrl("TeglieButtate"),
         icon: AlertTriangle,

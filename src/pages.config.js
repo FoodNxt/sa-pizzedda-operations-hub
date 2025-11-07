@@ -40,6 +40,7 @@ import GestioneAccessoPagine from './pages/GestioneAccessoPagine';
 import OrdiniSbagliati from './pages/OrdiniSbagliati';
 import MatchingOrdiniSbagliati from './pages/MatchingOrdiniSbagliati';
 import InventarioAdmin from './pages/InventarioAdmin';
+import ElencoFornitori from './pages/ElencoFornitori';
 import Layout from './Layout.jsx';
 
 
@@ -86,6 +87,7 @@ export const PAGES = {
     "OrdiniSbagliati": OrdiniSbagliati,
     "MatchingOrdiniSbagliati": MatchingOrdiniSbagliati,
     "InventarioAdmin": InventarioAdmin,
+    "ElencoFornitori": ElencoFornitori,
 }
 
 export const pagesConfig = {
