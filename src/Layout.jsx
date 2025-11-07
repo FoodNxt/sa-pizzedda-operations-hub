@@ -344,7 +344,8 @@ export default function Layout({ children, currentPageName }) {
     "Pulizie": true,
     "View Dipendente": true,
     "Zapier Guide": true,
-    "Sistema": true // Added new section to expandedSections
+    "Sistema": true, // Added new section to expandedSections
+    "Il Mio Profilo": true // For the special case "Il Mio Profilo"
   });
 
   useEffect(() => {
@@ -356,22 +357,22 @@ export default function Layout({ children, currentPageName }) {
         // ALWAYS show modal if profile was not manually completed
         // This catches both new registrations and Google logins
         const needsProfile = !user.profile_manually_completed;
-
         setShowProfileModal(needsProfile);
 
-        // REDIRECT DIPENDENTE logic
+        // CRITICAL RESTRICTION FOR DIPENDENTE WITH NO ROLES
         if (user.user_type === 'dipendente') {
           const userRoles = user.ruoli_dipendente || [];
 
-          // If dipendente has NO roles, redirect to profile
+          // If dipendente has NO roles, ONLY allow access to ProfiloDipendente
           if (userRoles.length === 0) {
+            // If not on profile page, redirect
             if (location.pathname !== createPageUrl("ProfiloDipendente")) {
               navigate(createPageUrl("ProfiloDipendente"), { replace: true });
             }
-            return; // Stop further checks if user needs to complete profile
+            return; // Stop further checks
           }
 
-          // If dipendente has roles, check restricted pages
+          // If dipendente HAS roles, redirect from restricted pages to Valutazione
           const isOnRestrictedPage =
             location.pathname === createPageUrl("Dashboard") ||
             location.pathname === createPageUrl("StoreReviews") ||
@@ -391,7 +392,7 @@ export default function Layout({ children, currentPageName }) {
       }
     };
     fetchUser();
-  }, [location.pathname, navigate]); // Added navigate to dependency array
+  }, [location.pathname, navigate]);
 
   const handleProfileComplete = () => {
     setShowProfileModal(false);
@@ -431,6 +432,14 @@ export default function Layout({ children, currentPageName }) {
     const userType = currentUser.user_type || 'dipendente';
     const userRoles = currentUser.ruoli_dipendente || []; // Changed from ruolo_dipendente to ruoli_dipendente (array)
 
+    // CRITICAL: If dipendente has NO roles, ONLY show Profilo (handled by finalNavigation special case)
+    // All other navigation items for such a user should be hidden by default
+    if (userType === 'dipendente' && userRoles.length === 0) {
+      // This will prevent all sections/items from showing up in filteredNavigation
+      // The only exception (Profilo) will be hardcoded into finalNavigation
+      return false;
+    }
+
     // Check user type
     if (!requiredUserType.includes(userType)) return false;
 
@@ -450,6 +459,20 @@ export default function Layout({ children, currentPageName }) {
       items: section.items.filter(item => hasAccess(item.requiredUserType, item.requiredRole))
     }))
     .filter(section => section.items.length > 0);
+
+  // SPECIAL CASE: If dipendente with NO roles, show ONLY Profilo in navigation
+  const finalNavigation = currentUser?.user_type === 'dipendente' && (currentUser.ruoli_dipendente || []).length === 0
+    ? [{
+        title: "Il Mio Profilo",
+        icon: User,
+        type: "section",
+        items: [{
+          title: "Profilo",
+          url: createPageUrl("ProfiloDipendente"),
+          icon: User,
+        }]
+      }]
+    : filteredNavigation;
 
   const getUserDisplayName = () => {
     if (!currentUser) return 'Caricamento...';
@@ -552,7 +575,7 @@ export default function Layout({ children, currentPageName }) {
 
             {/* Navigation */}
             <nav className="flex-1 space-y-1">
-              {filteredNavigation.map((item) => {
+              {finalNavigation.map((item) => {
                 if (item.type === 'link') {
                   const isActive = isActiveLink(item.url);
                   return (

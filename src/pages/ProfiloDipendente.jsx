@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -12,37 +11,45 @@ import {
   Phone,
   Calendar,
   MapPin,
-  ShoppingBag
+  ShoppingBag,
+  Upload,
+  FileText,
+  X
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 
 export default function ProfiloDipendente() {
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({
-    nome_cognome: '', // Changed from full_name
-    initials: '',
-    ruoli_dipendente: [], // Changed from ruolo_dipendente, now an array
+    nome_cognome: '',
+    ruoli_dipendente: [],
     phone: '',
     data_nascita: '',
     codice_fiscale: '',
     indirizzo_domicilio: '',
     taglia_maglietta: ''
   });
+  
+  // Document upload states
+  const [documentFiles, setDocumentFiles] = useState({
+    documento_identita: null,
+    codice_fiscale_documento: null,
+    permesso_soggiorno: null
+  });
+  const [uploadingDocs, setUploadingDocs] = useState(false);
+  
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
   const queryClient = useQueryClient();
 
-  // Fetch current user
   const { data: user, isLoading } = useQuery({
     queryKey: ['currentUser'],
     queryFn: async () => {
       const u = await base44.auth.me();
-      // Pre-populate form
       setFormData({
-        nome_cognome: u.nome_cognome || u.full_name || '', // Prioritize nome_cognome, fallback to full_name
-        initials: u.initials || '',
-        ruoli_dipendente: u.ruoli_dipendente || [], // Populating new field as array
+        nome_cognome: u.nome_cognome || u.full_name || '',
+        ruoli_dipendente: u.ruoli_dipendente || [],
         phone: u.phone || '',
         data_nascita: u.data_nascita || '',
         codice_fiscale: u.codice_fiscale || '',
@@ -53,7 +60,6 @@ export default function ProfiloDipendente() {
     },
   });
 
-  // Update mutation
   const updateProfileMutation = useMutation({
     mutationFn: async (data) => {
       return await base44.auth.updateMe(data);
@@ -64,7 +70,6 @@ export default function ProfiloDipendente() {
       setError('');
       setEditing(false);
       
-      // Clear success message after 3 seconds
       setTimeout(() => setSuccess(''), 3000);
     },
     onError: (error) => {
@@ -77,14 +82,13 @@ export default function ProfiloDipendente() {
     setError('');
     setSuccess('');
 
-    // Validation
-    if (!formData.nome_cognome?.trim()) { // Changed from full_name
-      setError('Il Nome Cognome è obbligatorio'); // Updated message
+    if (!formData.nome_cognome?.trim()) {
+      setError('Il Nome Cognome è obbligatorio');
       return;
     }
 
-    if (formData.nome_cognome.trim().length < 3) { // Changed from full_name
-      setError('Il Nome Cognome deve avere almeno 3 caratteri'); // Updated message
+    if (formData.nome_cognome.trim().length < 3) {
+      setError('Il Nome Cognome deve avere almeno 3 caratteri');
       return;
     }
 
@@ -95,12 +99,10 @@ export default function ProfiloDipendente() {
   };
 
   const handleCancel = () => {
-    // Reset to current values
     if (user) {
       setFormData({
-        nome_cognome: user.nome_cognome || user.full_name || '', // Prioritize nome_cognome, fallback to full_name
-        initials: user.initials || '',
-        ruoli_dipendente: user.ruoli_dipendente || [], // Resetting new field as array
+        nome_cognome: user.nome_cognome || user.full_name || '',
+        ruoli_dipendente: user.ruoli_dipendente || [],
         phone: user.phone || '',
         data_nascita: user.data_nascita || '',
         codice_fiscale: user.codice_fiscale || '',
@@ -111,6 +113,55 @@ export default function ProfiloDipendente() {
     setEditing(false);
     setError('');
     setSuccess('');
+  };
+
+  const handleDocumentChange = (docType, file) => {
+    if (file) {
+      setDocumentFiles(prev => ({ ...prev, [docType]: file }));
+    }
+  };
+
+  const handleDocumentUpload = async (docType) => {
+    const file = documentFiles[docType];
+    if (!file) {
+      setError('Seleziona un file da caricare');
+      return;
+    }
+
+    try {
+      setUploadingDocs(true);
+      setError('');
+
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+
+      const fieldName = `${docType}_url`;
+      await base44.auth.updateMe({ [fieldName]: file_url });
+
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      setDocumentFiles(prev => ({ ...prev, [docType]: null }));
+      setSuccess(`Documento caricato con successo! ✅`);
+      setTimeout(() => setSuccess(''), 3000);
+
+    } catch (error) {
+      console.error('Error uploading document:', error);
+      setError('Errore durante il caricamento del documento');
+    } finally {
+      setUploadingDocs(false);
+    }
+  };
+
+  const handleDocumentDelete = async (docType) => {
+    if (!confirm('Sei sicuro di voler eliminare questo documento?')) return;
+
+    try {
+      const fieldName = `${docType}_url`;
+      await base44.auth.updateMe({ [fieldName]: null });
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      setSuccess('Documento eliminato con successo');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (error) {
+      setError('Errore durante l\'eliminazione del documento');
+    }
   };
 
   if (isLoading) {
@@ -128,7 +179,7 @@ export default function ProfiloDipendente() {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Il Mio Profilo</h1>
-        <p className="text-[#9b9b9b]">Gestisci le tue informazioni personali</p>
+        <p className="text-[#9b9b9b]">Gestisci le tue informazioni personali e documenti</p>
       </div>
 
       {/* Success Message */}
@@ -147,12 +198,12 @@ export default function ProfiloDipendente() {
           <div className="flex items-center gap-4">
             <div className="w-20 h-20 rounded-full neumorphic-flat flex items-center justify-center">
               <span className="text-3xl font-bold text-[#8b7355]">
-                {user?.initials || (user?.nome_cognome || user?.full_name || 'U').charAt(0).toUpperCase()} {/* Prioritize nome_cognome, fallback to full_name */}
+                {(user?.nome_cognome || user?.full_name || 'U').charAt(0).toUpperCase()}
               </span>
             </div>
             <div>
               <h2 className="text-2xl font-bold text-[#6b6b6b]">
-                {user?.nome_cognome || user?.full_name || 'Nome non impostato'} {/* Prioritize nome_cognome, fallback to full_name */}
+                {user?.nome_cognome || user?.full_name || 'Nome non impostato'}
               </h2>
               <p className="text-[#9b9b9b]">
                 {user?.ruoli_dipendente && user.ruoli_dipendente.length > 0
@@ -212,26 +263,12 @@ export default function ProfiloDipendente() {
                 </p>
               </div>
 
-              <div>
-                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                  Iniziali
-                </label>
-                <input
-                  type="text"
-                  value={formData.initials}
-                  onChange={(e) => setFormData({ ...formData, initials: e.target.value })}
-                  placeholder="M.R."
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                />
-              </div>
-
-              {/* Ruoli Dipendente - READ ONLY for dipendente */}
               {user?.user_type === 'dipendente' && (
                 <div className="md:col-span-2">
                   <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
                     Ruoli (non modificabili)
                   </label>
-                  <div className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] bg-gray-50">
+                  <div className="w-full neumorphic-pressed px-4 py-3 rounded-xl bg-gray-50">
                     {user.ruoli_dipendente && user.ruoli_dipendente.length > 0
                       ? user.ruoli_dipendente.join(', ')
                       : 'Nessun ruolo assegnato'}
@@ -318,7 +355,6 @@ export default function ProfiloDipendente() {
               </div>
             </div>
 
-            {/* Error Message */}
             {error && (
               <div className="neumorphic-pressed p-3 rounded-lg bg-red-50">
                 <div className="flex items-center gap-2 text-red-700 text-sm">
@@ -328,7 +364,6 @@ export default function ProfiloDipendente() {
               </div>
             )}
 
-            {/* Action Buttons */}
             <div className="flex gap-3 pt-2">
               <button
                 onClick={handleCancel}
@@ -360,11 +395,6 @@ export default function ProfiloDipendente() {
             <div className="neumorphic-pressed p-4 rounded-xl md:col-span-2">
               <p className="text-sm text-[#9b9b9b] mb-1">Nome Cognome</p>
               <p className="text-[#6b6b6b] font-medium">{user?.nome_cognome || user?.full_name || '-'}</p>
-            </div>
-
-            <div className="neumorphic-pressed p-4 rounded-xl">
-              <p className="text-sm text-[#9b9b9b] mb-1">Iniziali</p>
-              <p className="text-[#6b6b6b] font-medium">{user?.initials || '-'}</p>
             </div>
 
             {user?.user_type === 'dipendente' && (
@@ -426,18 +456,211 @@ export default function ProfiloDipendente() {
         )}
       </NeumorphicCard>
 
+      {/* NEW: Documenti Section */}
+      <NeumorphicCard className="p-6">
+        <h3 className="text-lg font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
+          <FileText className="w-5 h-5 text-[#8b7355]" />
+          Documenti
+        </h3>
+
+        <div className="space-y-6">
+          {/* Documento d'Identità */}
+          <div className="neumorphic-pressed p-5 rounded-xl">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-medium text-[#6b6b6b]">Documento d'Identità</h4>
+              {user?.documento_identita_url && (
+                <button
+                  onClick={() => handleDocumentDelete('documento_identita')}
+                  className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+                  title="Elimina documento"
+                >
+                  <X className="w-4 h-4 text-red-600" />
+                </button>
+              )}
+            </div>
+            
+            {user?.documento_identita_url ? (
+              <div className="flex items-center gap-3">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <div className="flex-1">
+                  <p className="text-sm text-green-700 font-medium">Documento caricato</p>
+                  <a 
+                    href={user.documento_identita_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 hover:underline"
+                  >
+                    Visualizza documento
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={(e) => handleDocumentChange('documento_identita', e.target.files[0])}
+                  className="hidden"
+                  id="doc-identita"
+                />
+                <label
+                  htmlFor="doc-identita"
+                  className="neumorphic-flat px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 hover:shadow-lg transition-all"
+                >
+                  <Upload className="w-4 h-4 text-[#8b7355]" />
+                  <span className="text-sm text-[#6b6b6b]">
+                    {documentFiles.documento_identita ? documentFiles.documento_identita.name : 'Seleziona file'}
+                  </span>
+                </label>
+                {documentFiles.documento_identita && (
+                  <button
+                    onClick={() => handleDocumentUpload('documento_identita')}
+                    disabled={uploadingDocs}
+                    className="mt-2 w-full neumorphic-flat px-4 py-2 rounded-lg text-[#8b7355] hover:shadow-lg transition-all disabled:opacity-50"
+                  >
+                    {uploadingDocs ? 'Caricamento...' : 'Carica Documento'}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Codice Fiscale Documento */}
+          <div className="neumorphic-pressed p-5 rounded-xl">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-medium text-[#6b6b6b]">Codice Fiscale (Documento)</h4>
+              {user?.codice_fiscale_documento_url && (
+                <button
+                  onClick={() => handleDocumentDelete('codice_fiscale_documento')}
+                  className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+                  title="Elimina documento"
+                >
+                  <X className="w-4 h-4 text-red-600" />
+                </button>
+              )}
+            </div>
+            
+            {user?.codice_fiscale_documento_url ? (
+              <div className="flex items-center gap-3">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <div className="flex-1">
+                  <p className="text-sm text-green-700 font-medium">Documento caricato</p>
+                  <a 
+                    href={user.codice_fiscale_documento_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 hover:underline"
+                  >
+                    Visualizza documento
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={(e) => handleDocumentChange('codice_fiscale_documento', e.target.files[0])}
+                  className="hidden"
+                  id="doc-cf"
+                />
+                <label
+                  htmlFor="doc-cf"
+                  className="neumorphic-flat px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 hover:shadow-lg transition-all"
+                >
+                  <Upload className="w-4 h-4 text-[#8b7355]" />
+                  <span className="text-sm text-[#6b6b6b]">
+                    {documentFiles.codice_fiscale_documento ? documentFiles.codice_fiscale_documento.name : 'Seleziona file'}
+                  </span>
+                </label>
+                {documentFiles.codice_fiscale_documento && (
+                  <button
+                    onClick={() => handleDocumentUpload('codice_fiscale_documento')}
+                    disabled={uploadingDocs}
+                    className="mt-2 w-full neumorphic-flat px-4 py-2 rounded-lg text-[#8b7355] hover:shadow-lg transition-all disabled:opacity-50"
+                  >
+                    {uploadingDocs ? 'Caricamento...' : 'Carica Documento'}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Permesso di Soggiorno */}
+          <div className="neumorphic-pressed p-5 rounded-xl">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-medium text-[#6b6b6b]">Permesso di Soggiorno (se applicabile)</h4>
+              {user?.permesso_soggiorno_url && (
+                <button
+                  onClick={() => handleDocumentDelete('permesso_soggiorno')}
+                  className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+                  title="Elimina documento"
+                >
+                  <X className="w-4 h-4 text-red-600" />
+                </button>
+              )}
+            </div>
+            
+            {user?.permesso_soggiorno_url ? (
+              <div className="flex items-center gap-3">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <div className="flex-1">
+                  <p className="text-sm text-green-700 font-medium">Documento caricato</p>
+                  <a 
+                    href={user.permesso_soggiorno_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 hover:underline"
+                  >
+                    Visualizza documento
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={(e) => handleDocumentChange('permesso_soggiorno', e.target.files[0])}
+                  className="hidden"
+                  id="doc-permesso"
+                />
+                <label
+                  htmlFor="doc-permesso"
+                  className="neumorphic-flat px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 hover:shadow-lg transition-all"
+                >
+                  <Upload className="w-4 h-4 text-[#8b7355]" />
+                  <span className="text-sm text-[#6b6b6b]">
+                    {documentFiles.permesso_soggiorno ? documentFiles.permesso_soggiorno.name : 'Seleziona file'}
+                  </span>
+                </label>
+                {documentFiles.permesso_soggiorno && (
+                  <button
+                    onClick={() => handleDocumentUpload('permesso_soggiorno')}
+                    disabled={uploadingDocs}
+                    className="mt-2 w-full neumorphic-flat px-4 py-2 rounded-lg text-[#8b7355] hover:shadow-lg transition-all disabled:opacity-50"
+                  >
+                    {uploadingDocs ? 'Caricamento...' : 'Carica Documento'}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </NeumorphicCard>
+
       {/* Info Box */}
       <NeumorphicCard className="p-6 bg-blue-50">
         <div className="flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
           <div className="text-sm text-blue-800">
-            <p className="font-medium mb-1">📝 Perché questi dati sono importanti?</p>
+            <p className="font-medium mb-2">📝 Perché questi dati sono importanti?</p>
             <ul className="text-xs space-y-1 list-disc list-inside">
               <li><strong>Il tuo Nome Cognome</strong> viene usato per associare turni e recensioni automaticamente</li>
               <li>Deve corrispondere ESATTAMENTE a come appare nel sistema turni (es. "Mario Rossi")</li>
-              <li>Il matching viene fatto in modo intelligente (case-insensitive, ignora spazi multipli)</li>
               <li>I dati anagrafici sono necessari per la gestione amministrativa</li>
-              <li>La taglia maglietta serve per fornirti la divisa corretta</li>
+              <li>I <strong>documenti</strong> sono richiesti per conformità legale e contrattuale</li>
+              <li>Tutti i documenti sono archiviati in modo sicuro e protetto</li>
               <li>Assicurati che tutti i dati siano corretti e aggiornati</li>
             </ul>
           </div>
