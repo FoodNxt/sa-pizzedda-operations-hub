@@ -3,11 +3,11 @@ import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom"; // Added useNavigate
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
-import { 
-  LayoutDashboard, 
-  MapPin, 
-  DollarSign, 
-  Users, 
+import {
+  LayoutDashboard,
+  MapPin,
+  DollarSign,
+  Users,
   Menu,
   X,
   Pizza,
@@ -232,9 +232,9 @@ const navigationStructure = [
         icon: ClipboardCheck,
       },
       {
-        title: "Profilo", 
-        url: createPageUrl("ProfiloDipendente"), 
-        icon: User, 
+        title: "Profilo",
+        url: createPageUrl("ProfiloDipendente"),
+        icon: User,
       },
       {
         title: "Controllo Pulizia Cassiere",
@@ -255,12 +255,12 @@ const navigationStructure = [
         requiredRole: "Store Manager"
       },
       {
-        title: "Form Inventario", 
+        title: "Form Inventario",
         url: createPageUrl("FormInventario"),
         icon: ClipboardList,
       },
       {
-        title: "Conteggio Cassa", 
+        title: "Conteggio Cassa",
         url: createPageUrl("ConteggioCassa"),
         icon: DollarSign,
       },
@@ -352,17 +352,17 @@ export default function Layout({ children, currentPageName }) {
       try {
         const user = await base44.auth.me();
         setCurrentUser(user);
-        
+
         // ALWAYS show modal if profile was not manually completed
         // This catches both new registrations and Google logins
         const needsProfile = !user.profile_manually_completed;
-        
+
         setShowProfileModal(needsProfile);
 
         // REDIRECT DIPENDENTE logic
         if (user.user_type === 'dipendente') {
           const userRoles = user.ruoli_dipendente || [];
-          
+
           // If dipendente has NO roles, redirect to profile
           if (userRoles.length === 0) {
             if (location.pathname !== createPageUrl("ProfiloDipendente")) {
@@ -372,7 +372,7 @@ export default function Layout({ children, currentPageName }) {
           }
 
           // If dipendente has roles, check restricted pages
-          const isOnRestrictedPage = 
+          const isOnRestrictedPage =
             location.pathname === createPageUrl("Dashboard") ||
             location.pathname === createPageUrl("StoreReviews") ||
             location.pathname === createPageUrl("Financials") ||
@@ -381,7 +381,7 @@ export default function Layout({ children, currentPageName }) {
             location.pathname === createPageUrl("Inventory") ||
             location.pathname === '/' ||
             location.pathname === '';
-          
+
           if (isOnRestrictedPage) {
             navigate(createPageUrl("Valutazione"), { replace: true });
           }
@@ -427,19 +427,19 @@ export default function Layout({ children, currentPageName }) {
   const hasAccess = (requiredUserType, requiredRole) => {
     if (!requiredUserType) return true;
     if (!currentUser) return false;
-    
+
     const userType = currentUser.user_type || 'dipendente';
     const userRoles = currentUser.ruoli_dipendente || []; // Changed from ruolo_dipendente to ruoli_dipendente (array)
-    
+
     // Check user type
     if (!requiredUserType.includes(userType)) return false;
-    
+
     // Check role if specified and user is a dipendente
     if (requiredRole && userType === 'dipendente') {
       // User must have the required role in their roles array
       return userRoles.includes(requiredRole);
     }
-    
+
     return true;
   };
 
@@ -460,8 +460,8 @@ export default function Layout({ children, currentPageName }) {
   const getUserTypeName = () => {
     if (!currentUser) return '';
     const userType = currentUser.user_type || 'dipendente';
-    return userType === 'admin' ? 'Amministratore' : 
-           userType === 'manager' ? 'Manager' : 
+    return userType === 'admin' ? 'Amministratore' :
+           userType === 'manager' ? 'Manager' :
            'Dipendente';
   };
 
@@ -469,8 +469,8 @@ export default function Layout({ children, currentPageName }) {
     <div className="min-h-screen bg-[#e0e5ec]">
       {/* Complete Profile Modal */}
       {showProfileModal && currentUser && (
-        <CompleteProfileModal 
-          user={currentUser} 
+        <CompleteProfileModal
+          user={currentUser}
           onComplete={handleProfileComplete}
         />
       )}
@@ -481,13 +481,13 @@ export default function Layout({ children, currentPageName }) {
           border-radius: 16px;
           box-shadow: 8px 8px 16px #b8bec8, -8px -8px 16px #ffffff;
         }
-        
+
         .neumorphic-pressed {
           background: #e0e5ec;
           border-radius: 16px;
           box-shadow: inset 4px 4px 8px #b8bec8, inset -4px -4px 8px #ffffff;
         }
-        
+
         .neumorphic-flat {
           background: #e0e5ec;
           border-radius: 12px;
