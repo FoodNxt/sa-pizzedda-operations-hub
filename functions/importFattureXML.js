@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
-import { DOMParser } from 'jsr:@b-fuze/deno-dom';
+import { XMLParser } from 'npm:fast-xml-parser@4.3.4';
 
 Deno.serve(async (req) => {
   try {
@@ -17,16 +17,27 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'xml_content required' }, { status: 400 });
     }
 
-    // Parse XML using deno-dom
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xml_content, 'text/xml');
-
-    // Check for parsing errors
-    const parserError = xmlDoc.querySelector('parsererror');
-    if (parserError) {
+    // Parse XML using fast-xml-parser
+    const parser = new XMLParser({
+      ignoreAttributes: false,
+      attributeNamePrefix: '@_'
+    });
+    
+    let xmlDoc;
+    try {
+      xmlDoc = parser.parse(xml_content);
+    } catch (parseError) {
       return Response.json({ 
         error: 'Invalid XML format', 
-        details: parserError.textContent 
+        details: parseError.message 
+      }, { status: 400 });
+    }
+
+    // Navigate to FatturaElettronica
+    const fattura = xmlDoc.FatturaElettronica || xmlDoc['p:FatturaElettronica'];
+    if (!fattura) {
+      return Response.json({ 
+        error: 'FatturaElettronica not found in XML. This might not be a FatturaPA file.' 
       }, { status: 400 });
     }
 
@@ -43,22 +54,32 @@ Deno.serve(async (req) => {
     const prodottiDettagli = [];
 
     // Extract Fornitore (CedentePrestatore)
-    const cedente = xmlDoc.querySelector('CedentePrestatore');
+    const header = fattura.FatturaElettronicaHeader;
+    if (!header) {
+      return Response.json({ 
+        error: 'FatturaElettronicaHeader not found in XML' 
+      }, { status: 400 });
+    }
+
+    const cedente = header.CedentePrestatore;
     if (!cedente) {
       return Response.json({ 
         error: 'CedentePrestatore not found in XML' 
       }, { status: 400 });
     }
 
-    const datiAnagrafici = cedente.querySelector('DatiAnagrafici');
-    const anagrafica = datiAnagrafici?.querySelector('Anagrafica');
+    const datiAnagrafici = cedente.DatiAnagrafici;
+    const anagrafica = datiAnagrafici?.Anagrafica;
+    const sede = cedente.Sede;
     
     const fornitoreData = {
-      ragione_sociale: anagrafica?.querySelector('Denominazione')?.textContent || 
-                       `${anagrafica?.querySelector('Nome')?.textContent || ''} ${anagrafica?.querySelector('Cognome')?.textContent || ''}`.trim(),
-      partita_iva: datiAnagrafici?.querySelector('IdFiscaleIVA IdCodice')?.textContent || 
-                   datiAnagrafici?.querySelector('CodiceFiscale')?.textContent || '',
-      sede_legale: cedente.querySelector('Sede Indirizzo')?.textContent || '',
+      ragione_sociale: anagrafica?.Denominazione || 
+                       `${anagrafica?.Nome || ''} ${anagrafica?.Cognome || ''}`.trim() ||
+                       'Fornitore Sconosciuto',
+      partita_iva: datiAnagrafici?.IdFiscaleIVA?.IdCodice || 
+                   datiAnagrafici?.CodiceFiscale || '',
+      sede_legale: sede?.Indirizzo ? 
+        `${sede.Indirizzo}, ${sede.CAP || ''} ${sede.Comune || ''} ${sede.Provincia || ''}`.trim() : '',
       tipo_fornitore: 'altro',
       attivo: true
     };
@@ -84,28 +105,52 @@ Deno.serve(async (req) => {
     }
 
     // Extract Fattura Info
-    const datiGenerali = xmlDoc.querySelector('DatiGeneraliDocumento');
+    const body = fattura.FatturaElettronicaBody;
+    if (!body) {
+      return Response.json({ 
+        error: 'FatturaElettronicaBody not found in XML' 
+      }, { status: 400 });
+    }
+
+    const datiGenerali = body.DatiGenerali?.DatiGeneraliDocumento;
     const fatturaInfo = {
-      numero: datiGenerali?.querySelector('Numero')?.textContent || 'N/A',
-      data: datiGenerali?.querySelector('Data')?.textContent || new Date().toISOString().split('T')[0],
-      importo_totale: datiGenerali?.querySelector('ImportoTotaleDocumento')?.textContent || '0',
+      numero: datiGenerali?.Numero || 'N/A',
+      data: datiGenerali?.Data || new Date().toISOString().split('T')[0],
+      importo_totale: datiGenerali?.ImportoTotaleDocumento || '0',
       fornitore_nome: fornitoreData.ragione_sociale,
       fornitore_id: fornitore?.id
     };
 
     // Extract Products (DettaglioLinee)
-    const dettaglioLinee = xmlDoc.querySelectorAll('DettaglioLinee');
+    const datiBeniServizi = body.DatiBeniServizi;
+    if (!datiBeniServizi) {
+      return Response.json({
+        success: true,
+        message: `Fornitore importato ma nessun prodotto trovato`,
+        summary,
+        fattura: fatturaInfo,
+        prodotti: [],
+        file_name
+      });
+    }
+
+    let dettaglioLinee = datiBeniServizi.DettaglioLinee;
+    
+    // Handle both single object and array
+    if (!Array.isArray(dettaglioLinee)) {
+      dettaglioLinee = dettaglioLinee ? [dettaglioLinee] : [];
+    }
     
     for (const linea of dettaglioLinee) {
       try {
-        const descrizione = linea.querySelector('Descrizione')?.textContent?.trim();
+        const descrizione = linea.Descrizione?.trim();
         if (!descrizione) continue;
 
-        const codiceArticolo = linea.querySelector('CodiceArticolo CodiceValore')?.textContent?.trim();
-        const quantita = parseFloat(linea.querySelector('Quantita')?.textContent || '0');
-        const unitaMisura = linea.querySelector('UnitaMisura')?.textContent?.trim() || 'pezzi';
-        const prezzoUnitario = parseFloat(linea.querySelector('PrezzoUnitario')?.textContent || '0');
-        const aliquotaIVA = parseFloat(linea.querySelector('AliquotaIVA')?.textContent || '22');
+        const codiceArticolo = linea.CodiceArticolo?.CodiceValore?.trim();
+        const quantita = parseFloat(linea.Quantita || '0');
+        const unitaMisura = linea.UnitaMisura?.trim() || 'pezzi';
+        const prezzoUnitario = parseFloat(linea.PrezzoUnitario || '0');
+        const aliquotaIVA = parseFloat(linea.AliquotaIVA || '22');
 
         // Find or create product in MateriePrime
         let prodotto = null;
@@ -189,7 +234,7 @@ Deno.serve(async (req) => {
         }
 
       } catch (err) {
-        errors.push(`Errore prodotto "${linea.querySelector('Descrizione')?.textContent}": ${err.message}`);
+        errors.push(`Errore prodotto "${linea.Descrizione}": ${err.message}`);
         summary.errori++;
       }
     }
