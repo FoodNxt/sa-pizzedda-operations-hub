@@ -26,7 +26,8 @@ import {
   User,
   ClipboardList,
   ChefHat, // Added ChefHat icon
-  CheckSquare // Added CheckSquare icon
+  CheckSquare, // Added CheckSquare icon
+  Truck // Added Truck icon for Delivery
 } from "lucide-react";
 import CompleteProfileModal from "./components/auth/CompleteProfileModal";
 
@@ -93,11 +94,7 @@ const navigationStructure = [
         url: createPageUrl("ChannelComparison"),
         icon: BarChart3,
       },
-      {
-        title: "Daily Aggregation",
-        url: createPageUrl("DailyRevenueAggregation"),
-        icon: BarChart3,
-      },
+      // Removed "Daily Aggregation"
       {
         title: "Storico Cassa",
         url: createPageUrl("StoricoCassa"),
@@ -220,6 +217,19 @@ const navigationStructure = [
       }
     ]
   },
+  { // NEW: Delivery section
+    title: "Delivery",
+    icon: Truck,
+    type: "section",
+    requiredUserType: ["admin", "manager"],
+    items: [
+      {
+        title: "Ordini Sbagliati",
+        url: createPageUrl("OrdiniSbagliati"),
+        icon: AlertTriangle,
+      }
+    ]
+  },
   {
     title: "View Dipendente",
     icon: Users,
@@ -324,6 +334,11 @@ const navigationStructure = [
         title: "Gestione Utenti",
         url: createPageUrl("UsersManagement"),
         icon: Users,
+      },
+      { // NEW: Gestione Accesso Pagine
+        title: "Gestione Accesso Pagine",
+        url: createPageUrl("GestioneAccessoPagine"),
+        icon: CheckSquare,
       }
     ]
   }
@@ -342,6 +357,7 @@ export default function Layout({ children, currentPageName }) {
     "Inventory": true,
     "People": true,
     "Pulizie": true,
+    "Delivery": true, // Added new section to expandedSections
     "View Dipendente": true,
     "Zapier Guide": true,
     "Sistema": true, // Added new section to expandedSections

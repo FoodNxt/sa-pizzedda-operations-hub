@@ -36,6 +36,8 @@ import ControlloPuliziaPizzaiolo from './pages/ControlloPuliziaPizzaiolo';
 import ControlloPuliziaStoreManager from './pages/ControlloPuliziaStoreManager';
 import Ricette from './pages/Ricette';
 import ControlloPulizieMaster from './pages/ControlloPulizieMaster';
+import GestioneAccessoPagine from './pages/GestioneAccessoPagine';
+import OrdiniSbagliati from './pages/OrdiniSbagliati';
 import Layout from './Layout.jsx';
 
 
@@ -78,6 +80,8 @@ export const PAGES = {
     "ControlloPuliziaStoreManager": ControlloPuliziaStoreManager,
     "Ricette": Ricette,
     "ControlloPulizieMaster": ControlloPulizieMaster,
+    "GestioneAccessoPagine": GestioneAccessoPagine,
+    "OrdiniSbagliati": OrdiniSbagliati,
 }
 
 export const pagesConfig = {
