@@ -25,6 +25,7 @@ export default function Ricette() {
   const [formData, setFormData] = useState({
     nome_prodotto: '',
     categoria: 'pizza',
+    is_semilavorato: false, // NEW
     ingredienti: [],
     prezzo_vendita_online: '',
     prezzo_vendita_offline: '',
@@ -76,6 +77,7 @@ export default function Ricette() {
     setFormData({
       nome_prodotto: '',
       categoria: 'pizza',
+      is_semilavorato: false, // NEW
       ingredienti: [],
       prezzo_vendita_online: '',
       prezzo_vendita_offline: '',
@@ -94,6 +96,7 @@ export default function Ricette() {
     setFormData({
       nome_prodotto: ricetta.nome_prodotto,
       categoria: ricetta.categoria || 'pizza',
+      is_semilavorato: ricetta.is_semilavorato || false, // NEW
       ingredienti: ricetta.ingredienti || [],
       prezzo_vendita_online: ricetta.prezzo_vendita_online,
       prezzo_vendita_offline: ricetta.prezzo_vendita_offline,
@@ -357,6 +360,31 @@ export default function Ricette() {
                       <option value="altro">Altro</option>
                     </select>
                   </div>
+                </div>
+
+                {/* NEW: Semilavorato Checkbox */}
+                <div className="neumorphic-flat p-4 rounded-xl">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.is_semilavorato}
+                      onChange={(e) => setFormData({ ...formData, is_semilavorato: e.target.checked })}
+                      className="w-5 h-5 rounded"
+                    />
+                    <div>
+                      <span className="text-sm font-medium text-[#6b6b6b]">
+                        Semilavorato
+                      </span>
+                      <p className="text-xs text-[#9b9b9b]">
+                        Spunta se questo prodotto è un semilavorato che può essere usato come ingrediente in altre ricette
+                      </p>
+                    </div>
+                  </label>
+                  {formData.is_semilavorato && (
+                    <p className="text-xs text-green-600 mt-2">
+                      ✓ Questo prodotto sarà disponibile come ingrediente nella creazione di altre ricette
+                    </p>
+                  )}
                 </div>
 
                 {/* Ingredienti Section */}
@@ -661,7 +689,7 @@ export default function Ricette() {
                     <td className="p-3">
                       <div>
                         <p className="font-medium text-[#6b6b6b]">{ricetta.nome_prodotto}</p>
-                        <p className="text-xs text-[#9b9b9b]">{ricetta.categoria}</p>
+                        <p className="text-xs text-[#9b9b9b]">{ricetta.categoria} {ricetta.is_semilavorato && '(Semilavorato)'}</p>
                       </div>
                     </td>
                     <td className="p-3 text-right">

@@ -56,6 +56,7 @@ export default function Employees() {
     queryFn: () => base44.entities.Review.list(),
   });
 
+  // NEW: Load wrong order matches
   const { data: wrongOrderMatches = [] } = useQuery({
     queryKey: ['wrong-order-matches'],
     queryFn: () => base44.entities.WrongOrderMatch.list(),
@@ -175,60 +176,6 @@ export default function Employees() {
     }
 
     return employees.map(employee => {
-      // Orders metrics (from existing 'orders' entity, for processing time and satisfaction)
-      const employeeOrders = orders.filter(o => o.employee_id === employee.id);
-      const avgProcessingTime = employeeOrders.length > 0
-        ? employeeOrders.reduce((sum, o) => sum + (o.processing_time_minutes || 0), 0) / employeeOrders.length
-        : 0;
-      const avgSatisfaction = employeeOrders.filter(o => o.customer_satisfaction).length > 0
-        ? employeeOrders.reduce((sum, o) => sum + (o.customer_satisfaction || 0), 0) /
-          employeeOrders.filter(o => o.customer_satisfaction).length
-        : 0;
-
-      // ✅ WRONG ORDERS from WrongOrderMatch (replaces old orders logic)
-      const employeeWrongOrdersMatches = wrongOrderMatches.filter(match => {
-        if (!match.matched_employees || !Array.isArray(match.matched_employees)) return false;
-        
-        // Check if employee name is in the matched_employees array
-        const isMatched = match.matched_employees.some(emp => 
-          emp.employee_name?.toLowerCase() === employee.full_name?.toLowerCase()
-        );
-        
-        if (!isMatched) return false;
-        
-        // Apply date filter
-        if (startDate || endDate) {
-          if (!match.order_date) return false;
-          
-          try {
-            const orderDate = parseISO(match.order_date);
-            if (isNaN(orderDate.getTime())) return false;
-            
-            const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
-            const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
-
-            if (start && end) {
-              return isWithinInterval(orderDate, { start, end });
-            } else if (start) {
-              return orderDate >= start;
-            } else if (end) {
-              return orderDate <= end;
-            }
-          } catch (e) {
-            return false;
-          }
-        }
-        
-        return true;
-      });
-
-      const wrongOrders = employeeWrongOrdersMatches.length;
-      // Calculate wrongOrderRate: the count of wrong orders from 'wrongOrderMatches'
-      // divided by the total orders handled by the employee (from the 'orders' entity).
-      const wrongOrderRate = employeeOrders.length > 0
-        ? (wrongOrders / employeeOrders.length) * 100
-        : 0;
-
       // Shift metrics (filtered by date)
       let employeeShifts = shifts.filter(s => {
         if (s.employee_name !== employee.full_name) return false;
@@ -261,6 +208,43 @@ export default function Employees() {
 
       // ✅ DEDUPLICATE SHIFTS BEFORE CALCULATING METRICS
       employeeShifts = deduplicateShifts(employeeShifts);
+
+      // Orders metrics - REPLACED with WrongOrderMatches
+      const employeeWrongOrders = wrongOrderMatches.filter(m => {
+        if (m.matched_employee_name !== employee.full_name) return false;
+        
+        // Apply date filter if set
+        if (startDate || endDate) {
+          if (!m.order_date) return false; // Assuming 'order_date' field exists on WrongOrderMatch entity
+          
+          try {
+            const orderDate = parseISO(m.order_date);
+            if (isNaN(orderDate.getTime())) return false;
+            
+            const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
+            const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
+
+            if (start && end) {
+              return isWithinInterval(orderDate, { start, end });
+            } else if (start) {
+              return orderDate >= start;
+            } else if (end) {
+              return orderDate <= end;
+            }
+          } catch (e) {
+            return false;
+          }
+        }
+        
+        return true;
+      });
+
+      const wrongOrders = employeeWrongOrders.length;
+
+      // Calculate wrong order rate (per shifts worked)
+      const wrongOrderRate = employeeShifts.length > 0
+        ? (wrongOrders / employeeShifts.length) * 100
+        : 0;
 
       const totalLateMinutes = employeeShifts.reduce((sum, s) => sum + (s.minuti_di_ritardo || 0), 0);
       const avgLateMinutes = employeeShifts.length > 0 ? totalLateMinutes / employeeShifts.length : 0;
@@ -298,7 +282,7 @@ export default function Employees() {
       performanceScore -= numeroTimbratureMancate * 1; // Penalty for missing clock-ins
       performanceScore += positiveMentions * 2; // Bonus for positive mentions
       performanceScore -= negativeMentions * 3; // Penalty for negative mentions
-      performanceScore += (avgSatisfaction - 3) * 5; // Bonus/penalty based on satisfaction
+      // The 'avgSatisfaction' portion has been removed as orders are no longer directly tracked here for satisfaction
       performanceScore = Math.max(0, Math.min(100, performanceScore));
 
       // Performance level
@@ -311,8 +295,8 @@ export default function Employees() {
         ...employee,
         wrongOrders,
         wrongOrderRate,
-        avgProcessingTime,
-        avgSatisfaction,
+        // avgProcessingTime is no longer calculated
+        // avgSatisfaction is no longer calculated
         totalLateMinutes,
         avgLateMinutes,
         numeroRitardi,
@@ -323,13 +307,13 @@ export default function Employees() {
         negativeMentions,
         performanceScore: Math.round(performanceScore),
         performanceLevel,
-        totalOrders: employeeOrders.length,
+        // totalOrders is no longer calculated
         totalShifts: employeeShifts.length,
         avgGoogleRating,
         googleReviewCount: googleReviews.length
       };
     });
-  }, [employees, orders, shifts, reviews, wrongOrderMatches, startDate, endDate]);
+  }, [employees, shifts, reviews, wrongOrderMatches, startDate, endDate]); // Updated dependencies
 
   // Filter and sort employees
   const filteredEmployees = useMemo(() => {
@@ -352,8 +336,8 @@ export default function Employees() {
           valueB = b.performanceScore;
           break;
         case 'wrongOrders':
-          valueA = a.wrongOrderRate;
-          valueB = b.wrongOrderRate;
+          valueA = a.wrongOrders;
+          valueB = b.wrongOrders;
           break;
         case 'lateness':
           valueA = a.avgLateMinutes;
@@ -669,6 +653,7 @@ export default function Employees() {
                 <th
                   className="text-center p-3 text-[#9b9b9b] font-medium cursor-pointer hover:text-[#6b6b6b]"
                   onClick={() => toggleSort('wrongOrders')}
+                  title="Ordini sbagliati abbinati al dipendente"
                 >
                   <div className="flex items-center justify-center gap-1">
                     Wrong Orders
@@ -788,14 +773,15 @@ export default function Employees() {
                     <td className="p-3 text-center">
                       <div className="flex flex-col items-center gap-1">
                         <span className={`font-bold ${
-                          employee.wrongOrderRate > 10 ? 'text-red-600' :
-                          employee.wrongOrderRate > 5 ? 'text-yellow-600' :
+                          employee.wrongOrders > 10 ? 'text-red-600' :
+                          employee.wrongOrders > 5 ? 'text-yellow-600' :
+                          employee.wrongOrders > 0 ? 'text-orange-600' :
                           'text-green-600'
                         }`}>
                           {employee.wrongOrders}
                         </span>
                         <span className="text-xs text-[#9b9b9b]">
-                          {employee.wrongOrderRate.toFixed(1)}%
+                          ordini
                         </span>
                       </div>
                     </td>
@@ -934,19 +920,15 @@ export default function Employees() {
                   <ShoppingCart className="w-5 h-5 text-[#8b7355]" />
                   <h3 className="font-bold text-[#6b6b6b]">Order Performance</h3>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                {/* Updated to display only Wrong Orders from the new source */}
+                <div className="grid grid-cols-1 gap-4">
                   <div>
                     <p className="text-sm text-[#9b9b9b]">Wrong Orders</p>
                     <p className="text-xl font-bold text-[#6b6b6b]">
-                      {selectedEmployee.wrongOrders} ({selectedEmployee.wrongOrderRate.toFixed(1)}%)
+                      {selectedEmployee.wrongOrders} ({selectedEmployee.wrongOrderRate.toFixed(1)}% of shifts)
                     </p>
                   </div>
-                  <div>
-                    <p className="text-sm text-[#9b9b9b]">Avg Processing Time</p>
-                    <p className="text-xl font-bold text-[#6b6b6b]">
-                      {selectedEmployee.avgProcessingTime.toFixed(1)} min
-                    </p>
-                  </div>
+                  {/* Avg Processing Time and Avg Satisfaction are removed */}
                 </div>
               </div>
 
@@ -1148,7 +1130,7 @@ export default function Employees() {
                         ) : (
                           <>
                             <Eye className="w-4 h-4" />
-                            Vedi tutte ({allGoogleReviews.length})
+                            Vedi tutti ({allGoogleReviews.length})
                           </>
                         )}
                       </button>

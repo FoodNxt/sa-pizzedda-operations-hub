@@ -39,6 +39,7 @@ import ControlloPulizieMaster from './pages/ControlloPulizieMaster';
 import GestioneAccessoPagine from './pages/GestioneAccessoPagine';
 import OrdiniSbagliati from './pages/OrdiniSbagliati';
 import MatchingOrdiniSbagliati from './pages/MatchingOrdiniSbagliati';
+import InventarioAdmin from './pages/InventarioAdmin';
 import Layout from './Layout.jsx';
 
 
@@ -84,6 +85,7 @@ export const PAGES = {
     "GestioneAccessoPagine": GestioneAccessoPagine,
     "OrdiniSbagliati": OrdiniSbagliati,
     "MatchingOrdiniSbagliati": MatchingOrdiniSbagliati,
+    "InventarioAdmin": InventarioAdmin,
 }
 
 export const pagesConfig = {

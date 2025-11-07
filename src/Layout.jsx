@@ -120,6 +120,11 @@ const navigationStructure = [
         icon: ChefHat,
       },
       {
+        title: "Inventario Admin", // NEW: Combined form
+        url: createPageUrl("InventarioAdmin"),
+        icon: ClipboardCheck, // Using ClipboardCheck icon
+      },
+      {
         title: "Form Inventario",
         url: createPageUrl("FormInventario"),
         icon: ClipboardList,
