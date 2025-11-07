@@ -42,10 +42,14 @@ export default function MatchingOrdiniSbagliati() {
     },
   });
 
-  const { data: matches = [] } = useQuery({
+  const { data: allMatches = [] } = useQuery({
     queryKey: ['wrong-order-matches'],
     queryFn: () => base44.entities.WrongOrderMatch.list('-match_date'),
   });
+
+  // FIXED: Filter matches to only include current orders
+  const currentOrderIds = new Set(wrongOrders.map(o => o.id));
+  const matches = allMatches.filter(m => currentOrderIds.has(m.wrong_order_id));
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
