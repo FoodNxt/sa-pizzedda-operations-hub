@@ -53,10 +53,10 @@ export default function QuantitaMinime() {
     queryFn: () => base44.entities.Store.list(),
   });
 
-  // NEW: Load fornitori
-  const { data: fornitori = [] } = useQuery({
+  // NEW: Load suppliers
+  const { data: suppliers = [] } = useQuery({
     queryKey: ['fornitori'],
-    queryFn: () => base44.entities.Fornitore.list(),
+    queryFn: () => base44.entities.Fornitore.filter({ attivo: true }),
   });
 
   const createMutation = useMutation({
@@ -442,29 +442,23 @@ export default function QuantitaMinime() {
                   <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
                     Fornitore
                   </label>
-                  {fornitori.length > 0 ? (
+                  {suppliers.length > 0 ? (
                     <select
                       value={formData.fornitore}
                       onChange={(e) => setFormData({ ...formData, fornitore: e.target.value })}
                       className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                     >
                       <option value="">Seleziona fornitore...</option>
-                      {fornitori
-                        .filter(f => f.attivo !== false)
-                        .sort((a, b) => a.ragione_sociale.localeCompare(b.ragione_sociale))
-                        .map(fornitore => (
-                          <option key={fornitore.id} value={fornitore.ragione_sociale}>
-                            {fornitore.ragione_sociale}
-                          </option>
-                        ))}
+                      {suppliers.map(supplier => (
+                        <option key={supplier.id} value={supplier.ragione_sociale}>
+                          {supplier.ragione_sociale} ({supplier.tipo_fornitore})
+                        </option>
+                      ))}
                     </select>
                   ) : (
-                    <div className="neumorphic-pressed p-4 rounded-xl">
+                    <div className="neumorphic-pressed p-3 rounded-xl">
                       <p className="text-sm text-[#9b9b9b] text-center">
-                        Nessun fornitore disponibile. 
-                        <a href="/ElencoFornitori" className="text-blue-600 hover:underline ml-1">
-                          Aggiungi un fornitore
-                        </a>
+                        Nessun fornitore configurato. <a href="/elenco-fornitori" className="text-blue-600 underline">Aggiungi un fornitore</a>
                       </p>
                     </div>
                   )}

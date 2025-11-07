@@ -8,22 +8,21 @@ import {
   Trash2,
   Save,
   X,
-  Building2,
   Phone,
   Mail,
+  MapPin,
   Calendar,
   Clock,
   Package,
   CheckCircle,
-  Search
+  AlertTriangle
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 
 export default function ElencoFornitori() {
   const [showForm, setShowForm] = useState(false);
-  const [editingFornitore, setEditingFornitore] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [editingSupplier, setEditingSupplier] = useState(null);
   const [formData, setFormData] = useState({
     ragione_sociale: '',
     partita_iva: '',
@@ -32,16 +31,16 @@ export default function ElencoFornitori() {
     giorni_consegna: [],
     tempo_consegna_giorni: '',
     metodologia_ricezione_ordine: 'Email',
-    email: '',
-    telefono: '',
-    referente: '',
+    contatto_email: '',
+    contatto_telefono: '',
+    referente_nome: '',
     note: '',
     attivo: true
   });
 
   const queryClient = useQueryClient();
 
-  const { data: fornitori = [], isLoading } = useQuery({
+  const { data: suppliers = [], isLoading } = useQuery({
     queryKey: ['fornitori'],
     queryFn: () => base44.entities.Fornitore.list(),
   });
@@ -78,31 +77,31 @@ export default function ElencoFornitori() {
       giorni_consegna: [],
       tempo_consegna_giorni: '',
       metodologia_ricezione_ordine: 'Email',
-      email: '',
-      telefono: '',
-      referente: '',
+      contatto_email: '',
+      contatto_telefono: '',
+      referente_nome: '',
       note: '',
       attivo: true
     });
-    setEditingFornitore(null);
+    setEditingSupplier(null);
     setShowForm(false);
   };
 
-  const handleEdit = (fornitore) => {
-    setEditingFornitore(fornitore);
+  const handleEdit = (supplier) => {
+    setEditingSupplier(supplier);
     setFormData({
-      ragione_sociale: fornitore.ragione_sociale,
-      partita_iva: fornitore.partita_iva,
-      sede_legale: fornitore.sede_legale || '',
-      tipo_fornitore: fornitore.tipo_fornitore || 'food',
-      giorni_consegna: fornitore.giorni_consegna || [],
-      tempo_consegna_giorni: fornitore.tempo_consegna_giorni || '',
-      metodologia_ricezione_ordine: fornitore.metodologia_ricezione_ordine || 'Email',
-      email: fornitore.email || '',
-      telefono: fornitore.telefono || '',
-      referente: fornitore.referente || '',
-      note: fornitore.note || '',
-      attivo: fornitore.attivo !== false
+      ragione_sociale: supplier.ragione_sociale,
+      partita_iva: supplier.partita_iva || '',
+      sede_legale: supplier.sede_legale || '',
+      tipo_fornitore: supplier.tipo_fornitore,
+      giorni_consegna: supplier.giorni_consegna || [],
+      tempo_consegna_giorni: supplier.tempo_consegna_giorni || '',
+      metodologia_ricezione_ordine: supplier.metodologia_ricezione_ordine || 'Email',
+      contatto_email: supplier.contatto_email || '',
+      contatto_telefono: supplier.contatto_telefono || '',
+      referente_nome: supplier.referente_nome || '',
+      note: supplier.note || '',
+      attivo: supplier.attivo !== false
     });
     setShowForm(true);
   };
@@ -115,8 +114,8 @@ export default function ElencoFornitori() {
       tempo_consegna_giorni: formData.tempo_consegna_giorni ? parseInt(formData.tempo_consegna_giorni) : null
     };
 
-    if (editingFornitore) {
-      updateMutation.mutate({ id: editingFornitore.id, data });
+    if (editingSupplier) {
+      updateMutation.mutate({ id: editingSupplier.id, data });
     } else {
       createMutation.mutate(data);
     }
@@ -128,20 +127,14 @@ export default function ElencoFornitori() {
     }
   };
 
-  const toggleGiornoConsegna = (giorno) => {
+  const handleDayToggle = (day) => {
     setFormData(prev => ({
       ...prev,
-      giorni_consegna: prev.giorni_consegna.includes(giorno)
-        ? prev.giorni_consegna.filter(g => g !== giorno)
-        : [...prev.giorni_consegna, giorno]
+      giorni_consegna: prev.giorni_consegna.includes(day)
+        ? prev.giorni_consegna.filter(d => d !== day)
+        : [...prev.giorni_consegna, day]
     }));
   };
-
-  const filteredFornitori = fornitori.filter(f =>
-    f.ragione_sociale?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    f.partita_iva?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    f.tipo_fornitore?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   const tipoFornitoreLabels = {
     food: 'Food',
@@ -149,19 +142,26 @@ export default function ElencoFornitori() {
     consumabili: 'Consumabili',
     freschi: 'Freschi',
     latticini: 'Latticini',
-    surgelati: 'Surgelati',
     dolci: 'Dolci',
-    packaging: 'Packaging',
     pulizia: 'Pulizia',
+    packaging: 'Packaging',
     altro: 'Altro'
   };
 
-  const giorniSettimana = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
+  const giornoLabels = {
+    lunedi: 'Lun',
+    martedi: 'Mar',
+    mercoledi: 'Mer',
+    giovedi: 'Gio',
+    venerdi: 'Ven',
+    sabato: 'Sab',
+    domenica: 'Dom'
+  };
 
-  const fornitoriPerTipo = filteredFornitori.reduce((acc, fornitore) => {
-    const tipo = fornitore.tipo_fornitore || 'altro';
-    if (!acc[tipo]) acc[tipo] = [];
-    acc[tipo].push(fornitore);
+  const suppliersByType = suppliers.reduce((acc, supplier) => {
+    const type = supplier.tipo_fornitore || 'altro';
+    if (!acc[type]) acc[type] = [];
+    acc[type].push(supplier);
     return acc;
   }, {});
 
@@ -175,7 +175,7 @@ export default function ElencoFornitori() {
               <Truck className="w-10 h-10 text-[#8b7355]" />
               <h1 className="text-3xl font-bold text-[#6b6b6b]">Elenco Fornitori</h1>
             </div>
-            <p className="text-[#9b9b9b]">Gestisci i fornitori e i loro dettagli</p>
+            <p className="text-[#9b9b9b]">Gestisci i fornitori e le informazioni di contatto</p>
           </div>
           <NeumorphicButton
             onClick={() => setShowForm(true)}
@@ -194,7 +194,7 @@ export default function ElencoFornitori() {
           <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
             <Truck className="w-8 h-8 text-[#8b7355]" />
           </div>
-          <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">{fornitori.length}</h3>
+          <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">{suppliers.length}</h3>
           <p className="text-sm text-[#9b9b9b]">Fornitori Totali</p>
         </NeumorphicCard>
 
@@ -203,7 +203,7 @@ export default function ElencoFornitori() {
             <CheckCircle className="w-8 h-8 text-green-600" />
           </div>
           <h3 className="text-3xl font-bold text-green-600 mb-1">
-            {fornitori.filter(f => f.attivo !== false).length}
+            {suppliers.filter(s => s.attivo !== false).length}
           </h3>
           <p className="text-sm text-[#9b9b9b]">Fornitori Attivi</p>
         </NeumorphicCard>
@@ -213,43 +213,29 @@ export default function ElencoFornitori() {
             <Package className="w-8 h-8 text-blue-600" />
           </div>
           <h3 className="text-3xl font-bold text-blue-600 mb-1">
-            {Object.keys(fornitoriPerTipo).length}
+            {Object.keys(suppliersByType).length}
           </h3>
-          <p className="text-sm text-[#9b9b9b]">Tipologie</p>
+          <p className="text-sm text-[#9b9b9b]">Categorie</p>
         </NeumorphicCard>
 
         <NeumorphicCard className="p-6 text-center">
           <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <Calendar className="w-8 h-8 text-yellow-600" />
+            <Mail className="w-8 h-8 text-purple-600" />
           </div>
-          <h3 className="text-3xl font-bold text-yellow-600 mb-1">
-            {fornitori.filter(f => f.giorni_consegna && f.giorni_consegna.length > 0).length}
+          <h3 className="text-3xl font-bold text-purple-600 mb-1">
+            {suppliers.filter(s => s.contatto_email).length}
           </h3>
-          <p className="text-sm text-[#9b9b9b]">Con Calendario</p>
+          <p className="text-sm text-[#9b9b9b]">Con Email</p>
         </NeumorphicCard>
       </div>
-
-      {/* Search */}
-      <NeumorphicCard className="p-4">
-        <div className="flex items-center gap-3">
-          <Search className="w-5 h-5 text-[#9b9b9b]" />
-          <input
-            type="text"
-            placeholder="Cerca fornitore, P.IVA o tipologia..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-          />
-        </div>
-      </NeumorphicCard>
 
       {/* Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <NeumorphicCard className="max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
+          <NeumorphicCard className="max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6">
             <div className="flex items-center justify-between mb-6 sticky top-0 bg-[#e0e5ec] z-10 pb-4">
               <h2 className="text-2xl font-bold text-[#6b6b6b]">
-                {editingFornitore ? 'Modifica Fornitore' : 'Nuovo Fornitore'}
+                {editingSupplier ? 'Modifica Fornitore' : 'Nuovo Fornitore'}
               </h2>
               <button
                 onClick={resetForm}
@@ -260,13 +246,12 @@ export default function ElencoFornitori() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Anagrafica Section */}
+              {/* Anagrafica */}
               <div className="neumorphic-flat p-5 rounded-xl">
-                <div className="flex items-center gap-3 mb-4">
-                  <Building2 className="w-5 h-5 text-[#8b7355]" />
-                  <h3 className="font-bold text-[#6b6b6b]">Anagrafica</h3>
-                </div>
-
+                <h3 className="font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-[#8b7355]" />
+                  Anagrafica
+                </h3>
                 <div className="space-y-4">
                   <div>
                     <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
@@ -285,15 +270,14 @@ export default function ElencoFornitori() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                        Partita IVA <span className="text-red-600">*</span>
+                        Partita IVA
                       </label>
                       <input
                         type="text"
                         value={formData.partita_iva}
                         onChange={(e) => setFormData({ ...formData, partita_iva: e.target.value })}
-                        placeholder="es. 12345678901"
+                        placeholder="es. IT12345678901"
                         className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                        required
                       />
                     </div>
 
@@ -322,47 +306,40 @@ export default function ElencoFornitori() {
                       type="text"
                       value={formData.sede_legale}
                       onChange={(e) => setFormData({ ...formData, sede_legale: e.target.value })}
-                      placeholder="es. Via Roma 1, Milano"
+                      placeholder="es. Via Roma 123, Milano"
                       className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Dettagli Fornitore Section */}
+              {/* Dettagli Fornitore */}
               <div className="neumorphic-flat p-5 rounded-xl">
-                <div className="flex items-center gap-3 mb-4">
+                <h3 className="font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
                   <Package className="w-5 h-5 text-[#8b7355]" />
-                  <h3 className="font-bold text-[#6b6b6b]">Dettagli Fornitore</h3>
-                </div>
-
+                  Dettagli Fornitore
+                </h3>
                 <div className="space-y-4">
-                  {/* Giorni Consegna */}
                   <div>
-                    <label className="text-sm font-medium text-[#6b6b6b] mb-3 block flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
                       Giorni di Consegna
                     </label>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {giorniSettimana.map(giorno => (
-                        <div key={giorno} className="neumorphic-pressed p-3 rounded-lg">
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={formData.giorni_consegna.includes(giorno)}
-                              onChange={() => toggleGiornoConsegna(giorno)}
-                              className="w-4 h-4 rounded"
-                            />
-                            <span className="text-sm text-[#6b6b6b]">{giorno}</span>
-                          </label>
-                        </div>
+                    <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
+                      {Object.entries(giornoLabels).map(([day, label]) => (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => handleDayToggle(day)}
+                          className={`px-3 py-2 rounded-lg font-medium text-sm transition-all ${
+                            formData.giorni_consegna.includes(day)
+                              ? 'neumorphic-pressed text-[#8b7355]'
+                              : 'neumorphic-flat text-[#9b9b9b]'
+                          }`}
+                        >
+                          {label}
+                        </button>
                       ))}
                     </div>
-                    {formData.giorni_consegna.length > 0 && (
-                      <p className="text-xs text-green-600 mt-2">
-                        ✓ Consegne: {formData.giorni_consegna.join(', ')}
-                      </p>
-                    )}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -376,7 +353,7 @@ export default function ElencoFornitori() {
                         min="0"
                         value={formData.tempo_consegna_giorni}
                         onChange={(e) => setFormData({ ...formData, tempo_consegna_giorni: e.target.value })}
-                        placeholder="es. 2"
+                        placeholder="es. 3"
                         className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                       />
                     </div>
@@ -400,11 +377,26 @@ export default function ElencoFornitori() {
                 </div>
               </div>
 
-              {/* Contatti Section */}
+              {/* Contatti */}
               <div className="neumorphic-flat p-5 rounded-xl">
-                <h3 className="font-bold text-[#6b6b6b] mb-4">Contatti</h3>
-
+                <h3 className="font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
+                  <Phone className="w-5 h-5 text-[#8b7355]" />
+                  Contatti
+                </h3>
                 <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                      Nome Referente
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.referente_nome}
+                      onChange={(e) => setFormData({ ...formData, referente_nome: e.target.value })}
+                      placeholder="es. Mario Rossi"
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                    />
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
@@ -413,9 +405,9 @@ export default function ElencoFornitori() {
                       </label>
                       <input
                         type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        placeholder="ordini@fornitore.it"
+                        value={formData.contatto_email}
+                        onChange={(e) => setFormData({ ...formData, contatto_email: e.target.value })}
+                        placeholder="es. ordini@fornitore.it"
                         className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                       />
                     </div>
@@ -423,29 +415,16 @@ export default function ElencoFornitori() {
                     <div>
                       <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
                         <Phone className="w-4 h-4" />
-                        Telefono/WhatsApp
+                        Telefono
                       </label>
                       <input
                         type="tel"
-                        value={formData.telefono}
-                        onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                        placeholder="+39 123 456 7890"
+                        value={formData.contatto_telefono}
+                        onChange={(e) => setFormData({ ...formData, contatto_telefono: e.target.value })}
+                        placeholder="es. +39 02 1234567"
                         className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                       />
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                      Referente
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.referente}
-                      onChange={(e) => setFormData({ ...formData, referente: e.target.value })}
-                      placeholder="Nome referente"
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                    />
                   </div>
 
                   <div>
@@ -473,7 +452,7 @@ export default function ElencoFornitori() {
                   className="w-5 h-5 rounded"
                 />
                 <label htmlFor="attivo" className="text-sm font-medium text-[#6b6b6b]">
-                  Fornitore attivo
+                  Fornitore attivo (visibile nei prodotti)
                 </label>
               </div>
 
@@ -493,7 +472,7 @@ export default function ElencoFornitori() {
                   disabled={createMutation.isPending || updateMutation.isPending}
                 >
                   <Save className="w-5 h-5" />
-                  {editingFornitore ? 'Aggiorna' : 'Salva'}
+                  {editingSupplier ? 'Aggiorna' : 'Salva'}
                 </NeumorphicButton>
               </div>
             </form>
@@ -501,124 +480,114 @@ export default function ElencoFornitori() {
         </div>
       )}
 
-      {/* Fornitori List by Type */}
+      {/* Suppliers List by Type */}
       {isLoading ? (
         <NeumorphicCard className="p-12 text-center">
           <p className="text-[#9b9b9b]">Caricamento...</p>
         </NeumorphicCard>
-      ) : filteredFornitori.length === 0 ? (
+      ) : suppliers.length === 0 ? (
         <NeumorphicCard className="p-12 text-center">
           <Truck className="w-16 h-16 text-[#9b9b9b] mx-auto mb-4 opacity-50" />
-          <h3 className="text-xl font-bold text-[#6b6b6b] mb-2">
-            {searchTerm ? 'Nessun fornitore trovato' : 'Nessun fornitore'}
-          </h3>
-          <p className="text-[#9b9b9b] mb-4">
-            {searchTerm ? 'Prova a modificare i criteri di ricerca' : 'Inizia aggiungendo il primo fornitore'}
-          </p>
+          <h3 className="text-xl font-bold text-[#6b6b6b] mb-2">Nessun fornitore</h3>
+          <p className="text-[#9b9b9b] mb-4">Inizia aggiungendo il primo fornitore</p>
         </NeumorphicCard>
       ) : (
-        Object.entries(fornitoriPerTipo).map(([tipo, tipoFornitori]) => (
-          <NeumorphicCard key={tipo} className="p-6">
+        Object.entries(suppliersByType).map(([type, typeSuppliers]) => (
+          <NeumorphicCard key={type} className="p-6">
             <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">
-              {tipoFornitoreLabels[tipo] || tipo}
+              {tipoFornitoreLabels[type] || type}
               <span className="ml-2 text-sm font-normal text-[#9b9b9b]">
-                ({tipoFornitori.length} fornitori)
+                ({typeSuppliers.length} fornitori)
               </span>
             </h2>
 
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b-2 border-[#8b7355]">
-                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Ragione Sociale</th>
-                    <th className="text-left p-3 text-[#9b9b9b] font-medium">P.IVA</th>
-                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Consegne</th>
-                    <th className="text-center p-3 text-[#9b9b9b] font-medium">Tempi</th>
-                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Contatto</th>
-                    <th className="text-center p-3 text-[#9b9b9b] font-medium">Stato</th>
-                    <th className="text-center p-3 text-[#9b9b9b] font-medium">Azioni</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tipoFornitori.map((fornitore) => (
-                    <tr key={fornitore.id} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
-                      <td className="p-3">
-                        <div>
-                          <p className="font-medium text-[#6b6b6b]">{fornitore.ragione_sociale}</p>
-                          {fornitore.referente && (
-                            <p className="text-xs text-[#9b9b9b]">Ref: {fornitore.referente}</p>
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-3 text-[#6b6b6b] font-mono text-sm">
-                        {fornitore.partita_iva}
-                      </td>
-                      <td className="p-3">
-                        {fornitore.giorni_consegna && fornitore.giorni_consegna.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {fornitore.giorni_consegna.map(g => (
-                              <span key={g} className="px-2 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700">
-                                {g.substring(0, 3)}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-[#9b9b9b] text-sm">-</span>
-                        )}
-                      </td>
-                      <td className="p-3 text-center">
-                        {fornitore.tempo_consegna_giorni ? (
-                          <span className="font-bold text-[#8b7355]">
-                            {fornitore.tempo_consegna_giorni} gg
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {typeSuppliers.map((supplier) => (
+                <div key={supplier.id} className="neumorphic-pressed p-4 rounded-xl">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-bold text-[#6b6b6b] mb-1">{supplier.ragione_sociale}</h3>
+                      {supplier.partita_iva && (
+                        <p className="text-xs text-[#9b9b9b]">P.IVA: {supplier.partita_iva}</p>
+                      )}
+                    </div>
+                    {supplier.attivo !== false ? (
+                      <span className="px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                        ATTIVO
+                      </span>
+                    ) : (
+                      <span className="px-2 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700">
+                        INATTIVO
+                      </span>
+                    )}
+                  </div>
+
+                  {supplier.sede_legale && (
+                    <div className="flex items-start gap-2 mb-2">
+                      <MapPin className="w-4 h-4 text-[#9b9b9b] flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-[#6b6b6b]">{supplier.sede_legale}</p>
+                    </div>
+                  )}
+
+                  <div className="space-y-2 mb-3">
+                    {supplier.contatto_email && (
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-[#9b9b9b]" />
+                        <p className="text-sm text-[#6b6b6b]">{supplier.contatto_email}</p>
+                      </div>
+                    )}
+                    {supplier.contatto_telefono && (
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-[#9b9b9b]" />
+                        <p className="text-sm text-[#6b6b6b]">{supplier.contatto_telefono}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {supplier.giorni_consegna && supplier.giorni_consegna.length > 0 && (
+                    <div className="mb-3">
+                      <p className="text-xs text-[#9b9b9b] mb-1">Giorni consegna:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {supplier.giorni_consegna.map(day => (
+                          <span key={day} className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                            {giornoLabels[day]}
                           </span>
-                        ) : (
-                          <span className="text-[#9b9b9b]">-</span>
-                        )}
-                      </td>
-                      <td className="p-3">
-                        <div className="text-sm text-[#6b6b6b]">
-                          {fornitore.metodologia_ricezione_ordine && (
-                            <span className="px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
-                              {fornitore.metodologia_ricezione_ordine}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-3">
-                        <div className="flex justify-center">
-                          {fornitore.attivo !== false ? (
-                            <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
-                              ATTIVO
-                            </span>
-                          ) : (
-                            <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700">
-                              INATTIVO
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-3">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => handleEdit(fornitore)}
-                            className="neumorphic-flat p-2 rounded-lg hover:bg-blue-50 transition-colors"
-                            title="Modifica"
-                          >
-                            <Edit className="w-4 h-4 text-blue-600" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(fornitore.id)}
-                            className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
-                            title="Elimina"
-                          >
-                            <Trash2 className="w-4 h-4 text-red-600" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {supplier.tempo_consegna_giorni && (
+                    <div className="flex items-center gap-2 mb-3">
+                      <Clock className="w-4 h-4 text-[#9b9b9b]" />
+                      <p className="text-sm text-[#6b6b6b]">Consegna in {supplier.tempo_consegna_giorni} giorni</p>
+                    </div>
+                  )}
+
+                  {supplier.metodologia_ricezione_ordine && (
+                    <div className="mb-3">
+                      <p className="text-xs text-[#9b9b9b]">Ordini via: <span className="text-[#6b6b6b] font-medium">{supplier.metodologia_ricezione_ordine}</span></p>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 pt-3 border-t border-[#d1d1d1]">
+                    <button
+                      onClick={() => handleEdit(supplier)}
+                      className="flex-1 neumorphic-flat px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Edit className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-600">Modifica</span>
+                    </button>
+                    <button
+                      onClick={() => handleDelete(supplier.id)}
+                      className="flex-1 neumorphic-flat px-3 py-2 rounded-lg hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-600" />
+                      <span className="text-sm font-medium text-red-600">Elimina</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </NeumorphicCard>
         ))
