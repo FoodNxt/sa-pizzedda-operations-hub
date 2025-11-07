@@ -38,6 +38,7 @@ import Ricette from './pages/Ricette';
 import ControlloPulizieMaster from './pages/ControlloPulizieMaster';
 import GestioneAccessoPagine from './pages/GestioneAccessoPagine';
 import OrdiniSbagliati from './pages/OrdiniSbagliati';
+import MatchingOrdiniSbagliati from './pages/MatchingOrdiniSbagliati';
 import Layout from './Layout.jsx';
 
 
@@ -82,6 +83,7 @@ export const PAGES = {
     "ControlloPulizieMaster": ControlloPulizieMaster,
     "GestioneAccessoPagine": GestioneAccessoPagine,
     "OrdiniSbagliati": OrdiniSbagliati,
+    "MatchingOrdiniSbagliati": MatchingOrdiniSbagliati,
 }
 
 export const pagesConfig = {

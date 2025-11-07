@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -18,12 +19,14 @@ import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 export default function ControlloPulizieMaster() {
   const [showForm, setShowForm] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
+  const [roleFilter, setRoleFilter] = useState('all'); // NEW: Role filter
   const [formData, setFormData] = useState({
     testo_domanda: '',
     tipo_controllo: 'multipla',
     attrezzatura: '',
     opzioni_risposta: [''],
     ruoli_assegnati: [],
+    store_ids: [], // NEW: Store selection
     ordine: 0,
     obbligatoria: true,
     attiva: true
@@ -34,6 +37,12 @@ export default function ControlloPulizieMaster() {
   const { data: domande = [], isLoading } = useQuery({
     queryKey: ['domande-pulizia'],
     queryFn: () => base44.entities.DomandaPulizia.list('ordine'),
+  });
+
+  // NEW: Load stores for store selection
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores'],
+    queryFn: () => base44.entities.Store.list(),
   });
 
   const createMutation = useMutation({
@@ -66,6 +75,7 @@ export default function ControlloPulizieMaster() {
       attrezzatura: '',
       opzioni_risposta: [''],
       ruoli_assegnati: [],
+      store_ids: [], // NEW
       ordine: 0,
       obbligatoria: true,
       attiva: true
@@ -77,11 +87,12 @@ export default function ControlloPulizieMaster() {
   const handleEdit = (domanda) => {
     setEditingQuestion(domanda);
     setFormData({
-      testo_domanda: domanda.testo_domanda,
+      testo_domanda: domanda.testo_domanda || '',
       tipo_controllo: domanda.tipo_controllo,
       attrezzatura: domanda.attrezzatura || '',
       opzioni_risposta: domanda.opzioni_risposta || [''],
       ruoli_assegnati: domanda.ruoli_assegnati || [],
+      store_ids: domanda.store_ids || [], // NEW
       ordine: domanda.ordine || 0,
       obbligatoria: domanda.obbligatoria !== false,
       attiva: domanda.attiva !== false
@@ -92,39 +103,46 @@ export default function ControlloPulizieMaster() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!formData.testo_domanda.trim()) {
-      alert('Inserisci il testo della domanda');
-      return;
-    }
+    let dataToSubmit = { ...formData }; // Create a mutable copy
 
-    if (formData.ruoli_assegnati.length === 0) {
-      alert('Seleziona almeno un ruolo');
-      return;
-    }
-
-    if (formData.tipo_controllo === 'multipla') {
-      const opzioniValide = formData.opzioni_risposta.filter(o => o.trim());
+    // FIXED: Different validation for foto vs multipla
+    if (dataToSubmit.tipo_controllo === 'foto') {
+      if (!dataToSubmit.attrezzatura.trim()) {
+        alert("Specifica l'attrezzatura da fotografare");
+        return;
+      }
+      // For foto type, set testo_domanda = attrezzatura if empty
+      if (!dataToSubmit.testo_domanda.trim()) {
+        dataToSubmit.testo_domanda = `Foto: ${dataToSubmit.attrezzatura}`;
+      }
+    } else {
+      // multipla
+      if (!dataToSubmit.testo_domanda.trim()) {
+        alert('Inserisci il testo della domanda');
+        return;
+      }
+      const opzioniValide = dataToSubmit.opzioni_risposta.filter(o => o.trim());
       if (opzioniValide.length < 2) {
         alert('Aggiungi almeno 2 opzioni di risposta');
         return;
       }
-      formData.opzioni_risposta = opzioniValide;
+      dataToSubmit.opzioni_risposta = opzioniValide;
     }
 
-    if (formData.tipo_controllo === 'foto' && !formData.attrezzatura.trim()) {
-      alert('Specifica l\'attrezzatura da fotografare');
+    if (dataToSubmit.ruoli_assegnati.length === 0) {
+      alert('Seleziona almeno un ruolo');
       return;
     }
 
-    const data = {
-      ...formData,
-      ordine: parseInt(formData.ordine) || 0
+    const finalData = {
+      ...dataToSubmit,
+      ordine: parseInt(dataToSubmit.ordine) || 0
     };
 
     if (editingQuestion) {
-      updateMutation.mutate({ id: editingQuestion.id, data });
+      updateMutation.mutate({ id: editingQuestion.id, data: finalData });
     } else {
-      createMutation.mutate(data);
+      createMutation.mutate(finalData);
     }
   };
 
@@ -140,6 +158,15 @@ export default function ControlloPulizieMaster() {
       ruoli_assegnati: prev.ruoli_assegnati.includes(ruolo)
         ? prev.ruoli_assegnati.filter(r => r !== ruolo)
         : [...prev.ruoli_assegnati, ruolo]
+    }));
+  };
+
+  const toggleStore = (storeId) => {
+    setFormData(prev => ({
+      ...prev,
+      store_ids: prev.store_ids.includes(storeId)
+        ? prev.store_ids.filter(s => s !== storeId)
+        : [...prev.store_ids, storeId]
     }));
   };
 
@@ -174,6 +201,11 @@ export default function ControlloPulizieMaster() {
       default: return 'bg-gray-100 text-gray-700';
     }
   };
+
+  // NEW: Filter domande by role
+  const filteredDomande = roleFilter === 'all' 
+    ? domande 
+    : domande.filter(d => d.ruoli_assegnati?.includes(roleFilter));
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -297,26 +329,37 @@ export default function ControlloPulizieMaster() {
                   </div>
                 </div>
 
-                {/* Testo Domanda / Attrezzatura */}
-                <div>
-                  <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                    {formData.tipo_controllo === 'foto' ? 'Nome Attrezzatura' : 'Testo Domanda'} <span className="text-red-600">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.tipo_controllo === 'foto' ? formData.attrezzatura : formData.testo_domanda}
-                    onChange={(e) => formData.tipo_controllo === 'foto' 
-                      ? setFormData({ ...formData, attrezzatura: e.target.value })
-                      : setFormData({ ...formData, testo_domanda: e.target.value })}
-                    placeholder={formData.tipo_controllo === 'foto' ? 'es. Forno, Frigo, Lavandino...' : 'es. La pulizia dei pavimenti è soddisfacente?'}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                  />
-                  {formData.tipo_controllo === 'foto' && (
+                {/* UPDATED: Conditional input based on tipo_controllo */}
+                {formData.tipo_controllo === 'foto' ? (
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                      Nome Attrezzatura <span className="text-red-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.attrezzatura}
+                      onChange={(e) => setFormData({ ...formData, attrezzatura: e.target.value })}
+                      placeholder="es. Forno, Frigo, Lavandino..."
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                    />
                     <p className="text-xs text-[#9b9b9b] mt-2">
-                      💡 Specifica quale attrezzatura va fotografata (es. Forno, Impastatrice, Frigo)
+                      💡 Specifica quale attrezzatura va fotografata
                     </p>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                      Testo Domanda <span className="text-red-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.testo_domanda}
+                      onChange={(e) => setFormData({ ...formData, testo_domanda: e.target.value })}
+                      placeholder="es. La pulizia dei pavimenti è soddisfacente?"
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                    />
+                  </div>
+                )}
 
                 {/* Opzioni Risposta (solo per multipla) */}
                 {formData.tipo_controllo === 'multipla' && (
@@ -381,7 +424,36 @@ export default function ControlloPulizieMaster() {
                   </div>
                 </div>
 
-                {/* Ordine */}
+                {/* NEW: Store Selection */}
+                <div>
+                  <label className="text-sm font-medium text-[#6b6b6b] mb-3 block">
+                    Negozi (vuoto = tutti)
+                  </label>
+                  <div className="neumorphic-pressed p-4 rounded-xl max-h-48 overflow-y-auto">
+                    {stores.length > 0 ? (
+                      <div className="space-y-2">
+                        {stores.map(store => (
+                          <label key={store.id} className="flex items-center gap-2 cursor-pointer hover:bg-[#d5dae3] p-2 rounded">
+                            <input
+                              type="checkbox"
+                              checked={formData.store_ids.includes(store.id)}
+                              onChange={() => toggleStore(store.id)}
+                              className="w-4 h-4 rounded"
+                            />
+                            <span className="text-sm text-[#6b6b6b]">{store.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-[#9b9b9b]">Nessun negozio disponibile</p>
+                    )}
+                  </div>
+                  <p className="text-xs text-[#9b9b9b] mt-2">
+                    💡 Se non selezioni nessun negozio, la domanda si applicherà a tutti
+                  </p>
+                </div>
+
+                {/* Ordine & Flags */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
@@ -446,21 +518,37 @@ export default function ControlloPulizieMaster() {
 
       {/* Domande List */}
       <NeumorphicCard className="p-6">
-        <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Lista Domande</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-[#6b6b6b]">Lista Domande</h2>
+          
+          {/* NEW: Role Filter */}
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="neumorphic-pressed px-4 py-2 rounded-lg text-[#6b6b6b] outline-none"
+          >
+            <option value="all">Tutti i Ruoli</option>
+            <option value="Cassiere">Cassiere</option>
+            <option value="Pizzaiolo">Pizzaiolo</option>
+            <option value="Store Manager">Store Manager</option>
+          </select>
+        </div>
 
         {isLoading ? (
           <div className="text-center py-12">
             <p className="text-[#9b9b9b]">Caricamento...</p>
           </div>
-        ) : domande.length === 0 ? (
+        ) : filteredDomande.length === 0 ? (
           <div className="text-center py-12">
             <CheckSquare className="w-16 h-16 text-[#9b9b9b] mx-auto mb-4 opacity-50" />
-            <h3 className="text-xl font-bold text-[#6b6b6b] mb-2">Nessuna domanda</h3>
+            <h3 className="text-xl font-bold text-[#6b6b6b] mb-2">
+              {roleFilter === 'all' ? 'Nessuna domanda' : `Nessuna domanda per ${roleFilter}`}
+            </h3>
             <p className="text-[#9b9b9b]">Inizia creando la prima domanda di controllo</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {domande.map((domanda) => (
+            {filteredDomande.map((domanda) => (
               <div key={domanda.id} className="neumorphic-flat p-5 rounded-xl">
                 <div className="flex items-start gap-4">
                   <div className="neumorphic-pressed p-2 rounded-lg cursor-move">
@@ -488,6 +576,11 @@ export default function ControlloPulizieMaster() {
                             )}
                             {domanda.attiva === false && (
                               <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">Disattivata</span>
+                            )}
+                            {domanda.store_ids && domanda.store_ids.length > 0 && (
+                              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                                {domanda.store_ids.length} negozi
+                              </span>
                             )}
                           </div>
                         </div>
@@ -548,6 +641,7 @@ export default function ControlloPulizieMaster() {
             <ul className="text-xs space-y-1 list-disc list-inside">
               <li>Crea domande a <strong>risposta multipla</strong> o <strong>con foto</strong></li>
               <li>Assegna ogni domanda a uno o più ruoli (Cassiere, Pizzaiolo, Store Manager)</li>
+              <li>Seleziona i negozi specifici o lascia vuoto per applicare a tutti</li>
               <li>Le domande appariranno automaticamente nei rispettivi form di controllo</li>
               <li>Usa l'<strong>ordine</strong> per definire la sequenza di visualizzazione</li>
               <li>Puoi disattivare temporaneamente una domanda senza eliminarla</li>

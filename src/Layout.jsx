@@ -27,7 +27,8 @@ import {
   ClipboardList,
   ChefHat, // Added ChefHat icon
   CheckSquare, // Added CheckSquare icon
-  Truck // Added Truck icon for Delivery
+  Truck, // Added Truck icon for Delivery
+  Link as LinkIcon // Added LinkIcon for Matching Ordini Sbagliati
 } from "lucide-react";
 import CompleteProfileModal from "./components/auth/CompleteProfileModal";
 
@@ -227,6 +228,11 @@ const navigationStructure = [
         title: "Ordini Sbagliati",
         url: createPageUrl("OrdiniSbagliati"),
         icon: AlertTriangle,
+      },
+      {
+        title: "Matching Ordini Sbagliati",
+        url: createPageUrl("MatchingOrdiniSbagliati"),
+        icon: LinkIcon, // Using LinkIcon from lucide-react
       }
     ]
   },

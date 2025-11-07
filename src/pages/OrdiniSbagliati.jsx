@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -47,6 +48,49 @@ export default function OrdiniSbagliati() {
       queryClient.invalidateQueries({ queryKey: ['store-mappings'] });
     },
   });
+
+  // NEW: Parse Deliveroo date format "2 Aug 2025 at 19:55"
+  const parseDeliverooDate = (dateString) => {
+    try {
+      // Format: "2 Aug 2025 at 19:55"
+      const parts = dateString.split(' at ');
+      if (parts.length === 2) {
+        const datePart = parts[0]; // "2 Aug 2025"
+        const timePart = parts[1]; // "19:55"
+        
+        // Parse date
+        const dateComponents = datePart.split(' '); // ["2", "Aug", "2025"]
+        const day = dateComponents[0];
+        const month = dateComponents[1];
+        const year = dateComponents[2];
+        
+        // Convert month name to number
+        const months = {
+          'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',
+          'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
+          'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
+        };
+        
+        const monthNum = months[month];
+        if (!monthNum) return null;
+        
+        // Build ISO string: YYYY-MM-DDTHH:MM:SS
+        const isoString = `${year}-${monthNum}-${day.padStart(2, '0')}T${timePart}:00`;
+        const date = new Date(isoString);
+        
+        if (isNaN(date.getTime())) return null;
+        return date.toISOString();
+      }
+      
+      // Fallback to standard parsing
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return null;
+      return date.toISOString();
+    } catch (error) {
+      console.error('Error parsing date:', dateString, error);
+      return null;
+    }
+  };
 
   const parseCsvLine = (line) => {
     const values = [];
@@ -202,10 +246,23 @@ export default function OrdiniSbagliati() {
           }
         }
 
+        // UPDATED: Handle date parsing based on platform
+        let parsedDate;
+        if (selectedPlatform === 'deliveroo') {
+          parsedDate = parseDeliverooDate(record[orderDateField]);
+        } else {
+          parsedDate = record[orderDateField] ? new Date(record[orderDateField]).toISOString() : new Date().toISOString();
+        }
+
+        if (!parsedDate) {
+          console.error('Failed to parse date:', record[orderDateField]);
+          continue; // Skip this record if date parsing fails
+        }
+
         const wrongOrder = {
           platform: selectedPlatform,
           order_id: record[orderIdField],
-          order_date: record[orderDateField] ? new Date(record[orderDateField]).toISOString() : new Date().toISOString(),
+          order_date: parsedDate,
           store_name: platformStoreName,
           store_id: storeMatch ? storeMatch.store_id : null,
           store_matched: !!storeMatch,
@@ -299,7 +356,14 @@ export default function OrdiniSbagliati() {
     total: wrongOrders.length,
     glovo: wrongOrders.filter(o => o.platform === 'glovo').length,
     deliveroo: wrongOrders.filter(o => o.platform === 'deliveroo').length,
-    totalRefunds: wrongOrders.reduce((sum, o) => sum + (o.refund_value || 0), 0)
+    totalRefunds: wrongOrders.reduce((sum, o) => sum + (o.refund_value || 0), 0),
+    // NEW: Last order dates
+    lastGlovoOrder: wrongOrders.filter(o => o.platform === 'glovo').sort((a, b) => 
+      new Date(b.order_date) - new Date(a.order_date)
+    )[0],
+    lastDeliverooOrder: wrongOrders.filter(o => o.platform === 'deliveroo').sort((a, b) => 
+      new Date(b.order_date) - new Date(a.order_date)
+    )[0]
   };
 
   return (
@@ -326,6 +390,11 @@ export default function OrdiniSbagliati() {
           </div>
           <h3 className="text-3xl font-bold text-orange-600 mb-1">{stats.glovo}</h3>
           <p className="text-sm text-[#9b9b9b]">Glovo</p>
+          {stats.lastGlovoOrder && (
+            <p className="text-xs text-[#9b9b9b] mt-2">
+              Ultimo: {new Date(stats.lastGlovoOrder.order_date).toLocaleDateString('it-IT')}
+            </p>
+          )}
         </NeumorphicCard>
 
         <NeumorphicCard className="p-6 text-center">
@@ -334,6 +403,11 @@ export default function OrdiniSbagliati() {
           </div>
           <h3 className="text-3xl font-bold text-teal-600 mb-1">{stats.deliveroo}</h3>
           <p className="text-sm text-[#9b9b9b]">Deliveroo</p>
+          {stats.lastDeliverooOrder && (
+            <p className="text-xs text-[#9b9b9b] mt-2">
+              Ultimo: {new Date(stats.lastDeliverooOrder.order_date).toLocaleDateString('it-IT')}
+            </p>
+          )}
         </NeumorphicCard>
 
         <NeumorphicCard className="p-6 text-center">
