@@ -56,17 +56,26 @@ export default function Employees() {
     queryFn: () => base44.entities.Review.list(),
   });
 
-  // NEW: Load wrong order matches
-  const { data: wrongOrderMatches = [] } = useQuery({
-    queryKey: ['wrong-order-matches'],
+  // Load ALL wrong order matches
+  const { data: allWrongOrderMatches = [] } = useQuery({
+    queryKey: ['all-wrong-order-matches'], // Changed key to differentiate from filtered one
     queryFn: () => base44.entities.WrongOrderMatch.list(),
   });
 
-  // NEW: Load wrong orders for details
+  // NEW: Load wrong orders to filter matches
   const { data: wrongOrders = [] } = useQuery({
     queryKey: ['wrong-orders'],
-    queryFn: () => base44.entities.WrongOrder.list(),
+    queryFn: async () => {
+      const orders = await base44.entities.WrongOrder.list('-order_date');
+      return orders.filter(o => o.store_matched);
+    },
   });
+
+  // FIXED: Filter matches to only include current orders
+  const currentOrderIds = useMemo(() => new Set(wrongOrders.map(o => o.id)), [wrongOrders]);
+  const wrongOrderMatches = useMemo(() =>
+    allWrongOrderMatches.filter(m => currentOrderIds.has(m.wrong_order_id))
+  , [allWrongOrderMatches, currentOrderIds]);
 
   // Helper function to deduplicate shifts
   const deduplicateShifts = (shiftsArray) => {
@@ -162,7 +171,7 @@ export default function Employees() {
 
         try {
           const reviewDate = parseISO(review.review_date);
-          if (isNaN(reviewDate.getTime())) return false; // Check if date is valid
+          if (isNaN(reviewDate.getTime())) return false;
           
           const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
           const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
@@ -175,7 +184,7 @@ export default function Employees() {
             return reviewDate <= end;
           }
         } catch (e) {
-          return false; // Skip reviews with invalid dates
+          return false;
         }
         return true;
       });
@@ -192,7 +201,7 @@ export default function Employees() {
           
           try {
             const shiftDate = parseISO(s.shift_date);
-            if (isNaN(shiftDate.getTime())) return false; // Check if date is valid
+            if (isNaN(shiftDate.getTime())) return false;
             
             const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
             const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
@@ -205,7 +214,7 @@ export default function Employees() {
               return shiftDate <= end;
             }
           } catch (e) {
-            return false; // Skip shifts with invalid dates
+            return false;
           }
         }
 
@@ -221,7 +230,7 @@ export default function Employees() {
         
         // Apply date filter if set
         if (startDate || endDate) {
-          if (!m.order_date) return false; // Assuming 'order_date' field exists on WrongOrderMatch entity
+          if (!m.order_date) return false;
           
           try {
             const orderDate = parseISO(m.order_date);
@@ -245,11 +254,11 @@ export default function Employees() {
         return true;
       });
 
-      const wrongOrders = employeeWrongOrders.length;
+      const wrongOrdersCount = employeeWrongOrders.length; // Renamed to avoid confusion with `wrongOrders` array
 
       // Calculate wrong order rate (per shifts worked)
       const wrongOrderRate = employeeShifts.length > 0
-        ? (wrongOrders / employeeShifts.length) * 100
+        ? (wrongOrdersCount / employeeShifts.length) * 100
         : 0;
 
       const totalLateMinutes = employeeShifts.reduce((sum, s) => sum + (s.minuti_di_ritardo || 0), 0);
@@ -299,7 +308,7 @@ export default function Employees() {
 
       return {
         ...employee,
-        wrongOrders,
+        wrongOrders: wrongOrdersCount, // Using the new count
         wrongOrderRate,
         // avgProcessingTime is no longer calculated
         // avgSatisfaction is no longer calculated
@@ -319,7 +328,7 @@ export default function Employees() {
         googleReviewCount: googleReviews.length
       };
     });
-  }, [employees, shifts, reviews, wrongOrderMatches, startDate, endDate]); // Updated dependencies
+  }, [employees, shifts, reviews, wrongOrderMatches, startDate, endDate]);
 
   // Filter and sort employees
   const filteredEmployees = useMemo(() => {
@@ -365,16 +374,11 @@ export default function Employees() {
           valueA = a.avgGoogleRating;
           valueB = b.avgGoogleRating;
           break;
-        // The 'satisfaction' sort option is removed as the column is no longer displayed.
-        // case 'satisfaction':
-        //   valueA = a.avgSatisfaction;
-        //   valueB = b.avgSatisfaction;
-        //   break;
         default:
           valueA = a.performanceScore;
           valueB = b.performanceScore;
       }
-      return sortOrder === 'desc' ? valueB - valueA : valueA - valueB; // Corrected sort logic
+      return sortOrder === 'desc' ? valueB - valueA : valueA - valueB;
     });
 
     return filtered;
@@ -935,7 +939,7 @@ export default function Employees() {
               <button
                 onClick={() => {
                   setSelectedEmployee(null);
-                  setExpandedView(null); // Reset expanded view when closing modal
+                  setExpandedView(null);
                 }}
                 className="neumorphic-flat px-4 py-2 rounded-lg text-[#6b6b6b]"
               >
