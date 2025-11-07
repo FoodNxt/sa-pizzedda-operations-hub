@@ -33,14 +33,26 @@ export default function Dashboard() {
     queryFn: () => base44.entities.iPratico.list('-order_date', 1000),
   });
 
+  // Helper function to safely parse dates
+  const safeParseDate = (dateString) => {
+    if (!dateString) return null;
+    try {
+      const date = parseISO(dateString);
+      if (isNaN(date.getTime())) return null;
+      return date;
+    } catch (e) {
+      return null;
+    }
+  };
+
   // Process data with date filters
   const processedData = useMemo(() => {
     let cutoffDate;
     let endFilterDate;
     
     if (startDate || endDate) {
-      cutoffDate = startDate ? parseISO(startDate) : new Date(0);
-      endFilterDate = endDate ? parseISO(endDate) : new Date();
+      cutoffDate = startDate ? safeParseDate(startDate) : new Date(0);
+      endFilterDate = endDate ? safeParseDate(endDate) : new Date();
     } else {
       const days = parseInt(dateRange);
       cutoffDate = subDays(new Date(), days);
@@ -50,8 +62,8 @@ export default function Dashboard() {
     const filteredData = iPraticoData.filter(item => {
       if (item.order_date) {
         try {
-          const itemDate = parseISO(item.order_date);
-          if (isNaN(itemDate.getTime())) return false; // Check if date is valid
+          const itemDate = safeParseDate(item.order_date);
+          if (!itemDate) return false; // Skip invalid dates
           if (isBefore(itemDate, cutoffDate) || isAfter(itemDate, endFilterDate)) {
             return false;
           }
@@ -74,20 +86,42 @@ export default function Dashboard() {
     const revenueByDate = {};
     filteredData.forEach(item => {
       if (item.order_date) {
-        const date = item.order_date;
-        if (!revenueByDate[date]) {
-          revenueByDate[date] = { date, revenue: 0 };
+        try {
+          const date = safeParseDate(item.order_date);
+          if (!date) return;
+          const dateStr = item.order_date;
+          if (!revenueByDate[dateStr]) {
+            revenueByDate[dateStr] = { date: dateStr, revenue: 0 };
+          }
+          revenueByDate[dateStr].revenue += item.total_revenue || 0;
+        } catch (e) {
+          // Skip invalid dates
         }
-        revenueByDate[date].revenue += item.total_revenue || 0;
       }
     });
 
     const dailyRevenue = Object.values(revenueByDate)
-      .sort((a, b) => new Date(a.date) - new Date(b.date))
-      .map(d => ({
-        date: format(new Date(d.date), 'dd MMM'),
-        revenue: parseFloat(d.revenue.toFixed(2))
-      }));
+      .sort((a, b) => {
+        const dateA = safeParseDate(a.date);
+        const dateB = safeParseDate(b.date);
+        if (!dateA || !dateB) return 0;
+        return dateA.getTime() - dateB.getTime();
+      })
+      .map(d => {
+        try {
+          const date = safeParseDate(d.date);
+          return {
+            date: date ? format(date, 'dd MMM') : 'N/A',
+            revenue: parseFloat(d.revenue.toFixed(2))
+          };
+        } catch (e) {
+          return {
+            date: 'N/A',
+            revenue: parseFloat(d.revenue.toFixed(2))
+          };
+        }
+      })
+      .filter(d => d.date !== 'N/A'); // Remove invalid dates
 
     return { totalRevenue, totalOrders, dailyRevenue };
   }, [iPraticoData, dateRange, startDate, endDate]);

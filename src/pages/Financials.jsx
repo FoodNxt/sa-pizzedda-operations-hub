@@ -24,6 +24,18 @@ export default function Financials() {
     queryFn: () => base44.entities.iPratico.list('-order_date', 1000), // Fetches up to 1000 records, sorted by order_date
   });
 
+  // Helper function to safely parse dates
+  const safeParseDate = (dateString) => {
+    if (!dateString) return null;
+    try {
+      const date = parseISO(dateString);
+      if (isNaN(date.getTime())) return null;
+      return date;
+    } catch (e) {
+      return null;
+    }
+  };
+
   // Process and filter data
   const processedData = useMemo(() => {
     let cutoffDate;
@@ -31,8 +43,8 @@ export default function Financials() {
     
     if (startDate || endDate) {
       // Ensure time components are set for accurate range filtering covering whole days
-      cutoffDate = startDate ? parseISO(startDate + 'T00:00:00') : new Date(0); // Epoch start if no start date
-      endFilterDate = endDate ? parseISO(endDate + 'T23:59:59') : new Date(); // Current time if no end date
+      cutoffDate = startDate ? safeParseDate(startDate + 'T00:00:00') : new Date(0); // Epoch start if no start date
+      endFilterDate = endDate ? safeParseDate(endDate + 'T23:59:59') : new Date(); // Current time if no end date
     } else {
       const days = parseInt(dateRange, 10); // Parse string to number
       cutoffDate = subDays(new Date(), days);
@@ -47,11 +59,11 @@ export default function Financials() {
           // iPratico data's order_date is assumed to be 'YYYY-MM-DD'.
           // To compare against cutoffDate and endFilterDate (which include time),
           // we define the full day range for the item's order_date.
-          const itemDateStart = parseISO(item.order_date + 'T00:00:00');
-          const itemDateEnd = parseISO(item.order_date + 'T23:59:59');
+          const itemDateStart = safeParseDate(item.order_date + 'T00:00:00');
+          const itemDateEnd = safeParseDate(item.order_date + 'T23:59:59');
           
           // Check if dates are valid
-          if (isNaN(itemDateStart.getTime()) || isNaN(itemDateEnd.getTime())) {
+          if (!itemDateStart || !itemDateEnd) {
             return false;
           }
 
@@ -97,13 +109,31 @@ export default function Financials() {
     });
 
     const dailyRevenue = Object.values(revenueByDate)
-      .sort((a, b) => new Date(a.date) - new Date(b.date))
-      .map(d => ({
-        date: format(parseISO(d.date), 'dd/MM'), // Ensure date is parsed before formatting
-        revenue: parseFloat(d.revenue.toFixed(2)),
-        orders: d.orders,
-        avgValue: d.orders > 0 ? parseFloat((d.revenue / d.orders).toFixed(2)) : 0
-      }));
+      .sort((a, b) => {
+        const dateA = safeParseDate(a.date);
+        const dateB = safeParseDate(b.date);
+        if (!dateA || !dateB) return 0;
+        return dateA.getTime() - dateB.getTime();
+      })
+      .map(d => {
+        try {
+          const parsedDate = safeParseDate(d.date);
+          return {
+            date: parsedDate ? format(parsedDate, 'dd/MM') : 'N/A',
+            revenue: parseFloat(d.revenue.toFixed(2)),
+            orders: d.orders,
+            avgValue: d.orders > 0 ? parseFloat((d.revenue / d.orders).toFixed(2)) : 0
+          };
+        } catch (e) {
+          return {
+            date: 'N/A',
+            revenue: parseFloat(d.revenue.toFixed(2)),
+            orders: d.orders,
+            avgValue: d.orders > 0 ? parseFloat((d.revenue / d.orders).toFixed(2)) : 0
+          };
+        }
+      })
+      .filter(d => d.date !== 'N/A');
 
     // Revenue by store
     const revenueByStore = {};
