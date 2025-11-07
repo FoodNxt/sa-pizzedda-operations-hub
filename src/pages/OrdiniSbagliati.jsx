@@ -24,6 +24,7 @@ export default function OrdiniSbagliati() {
   const [showMappingModal, setShowMappingModal] = useState(false);
   const [unmappedStores, setUnmappedStores] = useState([]);
   const [storeMapping, setStoreMapping] = useState({});
+  const [showAllOrders, setShowAllOrders] = useState(false); // NEW: state for showing all orders
 
   const queryClient = useQueryClient();
 
@@ -576,7 +577,19 @@ export default function OrdiniSbagliati() {
 
       {/* Orders List */}
       <NeumorphicCard className="p-6">
-        <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Ultimi Ordini Importati</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-[#6b6b6b]">Ultimi Ordini Importati</h2>
+          
+          {/* NEW: Toggle button to show all orders */}
+          {wrongOrders.length > 20 && (
+            <button
+              onClick={() => setShowAllOrders(!showAllOrders)}
+              className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors"
+            >
+              {showAllOrders ? `Mostra ultimi 20` : `Mostra tutti (${wrongOrders.length})`}
+            </button>
+          )}
+        </div>
 
         {wrongOrders.length === 0 ? (
           <div className="text-center py-12">
@@ -599,7 +612,7 @@ export default function OrdiniSbagliati() {
                 </tr>
               </thead>
               <tbody>
-                {wrongOrders.map((order) => (
+                {wrongOrders.slice(0, showAllOrders ? undefined : 20).map((order) => (
                   <tr key={order.id} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
                     <td className="p-3">
                       <span className={`px-3 py-1 rounded-full text-xs font-bold ${

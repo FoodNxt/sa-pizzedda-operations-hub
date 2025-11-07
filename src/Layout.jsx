@@ -95,6 +95,7 @@ const navigationStructure = [
         url: createPageUrl("ChannelComparison"),
         icon: BarChart3,
       },
+      // Removed "Daily Aggregation"
       {
         title: "Storico Cassa",
         url: createPageUrl("StoricoCassa"),
@@ -119,11 +120,6 @@ const navigationStructure = [
         icon: ChefHat,
       },
       {
-        title: "Inventario", // CHANGED from "Quantità Minime"
-        url: createPageUrl("QuantitaMinime"),
-        icon: Package, // Changed icon from AlertTriangle to Package
-      },
-      {
         title: "Form Inventario",
         url: createPageUrl("FormInventario"),
         icon: ClipboardList,
@@ -134,9 +130,9 @@ const navigationStructure = [
         icon: ClipboardList,
       },
       {
-        title: "Inventario Admin", // NEW
-        url: createPageUrl("InventarioAdmin"),
-        icon: ClipboardCheck,
+        title: "Inventario", // CHANGED from "Quantità Minime"
+        url: createPageUrl("QuantitaMinime"),
+        icon: AlertTriangle,
       },
       {
         title: "Teglie Buttate",
@@ -195,7 +191,7 @@ const navigationStructure = [
         icon: Zap,
       },
       {
-        title: "Controllo Pulizie Master",
+        title: "Controllo Pulizie Master", // New item added here
         url: createPageUrl("ControlloPulizieMaster"),
         icon: CheckSquare,
       },
@@ -204,7 +200,7 @@ const navigationStructure = [
         url: createPageUrl("ControlloPuliziaCassiere"),
         icon: Camera,
         requiredUserType: ["admin", "manager"],
-        requiredRole: null
+        requiredRole: null // Accessible to admin/manager without role restriction
       },
       {
         title: "Controllo Pulizia Pizzaiolo",
@@ -222,7 +218,7 @@ const navigationStructure = [
       }
     ]
   },
-  {
+  { // NEW: Delivery section
     title: "Delivery",
     icon: Truck,
     type: "section",
@@ -236,7 +232,7 @@ const navigationStructure = [
       {
         title: "Matching Ordini Sbagliati",
         url: createPageUrl("MatchingOrdiniSbagliati"),
-        icon: LinkIcon,
+        icon: LinkIcon, // Using LinkIcon from lucide-react
       }
     ]
   },
@@ -334,7 +330,7 @@ const navigationStructure = [
       }
     ]
   },
-  {
+  { // New "Sistema" section
     title: "Sistema",
     icon: User,
     type: "section",
@@ -345,7 +341,7 @@ const navigationStructure = [
         url: createPageUrl("UsersManagement"),
         icon: Users,
       },
-      {
+      { // NEW: Gestione Accesso Pagine
         title: "Gestione Accesso Pagine",
         url: createPageUrl("GestioneAccessoPagine"),
         icon: CheckSquare,
@@ -380,19 +376,25 @@ export default function Layout({ children, currentPageName }) {
         const user = await base44.auth.me();
         setCurrentUser(user);
 
+        // ALWAYS show modal if profile was not manually completed
+        // This catches both new registrations and Google logins
         const needsProfile = !user.profile_manually_completed;
         setShowProfileModal(needsProfile);
 
+        // CRITICAL RESTRICTION FOR DIPENDENTE WITH NO ROLES
         if (user.user_type === 'dipendente') {
           const userRoles = user.ruoli_dipendente || [];
 
+          // If dipendente has NO roles, ONLY allow access to ProfiloDipendente
           if (userRoles.length === 0) {
+            // If not on profile page, redirect
             if (location.pathname !== createPageUrl("ProfiloDipendente")) {
               navigate(createPageUrl("ProfiloDipendente"), { replace: true });
             }
-            return;
+            return; // Stop further checks
           }
 
+          // If dipendente HAS roles, redirect from restricted pages to Valutazione
           const isOnRestrictedPage =
             location.pathname === createPageUrl("Dashboard") ||
             location.pathname === createPageUrl("StoreReviews") ||
@@ -416,6 +418,7 @@ export default function Layout({ children, currentPageName }) {
 
   const handleProfileComplete = () => {
     setShowProfileModal(false);
+    // Refresh user data
     base44.auth.me().then(user => {
       setCurrentUser(user);
     }).catch(error => {
@@ -451,13 +454,20 @@ export default function Layout({ children, currentPageName }) {
     const userType = currentUser.user_type || 'dipendente';
     const userRoles = currentUser.ruoli_dipendente || [];
 
+    // CRITICAL: If dipendente has NO roles, ONLY show Profilo (handled by finalNavigation special case)
+    // All other navigation items for such a user should be hidden by default
     if (userType === 'dipendente' && userRoles.length === 0) {
+      // This will prevent all sections/items from showing up in filteredNavigation
+      // The only exception (Profilo) will be hardcoded into finalNavigation
       return false;
     }
 
+    // Check user type
     if (!requiredUserType.includes(userType)) return false;
 
+    // Check role if specified and user is a dipendente
     if (requiredRole && userType === 'dipendente') {
+      // User must have the required role in their roles array
       return userRoles.includes(requiredRole);
     }
 
@@ -472,6 +482,7 @@ export default function Layout({ children, currentPageName }) {
     }))
     .filter(section => section.items.length > 0);
 
+  // SPECIAL CASE: If dipendente with NO roles, show ONLY Profilo in navigation
   const finalNavigation = currentUser?.user_type === 'dipendente' && (currentUser.ruoli_dipendente || []).length === 0
     ? [{
         title: "Il Mio Profilo",
@@ -487,6 +498,7 @@ export default function Layout({ children, currentPageName }) {
 
   const getUserDisplayName = () => {
     if (!currentUser) return 'Caricamento...';
+    // Prioritize nome_cognome, fallback to full_name
     return currentUser.nome_cognome || currentUser.full_name || currentUser.email || 'Utente';
   };
 
