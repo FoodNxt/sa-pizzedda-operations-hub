@@ -73,6 +73,37 @@ export default function MatchingOrdiniSbagliati() {
     },
   });
 
+  // FIXED: Deduplicate shifts function
+  const deduplicateShifts = (shiftsArray) => {
+    const uniqueShiftsMap = new Map();
+
+    shiftsArray.forEach(shift => {
+      const normalizedDate = shift.shift_date ? new Date(shift.shift_date).toISOString().split('T')[0] : 'no-date';
+      const normalizedStart = shift.scheduled_start ? new Date(shift.scheduled_start).toISOString().substring(11, 16) : 'no-start';
+      const normalizedEnd = shift.scheduled_end ? new Date(shift.scheduled_end).toISOString().substring(11, 16) : 'no-end';
+      
+      // Normalize employee name (trim spaces)
+      const normalizedEmployeeName = shift.employee_name?.trim() || 'no-name';
+      
+      const key = `${normalizedEmployeeName}|${shift.store_id || 'no-store'}|${normalizedDate}|${normalizedStart}|${normalizedEnd}`;
+
+      if (!uniqueShiftsMap.has(key)) {
+        uniqueShiftsMap.set(key, shift);
+      } else {
+        const existing = uniqueShiftsMap.get(key);
+        // If a duplicate is found, keep the one with the earlier created_date (if available)
+        // or just the first one encountered if no created_date or created_date is newer
+        if (shift.created_date && existing.created_date &&
+            new Date(shift.created_date) < new Date(existing.created_date)) {
+          uniqueShiftsMap.set(key, shift);
+        }
+      }
+    });
+
+    return Array.from(uniqueShiftsMap.values());
+  };
+
+
   const handleAutoMatch = async () => {
     setMatching(true);
     setMatchResult(null);
@@ -109,7 +140,8 @@ export default function MatchingOrdiniSbagliati() {
         const orderDateStr = orderDateTime.toISOString().split('T')[0];
         const orderTime = orderDateTime.getTime();
         
-        log.push(`   🕐 Timestamp ordine: ${orderDateTime.toISOString()}`);
+        log.push(`   🕐 Timestamp ordine (UTC): ${orderDateTime.toISOString()}`);
+        log.push(`   🕐 Timestamp ordine (CET): ${orderDateTime.toLocaleString('it-IT', { timeZone: 'Europe/Rome' })}`);
 
         // Filter shifts for this store and date
         const sameDayShifts = shifts.filter(shift => {
@@ -122,23 +154,28 @@ export default function MatchingOrdiniSbagliati() {
 
         log.push(`   📋 Turni stesso giorno e negozio: ${sameDayShifts.length}`);
 
+        // FIXED: Deduplicate BEFORE filtering
+        const uniqueShifts = deduplicateShifts(sameDayShifts);
+        log.push(`   🔄 Turni dopo deduplicazione: ${uniqueShifts.length}`);
+
+
         // FIXED: Filter shifts with exclusions
-        const relevantShifts = sameDayShifts.filter(shift => {
+        const relevantShifts = uniqueShifts.filter(shift => {
           // EXCLUDE certain shift types
           if (shift.shift_type && excludedShiftTypes.includes(shift.shift_type)) {
-            log.push(`   ⛔ Escluso ${shift.employee_name} (${shift.id}) - shift_type: ${shift.shift_type}`);
+            log.push(`   ⛔ Escluso ${shift.employee_name?.trim()} (${shift.id}) - shift_type: ${shift.shift_type}`);
             return false;
           }
           
           // EXCLUDE certain employee groups
           if (shift.employee_group_name && excludedEmployeeGroups.includes(shift.employee_group_name)) {
-            log.push(`   ⛔ Escluso ${shift.employee_name} (${shift.id}) - employee_group: ${shift.employee_group_name}`);
+            log.push(`   ⛔ Escluso ${shift.employee_name?.trim()} (${shift.id}) - employee_group: ${shift.employee_group_name}`);
             return false;
           }
           
           // Must have scheduled_start and scheduled_end for time-based matching
           if (!shift.scheduled_start || !shift.scheduled_end) {
-            log.push(`   ⛔ Escluso ${shift.employee_name} (${shift.id}) - mancano orari scheduled`);
+            log.push(`   ⛔ Escluso ${shift.employee_name?.trim()} (${shift.id}) - mancano orari scheduled`);
             return false;
           }
           
@@ -159,10 +196,15 @@ export default function MatchingOrdiniSbagliati() {
         for (const shift of relevantShifts) {
           const shiftStart = new Date(shift.scheduled_start).getTime();
           const shiftEnd = new Date(shift.scheduled_end).getTime();
+          
+          const employeeName = shift.employee_name?.trim(); // Trim employee name
 
-          log.push(`   👤 ${shift.employee_name} (Shift ID: ${shift.id}):`);
-          log.push(`      ⏰ Turno: ${new Date(shiftStart).toISOString()} → ${new Date(shiftEnd).toISOString()}`);
-          log.push(`      🕐 Ordine: ${orderDateTime.toISOString()}`);
+          log.push(`   👤 ${employeeName} (Shift ID: ${shift.id}):`);
+          log.push(`      ⏰ Turno (UTC): ${new Date(shiftStart).toISOString()} → ${new Date(shiftEnd).toISOString()}`);
+          log.push(`      ⏰ Turno (CET): ${new Date(shiftStart).toLocaleString('it-IT', { timeZone: 'Europe/Rome' })} → ${new Date(shiftEnd).toLocaleString('it-IT', { timeZone: 'Europe/Rome' })}`);
+          log.push(`      🕐 Ordine (UTC): ${orderDateTime.toISOString()}`);
+          log.push(`      🕐 Ordine (CET): ${orderDateTime.toLocaleString('it-IT', { timeZone: 'Europe/Rome' })}`);
+
 
           let confidence = null;
 
@@ -178,17 +220,18 @@ export default function MatchingOrdiniSbagliati() {
           }
           // Low confidence: same day (already filtered by date, so if no time overlap, it's low)
           else {
-            confidence = 'low';
-            log.push(`      ⚠️ LOW confidence - stesso giorno ma fuori orario`);
+            // SKIP LOW confidence matches as per the new requirement
+            log.push(`      ⏭️ SKIP - ordine fuori orario (LOW confidence non permesso)`);
+            continue; // Skip this shift, do not consider it for matching
           }
 
           // FIXED: Only keep the BEST confidence match per employee
-          const employeeName = shift.employee_name;
           if (!employeeMatches.has(employeeName)) {
             employeeMatches.set(employeeName, { shift, confidence });
           } else {
             const existing = employeeMatches.get(employeeName);
-            const confidenceRank = { high: 3, medium: 2, low: 1 };
+            // FIXED: Adjust confidenceRank to only consider 'high' and 'medium'
+            const confidenceRank = { high: 3, medium: 2 };
             // If the current confidence is better than the existing one for this employee
             if (confidenceRank[confidence] > confidenceRank[existing.confidence]) {
               log.push(`      🔄 Aggiornato match per ${employeeName} da ${existing.confidence} a ${confidence}`);
@@ -198,12 +241,12 @@ export default function MatchingOrdiniSbagliati() {
         }
         
         if (employeeMatches.size === 0) {
-            log.push(`   ❌ ERRORE: Nessun dipendente abbinato per ordine ${order.order_id} dopo analisi turni`);
+            log.push(`   ❌ Nessun dipendente con HIGH/MEDIUM confidence per ordine ${order.order_id}`); // Adjusted message
             failedCount++;
             continue; // Move to the next order
         }
 
-        log.push(`   ✅ Trovati ${employeeMatches.size} dipendenti da abbinare per ordine ${order.order_id}`);
+        log.push(`   ✅ Trovati ${employeeMatches.size} dipendenti da abbinare per ordine ${order.order_id}`); // Adjusted message
 
         // Create matches for each unique employee who was found with a confidence level
         for (const [employeeName, { shift, confidence }] of employeeMatches) {
@@ -746,7 +789,7 @@ export default function MatchingOrdiniSbagliati() {
             <ul className="text-xs space-y-1 list-disc list-inside">
               <li><strong>Alta confidenza:</strong> Ordine ricevuto durante l'orario esatto del turno</li>
               <li><strong>Media confidenza:</strong> Ordine ricevuto entro 1 ora dall'inizio/fine turno</li>
-              <li><strong>Bassa confidenza:</strong> Turno dello stesso giorno (nessuna sovrapposizione oraria)</li>
+              <li><strong>Esclusioni di confidenza:</strong> I match a "Bassa confidenza" (stesso giorno ma fuori orario) sono stati rimossi dal matching automatico.</li>
               <li><strong>Manuale:</strong> Modificato manualmente dall'utente</li>
               <li><strong>Abbinamento multiplo:</strong> Un ordine può essere abbinato a TUTTI i dipendenti in turno, se rientrano nei criteri di matching.</li>
               <li><strong>Esclusioni:</strong> Non vengono considerati turni di tipo "Malattia (Certificato)", "Assenza non retribuita", "Ferie", né dipendenti con "Volantinaggio" o "Preparazioni" come gruppo.</li>
