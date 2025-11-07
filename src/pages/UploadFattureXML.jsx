@@ -193,7 +193,10 @@ export default function UploadFattureXML() {
                     Supporta file multipli (fatture elettroniche formato FatturaPA)
                   </p>
                   <p className="text-xs text-[#9b9b9b]">
-                    Formati supportati: .xml, .p7m, .xml.p7m
+                    Formati supportati: .xml
+                  </p>
+                  <p className="text-xs text-red-600 mt-2 font-bold">
+                    ⚠️ File .p7m: prima estrarre il file XML!
                   </p>
                 </div>
               </div>
