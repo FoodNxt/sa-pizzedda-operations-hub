@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
+import { DOMParser } from 'jsr:@b-fuze/deno-dom';
 
 Deno.serve(async (req) => {
   try {
@@ -16,7 +17,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'xml_content required' }, { status: 400 });
     }
 
-    // Parse XML
+    // Parse XML using deno-dom
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xml_content, 'text/xml');
 
@@ -58,7 +59,7 @@ Deno.serve(async (req) => {
       partita_iva: datiAnagrafici?.querySelector('IdFiscaleIVA IdCodice')?.textContent || 
                    datiAnagrafici?.querySelector('CodiceFiscale')?.textContent || '',
       sede_legale: cedente.querySelector('Sede Indirizzo')?.textContent || '',
-      tipo_fornitore: 'altro', // Default, can be updated manually
+      tipo_fornitore: 'altro',
       attivo: true
     };
 
@@ -71,11 +72,9 @@ Deno.serve(async (req) => {
       
       if (existing.length > 0) {
         fornitore = existing[0];
-        // Update fornitore
         await base44.asServiceRole.entities.Fornitore.update(fornitore.id, fornitoreData);
         summary.fornitori_aggiornati++;
       } else {
-        // Create new fornitore
         fornitore = await base44.asServiceRole.entities.Fornitore.create(fornitoreData);
         summary.fornitori_creati++;
       }
@@ -130,9 +129,9 @@ Deno.serve(async (req) => {
         const prodottoData = {
           nome_prodotto: descrizione,
           codice_articolo: codiceArticolo || null,
-          categoria: 'altro', // Default
+          categoria: 'altro',
           unita_misura: unitaMisura,
-          quantita_minima: quantita, // Default to purchased quantity
+          quantita_minima: quantita,
           prezzo_unitario: prezzoUnitario,
           fornitore: fornitoreData.ragione_sociale,
           attivo: true,
@@ -140,7 +139,6 @@ Deno.serve(async (req) => {
         };
 
         if (prodotto) {
-          // Update existing product with latest price
           await base44.asServiceRole.entities.MateriePrime.update(prodotto.id, {
             prezzo_unitario: prezzoUnitario,
             fornitore: fornitoreData.ragione_sociale,
@@ -157,7 +155,6 @@ Deno.serve(async (req) => {
             status: 'updated'
           });
         } else {
-          // Create new product
           prodotto = await base44.asServiceRole.entities.MateriePrime.create(prodottoData);
           summary.prodotti_creati++;
           
