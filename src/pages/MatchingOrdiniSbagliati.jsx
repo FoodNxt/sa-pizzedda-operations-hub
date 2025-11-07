@@ -12,9 +12,9 @@ import {
   Save,
   X,
   Loader2,
-  Eye, // NEW
-  ChevronDown, // NEW
-  ChevronUp // NEW
+  Eye,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -26,9 +26,9 @@ export default function MatchingOrdiniSbagliati() {
   const [matchResult, setMatchResult] = useState(null);
   const [editingMatch, setEditingMatch] = useState(null);
   const [newEmployeeName, setNewEmployeeName] = useState('');
-  const [viewMode, setViewMode] = useState('matched'); // 'matched' or 'unmatched' // NEW
-  const [showAllMatched, setShowAllMatched] = useState(false); // NEW
-  const [showAllUnmatched, setShowAllUnmatched] = useState(false); // NEW
+  const [viewMode, setViewMode] = useState('matched'); // 'matched' or 'unmatched'
+  const [showAllMatched, setShowAllMatched] = useState(false);
+  const [showAllUnmatched, setShowAllUnmatched] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null); // NEW: for order details modal
 
   const queryClient = useQueryClient();
@@ -51,9 +51,10 @@ export default function MatchingOrdiniSbagliati() {
     queryFn: () => base44.entities.Store.list(),
   });
 
+  // FIXED: Load ALL shifts without limit
   const { data: shifts = [] } = useQuery({
     queryKey: ['shifts'],
-    queryFn: () => base44.entities.Shift.list('-shift_date', 500),
+    queryFn: () => base44.entities.Shift.list('-shift_date'),
   });
 
   const createMatchMutation = useMutation({
@@ -79,6 +80,8 @@ export default function MatchingOrdiniSbagliati() {
       const user = await base44.auth.me();
       let matchedCount = 0;
       let failedCount = 0;
+      const excludedShiftTypes = ['Malattia (Certificato)', 'Assenza non retribuita', 'Ferie'];
+      const excludedEmployeeGroups = ['Volantinaggio', 'Preparazioni'];
 
       for (const order of wrongOrders) {
         // Skip if already matched (i.e., this order ID has any match records)
@@ -86,14 +89,26 @@ export default function MatchingOrdiniSbagliati() {
           continue;
         }
 
-        // Find shifts for this store on this date
         const orderDate = new Date(order.order_date);
         const orderDateStr = orderDate.toISOString().split('T')[0];
 
+        // FIXED: Filter shifts with exclusions
         const relevantShifts = shifts.filter(shift => {
           if (shift.store_id !== order.store_id) return false;
+          
           const shiftDateStr = new Date(shift.shift_date).toISOString().split('T')[0];
-          return shiftDateStr === orderDateStr;
+          if (shiftDateStr !== orderDateStr) return false;
+          
+          // EXCLUDE certain shift types
+          if (shift.shift_type && excludedShiftTypes.includes(shift.shift_type)) return false;
+          
+          // EXCLUDE certain employee groups
+          if (shift.employee_group_name && excludedEmployeeGroups.includes(shift.employee_group_name)) return false;
+          
+          // Must have scheduled_start and scheduled_end for time-based matching
+          if (!shift.scheduled_start || !shift.scheduled_end) return false;
+          
+          return true;
         });
 
         if (relevantShifts.length === 0) {
@@ -101,44 +116,50 @@ export default function MatchingOrdiniSbagliati() {
           continue;
         }
 
-        // Find ALL shifts that overlap with order time
         const orderTime = orderDate.getTime();
-        let potentialMatchesForOrder = [];
+        const oneHour = 60 * 60 * 1000;
+        const employeeMatches = new Map(); // FIXED: Use Map to track unique employees with their best confidence
 
         for (const shift of relevantShifts) {
           const shiftStart = new Date(shift.scheduled_start).getTime();
           const shiftEnd = new Date(shift.scheduled_end).getTime();
 
-          let confidence = 'low'; // Default confidence
+          let confidence = null;
 
+          // High confidence: exact overlap
           if (orderTime >= shiftStart && orderTime <= shiftEnd) {
             confidence = 'high';
-            potentialMatchesForOrder.push({ shift, confidence });
+          }
+          // Medium confidence: within 1 hour
+          else if (orderTime >= (shiftStart - oneHour) && orderTime <= (shiftEnd + oneHour)) {
+            confidence = 'medium';
+          }
+          // Low confidence: same day (already filtered by date, so if no time overlap, it's low)
+          else {
+            confidence = 'low';
+          }
+
+          // FIXED: Only keep the BEST confidence match per employee
+          const employeeName = shift.employee_name;
+          if (!employeeMatches.has(employeeName)) {
+            employeeMatches.set(employeeName, { shift, confidence });
           } else {
-            // Check within 1 hour before/after shift
-            const oneHour = 60 * 60 * 1000;
-            if (orderTime >= (shiftStart - oneHour) && orderTime <= (shiftEnd + oneHour)) {
-              confidence = 'medium';
-              potentialMatchesForOrder.push({ shift, confidence });
+            const existing = employeeMatches.get(employeeName);
+            const confidenceRank = { high: 3, medium: 2, low: 1 };
+            // If the current confidence is better than the existing one for this employee
+            if (confidenceRank[confidence] > confidenceRank[existing.confidence]) {
+              employeeMatches.set(employeeName, { shift, confidence });
             }
           }
         }
-
-        // If no high/medium confidence matches, and there are relevant shifts, assign low confidence to all of them
-        if (potentialMatchesForOrder.length === 0 && relevantShifts.length > 0) {
-            relevantShifts.forEach(shift => {
-                potentialMatchesForOrder.push({ shift, confidence: 'low' });
-            });
-        }
         
-        // If still no potential matches (e.g., no relevant shifts found for the day), then this order truly failed
-        if (potentialMatchesForOrder.length === 0) {
+        if (employeeMatches.size === 0) {
             failedCount++;
             continue; // Move to the next order
         }
 
-        // Create a match for EACH employee in the potentialMatchesForOrder
-        for (const { shift, confidence } of potentialMatchesForOrder) {
+        // Create matches for each unique employee who was found with a confidence level
+        for (const [employeeName, { shift, confidence }] of employeeMatches) {
           const matchData = {
             wrong_order_id: order.id,
             order_id: order.order_id,
@@ -146,7 +167,7 @@ export default function MatchingOrdiniSbagliati() {
             order_date: order.order_date,
             store_id: order.store_id,
             store_name: order.store_name,
-            matched_employee_name: shift.employee_name,
+            matched_employee_name: employeeName,
             matched_shift_id: shift.id,
             match_confidence: confidence,
             match_method: 'auto',
@@ -231,7 +252,7 @@ export default function MatchingOrdiniSbagliati() {
     }
   };
 
-  // NEW: Get order details
+  // NEW: Get order details (not strictly needed as selectedOrder stores the full object)
   const getOrderDetails = (orderId) => {
     return wrongOrders.find(o => o.id === orderId);
   };
@@ -653,7 +674,7 @@ export default function MatchingOrdiniSbagliati() {
             <ul className="text-xs space-y-1 list-disc list-inside">
               <li><strong>Alta confidenza:</strong> Ordine ricevuto durante l'orario esatto del turno</li>
               <li><strong>Media confidenza:</strong> Ordine ricevuto entro 1 ora dall'inizio/fine turno</li>
-              <li><strong>Bassa confidenza:</strong> Turno dello stesso giorno (nessuna sovrapposizione oraria)</li>
+              <li><strong>Bassa confidenza:</strong> Turno dello stesso giorno (nessuna sovrapposizione oraria, ma escludendo tipologie di turno o gruppi non rilevanti)</li>
               <li><strong>Manuale:</strong> Modificato manualmente dall'utente</li>
               <li><strong>Abbinamento multiplo:</strong> Un ordine può essere abbinato a TUTTI i dipendenti in turno, se rientrano nei criteri di matching.</li>
               <li>Clicca su un ordine per vederne i dettagli completi</li>
