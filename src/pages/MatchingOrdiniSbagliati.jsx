@@ -30,6 +30,7 @@ export default function MatchingOrdiniSbagliati() {
   const [showAllMatched, setShowAllMatched] = useState(false);
   const [showAllUnmatched, setShowAllUnmatched] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null); // NEW: for order details modal
+  const [debugLog, setDebugLog] = useState([]); // NEW: Debug log
 
   const queryClient = useQueryClient();
 
@@ -75,6 +76,7 @@ export default function MatchingOrdiniSbagliati() {
   const handleAutoMatch = async () => {
     setMatching(true);
     setMatchResult(null);
+    const log = []; // Initialize log for this run
 
     try {
       const user = await base44.auth.me();
@@ -83,40 +85,74 @@ export default function MatchingOrdiniSbagliati() {
       const excludedShiftTypes = ['Malattia (Certificato)', 'Assenza non retribuita', 'Ferie'];
       const excludedEmployeeGroups = ['Volantinaggio', 'Preparazioni'];
 
+      log.push(`🚀 Inizio matching per ${wrongOrders.length} ordini`);
+      log.push(`📊 Turni disponibili: ${shifts.length}`);
+
       for (const order of wrongOrders) {
         // Skip if already matched (i.e., this order ID has any match records)
         if (matches.some(m => m.wrong_order_id === order.id)) {
+          log.push(`⏭️ Ordine ${order.order_id} già abbinato, skip`);
           continue;
         }
 
-        const orderDate = new Date(order.order_date);
-        const orderDateStr = orderDate.toISOString().split('T')[0];
+        log.push(`\n🔍 Elaboro ordine ${order.order_id} (${order.platform})`);
+        log.push(`   📅 Data ordine: ${order.order_date}`);
+        log.push(`   🏪 Store: ${order.store_name} (ID: ${order.store_id})`);
 
-        // FIXED: Filter shifts with exclusions
-        const relevantShifts = shifts.filter(shift => {
-          if (shift.store_id !== order.store_id) return false;
-          
-          const shiftDateStr = new Date(shift.shift_date).toISOString().split('T')[0];
-          if (shiftDateStr !== orderDateStr) return false;
-          
-          // EXCLUDE certain shift types
-          if (shift.shift_type && excludedShiftTypes.includes(shift.shift_type)) return false;
-          
-          // EXCLUDE certain employee groups
-          if (shift.employee_group_name && excludedEmployeeGroups.includes(shift.employee_group_name)) return false;
-          
-          // Must have scheduled_start and scheduled_end for time-based matching
-          if (!shift.scheduled_start || !shift.scheduled_end) return false;
-          
-          return true;
-        });
-
-        if (relevantShifts.length === 0) {
+        const orderDateTime = new Date(order.order_date);
+        if (isNaN(orderDateTime.getTime())) {
+          log.push(`   ❌ Data ordine non valida per ${order.order_id}, skip`);
           failedCount++;
           continue;
         }
 
-        const orderTime = orderDate.getTime();
+        const orderDateStr = orderDateTime.toISOString().split('T')[0];
+        const orderTime = orderDateTime.getTime();
+        
+        log.push(`   🕐 Timestamp ordine: ${orderDateTime.toISOString()}`);
+
+        // Filter shifts for this store and date
+        const sameDayShifts = shifts.filter(shift => {
+          if (shift.store_id !== order.store_id) return false;
+          if (!shift.shift_date) return false;
+          
+          const shiftDateStr = new Date(shift.shift_date).toISOString().split('T')[0];
+          return shiftDateStr === orderDateStr;
+        });
+
+        log.push(`   📋 Turni stesso giorno e negozio: ${sameDayShifts.length}`);
+
+        // FIXED: Filter shifts with exclusions
+        const relevantShifts = sameDayShifts.filter(shift => {
+          // EXCLUDE certain shift types
+          if (shift.shift_type && excludedShiftTypes.includes(shift.shift_type)) {
+            log.push(`   ⛔ Escluso ${shift.employee_name} (${shift.id}) - shift_type: ${shift.shift_type}`);
+            return false;
+          }
+          
+          // EXCLUDE certain employee groups
+          if (shift.employee_group_name && excludedEmployeeGroups.includes(shift.employee_group_name)) {
+            log.push(`   ⛔ Escluso ${shift.employee_name} (${shift.id}) - employee_group: ${shift.employee_group_name}`);
+            return false;
+          }
+          
+          // Must have scheduled_start and scheduled_end for time-based matching
+          if (!shift.scheduled_start || !shift.scheduled_end) {
+            log.push(`   ⛔ Escluso ${shift.employee_name} (${shift.id}) - mancano orari scheduled`);
+            return false;
+          }
+          
+          return true;
+        });
+
+        log.push(`   ✅ Turni validi dopo esclusioni: ${relevantShifts.length}`);
+
+        if (relevantShifts.length === 0) {
+          log.push(`   ❌ Nessun turno valido trovato per questo ordine ${order.order_id}`);
+          failedCount++;
+          continue;
+        }
+
         const oneHour = 60 * 60 * 1000;
         const employeeMatches = new Map(); // FIXED: Use Map to track unique employees with their best confidence
 
@@ -124,19 +160,26 @@ export default function MatchingOrdiniSbagliati() {
           const shiftStart = new Date(shift.scheduled_start).getTime();
           const shiftEnd = new Date(shift.scheduled_end).getTime();
 
+          log.push(`   👤 ${shift.employee_name} (Shift ID: ${shift.id}):`);
+          log.push(`      ⏰ Turno: ${new Date(shiftStart).toISOString()} → ${new Date(shiftEnd).toISOString()}`);
+          log.push(`      🕐 Ordine: ${orderDateTime.toISOString()}`);
+
           let confidence = null;
 
           // High confidence: exact overlap
           if (orderTime >= shiftStart && orderTime <= shiftEnd) {
             confidence = 'high';
+            log.push(`      ✅ HIGH confidence - ordine durante turno`);
           }
           // Medium confidence: within 1 hour
           else if (orderTime >= (shiftStart - oneHour) && orderTime <= (shiftEnd + oneHour)) {
             confidence = 'medium';
+            log.push(`      ⚠️ MEDIUM confidence - ordine entro ±1 ora`);
           }
           // Low confidence: same day (already filtered by date, so if no time overlap, it's low)
           else {
             confidence = 'low';
+            log.push(`      ⚠️ LOW confidence - stesso giorno ma fuori orario`);
           }
 
           // FIXED: Only keep the BEST confidence match per employee
@@ -148,15 +191,19 @@ export default function MatchingOrdiniSbagliati() {
             const confidenceRank = { high: 3, medium: 2, low: 1 };
             // If the current confidence is better than the existing one for this employee
             if (confidenceRank[confidence] > confidenceRank[existing.confidence]) {
+              log.push(`      🔄 Aggiornato match per ${employeeName} da ${existing.confidence} a ${confidence}`);
               employeeMatches.set(employeeName, { shift, confidence });
             }
           }
         }
         
         if (employeeMatches.size === 0) {
+            log.push(`   ❌ ERRORE: Nessun dipendente abbinato per ordine ${order.order_id} dopo analisi turni`);
             failedCount++;
             continue; // Move to the next order
         }
+
+        log.push(`   ✅ Trovati ${employeeMatches.size} dipendenti da abbinare per ordine ${order.order_id}`);
 
         // Create matches for each unique employee who was found with a confidence level
         for (const [employeeName, { shift, confidence }] of employeeMatches) {
@@ -175,9 +222,15 @@ export default function MatchingOrdiniSbagliati() {
             match_date: new Date().toISOString()
           };
           await createMatchMutation.mutateAsync(matchData);
+          log.push(`   💾 Creato match: ${employeeName} (${confidence}) per ordine ${order.order_id}`);
         }
         matchedCount++; // This order successfully found at least one match
       }
+
+      log.push(`\n✅ Matching completato!`);
+      log.push(`   ✅ Ordini abbinati: ${matchedCount}`);
+      log.push(`   ❌ Ordini falliti: ${failedCount}`);
+      setDebugLog(log);
 
       setMatchResult({
         success: true,
@@ -188,6 +241,9 @@ export default function MatchingOrdiniSbagliati() {
 
     } catch (error) {
       console.error('Error during matching:', error);
+      log.push(`\n❌ ERRORE GENERALE: ${error.message}`);
+      setDebugLog(log);
+      
       setMatchResult({
         success: false,
         error: error.message
@@ -250,11 +306,6 @@ export default function MatchingOrdiniSbagliati() {
       case 'manual': return 'bg-blue-100 text-blue-700';
       default: return 'bg-gray-100 text-gray-700';
     }
-  };
-
-  // NEW: Get order details (not strictly needed as selectedOrder stores the full object)
-  const getOrderDetails = (orderId) => {
-    return wrongOrders.find(o => o.id === orderId);
   };
 
   // Group matches by order
@@ -333,6 +384,27 @@ export default function MatchingOrdiniSbagliati() {
         </NeumorphicCard>
       </div>
 
+      {/* NEW: Debug Log */}
+      {debugLog.length > 0 && (
+        <NeumorphicCard className="p-6 bg-gray-50">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-[#6b6b6b]">📋 Log Matching</h3>
+            <button
+              onClick={() => setDebugLog([])}
+              className="neumorphic-flat p-2 rounded-lg text-xs text-[#9b9b9b] hover:text-red-600 transition-colors"
+              title="Cancella log"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="neumorphic-pressed p-4 rounded-xl max-h-96 overflow-y-auto">
+            <pre className="text-xs font-mono text-[#6b6b6b] whitespace-pre-wrap">
+              {debugLog.join('\n')}
+            </pre>
+          </div>
+        </NeumorphicCard>
+      )}
+
       {/* Match Result */}
       {matchResult && (
         <NeumorphicCard className={`p-6 ${matchResult.success ? 'bg-green-50' : 'bg-red-50'}`}>
@@ -354,7 +426,7 @@ export default function MatchingOrdiniSbagliati() {
                   </p>
                   {matchResult.failedCount > 0 && (
                     <p className="text-orange-600">
-                      {matchResult.failedCount} ordini non abbinati (nessun turno trovato)
+                      {matchResult.failedCount} ordini non abbinati (controlla il log sopra per dettagli)
                     </p>
                   )}
                 </div>
@@ -674,9 +746,11 @@ export default function MatchingOrdiniSbagliati() {
             <ul className="text-xs space-y-1 list-disc list-inside">
               <li><strong>Alta confidenza:</strong> Ordine ricevuto durante l'orario esatto del turno</li>
               <li><strong>Media confidenza:</strong> Ordine ricevuto entro 1 ora dall'inizio/fine turno</li>
-              <li><strong>Bassa confidenza:</strong> Turno dello stesso giorno (nessuna sovrapposizione oraria, ma escludendo tipologie di turno o gruppi non rilevanti)</li>
+              <li><strong>Bassa confidenza:</strong> Turno dello stesso giorno (nessuna sovrapposizione oraria)</li>
               <li><strong>Manuale:</strong> Modificato manualmente dall'utente</li>
               <li><strong>Abbinamento multiplo:</strong> Un ordine può essere abbinato a TUTTI i dipendenti in turno, se rientrano nei criteri di matching.</li>
+              <li><strong>Esclusioni:</strong> Non vengono considerati turni di tipo "Malattia (Certificato)", "Assenza non retribuita", "Ferie", né dipendenti con "Volantinaggio" o "Preparazioni" come gruppo.</li>
+              <li>Clicca su "Fai Match" e controlla il <strong>"Log Matching"</strong> sopra per vedere i dettagli del processo</li>
               <li>Clicca su un ordine per vederne i dettagli completi</li>
             </ul>
           </div>
