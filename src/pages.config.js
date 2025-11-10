@@ -45,6 +45,8 @@ import UploadFattureXML from './pages/UploadFattureXML';
 import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import BulkImportProdottiVenduti from './pages/BulkImportProdottiVenduti';
 import ProdottiVenduti from './pages/ProdottiVenduti';
+import AcademyAdmin from './pages/AcademyAdmin';
+import Academy from './pages/Academy';
 import Layout from './Layout.jsx';
 
 
@@ -96,6 +98,8 @@ export const PAGES = {
     "ZapierProdottiVenduti": ZapierProdottiVenduti,
     "BulkImportProdottiVenduti": BulkImportProdottiVenduti,
     "ProdottiVenduti": ProdottiVenduti,
+    "AcademyAdmin": AcademyAdmin,
+    "Academy": Academy,
 }
 
 export const pagesConfig = {
