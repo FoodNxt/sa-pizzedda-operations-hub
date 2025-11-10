@@ -67,7 +67,7 @@ export default function Academy() {
     const interval = setInterval(() => {
       setTimeElapsed(prev => {
         const newTime = prev + 1;
-        if (newTime >= selectedCorso.durata_lezione * 60) {
+        if (newTime >= selectedCorso.durata_lezione) {
           setVideoWatched(true);
           return newTime;
         }
@@ -191,6 +191,14 @@ export default function Academy() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const formatDuration = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins === 0) return `${secs}s`;
+    if (secs === 0) return `${mins}m`;
+    return `${mins}m ${secs}s`;
+  };
+
   const getYouTubeEmbedUrl = (url) => {
     const videoId = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/)?.[1];
     return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
@@ -221,7 +229,7 @@ export default function Academy() {
           <div className="flex items-center gap-4 text-sm text-[#9b9b9b]">
             <span className="flex items-center gap-1">
               <Clock className="w-4 h-4" />
-              {selectedCorso.durata_lezione} minuti
+              {formatDuration(selectedCorso.durata_lezione)}
             </span>
             <span className="flex items-center gap-1">
               Ruolo: {selectedCorso.ruolo}
@@ -256,14 +264,14 @@ export default function Academy() {
                 <div className="flex items-center justify-between">
                   <span className="text-[#6b6b6b]">Tempo trascorso:</span>
                   <span className="text-lg font-bold text-[#8b7355]">
-                    {formatTime(timeElapsed)} / {formatTime(selectedCorso.durata_lezione * 60)}
+                    {formatTime(timeElapsed)} / {formatTime(selectedCorso.durata_lezione)}
                   </span>
                 </div>
 
                 <div className="w-full bg-gray-200 rounded-full h-3">
                   <div
                     className="bg-[#8b7355] h-3 rounded-full transition-all"
-                    style={{ width: `${Math.min((timeElapsed / (selectedCorso.durata_lezione * 60)) * 100, 100)}%` }}
+                    style={{ width: `${Math.min((timeElapsed / selectedCorso.durata_lezione) * 100, 100)}%` }}
                   />
                 </div>
 
@@ -280,7 +288,7 @@ export default function Academy() {
                   <div className="neumorphic-pressed p-4 rounded-xl text-center">
                     <AlertCircle className="w-6 h-6 text-yellow-600 mx-auto mb-2" />
                     <p className="text-sm text-[#6b6b6b]">
-                      Devi guardare il video per almeno {selectedCorso.durata_lezione} minuti prima di accedere al quiz
+                      Devi guardare il video per almeno {formatDuration(selectedCorso.durata_lezione)} prima di accedere al quiz
                     </p>
                   </div>
                 )}
@@ -447,7 +455,7 @@ export default function Academy() {
                   <div className="flex items-center gap-4 text-sm text-[#9b9b9b] mb-4">
                     <span className="flex items-center gap-1">
                       <Clock className="w-4 h-4" />
-                      {corso.durata_lezione} min
+                      {formatDuration(corso.durata_lezione)}
                     </span>
                     <span>{corso.domande?.length || 0} domande</span>
                   </div>

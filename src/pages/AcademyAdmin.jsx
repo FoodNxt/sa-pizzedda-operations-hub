@@ -25,7 +25,7 @@ export default function AcademyAdmin() {
     nome_corso: '',
     ruolo: 'Pizzaiolo',
     link_video: '',
-    durata_lezione: 10,
+    durata_lezione: 600, // Default 10 minuti in secondi
     domande: [],
     attivo: true,
     ordine: 0
@@ -76,7 +76,7 @@ export default function AcademyAdmin() {
       nome_corso: '',
       ruolo: 'Pizzaiolo',
       link_video: '',
-      durata_lezione: 10,
+      durata_lezione: 600,
       domande: [],
       attivo: true,
       ordine: 0
@@ -164,6 +164,15 @@ export default function AcademyAdmin() {
       newDomande[domandaIndex].risposte[rispostaIndex][field] = value;
     }
     setFormData({ ...formData, domande: newDomande });
+  };
+
+  // Format seconds to readable time
+  const formatDuration = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins === 0) return `${secs}s`;
+    if (secs === 0) return `${mins}m`;
+    return `${mins}m ${secs}s`;
   };
 
   // Statistics
@@ -308,7 +317,7 @@ export default function AcademyAdmin() {
 
               <div>
                 <label className="block text-sm font-medium text-[#6b6b6b] mb-2">
-                  Durata Lezione (minuti) *
+                  Durata Lezione (secondi) *
                 </label>
                 <input
                   type="number"
@@ -317,7 +326,11 @@ export default function AcademyAdmin() {
                   value={formData.durata_lezione}
                   onChange={(e) => setFormData({ ...formData, durata_lezione: parseInt(e.target.value) })}
                   className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                  placeholder="Es: 600 (10 minuti)"
                 />
+                <p className="text-xs text-[#9b9b9b] mt-1">
+                  {formatDuration(formData.durata_lezione || 0)}
+                </p>
               </div>
 
               <div>
@@ -470,7 +483,7 @@ export default function AcademyAdmin() {
                     </span>
                     <span className="flex items-center gap-1">
                       <Clock className="w-4 h-4" />
-                      {corso.durata_lezione} min
+                      {formatDuration(corso.durata_lezione)}
                     </span>
                     <span className="flex items-center gap-1">
                       <HelpCircle className="w-4 h-4" />
