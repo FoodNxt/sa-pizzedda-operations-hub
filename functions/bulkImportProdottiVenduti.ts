@@ -60,6 +60,27 @@ function parseCSV(csvText) {
   return rows;
 }
 
+// Convert DD/MM/YYYY to YYYY-MM-DD
+function convertDateFormat(dateString) {
+  if (!dateString) return null;
+  
+  // Check if already in YYYY-MM-DD format
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    return dateString;
+  }
+  
+  // Convert from DD/MM/YYYY to YYYY-MM-DD
+  const parts = dateString.split('/');
+  if (parts.length === 3) {
+    const day = parts[0].padStart(2, '0');
+    const month = parts[1].padStart(2, '0');
+    const year = parts[2];
+    return `${year}-${month}-${day}`;
+  }
+  
+  return null;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -103,9 +124,15 @@ Deno.serve(async (req) => {
       const row = rows[i];
       
       try {
-        // Validate data_vendita
+        // Validate and convert data_vendita
         if (!row.data_vendita) {
           errors.push(`Row ${i + 1}: Missing data_vendita`);
+          continue;
+        }
+
+        const convertedDate = convertDateFormat(row.data_vendita);
+        if (!convertedDate) {
+          errors.push(`Row ${i + 1}: Invalid date format "${row.data_vendita}". Expected DD/MM/YYYY or YYYY-MM-DD`);
           continue;
         }
 
@@ -113,7 +140,7 @@ Deno.serve(async (req) => {
         const recordData = {
           store_name: store_name,
           store_id: store_id,
-          data_vendita: row.data_vendita
+          data_vendita: convertedDate
         };
 
         // Map product columns
@@ -132,7 +159,7 @@ Deno.serve(async (req) => {
         // Check if record exists
         const existing = await base44.asServiceRole.entities.ProdottiVenduti.filter({
           store_id: store_id,
-          data_vendita: row.data_vendita
+          data_vendita: convertedDate
         });
 
         if (existing.length > 0) {
@@ -141,7 +168,8 @@ Deno.serve(async (req) => {
           results.push({
             row: i + 1,
             action: 'updated',
-            data_vendita: row.data_vendita
+            data_vendita: convertedDate,
+            original_date: row.data_vendita
           });
         } else {
           // Create
@@ -149,7 +177,8 @@ Deno.serve(async (req) => {
           results.push({
             row: i + 1,
             action: 'created',
-            data_vendita: row.data_vendita
+            data_vendita: convertedDate,
+            original_date: row.data_vendita
           });
         }
       } catch (error) {

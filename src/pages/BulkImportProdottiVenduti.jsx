@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -84,7 +85,8 @@ export default function BulkImportProdottiVenduti() {
 
   const downloadTemplate = () => {
     const csvContent = `data_vendita,Acqua Frizzante,Acqua Naturale,Baione Cannonau,Bottarga,Capperi, olive e acciughe,Cipolle caramellate e Gorgonzola,Coca Cola 33cl,Coca Cola Zero 33cl,Contissa Vermentino,Estathe 33cl,Fanta 33cl,Fregola,Friarielli e Olive,Gorgonzola e Radicchio,Guttiau 70gr,Guttiau Snack,Ichnusa Ambra Limpida,Ichnusa Classica,Ichnusa Non Filtrata,Malloreddus,Malloreddus 4 sapori,Margherita,Nduja e stracciatella,Nutella,Pabassinos Anice,Pabassinos Noci,Pane Carasau,Pesca Gianduia,Pistacchio,Pomodori e stracciatella,Salsiccia e Patate,Salsiccia Sarda e Pecorino
-2025-01-15,5,8,2,1,3,4,12,8,3,6,5,2,4,3,6,4,2,10,8,3,2,45,5,8,4,3,2,6,4,5,6,4`;
+15/01/2025,5,8,2,1,3,4,12,8,3,6,5,2,4,3,6,4,2,10,8,3,2,45,5,8,4,3,2,6,4,5,6,4
+16/01/2025,6,7,1,2,4,3,10,9,2,5,6,3,5,2,5,5,3,12,9,4,3,50,6,7,5,4,3,7,5,6,7,5`;
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -288,7 +290,7 @@ export default function BulkImportProdottiVenduti() {
           <div className="neumorphic-flat p-4 rounded-xl bg-blue-50">
             <h3 className="font-bold text-blue-700 mb-2">📝 Formato CSV</h3>
             <ul className="text-sm text-blue-700 space-y-1">
-              <li>• Prima colonna: <code className="bg-blue-200 px-1 rounded">data_vendita</code> (formato YYYY-MM-DD)</li>
+              <li>• Prima colonna: <code className="bg-blue-200 px-1 rounded">data_vendita</code> (formato <strong>DD/MM/YYYY</strong>, es. 15/01/2025)</li>
               <li>• Altre colonne: nomi prodotti esatti come nel template</li>
               <li>• I nomi delle colonne devono corrispondere ESATTAMENTE</li>
               <li>• Usa la virgola (,) come separatore</li>
@@ -299,6 +301,7 @@ export default function BulkImportProdottiVenduti() {
           <div className="neumorphic-flat p-4 rounded-xl bg-yellow-50">
             <h3 className="font-bold text-yellow-700 mb-2">⚠️ Note Importanti</h3>
             <ul className="text-sm text-yellow-700 space-y-1">
+              <li>• La data deve essere nel formato <strong>DD/MM/YYYY</strong> (es. 13/09/2025)</li>
               <li>• Se esiste già un record per la stessa data e negozio, verrà aggiornato</li>
               <li>• Seleziona sempre il negozio prima di caricare il file</li>
               <li>• Puoi importare più date in un unico file</li>
