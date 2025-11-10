@@ -29,7 +29,8 @@ import {
   CheckSquare,
   Truck,
   Link as LinkIcon,
-  ShoppingCart // Added ShoppingCart import
+  ShoppingCart, // Added ShoppingCart import
+  GraduationCap // Added GraduationCap import
 } from "lucide-react";
 import CompleteProfileModal from "./components/auth/CompleteProfileModal";
 
@@ -189,6 +190,11 @@ const navigationStructure = [
         icon: DollarSign,
       },
       {
+        title: "Academy Admin", // NEW ITEM ADDED HERE
+        url: createPageUrl("AcademyAdmin"),
+        icon: GraduationCap,
+      },
+      {
         title: "Ricalcola Ritardi",
         url: createPageUrl("RecalculateShifts"),
         icon: Clock,
@@ -272,6 +278,11 @@ const navigationStructure = [
         title: "Profilo",
         url: createPageUrl("ProfiloDipendente"),
         icon: User,
+      },
+      {
+        title: "Academy", // NEW ITEM ADDED HERE
+        url: createPageUrl("Academy"),
+        icon: GraduationCap,
       },
       {
         title: "Controllo Pulizia Cassiere",
