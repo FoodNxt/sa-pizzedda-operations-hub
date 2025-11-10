@@ -33,6 +33,42 @@ export default function Ricette() {
     attivo: true
   });
 
+  // NEW: Define valid product names (all columns except data_vendita)
+  const VALID_PRODUCT_NAMES = [
+    'Acqua Frizzante',
+    'Acqua Naturale',
+    'Baione Cannonau',
+    'Bottarga',
+    'Capperi, olive e acciughe',
+    'Cipolle caramellate e Gorgonzola',
+    'Coca Cola 33cl',
+    'Coca Cola Zero 33cl',
+    'Contissa Vermentino',
+    'Estathe 33cl',
+    'Fanta 33cl',
+    'Fregola',
+    'Friarielli e Olive',
+    'Gorgonzola e Radicchio',
+    'Guttiau 70gr',
+    'Guttiau Snack',
+    'Ichnusa Ambra Limpida',
+    'Ichnusa Classica',
+    'Ichnusa Non Filtrata',
+    'Malloreddus',
+    'Malloreddus 4 sapori',
+    'Margherita',
+    'Nduja e stracciatella',
+    'Nutella',
+    'Pabassinos Anice',
+    'Pabassinos Noci',
+    'Pane Carasau',
+    'Pesca Gianduia',
+    'Pistacchio',
+    'Pomodori e stracciatella',
+    'Salsiccia e Patate',
+    'Salsiccia Sarda e Pecorino'
+  ];
+
   // Ingredient form state
   const [selectedIngredient, setSelectedIngredient] = useState('');
   const [ingredientQuantity, setIngredientQuantity] = useState('');
@@ -208,6 +244,12 @@ export default function Ricette() {
       alert('Aggiungi almeno un ingrediente alla ricetta');
       return;
     }
+    
+    if (!formData.is_semilavorato && !VALID_PRODUCT_NAMES.includes(formData.nome_prodotto)) {
+      alert('Per i prodotti finali, seleziona un nome prodotto dalla lista.');
+      return;
+    }
+
 
     const costoUnitario = calculateCosts();
     const prezzoOnline = parseFloat(formData.prezzo_vendita_online);
@@ -330,19 +372,43 @@ export default function Ricette() {
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Basic Info */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-4">
                   <div>
                     <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
                       Nome Prodotto <span className="text-red-600">*</span>
                     </label>
-                    <input
-                      type="text"
-                      value={formData.nome_prodotto}
-                      onChange={(e) => setFormData({ ...formData, nome_prodotto: e.target.value })}
-                      placeholder="es. Pizza Margherita"
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                      required
-                    />
+                    {formData.is_semilavorato ? (
+                      <input
+                        type="text"
+                        value={formData.nome_prodotto}
+                        onChange={(e) => setFormData({ ...formData, nome_prodotto: e.target.value })}
+                        placeholder="es. Impasto Base"
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                        required
+                      />
+                    ) : (
+                      <select
+                        value={formData.nome_prodotto}
+                        onChange={(e) => setFormData({ ...formData, nome_prodotto: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                        required
+                      >
+                        <option value="">Seleziona prodotto...</option>
+                        {VALID_PRODUCT_NAMES.map(name => (
+                          <option key={name} value={name}>{name}</option>
+                        ))}
+                      </select>
+                    )}
+                    {formData.is_semilavorato && (
+                      <p className="text-xs text-blue-600 mt-1">
+                        ℹ️ Semilavorato: puoi inserire un nome libero
+                      </p>
+                    )}
+                    {!formData.is_semilavorato && (
+                      <p className="text-xs text-[#9b9b9b] mt-1">
+                        ℹ️ Solo prodotti della tabella Prodotti Venduti. Spunta "Semilavorato" per nomi personalizzati.
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -368,7 +434,14 @@ export default function Ricette() {
                     <input
                       type="checkbox"
                       checked={formData.is_semilavorato}
-                      onChange={(e) => setFormData({ ...formData, is_semilavorato: e.target.checked })}
+                      onChange={(e) => {
+                        setFormData({ 
+                          ...formData, 
+                          is_semilavorato: e.target.checked,
+                          // Reset nome_prodotto if changing type
+                          nome_prodotto: e.target.checked ? '' : '' 
+                        });
+                      }}
                       className="w-5 h-5 rounded"
                     />
                     <div>

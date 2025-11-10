@@ -42,6 +42,8 @@ import MatchingOrdiniSbagliati from './pages/MatchingOrdiniSbagliati';
 import InventarioAdmin from './pages/InventarioAdmin';
 import ElencoFornitori from './pages/ElencoFornitori';
 import UploadFattureXML from './pages/UploadFattureXML';
+import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
+import BulkImportProdottiVenduti from './pages/BulkImportProdottiVenduti';
 import Layout from './Layout.jsx';
 
 
@@ -90,6 +92,8 @@ export const PAGES = {
     "InventarioAdmin": InventarioAdmin,
     "ElencoFornitori": ElencoFornitori,
     "UploadFattureXML": UploadFattureXML,
+    "ZapierProdottiVenduti": ZapierProdottiVenduti,
+    "BulkImportProdottiVenduti": BulkImportProdottiVenduti,
 }
 
 export const pagesConfig = {
