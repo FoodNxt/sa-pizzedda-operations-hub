@@ -44,6 +44,7 @@ import ElencoFornitori from './pages/ElencoFornitori';
 import UploadFattureXML from './pages/UploadFattureXML';
 import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import BulkImportProdottiVenduti from './pages/BulkImportProdottiVenduti';
+import ProdottiVenduti from './pages/ProdottiVenduti';
 import Layout from './Layout.jsx';
 
 
@@ -94,6 +95,7 @@ export const PAGES = {
     "UploadFattureXML": UploadFattureXML,
     "ZapierProdottiVenduti": ZapierProdottiVenduti,
     "BulkImportProdottiVenduti": BulkImportProdottiVenduti,
+    "ProdottiVenduti": ProdottiVenduti,
 }
 
 export const pagesConfig = {

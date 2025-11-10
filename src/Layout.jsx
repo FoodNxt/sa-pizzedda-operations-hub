@@ -28,7 +28,8 @@ import {
   ChefHat,
   CheckSquare,
   Truck,
-  Link as LinkIcon
+  Link as LinkIcon,
+  ShoppingCart // Added ShoppingCart import
 } from "lucide-react";
 import CompleteProfileModal from "./components/auth/CompleteProfileModal";
 
@@ -148,6 +149,11 @@ const navigationStructure = [
         title: "Upload Fatture XML", // NEW
         url: createPageUrl("UploadFattureXML"),
         icon: Upload,
+      },
+      {
+        title: "Prodotti Venduti", // NEW ITEM ADDED HERE
+        url: createPageUrl("ProdottiVenduti"),
+        icon: ShoppingCart,
       },
       {
         title: "Teglie Buttate",
@@ -341,6 +347,16 @@ const navigationStructure = [
       {
         title: "Bulk Import iPratico",
         url: createPageUrl("IPraticoBulkImport"),
+        icon: Upload,
+      },
+      {
+        title: "Zapier Prodotti Venduti", // NEW ITEM ADDED HERE
+        url: createPageUrl("ZapierProdottiVenduti"),
+        icon: ShoppingCart,
+      },
+      {
+        title: "Bulk Import Prodotti Venduti", // NEW ITEM ADDED HERE
+        url: createPageUrl("BulkImportProdottiVenduti"),
         icon: Upload,
       }
     ]
