@@ -69,7 +69,44 @@ export default function ZapierProdottiVenduti() {
         body: JSON.stringify(testData)
       });
 
-      const data = await response.json();
+      let data;
+      const contentType = response.headers.get('content-type');
+      
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          data = await response.json();
+        } catch (jsonError) {
+          const text = await response.text();
+          setTestResult({
+            success: false,
+            message: 'Risposta non valida dal server',
+            data: {
+              error: 'Invalid JSON response',
+              status: response.status,
+              statusText: response.statusText,
+              responseText: text,
+              hint: 'La funzione potrebbe non essere deployata correttamente. Vai su Dashboard → Code → Functions → importProdottiVendutiFromZapier'
+            }
+          });
+          setTesting(false);
+          return;
+        }
+      } else {
+        const text = await response.text();
+        setTestResult({
+          success: false,
+          message: 'La funzione non ha restituito JSON',
+          data: {
+            error: 'Non-JSON response',
+            status: response.status,
+            statusText: response.statusText,
+            responseText: text,
+            hint: 'Verifica che la funzione importProdottiVendutiFromZapier sia deployata su Dashboard → Code → Functions'
+          }
+        });
+        setTesting(false);
+        return;
+      }
 
       if (!response.ok) {
         setTestResult({
@@ -90,6 +127,7 @@ export default function ZapierProdottiVenduti() {
         message: 'Errore durante il test: ' + error.message,
         data: {
           error: error.message,
+          stack: error.stack,
           hint: 'Verifica che la funzione sia deployata correttamente in Dashboard → Code → Functions → importProdottiVendutiFromZapier'
         }
       });

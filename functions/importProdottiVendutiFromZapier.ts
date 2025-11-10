@@ -45,14 +45,24 @@ Deno.serve(async (req) => {
     const expectedSecret = Deno.env.get('ZAPIER_PRODOTTI_VENDUTI_WEBHOOK_SECRET');
     
     if (!expectedSecret) {
+      console.error('ZAPIER_PRODOTTI_VENDUTI_WEBHOOK_SECRET not configured');
       return Response.json({ 
         error: 'Webhook secret not configured',
         message: 'Please set ZAPIER_PRODOTTI_VENDUTI_WEBHOOK_SECRET in environment variables'
-      }, { status: 500 });
+      }, { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
     
     if (secret !== expectedSecret) {
-      return Response.json({ error: 'Invalid webhook secret' }, { status: 401 });
+      console.error('Invalid webhook secret provided');
+      return Response.json({ 
+        error: 'Invalid webhook secret' 
+      }, { 
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
     const data = await req.json();
@@ -62,7 +72,10 @@ Deno.serve(async (req) => {
       return Response.json({ 
         error: 'Missing required fields', 
         message: 'store_name and data_vendita are required'
-      }, { status: 400 });
+      }, { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
     // Find store by name
@@ -71,7 +84,10 @@ Deno.serve(async (req) => {
       return Response.json({ 
         error: 'Store not found',
         message: `No store found with name: ${data.store_name}`
-      }, { status: 400 });
+      }, { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
     // Prepare data for insertion
@@ -108,6 +124,8 @@ Deno.serve(async (req) => {
       success: true,
       action: existing.length > 0 ? 'updated' : 'created',
       data: result
+    }, {
+      headers: { 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
@@ -115,6 +133,9 @@ Deno.serve(async (req) => {
     return Response.json({ 
       error: error.message,
       stack: error.stack 
-    }, { status: 500 });
+    }, { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 });
