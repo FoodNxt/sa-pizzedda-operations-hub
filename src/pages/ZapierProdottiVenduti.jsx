@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { ShoppingCart, Copy, CheckCircle, AlertCircle, Store, FileSpreadsheet, Key } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
@@ -49,8 +50,7 @@ export default function ZapierProdottiVenduti() {
     setTestResult(null);
 
     try {
-      const response = await base44.functions.invoke('importProdottiVendutiFromZapier', {
-        secret: webhookSecret,
+      const testData = {
         store_name: stores[0].name,
         data_vendita: '2025-01-15',
         'Margherita': '5',
@@ -58,19 +58,30 @@ export default function ZapierProdottiVenduti() {
         'Acqua Naturale': '2',
         'Fregola': '1',
         'Ichnusa Classica': '4'
+      };
+
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-webhook-secret': webhookSecret
+        },
+        body: JSON.stringify(testData)
       });
 
-      if (response.data.error) {
+      const data = await response.json();
+
+      if (!response.ok) {
         setTestResult({
           success: false,
-          message: response.data.error,
-          data: response.data
+          message: data.error || data.message || `HTTP ${response.status}`,
+          data: data
         });
       } else {
         setTestResult({
           success: true,
           message: 'Webhook testato con successo! Il record di test è stato creato.',
-          data: response.data
+          data: data
         });
       }
     } catch (error) {
