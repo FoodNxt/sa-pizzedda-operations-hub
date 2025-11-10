@@ -9,6 +9,7 @@ export default function ZapierProdottiVenduti() {
   const [webhookUrl] = useState(`${window.location.origin}/api/functions/importProdottiVendutiFromZapier`);
   const [testResult, setTestResult] = useState(null);
   const [testing, setTesting] = useState(false);
+  const [webhookSecret, setWebhookSecret] = useState('');
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -26,8 +27,10 @@ export default function ZapierProdottiVenduti() {
       return;
     }
 
-    const secret = prompt('Inserisci il secret configurato (ZAPIER_PRODOTTI_VENDUTI_WEBHOOK_SECRET):');
-    if (!secret) return;
+    if (!webhookSecret) {
+      alert('Inserisci il webhook secret prima di testare!');
+      return;
+    }
 
     setTesting(true);
     setTestResult(null);
@@ -41,12 +44,26 @@ export default function ZapierProdottiVenduti() {
         'Acqua Naturale': '2'
       };
 
-      const response = await base44.functions.invoke('importProdottiVendutiFromZapier', testData);
+      // Create a mock request with headers
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-webhook-secret': webhookSecret
+        },
+        body: JSON.stringify(testData)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || data.message || `HTTP ${response.status}`);
+      }
 
       setTestResult({
         success: true,
         message: 'Test completato con successo!',
-        data: response.data
+        data: data
       });
     } catch (error) {
       setTestResult({
@@ -111,12 +128,15 @@ export default function ZapierProdottiVenduti() {
         <p className="text-[#9b9b9b] mb-4">
           Vai su Dashboard → Settings → Environment Variables e aggiungi:
         </p>
-        <div className="neumorphic-pressed p-4 rounded-xl">
+        <div className="neumorphic-pressed p-4 rounded-xl mb-4">
           <code className="text-sm text-[#6b6b6b]">
             <strong>Nome:</strong> ZAPIER_PRODOTTI_VENDUTI_WEBHOOK_SECRET<br />
             <strong>Valore:</strong> [genera una stringa casuale sicura]
           </code>
         </div>
+        <p className="text-xs text-blue-600">
+          ✅ Secret già configurato: ZAPIER_PRODOTTI_VENDUTI_WEBHOOK_SECRET
+        </p>
       </NeumorphicCard>
 
       {/* Step 2: Webhook URL */}
@@ -139,14 +159,33 @@ export default function ZapierProdottiVenduti() {
         <p className="text-[#9b9b9b] mb-4">
           Verifica che tutto funzioni prima di configurare Zapier:
         </p>
-        <NeumorphicButton
-          onClick={testWebhook}
-          disabled={testing || stores.length === 0}
-          variant="primary"
-          className="w-full"
-        >
-          {testing ? 'Test in corso...' : 'Testa Webhook'}
-        </NeumorphicButton>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+              Webhook Secret
+            </label>
+            <input
+              type="text"
+              value={webhookSecret}
+              onChange={(e) => setWebhookSecret(e.target.value)}
+              placeholder="Inserisci il tuo ZAPIER_PRODOTTI_VENDUTI_WEBHOOK_SECRET"
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+            />
+            <p className="text-xs text-[#9b9b9b] mt-1">
+              Inserisci lo stesso valore che hai configurato nelle Environment Variables
+            </p>
+          </div>
+
+          <NeumorphicButton
+            onClick={testWebhook}
+            disabled={testing || stores.length === 0 || !webhookSecret}
+            variant="primary"
+            className="w-full"
+          >
+            {testing ? 'Test in corso...' : 'Testa Webhook'}
+          </NeumorphicButton>
+        </div>
 
         {testResult && (
           <div className={`mt-4 neumorphic-flat p-4 rounded-xl ${testResult.success ? 'bg-green-50' : 'bg-red-50'}`}>
@@ -204,9 +243,12 @@ export default function ZapierProdottiVenduti() {
             <h3 className="font-bold text-[#8b7355] mb-3">3️⃣ Headers</h3>
             <div className="neumorphic-pressed p-3 rounded-lg">
               <code className="text-xs text-[#6b6b6b]">
-                x-webhook-secret: [il tuo secret]
+                x-webhook-secret: [il tuo ZAPIER_PRODOTTI_VENDUTI_WEBHOOK_SECRET]
               </code>
             </div>
+            <p className="text-xs text-red-600 mt-2 font-bold">
+              ⚠️ IMPORTANTE: Il secret va SOLO negli Headers, NON nel mapping dei dati!
+            </p>
           </div>
 
           <div className="neumorphic-flat p-4 rounded-xl">
