@@ -1,12 +1,13 @@
-import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
-import { Zap, Copy, CheckCircle, AlertTriangle, ShoppingCart } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { ShoppingCart, Copy, CheckCircle, AlertCircle, Store, FileSpreadsheet, Key } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
 
 export default function ZapierProdottiVenduti() {
-  const [webhookUrl] = useState(`${window.location.origin}/api/functions/importProdottiVendutiFromZapier`);
+  const [webhookUrl, setWebhookUrl] = useState('');
+  const [copied, setCopied] = useState(false);
   const [testResult, setTestResult] = useState(null);
   const [testing, setTesting] = useState(false);
   const [webhookSecret, setWebhookSecret] = useState('');
@@ -16,19 +17,31 @@ export default function ZapierProdottiVenduti() {
     queryFn: () => base44.entities.Store.list(),
   });
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    alert('URL copiato negli appunti!');
+  useEffect(() => {
+    const baseUrl = window.location.origin;
+    setWebhookUrl(`${baseUrl}/api/functions/importProdottiVendutiFromZapier`);
+  }, []);
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(webhookUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const testWebhook = async () => {
     if (stores.length === 0) {
-      alert('Nessun negozio configurato! Crea almeno un negozio prima di testare.');
+      setTestResult({
+        success: false,
+        message: 'Devi prima creare almeno un locale nella sezione Store Reviews'
+      });
       return;
     }
 
     if (!webhookSecret) {
-      alert('Inserisci il webhook secret prima di testare!');
+      setTestResult({
+        success: false,
+        message: 'Inserisci il Webhook Secret prima di testare'
+      });
       return;
     }
 
@@ -36,40 +49,38 @@ export default function ZapierProdottiVenduti() {
     setTestResult(null);
 
     try {
-      const testData = {
+      const response = await base44.functions.invoke('importProdottiVendutiFromZapier', {
+        secret: webhookSecret,
         store_name: stores[0].name,
-        data_vendita: new Date().toISOString().split('T')[0],
+        data_vendita: '2025-01-15',
         'Margherita': '5',
         'Coca Cola 33cl': '3',
-        'Acqua Naturale': '2'
-      };
-
-      // Create a mock request with headers
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-webhook-secret': webhookSecret
-        },
-        body: JSON.stringify(testData)
+        'Acqua Naturale': '2',
+        'Fregola': '1',
+        'Ichnusa Classica': '4'
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || data.message || `HTTP ${response.status}`);
+      if (response.data.error) {
+        setTestResult({
+          success: false,
+          message: response.data.error,
+          data: response.data
+        });
+      } else {
+        setTestResult({
+          success: true,
+          message: 'Webhook testato con successo! Il record di test è stato creato.',
+          data: response.data
+        });
       }
-
-      setTestResult({
-        success: true,
-        message: 'Test completato con successo!',
-        data: data
-      });
     } catch (error) {
       setTestResult({
         success: false,
-        message: error.message,
-        details: error.response?.data
+        message: 'Errore durante il test: ' + error.message,
+        data: {
+          error: error.message,
+          hint: 'Verifica che la funzione sia deployata correttamente in Dashboard → Code → Functions → importProdottiVendutiFromZapier'
+        }
       });
     }
 
@@ -79,134 +90,138 @@ export default function ZapierProdottiVenduti() {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-8">
         <div className="flex items-center gap-3 mb-3">
           <ShoppingCart className="w-10 h-10 text-[#8b7355]" />
-          <h1 className="text-3xl font-bold text-[#6b6b6b]">Configurazione Zapier - Prodotti Venduti</h1>
+          <h1 className="text-3xl font-bold text-[#6b6b6b]">Configurazione Prodotti Venduti Import</h1>
         </div>
-        <p className="text-[#9b9b9b]">
-          Importa automaticamente i dati delle vendite giornaliere per prodotto da Google Sheets
-        </p>
+        <p className="text-[#9b9b9b]">Importa automaticamente i dati delle vendite giornaliere per prodotto da Google Sheets</p>
       </div>
 
-      {/* Warning if no stores */}
+      {/* Store Check */}
       {stores.length === 0 && (
-        <NeumorphicCard className="p-6 bg-red-50">
+        <NeumorphicCard className="p-6 border-2 border-red-300">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="w-6 h-6 text-red-600 mt-1" />
+            <AlertCircle className="w-6 h-6 text-red-600 mt-1" />
             <div>
-              <h3 className="font-bold text-red-700 mb-2">⚠️ Nessun negozio configurato</h3>
-              <p className="text-sm text-red-600">
-                Prima di configurare Zapier, devi creare almeno un negozio nel sistema.
-                Il campo <code className="bg-red-200 px-1 rounded">store_name</code> deve corrispondere esattamente al nome del negozio.
+              <h3 className="font-bold text-red-700 mb-2">Attenzione: Nessun locale configurato</h3>
+              <p className="text-red-600 mb-3">
+                Prima di configurare Zapier, devi creare i tuoi locali nella sezione <strong>Store Reviews</strong>.
               </p>
             </div>
           </div>
         </NeumorphicCard>
       )}
 
-      {/* Stores Available */}
-      <NeumorphicCard className="p-6">
-        <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">📍 Negozi Disponibili</h2>
-        {stores.length > 0 ? (
-          <div className="space-y-2">
+      {/* Webhook Secret Setup */}
+      <NeumorphicCard className="p-6 border-2 border-[#8b7355]">
+        <div className="flex items-center gap-3 mb-4">
+          <Key className="w-6 h-6 text-[#8b7355]" />
+          <h2 className="text-xl font-bold text-[#6b6b6b]">🔐 Step 1: Configura Webhook Secret</h2>
+        </div>
+        
+        <div className="neumorphic-pressed p-4 rounded-xl mb-4">
+          <p className="text-[#6b6b6b] mb-4">
+            <strong>IMPORTANTE:</strong> Imposta un <strong>Webhook Secret</strong> dedicato per Prodotti Venduti.
+          </p>
+          
+          <ol className="space-y-3 text-[#6b6b6b] mb-4">
+            <li className="flex items-start gap-2">
+              <span className="font-bold text-[#8b7355]">1.</span>
+              <span>Vai su <strong>Dashboard → Code → Secrets</strong></span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="font-bold text-[#8b7355]">2.</span>
+              <span>Aggiungi un nuovo secret con nome: <code className="bg-white px-2 py-1 rounded">ZAPIER_PRODOTTI_VENDUTI_WEBHOOK_SECRET</code></span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="font-bold text-[#8b7355]">3.</span>
+              <span>Imposta un valore sicuro (es: <code className="bg-white px-2 py-1 rounded">prodotti_2025_secret_xyz123</code>)</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="font-bold text-[#8b7355]">4.</span>
+              <span>Copia lo stesso valore qui sotto per testare:</span>
+            </li>
+          </ol>
+
+          <input
+            type="password"
+            placeholder="Incolla qui il tuo webhook secret..."
+            value={webhookSecret}
+            onChange={(e) => setWebhookSecret(e.target.value)}
+            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+          />
+        </div>
+      </NeumorphicCard>
+
+      {/* Available Stores */}
+      {stores.length > 0 && (
+        <NeumorphicCard className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <Store className="w-5 h-5 text-[#8b7355]" />
+            <h2 className="text-xl font-bold text-[#6b6b6b]">Locali Disponibili</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {stores.map(store => (
-              <div key={store.id} className="neumorphic-pressed p-3 rounded-lg">
-                <p className="font-medium text-[#6b6b6b]">{store.name}</p>
-                <p className="text-sm text-[#9b9b9b]">ID: {store.id}</p>
+              <div key={store.id} className="neumorphic-pressed p-4 rounded-xl">
+                <p className="font-bold text-[#6b6b6b]">{store.name}</p>
+                <p className="text-sm text-[#9b9b9b]">{store.address}</p>
               </div>
             ))}
           </div>
-        ) : (
-          <p className="text-[#9b9b9b]">Nessun negozio trovato. Creane uno prima di procedere.</p>
-        )}
-      </NeumorphicCard>
-
-      {/* Step 1: Secret */}
-      <NeumorphicCard className="p-6">
-        <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">🔐 Step 1: Configura il Secret</h2>
-        <p className="text-[#9b9b9b] mb-4">
-          Vai su Dashboard → Settings → Environment Variables e aggiungi:
-        </p>
-        <div className="neumorphic-pressed p-4 rounded-xl mb-4">
-          <code className="text-sm text-[#6b6b6b]">
-            <strong>Nome:</strong> ZAPIER_PRODOTTI_VENDUTI_WEBHOOK_SECRET<br />
-            <strong>Valore:</strong> [genera una stringa casuale sicura]
-          </code>
-        </div>
-        <p className="text-xs text-blue-600">
-          ✅ Secret già configurato: ZAPIER_PRODOTTI_VENDUTI_WEBHOOK_SECRET
-        </p>
-      </NeumorphicCard>
-
-      {/* Step 2: Webhook URL */}
-      <NeumorphicCard className="p-6">
-        <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">🔗 Step 2: URL Webhook</h2>
-        <p className="text-[#9b9b9b] mb-4">
-          Usa questo URL in Zapier come endpoint del webhook:
-        </p>
-        <div className="neumorphic-pressed p-4 rounded-xl flex items-center justify-between gap-4">
-          <code className="text-sm text-[#6b6b6b] break-all flex-1">{webhookUrl}</code>
-          <NeumorphicButton onClick={() => copyToClipboard(webhookUrl)}>
-            <Copy className="w-4 h-4" />
-          </NeumorphicButton>
-        </div>
-      </NeumorphicCard>
-
-      {/* Step 3: Test */}
-      <NeumorphicCard className="p-6">
-        <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">🧪 Step 3: Testa il Webhook</h2>
-        <p className="text-[#9b9b9b] mb-4">
-          Verifica che tutto funzioni prima di configurare Zapier:
-        </p>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-              Webhook Secret
-            </label>
-            <input
-              type="text"
-              value={webhookSecret}
-              onChange={(e) => setWebhookSecret(e.target.value)}
-              placeholder="Inserisci il tuo ZAPIER_PRODOTTI_VENDUTI_WEBHOOK_SECRET"
-              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-            />
-            <p className="text-xs text-[#9b9b9b] mt-1">
-              Inserisci lo stesso valore che hai configurato nelle Environment Variables
+          <div className="neumorphic-flat p-4 rounded-xl mt-4">
+            <p className="text-sm text-[#6b6b6b]">
+              ⚠️ <strong>Importante:</strong> Il valore di <code className="bg-white px-2 py-1 rounded">store_name</code> in Zapier deve corrispondere <strong>esattamente</strong> al nome del locale.
             </p>
           </div>
+        </NeumorphicCard>
+      )}
 
-          <NeumorphicButton
-            onClick={testWebhook}
-            disabled={testing || stores.length === 0 || !webhookSecret}
-            variant="primary"
-            className="w-full"
-          >
-            {testing ? 'Test in corso...' : 'Testa Webhook'}
-          </NeumorphicButton>
+      {/* Webhook URL */}
+      <NeumorphicCard className="p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <ShoppingCart className="w-5 h-5 text-[#8b7355]" />
+          <h2 className="text-xl font-bold text-[#6b6b6b]">🔗 Step 2: URL Webhook</h2>
+        </div>
+        
+        <div className="neumorphic-pressed p-4 rounded-xl mb-4">
+          <div className="flex items-center gap-3">
+            <code className="flex-1 text-sm text-[#6b6b6b] break-all">
+              {webhookUrl || 'Caricamento...'}
+            </code>
+            <NeumorphicButton
+              onClick={copyToClipboard}
+              className="px-4 py-2"
+            >
+              {copied ? <CheckCircle className="w-5 h-5 text-green-600" /> : <Copy className="w-5 h-5" />}
+            </NeumorphicButton>
+          </div>
         </div>
 
+        <NeumorphicButton
+          onClick={testWebhook}
+          disabled={testing || stores.length === 0 || !webhookSecret}
+          variant="primary"
+          className="w-full"
+        >
+          {testing ? 'Test in corso...' : 'Testa Webhook'}
+        </NeumorphicButton>
+
         {testResult && (
-          <div className={`mt-4 neumorphic-flat p-4 rounded-xl ${testResult.success ? 'bg-green-50' : 'bg-red-50'}`}>
+          <div className={`mt-4 p-4 rounded-xl ${testResult.success ? 'bg-green-50' : 'bg-red-50'}`}>
             <div className="flex items-start gap-3">
               {testResult.success ? (
-                <CheckCircle className="w-6 h-6 text-green-600 mt-1" />
+                <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
               ) : (
-                <AlertTriangle className="w-6 h-6 text-red-600 mt-1" />
+                <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
               )}
               <div className="flex-1">
-                <p className={`font-bold ${testResult.success ? 'text-green-700' : 'text-red-700'}`}>
+                <p className={`font-medium ${testResult.success ? 'text-green-700' : 'text-red-700'}`}>
                   {testResult.message}
                 </p>
                 {testResult.data && (
-                  <pre className="text-xs mt-2 bg-white p-2 rounded overflow-auto">
+                  <pre className="mt-2 text-xs overflow-auto">
                     {JSON.stringify(testResult.data, null, 2)}
-                  </pre>
-                )}
-                {testResult.details && (
-                  <pre className="text-xs mt-2 bg-white p-2 rounded overflow-auto text-red-600">
-                    {JSON.stringify(testResult.details, null, 2)}
                   </pre>
                 )}
               </div>
@@ -215,122 +230,323 @@ export default function ZapierProdottiVenduti() {
         )}
       </NeumorphicCard>
 
-      {/* Step 4: Configure Zapier */}
+      {/* Step by Step Guide */}
       <NeumorphicCard className="p-6">
-        <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">⚡ Step 4: Configura Zapier</h2>
-        
+        <div className="flex items-center gap-3 mb-6">
+          <FileSpreadsheet className="w-6 h-6 text-[#8b7355]" />
+          <h2 className="text-xl font-bold text-[#6b6b6b]">⚙️ Step 3: Guida Configurazione Zapier</h2>
+        </div>
+
         <div className="space-y-6">
-          <div className="neumorphic-flat p-4 rounded-xl">
-            <h3 className="font-bold text-[#8b7355] mb-3">1️⃣ Trigger: Google Sheets</h3>
-            <ul className="text-sm text-[#6b6b6b] space-y-2 ml-4">
-              <li>• App: <strong>Google Sheets</strong></li>
-              <li>• Event: <strong>New or Updated Spreadsheet Row</strong></li>
-              <li>• Seleziona il foglio di calcolo e il worksheet</li>
-            </ul>
-          </div>
-
-          <div className="neumorphic-flat p-4 rounded-xl">
-            <h3 className="font-bold text-[#8b7355] mb-3">2️⃣ Action: Webhooks by Zapier</h3>
-            <ul className="text-sm text-[#6b6b6b] space-y-2 ml-4">
-              <li>• App: <strong>Webhooks by Zapier</strong></li>
-              <li>• Event: <strong>POST</strong></li>
-              <li>• URL: <code className="bg-gray-100 px-1 rounded">{webhookUrl}</code></li>
-              <li>• Payload Type: <strong>JSON</strong></li>
-            </ul>
-          </div>
-
-          <div className="neumorphic-flat p-4 rounded-xl">
-            <h3 className="font-bold text-[#8b7355] mb-3">3️⃣ Headers</h3>
-            <div className="neumorphic-pressed p-3 rounded-lg">
-              <code className="text-xs text-[#6b6b6b]">
-                x-webhook-secret: [il tuo ZAPIER_PRODOTTI_VENDUTI_WEBHOOK_SECRET]
-              </code>
+          {/* Step 1 */}
+          <div className="neumorphic-flat p-5 rounded-xl">
+            <div className="flex items-start gap-4">
+              <div className="neumorphic-pressed w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="font-bold text-[#8b7355]">1</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-[#6b6b6b] mb-2">Crea un nuovo Zap</h3>
+                <p className="text-[#6b6b6b] mb-3">
+                  Vai su <a href="https://zapier.com" target="_blank" rel="noopener noreferrer" className="text-[#8b7355] hover:underline">Zapier.com</a> e clicca su "Create Zap"
+                </p>
+              </div>
             </div>
-            <p className="text-xs text-red-600 mt-2 font-bold">
-              ⚠️ IMPORTANTE: Il secret va SOLO negli Headers, NON nel mapping dei dati!
-            </p>
           </div>
 
-          <div className="neumorphic-flat p-4 rounded-xl">
-            <h3 className="font-bold text-[#8b7355] mb-3">4️⃣ Data (Mapping Campi)</h3>
-            <div className="neumorphic-pressed p-3 rounded-lg space-y-2">
-              <p className="text-xs text-[#6b6b6b] font-bold mb-2">Campi Obbligatori:</p>
-              <code className="text-xs text-[#6b6b6b] block">store_name → [Colonna Nome Negozio]</code>
-              <code className="text-xs text-[#6b6b6b] block">data_vendita → [Colonna Data]</code>
-              
-              <p className="text-xs text-[#6b6b6b] font-bold mt-4 mb-2">Prodotti (usa i nomi esatti!):</p>
-              <div className="grid grid-cols-2 gap-2">
-                <code className="text-xs text-[#6b6b6b]">Acqua Frizzante</code>
-                <code className="text-xs text-[#6b6b6b]">Acqua Naturale</code>
-                <code className="text-xs text-[#6b6b6b]">Baione Cannonau</code>
-                <code className="text-xs text-[#6b6b6b]">Bottarga</code>
-                <code className="text-xs text-[#6b6b6b]">Capperi, olive e acciughe</code>
-                <code className="text-xs text-[#6b6b6b]">Cipolle caramellate e Gorgonzola</code>
-                <code className="text-xs text-[#6b6b6b]">Coca Cola 33cl</code>
-                <code className="text-xs text-[#6b6b6b]">Coca Cola Zero 33cl</code>
-                <code className="text-xs text-[#6b6b6b]">Contissa Vermentino</code>
-                <code className="text-xs text-[#6b6b6b]">Estathe 33cl</code>
-                <code className="text-xs text-[#6b6b6b]">Fanta 33cl</code>
-                <code className="text-xs text-[#6b6b6b]">Fregola</code>
-                <code className="text-xs text-[#6b6b6b]">Friarielli e Olive</code>
-                <code className="text-xs text-[#6b6b6b]">Gorgonzola e Radicchio</code>
-                <code className="text-xs text-[#6b6b6b]">Guttiau 70gr</code>
-                <code className="text-xs text-[#6b6b6b]">Guttiau Snack</code>
-                <code className="text-xs text-[#6b6b6b]">Ichnusa Ambra Limpida</code>
-                <code className="text-xs text-[#6b6b6b]">Ichnusa Classica</code>
-                <code className="text-xs text-[#6b6b6b]">Ichnusa Non Filtrata</code>
-                <code className="text-xs text-[#6b6b6b]">Malloreddus</code>
-                <code className="text-xs text-[#6b6b6b]">Malloreddus 4 sapori</code>
-                <code className="text-xs text-[#6b6b6b]">Margherita</code>
-                <code className="text-xs text-[#6b6b6b]">Nduja e stracciatella</code>
-                <code className="text-xs text-[#6b6b6b]">Nutella</code>
-                <code className="text-xs text-[#6b6b6b]">Pabassinos Anice</code>
-                <code className="text-xs text-[#6b6b6b]">Pabassinos Noci</code>
-                <code className="text-xs text-[#6b6b6b]">Pane Carasau</code>
-                <code className="text-xs text-[#6b6b6b]">Pesca Gianduia</code>
-                <code className="text-xs text-[#6b6b6b]">Pistacchio</code>
-                <code className="text-xs text-[#6b6b6b]">Pomodori e stracciatella</code>
-                <code className="text-xs text-[#6b6b6b]">Salsiccia e Patate</code>
-                <code className="text-xs text-[#6b6b6b]">Salsiccia Sarda e Pecorino</code>
+          {/* Step 2 */}
+          <div className="neumorphic-flat p-5 rounded-xl">
+            <div className="flex items-start gap-4">
+              <div className="neumorphic-pressed w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="font-bold text-[#8b7355]">2</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-[#6b6b6b] mb-2">Configura il Trigger</h3>
+                <ul className="space-y-2 text-[#6b6b6b]">
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#8b7355] mt-1">•</span>
+                    <span><strong>App:</strong> Google Sheets</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#8b7355] mt-1">•</span>
+                    <span><strong>Trigger Event:</strong> New Spreadsheet Row</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#8b7355] mt-1">•</span>
+                    <span><strong>Spreadsheet:</strong> Seleziona il tuo Google Sheet con i dati vendite</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#8b7355] mt-1">•</span>
+                    <span><strong>Worksheet:</strong> Seleziona il tab del locale (es. "Ticinese", "Lanino")</span>
+                  </li>
+                </ul>
+                <div className="neumorphic-pressed p-3 rounded-lg mt-3">
+                  <p className="text-sm text-[#6b6b6b]">
+                    ℹ️ <strong>Nota:</strong> Dovrai creare uno Zap separato per ogni locale (ogni tab del Google Sheet)
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Step 3 */}
+          <div className="neumorphic-flat p-5 rounded-xl">
+            <div className="flex items-start gap-4">
+              <div className="neumorphic-pressed w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="font-bold text-[#8b7355]">3</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-[#6b6b6b] mb-2">Configura l'Action</h3>
+                <ul className="space-y-2 text-[#6b6b6b]">
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#8b7355] mt-1">•</span>
+                    <span><strong>App:</strong> Webhooks by Zapier</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#8b7355] mt-1">•</span>
+                    <span><strong>Action Event:</strong> POST</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#8b7355] mt-1">•</span>
+                    <span><strong>URL:</strong> Copia l'URL qui sopra ☝️</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Step 4 - Settings */}
+          <div className="neumorphic-flat p-5 rounded-xl border-2 border-[#8b7355]">
+            <div className="flex items-start gap-4">
+              <div className="neumorphic-pressed w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="font-bold text-[#8b7355]">4</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-[#6b6b6b] mb-3">⚠️ Impostazioni Webhook (IMPORTANTE)</h3>
+                
+                <div className="space-y-4">
+                  <div className="neumorphic-pressed p-4 rounded-lg bg-yellow-50">
+                    <p className="font-bold text-[#6b6b6b] mb-2">📌 Payload Type:</p>
+                    <p className="text-[#6b6b6b]">Seleziona: <strong className="text-[#8b7355]">JSON</strong></p>
+                  </div>
+
+                  <div className="neumorphic-pressed p-4 rounded-lg bg-blue-50">
+                    <p className="font-bold text-[#6b6b6b] mb-2">📌 Headers:</p>
+                    <div className="bg-white rounded p-3 font-mono text-sm">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <span className="text-[#8b7355] font-bold">Key:</span>
+                          <code className="ml-2 bg-gray-100 px-2 py-1 rounded">Content-Type</code>
+                        </div>
+                        <div>
+                          <span className="text-[#8b7355] font-bold">Value:</span>
+                          <code className="ml-2 bg-gray-100 px-2 py-1 rounded">application/json</code>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="neumorphic-pressed p-4 rounded-lg">
+                    <p className="font-bold text-[#6b6b6b] mb-2">📌 Altre Impostazioni:</p>
+                    <ul className="space-y-1 text-sm text-[#6b6b6b]">
+                      <li>• <strong>Wrap Request In Array:</strong> No</li>
+                      <li>• <strong>Unflatten:</strong> No</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Step 5 - Field Mapping */}
+          <div className="neumorphic-flat p-5 rounded-xl border-2 border-red-500">
+            <div className="flex items-start gap-4">
+              <div className="neumorphic-pressed w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="font-bold text-[#8b7355]">5</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-[#6b6b6b] mb-3">🗺️ Mappa i Campi (Data)</h3>
+                <p className="text-[#6b6b6b] mb-3">
+                  Nel campo <strong>Data</strong>, aggiungi questi campi:
+                </p>
+                
+                <div className="space-y-2 mb-4">
+                  <div className="neumorphic-pressed p-3 rounded-lg bg-red-50 border-2 border-red-400">
+                    <div className="text-sm">
+                      <span className="font-bold text-red-700 block mb-1">secret 🔐</span>
+                      <span className="text-red-700">→ Scrivi manualmente il tuo <code className="bg-white px-2 py-1 rounded">ZAPIER_PRODOTTI_VENDUTI_WEBHOOK_SECRET</code></span>
+                    </div>
+                  </div>
+
+                  <div className="neumorphic-pressed p-3 rounded-lg bg-yellow-50">
+                    <div className="text-sm">
+                      <span className="font-bold text-[#8b7355] block mb-1">store_name</span>
+                      <span className="text-[#6b6b6b]">→ Scrivi manualmente il nome esatto del locale (es. "Ticinese")</span>
+                    </div>
+                  </div>
+
+                  <div className="neumorphic-pressed p-3 rounded-lg bg-blue-50">
+                    <div className="text-sm">
+                      <span className="font-bold text-[#8b7355] block mb-1">data_vendita</span>
+                      <span className="text-[#6b6b6b]">→ Mappa alla colonna Data del Google Sheet</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="neumorphic-pressed p-4 rounded-lg bg-purple-50 mb-4">
+                  <p className="text-sm font-bold text-purple-800 mb-3">🍕 Prodotti (mappa alle colonne del Google Sheet):</p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+                    <div>• Acqua Frizzante</div>
+                    <div>• Acqua Naturale</div>
+                    <div>• Baione Cannonau</div>
+                    <div>• Bottarga</div>
+                    <div>• Capperi, olive e acciughe</div>
+                    <div>• Cipolle caramellate e Gorgonzola</div>
+                    <div>• Coca Cola 33cl</div>
+                    <div>• Coca Cola Zero 33cl</div>
+                    <div>• Contissa Vermentino</div>
+                    <div>• Estathe 33cl</div>
+                    <div>• Fanta 33cl</div>
+                    <div>• Fregola</div>
+                    <div>• Friarielli e Olive</div>
+                    <div>• Gorgonzola e Radicchio</div>
+                    <div>• Guttiau 70gr</div>
+                    <div>• Guttiau Snack</div>
+                    <div>• Ichnusa Ambra Limpida</div>
+                    <div>• Ichnusa Classica</div>
+                    <div>• Ichnusa Non Filtrata</div>
+                    <div>• Malloreddus</div>
+                    <div>• Malloreddus 4 sapori</div>
+                    <div>• Margherita</div>
+                    <div>• Nduja e stracciatella</div>
+                    <div>• Nutella</div>
+                    <div>• Pabassinos Anice</div>
+                    <div>• Pabassinos Noci</div>
+                    <div>• Pane Carasau</div>
+                    <div>• Pesca Gianduia</div>
+                    <div>• Pistacchio</div>
+                    <div>• Pomodori e stracciatella</div>
+                    <div>• Salsiccia e Patate</div>
+                    <div>• Salsiccia Sarda e Pecorino</div>
+                  </div>
+                </div>
+
+                <div className="neumorphic-flat p-3 rounded-lg mt-4 bg-yellow-50">
+                  <p className="text-sm text-yellow-800">
+                    ⚠️ <strong>Importante:</strong> I nomi dei prodotti devono corrispondere ESATTAMENTE (maiuscole, spazi, accentazione)
+                  </p>
+                </div>
+
+                <div className="neumorphic-flat p-3 rounded-lg mt-4 bg-blue-50">
+                  <p className="text-sm text-blue-800">
+                    💡 Se un prodotto non è stato venduto, lascia il valore vuoto o metti 0
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Step 6 */}
+          <div className="neumorphic-flat p-5 rounded-xl">
+            <div className="flex items-start gap-4">
+              <div className="neumorphic-pressed w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="font-bold text-[#8b7355]">6</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-[#6b6b6b] mb-2">Testa e Pubblica</h3>
+                <p className="text-[#6b6b6b] mb-3">
+                  Clicca su "Test & Continue" in Zapier per testare l'integrazione, poi "Publish" per attivare lo Zap.
+                </p>
+                <div className="neumorphic-pressed p-3 rounded-lg">
+                  <p className="text-sm text-[#6b6b6b]">
+                    ✅ Ogni nuova riga aggiunta al Google Sheet verrà automaticamente importata!
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </NeumorphicCard>
 
-      {/* Google Sheet Structure */}
+      {/* Example Google Sheet Structure */}
       <NeumorphicCard className="p-6">
-        <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">📊 Struttura Google Sheet Richiesta</h2>
-        <p className="text-[#9b9b9b] mb-4">
-          Il foglio Google Sheets deve avere le seguenti colonne (i nomi devono corrispondere esattamente):
-        </p>
-        <div className="neumorphic-pressed p-4 rounded-xl overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-[#c1c1c1]">
-                <th className="text-left p-2 text-[#8b7355]">store_name</th>
-                <th className="text-left p-2 text-[#8b7355]">data_vendita</th>
-                <th className="text-left p-2 text-[#8b7355]">Margherita</th>
-                <th className="text-left p-2 text-[#8b7355]">Coca Cola 33cl</th>
-                <th className="text-left p-2 text-[#8b7355]">...</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b border-[#d1d1d1]">
-                <td className="p-2 text-[#6b6b6b]">Ticinese</td>
-                <td className="p-2 text-[#6b6b6b]">2025-01-15</td>
-                <td className="p-2 text-[#6b6b6b]">45</td>
-                <td className="p-2 text-[#6b6b6b]">23</td>
-                <td className="p-2 text-[#6b6b6b]">...</td>
-              </tr>
-            </tbody>
-          </table>
+        <div className="flex items-center gap-3 mb-4">
+          <FileSpreadsheet className="w-5 h-5 text-[#8b7355]" />
+          <h2 className="text-xl font-bold text-[#6b6b6b]">Struttura Google Sheet Richiesta</h2>
         </div>
-        <div className="mt-4 neumorphic-flat p-4 rounded-xl bg-blue-50">
-          <p className="text-sm text-blue-700">
-            💡 <strong>Tip:</strong> Il nome del negozio deve corrispondere ESATTAMENTE al nome configurato nel sistema.
-            La data deve essere in formato YYYY-MM-DD (es. 2025-01-15).
+        
+        <div className="neumorphic-pressed p-4 rounded-xl mb-4">
+          <p className="text-[#6b6b6b] mb-3">
+            Il tuo Google Sheet deve avere queste colonne (nell'ordine che preferisci):
           </p>
+          <div className="bg-white rounded-lg p-4 overflow-x-auto">
+            <table className="w-full text-xs border-collapse">
+              <thead>
+                <tr className="border-b-2 border-[#8b7355]">
+                  <th className="text-left p-2 text-[#8b7355] font-bold">data_vendita</th>
+                  <th className="text-left p-2 text-[#8b7355] font-bold">Margherita</th>
+                  <th className="text-left p-2 text-[#8b7355] font-bold">Coca Cola 33cl</th>
+                  <th className="text-left p-2 text-[#8b7355] font-bold">Acqua Naturale</th>
+                  <th className="text-left p-2 text-[#8b7355] font-bold">...</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-gray-200">
+                  <td className="p-2 text-[#6b6b6b]">2025-01-15</td>
+                  <td className="p-2 text-[#6b6b6b]">45</td>
+                  <td className="p-2 text-[#6b6b6b]">23</td>
+                  <td className="p-2 text-[#6b6b6b]">15</td>
+                  <td className="p-2 text-[#6b6b6b]">...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="neumorphic-flat p-4 rounded-xl space-y-2">
+          <p className="text-sm text-[#6b6b6b]">
+            📅 <strong>Formato Data:</strong> YYYY-MM-DD (esempio: 2025-01-15)
+          </p>
+          <p className="text-sm text-[#6b6b6b]">
+            🔢 <strong>Formato Quantità:</strong> Numeri interi (esempio: 45)
+          </p>
+          <p className="text-sm text-[#6b6b6b]">
+            📊 <strong>Ogni Tab:</strong> Rappresenta un locale diverso
+          </p>
+          <p className="text-sm text-[#6b6b6b]">
+            🔄 <strong>Aggiornamenti:</strong> Se importi la stessa data per lo stesso locale, il record verrà <strong>aggiornato</strong> (non duplicato)
+          </p>
+        </div>
+      </NeumorphicCard>
+
+      {/* Troubleshooting */}
+      <NeumorphicCard className="p-6 bg-yellow-50">
+        <div className="flex items-start gap-3 mb-4">
+          <AlertCircle className="w-6 h-6 text-yellow-700" />
+          <div>
+            <h3 className="font-bold text-yellow-800 mb-2">Risoluzione Errori</h3>
+            <ol className="space-y-2 text-yellow-700">
+              <li className="flex items-start gap-2">
+                <span className="font-bold">1.</span>
+                <span><strong>Secret configurato:</strong> Hai impostato ZAPIER_PRODOTTI_VENDUTI_WEBHOOK_SECRET nei secrets?</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="font-bold">2.</span>
+                <span><strong>store_name esatto:</strong> Il nome del locale deve essere identico a quello configurato</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="font-bold">3.</span>
+                <span><strong>Formato data:</strong> Usa YYYY-MM-DD (es. 2025-01-15)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="font-bold">4.</span>
+                <span><strong>Nomi prodotti:</strong> Devono corrispondere ESATTAMENTE (maiuscole, spazi, virgole)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="font-bold">5.</span>
+                <span>Usa il pulsante <strong>"Testa Webhook"</strong> prima di configurare Zapier</span>
+              </li>
+            </ol>
+          </div>
         </div>
       </NeumorphicCard>
     </div>
