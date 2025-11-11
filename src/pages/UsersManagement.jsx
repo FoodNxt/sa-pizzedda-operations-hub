@@ -289,19 +289,29 @@ export default function UsersManagement() {
     try {
       setSendingContract(true);
 
-      // Save user data first to ensure latest form data is stored
-      await updateMutation.mutateAsync({
-        id: editingUser.id,
-        data: formData
-      });
-
-      const template = templates.find(t => t.id === selectedTemplate);
-      if (!template) {
-        alert('Template non trovato');
-        return;
+      // STEP 1: Save user data
+      console.log('Step 1: Saving user data...');
+      try {
+        await updateMutation.mutateAsync({
+          id: editingUser.id,
+          data: formData
+        });
+        console.log('✓ User data saved successfully');
+      } catch (error) {
+        console.error('✗ Error saving user data:', error);
+        throw new Error('Impossibile salvare i dati utente: ' + (error.message || 'Errore sconosciuto'));
       }
 
-      // Function to replace variables
+      // STEP 2: Find template
+      console.log('Step 2: Finding template...');
+      const template = templates.find(t => t.id === selectedTemplate);
+      if (!template) {
+        throw new Error('Template non trovato. Riprova a selezionare un template.');
+      }
+      console.log('✓ Template found:', template.nome_template);
+
+      // STEP 3: Replace variables in template
+      console.log('Step 3: Replacing variables...');
       const replaceVariables = (content, data) => {
         let result = content;
         const oggi = new Date().toLocaleDateString('it-IT');
@@ -317,7 +327,7 @@ export default function UsersManagement() {
           '{{nome_cognome}}': data.nome_cognome || '',
           '{{phone}}': data.phone || '',
           '{{data_nascita}}': data.data_nascita ? new Date(data.data_nascita).toLocaleDateString('it-IT') : '',
-          '{{citta_nascita}}': data.citta_nascita || '', // Added citta_nascita
+          '{{citta_nascita}}': data.citta_nascita || '',
           '{{codice_fiscale}}': data.codice_fiscale || '',
           '{{indirizzo_residenza}}': data.indirizzo_residenza || '',
           '{{iban}}': data.iban || '',
@@ -327,7 +337,7 @@ export default function UsersManagement() {
           '{{durata_contratto_mesi}}': data.durata_contratto_mesi?.toString() || '',
           '{{data_oggi}}': oggi,
           '{{data_fine_contratto}}': dataFineContratto,
-          '{{ruoli}}': (data.ruoli_dipendente || []).join(', '),
+          '{{ruoli}}': (data.ruoli_dipendente || []).join(', ') || 'Nessun ruolo',
           '{{locali}}': (data.assigned_stores || []).join(', ') || 'Tutti i locali'
         };
 
@@ -339,9 +349,11 @@ export default function UsersManagement() {
       };
 
       const contenutoContratto = replaceVariables(template.contenuto_template, formData);
+      console.log('✓ Variables replaced successfully');
 
-      // Create contract record
-      await createContrattoMutation.mutateAsync({
+      // STEP 4: Prepare contract data
+      console.log('Step 4: Preparing contract data...');
+      const contractData = {
         user_id: editingUser.id,
         user_email: editingUser.email,
         user_nome_cognome: formData.nome_cognome,
@@ -351,36 +363,61 @@ export default function UsersManagement() {
         nome_cognome: formData.nome_cognome,
         phone: formData.phone,
         data_nascita: formData.data_nascita,
-        citta_nascita: formData.citta_nascita, // Added citta_nascita
+        citta_nascita: formData.citta_nascita || '',
         codice_fiscale: formData.codice_fiscale,
         indirizzo_residenza: formData.indirizzo_residenza,
         iban: formData.iban,
-        taglia_maglietta: formData.taglia_maglietta,
-        user_type: formData.user_type,
-        ruoli_dipendente: formData.ruoli_dipendente,
-        assigned_stores: formData.assigned_stores,
+        taglia_maglietta: formData.taglia_maglietta || '',
+        user_type: formData.user_type || 'dipendente',
+        ruoli_dipendente: formData.ruoli_dipendente || [],
+        assigned_stores: formData.assigned_stores || [],
         employee_group: formData.employee_group,
-        // function_name was here
         ore_settimanali: formData.ore_settimanali,
         data_inizio_contratto: formData.data_inizio_contratto,
         durata_contratto_mesi: formData.durata_contratto_mesi,
         status: 'inviato',
         data_invio: new Date().toISOString()
+      };
+      
+      console.log('Contract data prepared:', {
+        user_id: contractData.user_id,
+        user_email: contractData.user_email,
+        template_nome: contractData.template_nome,
+        status: contractData.status
       });
 
-      // Send email notification
-      await base44.integrations.Core.SendEmail({
-        to: editingUser.email,
-        subject: 'Nuovo Contratto di Lavoro',
-        body: `Gentile ${formData.nome_cognome},\n\nÈ stato generato un nuovo contratto di lavoro per te.\nPuoi visualizzarlo e firmarlo accedendo alla piattaforma.\n\nCordiali saluti,\nSa Pizzedda`
-      });
+      // STEP 5: Create contract record
+      console.log('Step 5: Creating contract record...');
+      try {
+        await createContrattoMutation.mutateAsync(contractData);
+        console.log('✓ Contract created successfully');
+      } catch (error) {
+        console.error('✗ Error creating contract:', error);
+        throw new Error('Impossibile creare il contratto nel database: ' + (error.message || 'Errore sconosciuto'));
+      }
 
-      alert('Contratto creato e inviato con successo!');
+      // STEP 6: Send email notification
+      console.log('Step 6: Sending email notification...');
+      try {
+        await base44.integrations.Core.SendEmail({
+          to: editingUser.email,
+          subject: 'Nuovo Contratto di Lavoro',
+          body: `Gentile ${formData.nome_cognome},\n\nÈ stato generato un nuovo contratto di lavoro per te.\nPuoi visualizzarlo e firmarlo accedendo alla piattaforma.\n\nCordiali saluti,\nSa Pizzedda`
+        });
+        console.log('✓ Email sent successfully');
+      } catch (error) {
+        console.error('✗ Error sending email:', error);
+        // Email failure is not critical - contract is already created
+        console.warn('Contract created but email could not be sent');
+        alert('Contratto creato con successo, ma l\'email non è stata inviata. Avvisa manualmente il dipendente.');
+      }
+
+      alert('Contratto creato e inviato con successo! ✅');
       handleCancel();
 
     } catch (error) {
-      console.error('Error sending contract:', error);
-      alert('Errore durante l\'invio del contratto');
+      console.error('❌ Error in handleSendContract:', error);
+      alert(error.message || 'Errore durante l\'invio del contratto. Controlla i log della console per dettagli.');
     } finally {
       setSendingContract(false);
     }
