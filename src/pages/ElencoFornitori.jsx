@@ -11,11 +11,9 @@ import {
   Phone,
   Mail,
   MapPin,
-  Calendar,
   Clock,
   Package,
-  CheckCircle,
-  AlertTriangle
+  CheckCircle
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
