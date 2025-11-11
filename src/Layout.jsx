@@ -32,7 +32,7 @@ import {
   ShoppingCart,
   GraduationCap,
   FileText,
-  BookOpen // Added BookOpen import
+  BookOpen
 } from "lucide-react";
 import CompleteProfileModal from "./components/auth/CompleteProfileModal";
 
@@ -99,7 +99,6 @@ const navigationStructure = [
         url: createPageUrl("ChannelComparison"),
         icon: BarChart3,
       },
-      // Removed "Daily Aggregation"
       {
         title: "Storico Cassa",
         url: createPageUrl("StoricoCassa"),
@@ -124,9 +123,9 @@ const navigationStructure = [
         icon: ChefHat,
       },
       {
-        title: "Inventario Admin", // NEW: Combined form
+        title: "Inventario Admin",
         url: createPageUrl("InventarioAdmin"),
-        icon: ClipboardCheck, // Using ClipboardCheck icon
+        icon: ClipboardCheck,
       },
       {
         title: "Form Inventario",
@@ -139,22 +138,22 @@ const navigationStructure = [
         icon: ClipboardList,
       },
       {
-        title: "Inventario", // CHANGED from "Quantità Minime"
+        title: "Inventario",
         url: createPageUrl("QuantitaMinime"),
         icon: AlertTriangle,
       },
       {
-        title: "Elenco Fornitori", // NEW
+        title: "Elenco Fornitori",
         url: createPageUrl("ElencoFornitori"),
         icon: Truck,
       },
       {
-        title: "Upload Fatture XML", // NEW
+        title: "Upload Fatture XML",
         url: createPageUrl("UploadFattureXML"),
         icon: Upload,
       },
       {
-        title: "Prodotti Venduti", // NEW ITEM ADDED HERE
+        title: "Prodotti Venduti",
         url: createPageUrl("ProdottiVenduti"),
         icon: ShoppingCart,
       },
@@ -192,12 +191,12 @@ const navigationStructure = [
         icon: DollarSign,
       },
       {
-        title: "Academy Admin", // NEW ITEM ADDED HERE
+        title: "Academy Admin",
         url: createPageUrl("AcademyAdmin"),
         icon: GraduationCap,
       },
       {
-        title: "Contratti", // NEW ITEM ADDED HERE
+        title: "Contratti",
         url: createPageUrl("Contratti"),
         icon: FileText,
       },
@@ -225,7 +224,7 @@ const navigationStructure = [
         icon: Zap,
       },
       {
-        title: "Controllo Pulizie Master", // New item added here
+        title: "Controllo Pulizie Master",
         url: createPageUrl("ControlloPulizieMaster"),
         icon: CheckSquare,
       },
@@ -234,7 +233,7 @@ const navigationStructure = [
         url: createPageUrl("ControlloPuliziaCassiere"),
         icon: Camera,
         requiredUserType: ["admin", "manager"],
-        requiredRole: null // Accessible to admin/manager without role restriction
+        requiredRole: null
       },
       {
         title: "Controllo Pulizia Pizzaiolo",
@@ -252,7 +251,7 @@ const navigationStructure = [
       }
     ]
   },
-  { // NEW: Delivery section
+  {
     title: "Delivery",
     icon: Truck,
     type: "section",
@@ -266,7 +265,7 @@ const navigationStructure = [
       {
         title: "Matching Ordini Sbagliati",
         url: createPageUrl("MatchingOrdiniSbagliati"),
-        icon: LinkIcon, // Using LinkIcon from lucide-react
+        icon: LinkIcon,
       }
     ]
   },
@@ -287,12 +286,12 @@ const navigationStructure = [
         icon: User,
       },
       {
-        title: "Contratti", // NEW: Added for dipendente section
+        title: "Contratti",
         url: createPageUrl("ContrattiDipendente"),
         icon: FileText,
       },
       {
-        title: "Academy", // NEW ITEM ADDED HERE
+        title: "Academy",
         url: createPageUrl("Academy"),
         icon: GraduationCap,
       },
@@ -373,18 +372,18 @@ const navigationStructure = [
         icon: Upload,
       },
       {
-        title: "Zapier Prodotti Venduti", // NEW ITEM ADDED HERE
+        title: "Zapier Prodotti Venduti",
         url: createPageUrl("ZapierProdottiVenduti"),
         icon: ShoppingCart,
       },
       {
-        title: "Bulk Import Prodotti Venduti", // NEW ITEM ADDED HERE
+        title: "Bulk Import Prodotti Venduti",
         url: createPageUrl("BulkImportProdottiVenduti"),
         icon: Upload,
       }
     ]
   },
-  { // New "Sistema" section
+  {
     title: "Sistema",
     icon: User,
     type: "section",
@@ -395,13 +394,13 @@ const navigationStructure = [
         url: createPageUrl("UsersManagement"),
         icon: Users,
       },
-      { // NEW: Gestione Accesso Pagine
+      {
         title: "Gestione Accesso Pagine",
         url: createPageUrl("GestioneAccessoPagine"),
         icon: CheckSquare,
       },
       {
-        title: "Funzionamento App", // NEW: Added for Sistema section
+        title: "Funzionamento App",
         url: createPageUrl("FunzionamentoApp"),
         icon: BookOpen,
       }
@@ -426,8 +425,9 @@ export default function Layout({ children, currentPageName }) {
     "View Dipendente": true,
     "Zapier Guide": true,
     "Sistema": true,
-    "Il Mio Profilo": true
+    "Il Mio Profilo": true // Added for default expansion, used by dipendente special case
   });
+  const [dipendenteNav, setDipendenteNav] = useState(null); // State for dipendente's progressive navigation
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -436,36 +436,56 @@ export default function Layout({ children, currentPageName }) {
         setCurrentUser(user);
 
         // ALWAYS show modal if profile was not manually completed
-        // This catches both new registrations and Google logins
         const needsProfile = !user.profile_manually_completed;
         setShowProfileModal(needsProfile);
 
-        // CRITICAL RESTRICTION FOR DIPENDENTE WITH NO ROLES
+        // CRITICAL RESTRICTION FOR DIPENDENTE
         if (user.user_type === 'dipendente') {
           const userRoles = user.ruoli_dipendente || [];
 
-          // If dipendente has NO roles, ONLY allow access to ProfiloDipendente
+          // 1. If NO roles → ONLY Profilo
           if (userRoles.length === 0) {
-            // If not on profile page, redirect
             if (location.pathname !== createPageUrl("ProfiloDipendente")) {
               navigate(createPageUrl("ProfiloDipendente"), { replace: true });
             }
-            return; // Stop further checks
+            return;
           }
 
-          // If dipendente HAS roles, redirect from restricted pages to Valutazione
-          const isOnRestrictedPage =
-            location.pathname === createPageUrl("Dashboard") ||
-            location.pathname === createPageUrl("StoreReviews") ||
-            location.pathname === createPageUrl("Financials") ||
-            location.pathname === createPageUrl("RealTime") ||
-            location.pathname === createPageUrl("ChannelComparison") ||
-            location.pathname === createPageUrl("Inventory") ||
-            location.pathname === '/' ||
-            location.pathname === '';
+          // 2. Check contract status
+          const hasReceivedContract = await checkIfContractReceived(user.id);
+          const hasSignedContract = await checkIfContractSigned(user.id);
+          const contractStarted = user.data_inizio_contratto && new Date(user.data_inizio_contratto) <= new Date();
 
-          if (isOnRestrictedPage) {
-            navigate(createPageUrl("Valutazione"), { replace: true });
+          // Determine allowed pages based on status
+          const allowedPages = [createPageUrl("ProfiloDipendente")];
+
+          // After receiving contract (inviato status)
+          if (hasReceivedContract) { // Changed from hasSignedContract || contractStarted to just hasReceivedContract for "ContrattiDipendente"
+            allowedPages.push(createPageUrl("ContrattiDipendente"));
+          }
+
+          // After signing contract
+          if (hasSignedContract) {
+            allowedPages.push(createPageUrl("Academy"));
+          }
+
+          // After contract start date AND signed
+          if (contractStarted && hasSignedContract) {
+            allowedPages.push(
+              createPageUrl("Valutazione"),
+              createPageUrl("ControlloPuliziaCassiere"),
+              createPageUrl("ControlloPuliziaPizzaiolo"),
+              createPageUrl("ControlloPuliziaStoreManager"),
+              createPageUrl("FormInventario"),
+              createPageUrl("ConteggioCassa"),
+              createPageUrl("TeglieButtate"),
+              createPageUrl("Preparazioni")
+            );
+          }
+
+          // If current page is not in allowed pages, redirect to Profilo
+          if (!allowedPages.includes(location.pathname)) {
+            navigate(createPageUrl("ProfiloDipendente"), { replace: true });
           }
         }
       } catch (error) {
@@ -475,9 +495,44 @@ export default function Layout({ children, currentPageName }) {
     fetchUser();
   }, [location.pathname, navigate]);
 
+
+  useEffect(() => {
+    if (currentUser?.user_type === 'dipendente') {
+      getFilteredNavigationForDipendente(currentUser).then(nav => {
+        setDipendenteNav(nav);
+      });
+    }
+  }, [currentUser]); // Re-run when currentUser changes
+
+  // Helper function to check if contract is signed
+  const checkIfContractSigned = async (userId) => {
+    try {
+      const contratti = await base44.entities.Contratto.filter({
+        user_id: userId,
+        status: 'firmato'
+      });
+      return contratti.length > 0;
+    } catch (error) {
+      console.error('Error checking contract status:', error);
+      return false;
+    }
+  };
+
+  // Helper function to check if user has received any contract (status is 'inviato' or 'firmato')
+  const checkIfContractReceived = async (userId) => {
+    try {
+      const contratti = await base44.entities.Contratto.filter({
+        user_id: userId
+      });
+      return contratti.length > 0;
+    } catch (error) {
+      console.error('Error checking if contract received:', error);
+      return false;
+    }
+  };
+
   const handleProfileComplete = () => {
     setShowProfileModal(false);
-    // Refresh user data
     base44.auth.me().then(user => {
       setCurrentUser(user);
     }).catch(error => {
@@ -513,24 +568,133 @@ export default function Layout({ children, currentPageName }) {
     const userType = currentUser.user_type || 'dipendente';
     const userRoles = currentUser.ruoli_dipendente || [];
 
-    // CRITICAL: If dipendente has NO roles, ONLY show Profilo (handled by finalNavigation special case)
-    // All other navigation items for such a user should be hidden by default
-    if (userType === 'dipendente' && userRoles.length === 0) {
-      // This will prevent all sections/items from showing up in filteredNavigation
-      // The only exception (Profilo) will be hardcoded into finalNavigation
-      return false;
-    }
-
     // Check user type
     if (!requiredUserType.includes(userType)) return false;
 
     // Check role if specified and user is a dipendente
     if (requiredRole && userType === 'dipendente') {
-      // User must have the required role in their roles array
       return userRoles.includes(requiredRole);
     }
 
     return true;
+  };
+
+  // Filter navigation based on dipendente's progressive access
+  const getFilteredNavigationForDipendente = async (user) => {
+    if (user.user_type !== 'dipendente') return null;
+
+    const userRoles = user.ruoli_dipendente || [];
+
+    // 1. No roles → ONLY Profilo
+    if (userRoles.length === 0) {
+      return [{
+        title: "Il Mio Profilo",
+        icon: User,
+        type: "section",
+        items: [{
+          title: "Profilo",
+          url: createPageUrl("ProfiloDipendente"),
+          icon: User,
+        }]
+      }];
+    }
+
+    // 2. Check contract status
+    const hasReceivedContract = await checkIfContractReceived(user.id);
+    const hasSignedContract = await checkIfContractSigned(user.id);
+    const contractStarted = user.data_inizio_contratto && new Date(user.data_inizio_contratto) <= new Date();
+
+    // Build menu items progressively
+    const menuItems = [
+      {
+        title: "Profilo",
+        url: createPageUrl("ProfiloDipendente"),
+        icon: User,
+      }
+    ];
+
+    // Add Contratti if received or signed
+    if (hasReceivedContract) { // If contract was received, show "Contratti"
+      menuItems.push({
+        title: "Contratti",
+        url: createPageUrl("ContrattiDipendente"),
+        icon: FileText,
+      });
+    }
+
+    // Add Academy if contract signed
+    if (hasSignedContract) {
+      menuItems.push({
+        title: "Academy",
+        url: createPageUrl("Academy"),
+        icon: GraduationCap,
+      });
+    }
+
+    // Add operational pages if contract started AND signed
+    if (contractStarted && hasSignedContract) {
+      menuItems.push({
+        title: "Valutazione",
+        url: createPageUrl("Valutazione"),
+        icon: ClipboardCheck,
+      });
+
+      // Add role-specific cleaning pages if the user has the role
+      if (userRoles.includes("Cassiere")) {
+        menuItems.push({
+          title: "Controllo Pulizia Cassiere",
+          url: createPageUrl("ControlloPuliziaCassiere"),
+          icon: Camera,
+          requiredRole: "Cassiere"
+        });
+      }
+      if (userRoles.includes("Pizzaiolo")) {
+        menuItems.push({
+          title: "Controllo Pulizia Pizzaiolo",
+          url: createPageUrl("ControlloPuliziaPizzaiolo"),
+          icon: Camera,
+          requiredRole: "Pizzaiolo"
+        });
+      }
+      if (userRoles.includes("Store Manager")) {
+        menuItems.push({
+          title: "Controllo Pulizia Store Manager",
+          url: createPageUrl("ControlloPuliziaStoreManager"),
+          icon: Camera,
+          requiredRole: "Store Manager"
+        });
+      }
+
+      menuItems.push(
+        {
+          title: "Form Inventario",
+          url: createPageUrl("FormInventario"),
+          icon: ClipboardList,
+        },
+        {
+          title: "Conteggio Cassa",
+          url: createPageUrl("ConteggioCassa"),
+          icon: DollarSign,
+        },
+        {
+          title: "Teglie Buttate",
+          url: createPageUrl("TeglieButtate"),
+          icon: AlertTriangle,
+        },
+        {
+          title: "Preparazioni",
+          url: createPageUrl("Preparazioni"),
+          icon: Package,
+        }
+      );
+    }
+
+    return [{
+      title: "Area Dipendente",
+      icon: Users,
+      type: "section",
+      items: menuItems
+    }];
   };
 
   const filteredNavigation = navigationStructure
@@ -541,23 +705,13 @@ export default function Layout({ children, currentPageName }) {
     }))
     .filter(section => section.items.length > 0);
 
-  // SPECIAL CASE: If dipendente with NO roles, show ONLY Profilo in navigation
-  const finalNavigation = currentUser?.user_type === 'dipendente' && (currentUser.ruoli_dipendente || []).length === 0
-    ? [{
-        title: "Il Mio Profilo",
-        icon: User,
-        type: "section",
-        items: [{
-          title: "Profilo",
-          url: createPageUrl("ProfiloDipendente"),
-          icon: User,
-        }]
-      }]
+  // Use progressive navigation for dipendenti
+  const finalNavigation = currentUser?.user_type === 'dipendente'
+    ? (dipendenteNav || [])
     : filteredNavigation;
 
   const getUserDisplayName = () => {
     if (!currentUser) return 'Caricamento...';
-    // Prioritize nome_cognome, fallback to full_name
     return currentUser.nome_cognome || currentUser.full_name || currentUser.email || 'Utente';
   };
 
