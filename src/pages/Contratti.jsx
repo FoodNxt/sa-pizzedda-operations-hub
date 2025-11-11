@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -35,6 +36,7 @@ export default function Contratti() {
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [previewContratto, setPreviewContratto] = useState(null);
+  const [templateTextareaRef, setTemplateTextareaRef] = useState(null);
 
   const [formData, setFormData] = useState({
     user_id: '',
@@ -44,6 +46,7 @@ export default function Contratti() {
     nome_cognome: '',
     phone: '',
     data_nascita: '',
+    citta_nascita: '', // Added citta_nascita
     codice_fiscale: '',
     indirizzo_residenza: '',
     iban: '',
@@ -144,6 +147,7 @@ export default function Contratti() {
       nome_cognome: '',
       phone: '',
       data_nascita: '',
+      citta_nascita: '', // Added citta_nascita
       codice_fiscale: '',
       indirizzo_residenza: '',
       iban: '',
@@ -185,6 +189,7 @@ export default function Contratti() {
       nome_cognome: contratto.nome_cognome || '',
       phone: contratto.phone || '',
       data_nascita: contratto.data_nascita || '',
+      citta_nascita: contratto.citta_nascita || '', // Added citta_nascita
       codice_fiscale: contratto.codice_fiscale || '',
       indirizzo_residenza: contratto.indirizzo_residenza || '',
       iban: contratto.iban || '',
@@ -222,6 +227,7 @@ export default function Contratti() {
       '{{nome_cognome}}': data.nome_cognome || '',
       '{{phone}}': data.phone || '',
       '{{data_nascita}}': data.data_nascita ? new Date(data.data_nascita).toLocaleDateString('it-IT') : '',
+      '{{citta_nascita}}': data.citta_nascita || '', // Added citta_nascita
       '{{codice_fiscale}}': data.codice_fiscale || '',
       '{{indirizzo_residenza}}': data.indirizzo_residenza || '',
       '{{iban}}': data.iban || '',
@@ -329,6 +335,7 @@ export default function Contratti() {
         nome_cognome: user.nome_cognome || user.full_name || '',
         phone: user.phone || '',
         data_nascita: user.data_nascita || '',
+        citta_nascita: user.citta_nascita || '', // Added citta_nascita
         codice_fiscale: user.codice_fiscale || '',
         indirizzo_residenza: user.indirizzo_residenza || '',
         iban: user.iban || '',
@@ -379,10 +386,28 @@ export default function Contratti() {
   };
 
   const insertVariable = (variable) => {
+    const textarea = templateTextareaRef;
+    if (!textarea) return;
+
+    const startPos = textarea.selectionStart;
+    const endPos = textarea.selectionEnd;
+    const textBefore = templateData.contenuto_template.substring(0, startPos);
+    const textAfter = templateData.contenuto_template.substring(endPos);
+    const variableText = `{{${variable}}}`;
+    
+    const newText = textBefore + variableText + textAfter;
+    
     setTemplateData(prev => ({
       ...prev,
-      contenuto_template: prev.contenuto_template + `{{${variable}}}`
+      contenuto_template: newText
     }));
+
+    // Set cursor position after variable
+    setTimeout(() => {
+      textarea.focus();
+      const newCursorPos = startPos + variableText.length;
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
+    }, 0);
   };
 
   const getStatusBadge = (status) => {
@@ -405,7 +430,7 @@ export default function Contratti() {
   };
 
   const availableVariables = [
-    'nome_cognome', 'phone', 'data_nascita', 'codice_fiscale', 'indirizzo_residenza', 'iban',
+    'nome_cognome', 'phone', 'data_nascita', 'citta_nascita', 'codice_fiscale', 'indirizzo_residenza', 'iban',
     'employee_group', 'function_name', 'ore_settimanali', 'data_inizio_contratto', 
     'durata_contratto_mesi', 'ruoli', 'locali'
   ];
@@ -553,7 +578,7 @@ export default function Contratti() {
                   </label>
                   <div className="neumorphic-pressed p-4 rounded-xl mb-3">
                     <p className="text-xs text-[#9b9b9b] mb-3">
-                      Clicca su una variabile per inserirla nel testo:
+                      Clicca su una variabile per inserirla nel punto del cursore:
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {availableVariables.map(v => (
@@ -573,11 +598,12 @@ export default function Contratti() {
                     Contenuto Contratto <span className="text-red-600">*</span>
                   </label>
                   <textarea
+                    ref={(el) => setTemplateTextareaRef(el)}
                     required
                     value={templateData.contenuto_template}
                     onChange={(e) => setTemplateData({ ...templateData, contenuto_template: e.target.value })}
                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none h-96 resize-none font-mono text-sm"
-                    placeholder="Scrivi il testo del contratto e usa le variabili tipo {{nome_cognome}}, {{iban}}, etc."
+                    placeholder="Scrivi il testo del contratto e clicca sulle variabili per inserirle..."
                   />
                 </div>
 
@@ -669,7 +695,7 @@ export default function Contratti() {
                   </div>
                 )}
 
-                {/* Dati Anagrafici - same as before */}
+                {/* Dati Anagrafici */}
                 <div className="neumorphic-flat p-5 rounded-xl">
                   <h3 className="font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
                     <User className="w-5 h-5 text-[#8b7355]" />
@@ -698,6 +724,18 @@ export default function Contratti() {
                         required
                         value={formData.data_nascita}
                         onChange={(e) => setFormData({ ...formData, data_nascita: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                        Città di Nascita
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.citta_nascita}
+                        onChange={(e) => setFormData({ ...formData, citta_nascita: e.target.value })}
                         className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                       />
                     </div>
