@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -140,9 +141,9 @@ const navigationStructure = [
         icon: ClipboardList,
       },
       {
-        title: "Inventario",
-        url: createPageUrl("QuantitaMinime"),
-        icon: AlertTriangle,
+        title: "Materie Prime",
+        url: createPageUrl("MateriePrime"),
+        icon: Package,
       },
       {
         title: "Elenco Fornitori",
@@ -160,13 +161,18 @@ const navigationStructure = [
         icon: ShoppingCart,
       },
       {
-        title: "Teglie Buttate",
-        url: createPageUrl("TeglieButtate"),
+        title: "Form Teglie Buttate",
+        url: createPageUrl("FormTeglieButtate"),
         icon: AlertTriangle,
       },
       {
-        title: "Preparazioni",
-        url: createPageUrl("Preparazioni"),
+        title: "Analisi Sprechi",
+        url: createPageUrl("AnalisiSprechi"),
+        icon: BarChart3,
+      },
+      {
+        title: "Form Preparazioni",
+        url: createPageUrl("FormPreparazioni"),
         icon: Package,
       }
     ]
@@ -321,13 +327,13 @@ const navigationStructure = [
         icon: DollarSign,
       },
       {
-        title: "Teglie Buttate",
-        url: createPageUrl("TeglieButtate"),
+        title: "Form Teglie Buttate",
+        url: createPageUrl("FormTeglieButtate"),
         icon: AlertTriangle,
       },
       {
-        title: "Preparazioni",
-        url: createPageUrl("Preparazioni"),
+        title: "Form Preparazioni",
+        url: createPageUrl("FormPreparazioni"),
         icon: Package,
       }
     ]
@@ -495,7 +501,7 @@ export default function Layout({ children, currentPageName }) {
             allowedPages = pageAccessConfig?.after_contract_start || [
               'ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione',
               'ControlloPuliziaCassiere', 'ControlloPuliziaPizzaiolo', 'ControlloPuliziaStoreManager',
-              'FormInventario', 'ConteggioCassa', 'TeglieButtate', 'Preparazioni'
+              'FormInventario', 'ConteggioCassa', 'FormTeglieButtate', 'FormPreparazioni'
             ];
           } else if (hasSignedContract) {
             allowedPages = pageAccessConfig?.after_contract_signed || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'];
@@ -638,7 +644,7 @@ export default function Layout({ children, currentPageName }) {
       allowedPages = pageAccessConfig?.after_contract_start || [
         'ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione',
         'ControlloPuliziaCassiere', 'ControlloPuliziaPizzaiolo', 'ControlloPuliziaStoreManager',
-        'FormInventario', 'ConteggioCassa', 'TeglieButtate', 'Preparazioni'
+        'FormInventario', 'ConteggioCassa', 'FormTeglieButtate', 'FormPreparazioni'
       ];
     } else if (hasSignedContract) {
       allowedPages = pageAccessConfig?.after_contract_signed || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'];
@@ -680,8 +686,8 @@ export default function Layout({ children, currentPageName }) {
       'ControlloPuliziaStoreManager': 'Pulizia',
       'FormInventario': 'Inventario',
       'ConteggioCassa': 'Cassa',
-      'TeglieButtate': 'Teglie',
-      'Preparazioni': 'Preparazioni'
+      'FormTeglieButtate': 'Teglie',
+      'FormPreparazioni': 'Preparazioni'
     };
     return titles[pageName] || pageName;
   };
@@ -697,8 +703,8 @@ export default function Layout({ children, currentPageName }) {
       'ControlloPuliziaStoreManager': Camera,
       'FormInventario': ClipboardList,
       'ConteggioCassa': DollarSign,
-      'TeglieButtate': AlertTriangle,
-      'Preparazioni': Package
+      'FormTeglieButtate': AlertTriangle,
+      'FormPreparazioni': Package
     };
     return icons[pageName] || User;
   };
