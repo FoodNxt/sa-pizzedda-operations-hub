@@ -451,41 +451,38 @@ export default function Contratti() {
 
   const handleDownloadPDF = async (contratto) => {
     try {
-      // Create PDF content with contract text and signature
-      const pdfContent = `
-${contratto.contenuto_contratto}
+      const response = await base44.functions.invoke('generateContrattoPDF', {
+        contenuto: contratto.contenuto_contratto,
+        nome_cognome: contratto.nome_cognome,
+        status: contratto.status,
+        firma_dipendente: contratto.firma_dipendente,
+        data_firma: contratto.data_firma,
+        contratto_id: contratto.id
+      });
 
-${contratto.status === 'firmato' && contratto.firma_dipendente ? `
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-FIRMA DIGITALE
-
-Firmato da: ${contratto.firma_dipendente}
-Data firma: ${new Date(contratto.data_firma).toLocaleDateString('it-IT')} alle ${new Date(contratto.data_firma).toLocaleTimeString('it-IT')}
-
-Questo documento è stato firmato digitalmente sulla piattaforma Sa Pizzedda Workspace.
-ID Contratto: ${contratto.id}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-` : ''}
-      `;
-
-      // Create a blob with the content
-      const blob = new Blob([pdfContent], { type: 'text/plain' });
+      // Convert base64 to blob
+      const base64Data = response.data.pdf_base64;
+      const binaryString = atob(base64Data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      
+      // Download
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Contratto_${contratto.nome_cognome.replace(/\s/g, '_')}_${contratto.id.substring(0, 8)}.txt`;
+      a.download = `Contratto_${contratto.nome_cognome.replace(/\s/g, '_')}_${contratto.id.substring(0, 8)}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       a.remove();
 
-      alert('Contratto scaricato con successo!');
+      alert('Contratto PDF scaricato con successo!');
     } catch (error) {
       console.error('Error downloading contract:', error);
-      alert('Errore durante il download del contratto');
+      alert('Errore durante il download del contratto: ' + error.message);
     }
   };
 

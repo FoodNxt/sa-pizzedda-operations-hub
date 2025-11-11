@@ -852,19 +852,8 @@ export default function UsersManagement() {
                         <option value="CM">CM - Contratto Misto</option>
                       </select>
                     </div>
-
-                    <div>
-                      <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                        Ruolo/Funzione
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.function_name}
-                        onChange={(e) => setFormData({ ...formData, function_name: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                        placeholder="Pizzaiolo, Cassiere, Manager..."
-                      />
-                    </div>
+                    
+                    {/* Removed 'Ruolo/Funzione' input field */}
 
                     <div>
                       <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
@@ -1096,8 +1085,6 @@ export default function UsersManagement() {
               <thead>
                 <tr className="border-b-2 border-[#8b7355]">
                   <th className="text-left p-3 text-[#9b9b9b] font-medium">Utente</th>
-                  {/* Removed Email and Telefono columns */}
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Ruolo</th>
                   <th className="text-left p-3 text-[#9b9b9b] font-medium">Tipo</th>
                   <th className="text-left p-3 text-[#9b9b9b] font-medium">Locali</th>
                   <th className="text-center p-3 text-[#9b9b9b] font-medium">Planday</th>
@@ -1124,22 +1111,16 @@ export default function UsersManagement() {
                             <p className="font-medium text-[#6b6b6b]">
                               {user.nome_cognome || user.full_name || 'Nome non impostato'}
                             </p>
+                            {user.user_type === 'dipendente' && user.ruoli_dipendente && user.ruoli_dipendente.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {user.ruoli_dipendente.map((role, idx) => (
+                                  <span key={idx} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                                    {role}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      </td>
-                      {/* Removed Email and Telefono cells */}
-                      <td className="p-3">
-                        <div>
-                          <span className="text-sm text-[#6b6b6b]">{user.function_name || '-'}</span>
-                          {user.user_type === 'dipendente' && user.ruoli_dipendente && user.ruoli_dipendente.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {user.ruoli_dipendente.map((role, idx) => (
-                                <span key={idx} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-                                  {role}
-                                </span>
-                              ))}
-                            </div>
-                          )}
                         </div>
                       </td>
                       <td className="p-3">

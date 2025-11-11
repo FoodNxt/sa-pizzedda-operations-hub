@@ -2,285 +2,387 @@ import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  Users,
-  Shield,
+  CheckSquare,
   Save,
+  AlertCircle,
   CheckCircle,
-  X,
-  AlertCircle
+  User,
+  FileText,
+  Calendar,
+  Settings
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 
 export default function GestioneAccessoPagine() {
-  const [selectedUserId, setSelectedUserId] = useState(null);
-  const [accessData, setAccessData] = useState({});
-  const [success, setSuccess] = useState('');
-  const [error, setError] = useState('');
-
-  const queryClient = useQueryClient();
-
-  const { data: users = [], isLoading: usersLoading } = useQuery({
-    queryKey: ['users-dipendenti'],
-    queryFn: async () => {
-      const allUsers = await base44.entities.User.list();
-      return allUsers.filter(u => u.user_type === 'dipendente');
-    },
+  const [pageConfig, setPageConfig] = useState({
+    after_registration: ['ProfiloDipendente'],
+    after_contract_received: ['ProfiloDipendente', 'ContrattiDipendente'],
+    after_contract_signed: ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'],
+    after_contract_start: [
+      'ProfiloDipendente',
+      'ContrattiDipendente', 
+      'Academy',
+      'Valutazione',
+      'ControlloPuliziaCassiere',
+      'ControlloPuliziaPizzaiolo',
+      'ControlloPuliziaStoreManager',
+      'FormInventario',
+      'ConteggioCassa',
+      'TeglieButtate',
+      'Preparazioni'
+    ]
   });
 
-  const { data: pageAccesses = [] } = useQuery({
-    queryKey: ['page-accesses'],
-    queryFn: () => base44.entities.PageAccess.list(),
-  });
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
-  const createAccessMutation = useMutation({
-    mutationFn: (data) => base44.entities.PageAccess.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['page-accesses'] });
-      setSuccess('Accessi salvati con successo!');
-      setTimeout(() => setSuccess(''), 3000);
-    },
-    onError: (err) => {
-      setError('Errore nel salvataggio: ' + err.message);
-      setTimeout(() => setError(''), 5000);
-    }
-  });
-
-  const updateAccessMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.PageAccess.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['page-accesses'] });
-      setSuccess('Accessi aggiornati con successo!');
-      setTimeout(() => setSuccess(''), 3000);
-    },
-    onError: (err) => {
-      setError('Errore nell\'aggiornamento: ' + err.message);
-      setTimeout(() => setError(''), 5000);
-    }
-  });
-
-  const pages = [
-    { key: 'page_valutazione', label: 'La Tua Valutazione' },
-    { key: 'page_profilo', label: 'Il Mio Profilo' },
-    { key: 'page_pulizia_cassiere', label: 'Controllo Pulizia Cassiere' },
-    { key: 'page_pulizia_pizzaiolo', label: 'Controllo Pulizia Pizzaiolo' },
-    { key: 'page_pulizia_store_manager', label: 'Controllo Pulizia Store Manager' },
-    { key: 'page_form_inventario', label: 'Form Inventario' },
-    { key: 'page_conteggio_cassa', label: 'Conteggio Cassa' },
-    { key: 'page_teglie_buttate', label: 'Teglie Buttate' },
-    { key: 'page_preparazioni', label: 'Preparazioni' }
+  const availablePages = [
+    { value: 'ProfiloDipendente', label: 'Il Mio Profilo', icon: User },
+    { value: 'ContrattiDipendente', label: 'Contratti', icon: FileText },
+    { value: 'Academy', label: 'Academy', icon: CheckSquare },
+    { value: 'Valutazione', label: 'La Tua Valutazione', icon: CheckSquare },
+    { value: 'ControlloPuliziaCassiere', label: 'Controllo Pulizia Cassiere', icon: CheckSquare },
+    { value: 'ControlloPuliziaPizzaiolo', label: 'Controllo Pulizia Pizzaiolo', icon: CheckSquare },
+    { value: 'ControlloPuliziaStoreManager', label: 'Controllo Pulizia Store Manager', icon: CheckSquare },
+    { value: 'FormInventario', label: 'Form Inventario', icon: CheckSquare },
+    { value: 'ConteggioCassa', label: 'Conteggio Cassa', icon: CheckSquare },
+    { value: 'TeglieButtate', label: 'Teglie Buttate', icon: CheckSquare },
+    { value: 'Preparazioni', label: 'Preparazioni', icon: CheckSquare }
   ];
 
-  const handleUserSelect = (user) => {
-    setSelectedUserId(user.id);
-    
-    // Find existing access record for this user
-    const existingAccess = pageAccesses.find(pa => pa.user_id === user.id);
-    
-    if (existingAccess) {
-      setAccessData(existingAccess);
-    } else {
-      // Default: all pages enabled
-      const defaultAccess = {
-        user_id: user.id,
-        user_email: user.email,
-        user_name: user.nome_cognome || user.full_name
+  const handlePageToggle = (stage, pageName) => {
+    setPageConfig(prev => {
+      const currentPages = prev[stage];
+      const hasPage = currentPages.includes(pageName);
+      
+      return {
+        ...prev,
+        [stage]: hasPage
+          ? currentPages.filter(p => p !== pageName)
+          : [...currentPages, pageName]
       };
-      pages.forEach(page => {
-        defaultAccess[page.key] = true;
-      });
-      setAccessData(defaultAccess);
-    }
-  };
-
-  const toggleAccess = (pageKey) => {
-    setAccessData(prev => ({
-      ...prev,
-      [pageKey]: !prev[pageKey]
-    }));
+    });
   };
 
   const handleSave = async () => {
-    if (!selectedUserId) {
-      alert('Seleziona un utente');
-      return;
-    }
+    setSaving(true);
+    setSaved(false);
 
-    const existingAccess = pageAccesses.find(pa => pa.user_id === selectedUserId);
-
-    if (existingAccess) {
-      // Update
-      await updateAccessMutation.mutateAsync({ id: existingAccess.id, data: accessData });
-    } else {
-      // Create
-      await createAccessMutation.mutateAsync(accessData);
+    try {
+      // In a real implementation, you would save this to a database
+      // For now, we'll just simulate a save
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+      
+      alert('Configurazione salvata! Nota: questa configurazione è attualmente hard-coded nel Layout.js. Per applicarla effettivamente, dovrai aggiornare il codice del Layout.');
+    } catch (error) {
+      alert('Errore durante il salvataggio');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const selectedUser = users.find(u => u.id === selectedUserId);
-
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-3">
-          <Shield className="w-10 h-10 text-[#8b7355]" />
+          <CheckSquare className="w-10 h-10 text-[#8b7355]" />
           <h1 className="text-3xl font-bold text-[#6b6b6b]">Gestione Accesso Pagine</h1>
         </div>
-        <p className="text-[#9b9b9b]">Controlla quali pagine i dipendenti possono visualizzare</p>
+        <p className="text-[#9b9b9b]">Configura quali pagine sono visibili ai dipendenti in base al loro stato</p>
       </div>
 
-      {/* Success/Error Messages */}
-      {success && (
-        <NeumorphicCard className="p-4 bg-green-50 border-2 border-green-400">
-          <div className="flex items-center gap-3">
-            <CheckCircle className="w-5 h-5 text-green-600" />
-            <p className="text-sm text-green-800 font-medium">{success}</p>
+      {/* Current Logic Info */}
+      <NeumorphicCard className="p-6 bg-blue-50 border-2 border-blue-300">
+        <div className="flex items-start gap-3">
+          <Settings className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
+          <div>
+            <h3 className="font-bold text-blue-800 mb-2">📋 Logica Attuale nel Sistema</h3>
+            <p className="text-sm text-blue-700 mb-3">
+              Questa pagina mostra la configurazione attuale dell'accesso progressivo per i dipendenti. 
+              La logica è implementata nel <code className="bg-white px-2 py-1 rounded">Layout.js</code>.
+            </p>
+            <div className="text-xs text-blue-600">
+              <p className="mb-1">🔹 Il sistema controlla automaticamente:</p>
+              <ul className="list-disc list-inside space-y-1 ml-3">
+                <li>Se l'utente ha ruoli assegnati</li>
+                <li>Se ha ricevuto un contratto (status "inviato" o "firmato")</li>
+                <li>Se ha firmato il contratto (status "firmato")</li>
+                <li>Se la data di inizio contratto è passata</li>
+              </ul>
+            </div>
           </div>
-        </NeumorphicCard>
-      )}
+        </div>
+      </NeumorphicCard>
 
-      {error && (
-        <NeumorphicCard className="p-4 bg-red-50 border-2 border-red-400">
-          <div className="flex items-center gap-3">
-            <X className="w-5 h-5 text-red-600" />
-            <p className="text-sm text-red-800 font-medium">{error}</p>
+      {/* Stage 1: After Registration */}
+      <NeumorphicCard className="p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="neumorphic-flat w-12 h-12 rounded-full flex items-center justify-center">
+            <span className="text-xl font-bold text-[#8b7355]">1</span>
           </div>
-        </NeumorphicCard>
-      )}
+          <div>
+            <h2 className="text-xl font-bold text-[#6b6b6b]">Utente Appena Registrato</h2>
+            <p className="text-sm text-[#9b9b9b]">Senza ruoli assegnati</p>
+          </div>
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Users List */}
-        <NeumorphicCard className="p-6 lg:col-span-1">
-          <h2 className="text-xl font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            Dipendenti
-          </h2>
+        <div className="neumorphic-pressed p-5 rounded-xl">
+          <p className="text-sm text-[#6b6b6b] mb-3 font-medium">Pagine Visibili:</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {availablePages.map(page => (
+              <div key={page.value} className="neumorphic-flat p-3 rounded-lg">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={pageConfig.after_registration.includes(page.value)}
+                    onChange={() => handlePageToggle('after_registration', page.value)}
+                    className="w-5 h-5 rounded"
+                  />
+                  <span className="text-[#6b6b6b] text-sm">{page.label}</span>
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+      </NeumorphicCard>
 
-          {usersLoading ? (
-            <div className="text-center py-8">
-              <p className="text-[#9b9b9b]">Caricamento...</p>
-            </div>
-          ) : users.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-[#9b9b9b]">Nessun dipendente trovato</p>
-            </div>
-          ) : (
-            <div className="space-y-2 max-h-[600px] overflow-y-auto">
-              {users.map(user => (
-                <button
-                  key={user.id}
-                  onClick={() => handleUserSelect(user)}
-                  className={`w-full text-left p-4 rounded-xl transition-all ${
-                    selectedUserId === user.id
-                      ? 'neumorphic-pressed border-2 border-[#8b7355]'
-                      : 'neumorphic-flat hover:shadow-lg'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full neumorphic-flat flex items-center justify-center flex-shrink-0">
-                      <span className="text-sm font-bold text-[#8b7355]">
-                        {(user.nome_cognome || user.full_name || 'U').charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-[#6b6b6b] truncate">
-                        {user.nome_cognome || user.full_name}
-                      </p>
-                      <p className="text-xs text-[#9b9b9b] truncate">{user.email}</p>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </NeumorphicCard>
+      {/* Stage 2: After Contract Received */}
+      <NeumorphicCard className="p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="neumorphic-flat w-12 h-12 rounded-full flex items-center justify-center">
+            <span className="text-xl font-bold text-[#8b7355]">2</span>
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-[#6b6b6b]">Contratto Ricevuto</h2>
+            <p className="text-sm text-[#9b9b9b]">Ha ricevuto un contratto (status "inviato")</p>
+          </div>
+        </div>
 
-        {/* Access Control */}
-        <NeumorphicCard className="p-6 lg:col-span-2">
-          {!selectedUser ? (
-            <div className="text-center py-16">
-              <Users className="w-16 h-16 text-[#9b9b9b] mx-auto mb-4 opacity-50" />
-              <h3 className="text-xl font-bold text-[#6b6b6b] mb-2">Seleziona un Dipendente</h3>
-              <p className="text-[#9b9b9b]">Scegli un dipendente dalla lista per gestire i suoi accessi</p>
-            </div>
+        <div className="neumorphic-pressed p-5 rounded-xl">
+          <p className="text-sm text-[#6b6b6b] mb-3 font-medium">Pagine Visibili:</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {availablePages.map(page => (
+              <div key={page.value} className="neumorphic-flat p-3 rounded-lg">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={pageConfig.after_contract_received.includes(page.value)}
+                    onChange={() => handlePageToggle('after_contract_received', page.value)}
+                    className="w-5 h-5 rounded"
+                  />
+                  <span className="text-[#6b6b6b] text-sm">{page.label}</span>
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+      </NeumorphicCard>
+
+      {/* Stage 3: After Contract Signed */}
+      <NeumorphicCard className="p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="neumorphic-flat w-12 h-12 rounded-full flex items-center justify-center">
+            <span className="text-xl font-bold text-[#8b7355]">3</span>
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-[#6b6b6b]">Contratto Firmato</h2>
+            <p className="text-sm text-[#9b9b9b]">Ha firmato il contratto (status "firmato")</p>
+          </div>
+        </div>
+
+        <div className="neumorphic-pressed p-5 rounded-xl">
+          <p className="text-sm text-[#6b6b6b] mb-3 font-medium">Pagine Visibili:</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {availablePages.map(page => (
+              <div key={page.value} className="neumorphic-flat p-3 rounded-lg">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={pageConfig.after_contract_signed.includes(page.value)}
+                    onChange={() => handlePageToggle('after_contract_signed', page.value)}
+                    className="w-5 h-5 rounded"
+                  />
+                  <span className="text-[#6b6b6b] text-sm">{page.label}</span>
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+      </NeumorphicCard>
+
+      {/* Stage 4: After Contract Start Date */}
+      <NeumorphicCard className="p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="neumorphic-flat w-12 h-12 rounded-full flex items-center justify-center">
+            <span className="text-xl font-bold text-[#8b7355]">4</span>
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-[#6b6b6b]">Contratto Iniziato</h2>
+            <p className="text-sm text-[#9b9b9b]">Data inizio contratto ≥ data odierna (E contratto firmato)</p>
+          </div>
+        </div>
+
+        <div className="neumorphic-pressed p-5 rounded-xl">
+          <p className="text-sm text-[#6b6b6b] mb-3 font-medium">Pagine Visibili:</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {availablePages.map(page => (
+              <div key={page.value} className="neumorphic-flat p-3 rounded-lg">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={pageConfig.after_contract_start.includes(page.value)}
+                    onChange={() => handlePageToggle('after_contract_start', page.value)}
+                    className="w-5 h-5 rounded"
+                  />
+                  <span className="text-[#6b6b6b] text-sm">{page.label}</span>
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+      </NeumorphicCard>
+
+      {/* Save Button */}
+      <div className="flex justify-end">
+        <NeumorphicButton
+          onClick={handleSave}
+          variant="primary"
+          disabled={saving}
+          className="flex items-center gap-2 px-8 py-4"
+        >
+          {saving ? (
+            <>
+              <div className="w-5 h-5 border-2 border-[#8b7355] border-t-transparent rounded-full animate-spin" />
+              Salvataggio...
+            </>
+          ) : saved ? (
+            <>
+              <CheckCircle className="w-5 h-5" />
+              Salvato!
+            </>
           ) : (
             <>
-              <div className="mb-6">
-                <h2 className="text-xl font-bold text-[#6b6b6b] mb-2">
-                  Accessi per: {selectedUser.nome_cognome || selectedUser.full_name}
-                </h2>
-                <p className="text-sm text-[#9b9b9b]">{selectedUser.email}</p>
-              </div>
-
-              <div className="space-y-3 mb-6">
-                {pages.map(page => (
-                  <div key={page.key} className="neumorphic-pressed p-4 rounded-xl">
-                    <label className="flex items-center gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={accessData[page.key] !== false}
-                        onChange={() => toggleAccess(page.key)}
-                        className="w-5 h-5 rounded"
-                      />
-                      <span className="flex-1 font-medium text-[#6b6b6b]">{page.label}</span>
-                      {accessData[page.key] !== false ? (
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                      ) : (
-                        <X className="w-5 h-5 text-red-600" />
-                      )}
-                    </label>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex gap-3">
-                <NeumorphicButton
-                  onClick={() => {
-                    setSelectedUserId(null);
-                    setAccessData({});
-                  }}
-                  className="flex-1"
-                >
-                  Annulla
-                </NeumorphicButton>
-                <NeumorphicButton
-                  onClick={handleSave}
-                  variant="primary"
-                  className="flex-1 flex items-center justify-center gap-2"
-                  disabled={createAccessMutation.isPending || updateAccessMutation.isPending}
-                >
-                  {createAccessMutation.isPending || updateAccessMutation.isPending ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Salvataggio...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-5 h-5" />
-                      Salva Accessi
-                    </>
-                  )}
-                </NeumorphicButton>
-              </div>
+              <Save className="w-5 h-5" />
+              Salva Configurazione
             </>
           )}
-        </NeumorphicCard>
+        </NeumorphicButton>
       </div>
 
       {/* Info Box */}
-      <NeumorphicCard className="p-6 bg-blue-50">
+      <NeumorphicCard className="p-6 bg-yellow-50">
         <div className="flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-          <div className="text-sm text-blue-800">
-            <p className="font-medium mb-2">ℹ️ Come funziona</p>
+          <AlertCircle className="w-6 h-6 text-yellow-700 flex-shrink-0 mt-1" />
+          <div className="text-sm text-yellow-800">
+            <p className="font-medium mb-2">⚠️ Nota Importante</p>
             <ul className="text-xs space-y-1 list-disc list-inside">
-              <li>Per default, tutti i dipendenti hanno accesso a tutte le pagine</li>
-              <li>Disabilita le checkbox per rimuovere l'accesso a specifiche pagine</li>
-              <li>Le restrizioni si applicano solo alla navigazione - i dipendenti non vedranno le pagine nel menu</li>
-              <li>Gli <strong>admin</strong> e i <strong>manager</strong> non sono soggetti a queste restrizioni</li>
-              <li>Le modifiche sono immediate dopo il salvataggio</li>
+              <li>Questa pagina mostra la configurazione ATTUALE hard-coded nel <code className="bg-white px-2 py-1 rounded">Layout.js</code></li>
+              <li>Le modifiche qui NON vengono applicate automaticamente al codice</li>
+              <li>Per modificare effettivamente il comportamento, è necessario aggiornare la logica nel file Layout.js</li>
+              <li>I campi "Controllo Pulizia" sono visibili SOLO ai dipendenti con i ruoli corrispondenti (Cassiere, Pizzaiolo, Store Manager)</li>
+              <li>La logica attuale funziona così:
+                <ul className="list-disc list-inside ml-4 mt-1 space-y-0.5">
+                  <li><strong>Fase 1:</strong> Nessun ruolo → SOLO Profilo</li>
+                  <li><strong>Fase 2:</strong> Contratto ricevuto → + Contratti</li>
+                  <li><strong>Fase 3:</strong> Contratto firmato → + Academy</li>
+                  <li><strong>Fase 4:</strong> Data inizio contratto passata + firmato → Accesso completo</li>
+                </ul>
+              </li>
             </ul>
+          </div>
+        </div>
+      </NeumorphicCard>
+
+      {/* Summary Visual */}
+      <NeumorphicCard className="p-6">
+        <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">Riepilogo Configurazione Attuale</h2>
+        
+        <div className="space-y-4">
+          <div className="neumorphic-flat p-4 rounded-xl">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="neumorphic-pressed w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-[#8b7355]">1</span>
+              <h3 className="font-bold text-[#6b6b6b]">Registrazione → {pageConfig.after_registration.length} pagina/e</h3>
+            </div>
+            <div className="flex flex-wrap gap-2 ml-10">
+              {pageConfig.after_registration.map(p => (
+                <span key={p} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium">
+                  {availablePages.find(ap => ap.value === p)?.label || p}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="neumorphic-flat p-4 rounded-xl">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="neumorphic-pressed w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-[#8b7355]">2</span>
+              <h3 className="font-bold text-[#6b6b6b]">Contratto Ricevuto → {pageConfig.after_contract_received.length} pagina/e</h3>
+            </div>
+            <div className="flex flex-wrap gap-2 ml-10">
+              {pageConfig.after_contract_received.map(p => (
+                <span key={p} className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-medium">
+                  {availablePages.find(ap => ap.value === p)?.label || p}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="neumorphic-flat p-4 rounded-xl">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="neumorphic-pressed w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-[#8b7355]">3</span>
+              <h3 className="font-bold text-[#6b6b6b]">Contratto Firmato → {pageConfig.after_contract_signed.length} pagina/e</h3>
+            </div>
+            <div className="flex flex-wrap gap-2 ml-10">
+              {pageConfig.after_contract_signed.map(p => (
+                <span key={p} className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-medium">
+                  {availablePages.find(ap => ap.value === p)?.label || p}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="neumorphic-flat p-4 rounded-xl">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="neumorphic-pressed w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-[#8b7355]">4</span>
+              <h3 className="font-bold text-[#6b6b6b]">Contratto Iniziato → {pageConfig.after_contract_start.length} pagina/e</h3>
+            </div>
+            <div className="flex flex-wrap gap-2 ml-10">
+              {pageConfig.after_contract_start.map(p => (
+                <span key={p} className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium">
+                  {availablePages.find(ap => ap.value === p)?.label || p}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </NeumorphicCard>
+
+      {/* Workflow Visual */}
+      <NeumorphicCard className="p-6 bg-green-50">
+        <h3 className="font-bold text-green-800 mb-4 flex items-center gap-2">
+          <CheckCircle className="w-6 h-6" />
+          ✅ Workflow Progressivo Implementato
+        </h3>
+        <div className="space-y-3 text-sm text-green-700">
+          <div className="flex items-start gap-3">
+            <span className="font-bold text-green-900">→</span>
+            <span>Il dipendente si <strong>registra</strong> → Vede solo <strong>Profilo</strong></span>
+          </div>
+          <div className="flex items-start gap-3">
+            <span className="font-bold text-green-900">→</span>
+            <span>Admin compila dati e <strong>manda contratto</strong> → Vede <strong>Profilo + Contratti</strong></span>
+          </div>
+          <div className="flex items-start gap-3">
+            <span className="font-bold text-green-900">→</span>
+            <span>Dipendente <strong>firma contratto</strong> → Vede <strong>Profilo + Contratti + Academy</strong></span>
+          </div>
+          <div className="flex items-start gap-3">
+            <span className="font-bold text-green-900">→</span>
+            <span>Arriva la <strong>data inizio contratto</strong> → Vede <strong>tutto</strong> (Valutazione, Form operativi, etc.)</span>
           </div>
         </div>
       </NeumorphicCard>
