@@ -2,10 +2,9 @@ import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Store, TrendingUp, Users, DollarSign, Star, AlertTriangle, Filter, Calendar, X } from "lucide-react";
-import StatsCard from "../components/dashboard/StatsCard";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import ProtectedPage from "../components/ProtectedPage";
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, subDays, isAfter, isBefore, parseISO } from 'date-fns';
 
 export default function Dashboard() {
@@ -33,7 +32,6 @@ export default function Dashboard() {
     queryFn: () => base44.entities.iPratico.list('-order_date', 1000),
   });
 
-  // Helper function to safely parse dates
   const safeParseDate = (dateString) => {
     if (!dateString) return null;
     try {
@@ -45,7 +43,6 @@ export default function Dashboard() {
     }
   };
 
-  // Process data with date filters
   const processedData = useMemo(() => {
     let cutoffDate;
     let endFilterDate;
@@ -63,12 +60,12 @@ export default function Dashboard() {
       if (item.order_date) {
         try {
           const itemDate = safeParseDate(item.order_date);
-          if (!itemDate) return false; // Skip invalid dates
+          if (!itemDate) return false;
           if (isBefore(itemDate, cutoffDate) || isAfter(itemDate, endFilterDate)) {
             return false;
           }
         } catch (e) {
-          return false; // Skip items with invalid dates
+          return false;
         }
       }
       return true;
@@ -82,7 +79,6 @@ export default function Dashboard() {
       sum + (item.total_orders || 0), 0
     );
 
-    // Revenue by date for chart
     const revenueByDate = {};
     filteredData.forEach(item => {
       if (item.order_date) {
@@ -94,9 +90,7 @@ export default function Dashboard() {
             revenueByDate[dateStr] = { date: dateStr, revenue: 0 };
           }
           revenueByDate[dateStr].revenue += item.total_revenue || 0;
-        } catch (e) {
-          // Skip invalid dates
-        }
+        } catch (e) {}
       }
     });
 
@@ -121,12 +115,11 @@ export default function Dashboard() {
           };
         }
       })
-      .filter(d => d.date !== 'N/A'); // Remove invalid dates
+      .filter(d => d.date !== 'N/A');
 
     return { totalRevenue, totalOrders, dailyRevenue };
   }, [iPraticoData, dateRange, startDate, endDate]);
 
-  // Calculate metrics
   const totalStores = stores.length;
   const activeStores = stores.filter(s => s.status === 'active').length;
   const averageRating = reviews.length > 0 
@@ -134,7 +127,6 @@ export default function Dashboard() {
     : '0.0';
   const totalEmployees = employees.filter(e => e.status === 'active').length;
 
-  // Low-rated stores
   const storeRatings = stores.map(store => {
     const storeReviews = reviews.filter(r => r.store_id === store.id);
     const avgRating = storeReviews.length > 0
@@ -145,7 +137,7 @@ export default function Dashboard() {
 
   const alertStores = storeRatings.filter(s => s.avgRating < 3.5 && s.reviewCount > 0);
 
-  const COLORS = ['#8b7355', '#a68a6a', '#c1a07f', '#dcb794'];
+  const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b'];
 
   const clearCustomDates = () => {
     setStartDate('');
@@ -155,22 +147,24 @@ export default function Dashboard() {
 
   return (
     <ProtectedPage pageName="Dashboard">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Dashboard Overview</h1>
-          <p className="text-[#9b9b9b]">Monitor your business performance across all locations</p>
+        <div className="mb-4 lg:mb-6">
+          <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
+            Dashboard
+          </h1>
+          <p className="text-sm text-slate-500">Monitor business performance</p>
         </div>
 
         {/* Date Range Filter */}
-        <NeumorphicCard className="p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <Filter className="w-5 h-5 text-[#8b7355]" />
-            <h2 className="text-lg font-bold text-[#6b6b6b]">Filtri Periodo</h2>
+        <NeumorphicCard className="p-4 lg:p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Filter className="w-5 h-5 text-blue-600" />
+            <h2 className="text-base lg:text-lg font-bold text-slate-800">Filtri Periodo</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-3">
             <div>
-              <label className="text-sm text-[#9b9b9b] mb-2 block">Periodo</label>
+              <label className="text-sm text-slate-600 mb-2 block">Periodo</label>
               <select
                 value={dateRange}
                 onChange={(e) => {
@@ -180,194 +174,241 @@ export default function Dashboard() {
                     setEndDate('');
                   }
                 }}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
               >
                 <option value="7">Ultimi 7 giorni</option>
                 <option value="30">Ultimi 30 giorni</option>
                 <option value="90">Ultimi 90 giorni</option>
                 <option value="365">Ultimo anno</option>
-                <option value="custom">Periodo Personalizzato</option>
+                <option value="custom">Personalizzato</option>
               </select>
             </div>
 
             {dateRange === 'custom' && (
-              <>
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-sm text-[#9b9b9b] mb-2 block flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    Data Inizio
-                  </label>
+                  <label className="text-sm text-slate-600 mb-2 block">Inizio</label>
                   <input
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                    className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="text-sm text-[#9b9b9b] mb-2 block flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    Data Fine
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                    />
-                    {(startDate || endDate) && (
-                      <button
-                        onClick={clearCustomDates}
-                        className="neumorphic-flat px-3 rounded-xl text-[#9b9b9b] hover:text-red-600 transition-colors"
-                        title="Cancella date"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    )}
-                  </div>
+                  <label className="text-sm text-slate-600 mb-2 block">Fine</label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm"
+                  />
                 </div>
-              </>
+              </div>
             )}
           </div>
         </NeumorphicCard>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatsCard
-            title="Active Stores"
-            value={`${activeStores}/${totalStores}`}
-            icon={Store}
-            trend="up"
-            trendValue="100%"
-          />
-          <StatsCard
-            title="Average Rating"
-            value={averageRating}
-            icon={Star}
-            trend={parseFloat(averageRating) >= 4 ? 'up' : 'down'}
-            trendValue={`${reviews.length} reviews`}
-          />
-          <StatsCard
-            title="Total Revenue"
-            value={`€${processedData.totalRevenue.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-            icon={DollarSign}
-            trend="up"
-            trendValue="From iPratico"
-          />
-          <StatsCard
-            title="Active Employees"
-            value={totalEmployees}
-            icon={Users}
-            trend="neutral"
-            trendValue="Across all stores"
-          />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+          <NeumorphicCard className="p-4">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-3 shadow-lg">
+                <Store className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+              </div>
+              <h3 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1">
+                {activeStores}/{totalStores}
+              </h3>
+              <p className="text-xs text-slate-500">Stores Attivi</p>
+            </div>
+          </NeumorphicCard>
+
+          <NeumorphicCard className="p-4">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center mb-3 shadow-lg">
+                <Star className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+              </div>
+              <h3 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1">{averageRating}</h3>
+              <p className="text-xs text-slate-500">Rating Medio</p>
+            </div>
+          </NeumorphicCard>
+
+          <NeumorphicCard className="p-4">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center mb-3 shadow-lg">
+                <DollarSign className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+              </div>
+              <h3 className="text-lg lg:text-xl font-bold text-slate-800 mb-1">
+                €{(processedData.totalRevenue / 1000).toFixed(1)}k
+              </h3>
+              <p className="text-xs text-slate-500">Revenue</p>
+            </div>
+          </NeumorphicCard>
+
+          <NeumorphicCard className="p-4">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center mb-3 shadow-lg">
+                <Users className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+              </div>
+              <h3 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1">{totalEmployees}</h3>
+              <p className="text-xs text-slate-500">Dipendenti</p>
+            </div>
+          </NeumorphicCard>
         </div>
 
-        {/* Alerts Section */}
+        {/* Alerts */}
         {alertStores.length > 0 && (
-          <NeumorphicCard className="p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <AlertTriangle className="w-5 h-5 text-red-500" />
-              <h2 className="text-xl font-bold text-[#6b6b6b]">Attention Required</h2>
+          <NeumorphicCard className="p-4 lg:p-6 bg-red-50">
+            <div className="flex items-center gap-2 mb-3">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+              <h2 className="text-base lg:text-lg font-bold text-slate-800">Attenzione</h2>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {alertStores.map(store => (
-                <div key={store.id} className="neumorphic-pressed p-4 rounded-lg flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-[#6b6b6b]">{store.name}</p>
-                    <p className="text-sm text-[#9b9b9b]">Average rating: {store.avgRating.toFixed(1)} ⭐</p>
+                <div key={store.id} className="neumorphic-pressed p-3 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-medium text-slate-700 truncate">{store.name}</p>
+                    <p className="text-sm text-slate-500">Rating: {store.avgRating.toFixed(1)} ⭐</p>
                   </div>
-                  <div className="neumorphic-flat px-4 py-2 rounded-lg">
-                    <span className="text-sm font-medium text-red-600">Low Rating</span>
-                  </div>
+                  <span className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-xs font-bold whitespace-nowrap self-start sm:self-auto">
+                    Basso
+                  </span>
                 </div>
               ))}
             </div>
           </NeumorphicCard>
         )}
 
-        {/* Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Revenue Trend */}
-          <NeumorphicCard className="p-6">
-            <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Revenue Trend</h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={processedData.dailyRevenue}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#c1c1c1" />
-                <XAxis dataKey="date" stroke="#9b9b9b" />
-                <YAxis stroke="#9b9b9b" />
-                <Tooltip 
-                  contentStyle={{ 
-                    background: '#e0e5ec', 
-                    border: 'none',
-                    borderRadius: '12px',
-                    boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
-                  }}
-                  formatter={(value) => `€${value.toFixed(2)}`}
-                />
-                <Legend />
-                <Line type="monotone" dataKey="revenue" stroke="#8b7355" strokeWidth={3} name="Revenue €" />
-              </LineChart>
-            </ResponsiveContainer>
+        {/* Charts */}
+        <div className="grid grid-cols-1 gap-4 lg:gap-6">
+          <NeumorphicCard className="p-4 lg:p-6">
+            <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Trend Revenue</h2>
+            <div className="w-full overflow-x-auto">
+              <div style={{ minWidth: '300px' }}>
+                <ResponsiveContainer width="100%" height={250}>
+                  <LineChart data={processedData.dailyRevenue}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                    <XAxis 
+                      dataKey="date" 
+                      stroke="#64748b" 
+                      tick={{ fontSize: 12 }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis 
+                      stroke="#64748b"
+                      tick={{ fontSize: 12 }}
+                      width={60}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        background: 'rgba(248, 250, 252, 0.95)', 
+                        border: 'none',
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                        fontSize: '12px'
+                      }}
+                      formatter={(value) => `€${value.toFixed(2)}`}
+                    />
+                    <Legend wrapperStyle={{ fontSize: '12px' }} />
+                    <Line 
+                      type="monotone" 
+                      dataKey="revenue" 
+                      stroke="#3b82f6" 
+                      strokeWidth={2} 
+                      name="Revenue €"
+                      dot={{ fill: '#3b82f6', r: 3 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </NeumorphicCard>
 
-          {/* Store Performance */}
-          <NeumorphicCard className="p-6">
-            <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Store Ratings Distribution</h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={storeRatings.slice(0, 5)}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#c1c1c1" />
-                <XAxis dataKey="name" stroke="#9b9b9b" />
-                <YAxis stroke="#9b9b9b" domain={[0, 5]} />
-                <Tooltip 
-                  contentStyle={{ 
-                    background: '#e0e5ec', 
-                    border: 'none',
-                    borderRadius: '12px',
-                    boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
-                  }}
-                />
-                <Bar dataKey="avgRating" fill="#8b7355" name="Average Rating" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <NeumorphicCard className="p-4 lg:p-6">
+            <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Rating per Store</h2>
+            <div className="w-full overflow-x-auto">
+              <div style={{ minWidth: '300px' }}>
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={storeRatings.slice(0, 5)}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                    <XAxis 
+                      dataKey="name" 
+                      stroke="#64748b"
+                      tick={{ fontSize: 12 }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis 
+                      stroke="#64748b" 
+                      domain={[0, 5]}
+                      tick={{ fontSize: 12 }}
+                      width={40}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        background: 'rgba(248, 250, 252, 0.95)', 
+                        border: 'none',
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                        fontSize: '12px'
+                      }}
+                    />
+                    <Bar 
+                      dataKey="avgRating" 
+                      fill="url(#colorGradient)" 
+                      name="Avg Rating" 
+                      radius={[8, 8, 0, 0]} 
+                    />
+                    <defs>
+                      <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#f59e0b" />
+                        <stop offset="100%" stopColor="#f97316" />
+                      </linearGradient>
+                    </defs>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </NeumorphicCard>
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <NeumorphicCard className="p-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
+          <NeumorphicCard className="p-4">
             <div className="text-center">
-              <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-                <Star className="w-8 h-8 text-[#8b7355]" />
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-yellow-400 to-orange-500 mx-auto mb-3 flex items-center justify-center shadow-lg">
+                <Star className="w-7 h-7 text-white" />
               </div>
-              <h3 className="text-2xl font-bold text-[#6b6b6b] mb-1">{reviews.length}</h3>
-              <p className="text-sm text-[#9b9b9b]">Total Reviews</p>
+              <h3 className="text-2xl font-bold text-slate-800 mb-1">{reviews.length}</h3>
+              <p className="text-xs text-slate-500">Recensioni</p>
             </div>
           </NeumorphicCard>
 
-          <NeumorphicCard className="p-6">
+          <NeumorphicCard className="p-4">
             <div className="text-center">
-              <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-                <TrendingUp className="w-8 h-8 text-[#8b7355]" />
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-400 to-emerald-500 mx-auto mb-3 flex items-center justify-center shadow-lg">
+                <TrendingUp className="w-7 h-7 text-white" />
               </div>
-              <h3 className="text-2xl font-bold text-[#6b6b6b] mb-1">
+              <h3 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1">
                 €{(processedData.totalRevenue / (stores.length || 1)).toFixed(0)}
               </h3>
-              <p className="text-sm text-[#9b9b9b]">Avg Revenue per Store</p>
+              <p className="text-xs text-slate-500">Avg/Store</p>
             </div>
           </NeumorphicCard>
 
-          <NeumorphicCard className="p-6">
+          <NeumorphicCard className="p-4">
             <div className="text-center">
-              <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-                <Users className="w-8 h-8 text-[#8b7355]" />
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-400 to-pink-500 mx-auto mb-3 flex items-center justify-center shadow-lg">
+                <Users className="w-7 h-7 text-white" />
               </div>
-              <h3 className="text-2xl font-bold text-[#6b6b6b] mb-1">
+              <h3 className="text-2xl font-bold text-slate-800 mb-1">
                 {(employees.length / (stores.length || 1)).toFixed(1)}
               </h3>
-              <p className="text-sm text-[#9b9b9b]">Avg Employees per Store</p>
+              <p className="text-xs text-slate-500">Emp/Store</p>
             </div>
           </NeumorphicCard>
         </div>

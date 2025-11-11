@@ -1,23 +1,20 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   FileText,
   CheckCircle,
-  Clock,
-  AlertCircle,
-  Download,
   Eye,
-  X
+  X,
+  Edit // Added Edit icon
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
-import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 
 export default function ContrattiDipendente() {
   const [currentUser, setCurrentUser] = useState(null);
-  const [viewingContratto, setViewingContratto] = useState(null);
-  const [firmaNome, setFirmaNome] = useState('');
-  const [signing, setSigning] = useState(false);
+  const [viewingContract, setViewingContract] = useState(null); // Renamed state variable
+  const [signatureName, setSignatureName] = useState(''); // Renamed state variable
 
   const queryClient = useQueryClient();
 
@@ -25,7 +22,7 @@ export default function ContrattiDipendente() {
     const fetchUser = async () => {
       const user = await base44.auth.me();
       setCurrentUser(user);
-      setFirmaNome(user.nome_cognome || user.full_name || '');
+      setSignatureName(user.nome_cognome || user.full_name || ''); // Updated setter call
     };
     fetchUser();
   }, []);
@@ -36,17 +33,22 @@ export default function ContrattiDipendente() {
     enabled: !!currentUser,
   });
 
-  const firmaContrattoMutation = useMutation({
+  const signContractMutation = useMutation({ // Renamed mutation
     mutationFn: ({ id, data }) => base44.entities.Contratto.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['miei-contratti'] });
-      setViewingContratto(null);
-      setFirmaNome(currentUser?.nome_cognome || currentUser?.full_name || '');
+      setViewingContract(null); // Updated state variable
+      setSignatureName(currentUser?.nome_cognome || currentUser?.full_name || ''); // Updated setter call
+      alert('Contratto firmato con successo!'); // Added success alert as per original logic
     },
+    onError: (error) => { // Added error handling as per original logic
+      console.error('Error signing contract:', error);
+      alert('Errore durante la firma del contratto');
+    }
   });
 
-  const handleFirmaContratto = async () => {
-    if (!firmaNome.trim()) {
+  const handleSign = async () => { // Renamed function
+    if (!signatureName.trim()) { // Updated state variable
       alert('Inserisci il tuo nome e cognome per firmare');
       return;
     }
@@ -56,295 +58,299 @@ export default function ContrattiDipendente() {
     }
 
     try {
-      setSigning(true);
-
-      await firmaContrattoMutation.mutateAsync({
-        id: viewingContratto.id,
+      await signContractMutation.mutateAsync({ // Updated mutation call
+        id: viewingContract.id, // Updated state variable
         data: {
-          ...viewingContratto,
+          ...viewingContract, // Updated state variable
           status: 'firmato',
           data_firma: new Date().toISOString(),
-          firma_dipendente: firmaNome.trim()
+          firma_dipendente: signatureName.trim() // Updated state variable
         }
       });
-
-      alert('Contratto firmato con successo!');
     } catch (error) {
-      console.error('Error signing contract:', error);
-      alert('Errore durante la firma del contratto');
-    } finally {
-      setSigning(false);
+      // Error handled by onError in useMutation
     }
   };
 
-  const getStatusBadge = (status) => {
-    const badges = {
-      'bozza': { bg: 'bg-gray-100', text: 'text-gray-700', label: 'Bozza', icon: Clock },
-      'inviato': { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Da Firmare', icon: Clock },
-      'firmato': { bg: 'bg-green-100', text: 'text-green-700', label: 'Firmato', icon: CheckCircle },
-      'archiviato': { bg: 'bg-red-100', text: 'text-red-700', label: 'Archiviato', icon: AlertCircle }
-    };
-    const badge = badges[status] || badges.bozza;
-    const Icon = badge.icon;
-    return (
-      <span className={`px-3 py-1 rounded-full text-xs font-bold ${badge.bg} ${badge.text} flex items-center gap-2`}>
-        <Icon className="w-4 h-4" />
-        {badge.label}
-      </span>
-    );
-  };
+  // Removed getStatusBadge function as it's no longer used
 
-  const contrattiInviati = contratti.filter(c => c.status === 'inviato');
-  const contrattiFirmati = contratti.filter(c => c.status === 'firmato');
+  // New contract filtering logic
+  const userContracts = contratti;
+  const toSignContracts = contratti.filter(c => c.status === 'inviato');
+  const signedContracts = contratti.filter(c => c.status === 'firmato');
 
   if (isLoading) {
     return (
-      <div className="max-w-5xl mx-auto">
-        <NeumorphicCard className="p-8 text-center">
-          <p className="text-[#9b9b9b]">Caricamento...</p>
+      <div className="max-w-2xl mx-auto p-4 text-center">
+        <NeumorphicCard className="p-8">
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-600">Caricamento...</p>
         </NeumorphicCard>
       </div>
     );
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto space-y-4">
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-3">
-          <FileText className="w-10 h-10 text-[#8b7355]" />
-          <h1 className="text-3xl font-bold text-[#6b6b6b]">I Miei Contratti</h1>
-        </div>
-        <p className="text-[#9b9b9b]">Visualizza e firma i tuoi contratti di lavoro</p>
+      <div className="mb-4">
+        <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
+          I Miei Contratti
+        </h1>
+        <p className="text-sm text-slate-500">Visualizza e firma i tuoi contratti</p>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <NeumorphicCard className="p-6 text-center">
-          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <FileText className="w-8 h-8 text-[#8b7355]" />
+      <div className="grid grid-cols-3 gap-3">
+        <NeumorphicCard className="p-4">
+          <div className="text-center">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 mx-auto mb-2 flex items-center justify-center shadow-lg">
+              <FileText className="w-6 h-6 text-white" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-800">{userContracts.length}</h3>
+            <p className="text-xs text-slate-500">Totali</p>
           </div>
-          <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">{contratti.length}</h3>
-          <p className="text-sm text-[#9b9b9b]">Contratti Totali</p>
         </NeumorphicCard>
 
-        <NeumorphicCard className="p-6 text-center">
-          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <Clock className="w-8 h-8 text-blue-600" />
+        <NeumorphicCard className="p-4">
+          <div className="text-center">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 mx-auto mb-2 flex items-center justify-center shadow-lg">
+              <Edit className="w-6 h-6 text-white" />
+            </div>
+            <h3 className="text-xl font-bold text-orange-600">{toSignContracts.length}</h3>
+            <p className="text-xs text-slate-500">Da Firmare</p>
           </div>
-          <h3 className="text-3xl font-bold text-blue-600 mb-1">{contrattiInviati.length}</h3>
-          <p className="text-sm text-[#9b9b9b]">Da Firmare</p>
         </NeumorphicCard>
 
-        <NeumorphicCard className="p-6 text-center">
-          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <CheckCircle className="w-8 h-8 text-green-600" />
+        <NeumorphicCard className="p-4">
+          <div className="text-center">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 mx-auto mb-2 flex items-center justify-center shadow-lg">
+              <CheckCircle className="w-6 h-6 text-white" />
+            </div>
+            <h3 className="text-xl font-bold text-green-600">{signedContracts.length}</h3>
+            <p className="text-xs text-slate-500">Firmati</p>
           </div>
-          <h3 className="text-3xl font-bold text-green-600 mb-1">{contrattiFirmati.length}</h3>
-          <p className="text-sm text-[#9b9b9b]">Firmati</p>
         </NeumorphicCard>
       </div>
 
-      {/* Contratti in Attesa di Firma */}
-      {contrattiInviati.length > 0 && (
-        <NeumorphicCard className="p-6">
-          <h2 className="text-xl font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
-            <Clock className="w-6 h-6 text-blue-600" />
-            Contratti da Firmare
+      {/* Contratti da Firmare */}
+      {toSignContracts.length > 0 && (
+        <div>
+          <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+            <Edit className="w-5 h-5 text-orange-600" />
+            Da Firmare
           </h2>
           <div className="space-y-3">
-            {contrattiInviati.map((contratto) => (
-              <div key={contratto.id} className="neumorphic-pressed p-5 rounded-xl">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex-1">
-                    <h3 className="font-bold text-[#6b6b6b] mb-1">
-                      {contratto.template_nome || 'Contratto di Lavoro'}
+            {toSignContracts.map(contract => (
+              <NeumorphicCard
+                key={contract.id}
+                className="p-4 border-2 border-orange-300 hover:shadow-xl transition-all"
+              >
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-bold text-slate-800 text-sm lg:text-base mb-1 truncate">
+                      {contract.template_nome}
                     </h3>
-                    <div className="flex items-center gap-3 text-sm text-[#9b9b9b]">
-                      <span>Ricevuto il {new Date(contratto.data_invio).toLocaleDateString('it-IT')}</span>
-                      <span>•</span>
-                      <span>{contratto.employee_group} - {contratto.ore_settimanali}h/sett</span>
-                    </div>
+                    <p className="text-xs text-slate-500">
+                      Inviato: {contract.data_invio ? new Date(contract.data_invio).toLocaleDateString('it-IT') : 'N/A'}
+                    </p>
                   </div>
-                  {getStatusBadge(contratto.status)}
+                  <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold whitespace-nowrap">
+                    Da Firmare
+                  </span>
                 </div>
-                <NeumorphicButton
-                  onClick={() => setViewingContratto(contratto)}
-                  variant="primary"
-                  className="w-full flex items-center justify-center gap-2"
+
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div className="neumorphic-pressed p-2 rounded-lg">
+                    <p className="text-xs text-slate-500">Gruppo</p>
+                    <p className="text-sm font-bold text-slate-700">{contract.employee_group}</p>
+                  </div>
+                  <div className="neumorphic-pressed p-2 rounded-lg">
+                    <p className="text-xs text-slate-500">Ore/Sett</p>
+                    <p className="text-sm font-bold text-slate-700">{contract.ore_settimanali}h</p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setViewingContract(contract)}
+                  className="w-full bg-gradient-to-r from-orange-500 to-red-600 px-4 py-3 rounded-xl text-white font-medium flex items-center justify-center gap-2 shadow-lg text-sm"
                 >
-                  <Eye className="w-5 h-5" />
+                  <Edit className="w-4 h-4" />
                   Visualizza e Firma
-                </NeumorphicButton>
-              </div>
+                </button>
+              </NeumorphicCard>
             ))}
           </div>
-        </NeumorphicCard>
+        </div>
       )}
 
       {/* Contratti Firmati */}
-      {contrattiFirmati.length > 0 && (
-        <NeumorphicCard className="p-6">
-          <h2 className="text-xl font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
-            <CheckCircle className="w-6 h-6 text-green-600" />
-            Contratti Firmati
+      {signedContracts.length > 0 && (
+        <div>
+          <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+            <CheckCircle className="w-5 h-5 text-green-600" />
+            Firmati
           </h2>
           <div className="space-y-3">
-            {contrattiFirmati.map((contratto) => (
-              <div key={contratto.id} className="neumorphic-pressed p-5 rounded-xl">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex-1">
-                    <h3 className="font-bold text-[#6b6b6b] mb-1">
-                      {contratto.template_nome || 'Contratto di Lavoro'}
+            {signedContracts.map(contract => (
+              <NeumorphicCard key={contract.id} className="p-4">
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-bold text-slate-800 text-sm lg:text-base mb-1 truncate">
+                      {contract.template_nome}
                     </h3>
-                    <div className="flex items-center gap-3 text-sm text-[#9b9b9b]">
-                      <span>Firmato il {new Date(contratto.data_firma).toLocaleDateString('it-IT')}</span>
-                      <span>•</span>
-                      <span>Dal {new Date(contratto.data_inizio_contratto).toLocaleDateString('it-IT')}</span>
-                      <span>•</span>
-                      <span>Durata: {contratto.durata_contratto_mesi} mesi</span>
-                    </div>
+                    <p className="text-xs text-slate-500">
+                      Firmato: {contract.data_firma ? new Date(contract.data_firma).toLocaleDateString('it-IT') : 'N/A'}
+                    </p>
                   </div>
-                  {getStatusBadge(contratto.status)}
+                  <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold whitespace-nowrap">
+                    Firmato
+                  </span>
                 </div>
-                <NeumorphicButton
-                  onClick={() => setViewingContratto(contratto)}
-                  className="w-full flex items-center justify-center gap-2"
+
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div className="neumorphic-pressed p-2 rounded-lg">
+                    <p className="text-xs text-slate-500">Gruppo</p>
+                    <p className="text-sm font-bold text-slate-700">{contract.employee_group}</p>
+                  </div>
+                  <div className="neumorphic-pressed p-2 rounded-lg">
+                    <p className="text-xs text-slate-500">Ore/Sett</p>
+                    <p className="text-sm font-bold text-slate-700">{contract.ore_settimanali}h</p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setViewingContract(contract)}
+                  className="w-full nav-button px-4 py-2.5 rounded-xl text-blue-600 font-medium flex items-center justify-center gap-2 text-sm"
                 >
-                  <Eye className="w-5 h-5" />
+                  <Eye className="w-4 h-4" />
                   Visualizza
-                </NeumorphicButton>
-              </div>
+                </button>
+              </NeumorphicCard>
             ))}
           </div>
+        </div>
+      )}
+
+      {userContracts.length === 0 && (
+        <NeumorphicCard className="p-8 text-center">
+          <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+          <p className="text-slate-500">Nessun contratto disponibile</p>
         </NeumorphicCard>
       )}
 
-      {/* Empty State */}
-      {contratti.length === 0 && (
-        <NeumorphicCard className="p-12 text-center">
-          <FileText className="w-16 h-16 text-[#9b9b9b] mx-auto mb-4 opacity-50" />
-          <h3 className="text-xl font-bold text-[#6b6b6b] mb-2">Nessun Contratto</h3>
-          <p className="text-[#9b9b9b]">
-            Non hai ancora ricevuto contratti. Quando l'amministratore ne invierà uno, apparirà qui.
-          </p>
-        </NeumorphicCard>
-      )}
+      {/* Contract View Modal */}
+      {viewingContract && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end lg:items-center justify-center z-50 p-0 lg:p-4">
+          <NeumorphicCard className="w-full lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 lg:p-6 rounded-t-3xl lg:rounded-2xl">
+            <div className="flex items-start justify-between mb-4 sticky top-0 bg-gradient-to-br from-slate-50 to-slate-100 pb-4 -mt-4 pt-4 -mx-4 px-4 z-10">
+              <h2 className="text-xl lg:text-2xl font-bold text-slate-800 flex-1 min-w-0 truncate">
+                Contratto
+              </h2>
+              <button
+                onClick={() => {
+                  setViewingContract(null);
+                  setSignatureName('');
+                }}
+                className="nav-button p-2 rounded-lg flex-shrink-0 ml-3"
+              >
+                <X className="w-5 h-5 text-slate-700" />
+              </button>
+            </div>
 
-      {/* Viewing Modal */}
-      {viewingContratto && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <NeumorphicCard className="p-6 my-8">
-              <div className="flex items-center justify-between mb-6 sticky top-0 bg-[#e0e5ec] z-10 pb-4">
-                <h2 className="text-2xl font-bold text-[#6b6b6b]">
-                  {viewingContratto.template_nome || 'Contratto di Lavoro'}
-                </h2>
+            {/* Contract Details */}
+            <div className="space-y-3 mb-4">
+              <div className="neumorphic-pressed p-3 rounded-xl">
+                <p className="text-xs text-slate-500 mb-1">Template</p>
+                <p className="text-sm font-medium text-slate-700">{viewingContract.template_nome}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="neumorphic-pressed p-3 rounded-xl">
+                  <p className="text-xs text-slate-500 mb-1">Gruppo</p>
+                  <p className="text-sm font-bold text-slate-700">{viewingContract.employee_group}</p>
+                </div>
+                <div className="neumorphic-pressed p-3 rounded-xl">
+                  <p className="text-xs text-slate-500 mb-1">Ore/Sett</p>
+                  <p className="text-sm font-bold text-slate-700">{viewingContract.ore_settimanali}h</p>
+                </div>
+                <div className="neumorphic-pressed p-3 rounded-xl">
+                  <p className="text-xs text-slate-500 mb-1">Inizio</p>
+                  <p className="text-sm font-medium text-slate-700">
+                    {viewingContract.data_inizio_contratto ? new Date(viewingContract.data_inizio_contratto).toLocaleDateString('it-IT') : 'N/A'}
+                  </p>
+                </div>
+                <div className="neumorphic-pressed p-3 rounded-xl">
+                  <p className="text-xs text-slate-500 mb-1">Durata</p>
+                  <p className="text-sm font-medium text-slate-700">{viewingContract.durata_contratto_mesi} mesi</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Contract Content */}
+            <div className="neumorphic-pressed p-4 rounded-xl mb-4 max-h-60 overflow-y-auto">
+              <pre className="whitespace-pre-wrap text-xs lg:text-sm text-slate-700 font-sans">
+                {viewingContract.contenuto_contratto}
+              </pre>
+            </div>
+
+            {/* Signature Section */}
+            {viewingContract.status === 'inviato' ? (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                    Firma Digitale (Nome Completo)
+                  </label>
+                  <input
+                    type="text"
+                    value={signatureName}
+                    onChange={(e) => setSignatureName(e.target.value)}
+                    placeholder="Mario Rossi"
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                  />
+                </div>
+
                 <button
-                  onClick={() => {
-                    setViewingContratto(null);
-                    setFirmaNome(currentUser?.nome_cognome || currentUser?.full_name || '');
-                  }}
-                  className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+                  onClick={handleSign}
+                  disabled={!signatureName.trim() || signContractMutation.isPending}
+                  className="w-full bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-3 rounded-xl text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg text-sm"
                 >
-                  <X className="w-5 h-5 text-[#9b9b9b]" />
+                  {signContractMutation.isPending ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Firma in corso...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-5 h-5" />
+                      Firma Contratto
+                    </>
+                  )}
                 </button>
-              </div>
 
-              {/* Contract Content */}
-              <div className="neumorphic-pressed p-6 rounded-xl mb-6 bg-white">
-                <div 
-                  className="prose prose-sm max-w-none text-[#6b6b6b]"
-                  style={{ whiteSpace: 'pre-wrap' }}
-                >
-                  {viewingContratto.contenuto_contratto}
-                </div>
+                <NeumorphicCard className="p-3 bg-blue-50">
+                  <p className="text-xs text-blue-800">
+                    ℹ️ Firmando accetti i termini del contratto
+                  </p>
+                </NeumorphicCard>
               </div>
-
-              {/* Contract Details */}
-              <div className="neumorphic-flat p-5 rounded-xl mb-6">
-                <h3 className="font-bold text-[#6b6b6b] mb-3">Dettagli Contratto</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            ) : (
+              <div className="neumorphic-pressed p-4 rounded-xl bg-green-50">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
                   <div>
-                    <p className="text-sm text-[#9b9b9b]">Tipo Contratto</p>
-                    <p className="text-[#6b6b6b] font-medium">{viewingContratto.employee_group === 'FT' ? 'Full Time' : viewingContratto.employee_group === 'PT' ? 'Part Time' : 'Contratto Misto'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-[#9b9b9b]">Ore Settimanali</p>
-                    <p className="text-[#6b6b6b] font-medium">{viewingContratto.ore_settimanali}h/settimana</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-[#9b9b9b]">Data Inizio</p>
-                    <p className="text-[#6b6b6b] font-medium">
-                      {new Date(viewingContratto.data_inizio_contratto).toLocaleDateString('it-IT')}
+                    <p className="font-medium text-green-800 text-sm">Contratto Firmato</p>
+                    <p className="text-xs text-green-600">
+                      {viewingContract.data_firma ? new Date(viewingContract.data_firma).toLocaleString('it-IT') : 'N/A'}
+                    </p>
+                    <p className="text-xs text-green-700 mt-1">
+                      Firma: {viewingContract.firma_dipendente}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-sm text-[#9b9b9b]">Durata</p>
-                    <p className="text-[#6b6b6b] font-medium">{viewingContratto.durata_contratto_mesi} mesi</p>
-                  </div>
                 </div>
               </div>
-
-              {/* Signature Section */}
-              {viewingContratto.status === 'inviato' ? (
-                <div className="space-y-4">
-                  <div className="neumorphic-flat p-5 rounded-xl bg-blue-50">
-                    <h3 className="font-bold text-blue-800 mb-3 flex items-center gap-2">
-                      <AlertCircle className="w-5 h-5" />
-                      Firma Digitale
-                    </h3>
-                    <p className="text-sm text-blue-700 mb-4">
-                      Per firmare il contratto, inserisci il tuo nome e cognome completo come conferma di accettazione delle condizioni.
-                    </p>
-                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                      Nome e Cognome <span className="text-red-600">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={firmaNome}
-                      onChange={(e) => setFirmaNome(e.target.value)}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none mb-4"
-                      placeholder="Mario Rossi"
-                    />
-                  </div>
-
-                  <NeumorphicButton
-                    onClick={handleFirmaContratto}
-                    disabled={signing || !firmaNome.trim()}
-                    variant="primary"
-                    className="w-full flex items-center justify-center gap-2"
-                  >
-                    {signing ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Firma in corso...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="w-5 h-5" />
-                        Firma Contratto
-                      </>
-                    )}
-                  </NeumorphicButton>
-                </div>
-              ) : (
-                <div className="neumorphic-flat p-5 rounded-xl bg-green-50">
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0 mt-1" />
-                    <div>
-                      <h3 className="font-bold text-green-800 mb-1">Contratto Firmato</h3>
-                      <p className="text-sm text-green-700">
-                        Firmato da <strong>{viewingContratto.firma_dipendente}</strong> il{' '}
-                        {new Date(viewingContratto.data_firma).toLocaleDateString('it-IT')} alle{' '}
-                        {new Date(viewingContratto.data_firma).toLocaleTimeString('it-IT')}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </NeumorphicCard>
-          </div>
+            )}
+          </NeumorphicCard>
         </div>
       )}
     </div>

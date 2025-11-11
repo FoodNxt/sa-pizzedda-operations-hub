@@ -228,37 +228,38 @@ export default function Financials() {
     };
   }, [iPraticoData, selectedStore, dateRange, startDate, endDate]);
 
-  const COLORS = ['#8b7355', '#a68a6a', '#c1a07f', '#dcb794', '#6b5d51', '#9d8770'];
+  const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4'];
 
   const clearCustomDates = () => {
     setStartDate('');
     setEndDate('');
-    setDateRange('30'); // Reset to default preset
+    setDateRange('30');
   };
 
   return (
     <ProtectedPage pageName="Financials">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Analisi Finanziaria</h1>
-          <p className="text-[#9b9b9b]">Analisi dettagliata ordini e revenue (dati iPratico)</p>
+        <div className="mb-4 lg:mb-6">
+          <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
+            Analisi Finanziaria
+          </h1>
+          <p className="text-sm text-slate-500">Dati iPratico</p>
         </div>
 
         {/* Filters */}
-        <NeumorphicCard className="p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <Filter className="w-5 h-5 text-[#8b7355]" />
-            <h2 className="text-lg font-bold text-[#6b6b6b]">Filtri</h2>
+        <NeumorphicCard className="p-4 lg:p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Filter className="w-5 h-5 text-blue-600" />
+            <h2 className="text-base lg:text-lg font-bold text-slate-800">Filtri</h2>
           </div>
-          {/* Adjusted grid-cols to 2 since channel and delivery app filters are removed */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-3">
             <div>
-              <label className="text-sm text-[#9b9b9b] mb-2 block">Locale</label>
+              <label className="text-sm text-slate-600 mb-2 block">Locale</label>
               <select
                 value={selectedStore}
                 onChange={(e) => setSelectedStore(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
               >
                 <option value="all">Tutti i Locali</option>
                 {stores.map(store => (
@@ -268,7 +269,7 @@ export default function Financials() {
             </div>
 
             <div>
-              <label className="text-sm text-[#9b9b9b] mb-2 block">Periodo</label>
+              <label className="text-sm text-slate-600 mb-2 block">Periodo</label>
               <select
                 value={dateRange}
                 onChange={(e) => {
@@ -278,300 +279,229 @@ export default function Financials() {
                     setEndDate('');
                   }
                 }}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
               >
                 <option value="7">Ultimi 7 giorni</option>
                 <option value="30">Ultimi 30 giorni</option>
                 <option value="90">Ultimi 90 giorni</option>
                 <option value="365">Ultimo anno</option>
-                <option value="custom">Periodo Personalizzato</option>
+                <option value="custom">Personalizzato</option>
               </select>
             </div>
-            {/* Removed sales channel and delivery app filters */}
-          </div>
 
-          {/* Custom Date Range */}
-          {dateRange === 'custom' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-[#c1c1c1]">
-              <div>
-                <label className="text-sm text-[#9b9b9b] mb-2 block flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  Data Inizio
-                </label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                />
-              </div>
+            {dateRange === 'custom' && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block">Inizio</label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm"
+                  />
+                </div>
 
-              <div>
-                <label className="text-sm text-[#9b9b9b] mb-2 block flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  Data Fine
-                </label>
-                <div className="flex gap-2">
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block">Fine</label>
                   <input
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                    className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm"
                   />
-                  {(startDate || endDate) && (
-                    <button
-                      onClick={clearCustomDates}
-                      className="neumorphic-flat px-3 rounded-xl text-[#9b9b9b] hover:text-red-600 transition-colors"
-                      title="Cancella date"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  )}
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </NeumorphicCard>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <NeumorphicCard className="p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-[#9b9b9b] mb-2">Revenue Totale</p>
-                <h3 className="text-3xl font-bold text-[#6b6b6b]">
-                  €{processedData.totalRevenue.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </h3>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+          <NeumorphicCard className="p-4">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center mb-3 shadow-lg">
+                <DollarSign className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
               </div>
-              <div className="neumorphic-flat p-3 rounded-lg">
-                <DollarSign className="w-6 h-6 text-[#8b7355]" />
+              <h3 className="text-lg lg:text-xl font-bold text-slate-800 mb-1">
+                €{(processedData.totalRevenue / 1000).toFixed(1)}k
+              </h3>
+              <p className="text-xs text-slate-500">Revenue</p>
+            </div>
+          </NeumorphicCard>
+
+          <NeumorphicCard className="p-4">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-3 shadow-lg">
+                <TrendingUp className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+              </div>
+              <h3 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1">
+                {processedData.totalOrders}
+              </h3>
+              <p className="text-xs text-slate-500">Ordini</p>
+            </div>
+          </NeumorphicCard>
+
+          <NeumorphicCard className="p-4">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center mb-3 shadow-lg">
+                <DollarSign className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+              </div>
+              <h3 className="text-lg lg:text-xl font-bold text-slate-800 mb-1">
+                €{processedData.avgOrderValue.toFixed(2)}
+              </h3>
+              <p className="text-xs text-slate-500">Medio</p>
+            </div>
+          </NeumorphicCard>
+
+          <NeumorphicCard className="p-4">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center mb-3 shadow-lg">
+                <Truck className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+              </div>
+              <h3 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1">
+                {processedData.deliveryAppBreakdown.reduce((sum, app) => sum + app.orders, 0)}
+              </h3>
+              <p className="text-xs text-slate-500">Delivery</p>
+            </div>
+          </NeumorphicCard>
+        </div>
+
+        {/* Charts Row */}
+        <div className="grid grid-cols-1 gap-4 lg:gap-6">
+          <NeumorphicCard className="p-4 lg:p-6">
+            <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Trend Giornaliero</h2>
+            <div className="w-full overflow-x-auto">
+              <div style={{ minWidth: '300px' }}>
+                <ResponsiveContainer width="100%" height={250}>
+                  <LineChart data={processedData.dailyRevenue}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                    <XAxis 
+                      dataKey="date" 
+                      stroke="#64748b"
+                      tick={{ fontSize: 11 }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis 
+                      yAxisId="left"
+                      stroke="#3b82f6"
+                      tick={{ fontSize: 11 }}
+                      width={50}
+                    />
+                    <YAxis 
+                      yAxisId="right" 
+                      orientation="right"
+                      stroke="#22c55e"
+                      tick={{ fontSize: 11 }}
+                      width={50}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        background: 'rgba(248, 250, 252, 0.95)', 
+                        border: 'none',
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                        fontSize: '11px'
+                      }}
+                      formatter={(value) => `€${value.toFixed(2)}`}
+                    />
+                    <Legend wrapperStyle={{ fontSize: '11px' }} />
+                    <Line 
+                      yAxisId="left"
+                      type="monotone" 
+                      dataKey="revenue" 
+                      stroke="#3b82f6" 
+                      strokeWidth={2} 
+                      name="Revenue" 
+                      dot={{ fill: '#3b82f6', r: 3 }}
+                    />
+                    <Line 
+                      yAxisId="right"
+                      type="monotone" 
+                      dataKey="avgValue" 
+                      stroke="#22c55e" 
+                      strokeWidth={2} 
+                      name="Medio"
+                      dot={{ fill: '#22c55e', r: 2 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             </div>
           </NeumorphicCard>
 
-          <NeumorphicCard className="p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-[#9b9b9b] mb-2">Ordini Totali</p>
-                <h3 className="text-3xl font-bold text-[#6b6b6b]">
-                  {processedData.totalOrders.toLocaleString()}
-                </h3>
-              </div>
-              <div className="neumorphic-flat p-3 rounded-lg">
-                <ShoppingCart className="w-6 h-6 text-[#8b7355]" />
-              </div>
-            </div>
-          </NeumorphicCard>
-
-          <NeumorphicCard className="p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-[#9b9b9b] mb-2">Scontrino Medio</p>
-                <h3 className="text-3xl font-bold text-[#6b6b6b]">
-                  €{processedData.avgOrderValue.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </h3>
-              </div>
-              <div className="neumorphic-flat p-3 rounded-lg">
-                <TrendingUp className="w-6 h-6 text-[#8b7355]" />
-              </div>
-            </div>
-          </NeumorphicCard>
-
-          <NeumorphicCard className="p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-[#9b9b9b] mb-2">Delivery App Orders</p>
-                <h3 className="text-3xl font-bold text-[#6b6b6b]">
-                  {processedData.deliveryAppBreakdown.reduce((sum, app) => sum + app.orders, 0).toLocaleString()}
-                </h3>
-              </div>
-              <div className="neumorphic-flat p-3 rounded-lg">
-                <Truck className="w-6 h-6 text-[#8b7355]" />
+          <NeumorphicCard className="p-4 lg:p-6">
+            <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Revenue per Locale</h2>
+            <div className="w-full overflow-x-auto">
+              <div style={{ minWidth: '300px' }}>
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={processedData.storeBreakdown}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                    <XAxis 
+                      dataKey="name" 
+                      stroke="#64748b"
+                      tick={{ fontSize: 11 }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis 
+                      stroke="#64748b"
+                      tick={{ fontSize: 11 }}
+                      width={60}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        background: 'rgba(248, 250, 252, 0.95)', 
+                        border: 'none',
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                        fontSize: '11px'
+                      }}
+                      formatter={(value) => `€${value.toFixed(2)}`}
+                    />
+                    <Legend wrapperStyle={{ fontSize: '11px' }} />
+                    <Bar 
+                      dataKey="revenue" 
+                      fill="url(#storeGradient)" 
+                      name="Revenue" 
+                      radius={[8, 8, 0, 0]} 
+                    />
+                    <defs>
+                      <linearGradient id="storeGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#3b82f6" />
+                        <stop offset="100%" stopColor="#2563eb" />
+                      </linearGradient>
+                    </defs>
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </div>
           </NeumorphicCard>
         </div>
 
-        {/* Charts Row 1 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Daily Revenue Trend */}
-          <NeumorphicCard className="p-6">
-            <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Trend Revenue Giornaliero</h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={processedData.dailyRevenue}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#c1c1c1" />
-                <XAxis dataKey="date" stroke="#9b9b9b" />
-                <YAxis 
-                  yAxisId="left"
-                  stroke="#8b7355" 
-                  label={{ value: 'Revenue (€)', angle: -90, position: 'insideLeft', style: { fill: '#8b7355' } }}
-                />
-                <YAxis 
-                  yAxisId="right" 
-                  orientation="right"
-                  stroke="#22c55e"
-                  label={{ value: 'Scontrino Medio (€)', angle: 90, position: 'insideRight', style: { fill: '#22c55e' } }}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    background: '#e0e5ec', 
-                    border: 'none',
-                    borderRadius: '12px',
-                    boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
-                  }}
-                  formatter={(value, name, props) => {
-                      if (props.dataKey === 'revenue' || props.dataKey === 'avgValue') {
-                          return `€${value.toFixed(2)}`;
-                      }
-                      return value;
-                  }}
-                />
-                <Legend />
-                <Line 
-                  yAxisId="left"
-                  type="monotone" 
-                  dataKey="revenue" 
-                  stroke="#8b7355" 
-                  strokeWidth={3} 
-                  name="Revenue €" 
-                  dot={{ fill: '#8b7355', r: 4 }}
-                />
-                <Line 
-                  yAxisId="right"
-                  type="monotone" 
-                  dataKey="avgValue" 
-                  stroke="#22c55e" 
-                  strokeWidth={2} 
-                  name="Scontrino Medio €"
-                  dot={{ fill: '#22c55e', r: 3 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </NeumorphicCard>
-
-          {/* Revenue by Store */}
-          <NeumorphicCard className="p-6">
-            <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Revenue per Locale</h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={processedData.storeBreakdown}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#c1c1c1" />
-                <XAxis dataKey="name" stroke="#9b9b9b" />
-                <YAxis stroke="#9b9b9b" />
-                <Tooltip 
-                  contentStyle={{ 
-                    background: '#e0e5ec', 
-                    border: 'none',
-                    borderRadius: '12px',
-                    boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
-                  }}
-                  formatter={(value, name) => {
-                    if (name === 'Revenue €') return `€${value.toFixed(2)}`;
-                    return value;
-                  }}
-                />
-                <Legend />
-                <Bar dataKey="revenue" fill="#8b7355" name="Revenue €" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </NeumorphicCard>
-        </div>
-
-        {/* Charts Row 2 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Revenue by Sales Channel (Source Type) */}
-          <NeumorphicCard className="p-6">
-            <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Revenue per Canale di Vendita (Source Type)</h2>
-            {processedData.channelBreakdown.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={processedData.channelBreakdown}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={100}
-                    dataKey="value"
-                  >
-                    {processedData.channelBreakdown.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ 
-                      background: '#e0e5ec', 
-                      border: 'none',
-                      borderRadius: '12px',
-                      boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
-                    }}
-                    formatter={(value) => `€${value.toFixed(2)}`}
-                  />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[300px] flex items-center justify-center text-[#9b9b9b]">
-                Nessun dato disponibile
-              </div>
-            )}
-          </NeumorphicCard>
-
-          {/* Revenue by Delivery App (Source App) */}
-          <NeumorphicCard className="p-6">
-            <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Revenue per App Delivery (Source App)</h2>
-            {processedData.deliveryAppBreakdown.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={processedData.deliveryAppBreakdown}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#c1c1c1" />
-                  <XAxis dataKey="name" stroke="#9b9b9b" />
-                  <YAxis stroke="#9b9b9b" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      background: '#e0e5ec', 
-                      border: 'none',
-                      borderRadius: '12px',
-                      boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
-                    }}
-                    formatter={(value, name) => {
-                      if (name === 'Revenue €') return `€${value.toFixed(2)}`;
-                      return value;
-                    }}
-                  />
-                  <Legend />
-                  <Bar dataKey="value" fill="#8b7355" name="Revenue €" radius={[8, 8, 0, 0]} />
-                  <Bar dataKey="orders" fill="#a68a6a" name="Ordini" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[300px] flex items-center justify-center text-[#9b9b9b]">
-                Nessun ordine da app di delivery
-              </div>
-            )}
-          </NeumorphicCard>
-        </div>
-
-        {/* Breakdown Tables */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Stores Table */}
-          <NeumorphicCard className="p-6">
-            <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">Dettaglio per Locale</h2>
-            <div className="overflow-x-auto">
-              <table className="w-full">
+        {/* Tables - Mobile Optimized */}
+        <div className="grid grid-cols-1 gap-4 lg:gap-6">
+          <NeumorphicCard className="p-4 lg:p-6">
+            <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Dettaglio Locali</h2>
+            <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
+              <table className="w-full min-w-[500px]">
                 <thead>
-                  <tr className="border-b border-[#c1c1c1]">
-                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Locale</th>
-                    <th className="text-right p-3 text-[#9b9b9b] font-medium">Revenue</th>
-                    <th className="text-right p-3 text-[#9b9b9b] font-medium">Ordini</th>
-                    <th className="text-right p-3 text-[#9b9b9b] font-medium">€ Medio</th>
+                  <tr className="border-b border-slate-300">
+                    <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Locale</th>
+                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Revenue</th>
+                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ordini</th>
+                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">€ Medio</th>
                   </tr>
                 </thead>
                 <tbody>
                   {processedData.storeBreakdown.map((store, index) => (
-                    <tr key={index} className="border-b border-[#d1d1d1]">
-                      <td className="p-3 text-[#6b6b6b] font-medium">{store.name}</td>
-                      <td className="p-3 text-right text-[#6b6b6b]">€{store.revenue.toFixed(2)}</td>
-                      <td className="p-3 text-right text-[#6b6b6b]">{store.orders}</td>
-                      <td className="p-3 text-right text-[#6b6b6b]">€{store.avgValue.toFixed(2)}</td>
+                    <tr key={index} className="border-b border-slate-200">
+                      <td className="p-2 lg:p-3 text-slate-700 font-medium text-sm">{store.name}</td>
+                      <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">€{store.revenue.toFixed(2)}</td>
+                      <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">{store.orders}</td>
+                      <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">€{store.avgValue.toFixed(2)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -579,26 +509,25 @@ export default function Financials() {
             </div>
           </NeumorphicCard>
 
-          {/* Channels Table (Source Type) */}
-          <NeumorphicCard className="p-6">
-            <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">Dettaglio per Canale (Source Type)</h2>
-            <div className="overflow-x-auto">
-              <table className="w-full">
+          <NeumorphicCard className="p-4 lg:p-6">
+            <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Canale Vendita</h2>
+            <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
+              <table className="w-full min-w-[450px]">
                 <thead>
-                  <tr className="border-b border-[#c1c1c1]">
-                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Canale</th>
-                    <th className="text-right p-3 text-[#9b9b9b] font-medium">Revenue</th>
-                    <th className="text-right p-3 text-[#9b9b9b] font-medium">Ordini</th>
-                    <th className="text-right p-3 text-[#9b9b9b] font-medium">% Tot</th>
+                  <tr className="border-b border-slate-300">
+                    <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Canale</th>
+                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Revenue</th>
+                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ordini</th>
+                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">%</th>
                   </tr>
                 </thead>
                 <tbody>
                   {processedData.channelBreakdown.map((channel, index) => (
-                    <tr key={index} className="border-b border-[#d1d1d1]">
-                      <td className="p-3 text-[#6b6b6b] font-medium">{channel.name}</td>
-                      <td className="p-3 text-right text-[#6b6b6b]">€{channel.value.toFixed(2)}</td>
-                      <td className="p-3 text-right text-[#6b6b6b]">{channel.orders}</td>
-                      <td className="p-3 text-right text-[#6b6b6b]">
+                    <tr key={index} className="border-b border-slate-200">
+                      <td className="p-2 lg:p-3 text-slate-700 font-medium text-sm">{channel.name}</td>
+                      <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">€{channel.value.toFixed(2)}</td>
+                      <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">{channel.orders}</td>
+                      <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
                         {processedData.totalRevenue > 0 ? ((channel.value / processedData.totalRevenue) * 100).toFixed(1) : 0}%
                       </td>
                     </tr>
@@ -609,101 +538,52 @@ export default function Financials() {
           </NeumorphicCard>
         </div>
 
-        {/* Delivery Apps Detailed Table (Source App) */}
+        {/* Delivery Apps Table */}
         {processedData.deliveryAppBreakdown.length > 0 && (
-          <NeumorphicCard className="p-6">
-            <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">Dettaglio App Delivery (Source App)</h2>
-            <div className="overflow-x-auto">
-              <table className="w-full">
+          <NeumorphicCard className="p-4 lg:p-6">
+            <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">App Delivery</h2>
+            <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
+              <table className="w-full min-w-[600px]">
                 <thead>
-                  <tr className="border-b-2 border-[#8b7355]">
-                    <th className="text-left p-3 text-[#9b9b9b] font-medium">App</th>
-                    <th className="text-right p-3 text-[#9b9b9b] font-medium">Revenue</th>
-                    <th className="text-right p-3 text-[#9b9b9b] font-medium">Ordini</th>
-                    <th className="text-right p-3 text-[#9b9b9b] font-medium">Scontrino Medio</th>
-                    <th className="text-right p-3 text-[#9b9b9b] font-medium">% Revenue Totale</th>
+                  <tr className="border-b-2 border-blue-600">
+                    <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">App</th>
+                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Revenue</th>
+                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ordini</th>
+                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">€ Medio</th>
+                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">%</th>
                   </tr>
                 </thead>
                 <tbody>
                   {processedData.deliveryAppBreakdown.map((app, index) => (
-                    <tr key={index} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
-                      <td className="p-3">
+                    <tr key={index} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                      <td className="p-2 lg:p-3">
                         <div className="flex items-center gap-2">
                           <div 
-                            className="w-3 h-3 rounded-full" 
+                            className="w-3 h-3 rounded-full flex-shrink-0" 
                             style={{ background: COLORS[index % COLORS.length] }}
                           />
-                          <span className="text-[#6b6b6b] font-medium">{app.name}</span>
+                          <span className="text-slate-700 font-medium text-sm">{app.name}</span>
                         </div>
                       </td>
-                      <td className="p-3 text-right text-[#6b6b6b] font-bold">
+                      <td className="p-2 lg:p-3 text-right text-slate-700 font-bold text-sm">
                         €{app.value.toFixed(2)}
                       </td>
-                      <td className="p-3 text-right text-[#6b6b6b]">
+                      <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
                         {app.orders}
                       </td>
-                      <td className="p-3 text-right text-[#6b6b6b]">
+                      <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
                         €{(app.orders > 0 ? (app.value / app.orders) : 0).toFixed(2)}
                       </td>
-                      <td className="p-3 text-right text-[#6b6b6b]">
+                      <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
                         {processedData.totalRevenue > 0 ? ((app.value / processedData.totalRevenue) * 100).toFixed(1) : 0}%
                       </td>
                     </tr>
                   ))}
                 </tbody>
-                <tfoot>
-                  <tr className="border-t-2 border-[#8b7355] font-bold">
-                    <td className="p-3 text-[#6b6b6b]">TOTALE DELIVERY</td>
-                    <td className="p-3 text-right text-[#6b6b6b]">
-                      €{processedData.deliveryAppBreakdown.reduce((sum, app) => sum + app.value, 0).toFixed(2)}
-                    </td>
-                    <td className="p-3 text-right text-[#6b6b6b]">
-                      {processedData.deliveryAppBreakdown.reduce((sum, app) => sum + app.orders, 0).toLocaleString()}
-                    </td>
-                    <td className="p-3"></td> {/* Scontrino Medio for total delivery apps is more complex if not a single entity, leaving blank for now */}
-                    <td className="p-3 text-right text-[#6b6b6b]">
-                      {processedData.totalRevenue > 0 ? ((processedData.deliveryAppBreakdown.reduce((sum, app) => sum + app.value, 0) / processedData.totalRevenue) * 100).toFixed(1) : 0}%
-                    </td>
-                  </tr>
-                </tfoot>
               </table>
             </div>
           </NeumorphicCard>
         )}
-
-        {/* Daily Revenue Details Table */}
-        <NeumorphicCard className="p-6">
-          <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">Dettaglio Giornaliero</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b-2 border-[#8b7355]">
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Data</th>
-                  <th className="text-right p-3 text-[#9b9b9b] font-medium">Revenue</th>
-                  <th className="text-right p-3 text-[#9b9b9b] font-medium">Ordini</th>
-                  <th className="text-right p-3 text-[#9b9b9b] font-medium">Scontrino Medio</th>
-                </tr>
-              </thead>
-              <tbody>
-                {/* Displays all days within the selected filter range */}
-                {processedData.dailyRevenue.map((day, index) => (
-                  <tr key={index} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
-                    <td className="p-3 text-[#6b6b6b]">{day.date}</td>
-                    <td className="p-3 text-right text-[#6b6b6b] font-bold">
-                      €{day.revenue.toFixed(2)}
-                    </td>
-                    <td className="p-3 text-right text-[#6b6b6b]">
-                      {day.orders}
-                    </td>
-                    <td className="p-3 text-right text-[#6b6b6b]">
-                      €{day.avgValue.toFixed(2)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </NeumorphicCard>
       </div>
     </ProtectedPage>
   );

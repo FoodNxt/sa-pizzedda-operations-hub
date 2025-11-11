@@ -391,7 +391,7 @@ export default function Employees() {
       case 'good': return 'text-blue-600';
       case 'needs_improvement': return 'text-yellow-600';
       case 'poor': return 'text-red-600';
-      default: return 'text-[#6b6b6b]';
+      default: return 'text-slate-500';
     }
   };
 
@@ -572,65 +572,41 @@ export default function Employees() {
 
   return (
     <ProtectedPage pageName="Employees">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Employee Performance</h1>
-          <p className="text-[#9b9b9b]">Monitor and rank employees based on multiple metrics</p>
+        <div className="mb-4 lg:mb-6">
+          <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
+            Performance
+          </h1>
+          <p className="text-sm text-slate-500">Ranking dipendenti</p>
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-3 mb-6">
-          <NeumorphicCard className="px-4 py-2">
-            <select
-              value={selectedStore}
-              onChange={(e) => setSelectedStore(e.target.value)}
-              className="bg-transparent text-[#6b6b6b] outline-none"
-            >
-              <option value="all">All Stores</option>
-              {stores.map(store => (
-                <option key={store.id} value={store.name}>{store.name}</option>
-              ))}
-            </select>
-          </NeumorphicCard>
+        <div className="flex flex-wrap gap-2">
+          <select
+            value={selectedStore}
+            onChange={(e) => setSelectedStore(e.target.value)}
+            className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
+          >
+            <option value="all">Tutti</option>
+            {stores.map(store => (
+              <option key={store.id} value={store.name}>{store.name}</option>
+            ))}
+          </select>
 
-          <NeumorphicCard className="px-4 py-2">
-            <select
-              value={selectedPosition}
-              onChange={(e) => setSelectedPosition(e.target.value)}
-              className="bg-transparent text-[#6b6b6b] outline-none"
-            >
-              <option value="all">All Positions</option>
-              <option value="manager">Manager</option>
-              <option value="chef">Chef</option>
-              <option value="server">Server</option>
-              <option value="delivery">Delivery</option>
-              <option value="cashier">Cashier</option>
-              <option value="kitchen_staff">Kitchen Staff</option>
-            </select>
-          </NeumorphicCard>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
+          />
 
-          <NeumorphicCard className="px-4 py-2 flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-[#9b9b9b]" />
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="bg-transparent text-[#6b6b6b] outline-none text-sm"
-              placeholder="Start date"
-            />
-          </NeumorphicCard>
-
-          <NeumorphicCard className="px-4 py-2 flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-[#9b9b9b]" />
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="bg-transparent text-[#6b6b6b] outline-none text-sm"
-              placeholder="End date"
-            />
-          </NeumorphicCard>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
+          />
 
           {(startDate || endDate) && (
             <button
@@ -638,346 +614,167 @@ export default function Employees() {
                 setStartDate('');
                 setEndDate('');
               }}
-              className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#9b9b9b] hover:text-[#6b6b6b]"
+              className="neumorphic-flat px-3 py-2 rounded-lg text-sm text-slate-500 hover:text-slate-700"
             >
-              Clear dates
+              <X className="w-4 h-4" />
             </button>
           )}
         </div>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <NeumorphicCard className="p-6 text-center">
-            <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <Users className="w-8 h-8 text-[#8b7355]" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+          <NeumorphicCard className="p-4">
+            <div className="text-center">
+              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 mx-auto mb-3 flex items-center justify-center shadow-lg">
+                <Users className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+              </div>
+              <h3 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1">{filteredEmployees.length}</h3>
+              <p className="text-xs text-slate-500">Totale</p>
             </div>
-            <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">{filteredEmployees.length}</h3>
-            <p className="text-sm text-[#9b9b9b]">Total Employees</p>
           </NeumorphicCard>
 
-          <NeumorphicCard className="p-6 text-center">
-            <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <Award className="w-8 h-8 text-green-600" />
+          <NeumorphicCard className="p-4">
+            <div className="text-center">
+              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 mx-auto mb-3 flex items-center justify-center shadow-lg">
+                <Award className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+              </div>
+              <h3 className="text-xl lg:text-2xl font-bold text-green-600 mb-1">
+                {filteredEmployees.filter(e => e.performanceLevel === 'excellent').length}
+              </h3>
+              <p className="text-xs text-slate-500">Top</p>
             </div>
-            <h3 className="text-3xl font-bold text-green-600 mb-1">
-              {filteredEmployees.filter(e => e.performanceLevel === 'excellent').length}
-            </h3>
-            <p className="text-sm text-[#9b9b9b]">Top Performers</p>
           </NeumorphicCard>
 
-          <NeumorphicCard className="p-6 text-center">
-            <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <TrendingUp className="w-8 h-8 text-blue-600" />
+          <NeumorphicCard className="p-4">
+            <div className="text-center">
+              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-blue-400 to-cyan-500 mx-auto mb-3 flex items-center justify-center shadow-lg">
+                <TrendingUp className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+              </div>
+              <h3 className="text-xl lg:text-2xl font-bold text-blue-600 mb-1">
+                {filteredEmployees.filter(e => e.performanceLevel === 'good').length}
+              </h3>
+              <p className="text-xs text-slate-500">Good</p>
             </div>
-            <h3 className="text-3xl font-bold text-blue-600 mb-1">
-              {filteredEmployees.filter(e => e.performanceLevel === 'good').length}
-            </h3>
-            <p className="text-sm text-[#9b9b9b]">Good Performance</p>
           </NeumorphicCard>
 
-          <NeumorphicCard className="p-6 text-center">
-            <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <AlertCircle className="w-8 h-8 text-red-600" />
+          <NeumorphicCard className="p-4">
+            <div className="text-center">
+              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-red-500 to-pink-600 mx-auto mb-3 flex items-center justify-center shadow-lg">
+                <AlertCircle className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+              </div>
+              <h3 className="text-xl lg:text-2xl font-bold text-red-600 mb-1">
+                {filteredEmployees.filter(e => e.performanceLevel === 'poor' || e.performanceLevel === 'needs_improvement').length}
+              </h3>
+              <p className="text-xs text-slate-500">Attenzione</p>
             </div>
-            <h3 className="text-3xl font-bold text-red-600 mb-1">
-              {filteredEmployees.filter(e => e.performanceLevel === 'poor' || e.performanceLevel === 'needs_improvement').length}
-            </h3>
-            <p className="text-sm text-[#9b9b9b]">Needs Attention</p>
           </NeumorphicCard>
         </div>
 
-        {/* Employee Rankings Table */}
-        <NeumorphicCard className="p-6">
-          <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Employee Rankings</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-[#c1c1c1]">
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Rank</th>
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Employee</th>
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Position</th>
-                  <th
-                    className="text-center p-3 text-[#9b9b9b] font-medium cursor-pointer hover:text-[#6b6b6b]"
-                    onClick={() => toggleSort('performance')}
-                  >
-                    <div className="flex items-center justify-center gap-1">
-                      Performance
-                      {sortBy === 'performance' && (
-                        sortOrder === 'desc' ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />
-                      )}
+        {/* Employee Cards - Mobile Optimized */}
+        <div className="grid grid-cols-1 gap-3">
+          {filteredEmployees.length > 0 ? (
+            filteredEmployees.map((employee, index) => (
+              <NeumorphicCard 
+                key={employee.id}
+                className="p-4 hover:shadow-xl transition-all cursor-pointer"
+                onClick={() => setSelectedEmployee(employee)}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md flex-shrink-0">
+                      <span className="text-sm lg:text-base font-bold text-white">
+                        {index + 1}
+                      </span>
                     </div>
-                  </th>
-                  <th
-                    className="text-center p-3 text-[#9b9b9b] font-medium cursor-pointer hover:text-[#6b6b6b]"
-                    onClick={() => toggleSort('googleRating')}
-                  >
-                    <div className="flex items-center justify-center gap-1">
-                      Google Rating
-                      {sortBy === 'googleRating' && (
-                        sortOrder === 'desc' ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />
-                      )}
-                    </div>
-                  </th>
-                  <th
-                    className="text-center p-3 text-[#9b9b9b] font-medium cursor-pointer hover:text-[#6b6b6b]"
-                    onClick={() => toggleSort('wrongOrders')}
-                    title="Ordini sbagliati abbinati al dipendente"
-                  >
-                    <div className="flex items-center justify-center gap-1">
-                      Wrong Orders
-                      {sortBy === 'wrongOrders' && (
-                        sortOrder === 'desc' ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />
-                      )}
-                    </div>
-                  </th>
-                  <th
-                    className="text-center p-3 text-[#9b9b9b] font-medium cursor-pointer hover:text-[#6b6b6b]"
-                    onClick={() => toggleSort('lateness')}
-                  >
-                    <div className="flex items-center justify-center gap-1">
-                      Avg Lateness
-                      {sortBy === 'lateness' && (
-                        sortOrder === 'desc' ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />
-                      )}
-                    </div>
-                  </th>
-                  <th
-                    className="text-center p-3 text-[#9b9b9b] font-medium cursor-pointer hover:text-[#6b6b6b]"
-                    onClick={() => toggleSort('numeroRitardi')}
-                  >
-                    <div className="flex items-center justify-center gap-1">
-                      N° Ritardi
-                      {sortBy === 'numeroRitardi' && (
-                        sortOrder === 'desc' ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />
-                      )}
-                    </div>
-                  </th>
-                  <th
-                    className="text-center p-3 text-[#9b9b9b] font-medium cursor-pointer hover:text-[#6b6b6b]"
-                    onClick={() => toggleSort('percentualeRitardi')}
-                  >
-                    <div className="flex items-center justify-center gap-1">
-                      % Ritardi
-                      {sortBy === 'percentualeRitardi' && (
-                        sortOrder === 'desc' ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />
-                      )}
-                    </div>
-                  </th>
-                  <th
-                    className="text-center p-3 text-[#9b9b9b] font-medium cursor-pointer hover:text-[#6b6b6b]"
-                    onClick={() => toggleSort('numeroTimbratureMancate')}
-                  >
-                    <div className="flex items-center justify-center gap-1">
-                      N° Timbrature Mancate
-                      {sortBy === 'numeroTimbratureMancate' && (
-                        sortOrder === 'desc' ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />
-                      )}
-                    </div>
-                  </th>
-                  <th className="text-center p-3 text-[#9b9b9b] font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredEmployees.length > 0 ? (
-                  filteredEmployees.map((employee, index) => (
-                    <tr
-                      key={employee.id}
-                      className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors cursor-pointer"
-                      onClick={() => setSelectedEmployee(employee)}
-                    >
-                      <td className="p-3">
-                        <div className="neumorphic-flat w-8 h-8 rounded-full flex items-center justify-center">
-                          <span className="text-sm font-bold text-[#6b6b6b]">{index + 1}</span>
-                        </div>
-                      </td>
-                      <td className="p-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full neumorphic-flat flex items-center justify-center">
-                            <span className="text-sm font-bold text-[#8b7355]">
-                              {employee.full_name?.charAt(0) || 'E'}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="font-medium text-[#6b6b6b]">{employee.full_name}</p>
-                            <p className="text-sm text-[#9b9b9b]">{employee.email}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-3 text-[#6b6b6b] capitalize">
-                        {employee.position?.replace(/_/g, ' ')}
-                      </td>
-                      <td className="p-3 text-center">
-                        <div className="flex flex-col items-center gap-1">
-                          <span className={`text-2xl font-bold ${getPerformanceColor(employee.performanceLevel)}`}>
-                            {employee.performanceScore}
-                          </span>
-                          <span className={`text-xs ${getPerformanceColor(employee.performanceLevel)}`}>
-                            {getPerformanceLabel(employee.performanceLevel)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="p-3 text-center">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-slate-800 text-sm lg:text-base truncate">
+                        {employee.full_name}
+                      </p>
+                      <p className="text-xs text-slate-500 truncate">{employee.email}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`text-lg lg:text-xl font-bold ${getPerformanceColor(employee.performanceLevel)}`}>
+                          {employee.performanceScore}
+                        </span>
                         {employee.googleReviewCount > 0 ? (
-                          <div className="flex flex-col items-center gap-1">
-                            <div className="flex items-center gap-1">
-                              <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                              <span className={`text-lg font-bold ${
-                                employee.avgGoogleRating >= 4.5 ? 'text-green-600' :
-                                employee.avgGoogleRating >= 4.0 ? 'text-blue-600' :
-                                employee.avgGoogleRating >= 3.5 ? 'text-yellow-600' :
-                                'text-red-600'
-                              }`}>
-                                {employee.avgGoogleRating.toFixed(2)}
-                              </span>
-                            </div>
-                            <span className="text-xs text-[#9b9b9b]">
-                              {employee.googleReviewCount} reviews
+                          <div className="flex items-center gap-1">
+                            <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                            <span className="text-sm font-bold text-slate-700">
+                              {employee.avgGoogleRating.toFixed(1)}
                             </span>
                           </div>
                         ) : (
-                          <span className="text-[#9b9b9b]">N/A</span>
+                          <span className="text-xs text-slate-400">N/A</span>
                         )}
-                      </td>
-                      <td className="p-3 text-center">
-                        <div className="flex flex-col items-center gap-1">
-                          <span className={`font-bold ${
-                            employee.wrongOrders > 10 ? 'text-red-600' :
-                            employee.wrongOrders > 5 ? 'text-yellow-600' :
-                            employee.wrongOrders > 0 ? 'text-orange-600' :
-                            'text-green-600'
-                          }`}>
-                            {employee.wrongOrders}
-                          </span>
-                          <span className="text-xs text-[#9b9b9b]">
-                            ordini
-                          </span>
-                        </div>
-                      </td>
-                      <td className="p-3 text-center">
-                        <div className="flex flex-col items-center gap-1">
-                          <span className={`font-bold ${
-                            employee.avgLateMinutes > 10 ? 'text-red-600' :
-                            employee.avgLateMinutes > 5 ? 'text-yellow-600' :
-                            'text-green-600'
-                          }`}>
-                            {employee.avgLateMinutes.toFixed(1)}
-                          </span>
-                          <span className="text-xs text-[#9b9b9b]">minutes</span>
-                        </div>
-                      </td>
-                      <td className="p-3 text-center">
-                        <div className="flex flex-col items-center gap-1">
-                          <span className={`text-lg font-bold ${
-                            employee.numeroRitardi > 10 ? 'text-red-600' :
-                            employee.numeroRitardi > 5 ? 'text-yellow-600' :
-                            'text-green-600'
-                          }`}>
-                            {employee.numeroRitardi}
-                          </span>
-                          <span className="text-xs text-[#9b9b9b]">
-                            su {employee.totalShifts} turni
-                          </span>
-                        </div>
-                      </td>
-                      <td className="p-3 text-center">
-                        <div className="flex flex-col items-center gap-1">
-                          <span className={`text-lg font-bold ${
-                            employee.percentualeRitardi > 20 ? 'text-red-600' :
-                            employee.percentualeRitardi > 10 ? 'text-yellow-600' :
-                            'text-green-600'
-                          }`}>
-                            {employee.percentualeRitardi.toFixed(1)}%
-                          </span>
-                        </div>
-                      </td>
-                      <td className="p-3 text-center">
-                        <div className="flex flex-col items-center gap-1">
-                          <span className={`text-lg font-bold ${
-                            employee.numeroTimbratureMancate > 5 ? 'text-red-600' :
-                            employee.numeroTimbratureMancate > 2 ? 'text-yellow-600' :
-                            'text-green-600'
-                          }`}>
-                            {employee.numeroTimbratureMancate}
-                          </span>
-                          <span className="text-xs text-[#9b9b9b]">
-                            su {employee.totalShifts} turni
-                          </span>
-                        </div>
-                      </td>
-                      <td className="p-3 text-center">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedEmployee(employee);
-                          }}
-                          className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#6b6b6b] hover:text-[#8b7355] transition-colors"
-                        >
-                          View Details
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="11" className="p-8 text-center text-[#9b9b9b]">
-                      No employees found matching the filters
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </NeumorphicCard>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                    <span className={`px-2 py-1 rounded-lg text-xs font-bold ${
+                      employee.wrongOrders > 5 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                    }`}>
+                      {employee.wrongOrders} ord
+                    </span>
+                    <span className={`px-2 py-1 rounded-lg text-xs font-bold ${
+                      employee.numeroRitardi > 5 ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {employee.numeroRitardi} rit
+                    </span>
+                  </div>
+                </div>
+              </NeumorphicCard>
+            ))
+          ) : (
+            <NeumorphicCard className="p-8 text-center">
+              <p className="text-slate-500">Nessun dipendente trovato</p>
+            </NeumorphicCard>
+          )}
+        </div>
 
         {/* Employee Detail Modal */}
         {selectedEmployee && (
-          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4">
-            <NeumorphicCard className="max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
-              <div className="flex items-start justify-between mb-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-[#6b6b6b] mb-1">{selectedEmployee.full_name}</h2>
-                  <p className="text-[#9b9b9b] capitalize">{selectedEmployee.position?.replace(/_/g, ' ')}</p>
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-end lg:items-center justify-center z-50 p-0 lg:p-4">
+            <NeumorphicCard className="w-full lg:max-w-2xl max-h-[85vh] lg:max-h-[90vh] overflow-y-auto p-4 lg:p-6 rounded-t-3xl lg:rounded-2xl">
+              <div className="flex items-start justify-between mb-4 lg:mb-6 sticky top-0 bg-gradient-to-br from-slate-50 to-slate-100 pb-4 -mt-4 pt-4 -mx-4 px-4 z-10">
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1 truncate">{selectedEmployee.full_name}</h2>
+                  <p className="text-sm text-slate-500 capitalize truncate">{selectedEmployee.position?.replace(/_/g, ' ')}</p>
                 </div>
                 <button
                   onClick={() => {
                     setSelectedEmployee(null);
                     setExpandedView(null);
                   }}
-                  className="neumorphic-flat px-4 py-2 rounded-lg text-[#6b6b6b]"
+                  className="nav-button px-3 py-2 rounded-lg text-slate-700 flex-shrink-0 ml-3"
                 >
-                  Close
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-2 gap-3 lg:gap-4 mb-4 lg:mb-6">
                 <div className="neumorphic-pressed p-4 rounded-xl text-center">
-                  <p className="text-sm text-[#9b9b9b] mb-2">Performance Score</p>
-                  <p className={`text-4xl font-bold ${getPerformanceColor(selectedEmployee.performanceLevel)}`}>
+                  <p className="text-xs text-slate-500 mb-2">Performance</p>
+                  <p className={`text-3xl lg:text-4xl font-bold ${getPerformanceColor(selectedEmployee.performanceLevel)}`}>
                     {selectedEmployee.performanceScore}
                   </p>
-                  <p className={`text-sm mt-1 ${getPerformanceColor(selectedEmployee.performanceLevel)}`}>
+                  <p className={`text-xs mt-1 ${getPerformanceColor(selectedEmployee.performanceLevel)}`}>
                     {getPerformanceLabel(selectedEmployee.performanceLevel)}
                   </p>
                 </div>
 
                 <div className="neumorphic-pressed p-4 rounded-xl text-center">
-                  <p className="text-sm text-[#9b9b9b] mb-2">Google Rating</p>
+                  <p className="text-xs text-slate-500 mb-2">Google</p>
                   {selectedEmployee.googleReviewCount > 0 ? (
                     <>
                       <div className="flex items-center justify-center gap-2">
-                        <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
-                        <p className={`text-4xl font-bold ${
-                          selectedEmployee.avgGoogleRating >= 4.5 ? 'text-green-600' :
-                          selectedEmployee.avgGoogleRating >= 4.0 ? 'text-blue-600' :
-                          'text-yellow-600'
-                        }`}>
-                          {selectedEmployee.avgGoogleRating.toFixed(2)}
+                        <Star className="w-5 h-5 lg:w-6 lg:h-6 text-yellow-500 fill-yellow-500" />
+                        <p className="text-2xl lg:text-3xl font-bold text-slate-800">
+                          {selectedEmployee.avgGoogleRating.toFixed(1)}
                         </p>
                       </div>
-                      <p className="text-sm mt-1 text-[#9b9b9b]">{selectedEmployee.googleReviewCount} reviews</p>
+                      <p className="text-xs mt-1 text-slate-500">{selectedEmployee.googleReviewCount} reviews</p>
                     </>
                   ) : (
-                    <p className="text-2xl text-[#9b9b9b]">N/A</p>
+                    <p className="text-xl text-slate-400">N/A</p>
                   )}
                 </div>
               </div>
@@ -986,13 +783,13 @@ export default function Employees() {
                 <div className="neumorphic-flat p-4 rounded-xl">
                   <div className="flex items-center gap-3 mb-3">
                     <ShoppingCart className="w-5 h-5 text-[#8b7355]" />
-                    <h3 className="font-bold text-[#6b6b6b]">Order Performance</h3>
+                    <h3 className="font-bold text-slate-800">Order Performance</h3>
                   </div>
                   {/* Updated to display only Wrong Orders from the new source */}
                   <div className="grid grid-cols-1 gap-4">
                     <div>
-                      <p className="text-sm text-[#9b9b9b]">Wrong Orders</p>
-                      <p className="text-xl font-bold text-[#6b6b6b]">
+                      <p className="text-sm text-slate-500">Wrong Orders</p>
+                      <p className="text-xl font-bold text-slate-800">
                         {selectedEmployee.wrongOrders} ({selectedEmployee.wrongOrderRate.toFixed(1)}% of shifts)
                       </p>
                     </div>
@@ -1003,27 +800,27 @@ export default function Employees() {
                 <div className="neumorphic-flat p-4 rounded-xl">
                   <div className="flex items-center gap-3 mb-3">
                     <Clock className="w-5 h-5 text-[#8b7355]" />
-                    <h3 className="font-bold text-[#6b6b6b]">Attendance & Ritardi</h3>
+                    <h3 className="font-bold text-slate-800">Attendance & Ritardi</h3>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-[#9b9b9b]">Total Shifts</p>
-                      <p className="text-xl font-bold text-[#6b6b6b]">{selectedEmployee.totalShifts}</p>
+                      <p className="text-sm text-slate-500">Total Shifts</p>
+                      <p className="text-xl font-bold text-slate-800">{selectedEmployee.totalShifts}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-[#9b9b9b]">Avg Lateness</p>
-                      <p className="text-xl font-bold text-[#6b6b6b]">
+                      <p className="text-sm text-slate-500">Avg Lateness</p>
+                      <p className="text-xl font-bold text-slate-800">
                         {selectedEmployee.avgLateMinutes.toFixed(1)} min
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-[#9b9b9b]">Numero Ritardi</p>
+                      <p className="text-sm text-slate-500">Numero Ritardi</p>
                       <p className="text-xl font-bold text-red-600">
                         {selectedEmployee.numeroRitardi}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-[#9b9b9b]">% Ritardi</p>
+                      <p className="text-sm text-slate-500">% Ritardi</p>
                       <p className="text-xl font-bold text-red-600">
                         {selectedEmployee.percentualeRitardi.toFixed(1)}%
                       </p>
@@ -1036,7 +833,7 @@ export default function Employees() {
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
                       <ShoppingCart className="w-5 h-5 text-red-600" />
-                      <h3 className="font-bold text-[#6b6b6b]">
+                      <h3 className="font-bold text-slate-800">
                         {expandedView === 'wrongOrders' ? 'Tutti gli Ordini Sbagliati' : 'Ultimi 3 Ordini Sbagliati'}
                       </h3>
                     </div>
@@ -1045,7 +842,7 @@ export default function Employees() {
                       return allWrongOrders.length > 3 && (
                         <button
                           onClick={() => setExpandedView(expandedView === 'wrongOrders' ? null : 'wrongOrders')}
-                          className="neumorphic-flat px-3 py-1 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-1"
+                          className="neumorphic-flat px-3 py-1 rounded-lg text-sm text-slate-500 hover:text-slate-700 transition-colors flex items-center gap-1"
                         >
                           {expandedView === 'wrongOrders' ? (
                             <>
@@ -1080,7 +877,7 @@ export default function Employees() {
                                 }`}>
                                   {match.platform}
                                 </span>
-                                <span className="font-mono text-sm text-[#6b6b6b]">#{match.order_id}</span>
+                                <span className="font-mono text-sm text-slate-800">#{match.order_id}</span>
                               </div>
                               <span className={`px-2 py-1 rounded-full text-xs font-bold ${getConfidenceBadgeColor(match.match_confidence)}`}>
                                 {match.match_confidence === 'high' ? 'Alta' :
@@ -1088,7 +885,7 @@ export default function Employees() {
                                  match.match_confidence === 'low' ? 'Bassa' : 'Manuale'}
                               </span>
                             </div>
-                            <div className="text-xs text-[#9b9b9b] space-y-1">
+                            <div className="text-xs text-slate-500 space-y-1">
                               <div>
                                 <strong>Data:</strong> {safeFormatDateTimeLocale(match.order_date)}
                               </div>
@@ -1098,7 +895,7 @@ export default function Employees() {
                               {match.orderDetails && (
                                 <>
                                   <div className="flex items-center justify-between mt-2 pt-2 border-t border-red-200">
-                                    <span className="font-medium text-[#6b6b6b]">Rimborso:</span>
+                                    <span className="font-medium text-slate-800">Rimborso:</span>
                                     <span className="text-sm font-bold text-red-600">
                                       €{match.orderDetails.refund_value?.toFixed(2) || '0.00'}
                                     </span>
@@ -1118,7 +915,7 @@ export default function Employees() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-[#9b9b9b] text-center py-2">
+                      <p className="text-sm text-slate-500 text-center py-2">
                         Nessun ordine sbagliato abbinato 🎉
                       </p>
                     );
@@ -1130,7 +927,7 @@ export default function Employees() {
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
                       <AlertCircle className="w-5 h-5 text-red-600" />
-                      <h3 className="font-bold text-[#6b6b6b]">
+                      <h3 className="font-bold text-slate-800">
                         {expandedView === 'late' ? 'Tutti i Turni in Ritardo' : 'Ultimi 3 Turni in Ritardo'}
                       </h3>
                     </div>
@@ -1139,7 +936,7 @@ export default function Employees() {
                       return allLateShifts.length > 3 && (
                         <button
                           onClick={() => setExpandedView(expandedView === 'late' ? null : 'late')}
-                          className="neumorphic-flat px-3 py-1 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-1"
+                          className="neumorphic-flat px-3 py-1 rounded-lg text-sm text-slate-500 hover:text-slate-700 transition-colors flex items-center gap-1"
                         >
                           {expandedView === 'late' ? (
                             <>
@@ -1166,14 +963,14 @@ export default function Employees() {
                         {lateShifts.map((shift, index) => (
                           <div key={`${shift.id}-${index}`} className="neumorphic-pressed p-3 rounded-lg">
                             <div className="flex items-center justify-between mb-1">
-                              <span className="text-sm font-medium text-[#6b6b6b]">
+                              <span className="text-sm font-medium text-slate-800">
                                 {safeFormatDateLocale(shift.shift_date)} - {shift.store_name || 'N/A'}
                               </span>
                               <span className="text-sm font-bold text-red-600">
                                 +{shift.minuti_di_ritardo || 0} min
                               </span>
                             </div>
-                            <div className="text-xs text-[#9b9b9b] space-y-1">
+                            <div className="text-xs text-slate-500 space-y-1">
                               <div>
                                 <strong>Previsto:</strong> {safeFormatTime(shift.scheduled_start)}
                                 {' → '}
@@ -1187,7 +984,7 @@ export default function Employees() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-[#9b9b9b] text-center py-2">
+                      <p className="text-sm text-slate-500 text-center py-2">
                         Nessun ritardo registrato 🎉
                       </p>
                     );
@@ -1199,7 +996,7 @@ export default function Employees() {
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
                       <AlertCircle className="w-5 h-5 text-orange-600" />
-                      <h3 className="font-bold text-[#6b6b6b]">
+                      <h3 className="font-bold text-slate-800">
                         {expandedView === 'missing' ? 'Tutti i Turni con Timbratura Mancata' : 'Ultimi 3 Turni con Timbratura Mancata'}
                       </h3>
                     </div>
@@ -1208,7 +1005,7 @@ export default function Employees() {
                       return allMissingClockIns.length > 3 && (
                         <button
                           onClick={() => setExpandedView(expandedView === 'missing' ? null : 'missing')}
-                          className="neumorphic-flat px-3 py-1 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-1"
+                          className="neumorphic-flat px-3 py-1 rounded-lg text-sm text-slate-500 hover:text-slate-700 transition-colors flex items-center gap-1"
                         >
                           {expandedView === 'missing' ? (
                             <>
@@ -1235,14 +1032,14 @@ export default function Employees() {
                         {missingClockIns.map((shift, index) => (
                           <div key={`${shift.id}-${index}`} className="neumorphic-pressed p-3 rounded-lg border-2 border-orange-200">
                             <div className="flex items-center justify-between mb-1">
-                              <span className="text-sm font-medium text-[#6b6b6b]">
+                              <span className="text-sm font-medium text-slate-800">
                                 {safeFormatDateLocale(shift.shift_date)} - {shift.store_name || 'N/A'}
                               </span>
                               <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded">
                                 NON TIMBRATO
                               </span>
                             </div>
-                            <div className="text-xs text-[#9b9b9b] space-y-1">
+                            <div className="text-xs text-slate-500 space-y-1">
                               <div>
                                 <strong>Orario Previsto:</strong> {safeFormatTime(shift.scheduled_start)}
                                 {' - '}
@@ -1261,7 +1058,7 @@ export default function Employees() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-[#9b9b9b] text-center py-2">
+                      <p className="text-sm text-slate-500 text-center py-2">
                         Nessuna timbratura mancata 🎉
                       </p>
                     );
@@ -1273,7 +1070,7 @@ export default function Employees() {
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
                       <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                      <h3 className="font-bold text-[#6b6b6b]">
+                      <h3 className="font-bold text-slate-800">
                         {expandedView === 'reviews' ? 'Tutte le Recensioni Google Maps' : 'Ultime 3 Recensioni Google Maps'}
                       </h3>
                     </div>
@@ -1282,7 +1079,7 @@ export default function Employees() {
                       return allGoogleReviews.length > 3 && (
                         <button
                           onClick={() => setExpandedView(expandedView === 'reviews' ? null : 'reviews')}
-                          className="neumorphic-flat px-3 py-1 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-1"
+                          className="neumorphic-flat px-3 py-1 rounded-lg text-sm text-slate-500 hover:text-slate-700 transition-colors flex items-center gap-1"
                         >
                           {expandedView === 'reviews' ? (
                             <>
@@ -1309,7 +1106,7 @@ export default function Employees() {
                         {googleReviews.map((review) => (
                           <div key={review.id} className="neumorphic-pressed p-3 rounded-lg">
                             <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-medium text-[#6b6b6b]">
+                              <span className="text-sm font-medium text-slate-800">
                                 {review.customer_name || 'Anonimo'}
                               </span>
                               <div className="flex items-center gap-1">
@@ -1326,16 +1123,16 @@ export default function Employees() {
                               </div>
                             </div>
                             {review.comment && (
-                              <p className="text-xs text-[#6b6b6b] mb-1">{review.comment}</p>
+                              <p className="text-xs text-slate-800 mb-1">{review.comment}</p>
                             )}
-                            <p className="text-xs text-[#9b9b9b]">
+                            <p className="text-xs text-slate-500">
                               {safeFormatDateLocale(review.review_date)}
                             </p>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-[#9b9b9b] text-center py-2">
+                      <p className="text-sm text-slate-500 text-center py-2">
                         Nessuna recensione Google Maps ricevuta
                       </p>
                     );
@@ -1345,19 +1142,19 @@ export default function Employees() {
                 <div className="neumorphic-flat p-4 rounded-xl">
                   <div className="flex items-center gap-3 mb-3">
                     <Star className="w-5 h-5 text-[#8b7355]" />
-                    <h3 className="font-bold text-[#6b6b6b]">Customer Feedback</h3>
+                    <h3 className="font-bold text-slate-800">Customer Feedback</h3>
                   </div>
                   <div className="grid grid-cols-3 gap-4">
                     <div>
-                      <p className="text-sm text-[#9b9b9b]">Mentions</p>
-                      <p className="text-xl font-bold text-[#6b6b6b]">{selectedEmployee.mentions}</p>
+                      <p className="text-sm text-slate-500">Mentions</p>
+                      <p className="text-xl font-bold text-slate-800">{selectedEmployee.mentions}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-[#9b9b9b]">Positive</p>
+                      <p className="text-sm text-slate-500">Positive</p>
                       <p className="text-xl font-bold text-green-600">{selectedEmployee.positiveMentions}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-[#9b9b9b]">Negative</p>
+                      <p className="text-sm text-slate-500">Negative</p>
                       <p className="text-xl font-bold text-red-600">{selectedEmployee.negativeMentions}</p>
                     </div>
                   </div>
