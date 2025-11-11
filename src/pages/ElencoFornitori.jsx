@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -170,7 +169,6 @@ export default function ElencoFornitori() {
   return (
     <ProtectedPage pageName="ElencoFornitori">
       <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
-        {/* Header */}
         <div className="mb-4 lg:mb-6">
           <div className="flex items-center justify-between">
             <div>
@@ -190,7 +188,6 @@ export default function ElencoFornitori() {
           </div>
         </div>
 
-        {/* Summary Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           <NeumorphicCard className="p-4">
             <div className="text-center">
@@ -211,6 +208,7 @@ export default function ElencoFornitori() {
                 {suppliers.filter(s => s.attivo !== false).length}
               </h3>
               <p className="text-xs text-slate-500">Attivi</p>
+            </div>
           </NeumorphicCard>
 
           <NeumorphicCard className="p-4">
@@ -238,7 +236,6 @@ export default function ElencoFornitori() {
           </NeumorphicCard>
         </div>
 
-        {/* Form Modal */}
         {showForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end lg:items-center justify-center z-50 p-0 lg:p-4">
             <NeumorphicCard className="w-full lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 lg:p-6 rounded-t-3xl lg:rounded-2xl">
@@ -255,7 +252,6 @@ export default function ElencoFornitori() {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Anagrafica */}
                 <div className="neumorphic-flat p-5 rounded-xl">
                   <h3 className="font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
                     <MapPin className="w-5 h-5 text-[#8b7355]" />
@@ -322,7 +318,6 @@ export default function ElencoFornitori() {
                   </div>
                 </div>
 
-                {/* Dettagli Fornitore */}
                 <div className="neumorphic-flat p-5 rounded-xl">
                   <h3 className="font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
                     <Package className="w-5 h-5 text-[#8b7355]" />
@@ -386,7 +381,6 @@ export default function ElencoFornitori() {
                   </div>
                 </div>
 
-                {/* Contatti */}
                 <div className="neumorphic-flat p-5 rounded-xl">
                   <h3 className="font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
                     <Phone className="w-5 h-5 text-[#8b7355]" />
@@ -451,7 +445,6 @@ export default function ElencoFornitori() {
                   </div>
                 </div>
 
-                {/* Active Status */}
                 <div className="flex items-center gap-3">
                   <input
                     type="checkbox"
@@ -465,7 +458,6 @@ export default function ElencoFornitori() {
                   </label>
                 </div>
 
-                {/* Action Buttons */}
                 <div className="flex gap-3 pt-4 border-t border-[#c1c1c1]">
                   <NeumorphicButton
                     type="button"
@@ -489,7 +481,6 @@ export default function ElencoFornitori() {
           </div>
         )}
 
-        {/* Suppliers List by Type */}
         {isLoading ? (
           <NeumorphicCard className="p-12 text-center">
             <p className="text-slate-500">Caricamento...</p>
@@ -572,8 +563,6 @@ export default function ElencoFornitori() {
                         <p className="text-sm text-slate-700">Consegna in {supplier.tempo_consegna_giorni}gg</p>
                       </div>
                     )}
-
-                    {/* Removed 'metodologia_ricezione_ordine' display block for individual supplier card as per outline */}
 
                     <div className="flex gap-2 pt-3 border-t border-slate-300">
                       <button
