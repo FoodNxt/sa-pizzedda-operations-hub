@@ -17,16 +17,24 @@ export default function NeumorphicButton({
     }
   };
 
+  const getVariantStyles = () => {
+    if (variant === "primary") {
+      return "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg hover:shadow-xl";
+    }
+    return "bg-gradient-to-br from-slate-100 to-slate-200 text-slate-700";
+  };
+
   return (
     <button
       onClick={handleClick}
       disabled={disabled}
       className={`
-        ${pressed ? 'neumorphic-pressed' : 'nav-button'}
-        px-6 py-3 font-medium text-[#6b6b6b]
-        transition-all duration-150
+        ${pressed ? 'neumorphic-pressed scale-95' : 'nav-button'}
+        ${getVariantStyles()}
+        px-6 py-3 rounded-xl font-medium
+        transition-all duration-200
         disabled:opacity-50 disabled:cursor-not-allowed
-        ${variant === "primary" ? "text-[#8b7355]" : ""}
+        active:scale-95
         ${className}
       `}
     >

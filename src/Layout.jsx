@@ -33,7 +33,8 @@ import {
   FileText,
   BookOpen,
   Settings,
-  Loader2
+  Loader2,
+  Home
 } from "lucide-react";
 import CompleteProfileModal from "./components/auth/CompleteProfileModal";
 
@@ -404,10 +405,7 @@ const navigationStructure = [
   }
 ];
 
-// CRITICAL: Helper function to normalize user_type BEFORE any other logic
 const getNormalizedUserType = (userType) => {
-  // ONLY admin and manager are treated as such
-  // EVERYTHING else (including 'user', 'dipendente', 'N/A', null, undefined, '') → 'dipendente'
   if (userType === 'admin' || userType === 'manager') {
     return userType;
   }
@@ -437,19 +435,15 @@ export default function Layout({ children, currentPageName }) {
   const [dipendenteNav, setDipendenteNav] = useState(null);
   const [pageAccessConfig, setPageAccessConfig] = useState(null);
   
-  // CRITICAL: Loading states to prevent premature menu rendering
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [isLoadingConfig, setIsLoadingConfig] = useState(true);
 
-  // Fetch page access configuration with loading state
   useEffect(() => {
     const fetchConfig = async () => {
       setIsLoadingConfig(true);
       try {
         const configs = await base44.entities.PageAccessConfig.list();
         const activeConfig = configs.find(c => c.is_active);
-        
-        // CRITICAL: Set config even if null to complete loading
         setPageAccessConfig(activeConfig || null);
       } catch (error) {
         console.error('Error fetching page access config:', error);
@@ -471,19 +465,15 @@ export default function Layout({ children, currentPageName }) {
         const needsProfile = !user.profile_manually_completed;
         setShowProfileModal(needsProfile);
 
-        // CRITICAL: Normalize user_type IMMEDIATELY before any logic
         const normalizedUserType = getNormalizedUserType(user.user_type);
 
-        // Only apply progressive access logic for dipendente types (not admin/manager)
         if (normalizedUserType === 'dipendente') {
-          // CRITICAL: Wait for config to be loaded before applying restrictions
           if (isLoadingConfig) {
-            return; // Don't process until config is ready
+            return;
           }
 
           const userRoles = user.ruoli_dipendente || [];
 
-          // 1. If NO roles → use config or default to ONLY Profilo
           if (userRoles.length === 0) {
             const allowedPages = pageAccessConfig?.after_registration || ['ProfiloDipendente'];
             const allowedFullPaths = allowedPages.map(p => createPageUrl(p));
@@ -495,12 +485,10 @@ export default function Layout({ children, currentPageName }) {
             return;
           }
 
-          // 2. Check contract status
           const hasReceivedContract = await checkIfContractReceived(user.id);
           const hasSignedContract = await checkIfContractSigned(user.id);
           const contractStarted = user.data_inizio_contratto && new Date(user.data_inizio_contratto) <= new Date();
 
-          // Determine allowed pages based on status using config or defaults
           let allowedPages = [];
 
           if (contractStarted && hasSignedContract) {
@@ -531,13 +519,11 @@ export default function Layout({ children, currentPageName }) {
       }
     };
     
-    // CRITICAL: Only fetch user after config is loaded
     if (!isLoadingConfig) {
       fetchUser();
     }
   }, [location.pathname, navigate, pageAccessConfig, isLoadingConfig]);
 
-  // CRITICAL: Recalculate dipendente navigation when user or config changes
   useEffect(() => {
     if (currentUser && !isLoadingConfig && !isLoadingUser) {
       const normalizedUserType = getNormalizedUserType(currentUser.user_type);
@@ -609,7 +595,6 @@ export default function Layout({ children, currentPageName }) {
     if (!requiredUserType) return true;
     if (!currentUser) return false;
 
-    // CRITICAL: Use normalized user_type for access check
     const normalizedUserType = getNormalizedUserType(currentUser.user_type);
     const userRoles = currentUser.ruoli_dipendente || [];
 
@@ -623,14 +608,12 @@ export default function Layout({ children, currentPageName }) {
   };
 
   const getFilteredNavigationForDipendente = async (user) => {
-    // CRITICAL: Use normalized user_type
     const normalizedUserType = getNormalizedUserType(user.user_type);
     
     if (normalizedUserType !== 'dipendente') return null;
 
     const userRoles = user.ruoli_dipendente || [];
 
-    // 1. No roles → use config (RESTRICTIVE DEFAULT)
     if (userRoles.length === 0) {
       const allowedPages = pageAccessConfig?.after_registration || ['ProfiloDipendente'];
       return [{
@@ -645,7 +628,6 @@ export default function Layout({ children, currentPageName }) {
       }];
     }
 
-    // 2. Check contract status
     const hasReceivedContract = await checkIfContractReceived(user.id);
     const hasSignedContract = await checkIfContractSigned(user.id);
     const contractStarted = user.data_inizio_contratto && new Date(user.data_inizio_contratto) <= new Date();
@@ -666,7 +648,6 @@ export default function Layout({ children, currentPageName }) {
       allowedPages = pageAccessConfig?.after_registration || ['ProfiloDipendente'];
     }
 
-    // Filter role-specific pages
     const menuItems = allowedPages
       .filter(pageName => {
         if (pageName === 'ControlloPuliziaCassiere') return userRoles.includes('Cassiere');
@@ -694,12 +675,12 @@ export default function Layout({ children, currentPageName }) {
       'ContrattiDipendente': 'Contratti',
       'Academy': 'Academy',
       'Valutazione': 'Valutazione',
-      'ControlloPuliziaCassiere': 'Controllo Pulizia Cassiere',
-      'ControlloPuliziaPizzaiolo': 'Controllo Pulizia Pizzaiolo',
-      'ControlloPuliziaStoreManager': 'Controllo Pulizia Store Manager',
-      'FormInventario': 'Form Inventario',
-      'ConteggioCassa': 'Conteggio Cassa',
-      'TeglieButtate': 'Teglie Buttate',
+      'ControlloPuliziaCassiere': 'Pulizia',
+      'ControlloPuliziaPizzaiolo': 'Pulizia',
+      'ControlloPuliziaStoreManager': 'Pulizia',
+      'FormInventario': 'Inventario',
+      'ConteggioCassa': 'Cassa',
+      'TeglieButtate': 'Teglie',
       'Preparazioni': 'Preparazioni'
     };
     return titles[pageName] || pageName;
@@ -722,7 +703,6 @@ export default function Layout({ children, currentPageName }) {
     return icons[pageName] || User;
   };
 
-  // CRITICAL: Build navigation only when everything is loaded
   const filteredNavigation = (!isLoadingConfig && !isLoadingUser && currentUser) 
     ? navigationStructure
         .filter(section => hasAccess(section.requiredUserType))
@@ -731,15 +711,13 @@ export default function Layout({ children, currentPageName }) {
           items: section.items.filter(item => hasAccess(item.requiredUserType, item.requiredRole))
         }))
         .filter(section => section.items.length > 0)
-    : []; // EMPTY navigation while loading
+    : [];
 
-  // CRITICAL: Use normalized user_type for final navigation
   const normalizedUserType = currentUser ? getNormalizedUserType(currentUser.user_type) : null;
   
-  // CRITICAL: Use dipendente nav only when fully loaded, otherwise show nothing
   const finalNavigation = (!isLoadingConfig && !isLoadingUser && currentUser)
     ? (normalizedUserType === 'dipendente' ? (dipendenteNav || []) : filteredNavigation)
-    : []; // EMPTY navigation while loading
+    : [];
 
   const getUserDisplayName = () => {
     if (!currentUser) return 'Caricamento...';
@@ -749,17 +727,25 @@ export default function Layout({ children, currentPageName }) {
   const getUserTypeName = () => {
     if (!currentUser) return '';
     const normalizedType = getNormalizedUserType(currentUser.user_type);
-    return normalizedType === 'admin' ? 'Amministratore' :
+    return normalizedType === 'admin' ? 'Admin' :
            normalizedType === 'manager' ? 'Manager' :
            'Dipendente';
   };
 
-  // CRITICAL: Show loading state while data is being fetched
   const isFullyLoaded = !isLoadingUser && !isLoadingConfig && currentUser;
 
+  // Get main navigation items for bottom bar (dipendente only)
+  const getBottomNavItems = () => {
+    if (!dipendenteNav || dipendenteNav.length === 0) return [];
+    
+    const mainItems = dipendenteNav[0]?.items?.slice(0, 4) || [];
+    return mainItems;
+  };
+
+  const bottomNavItems = normalizedUserType === 'dipendente' ? getBottomNavItems() : [];
+
   return (
-    <div className="min-h-screen bg-[#e0e5ec]">
-      {/* Complete Profile Modal */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {showProfileModal && currentUser && (
         <CompleteProfileModal
           user={currentUser}
@@ -769,196 +755,259 @@ export default function Layout({ children, currentPageName }) {
 
       <style>{`
         .neumorphic-card {
-          background: #e0e5ec;
-          border-radius: 16px;
-          box-shadow: 8px 8px 16px #b8bec8, -8px -8px 16px #ffffff;
+          background: linear-gradient(145deg, #f0f4f8, #d9e2ec);
+          border-radius: 20px;
+          box-shadow: 8px 8px 20px rgba(136, 165, 191, 0.48), -8px -8px 20px #ffffff;
         }
 
         .neumorphic-pressed {
-          background: #e0e5ec;
+          background: linear-gradient(145deg, #d9e2ec, #f0f4f8);
           border-radius: 16px;
-          box-shadow: inset 4px 4px 8px #b8bec8, inset -4px -4px 8px #ffffff;
+          box-shadow: inset 4px 4px 10px rgba(136, 165, 191, 0.4), inset -4px -4px 10px #ffffff;
         }
 
         .neumorphic-flat {
-          background: #e0e5ec;
+          background: linear-gradient(145deg, #f0f4f8, #e1e8ed);
           border-radius: 12px;
-          box-shadow: 4px 4px 8px #b8bec8, -4px -4px 8px #ffffff;
+          box-shadow: 4px 4px 12px rgba(136, 165, 191, 0.4), -4px -4px 12px #ffffff;
         }
 
         .nav-button {
-          background: #e0e5ec;
-          border-radius: 12px;
-          box-shadow: 4px 4px 8px #b8bec8, -4px -4px 8px #ffffff;
-          transition: all 0.2s ease;
+          background: linear-gradient(145deg, #f0f4f8, #e1e8ed);
+          border-radius: 14px;
+          box-shadow: 4px 4px 10px rgba(136, 165, 191, 0.3), -4px -4px 10px #ffffff;
+          transition: all 0.3s ease;
         }
 
         .nav-button:hover {
-          box-shadow: 6px 6px 12px #b8bec8, -6px -6px 12px #ffffff;
+          box-shadow: 6px 6px 16px rgba(136, 165, 191, 0.4), -6px -6px 16px #ffffff;
+          transform: translateY(-1px);
         }
 
         .nav-button-active {
-          background: #e0e5ec;
-          box-shadow: inset 3px 3px 6px #b8bec8, inset -3px -3px 6px #ffffff;
+          background: linear-gradient(145deg, #3b82f6, #2563eb);
+          box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.1), inset -3px -3px 8px rgba(255, 255, 255, 0.1);
+          color: white;
         }
 
-        .logo-shadow {
-          filter: drop-shadow(2px 2px 4px #b8bec8) drop-shadow(-2px -2px 4px #ffffff);
+        .bottom-nav-item {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 12px 8px;
+          background: linear-gradient(145deg, #f0f4f8, #e1e8ed);
+          border-radius: 16px;
+          transition: all 0.3s ease;
+          min-height: 70px;
+        }
+
+        .bottom-nav-item:active {
+          transform: scale(0.95);
+        }
+
+        .bottom-nav-item.active {
+          background: linear-gradient(145deg, #3b82f6, #2563eb);
+          box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        @media (max-width: 1024px) {
+          .hide-on-mobile {
+            display: none !important;
+          }
         }
       `}</style>
 
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 neumorphic-card m-4 p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Pizza className="w-8 h-8 text-[#8b7355] logo-shadow" />
-            <span className="text-xl font-bold text-[#6b6b6b]">Sa Pizzedda</span>
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 mx-2 mt-2">
+        <div className="neumorphic-card p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
+                <Pizza className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <span className="text-lg font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
+                  Sa Pizzedda
+                </span>
+                <p className="text-xs text-slate-500">{getUserTypeName()}</p>
+              </div>
+            </div>
+            {normalizedUserType !== 'dipendente' && (
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="nav-button p-3"
+              >
+                {sidebarOpen ? <X className="w-5 h-5 text-slate-700" /> : <Menu className="w-5 h-5 text-slate-700" />}
+              </button>
+            )}
           </div>
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="nav-button p-2"
-          >
-            {sidebarOpen ? <X className="w-6 h-6 text-[#6b6b6b]" /> : <Menu className="w-6 h-6 text-[#6b6b6b]" />}
-          </button>
         </div>
       </div>
 
       <div className="flex">
-        {/* Sidebar */}
-        <aside className={`
-          fixed lg:static inset-y-0 left-0 z-40
-          w-72 transform transition-transform duration-300 ease-in-out
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        `}>
-          <div className="h-full neumorphic-card m-4 p-6 flex flex-col overflow-y-auto">
-            {/* Logo */}
-            <div className="hidden lg:flex items-center gap-3 mb-8">
-              <div className="neumorphic-flat p-3">
-                <Pizza className="w-8 h-8 text-[#8b7355]" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-[#6b6b6b]">Sa Pizzedda</h1>
-                <p className="text-xs text-[#9b9b9b]">Workspace</p>
-              </div>
-            </div>
-
-            {/* Navigation - CRITICAL: Only render when fully loaded */}
-            <nav className="flex-1 space-y-1">
-              {!isFullyLoaded ? (
-                <div className="flex flex-col items-center justify-center py-8">
-                  <Loader2 className="w-8 h-8 text-[#8b7355] animate-spin mb-3" />
-                  <p className="text-sm text-[#9b9b9b]">Caricamento menu...</p>
+        {/* Desktop Sidebar (Admin/Manager only) */}
+        {normalizedUserType !== 'dipendente' && (
+          <aside className={`
+            fixed lg:static inset-y-0 left-0 z-40
+            w-72 transform transition-transform duration-300 ease-in-out
+            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+            hide-on-mobile
+          `}>
+            <div className="h-full neumorphic-card m-4 p-6 flex flex-col overflow-y-auto">
+              <div className="hidden lg:flex items-center gap-3 mb-8">
+                <div className="neumorphic-flat p-3 bg-gradient-to-br from-blue-500 to-blue-600">
+                  <Pizza className="w-8 h-8 text-white" />
                 </div>
-              ) : (
-                finalNavigation.map((item) => {
-                  if (item.type === 'link') {
-                    const isActive = isActiveLink(item.url);
-                    return (
-                      <Link
-                        key={item.title}
-                        to={item.url}
-                        onClick={() => setSidebarOpen(false)}
-                        className={`
-                          flex items-center gap-3 px-4 py-3 rounded-xl
-                          transition-all duration-200
-                          ${isActive ? 'nav-button-active' : 'nav-button'}
-                        `}
-                      >
-                        <item.icon className={`w-5 h-5 ${isActive ? 'text-[#8b7355]' : 'text-[#9b9b9b]'}`} />
-                        <span className={`font-medium ${isActive ? 'text-[#6b6b6b]' : 'text-[#9b9b9b]'}`}>
-                          {item.title}
-                        </span>
-                      </Link>
-                    );
-                  }
+                <div>
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">Sa Pizzedda</h1>
+                  <p className="text-xs text-slate-500">Admin Panel</p>
+                </div>
+              </div>
 
-                  if (item.type === 'section') {
-                    const isExpanded = expandedSections[item.title];
-                    const sectionActive = isSectionActive(item);
-
-                    return (
-                      <div key={item.title}>
-                        <button
-                          onClick={() => toggleSection(item.title)}
+              <nav className="flex-1 space-y-1">
+                {!isFullyLoaded ? (
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <Loader2 className="w-8 h-8 text-blue-500 animate-spin mb-3" />
+                    <p className="text-sm text-slate-500">Caricamento menu...</p>
+                  </div>
+                ) : (
+                  finalNavigation.map((item) => {
+                    if (item.type === 'link') {
+                      const isActive = isActiveLink(item.url);
+                      return (
+                        <Link
+                          key={item.title}
+                          to={item.url}
+                          onClick={() => setSidebarOpen(false)}
                           className={`
-                            w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl
+                            flex items-center gap-3 px-4 py-3 rounded-xl
                             transition-all duration-200
-                            ${sectionActive ? 'nav-button-active' : 'nav-button'}
+                            ${isActive ? 'nav-button-active text-white' : 'nav-button text-slate-700'}
                           `}
                         >
-                          <div className="flex items-center gap-3">
-                            <item.icon className={`w-5 h-5 ${sectionActive ? 'text-[#8b7355]' : 'text-[#9b9b9b]'}`} />
-                            <span className={`font-medium ${sectionActive ? 'text-[#6b6b6b]' : 'text-[#9b9b9b]'}`}>
-                              {item.title}
-                            </span>
-                          </div>
-                          {isExpanded ? (
-                            <ChevronDown className="w-4 h-4 text-[#9b9b9b]" />
-                          ) : (
-                            <ChevronRight className="w-4 h-4 text-[#9b9b9b]" />
+                          <item.icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-slate-600'}`} />
+                          <span className="font-medium">{item.title}</span>
+                        </Link>
+                      );
+                    }
+
+                    if (item.type === 'section') {
+                      const isExpanded = expandedSections[item.title];
+                      const sectionActive = isSectionActive(item);
+
+                      return (
+                        <div key={item.title}>
+                          <button
+                            onClick={() => toggleSection(item.title)}
+                            className={`
+                              w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl
+                              transition-all duration-200
+                              ${sectionActive ? 'nav-button-active text-white' : 'nav-button text-slate-700'}
+                            `}
+                          >
+                            <div className="flex items-center gap-3">
+                              <item.icon className={`w-5 h-5 ${sectionActive ? 'text-white' : 'text-slate-600'}`} />
+                              <span className="font-medium">{item.title}</span>
+                            </div>
+                            {isExpanded ? (
+                              <ChevronDown className="w-4 h-4" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4" />
+                            )}
+                          </button>
+
+                          {isExpanded && (
+                            <div className="ml-4 mt-1 space-y-1">
+                              {item.items.map((subItem) => {
+                                const isActive = isActiveLink(subItem.url);
+                                return (
+                                  <Link
+                                    key={subItem.title}
+                                    to={subItem.url}
+                                    onClick={() => setSidebarOpen(false)}
+                                    className={`
+                                      flex items-center gap-3 px-4 py-2 rounded-lg
+                                      transition-all duration-200
+                                      ${isActive ? 'neumorphic-pressed bg-blue-50' : 'hover:bg-slate-100'}
+                                    `}
+                                  >
+                                    <subItem.icon className={`w-4 h-4 ${isActive ? 'text-blue-600' : 'text-slate-500'}`} />
+                                    <span className={`text-sm font-medium ${isActive ? 'text-slate-800' : 'text-slate-600'}`}>
+                                      {subItem.title}
+                                    </span>
+                                  </Link>
+                                );
+                              })}
+                            </div>
                           )}
-                        </button>
+                        </div>
+                      );
+                    }
 
-                        {isExpanded && (
-                          <div className="ml-4 mt-1 space-y-1">
-                            {item.items.map((subItem) => {
-                              const isActive = isActiveLink(subItem.url);
-                              return (
-                                <Link
-                                  key={subItem.title}
-                                  to={subItem.url}
-                                  onClick={() => setSidebarOpen(false)}
-                                  className={`
-                                    flex items-center gap-3 px-4 py-2 rounded-lg
-                                    transition-all duration-200
-                                    ${isActive ? 'neumorphic-pressed' : 'hover:bg-[#d5dae3]'}
-                                  `}
-                                >
-                                  <subItem.icon className={`w-4 h-4 ${isActive ? 'text-[#8b7355]' : 'text-[#9b9b9b]'}`} />
-                                  <span className={`text-sm font-medium ${isActive ? 'text-[#6b6b6b]' : 'text-[#9b9b9b]'}`}>
-                                    {subItem.title}
-                                  </span>
-                                </Link>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  }
+                    return null;
+                  })
+                )}
+              </nav>
 
-                  return null;
-                })
-              )}
-            </nav>
-
-            {/* User Info */}
-            {isFullyLoaded && (
-              <div className="neumorphic-pressed p-4 rounded-xl mt-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full neumorphic-flat flex items-center justify-center">
-                    <span className="text-sm font-bold text-[#8b7355]">
-                      {getUserDisplayName().charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-[#6b6b6b]">{getUserDisplayName()}</p>
-                    <p className="text-xs text-[#9b9b9b]">{getUserTypeName()}</p>
+              {isFullyLoaded && (
+                <div className="neumorphic-pressed p-4 rounded-xl mt-4 bg-gradient-to-br from-slate-100 to-slate-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                      <span className="text-sm font-bold text-white">
+                        {getUserDisplayName().charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-700 truncate">{getUserDisplayName()}</p>
+                      <p className="text-xs text-slate-500">{getUserTypeName()}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
-        </aside>
+              )}
+            </div>
+          </aside>
+        )}
 
         {/* Main Content */}
-        <main className="flex-1 min-h-screen pt-20 lg:pt-0 p-4 lg:p-8">
+        <main className={`
+          flex-1 min-h-screen 
+          ${normalizedUserType === 'dipendente' ? 'pt-20 pb-24' : 'pt-20 lg:pt-0'} 
+          px-3 py-4 lg:p-8
+        `}>
           {children}
         </main>
       </div>
 
-      {/* Overlay for mobile */}
-      {sidebarOpen && (
+      {/* Mobile Bottom Navigation (Dipendente only) */}
+      {normalizedUserType === 'dipendente' && isFullyLoaded && bottomNavItems.length > 0 && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 px-2 pb-2">
+          <div className="neumorphic-card p-2">
+            <div className="flex items-center justify-around gap-1">
+              {bottomNavItems.map((item) => {
+                const isActive = isActiveLink(item.url);
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.url}
+                    to={item.url}
+                    className={`bottom-nav-item ${isActive ? 'active' : ''}`}
+                  >
+                    <Icon className={`w-6 h-6 mb-1 ${isActive ? 'text-white' : 'text-slate-600'}`} />
+                    <span className={`text-xs font-medium ${isActive ? 'text-white' : 'text-slate-600'}`}>
+                      {item.title}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Overlay for mobile sidebar */}
+      {sidebarOpen && normalizedUserType !== 'dipendente' && (
         <div
           className="fixed inset-0 bg-black bg-opacity-20 z-30 lg:hidden"
           onClick={() => setSidebarOpen(false)}

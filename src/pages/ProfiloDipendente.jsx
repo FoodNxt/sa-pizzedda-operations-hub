@@ -70,14 +70,14 @@ export default function ProfiloDipendente() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-      setSuccess('Profilo aggiornato con successo! ✅');
+      setSuccess('Profilo aggiornato! ✅');
       setError('');
       setEditing(false);
       
       setTimeout(() => setSuccess(''), 3000);
     },
     onError: (error) => {
-      setError('Errore durante l\'aggiornamento. Riprova.');
+      setError('Errore durante l\'aggiornamento');
       setSuccess('');
     }
   });
@@ -145,12 +145,12 @@ export default function ProfiloDipendente() {
 
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });
       setDocumentFiles(prev => ({ ...prev, [docType]: null }));
-      setSuccess(`Documento caricato con successo! ✅`);
+      setSuccess(`Documento caricato! ✅`);
       setTimeout(() => setSuccess(''), 3000);
 
     } catch (error) {
       console.error('Error uploading document:', error);
-      setError('Errore durante il caricamento del documento');
+      setError('Errore durante il caricamento');
     } finally {
       setUploadingDocs(false);
     }
@@ -163,130 +163,132 @@ export default function ProfiloDipendente() {
       const fieldName = `${docType}_url`;
       await base44.auth.updateMe({ [fieldName]: null });
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-      setSuccess('Documento eliminato con successo');
+      setSuccess('Documento eliminato');
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
-      setError('Errore durante l\'eliminazione del documento');
+      setError('Errore durante l\'eliminazione');
     }
   };
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto p-8 text-center">
+      <div className="max-w-2xl mx-auto p-4 text-center">
         <NeumorphicCard className="p-8">
-          <p className="text-[#9b9b9b]">Caricamento...</p>
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-600">Caricamento...</p>
         </NeumorphicCard>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto space-y-4">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Il Mio Profilo</h1>
-        <p className="text-[#9b9b9b]">Gestisci le tue informazioni personali e documenti</p>
+      <div className="mb-4">
+        <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
+          Il Mio Profilo
+        </h1>
+        <p className="text-sm text-slate-500">Gestisci le tue informazioni</p>
       </div>
 
       {/* Success Message */}
       {success && (
-        <NeumorphicCard className="p-4 bg-green-50 border-2 border-green-400">
-          <div className="flex items-center gap-3">
-            <CheckCircle className="w-5 h-5 text-green-600" />
+        <NeumorphicCard className="p-3 bg-green-50 border-2 border-green-400">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
             <p className="text-sm text-green-800 font-medium">{success}</p>
           </div>
         </NeumorphicCard>
       )}
 
       {/* Profile Header */}
-      <NeumorphicCard className="p-8">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <div className="w-20 h-20 rounded-full neumorphic-flat flex items-center justify-center">
-              <span className="text-3xl font-bold text-[#8b7355]">
+      <NeumorphicCard className="p-4 lg:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg flex-shrink-0">
+              <span className="text-2xl font-bold text-white">
                 {(user?.nome_cognome || user?.full_name || 'U').charAt(0).toUpperCase()}
               </span>
             </div>
-            <div>
-              <h2 className="text-2xl font-bold text-[#6b6b6b]">
+            <div className="min-w-0">
+              <h2 className="text-lg lg:text-xl font-bold text-slate-800 truncate">
                 {user?.nome_cognome || user?.full_name || 'Nome non impostato'}
               </h2>
-              <p className="text-[#9b9b9b]">
+              <p className="text-sm text-slate-500 truncate">
                 {user?.ruoli_dipendente && user.ruoli_dipendente.length > 0
                   ? user.ruoli_dipendente.join(', ')
-                  : user?.function_name || (user?.user_type === 'admin' ? 'Amministratore' : user?.user_type === 'manager' ? 'Manager' : 'Dipendente')}
+                  : 'Dipendente'}
               </p>
-              {user?.employee_group && (
-                <p className="text-sm text-[#9b9b9b]">Contratto: {user.employee_group}</p>
-              )}
             </div>
           </div>
 
           {!editing && (
             <button
               onClick={() => setEditing(true)}
-              className="neumorphic-flat px-4 py-2 rounded-xl text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-2"
+              className="nav-button px-4 py-2 rounded-xl text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-2 whitespace-nowrap"
             >
               <Edit className="w-4 h-4" />
-              Modifica
+              <span className="text-sm font-medium">Modifica</span>
             </button>
           )}
         </div>
 
         {/* Email (Read-only) */}
-        <div className="neumorphic-pressed p-4 rounded-xl bg-gray-50">
-          <label className="text-sm font-medium text-[#9b9b9b] mb-2 block flex items-center gap-2">
-            <Mail className="w-4 h-4" />
-            Email (non modificabile)
+        <div className="neumorphic-pressed p-3 rounded-xl bg-slate-50">
+          <label className="text-xs font-medium text-slate-500 mb-1 block flex items-center gap-2">
+            <Mail className="w-3 h-3" />
+            Email
           </label>
-          <p className="text-[#6b6b6b] font-medium">{user?.email}</p>
+          <p className="text-sm text-slate-700 font-medium break-all">{user?.email}</p>
         </div>
       </NeumorphicCard>
 
       {/* Dati Anagrafici */}
-      <NeumorphicCard className="p-6">
-        <h3 className="text-lg font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
-          <User className="w-5 h-5 text-[#8b7355]" />
+      <NeumorphicCard className="p-4 lg:p-6">
+        <h3 className="text-base lg:text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <User className="w-5 h-5 text-blue-600" />
           Dati Anagrafici
         </h3>
 
         {editing ? (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                  Nome Cognome <span className="text-red-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.nome_cognome}
-                  onChange={(e) => setFormData({ ...formData, nome_cognome: e.target.value })}
-                  placeholder="Mario Rossi"
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                />
-                <p className="text-xs text-[#9b9b9b] mt-1">
-                  ⚠️ Deve corrispondere ESATTAMENTE a come appare nei turni per il matching automatico
-                </p>
-              </div>
+          <div className="space-y-3">
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">
+                Nome Cognome <span className="text-red-600">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.nome_cognome}
+                onChange={(e) => setFormData({ ...formData, nome_cognome: e.target.value })}
+                placeholder="Mario Rossi"
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+              />
+            </div>
 
-              {user?.user_type === 'dipendente' && (
-                <div className="md:col-span-2">
-                  <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                    Ruoli (non modificabili)
-                  </label>
-                  <div className="w-full neumorphic-pressed px-4 py-3 rounded-xl bg-gray-50">
-                    {user.ruoli_dipendente && user.ruoli_dipendente.length > 0
-                      ? user.ruoli_dipendente.join(', ')
-                      : 'Nessun ruolo assegnato'}
-                  </div>
-                  <p className="text-xs text-[#9b9b9b] mt-1">
-                    ℹ️ I ruoli possono essere modificati solo dall'amministratore
-                  </p>
-                </div>
-              )}
-
+            {user?.user_type === 'dipendente' && (
               <div>
-                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
+                <label className="text-sm font-medium text-slate-700 mb-2 block">
+                  Ruoli
+                </label>
+                <div className="w-full neumorphic-pressed px-4 py-3 rounded-xl bg-slate-50">
+                  <div className="flex flex-wrap gap-2">
+                    {user.ruoli_dipendente && user.ruoli_dipendente.length > 0 ? (
+                      user.ruoli_dipendente.map((role, idx) => (
+                        <span key={idx} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium">
+                          {role}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-sm text-slate-500">Nessun ruolo</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
                   Data di Nascita
                 </label>
@@ -294,12 +296,12 @@ export default function ProfiloDipendente() {
                   type="date"
                   value={formData.data_nascita}
                   onChange={(e) => setFormData({ ...formData, data_nascita: e.target.value })}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
                 />
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
+                <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
                   <MapPin className="w-4 h-4" />
                   Città di Nascita
                 </label>
@@ -308,12 +310,12 @@ export default function ProfiloDipendente() {
                   value={formData.citta_nascita}
                   onChange={(e) => setFormData({ ...formData, citta_nascita: e.target.value })}
                   placeholder="Milano"
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
                 />
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                <label className="text-sm font-medium text-slate-700 mb-2 block">
                   Codice Fiscale
                 </label>
                 <input
@@ -322,72 +324,72 @@ export default function ProfiloDipendente() {
                   onChange={(e) => setFormData({ ...formData, codice_fiscale: e.target.value.toUpperCase() })}
                   placeholder="RSSMRA80A01H501Z"
                   maxLength={16}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none uppercase"
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none uppercase text-sm"
                 />
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
+                <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
                   <Phone className="w-4 h-4" />
-                  Numero di Cellulare
+                  Cellulare
                 </label>
                 <input
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="+39 333 1234567"
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
                 />
               </div>
+            </div>
 
-              <div className="md:col-span-2">
-                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  Indirizzo di Residenza
-                </label>
-                <input
-                  type="text"
-                  value={formData.indirizzo_residenza}
-                  onChange={(e) => setFormData({ ...formData, indirizzo_residenza: e.target.value })}
-                  placeholder="Via Roma 123, 20100 Milano (MI)"
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                />
-              </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
+                <MapPin className="w-4 h-4" />
+                Indirizzo
+              </label>
+              <input
+                type="text"
+                value={formData.indirizzo_residenza}
+                onChange={(e) => setFormData({ ...formData, indirizzo_residenza: e.target.value })}
+                placeholder="Via Roma 123, 20100 Milano"
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+              />
+            </div>
 
-              <div className="md:col-span-2">
-                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
-                  <CreditCard className="w-4 h-4" />
-                  IBAN
-                </label>
-                <input
-                  type="text"
-                  value={formData.iban}
-                  onChange={(e) => setFormData({ ...formData, iban: e.target.value.toUpperCase() })}
-                  placeholder="IT60 X054 2811 1010 0000 0123 456"
-                  maxLength={34}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none uppercase"
-                />
-              </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
+                <CreditCard className="w-4 h-4" />
+                IBAN
+              </label>
+              <input
+                type="text"
+                value={formData.iban}
+                onChange={(e) => setFormData({ ...formData, iban: e.target.value.toUpperCase() })}
+                placeholder="IT60 X054 2811 1010 0000 0123 456"
+                maxLength={34}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none uppercase text-sm"
+              />
+            </div>
 
-              <div>
-                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
-                  <ShoppingBag className="w-4 h-4" />
-                  Taglia Maglietta
-                </label>
-                <select
-                  value={formData.taglia_maglietta}
-                  onChange={(e) => setFormData({ ...formData, taglia_maglietta: e.target.value })}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                >
-                  <option value="">-- Seleziona --</option>
-                  <option value="XS">XS</option>
-                  <option value="S">S</option>
-                  <option value="M">M</option>
-                  <option value="L">L</option>
-                  <option value="XL">XL</option>
-                  <option value="XXL">XXL</option>
-                </select>
-              </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
+                <ShoppingBag className="w-4 h-4" />
+                Taglia Maglietta
+              </label>
+              <select
+                value={formData.taglia_maglietta}
+                onChange={(e) => setFormData({ ...formData, taglia_maglietta: e.target.value })}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+              >
+                <option value="">-- Seleziona --</option>
+                <option value="XS">XS</option>
+                <option value="S">S</option>
+                <option value="M">M</option>
+                <option value="L">L</option>
+                <option value="XL">XL</option>
+                <option value="XXL">XXL</option>
+              </select>
             </div>
 
             {error && (
@@ -399,131 +401,108 @@ export default function ProfiloDipendente() {
               </div>
             )}
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <button
                 onClick={handleCancel}
-                className="flex-1 neumorphic-flat px-6 py-3 rounded-xl text-[#9b9b9b] hover:text-[#6b6b6b] transition-colors font-medium"
+                className="flex-1 nav-button px-6 py-3 rounded-xl text-slate-700 hover:text-slate-900 transition-colors font-medium text-sm"
               >
                 Annulla
               </button>
               <button
                 onClick={handleSave}
                 disabled={updateProfileMutation.isPending}
-                className="flex-1 neumorphic-flat px-6 py-3 rounded-xl text-[#8b7355] hover:shadow-lg transition-all font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-3 rounded-xl text-white font-medium flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg text-sm"
               >
                 {updateProfileMutation.isPending ? (
                   <>
-                    <div className="w-5 h-5 border-2 border-[#8b7355] border-t-transparent rounded-full animate-spin" />
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     Salvataggio...
                   </>
                 ) : (
                   <>
                     <Save className="w-5 h-5" />
-                    Salva Modifiche
+                    Salva
                   </>
                 )}
               </button>
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="neumorphic-pressed p-4 rounded-xl md:col-span-2">
-              <p className="text-sm text-[#9b9b9b] mb-1">Nome Cognome</p>
-              <p className="text-[#6b6b6b] font-medium">{user?.nome_cognome || user?.full_name || '-'}</p>
-            </div>
-
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {user?.user_type === 'dipendente' && (
-              <div className="neumorphic-pressed p-4 rounded-xl md:col-span-2">
-                <p className="text-sm text-[#9b9b9b] mb-1">Ruoli</p>
+              <div className="neumorphic-pressed p-3 rounded-xl sm:col-span-2">
+                <p className="text-xs text-slate-500 mb-2">Ruoli</p>
                 <div className="flex flex-wrap gap-2">
                   {user?.ruoli_dipendente && user.ruoli_dipendente.length > 0 ? (
                     user.ruoli_dipendente.map((role, idx) => (
-                      <span key={idx} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
+                      <span key={idx} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium">
                         {role}
                       </span>
                     ))
                   ) : (
-                    <span className="text-[#6b6b6b]">Nessun ruolo assegnato</span>
+                    <span className="text-sm text-slate-600">Nessun ruolo</span>
                   )}
                 </div>
               </div>
             )}
 
-            <div className="neumorphic-pressed p-4 rounded-xl">
-              <p className="text-sm text-[#9b9b9b] mb-1 flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                Data di Nascita
-              </p>
-              <p className="text-[#6b6b6b] font-medium">
+            <div className="neumorphic-pressed p-3 rounded-xl">
+              <p className="text-xs text-slate-500 mb-1">Data di Nascita</p>
+              <p className="text-sm text-slate-700 font-medium">
                 {user?.data_nascita ? new Date(user.data_nascita).toLocaleDateString('it-IT') : '-'}
               </p>
             </div>
 
-            <div className="neumorphic-pressed p-4 rounded-xl">
-              <p className="text-sm text-[#9b9b9b] mb-1 flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                Città di Nascita
-              </p>
-              <p className="text-[#6b6b6b] font-medium">{user?.citta_nascita || '-'}</p>
+            <div className="neumorphic-pressed p-3 rounded-xl">
+              <p className="text-xs text-slate-500 mb-1">Città di Nascita</p>
+              <p className="text-sm text-slate-700 font-medium">{user?.citta_nascita || '-'}</p>
             </div>
 
-            <div className="neumorphic-pressed p-4 rounded-xl">
-              <p className="text-sm text-[#9b9b9b] mb-1">Codice Fiscale</p>
-              <p className="text-[#6b6b6b] font-medium uppercase">{user?.codice_fiscale || '-'}</p>
+            <div className="neumorphic-pressed p-3 rounded-xl">
+              <p className="text-xs text-slate-500 mb-1">Codice Fiscale</p>
+              <p className="text-sm text-slate-700 font-medium uppercase break-all">{user?.codice_fiscale || '-'}</p>
             </div>
 
-            <div className="neumorphic-pressed p-4 rounded-xl">
-              <p className="text-sm text-[#9b9b9b] mb-1 flex items-center gap-2">
-                <Phone className="w-4 h-4" />
-                Cellulare
-              </p>
-              <p className="text-[#6b6b6b] font-medium">{user?.phone || '-'}</p>
+            <div className="neumorphic-pressed p-3 rounded-xl">
+              <p className="text-xs text-slate-500 mb-1">Cellulare</p>
+              <p className="text-sm text-slate-700 font-medium">{user?.phone || '-'}</p>
             </div>
 
-            <div className="neumorphic-pressed p-4 rounded-xl md:col-span-2">
-              <p className="text-sm text-[#9b9b9b] mb-1 flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                Indirizzo di Residenza
-              </p>
-              <p className="text-[#6b6b6b] font-medium">{user?.indirizzo_residenza || '-'}</p>
+            <div className="neumorphic-pressed p-3 rounded-xl sm:col-span-2">
+              <p className="text-xs text-slate-500 mb-1">Indirizzo</p>
+              <p className="text-sm text-slate-700 font-medium break-words">{user?.indirizzo_residenza || '-'}</p>
             </div>
 
-            <div className="neumorphic-pressed p-4 rounded-xl md:col-span-2">
-              <p className="text-sm text-[#9b9b9b] mb-1 flex items-center gap-2">
-                <CreditCard className="w-4 h-4" />
-                IBAN
-              </p>
-              <p className="text-[#6b6b6b] font-medium uppercase">{user?.iban || '-'}</p>
+            <div className="neumorphic-pressed p-3 rounded-xl sm:col-span-2">
+              <p className="text-xs text-slate-500 mb-1">IBAN</p>
+              <p className="text-sm text-slate-700 font-medium uppercase break-all">{user?.iban || '-'}</p>
             </div>
 
-            <div className="neumorphic-pressed p-4 rounded-xl">
-              <p className="text-sm text-[#9b9b9b] mb-1 flex items-center gap-2">
-                <ShoppingBag className="w-4 h-4" />
-                Taglia Maglietta
-              </p>
-              <p className="text-[#6b6b6b] font-medium">{user?.taglia_maglietta || '-'}</p>
+            <div className="neumorphic-pressed p-3 rounded-xl">
+              <p className="text-xs text-slate-500 mb-1">Taglia Maglietta</p>
+              <p className="text-sm text-slate-700 font-medium">{user?.taglia_maglietta || '-'}</p>
             </div>
           </div>
         )}
       </NeumorphicCard>
 
       {/* Documenti Section */}
-      <NeumorphicCard className="p-6">
-        <h3 className="text-lg font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
-          <FileText className="w-5 h-5 text-[#8b7355]" />
+      <NeumorphicCard className="p-4 lg:p-6">
+        <h3 className="text-base lg:text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <FileText className="w-5 h-5 text-blue-600" />
           Documenti
         </h3>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Documento d'Identità */}
-          <div className="neumorphic-pressed p-5 rounded-xl">
+          <div className="neumorphic-pressed p-4 rounded-xl">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-[#6b6b6b]">Documento d'Identità</h4>
+              <h4 className="text-sm font-medium text-slate-700">Documento d'Identità</h4>
               {user?.documento_identita_url && (
                 <button
                   onClick={() => handleDocumentDelete('documento_identita')}
-                  className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
-                  title="Elimina documento"
+                  className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
+                  title="Elimina"
                 >
                   <X className="w-4 h-4 text-red-600" />
                 </button>
@@ -532,16 +511,16 @@ export default function ProfiloDipendente() {
             
             {user?.documento_identita_url ? (
               <div className="flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-                <div className="flex-1">
-                  <p className="text-sm text-green-700 font-medium">Documento caricato</p>
+                <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-green-700 font-medium">Caricato</p>
                   <a 
                     href={user.documento_identita_url} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-xs text-blue-600 hover:underline"
+                    className="text-xs text-blue-600 hover:underline truncate block"
                   >
-                    Visualizza documento
+                    Visualizza
                   </a>
                 </div>
               </div>
@@ -556,10 +535,10 @@ export default function ProfiloDipendente() {
                 />
                 <label
                   htmlFor="doc-identita"
-                  className="neumorphic-flat px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 hover:shadow-lg transition-all"
+                  className="nav-button px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 hover:shadow-lg transition-all w-full"
                 >
-                  <Upload className="w-4 h-4 text-[#8b7355]" />
-                  <span className="text-sm text-[#6b6b6b]">
+                  <Upload className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                  <span className="text-sm text-slate-700 truncate">
                     {documentFiles.documento_identita ? documentFiles.documento_identita.name : 'Seleziona file'}
                   </span>
                 </label>
@@ -567,9 +546,9 @@ export default function ProfiloDipendente() {
                   <button
                     onClick={() => handleDocumentUpload('documento_identita')}
                     disabled={uploadingDocs}
-                    className="mt-2 w-full neumorphic-flat px-4 py-2 rounded-lg text-[#8b7355] hover:shadow-lg transition-all disabled:opacity-50"
+                    className="mt-2 w-full bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-2 rounded-lg text-white text-sm font-medium disabled:opacity-50"
                   >
-                    {uploadingDocs ? 'Caricamento...' : 'Carica Documento'}
+                    {uploadingDocs ? 'Caricamento...' : 'Carica'}
                   </button>
                 )}
               </div>
@@ -577,14 +556,14 @@ export default function ProfiloDipendente() {
           </div>
 
           {/* Codice Fiscale Documento */}
-          <div className="neumorphic-pressed p-5 rounded-xl">
+          <div className="neumorphic-pressed p-4 rounded-xl">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-[#6b6b6b]">Codice Fiscale (Documento)</h4>
+              <h4 className="text-sm font-medium text-slate-700">Codice Fiscale</h4>
               {user?.codice_fiscale_documento_url && (
                 <button
                   onClick={() => handleDocumentDelete('codice_fiscale_documento')}
-                  className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
-                  title="Elimina documento"
+                  className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
+                  title="Elimina"
                 >
                   <X className="w-4 h-4 text-red-600" />
                 </button>
@@ -593,16 +572,16 @@ export default function ProfiloDipendente() {
             
             {user?.codice_fiscale_documento_url ? (
               <div className="flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-                <div className="flex-1">
-                  <p className="text-sm text-green-700 font-medium">Documento caricato</p>
+                <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-green-700 font-medium">Caricato</p>
                   <a 
                     href={user.codice_fiscale_documento_url} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-xs text-blue-600 hover:underline"
+                    className="text-xs text-blue-600 hover:underline truncate block"
                   >
-                    Visualizza documento
+                    Visualizza
                   </a>
                 </div>
               </div>
@@ -617,10 +596,10 @@ export default function ProfiloDipendente() {
                 />
                 <label
                   htmlFor="doc-cf"
-                  className="neumorphic-flat px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 hover:shadow-lg transition-all"
+                  className="nav-button px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 hover:shadow-lg transition-all w-full"
                 >
-                  <Upload className="w-4 h-4 text-[#8b7355]" />
-                  <span className="text-sm text-[#6b6b6b]">
+                  <Upload className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                  <span className="text-sm text-slate-700 truncate">
                     {documentFiles.codice_fiscale_documento ? documentFiles.codice_fiscale_documento.name : 'Seleziona file'}
                   </span>
                 </label>
@@ -628,9 +607,9 @@ export default function ProfiloDipendente() {
                   <button
                     onClick={() => handleDocumentUpload('codice_fiscale_documento')}
                     disabled={uploadingDocs}
-                    className="mt-2 w-full neumorphic-flat px-4 py-2 rounded-lg text-[#8b7355] hover:shadow-lg transition-all disabled:opacity-50"
+                    className="mt-2 w-full bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-2 rounded-lg text-white text-sm font-medium disabled:opacity-50"
                   >
-                    {uploadingDocs ? 'Caricamento...' : 'Carica Documento'}
+                    {uploadingDocs ? 'Caricamento...' : 'Carica'}
                   </button>
                 )}
               </div>
@@ -638,14 +617,14 @@ export default function ProfiloDipendente() {
           </div>
 
           {/* Permesso di Soggiorno */}
-          <div className="neumorphic-pressed p-5 rounded-xl">
+          <div className="neumorphic-pressed p-4 rounded-xl">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-[#6b6b6b]">Permesso di Soggiorno (se applicabile)</h4>
+              <h4 className="text-sm font-medium text-slate-700">Permesso di Soggiorno</h4>
               {user?.permesso_soggiorno_url && (
                 <button
                   onClick={() => handleDocumentDelete('permesso_soggiorno')}
-                  className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
-                  title="Elimina documento"
+                  className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
+                  title="Elimina"
                 >
                   <X className="w-4 h-4 text-red-600" />
                 </button>
@@ -654,16 +633,16 @@ export default function ProfiloDipendente() {
             
             {user?.permesso_soggiorno_url ? (
               <div className="flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-                <div className="flex-1">
-                  <p className="text-sm text-green-700 font-medium">Documento caricato</p>
+                <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-green-700 font-medium">Caricato</p>
                   <a 
                     href={user.permesso_soggiorno_url} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-xs text-blue-600 hover:underline"
+                    className="text-xs text-blue-600 hover:underline truncate block"
                   >
-                    Visualizza documento
+                    Visualizza
                   </a>
                 </div>
               </div>
@@ -678,10 +657,10 @@ export default function ProfiloDipendente() {
                 />
                 <label
                   htmlFor="doc-permesso"
-                  className="neumorphic-flat px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 hover:shadow-lg transition-all"
+                  className="nav-button px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 hover:shadow-lg transition-all w-full"
                 >
-                  <Upload className="w-4 h-4 text-[#8b7355]" />
-                  <span className="text-sm text-[#6b6b6b]">
+                  <Upload className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                  <span className="text-sm text-slate-700 truncate">
                     {documentFiles.permesso_soggiorno ? documentFiles.permesso_soggiorno.name : 'Seleziona file'}
                   </span>
                 </label>
@@ -689,9 +668,9 @@ export default function ProfiloDipendente() {
                   <button
                     onClick={() => handleDocumentUpload('permesso_soggiorno')}
                     disabled={uploadingDocs}
-                    className="mt-2 w-full neumorphic-flat px-4 py-2 rounded-lg text-[#8b7355] hover:shadow-lg transition-all disabled:opacity-50"
+                    className="mt-2 w-full bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-2 rounded-lg text-white text-sm font-medium disabled:opacity-50"
                   >
-                    {uploadingDocs ? 'Caricamento...' : 'Carica Documento'}
+                    {uploadingDocs ? 'Caricamento...' : 'Carica'}
                   </button>
                 )}
               </div>
@@ -701,18 +680,15 @@ export default function ProfiloDipendente() {
       </NeumorphicCard>
 
       {/* Info Box */}
-      <NeumorphicCard className="p-6 bg-blue-50">
+      <NeumorphicCard className="p-4 bg-blue-50">
         <div className="flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-          <div className="text-sm text-blue-800">
-            <p className="font-medium mb-2">📝 Perché questi dati sono importanti?</p>
-            <ul className="text-xs space-y-1 list-disc list-inside">
-              <li><strong>Il tuo Nome Cognome</strong> viene usato per associare turni e recensioni automaticamente</li>
-              <li>Deve corrispondere ESATTAMENTE a come appare nel sistema turni (es. "Mario Rossi")</li>
-              <li>I dati anagrafici sono necessari per la gestione amministrativa</li>
-              <li>I <strong>documenti</strong> sono richiesti per conformità legale e contrattuale</li>
-              <li>Tutti i documenti sono archiviati in modo sicuro e protetto</li>
-              <li>Assicurati che tutti i dati siano corretti e aggiornati</li>
+          <div className="text-xs lg:text-sm text-blue-800">
+            <p className="font-medium mb-2">📝 Informazioni Importanti</p>
+            <ul className="space-y-1 list-disc list-inside text-xs">
+              <li>Il tuo Nome Cognome viene usato per associare turni e recensioni</li>
+              <li>I documenti sono richiesti per conformità legale</li>
+              <li>Tutti i dati sono archiviati in modo sicuro</li>
             </ul>
           </div>
         </div>
