@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -171,7 +170,7 @@ const navigationStructure = [
     ]
   },
   {
-    title: "HR", // Changed from "People" to "HR"
+    title: "HR",
     icon: Users,
     type: "section",
     requiredUserType: ["admin", "manager"],
@@ -269,7 +268,7 @@ const navigationStructure = [
     title: "View Dipendente",
     icon: Users,
     type: "section",
-    requiredUserType: ["dipendente"],
+    requiredUserType: ["dipendente", "user"],
     items: [
       {
         title: "Valutazione",
@@ -415,16 +414,17 @@ export default function Layout({ children, currentPageName }) {
     "Reviews": true,
     "Financials": true,
     "Inventory": true,
-    "HR": true, // Changed from "People" to "HR"
+    "HR": true,
     "Pulizie": true,
     "Delivery": true,
     "View Dipendente": true,
     "Zapier Guide": true,
     "Sistema": true,
-    "Il Mio Profilo": true
+    "Il Mio Profilo": true,
+    "Area Dipendente": true
   });
   const [dipendenteNav, setDipendenteNav] = useState(null);
-  const [pageAccessConfig, setPageAccessConfig] = useState(null); // New state
+  const [pageAccessConfig, setPageAccessConfig] = useState(null);
 
   // Fetch page access configuration
   useEffect(() => {
@@ -449,75 +449,50 @@ export default function Layout({ children, currentPageName }) {
         const needsProfile = !user.profile_manually_completed;
         setShowProfileModal(needsProfile);
 
-        if (user.user_type === 'dipendente') {
+        // Normalize user_type: treat "user" as "dipendente" for access control
+        const normalizedUserType = user.user_type === 'user' ? 'dipendente' : user.user_type;
+
+        // Only apply progressive access logic for dipendente/user types (not admin/manager)
+        if (normalizedUserType === 'dipendente') {
           const userRoles = user.ruoli_dipendente || [];
 
-          let allowedPageNames = [];
-          const defaultProfilePage = "ProfiloDipendente";
-
-          // If pageAccessConfig is not loaded yet, use hardcoded defaults
-          if (!pageAccessConfig) {
-            // 1. If NO roles → ONLY Profilo
-            if (userRoles.length === 0) {
-              allowedPageNames = [defaultProfilePage];
-            } else {
-              // 2. Check contract status with hardcoded defaults
-              const hasReceivedContract = await checkIfContractReceived(user.id);
-              const hasSignedContract = await checkIfContractSigned(user.id);
-              const contractStarted = user.data_inizio_contratto && new Date(user.data_inizio_contratto) <= new Date();
-
-              if (contractStarted && hasSignedContract) {
-                allowedPageNames = [
-                  'ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione',
-                  'ControlloPuliziaCassiere', 'ControlloPuliziaPizzaiolo', 'ControlloPuliziaStoreManager',
-                  'FormInventario', 'ConteggioCassa', 'TeglieButtate', 'Preparazioni'
-                ];
-              } else if (hasSignedContract) {
-                allowedPageNames = ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'];
-              } else if (hasReceivedContract) {
-                allowedPageNames = ['ProfiloDipendente', 'ContrattiDipendente'];
-              } else {
-                allowedPageNames = [defaultProfilePage];
-              }
+          // 1. If NO roles → use config or default to ONLY Profilo
+          if (userRoles.length === 0) {
+            const allowedPages = pageAccessConfig?.after_registration || ['ProfiloDipendente'];
+            const allowedFullPaths = allowedPages.map(p => createPageUrl(p));
+            
+            if (!allowedFullPaths.includes(location.pathname)) {
+              navigate(allowedFullPaths[0] || createPageUrl("ProfiloDipendente"), { replace: true });
             }
-          } else {
-            // Use pageAccessConfig
-            if (userRoles.length === 0) {
-              allowedPageNames = pageAccessConfig.after_registration || [defaultProfilePage];
-            } else {
-              const hasReceivedContract = await checkIfContractReceived(user.id);
-              const hasSignedContract = await checkIfContractSigned(user.id);
-              const contractStarted = user.data_inizio_contratto && new Date(user.data_inizio_contratto) <= new Date();
-
-              if (contractStarted && hasSignedContract) {
-                allowedPageNames = pageAccessConfig.after_contract_start || [
-                  'ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione',
-                  'ControlloPuliziaCassiere', 'ControlloPuliziaPizzaiolo', 'ControlloPuliziaStoreManager',
-                  'FormInventario', 'ConteggioCassa', 'TeglieButtate', 'Preparazioni'
-                ];
-              } else if (hasSignedContract) {
-                allowedPageNames = pageAccessConfig.after_contract_signed || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'];
-              } else if (hasReceivedContract) {
-                allowedPageNames = pageAccessConfig.after_contract_received || ['ProfiloDipendente', 'ContrattiDipendente'];
-              } else {
-                allowedPageNames = pageAccessConfig.after_registration || [defaultProfilePage];
-              }
-            }
+            return;
           }
 
-          // Filter role-specific pages if access config is used
-          const filteredAllowedPageNames = allowedPageNames.filter(pageName => {
-            if (pageName === 'ControlloPuliziaCassiere') return userRoles.includes('Cassiere');
-            if (pageName === 'ControlloPuliziaPizzaiolo') return userRoles.includes('Pizzaiolo');
-            if (pageName === 'ControlloPuliziaStoreManager') return userRoles.includes('Store Manager');
-            return true;
-          });
+          // 2. Check contract status
+          const hasReceivedContract = await checkIfContractReceived(user.id);
+          const hasSignedContract = await checkIfContractSigned(user.id);
+          const contractStarted = user.data_inizio_contratto && new Date(user.data_inizio_contratto) <= new Date();
 
-          const allowedFullPaths = filteredAllowedPageNames.map(p => createPageUrl(p));
+          // Determine allowed pages based on status using config or defaults
+          let allowedPages = [];
 
-          // If current page is not in allowed pages, redirect to the first allowed page
+          if (contractStarted && hasSignedContract) {
+            allowedPages = pageAccessConfig?.after_contract_start || [
+              'ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione',
+              'ControlloPuliziaCassiere', 'ControlloPuliziaPizzaiolo', 'ControlloPuliziaStoreManager',
+              'FormInventario', 'ConteggioCassa', 'TeglieButtate', 'Preparazioni'
+            ];
+          } else if (hasSignedContract) {
+            allowedPages = pageAccessConfig?.after_contract_signed || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'];
+          } else if (hasReceivedContract) {
+            allowedPages = pageAccessConfig?.after_contract_received || ['ProfiloDipendente', 'ContrattiDipendente'];
+          } else {
+            allowedPages = pageAccessConfig?.after_registration || ['ProfiloDipendente'];
+          }
+
+          const allowedFullPaths = allowedPages.map(p => createPageUrl(p));
+
           if (!allowedFullPaths.includes(location.pathname)) {
-            navigate(allowedFullPaths[0] || createPageUrl(defaultProfilePage), { replace: true });
+            navigate(allowedFullPaths[0] || createPageUrl("ProfiloDipendente"), { replace: true });
           }
         }
       } catch (error) {
@@ -525,17 +500,20 @@ export default function Layout({ children, currentPageName }) {
       }
     };
     fetchUser();
-  }, [location.pathname, navigate, pageAccessConfig, currentUser?.id]); // Added currentUser?.id to deps for re-fetch if user changes, and pageAccessConfig
+  }, [location.pathname, navigate, pageAccessConfig]);
 
   useEffect(() => {
-    if (currentUser?.user_type === 'dipendente') {
-      getFilteredNavigationForDipendente(currentUser).then(nav => {
-        setDipendenteNav(nav);
-      });
+    if (currentUser) {
+      const normalizedUserType = currentUser.user_type === 'user' ? 'dipendente' : currentUser.user_type;
+      
+      if (normalizedUserType === 'dipendente') {
+        getFilteredNavigationForDipendente(currentUser).then(nav => {
+          setDipendenteNav(nav);
+        });
+      }
     }
-  }, [currentUser, pageAccessConfig]); // Re-run when currentUser or pageAccessConfig changes
+  }, [currentUser, pageAccessConfig]);
 
-  // Helper function to check if contract is signed
   const checkIfContractSigned = async (userId) => {
     try {
       const contratti = await base44.entities.Contratto.filter({
@@ -549,7 +527,6 @@ export default function Layout({ children, currentPageName }) {
     }
   };
 
-  // Helper function to check if user has received any contract (status is 'inviato' or 'firmato')
   const checkIfContractReceived = async (userId) => {
     try {
       const contratti = await base44.entities.Contratto.filter({
@@ -596,80 +573,65 @@ export default function Layout({ children, currentPageName }) {
     if (!requiredUserType) return true;
     if (!currentUser) return false;
 
-    const userType = currentUser.user_type || 'dipendente';
+    // Normalize user_type for access check
+    const normalizedUserType = currentUser.user_type === 'user' ? 'dipendente' : (currentUser.user_type || 'dipendente');
     const userRoles = currentUser.ruoli_dipendente || [];
 
-    // Check user type
-    if (!requiredUserType.includes(userType)) return false;
+    if (!requiredUserType.includes(normalizedUserType)) return false;
 
-    // Check role if specified and user is a dipendente
-    if (requiredRole && userType === 'dipendente') {
+    if (requiredRole && normalizedUserType === 'dipendente') {
       return userRoles.includes(requiredRole);
     }
 
     return true;
   };
 
-  // Filter navigation based on dipendente's progressive access
   const getFilteredNavigationForDipendente = async (user) => {
-    if (user.user_type !== 'dipendente') return null;
+    // Normalize user_type
+    const normalizedUserType = user.user_type === 'user' ? 'dipendente' : user.user_type;
+    
+    if (normalizedUserType !== 'dipendente') return null;
 
     const userRoles = user.ruoli_dipendente || [];
-    const defaultProfilePage = "ProfiloDipendente";
-    let allowedPageNames = [];
 
-    // If pageAccessConfig is not loaded yet, use hardcoded defaults
-    if (!pageAccessConfig) {
-      // 1. No roles → ONLY Profilo
-      if (userRoles.length === 0) {
-        allowedPageNames = [defaultProfilePage];
-      } else {
-        // 2. Check contract status with hardcoded defaults
-        const hasReceivedContract = await checkIfContractReceived(user.id);
-        const hasSignedContract = await checkIfContractSigned(user.id);
-        const contractStarted = user.data_inizio_contratto && new Date(user.data_inizio_contratto) <= new Date();
-
-        if (contractStarted && hasSignedContract) {
-          allowedPageNames = [
-            'ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione',
-            'ControlloPuliziaCassiere', 'ControlloPuliziaPizzaiolo', 'ControlloPuliziaStoreManager',
-            'FormInventario', 'ConteggioCassa', 'TeglieButtate', 'Preparazioni'
-          ];
-        } else if (hasSignedContract) {
-          allowedPageNames = ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'];
-        } else if (hasReceivedContract) {
-          allowedPageNames = ['ProfiloDipendente', 'ContrattiDipendente'];
-        } else {
-          allowedPageNames = [defaultProfilePage];
-        }
-      }
-    } else {
-      // Use pageAccessConfig
-      if (userRoles.length === 0) {
-        allowedPageNames = pageAccessConfig.after_registration || [defaultProfilePage];
-      } else {
-        const hasReceivedContract = await checkIfContractReceived(user.id);
-        const hasSignedContract = await checkIfContractSigned(user.id);
-        const contractStarted = user.data_inizio_contratto && new Date(user.data_inizio_contratto) <= new Date();
-
-        if (contractStarted && hasSignedContract) {
-          allowedPageNames = pageAccessConfig.after_contract_start || [
-            'ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione',
-            'ControlloPuliziaCassiere', 'ControlloPuliziaPizzaiolo', 'ControlloPuliziaStoreManager',
-            'FormInventario', 'ConteggioCassa', 'TeglieButtate', 'Preparazioni'
-          ];
-        } else if (hasSignedContract) {
-          allowedPageNames = pageAccessConfig.after_contract_signed || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'];
-        } else if (hasReceivedContract) {
-          allowedPageNames = pageAccessConfig.after_contract_received || ['ProfiloDipendente', 'ContrattiDipendente'];
-        } else {
-          allowedPageNames = pageAccessConfig.after_registration || [defaultProfilePage];
-        }
-      }
+    // 1. No roles → use config
+    if (userRoles.length === 0) {
+      const allowedPages = pageAccessConfig?.after_registration || ['ProfiloDipendente'];
+      return [{
+        title: "Area Dipendente",
+        icon: User,
+        type: "section",
+        items: allowedPages.map(pageName => ({
+          title: getPageTitle(pageName),
+          url: createPageUrl(pageName),
+          icon: getPageIcon(pageName)
+        }))
+      }];
     }
 
-    // Filter role-specific pages from the allowed list
-    const menuItems = allowedPageNames
+    // 2. Check contract status
+    const hasReceivedContract = await checkIfContractReceived(user.id);
+    const hasSignedContract = await checkIfContractSigned(user.id);
+    const contractStarted = user.data_inizio_contratto && new Date(user.data_inizio_contratto) <= new Date();
+
+    let allowedPages = [];
+
+    if (contractStarted && hasSignedContract) {
+      allowedPages = pageAccessConfig?.after_contract_start || [
+        'ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione',
+        'ControlloPuliziaCassiere', 'ControlloPuliziaPizzaiolo', 'ControlloPuliziaStoreManager',
+        'FormInventario', 'ConteggioCassa', 'TeglieButtate', 'Preparazioni'
+      ];
+    } else if (hasSignedContract) {
+      allowedPages = pageAccessConfig?.after_contract_signed || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'];
+    } else if (hasReceivedContract) {
+      allowedPages = pageAccessConfig?.after_contract_received || ['ProfiloDipendente', 'ContrattiDipendente'];
+    } else {
+      allowedPages = pageAccessConfig?.after_registration || ['ProfiloDipendente'];
+    }
+
+    // Filter role-specific pages
+    const menuItems = allowedPages
       .filter(pageName => {
         if (pageName === 'ControlloPuliziaCassiere') return userRoles.includes('Cassiere');
         if (pageName === 'ControlloPuliziaPizzaiolo') return userRoles.includes('Pizzaiolo');
@@ -683,7 +645,7 @@ export default function Layout({ children, currentPageName }) {
       }));
 
     return [{
-      title: "Area Dipendente", // This title could also come from config if needed
+      title: "Area Dipendente",
       icon: Users,
       type: "section",
       items: menuItems
@@ -721,7 +683,7 @@ export default function Layout({ children, currentPageName }) {
       'TeglieButtate': AlertTriangle,
       'Preparazioni': Package
     };
-    return icons[pageName] || User; // Default to User icon if not found
+    return icons[pageName] || User;
   };
 
   const filteredNavigation = navigationStructure
@@ -732,8 +694,10 @@ export default function Layout({ children, currentPageName }) {
     }))
     .filter(section => section.items.length > 0);
 
-  // Use progressive navigation for dipendenti
-  const finalNavigation = currentUser?.user_type === 'dipendente'
+  // Normalize user_type for final navigation
+  const normalizedUserType = currentUser?.user_type === 'user' ? 'dipendente' : currentUser?.user_type;
+  
+  const finalNavigation = normalizedUserType === 'dipendente'
     ? (dipendenteNav || [])
     : filteredNavigation;
 
@@ -744,7 +708,7 @@ export default function Layout({ children, currentPageName }) {
 
   const getUserTypeName = () => {
     if (!currentUser) return '';
-    const userType = currentUser.user_type || 'dipendente';
+    const userType = currentUser.user_type || 'user';
     return userType === 'admin' ? 'Amministratore' :
            userType === 'manager' ? 'Manager' :
            'Dipendente';
