@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -25,16 +24,15 @@ import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 
 export default function UsersManagement() {
   const [editingUser, setEditingUser] = useState(null);
-  const [selectedTemplate, setSelectedTemplate] = useState('');
   const [formData, setFormData] = useState({
     nome_cognome: '',
     user_type: 'dipendente',
     ruoli_dipendente: [],
     assigned_stores: [],
     employee_group: '',
+    function_name: '',
     phone: '',
     data_nascita: '',
-    citta_nascita: '',
     codice_fiscale: '',
     indirizzo_residenza: '',
     iban: '',
@@ -58,26 +56,20 @@ export default function UsersManagement() {
     queryFn: () => base44.entities.Store.list(),
   });
 
-  const { data: templates = [] } = useQuery({
-    queryKey: ['contratto-templates'],
-    queryFn: () => base44.entities.ContrattoTemplate.list(),
-  });
-
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.User.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       setEditingUser(null);
-      setSelectedTemplate('');
       setFormData({
         nome_cognome: '',
         user_type: 'dipendente',
         ruoli_dipendente: [],
         assigned_stores: [],
         employee_group: '',
+        function_name: '',
         phone: '',
         data_nascita: '',
-        citta_nascita: '',
         codice_fiscale: '',
         indirizzo_residenza: '',
         iban: '',
@@ -105,9 +97,9 @@ export default function UsersManagement() {
       ruoli_dipendente: user.ruoli_dipendente || [],
       assigned_stores: user.assigned_stores || [],
       employee_group: user.employee_group || '',
+      function_name: user.function_name || '',
       phone: user.phone || '',
       data_nascita: user.data_nascita || '',
-      citta_nascita: user.citta_nascita || '',
       codice_fiscale: user.codice_fiscale || '',
       indirizzo_residenza: user.indirizzo_residenza || '',
       iban: user.iban || '',
@@ -117,9 +109,6 @@ export default function UsersManagement() {
       durata_contratto_mesi: user.durata_contratto_mesi || 0,
       status: user.status || 'active'
     });
-    // If a contract template was associated with the user, set it here.
-    // For now, it's not part of the user model, so we'll leave it blank initially.
-    setSelectedTemplate('');
   };
 
   const handleSave = () => {
@@ -136,16 +125,15 @@ export default function UsersManagement() {
 
   const handleCancel = () => {
     setEditingUser(null);
-    setSelectedTemplate('');
     setFormData({
       nome_cognome: '',
       user_type: 'dipendente',
       ruoli_dipendente: [],
       assigned_stores: [],
       employee_group: '',
+      function_name: '',
       phone: '',
       data_nascita: '',
-      citta_nascita: '',
       codice_fiscale: '',
       indirizzo_residenza: '',
       iban: '',
@@ -186,39 +174,6 @@ export default function UsersManagement() {
     });
   };
 
-  const replaceVariables = (templateContent, data) => {
-    let result = templateContent;
-    
-    const oggi = new Date();
-    const dataFine = data.data_inizio_contratto && data.durata_contratto_mesi
-      ? new Date(new Date(data.data_inizio_contratto).setMonth(new Date(data.data_inizio_contratto).getMonth() + data.durata_contratto_mesi))
-      : null;
-
-    const variables = {
-      '{{data_oggi}}': oggi.toLocaleDateString('it-IT'),
-      '{{nome_cognome}}': data.nome_cognome || '',
-      '{{phone}}': data.phone || '',
-      '{{data_nascita}}': data.data_nascita ? new Date(data.data_nascita).toLocaleDateString('it-IT') : '',
-      '{{citta_nascita}}': data.citta_nascita || '',
-      '{{codice_fiscale}}': data.codice_fiscale || '',
-      '{{indirizzo_residenza}}': data.indirizzo_residenza || '',
-      '{{iban}}': data.iban || '',
-      '{{employee_group}}': data.employee_group || '',
-      '{{ore_settimanali}}': data.ore_settimanali?.toString() || '',
-      '{{data_inizio_contratto}}': data.data_inizio_contratto ? new Date(data.data_inizio_contratto).toLocaleDateString('it-IT') : '',
-      '{{durata_contratto_mesi}}': data.durata_contratto_mesi?.toString() || '',
-      '{{data_fine_contratto}}': dataFine ? dataFine.toLocaleDateString('it-IT') : '',
-      '{{ruoli}}': (data.ruoli_dipendente || []).join(', '),
-      '{{locali}}': (data.assigned_stores || []).join(', ') || 'Tutti i locali'
-    };
-
-    Object.keys(variables).forEach(key => {
-      result = result.split(key).join(variables[key]);
-    });
-
-    return result;
-  };
-
   // Check if all required fields are filled
   const isFormComplete = () => {
     return formData.nome_cognome?.trim() &&
@@ -228,15 +183,15 @@ export default function UsersManagement() {
            formData.indirizzo_residenza?.trim() &&
            formData.iban?.trim() &&
            formData.employee_group &&
+           formData.function_name?.trim() &&
            formData.ore_settimanali > 0 &&
            formData.data_inizio_contratto &&
-           formData.durata_contratto_mesi > 0 &&
-           selectedTemplate;
+           formData.durata_contratto_mesi > 0;
   };
 
   const handleSendContract = async () => {
     if (!isFormComplete()) {
-      alert('Compila tutti i campi obbligatori (marcati con *) e seleziona un template prima di inviare il contratto');
+      alert('Compila tutti i campi obbligatori prima di inviare il contratto');
       return;
     }
 
@@ -247,29 +202,14 @@ export default function UsersManagement() {
     try {
       setSendingContract(true);
 
-      const template = templates.find(t => t.id === selectedTemplate);
-      if (!template) {
-        alert('Template selezionato non trovato. Si prega di sceglierne uno valido.');
-        return;
-      }
-
-      const contenutoContratto = replaceVariables(template.contenuto_template, formData);
-
-      const dataFine = new Date(formData.data_inizio_contratto);
-      dataFine.setMonth(dataFine.getMonth() + formData.durata_contratto_mesi);
-      const dataFineISO = dataFine.toISOString().split('T')[0]; // Format YYYY-MM-DD
-
+      // Create contract record
       await createContrattoMutation.mutateAsync({
         user_id: editingUser.id,
         user_email: editingUser.email,
         user_nome_cognome: formData.nome_cognome,
-        template_id: template.id,
-        template_nome: template.nome_template,
-        contenuto_contratto: contenutoContratto,
         nome_cognome: formData.nome_cognome,
         phone: formData.phone,
         data_nascita: formData.data_nascita,
-        citta_nascita: formData.citta_nascita,
         codice_fiscale: formData.codice_fiscale,
         indirizzo_residenza: formData.indirizzo_residenza,
         iban: formData.iban,
@@ -278,12 +218,10 @@ export default function UsersManagement() {
         ruoli_dipendente: formData.ruoli_dipendente,
         assigned_stores: formData.assigned_stores,
         employee_group: formData.employee_group,
-        // function_name was removed from form data but kept in mutation. Assuming it's not required or implicitly derived.
-        // If function_name is needed for contract, it should be added back to form data.
+        function_name: formData.function_name,
         ore_settimanali: formData.ore_settimanali,
         data_inizio_contratto: formData.data_inizio_contratto,
         durata_contratto_mesi: formData.durata_contratto_mesi,
-        data_fine_contratto: dataFineISO,
         status: 'inviato',
         data_invio: new Date().toISOString()
       });
@@ -291,8 +229,8 @@ export default function UsersManagement() {
       // Send email notification
       await base44.integrations.Core.SendEmail({
         to: editingUser.email,
-        subject: 'Contratto di Lavoro - Sa Pizzedda',
-        body: `Gentile ${formData.nome_cognome},\n\nÈ stato generato il tuo contratto di lavoro.\nPuoi visualizzarlo e firmarlo accedendo alla piattaforma nella sezione "I Miei Contratti".\n\nCordiali saluti,\nSa Pizzedda`
+        subject: 'Nuovo Contratto di Lavoro',
+        body: `Gentile ${formData.nome_cognome},\n\nÈ stato generato un nuovo contratto di lavoro per te.\nPuoi visualizzarlo e firmarlo accedendo alla piattaforma.\n\nCordiali saluti,\nSa Pizzedda`
       });
 
       alert('Contratto creato e inviato con successo!');
@@ -300,7 +238,7 @@ export default function UsersManagement() {
 
     } catch (error) {
       console.error('Error sending contract:', error);
-      alert('Errore durante l\'invio del contratto: ' + (error.message || 'Verifica i dati inseriti.'));
+      alert('Errore durante l\'invio del contratto');
     } finally {
       setSendingContract(false);
     }
@@ -424,20 +362,6 @@ export default function UsersManagement() {
                         value={formData.data_nascita}
                         onChange={(e) => setFormData({ ...formData, data_nascita: e.target.value })}
                         className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
-                        <MapPin className="w-4 h-4" />
-                        Città di Nascita
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.citta_nascita}
-                        onChange={(e) => setFormData({ ...formData, citta_nascita: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                        placeholder="Milano"
                       />
                     </div>
 
@@ -580,11 +504,6 @@ export default function UsersManagement() {
                       </select>
                     </div>
 
-                    {/* function_name removed from formData for contract consistency based on outline, but if it's still needed in the user profile, it should be re-added.
-                     The outline for formData initialization did not include 'function_name' but the original code did. Assuming 'employee_group' and 'ruoli_dipendente' are sufficient for contract generation.
-                     If 'function_name' is still needed for user profile, it should be added back to formData state and its input.
-                    */}
-                    {/* 
                     <div>
                       <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
                         Ruolo/Funzione <span className="text-red-600">*</span>
@@ -597,7 +516,6 @@ export default function UsersManagement() {
                         placeholder="Pizzaiolo, Cassiere, Manager..."
                       />
                     </div>
-                    */}
 
                     <div>
                       <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
@@ -655,37 +573,6 @@ export default function UsersManagement() {
                       </select>
                     </div>
                   </div>
-                </div>
-
-                {/* Template Selection for Contract */}
-                <div className="neumorphic-flat p-5 rounded-xl border-2 border-[#8b7355]">
-                  <h3 className="font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-[#8b7355]" />
-                    Template Contratto
-                  </h3>
-                  <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                    Seleziona Template per Contratto <span className="text-red-600">*</span>
-                  </label>
-                  <select
-                    value={selectedTemplate}
-                    onChange={(e) => setSelectedTemplate(e.target.value)}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                  >
-                    <option value="">-- Seleziona un template --</option>
-                    {templates.filter(t => t.attivo).map(template => (
-                      <option key={template.id} value={template.id}>
-                        {template.nome_template}
-                      </option>
-                    ))}
-                  </select>
-                  {selectedTemplate && (
-                    <p className="text-xs text-[#9b9b9b] mt-2">
-                      {templates.find(t => t.id === selectedTemplate)?.descrizione}
-                    </p>
-                  )}
-                  <p className="text-xs text-blue-600 mt-2">
-                    ℹ️ Il template selezionato verrà utilizzato quando invii il contratto al dipendente
-                  </p>
                 </div>
 
                 {/* Assegnazione Locali */}
@@ -912,9 +799,7 @@ export default function UsersManagement() {
             <p className="font-medium mb-1">ℹ️ Gestione Contratti</p>
             <ul className="text-xs space-y-1 list-disc list-inside">
               <li>Compila TUTTI i campi obbligatori (marcati con *) per abilitare il bottone "Manda Contratto"</li>
-              <li><strong>Seleziona un template</strong> prima di inviare il contratto</li>
-              <li>Il contratto verrà generato automaticamente con le variabili sostituite</li>
-              <li>Il contratto sarà inviato via email al dipendente</li>
+              <li>Il contratto verrà creato automaticamente e inviato via email al dipendente</li>
               <li>Puoi visualizzare e gestire tutti i contratti dalla pagina "Contratti" nel menu People</li>
             </ul>
           </div>

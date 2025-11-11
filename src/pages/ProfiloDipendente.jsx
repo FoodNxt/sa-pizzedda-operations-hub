@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -27,7 +26,6 @@ export default function ProfiloDipendente() {
     ruoli_dipendente: [],
     phone: '',
     data_nascita: '',
-    citta_nascita: '', // Added citta_nascita
     codice_fiscale: '',
     indirizzo_residenza: '',
     iban: '',
@@ -55,7 +53,6 @@ export default function ProfiloDipendente() {
         ruoli_dipendente: u.ruoli_dipendente || [],
         phone: u.phone || '',
         data_nascita: u.data_nascita || '',
-        citta_nascita: u.citta_nascita || '', // Initialize citta_nascita from user data
         codice_fiscale: u.codice_fiscale || '',
         indirizzo_residenza: u.indirizzo_residenza || '',
         iban: u.iban || '',
@@ -110,7 +107,6 @@ export default function ProfiloDipendente() {
         ruoli_dipendente: user.ruoli_dipendente || [],
         phone: user.phone || '',
         data_nascita: user.data_nascita || '',
-        citta_nascita: user.citta_nascita || '', // Reset citta_nascita on cancel
         codice_fiscale: user.codice_fiscale || '',
         indirizzo_residenza: user.indirizzo_residenza || '',
         iban: user.iban || '',
@@ -299,21 +295,6 @@ export default function ProfiloDipendente() {
                 />
               </div>
 
-              {/* Città di Nascita - New Input Field */}
-              <div>
-                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  Città di Nascita
-                </label>
-                <input
-                  type="text"
-                  value={formData.citta_nascita}
-                  onChange={(e) => setFormData({ ...formData, citta_nascita: e.target.value })}
-                  placeholder="Milano"
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                />
-              </div>
-
               <div>
                 <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
                   Codice Fiscale
@@ -459,15 +440,6 @@ export default function ProfiloDipendente() {
               <p className="text-[#6b6b6b] font-medium">
                 {user?.data_nascita ? new Date(user.data_nascita).toLocaleDateString('it-IT') : '-'}
               </p>
-            </div>
-
-            {/* Città di Nascita - New Display Field */}
-            <div className="neumorphic-pressed p-4 rounded-xl">
-              <p className="text-sm text-[#9b9b9b] mb-1 flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                Città di Nascita
-              </p>
-              <p className="text-[#6b6b6b] font-medium">{user?.citta_nascita || '-'}</p>
             </div>
 
             <div className="neumorphic-pressed p-4 rounded-xl">
