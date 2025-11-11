@@ -19,24 +19,27 @@ import {
   Store,
   FileText,
   Send,
-  Eye // Added Eye icon
+  Eye,
+  FastForward, // Added FastForward icon
+  FileCheck // Added FileCheck icon
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 
 export default function UsersManagement() {
   const [editingUser, setEditingUser] = useState(null);
-  const [viewingUser, setViewingUser] = useState(null); // Added viewingUser state
-  const [selectedTemplate, setSelectedTemplate] = useState(''); // Added selectedTemplate state
+  const [viewingUser, setViewingUser] = useState(null);
+  const [selectedTemplate, setSelectedTemplate] = useState('');
   const [formData, setFormData] = useState({
     nome_cognome: '',
     user_type: 'dipendente',
     ruoli_dipendente: [],
     assigned_stores: [],
     employee_group: '',
-    function_name: '', // Kept function_name to maintain form functionality as it's used in JSX
+    // function_name was here, removed as per outline's implied change in `isFormComplete` and general direction
     phone: '',
     data_nascita: '',
+    citta_nascita: '', // Added citta_nascita
     codice_fiscale: '',
     indirizzo_residenza: '',
     iban: '',
@@ -44,10 +47,11 @@ export default function UsersManagement() {
     ore_settimanali: 0,
     data_inizio_contratto: '',
     durata_contratto_mesi: 0,
-    planday: false, // Added planday
+    planday: false,
     status: 'active'
   });
   const [sendingContract, setSendingContract] = useState(false);
+  const [skippingContract, setSkippingContract] = useState(false); // Added skippingContract state
 
   const queryClient = useQueryClient();
 
@@ -61,7 +65,6 @@ export default function UsersManagement() {
     queryFn: () => base44.entities.Store.list(),
   });
 
-  // Added query for contract templates
   const { data: templates = [] } = useQuery({
     queryKey: ['contratto-templates'],
     queryFn: () => base44.entities.ContrattoTemplate.list(),
@@ -71,26 +74,7 @@ export default function UsersManagement() {
     mutationFn: ({ id, data }) => base44.entities.User.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      setEditingUser(null);
-      setFormData({
-        nome_cognome: '',
-        user_type: 'dipendente',
-        ruoli_dipendente: [],
-        assigned_stores: [],
-        employee_group: '',
-        function_name: '',
-        phone: '',
-        data_nascita: '',
-        codice_fiscale: '',
-        indirizzo_residenza: '',
-        iban: '',
-        taglia_maglietta: '',
-        ore_settimanali: 0,
-        data_inizio_contratto: '',
-        durata_contratto_mesi: 0,
-        planday: false, // Reset planday
-        status: 'active'
-      });
+      // The setEditingUser(null) and setFormData(...) logic was moved to handleSave and handleCancel
     },
   });
 
@@ -103,16 +87,17 @@ export default function UsersManagement() {
 
   const handleEdit = (user) => {
     setEditingUser(user);
-    setSelectedTemplate(''); // Reset selected template on edit
+    setSelectedTemplate('');
     setFormData({
       nome_cognome: user.nome_cognome || '',
       user_type: user.user_type || 'dipendente',
       ruoli_dipendente: user.ruoli_dipendente || [],
       assigned_stores: user.assigned_stores || [],
       employee_group: user.employee_group || '',
-      function_name: user.function_name || '',
+      // function_name was here
       phone: user.phone || '',
       data_nascita: user.data_nascita || '',
+      citta_nascita: user.citta_nascita || '', // Set citta_nascita
       codice_fiscale: user.codice_fiscale || '',
       indirizzo_residenza: user.indirizzo_residenza || '',
       iban: user.iban || '',
@@ -120,26 +105,28 @@ export default function UsersManagement() {
       ore_settimanali: user.ore_settimanali || 0,
       data_inizio_contratto: user.data_inizio_contratto || '',
       durata_contratto_mesi: user.durata_contratto_mesi || 0,
-      planday: user.planday || false, // Set planday
+      planday: user.planday || false,
       status: user.status || 'active'
     });
   };
 
-  // Added handleViewUser function
   const handleViewUser = (user) => {
     setViewingUser(user);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => { // Made async
     if (!formData.nome_cognome?.trim()) {
       alert('Il Nome Cognome è obbligatorio');
       return;
     }
 
-    updateMutation.mutate({
+    await updateMutation.mutateAsync({ // Await the mutation
       id: editingUser.id,
       data: formData
     });
+
+    setEditingUser(null); // Moved here after successful update
+    setSelectedTemplate(''); // Moved here after successful update
   };
 
   const handleCancel = () => {
@@ -150,9 +137,10 @@ export default function UsersManagement() {
       ruoli_dipendente: [],
       assigned_stores: [],
       employee_group: '',
-      function_name: '',
+      // function_name was here
       phone: '',
       data_nascita: '',
+      citta_nascita: '', // Reset citta_nascita
       codice_fiscale: '',
       indirizzo_residenza: '',
       iban: '',
@@ -160,10 +148,10 @@ export default function UsersManagement() {
       ore_settimanali: 0,
       data_inizio_contratto: '',
       durata_contratto_mesi: 0,
-      planday: false, // Reset planday
+      planday: false,
       status: 'active'
     });
-    setSelectedTemplate(''); // Reset selected template
+    setSelectedTemplate('');
   };
 
   const handleStoreToggle = (storeName) => {
@@ -194,7 +182,6 @@ export default function UsersManagement() {
     });
   };
 
-
   const handleRoleToggle = (role) => {
     setFormData(prev => {
       const hasRole = prev.ruoli_dipendente.includes(role);
@@ -207,7 +194,7 @@ export default function UsersManagement() {
     });
   };
 
-  // Check if all required fields are filled (function_name removed as per outline)
+  // Check if all required fields are filled (function_name removed from required check)
   const isFormComplete = () => {
     return formData.nome_cognome?.trim() &&
            formData.phone?.trim() &&
@@ -221,13 +208,71 @@ export default function UsersManagement() {
            formData.durata_contratto_mesi > 0;
   };
 
-  // Added canSendContract function
   const canSendContract = () => {
     return isFormComplete() && selectedTemplate;
   };
 
+  const handleSkipContract = async () => {
+    if (!isFormComplete()) {
+      alert('Compila tutti i campi obbligatori prima di skippare il contratto');
+      return;
+    }
+
+    if (!confirm('Vuoi skippare il contratto? Il dipendente avrà accesso a tutte le funzionalità come se avesse già firmato.')) {
+      return;
+    }
+
+    try {
+      setSkippingContract(true);
+
+      // Save user data first
+      await updateMutation.mutateAsync({
+        id: editingUser.id,
+        data: formData
+      });
+
+      // Create a dummy signed contract
+      await createContrattoMutation.mutateAsync({
+        user_id: editingUser.id,
+        user_email: editingUser.email,
+        user_nome_cognome: formData.nome_cognome,
+        template_id: 'skipped',
+        template_nome: 'Contratto Skippato (Già Firmato Offline)',
+        contenuto_contratto: `Contratto per ${formData.nome_cognome}\n\nQuesto contratto è stato skippato dall'amministratore poiché il dipendente ha già firmato un contratto offline.`,
+        nome_cognome: formData.nome_cognome,
+        phone: formData.phone,
+        data_nascita: formData.data_nascita,
+        citta_nascita: formData.citta_nascita, // Added citta_nascita
+        codice_fiscale: formData.codice_fiscale,
+        indirizzo_residenza: formData.indirizzo_residenza,
+        iban: formData.iban,
+        taglia_maglietta: formData.taglia_maglietta,
+        user_type: formData.user_type,
+        ruoli_dipendente: formData.ruoli_dipendente,
+        assigned_stores: formData.assigned_stores,
+        employee_group: formData.employee_group,
+        // function_name was here
+        ore_settimanali: formData.ore_settimanali,
+        data_inizio_contratto: formData.data_inizio_contratto,
+        durata_contratto_mesi: formData.durata_contratto_mesi,
+        status: 'firmato',
+        data_invio: new Date().toISOString(),
+        data_firma: new Date().toISOString(),
+        firma_dipendente: 'Skippato Admin'
+      });
+
+      alert('Contratto skippato con successo! Il dipendente ha ora accesso completo.');
+      handleCancel();
+
+    } catch (error) {
+      console.error('Error skipping contract:', error);
+      alert('Errore durante lo skip del contratto');
+    } finally {
+      setSkippingContract(false);
+    }
+  };
+
   const handleSendContract = async () => {
-    // Modified alert logic based on canSendContract
     if (!canSendContract()) {
       if (!selectedTemplate) {
         alert('Seleziona un template per il contratto');
@@ -243,6 +288,12 @@ export default function UsersManagement() {
 
     try {
       setSendingContract(true);
+
+      // Save user data first to ensure latest form data is stored
+      await updateMutation.mutateAsync({
+        id: editingUser.id,
+        data: formData
+      });
 
       const template = templates.find(t => t.id === selectedTemplate);
       if (!template) {
@@ -261,12 +312,12 @@ export default function UsersManagement() {
           dataFine.setMonth(dataFine.getMonth() + parseInt(data.durata_contratto_mesi));
           dataFineContratto = dataFine.toLocaleDateString('it-IT');
         }
-        
+
         const variables = {
           '{{nome_cognome}}': data.nome_cognome || '',
           '{{phone}}': data.phone || '',
           '{{data_nascita}}': data.data_nascita ? new Date(data.data_nascita).toLocaleDateString('it-IT') : '',
-          '{{citta_nascita}}': data.citta_nascita || '', // Note: citta_nascita is not in formData, will be empty
+          '{{citta_nascita}}': data.citta_nascita || '', // Added citta_nascita
           '{{codice_fiscale}}': data.codice_fiscale || '',
           '{{indirizzo_residenza}}': data.indirizzo_residenza || '',
           '{{iban}}': data.iban || '',
@@ -294,12 +345,13 @@ export default function UsersManagement() {
         user_id: editingUser.id,
         user_email: editingUser.email,
         user_nome_cognome: formData.nome_cognome,
-        template_id: template.id, // Added template_id
-        template_nome: template.nome_template, // Added template_nome
-        contenuto_contratto: contenutoContratto, // Added contenuto_contratto
+        template_id: template.id,
+        template_nome: template.nome_template,
+        contenuto_contratto: contenutoContratto,
         nome_cognome: formData.nome_cognome,
         phone: formData.phone,
         data_nascita: formData.data_nascita,
+        citta_nascita: formData.citta_nascita, // Added citta_nascita
         codice_fiscale: formData.codice_fiscale,
         indirizzo_residenza: formData.indirizzo_residenza,
         iban: formData.iban,
@@ -308,7 +360,7 @@ export default function UsersManagement() {
         ruoli_dipendente: formData.ruoli_dipendente,
         assigned_stores: formData.assigned_stores,
         employee_group: formData.employee_group,
-        function_name: formData.function_name, // Kept function_name in data payload
+        // function_name was here
         ore_settimanali: formData.ore_settimanali,
         data_inizio_contratto: formData.data_inizio_contratto,
         durata_contratto_mesi: formData.durata_contratto_mesi,
@@ -478,6 +530,61 @@ export default function UsersManagement() {
                   </div>
                 </div>
 
+                {/* Documenti Caricati */}
+                <div className="neumorphic-flat p-5 rounded-xl">
+                  <h3 className="font-bold text-[#6b6b6b] mb-3 flex items-center gap-2">
+                    <FileCheck className="w-5 h-5 text-[#8b7355]" />
+                    Documenti Caricati
+                  </h3>
+                  <div className="grid grid-cols-1 gap-3 text-sm">
+                    <div className="neumorphic-pressed p-3 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[#9b9b9b]">Documento d'Identità</span>
+                        {viewingUser.documento_identita_url ? (
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="w-4 h-4 text-green-600" />
+                            <a href={viewingUser.documento_identita_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-xs hover:underline">
+                              Visualizza
+                            </a>
+                          </div>
+                        ) : (
+                          <X className="w-4 h-4 text-red-600" />
+                        )}
+                      </div>
+                    </div>
+                    <div className="neumorphic-pressed p-3 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[#9b9b9b]">Codice Fiscale (Documento)</span>
+                        {viewingUser.codice_fiscale_documento_url ? (
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="w-4 h-4 text-green-600" />
+                            <a href={viewingUser.codice_fiscale_documento_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-xs hover:underline">
+                              Visualizza
+                            </a>
+                          </div>
+                        ) : (
+                          <X className="w-4 h-4 text-red-600" />
+                        )}
+                      </div>
+                    </div>
+                    <div className="neumorphic-pressed p-3 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[#9b9b9b]">Permesso di Soggiorno</span>
+                        {viewingUser.permesso_soggiorno_url ? (
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="w-4 h-4 text-green-600" />
+                            <a href={viewingUser.permesso_soggiorno_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-xs hover:underline">
+                              Visualizza
+                            </a>
+                          </div>
+                        ) : (
+                          <span className="text-[#9b9b9b] text-xs">Non applicabile</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Dati Lavorativi */}
                 <div className="neumorphic-flat p-5 rounded-xl">
                   <h3 className="font-bold text-[#6b6b6b] mb-3">Dati Lavorativi</h3>
@@ -619,6 +726,19 @@ export default function UsersManagement() {
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                         className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                         placeholder="+39 333 1234567"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                        Città di Nascita
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.citta_nascita}
+                        onChange={(e) => setFormData({ ...formData, citta_nascita: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                        placeholder="Cagliari"
                       />
                     </div>
 
@@ -886,17 +1006,17 @@ export default function UsersManagement() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-3 pt-6 border-t border-[#c1c1c1] mt-6">
+              <div className="flex flex-wrap gap-3 pt-6 border-t border-[#c1c1c1] mt-6">
                 <NeumorphicButton
                   onClick={handleCancel}
-                  className="flex-1"
+                  className="flex-1 min-w-[120px]"
                 >
                   Annulla
                 </NeumorphicButton>
                 <NeumorphicButton
                   onClick={handleSave}
                   variant="primary"
-                  className="flex-1 flex items-center justify-center gap-2"
+                  className="flex-1 min-w-[120px] flex items-center justify-center gap-2"
                   disabled={updateMutation.isPending}
                 >
                   {updateMutation.isPending ? (
@@ -911,10 +1031,29 @@ export default function UsersManagement() {
                     </>
                   )}
                 </NeumorphicButton>
-                {canSendContract() && ( // Changed from isFormComplete() to canSendContract()
+                {isFormComplete() && ( // Changed to isFormComplete for the Skip button
+                  <NeumorphicButton
+                    onClick={handleSkipContract}
+                    className="flex-1 min-w-[120px] flex items-center justify-center gap-2 bg-yellow-500 text-white"
+                    disabled={skippingContract}
+                  >
+                    {skippingContract ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Skipping...
+                      </>
+                    ) : (
+                      <>
+                        <FastForward className="w-5 h-5" />
+                        Skip Contratto
+                      </>
+                    )}
+                  </NeumorphicButton>
+                )}
+                {canSendContract() && (
                   <NeumorphicButton
                     onClick={handleSendContract}
-                    className="flex-1 flex items-center justify-center gap-2 bg-blue-500 text-white"
+                    className="flex-1 min-w-[120px] flex items-center justify-center gap-2 bg-blue-500 text-white"
                     disabled={sendingContract}
                   >
                     {sendingContract ? (
@@ -939,7 +1078,7 @@ export default function UsersManagement() {
       {/* Users Table */}
       <NeumorphicCard className="p-6">
         <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Lista Utenti</h2>
-        
+
         {isLoading ? (
           <div className="text-center py-12">
             <p className="text-[#9b9b9b]">Caricamento...</p>
@@ -961,7 +1100,7 @@ export default function UsersManagement() {
                   <th className="text-left p-3 text-[#9b9b9b] font-medium">Ruolo</th>
                   <th className="text-left p-3 text-[#9b9b9b] font-medium">Tipo</th>
                   <th className="text-left p-3 text-[#9b9b9b] font-medium">Locali</th>
-                  <th className="text-center p-3 text-[#9b9b9b] font-medium">Planday</th> {/* Added Planday column */}
+                  <th className="text-center p-3 text-[#9b9b9b] font-medium">Planday</th>
                   <th className="text-center p-3 text-[#9b9b9b] font-medium">Stato</th>
                   <th className="text-center p-3 text-[#9b9b9b] font-medium">Azioni</th>
                 </tr>
@@ -1017,7 +1156,7 @@ export default function UsersManagement() {
                       </td>
                       <td className="p-3">
                         <div className="flex justify-center">
-                          {user.planday ? ( // Added Planday status cell
+                          {user.planday ? (
                             <CheckCircle className="w-5 h-5 text-green-600" />
                           ) : (
                             <X className="w-5 h-5 text-gray-400" />
@@ -1035,7 +1174,6 @@ export default function UsersManagement() {
                       </td>
                       <td className="p-3">
                         <div className="flex items-center justify-center gap-2">
-                          {/* Added View User button */}
                           <button
                             onClick={() => handleViewUser(user)}
                             className="neumorphic-flat p-2 rounded-lg hover:bg-purple-50 transition-colors"
@@ -1071,6 +1209,7 @@ export default function UsersManagement() {
               <li>Compila TUTTI i campi obbligatori (marcati con *) e seleziona un "Template Contratto" per abilitare il bottone "Manda Contratto"</li>
               <li>Il contratto verrà creato automaticamente e inviato via email al dipendente</li>
               <li>Puoi visualizzare e gestire tutti i contratti dalla pagina "Contratti" nel menu People</li>
+              <li>Se il dipendente ha già firmato un contratto offline, puoi usare "Skip Contratto" per dargli accesso e generare un contratto con status "firmato".</li>
             </ul>
           </div>
         </div>
