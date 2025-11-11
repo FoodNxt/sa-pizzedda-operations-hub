@@ -162,18 +162,50 @@ export default function GestioneAccessoPagine() {
     { value: 'FunzionamentoApp', label: 'Funzionamento App', category: 'Sistema' }
   ];
 
+  // UPDATED: Include ALL pages so they can be controlled
   const availableDipendentiPages = [
-    { value: 'ProfiloDipendente', label: 'Il Mio Profilo', icon: User },
-    { value: 'ContrattiDipendente', label: 'Contratti', icon: FileText },
-    { value: 'Academy', label: 'Academy', icon: CheckSquare },
-    { value: 'Valutazione', label: 'La Tua Valutazione', icon: CheckSquare },
-    { value: 'ControlloPuliziaCassiere', label: 'Controllo Pulizia Cassiere', icon: CheckSquare },
-    { value: 'ControlloPuliziaPizzaiolo', label: 'Controllo Pulizia Pizzaiolo', icon: CheckSquare },
-    { value: 'ControlloPuliziaStoreManager', label: 'Controllo Pulizia Store Manager', icon: CheckSquare },
-    { value: 'FormInventario', label: 'Form Inventario', icon: CheckSquare },
-    { value: 'ConteggioCassa', label: 'Conteggio Cassa', icon: CheckSquare },
-    { value: 'TeglieButtate', label: 'Teglie Buttate', icon: CheckSquare },
-    { value: 'Preparazioni', label: 'Preparazioni', icon: CheckSquare }
+    // Pagine Dipendente Standard
+    { value: 'ProfiloDipendente', label: '✅ Il Mio Profilo', icon: User, category: 'Area Dipendente', recommended: true },
+    { value: 'ContrattiDipendente', label: '✅ I Miei Contratti', icon: FileText, category: 'Area Dipendente', recommended: true },
+    { value: 'Academy', label: '✅ Academy', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+    { value: 'Valutazione', label: '✅ La Mia Valutazione', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+    { value: 'ControlloPuliziaCassiere', label: '✅ Controllo Pulizia Cassiere (solo ruolo)', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+    { value: 'ControlloPuliziaPizzaiolo', label: '✅ Controllo Pulizia Pizzaiolo (solo ruolo)', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+    { value: 'ControlloPuliziaStoreManager', label: '✅ Controllo Pulizia Store Manager (solo ruolo)', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+    { value: 'FormInventario', label: '✅ Form Inventario', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+    { value: 'ConteggioCassa', label: '✅ Conteggio Cassa', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+    { value: 'TeglieButtate', label: '✅ Teglie Buttate', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+    { value: 'Preparazioni', label: '✅ Preparazioni', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+    
+    // Pagine Sensibili - NON dovrebbero essere selezionate per dipendenti
+    { value: 'Dashboard', label: '🚫 Dashboard Overview (DATI FINANZIARI)', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
+    { value: 'SummaryAI', label: '🚫 Summary AI (DATI FINANZIARI)', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
+    { value: 'StoreReviews', label: '🚫 Store Reviews', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
+    { value: 'AssignReviews', label: '🚫 Assign Reviews', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
+    { value: 'EmployeeReviewsPerformance', label: '🚫 Employee Reviews', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
+    { value: 'RealTime', label: '🚫 Real Time (DATI FINANZIARI)', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
+    { value: 'Financials', label: '🚫 Financials (DATI FINANZIARI)', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
+    { value: 'ChannelComparison', label: '🚫 Channel Comparison (DATI FINANZIARI)', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
+    { value: 'StoricoCassa', label: '🚫 Storico Cassa (DATI FINANZIARI)', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
+    { value: 'Inventory', label: '🚫 Inventory Dashboard', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
+    { value: 'Ricette', label: '🚫 Ricette', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
+    { value: 'InventarioAdmin', label: '🚫 Inventario Admin', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
+    { value: 'FormCantina', label: '🚫 Form Cantina', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
+    { value: 'QuantitaMinime', label: '🚫 Quantità Minime', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
+    { value: 'ElencoFornitori', label: '🚫 Elenco Fornitori', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
+    { value: 'UploadFattureXML', label: '🚫 Upload Fatture XML', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
+    { value: 'ProdottiVenduti', label: '🚫 Prodotti Venduti', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
+    { value: 'Employees', label: '🚫 Employees (DATI HR)', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
+    { value: 'Shifts', label: '🚫 Shifts (DATI HR)', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
+    { value: 'Payroll', label: '🚫 Payroll (DATI HR)', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
+    { value: 'Contratti', label: '🚫 Contratti Admin (GESTIONE HR)', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
+    { value: 'AlertPeriodoProva', label: '🚫 Alert Periodo Prova', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
+    { value: 'HRAdmin', label: '🚫 HR Admin', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
+    { value: 'AcademyAdmin', label: '🚫 Academy Admin', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
+    { value: 'Pulizie', label: '🚫 Storico Pulizie', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
+    { value: 'ControlloPulizieMaster', label: '🚫 Controllo Pulizie Master', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
+    { value: 'OrdiniSbagliati', label: '🚫 Ordini Sbagliati', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
+    { value: 'MatchingOrdiniSbagliati', label: '🚫 Matching Ordini Sbagliati', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false }
   ];
 
   const handlePageToggle = (userType, pageName) => {
@@ -221,6 +253,17 @@ export default function GestioneAccessoPagine() {
     return grouped;
   };
 
+  const groupDipendentePagesByCategory = () => {
+    const grouped = {};
+    availableDipendentiPages.forEach(page => {
+      if (!grouped[page.category]) {
+        grouped[page.category] = [];
+      }
+      grouped[page.category].push(page);
+    });
+    return grouped;
+  };
+
   if (isLoading) {
     return (
       <div className="max-w-6xl mx-auto">
@@ -232,6 +275,7 @@ export default function GestioneAccessoPagine() {
   }
 
   const groupedPages = groupPagesByCategory();
+  const groupedDipendentePages = groupDipendentePagesByCategory();
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -342,25 +386,40 @@ export default function GestioneAccessoPagine() {
           </div>
           <div>
             <h2 className="text-xl font-bold text-[#6b6b6b]">Dipendenti - Appena Registrato</h2>
-            <p className="text-sm text-[#9b9b9b]">Senza ruoli assegnati</p>
+            <p className="text-sm text-[#9b9b9b]">Senza ruoli assegnati (user_type: "user")</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          {availableDipendentiPages.map(page => (
-            <div key={page.value} className="neumorphic-pressed p-3 rounded-lg">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={pageConfig.after_registration.includes(page.value)}
-                  onChange={() => handlePageToggle('after_registration', page.value)}
-                  className="w-5 h-5 rounded"
-                />
-                <span className="text-[#6b6b6b] text-sm">{page.label}</span>
-              </label>
+        {Object.entries(groupedDipendentePages).map(([category, pages]) => (
+          <div key={category} className="mb-4">
+            <h3 className={`font-bold mb-2 text-sm ${
+              category === 'Pagine Sensibili - NON Dipendenti' ? 'text-red-600' : 'text-[#6b6b6b]'
+            }`}>
+              {category}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {pages.map(page => (
+                <div key={page.value} className={`neumorphic-pressed p-3 rounded-lg ${
+                  !page.recommended && pageConfig.after_registration.includes(page.value) ? 'border-2 border-red-500' : ''
+                }`}>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={pageConfig.after_registration.includes(page.value)}
+                      onChange={() => handlePageToggle('after_registration', page.value)}
+                      className="w-5 h-5 rounded"
+                    />
+                    <span className={`text-sm ${
+                      page.recommended ? 'text-[#6b6b6b]' : 'text-red-600 font-bold'
+                    }`}>
+                      {page.label}
+                    </span>
+                  </label>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </NeumorphicCard>
 
       {/* Dipendenti - Stage 2: After Contract Received */}
@@ -375,21 +434,36 @@ export default function GestioneAccessoPagine() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          {availableDipendentiPages.map(page => (
-            <div key={page.value} className="neumorphic-pressed p-3 rounded-lg">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={pageConfig.after_contract_received.includes(page.value)}
-                  onChange={() => handlePageToggle('after_contract_received', page.value)}
-                  className="w-5 h-5 rounded"
-                />
-                <span className="text-[#6b6b6b] text-sm">{page.label}</span>
-              </label>
+        {Object.entries(groupedDipendentePages).map(([category, pages]) => (
+          <div key={category} className="mb-4">
+            <h3 className={`font-bold mb-2 text-sm ${
+              category === 'Pagine Sensibili - NON Dipendenti' ? 'text-red-600' : 'text-[#6b6b6b]'
+            }`}>
+              {category}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {pages.map(page => (
+                <div key={page.value} className={`neumorphic-pressed p-3 rounded-lg ${
+                  !page.recommended && pageConfig.after_contract_received.includes(page.value) ? 'border-2 border-red-500' : ''
+                }`}>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={pageConfig.after_contract_received.includes(page.value)}
+                      onChange={() => handlePageToggle('after_contract_received', page.value)}
+                      className="w-5 h-5 rounded"
+                    />
+                    <span className={`text-sm ${
+                      page.recommended ? 'text-[#6b6b6b]' : 'text-red-600 font-bold'
+                    }`}>
+                      {page.label}
+                    </span>
+                  </label>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </NeumorphicCard>
 
       {/* Dipendenti - Stage 3: After Contract Signed */}
@@ -404,21 +478,36 @@ export default function GestioneAccessoPagine() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          {availableDipendentiPages.map(page => (
-            <div key={page.value} className="neumorphic-pressed p-3 rounded-lg">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={pageConfig.after_contract_signed.includes(page.value)}
-                  onChange={() => handlePageToggle('after_contract_signed', page.value)}
-                  className="w-5 h-5 rounded"
-                />
-                <span className="text-[#6b6b6b] text-sm">{page.label}</span>
-              </label>
+        {Object.entries(groupedDipendentePages).map(([category, pages]) => (
+          <div key={category} className="mb-4">
+            <h3 className={`font-bold mb-2 text-sm ${
+              category === 'Pagine Sensibili - NON Dipendenti' ? 'text-red-600' : 'text-[#6b6b6b]'
+            }`}>
+              {category}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {pages.map(page => (
+                <div key={page.value} className={`neumorphic-pressed p-3 rounded-lg ${
+                  !page.recommended && pageConfig.after_contract_signed.includes(page.value) ? 'border-2 border-red-500' : ''
+                }`}>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={pageConfig.after_contract_signed.includes(page.value)}
+                      onChange={() => handlePageToggle('after_contract_signed', page.value)}
+                      className="w-5 h-5 rounded"
+                    />
+                    <span className={`text-sm ${
+                      page.recommended ? 'text-[#6b6b6b]' : 'text-red-600 font-bold'
+                    }`}>
+                      {page.label}
+                    </span>
+                  </label>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </NeumorphicCard>
 
       {/* Dipendenti - Stage 4: After Contract Start Date */}
@@ -433,21 +522,36 @@ export default function GestioneAccessoPagine() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          {availableDipendentiPages.map(page => (
-            <div key={page.value} className="neumorphic-pressed p-3 rounded-lg">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={pageConfig.after_contract_start.includes(page.value)}
-                  onChange={() => handlePageToggle('after_contract_start', page.value)}
-                  className="w-5 h-5 rounded"
-                />
-                <span className="text-[#6b6b6b] text-sm">{page.label}</span>
-              </label>
+        {Object.entries(groupedDipendentePages).map(([category, pages]) => (
+          <div key={category} className="mb-4">
+            <h3 className={`font-bold mb-2 text-sm ${
+              category === 'Pagine Sensibili - NON Dipendenti' ? 'text-red-600' : 'text-[#6b6b6b]'
+            }`}>
+              {category}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {pages.map(page => (
+                <div key={page.value} className={`neumorphic-pressed p-3 rounded-lg ${
+                  !page.recommended && pageConfig.after_contract_start.includes(page.value) ? 'border-2 border-red-500' : ''
+                }`}>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={pageConfig.after_contract_start.includes(page.value)}
+                      onChange={() => handlePageToggle('after_contract_start', page.value)}
+                      className="w-5 h-5 rounded"
+                    />
+                    <span className={`text-sm ${
+                      page.recommended ? 'text-[#6b6b6b]' : 'text-red-600 font-bold'
+                    }`}>
+                      {page.label}
+                    </span>
+                  </label>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </NeumorphicCard>
 
       {/* Save Button */}
@@ -482,14 +586,14 @@ export default function GestioneAccessoPagine() {
         <div className="flex items-start gap-3">
           <AlertCircle className="w-6 h-6 text-red-700 flex-shrink-0 mt-1" />
           <div className="text-sm text-red-800">
-            <p className="font-medium mb-2">⚠️ IMPORTANTE - Sicurezza Accesso Pagine</p>
+            <p className="font-medium mb-2">⚠️ IMPORTANTE - Configurazione Sicurezza</p>
             <ul className="text-xs space-y-1 list-disc list-inside">
-              <li><strong>Le pagine NON selezionate saranno INACCESSIBILI</strong> per quel tipo di utente</li>
-              <li>Un nuovo utente registrato (user_type: "user") viene trattato come "Dipendente"</li>
-              <li>La Dashboard e altre pagine sensibili sono protette anche se digitate direttamente nell'URL</li>
-              <li>I campi "Controllo Pulizia" sono visibili SOLO ai dipendenti con i ruoli corrispondenti</li>
+              <li><strong>🚫 Pagine con icona rossa:</strong> NON dovrebbero MAI essere selezionate per dipendenti (contengono dati sensibili)</li>
+              <li><strong>✅ Pagine con icona verde:</strong> Sicure per dipendenti</li>
+              <li>Le pagine marcate in ROSSO se selezionate mostrano un bordo rosso come alert</li>
+              <li>Un nuovo utente (user_type: "user") viene trattato come "Dipendente - Appena Registrato"</li>
+              <li><strong>Consigliato Fase 1:</strong> SOLO "Il Mio Profilo"</li>
               <li><strong>Clicca "Salva Configurazione" e RICARICA LA PAGINA</strong> per applicare le modifiche</li>
-              <li>Pagine Zapier e Sistema sono disponibili SOLO per Admin</li>
             </ul>
           </div>
         </div>
