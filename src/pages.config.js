@@ -47,6 +47,7 @@ import BulkImportProdottiVenduti from './pages/BulkImportProdottiVenduti';
 import ProdottiVenduti from './pages/ProdottiVenduti';
 import AcademyAdmin from './pages/AcademyAdmin';
 import Academy from './pages/Academy';
+import Contratti from './pages/Contratti';
 import Layout from './Layout.jsx';
 
 
@@ -100,6 +101,7 @@ export const PAGES = {
     "ProdottiVenduti": ProdottiVenduti,
     "AcademyAdmin": AcademyAdmin,
     "Academy": Academy,
+    "Contratti": Contratti,
 }
 
 export const pagesConfig = {
