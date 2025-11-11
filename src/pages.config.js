@@ -12,7 +12,6 @@ import OrderItemsSetup from './pages/OrderItemsSetup';
 import ChannelComparison from './pages/ChannelComparison';
 import RecalculateShifts from './pages/RecalculateShifts';
 import CleanupDuplicateShifts from './pages/CleanupDuplicateShifts';
-import InventorySetup from './pages/InventorySetup';
 import Inventory from './pages/Inventory';
 import RealTime from './pages/RealTime';
 import Payroll from './pages/Payroll';
@@ -52,6 +51,9 @@ import FunzionamentoApp from './pages/FunzionamentoApp';
 import AlertPeriodoProva from './pages/AlertPeriodoProva';
 import HRAdmin from './pages/HRAdmin';
 import ContrattiDipendente from './pages/ContrattiDipendente';
+import MateriePrime from './pages/MateriePrime';
+import FormTeglieButtate from './pages/FormTeglieButtate';
+import FormPreparazioni from './pages/FormPreparazioni';
 import Layout from './Layout.jsx';
 
 
@@ -70,7 +72,6 @@ export const PAGES = {
     "ChannelComparison": ChannelComparison,
     "RecalculateShifts": RecalculateShifts,
     "CleanupDuplicateShifts": CleanupDuplicateShifts,
-    "InventorySetup": InventorySetup,
     "Inventory": Inventory,
     "RealTime": RealTime,
     "Payroll": Payroll,
@@ -110,6 +111,9 @@ export const PAGES = {
     "AlertPeriodoProva": AlertPeriodoProva,
     "HRAdmin": HRAdmin,
     "ContrattiDipendente": ContrattiDipendente,
+    "MateriePrime": MateriePrime,
+    "FormTeglieButtate": FormTeglieButtate,
+    "FormPreparazioni": FormPreparazioni,
 }
 
 export const pagesConfig = {
