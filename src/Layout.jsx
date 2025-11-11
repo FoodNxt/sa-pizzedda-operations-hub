@@ -29,9 +29,10 @@ import {
   CheckSquare,
   Truck,
   Link as LinkIcon,
-  ShoppingCart, // Added ShoppingCart import
-  GraduationCap, // Added GraduationCap import
-  FileText // Added FileText import for 'Contratti'
+  ShoppingCart,
+  GraduationCap,
+  FileText,
+  BookOpen // Added BookOpen import
 } from "lucide-react";
 import CompleteProfileModal from "./components/auth/CompleteProfileModal";
 
@@ -286,6 +287,11 @@ const navigationStructure = [
         icon: User,
       },
       {
+        title: "Contratti", // NEW: Added for dipendente section
+        url: createPageUrl("ContrattiDipendente"),
+        icon: FileText,
+      },
+      {
         title: "Academy", // NEW ITEM ADDED HERE
         url: createPageUrl("Academy"),
         icon: GraduationCap,
@@ -393,6 +399,11 @@ const navigationStructure = [
         title: "Gestione Accesso Pagine",
         url: createPageUrl("GestioneAccessoPagine"),
         icon: CheckSquare,
+      },
+      {
+        title: "Funzionamento App", // NEW: Added for Sistema section
+        url: createPageUrl("FunzionamentoApp"),
+        icon: BookOpen,
       }
     ]
   }
