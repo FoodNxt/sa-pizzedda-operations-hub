@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useQueryClient } from "@tantml:react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Package,
   Save,
