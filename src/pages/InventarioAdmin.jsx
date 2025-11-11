@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -182,13 +183,12 @@ export default function InventarioAdmin() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-3">
-          <ClipboardList className="w-10 h-10 text-[#8b7355]" />
-          <h1 className="text-3xl font-bold text-[#6b6b6b]">Inventario Admin</h1>
-        </div>
-        <p className="text-[#9b9b9b]">Form completo: include inventario negozio + cantina</p>
+    <div className="max-w-5xl mx-auto space-y-4">
+      <div className="mb-4">
+        <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
+          Inventario Admin
+        </h1>
+        <p className="text-sm text-slate-500">Form completo: negozio + cantina</p>
       </div>
 
       {saveSuccess && (
@@ -196,41 +196,47 @@ export default function InventarioAdmin() {
           <div className="flex items-center gap-3">
             <CheckCircle className="w-5 h-5 text-green-600" />
             <p className="text-sm text-green-800 font-medium">
-              Rilevazione completa salvata con successo! ✅
+              Rilevazione salvata! ✅
             </p>
           </div>
         </NeumorphicCard>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <NeumorphicCard className="p-6 text-center">
-          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <Package className="w-8 h-8 text-[#8b7355]" />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
+        <NeumorphicCard className="p-4">
+          <div className="text-center">
+            <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 mx-auto mb-2 lg:mb-3 flex items-center justify-center shadow-lg">
+              <Package className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+            </div>
+            <h3 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1">
+              {getCompletedProducts()} / {getTotalProducts()}
+            </h3>
+            <p className="text-xs text-slate-500">Compilati</p>
           </div>
-          <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">
-            {getCompletedProducts()} / {getTotalProducts()}
-          </h3>
-          <p className="text-sm text-[#9b9b9b]">Prodotti Compilati</p>
         </NeumorphicCard>
 
-        <NeumorphicCard className="p-6 text-center">
-          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <TrendingDown className="w-8 h-8 text-red-600" />
+        <NeumorphicCard className="p-4">
+          <div className="text-center">
+            <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 mx-auto mb-2 lg:mb-3 flex items-center justify-center shadow-lg">
+              <TrendingDown className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+            </div>
+            <h3 className="text-xl lg:text-2xl font-bold text-red-600 mb-1">
+              {getSottoMinimo()}
+            </h3>
+            <p className="text-xs text-slate-500">Sotto Minimo</p>
           </div>
-          <h3 className="text-3xl font-bold text-red-600 mb-1">
-            {getSottoMinimo()}
-          </h3>
-          <p className="text-sm text-[#9b9b9b]">Sotto Minimo</p>
         </NeumorphicCard>
 
-        <NeumorphicCard className="p-6 text-center">
-          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <CheckCircle className="w-8 h-8 text-green-600" />
+        <NeumorphicCard className="p-4">
+          <div className="text-center">
+            <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 mx-auto mb-2 lg:mb-3 flex items-center justify-center shadow-lg">
+              <CheckCircle className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+            </div>
+            <h3 className="text-xl lg:text-2xl font-bold text-green-600 mb-1">
+              {getCompletedProducts() - getSottoMinimo()}
+            </h3>
+            <p className="text-xs text-slate-500">Sopra Minimo</p>
           </div>
-          <h3 className="text-3xl font-bold text-green-600 mb-1">
-            {getCompletedProducts() - getSottoMinimo()}
-          </h3>
-          <p className="text-sm text-[#9b9b9b]">Sopra Minimo</p>
         </NeumorphicCard>
       </div>
 

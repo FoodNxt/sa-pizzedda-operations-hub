@@ -13,7 +13,8 @@ import {
   TrendingDown,
   TrendingUp,
   Package,
-  Search
+  Search,
+  CheckCircle // Added CheckCircle import
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -286,16 +287,15 @@ export default function Ricette() {
   const getCostoPreview = () => calculateCosts();
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-4 lg:mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <div className="flex items-center gap-3 mb-3">
-              <ChefHat className="w-10 h-10 text-[#8b7355]" />
-              <h1 className="text-3xl font-bold text-[#6b6b6b]">Ricette</h1>
-            </div>
-            <p className="text-[#9b9b9b]">Gestisci ricette, ingredienti e calcola il food cost</p>
+            <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
+              Ricette
+            </h1>
+            <p className="text-sm text-slate-500">Gestisci ricette, ingredienti e calcola il food cost</p>
           </div>
           <NeumorphicButton
             onClick={() => setShowForm(true)}
@@ -303,52 +303,58 @@ export default function Ricette() {
             className="flex items-center gap-2"
           >
             <Plus className="w-5 h-5" />
-            Nuova Ricetta
+            <span className="hidden sm:inline">Nuova</span>
           </NeumorphicButton>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <NeumorphicCard className="p-6 text-center">
-          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <ChefHat className="w-8 h-8 text-[#8b7355]" />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
+        <NeumorphicCard className="p-4">
+          <div className="text-center">
+            <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 mx-auto mb-2 lg:mb-3 flex items-center justify-center shadow-lg">
+              <ChefHat className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+            </div>
+            <h3 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1">{ricette.length}</h3>
+            <p className="text-xs text-slate-500">Ricette</p>
           </div>
-          <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">{ricette.length}</h3>
-          <p className="text-sm text-[#9b9b9b]">Ricette Totali</p>
         </NeumorphicCard>
 
-        <NeumorphicCard className="p-6 text-center">
-          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <TrendingDown className="w-8 h-8 text-green-600" />
+        <NeumorphicCard className="p-4">
+          <div className="text-center">
+            <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 mx-auto mb-2 lg:mb-3 flex items-center justify-center shadow-lg">
+              <TrendingDown className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+            </div>
+            <h3 className="text-xl lg:text-2xl font-bold text-green-600 mb-1">
+              {ricette.filter(r => r.food_cost_online < 30).length}
+            </h3>
+            <p className="text-xs text-slate-500">FC Ottimale</p>
           </div>
-          <h3 className="text-3xl font-bold text-green-600 mb-1">
-            {ricette.filter(r => r.food_cost_online < 30).length}
-          </h3>
-          <p className="text-sm text-[#9b9b9b]">Food Cost Ottimale (&lt;30%)</p>
         </NeumorphicCard>
 
-        <NeumorphicCard className="p-6 text-center">
-          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <Package className="w-8 h-8 text-blue-600" />
+        <NeumorphicCard className="p-4">
+          <div className="text-center">
+            <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 mx-auto mb-2 lg:mb-3 flex items-center justify-center shadow-lg">
+              <Package className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+            </div>
+            <h3 className="text-xl lg:text-2xl font-bold text-purple-600 mb-1">
+              {ricette.filter(r => r.attivo !== false).length}
+            </h3>
+            <p className="text-xs text-slate-500">Attive</p>
           </div>
-          <h3 className="text-3xl font-bold text-blue-600 mb-1">
-            {ricette.filter(r => r.attivo !== false).length}
-          </h3>
-          <p className="text-sm text-[#9b9b9b]">Ricette Attive</p>
         </NeumorphicCard>
       </div>
 
       {/* Search */}
       <NeumorphicCard className="p-4">
         <div className="flex items-center gap-3">
-          <Search className="w-5 h-5 text-[#9b9b9b]" />
+          <Search className="w-5 h-5 text-slate-400" />
           <input
             type="text"
             placeholder="Cerca ricetta..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+            className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
           />
         </div>
       </NeumorphicCard>
@@ -725,66 +731,61 @@ export default function Ricette() {
       {/* Ricette List */}
       {isLoading ? (
         <NeumorphicCard className="p-12 text-center">
-          <p className="text-[#9b9b9b]">Caricamento...</p>
+          <p className="text-slate-500">Caricamento...</p>
         </NeumorphicCard>
       ) : filteredRicette.length === 0 ? (
         <NeumorphicCard className="p-12 text-center">
-          <ChefHat className="w-16 h-16 text-[#9b9b9b] mx-auto mb-4 opacity-50" />
-          <h3 className="text-xl font-bold text-[#6b6b6b] mb-2">
+          <ChefHat className="w-16 h-16 text-slate-300 mx-auto mb-4 opacity-50" />
+          <h3 className="text-xl font-bold text-slate-800 mb-2">
             {searchTerm ? 'Nessuna ricetta trovata' : 'Nessuna ricetta'}
           </h3>
-          <p className="text-[#9b9b9b]">
-            {searchTerm ? 'Prova a modificare i criteri di ricerca' : 'Inizia creando la tua prima ricetta'}
-          </p>
         </NeumorphicCard>
       ) : (
-        <NeumorphicCard className="p-6">
-          <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Lista Ricette</h2>
+        <NeumorphicCard className="p-4 lg:p-6">
+          <h2 className="text-lg font-bold text-slate-800 mb-4">Lista Ricette</h2>
 
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
+            <table className="w-full min-w-[900px]">
               <thead>
-                <tr className="border-b-2 border-[#8b7355]">
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Prodotto</th>
-                  <th className="text-right p-3 text-[#9b9b9b] font-medium">Costo</th>
-                  <th className="text-right p-3 text-[#9b9b9b] font-medium">Prezzo Online</th>
-                  <th className="text-right p-3 text-[#9b9b9b] font-medium">Prezzo Offline</th>
-                  <th className="text-center p-3 text-[#9b9b9b] font-medium">FC Online</th>
-                  <th className="text-center p-3 text-[#9b9b9b] font-medium">FC Offline</th>
-                  <th className="text-center p-3 text-[#9b9b9b] font-medium">Ingredienti</th>
-                  <th className="text-center p-3 text-[#9b9b9b] font-medium">Stato</th>
-                  <th className="text-center p-3 text-[#9b9b9b] font-medium">Azioni</th>
+                <tr className="border-b-2 border-blue-600">
+                  <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Prodotto</th>
+                  <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Costo</th>
+                  <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">P. Online</th>
+                  <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">P. Offline</th>
+                  <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">FC Online</th>
+                  <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">FC Offline</th>
+                  <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ing</th>
+                  <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Stato</th>
+                  <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Azioni</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredRicette.map((ricetta) => (
-                  <tr key={ricetta.id} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
-                    <td className="p-3">
+                  <tr key={ricetta.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                    <td className="p-2 lg:p-3">
                       <div>
-                        <p className="font-medium text-[#6b6b6b]">{ricetta.nome_prodotto}</p>
-                        <p className="text-xs text-[#9b9b9b]">{ricetta.categoria} {ricetta.is_semilavorato && '(Semilavorato)'}</p>
+                        <p className="font-medium text-slate-800 text-sm">{ricetta.nome_prodotto}</p>
+                        <p className="text-xs text-slate-500">{ricetta.categoria} {ricetta.is_semilavorato && '(Semil.)'}</p>
                       </div>
                     </td>
-                    <td className="p-3 text-right">
-                      <span className="font-bold text-[#8b7355]">
-                        €{ricetta.costo_unitario?.toFixed(2)}
-                      </span>
+                    <td className="p-2 lg:p-3 text-right font-bold text-blue-600 text-sm">
+                      €{ricetta.costo_unitario?.toFixed(2)}
                     </td>
-                    <td className="p-3 text-right text-[#6b6b6b]">
+                    <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
                       €{ricetta.prezzo_vendita_online?.toFixed(2)}
                       <span className="block text-xs text-green-600">
                         +€{ricetta.margine_online?.toFixed(2)}
                       </span>
                     </td>
-                    <td className="p-3 text-right text-[#6b6b6b]">
+                    <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
                       €{ricetta.prezzo_vendita_offline?.toFixed(2)}
                       <span className="block text-xs text-green-600">
                         +€{ricetta.margine_offline?.toFixed(2)}
                       </span>
                     </td>
-                    <td className="p-3">
+                    <td className="p-2 lg:p-3">
                       <div className="flex justify-center">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${
                           ricetta.food_cost_online < 30 
                             ? 'bg-green-100 text-green-700' 
                             : ricetta.food_cost_online < 40
@@ -795,9 +796,9 @@ export default function Ricette() {
                         </span>
                       </div>
                     </td>
-                    <td className="p-3">
+                    <td className="p-2 lg:p-3">
                       <div className="flex justify-center">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${
                           ricetta.food_cost_offline < 30 
                             ? 'bg-green-100 text-green-700' 
                             : ricetta.food_cost_offline < 40
@@ -808,35 +809,29 @@ export default function Ricette() {
                         </span>
                       </div>
                     </td>
-                    <td className="p-3 text-center text-[#6b6b6b]">
+                    <td className="p-2 lg:p-3 text-center text-slate-700 text-sm">
                       {ricetta.ingredienti?.length || 0}
                     </td>
-                    <td className="p-3">
+                    <td className="p-2 lg:p-3">
                       <div className="flex justify-center">
                         {ricetta.attivo !== false ? (
-                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
-                            ATTIVO
-                          </span>
+                          <CheckCircle className="w-5 h-5 text-green-600" />
                         ) : (
-                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700">
-                            INATTIVO
-                          </span>
+                          <X className="w-5 h-5 text-gray-400" />
                         )}
                       </div>
                     </td>
-                    <td className="p-3">
+                    <td className="p-2 lg:p-3">
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => handleEdit(ricetta)}
-                          className="neumorphic-flat p-2 rounded-lg hover:bg-blue-50 transition-colors"
-                          title="Modifica"
+                          className="nav-button p-2 rounded-lg hover:bg-blue-50 transition-colors"
                         >
                           <Edit className="w-4 h-4 text-blue-600" />
                         </button>
                         <button
                           onClick={() => handleDelete(ricetta.id)}
-                          className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
-                          title="Elimina"
+                          className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
                         >
                           <Trash2 className="w-4 h-4 text-red-600" />
                         </button>

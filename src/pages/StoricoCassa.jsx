@@ -11,6 +11,7 @@ import {
   X
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
+import ProtectedPage from "../components/ProtectedPage";
 import { format, subDays, isAfter, isBefore, parseISO } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -47,9 +48,7 @@ export default function StoricoCassa() {
     return conteggi.filter(c => {
       if (c.data_conteggio) {
         const itemDate = parseISO(c.data_conteggio);
-        if (isBefore(itemDate, cutoffDate) || isAfter(itemDate, endFilterDate)) {
-          return false;
-        }
+        if (isBefore(itemDate, cutoffDate) || isAfter(itemDate, endFilterDate)) return false;
       }
       if (selectedStore !== 'all' && c.store_id !== selectedStore) return false;
       return true;
@@ -71,7 +70,7 @@ export default function StoricoCassa() {
     const dailyData = Object.values(byDate)
       .sort((a, b) => new Date(a.date) - new Date(b.date))
       .map(d => ({
-        date: format(new Date(d.date), 'dd/MM'),
+        date: format(parseISO(d.date), 'dd/MM'),
         valore: parseFloat(d.value.toFixed(2)),
         conteggi: d.count
       }));
@@ -94,245 +93,226 @@ export default function StoricoCassa() {
     return { totale, media, dailyData, storeData, count: filteredConteggi.length };
   }, [filteredConteggi]);
 
-  const clearCustomDates = () => {
-    setStartDate('');
-    setEndDate('');
-    setDateRange('30');
-  };
-
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-3">
-          <DollarSign className="w-10 h-10 text-[#8b7355]" />
-          <h1 className="text-3xl font-bold text-[#6b6b6b]">Storico Conteggi Cassa</h1>
+    <ProtectedPage pageName="StoricoCassa">
+      <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
+        <div className="mb-4 lg:mb-6">
+          <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
+            Storico Conteggi Cassa
+          </h1>
+          <p className="text-sm text-slate-500">Analisi storica dei conteggi cassa</p>
         </div>
-        <p className="text-[#9b9b9b]">Analisi storica dei conteggi cassa</p>
-      </div>
 
-      {/* Filters */}
-      <NeumorphicCard className="p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <Filter className="w-5 h-5 text-[#8b7355]" />
-          <h2 className="text-lg font-bold text-[#6b6b6b]">Filtri</h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm text-[#9b9b9b] mb-2 block">Locale</label>
-            <select
-              value={selectedStore}
-              onChange={(e) => setSelectedStore(e.target.value)}
-              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-            >
-              <option value="all">Tutti i Locali</option>
-              {stores.map(store => (
-                <option key={store.id} value={store.id}>{store.name}</option>
-              ))}
-            </select>
+        <NeumorphicCard className="p-4 lg:p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Filter className="w-5 h-5 text-blue-600" />
+            <h2 className="text-base lg:text-lg font-bold text-slate-800">Filtri</h2>
           </div>
-
-          <div>
-            <label className="text-sm text-[#9b9b9b] mb-2 block">Periodo</label>
-            <select
-              value={dateRange}
-              onChange={(e) => {
-                setDateRange(e.target.value);
-                if (e.target.value !== 'custom') {
-                  setStartDate('');
-                  setEndDate('');
-                }
-              }}
-              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-            >
-              <option value="7">Ultimi 7 giorni</option>
-              <option value="30">Ultimi 30 giorni</option>
-              <option value="90">Ultimi 90 giorni</option>
-              <option value="365">Ultimo anno</option>
-              <option value="custom">Periodo Personalizzato</option>
-            </select>
-          </div>
-        </div>
-
-        {dateRange === 'custom' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-[#c1c1c1]">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="text-sm text-[#9b9b9b] mb-2 block flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                Data Inizio
-              </label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-              />
+              <label className="text-sm text-slate-600 mb-2 block">Locale</label>
+              <select
+                value={selectedStore}
+                onChange={(e) => setSelectedStore(e.target.value)}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+              >
+                <option value="all">Tutti</option>
+                {stores.map(store => (
+                  <option key={store.id} value={store.id}>{store.name}</option>
+                ))}
+              </select>
             </div>
 
             <div>
-              <label className="text-sm text-[#9b9b9b] mb-2 block flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                Data Fine
-              </label>
-              <div className="flex gap-2">
+              <label className="text-sm text-slate-600 mb-2 block">Periodo</label>
+              <select
+                value={dateRange}
+                onChange={(e) => {
+                  setDateRange(e.target.value);
+                  if (e.target.value !== 'custom') {
+                    setStartDate('');
+                    setEndDate('');
+                  }
+                }}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+              >
+                <option value="7">Ultimi 7 giorni</option>
+                <option value="30">Ultimi 30 giorni</option>
+                <option value="90">Ultimi 90 giorni</option>
+                <option value="365">Ultimo anno</option>
+                <option value="custom">Personalizzato</option>
+              </select>
+            </div>
+
+            {dateRange === 'custom' && (
+              <>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm"
+                />
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                  className="neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm"
                 />
-                {(startDate || endDate) && (
-                  <button
-                    onClick={clearCustomDates}
-                    className="neumorphic-flat px-3 rounded-xl text-[#9b9b9b] hover:text-red-600 transition-colors"
-                    title="Cancella date"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                )}
+              </>
+            )}
+          </div>
+        </NeumorphicCard>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
+          <NeumorphicCard className="p-4">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center mb-2 lg:mb-3 shadow-lg">
+                <DollarSign className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+              </div>
+              <h3 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1">
+                €{stats.totale.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+              </h3>
+              <p className="text-xs text-slate-500">Totale</p>
+            </div>
+          </NeumorphicCard>
+
+          <NeumorphicCard className="p-4">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-2 lg:mb-3 flex items-center justify-center shadow-lg">
+                <TrendingUp className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+              </div>
+              <h3 className="text-xl lg:text-2xl font-bold text-blue-600 mb-1">
+                €{stats.media.toFixed(2)}
+              </h3>
+              <p className="text-xs text-slate-500">Media</p>
+            </div>
+          </NeumorphicCard>
+
+          <NeumorphicCard className="p-4">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center mb-2 lg:mb-3 shadow-lg">
+                <Calendar className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+              </div>
+              <h3 className="text-xl lg:text-2xl font-bold text-purple-600 mb-1">
+                {stats.count}
+              </h3>
+              <p className="text-xs text-slate-500">Conteggi</p>
+            </div>
+          </NeumorphicCard>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+          <NeumorphicCard className="p-4 lg:p-6">
+            <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Trend Giornaliero</h2>
+            <div className="w-full overflow-x-auto">
+              <div style={{ minWidth: '300px' }}>
+                <ResponsiveContainer width="100%" height={250}>
+                  <LineChart data={stats.dailyData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                    <XAxis dataKey="date" stroke="#64748b" tick={{ fontSize: 11 }} />
+                    <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        background: 'rgba(248, 250, 252, 0.95)', 
+                        border: 'none',
+                        borderRadius: '12px',
+                        fontSize: '11px'
+                      }}
+                      formatter={(value) => `€${value.toFixed(2)}`}
+                    />
+                    <Legend wrapperStyle={{ fontSize: '11px' }} />
+                    <Line type="monotone" dataKey="valore" stroke="#3b82f6" strokeWidth={3} name="Valore €" />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             </div>
-          </div>
-        )}
-      </NeumorphicCard>
+          </NeumorphicCard>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <NeumorphicCard className="p-6 text-center">
-          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <DollarSign className="w-8 h-8 text-[#8b7355]" />
-          </div>
-          <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">
-            €{stats.totale.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </h3>
-          <p className="text-sm text-[#9b9b9b]">Totale</p>
-        </NeumorphicCard>
+          <NeumorphicCard className="p-4 lg:p-6">
+            <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Per Locale</h2>
+            <div className="w-full overflow-x-auto">
+              <div style={{ minWidth: '300px' }}>
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={stats.storeData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                    <XAxis dataKey="name" stroke="#64748b" tick={{ fontSize: 11 }} />
+                    <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        background: 'rgba(248, 250, 252, 0.95)', 
+                        border: 'none',
+                        borderRadius: '12px',
+                        fontSize: '11px'
+                      }}
+                      formatter={(value, name) => {
+                        if (name === 'Valore €') return `€${value.toFixed(2)}`;
+                        return value;
+                      }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: '11px' }} />
+                    <Bar dataKey="valore" fill="#3b82f6" name="Valore €" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </NeumorphicCard>
+        </div>
 
-        <NeumorphicCard className="p-6 text-center">
-          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <TrendingUp className="w-8 h-8 text-green-600" />
-          </div>
-          <h3 className="text-3xl font-bold text-green-600 mb-1">
-            €{stats.media.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </h3>
-          <p className="text-sm text-[#9b9b9b]">Media</p>
-        </NeumorphicCard>
-
-        <NeumorphicCard className="p-6 text-center">
-          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <Calendar className="w-8 h-8 text-blue-600" />
-          </div>
-          <h3 className="text-3xl font-bold text-blue-600 mb-1">
-            {stats.count}
-          </h3>
-          <p className="text-sm text-[#9b9b9b]">Conteggi</p>
-        </NeumorphicCard>
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <NeumorphicCard className="p-6">
-          <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Trend Giornaliero</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={stats.dailyData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#c1c1c1" />
-              <XAxis dataKey="date" stroke="#9b9b9b" />
-              <YAxis stroke="#9b9b9b" />
-              <Tooltip 
-                contentStyle={{ 
-                  background: '#e0e5ec', 
-                  border: 'none',
-                  borderRadius: '12px',
-                  boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
-                }}
-                formatter={(value) => `€${value.toFixed(2)}`}
-              />
-              <Legend />
-              <Line type="monotone" dataKey="valore" stroke="#8b7355" strokeWidth={3} name="Valore €" />
-            </LineChart>
-          </ResponsiveContainer>
-        </NeumorphicCard>
-
-        <NeumorphicCard className="p-6">
-          <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Per Locale</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={stats.storeData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#c1c1c1" />
-              <XAxis dataKey="name" stroke="#9b9b9b" />
-              <YAxis stroke="#9b9b9b" />
-              <Tooltip 
-                contentStyle={{ 
-                  background: '#e0e5ec', 
-                  border: 'none',
-                  borderRadius: '12px',
-                  boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
-                }}
-                formatter={(value, name) => {
-                  if (name === 'Valore €') return `€${value.toFixed(2)}`;
-                  return value;
-                }}
-              />
-              <Legend />
-              <Bar dataKey="valore" fill="#8b7355" name="Valore €" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </NeumorphicCard>
-      </div>
-
-      {/* Table */}
-      <NeumorphicCard className="p-6">
-        <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Dettaglio Conteggi</h2>
-        
-        {filteredConteggi.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b-2 border-[#8b7355]">
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Data e Ora</th>
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Locale</th>
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Rilevato da</th>
-                  <th className="text-right p-3 text-[#9b9b9b] font-medium">Importo</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredConteggi.map((conteggio) => (
-                  <tr key={conteggio.id} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
-                    <td className="p-3">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-[#9b9b9b]" />
-                        <span className="text-[#6b6b6b]">
-                          {format(new Date(conteggio.data_conteggio), 'dd/MM/yyyy HH:mm', { locale: it })}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex items-center gap-2">
-                        <Store className="w-4 h-4 text-[#9b9b9b]" />
-                        <span className="text-[#6b6b6b]">{conteggio.store_name}</span>
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-[#9b9b9b]" />
-                        <span className="text-[#6b6b6b] text-sm">{conteggio.rilevato_da}</span>
-                      </div>
-                    </td>
-                    <td className="p-3 text-right">
-                      <span className="text-[#8b7355] font-bold text-lg">
-                        €{conteggio.valore_conteggio.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                    </td>
+        <NeumorphicCard className="p-4 lg:p-6">
+          <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Dettaglio</h2>
+          
+          {filteredConteggi.length > 0 ? (
+            <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
+              <table className="w-full min-w-[600px]">
+                <thead>
+                  <tr className="border-b-2 border-blue-600">
+                    <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Data</th>
+                    <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Locale</th>
+                    <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Rilevato da</th>
+                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Importo</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <DollarSign className="w-16 h-16 text-[#9b9b9b] opacity-50 mx-auto mb-4" />
-            <p className="text-[#9b9b9b]">Nessun conteggio nel periodo selezionato</p>
-          </div>
-        )}
-      </NeumorphicCard>
-    </div>
+                </thead>
+                <tbody>
+                  {filteredConteggi.map((conteggio) => (
+                    <tr key={conteggio.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                      <td className="p-2 lg:p-3">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-slate-400" />
+                          <span className="text-slate-700 text-sm">
+                            {format(parseISO(conteggio.data_conteggio), 'dd/MM/yyyy HH:mm', { locale: it })}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="p-2 lg:p-3">
+                        <div className="flex items-center gap-2">
+                          <Store className="w-4 h-4 text-slate-400" />
+                          <span className="text-slate-700 text-sm">{conteggio.store_name}</span>
+                        </div>
+                      </td>
+                      <td className="p-2 lg:p-3">
+                        <div className="flex items-center gap-2">
+                          <User className="w-4 h-4 text-slate-400" />
+                          <span className="text-slate-700 text-sm">{conteggio.rilevato_da}</span>
+                        </div>
+                      </td>
+                      <td className="p-2 lg:p-3 text-right">
+                        <span className="text-blue-600 font-bold text-sm lg:text-base">
+                          €{conteggio.valore_conteggio.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <DollarSign className="w-16 h-16 text-slate-300 opacity-50 mx-auto mb-4" />
+              <p className="text-slate-500">Nessun conteggio</p>
+            </div>
+          )}
+        </NeumorphicCard>
+      </div>
+    </ProtectedPage>
   );
 }
