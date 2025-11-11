@@ -54,6 +54,7 @@ import ContrattiDipendente from './pages/ContrattiDipendente';
 import MateriePrime from './pages/MateriePrime';
 import FormTeglieButtate from './pages/FormTeglieButtate';
 import FormPreparazioni from './pages/FormPreparazioni';
+import AnalisiSprechi from './pages/AnalisiSprechi';
 import Layout from './Layout.jsx';
 
 
@@ -114,6 +115,7 @@ export const PAGES = {
     "MateriePrime": MateriePrime,
     "FormTeglieButtate": FormTeglieButtate,
     "FormPreparazioni": FormPreparazioni,
+    "AnalisiSprechi": AnalisiSprechi,
 }
 
 export const pagesConfig = {

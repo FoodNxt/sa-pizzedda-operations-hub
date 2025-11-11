@@ -1,17 +1,18 @@
-
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Package, TrendingUp, TrendingDown, Filter, Calendar, X, AlertTriangle, CheckCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
+import ProtectedPage from "../components/ProtectedPage";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { format, parseISO, isAfter, isBefore } from 'date-fns';
+import { format, parseISO, isAfter, isBefore, subDays } from 'date-fns';
 
 export default function Inventory() {
   const [selectedStore, setSelectedStore] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [dateRange, setDateRange] = useState('30');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [expandedSections, setExpandedSections] = useState({
     critical: true,
@@ -25,214 +26,108 @@ export default function Inventory() {
     queryFn: () => base44.entities.Store.list(),
   });
 
-  const { data: inventoryRecords = [] } = useQuery({
-    queryKey: ['inventory'],
-    queryFn: () => base44.entities.Inventory.list('-data', 1000),
+  const { data: rilevazioniNegozio = [] } = useQuery({
+    queryKey: ['rilevazioni-inventario'],
+    queryFn: () => base44.entities.RilevazioneInventario.list('-data_rilevazione', 1000),
   });
 
-  // Product categories
-  const productCategories = {
-    ingredienti: {
-      label: 'Ingredienti Base',
-      products: ['farina_semola_sacchi', 'farina_verde', 'lievito_pacchi', 'sugo_latte', 'mozzarella_confezioni', 'sale_pacchi_1kg']
-    },
-    condimenti: {
-      label: 'Condimenti',
-      products: ['origano_barattoli', 'capperi_barattoli', 'alici_barattoli', 'olive_barattoli', 'stracciatella_250g', 'nduja_barattoli', 'pistacchio_barattoli', 'nutella_barattoli']
-    },
-    verdure: {
-      label: 'Verdure e Salse',
-      products: ['patate_grammi', 'crema_gorgonzola_grammi', 'salsiccia_grammi', 'crema_pecorino_grammi', 'friarielli_barattoli', 'cipolle_barattoli', 'radicchio_barattoli', 'pomodorini_barattoli']
-    },
-    latticini: {
-      label: 'Latticini',
-      products: ['mascarpone_500g', 'besciamella_500g', 'sugo_linea_grammi', 'mozzarella_linea_grammi']
-    },
-    dolci: {
-      label: 'Dolci',
-      products: ['pesca_gianduia', 'pabassinos_anice', 'pabassinos_noci']
-    },
-    bevande: {
-      label: 'Bevande',
-      products: ['coca_cola', 'coca_cola_zero', 'acqua_naturale_50cl', 'acqua_frizzante_50cl', 'fanta', 'the_limone', 'ichnusa_classica', 'ichnusa_non_filtrata']
-    },
-    pulizia: {
-      label: 'Pulizia',
-      products: ['detersivo_piatti', 'buste_spazzatura_gialle', 'buste_spazzatura_umido', 'rotoli_scottex']
+  const { data: rilevazioniCantina = [] } = useQuery({
+    queryKey: ['rilevazioni-inventario-cantina'],
+    queryFn: () => base44.entities.RilevazioneInventarioCantina.list('-data_rilevazione', 1000),
+  });
+
+  const { data: products = [] } = useQuery({
+    queryKey: ['materie-prime'],
+    queryFn: () => base44.entities.MateriePrime.filter({ attivo: true }),
+  });
+
+  const allRilevazioni = useMemo(() => {
+    return [...rilevazioniNegozio, ...rilevazioniCantina];
+  }, [rilevazioniNegozio, rilevazioniCantina]);
+
+  const filteredRilevazioni = useMemo(() => {
+    let cutoffDate;
+    let endFilterDate;
+    
+    if (startDate || endDate) {
+      cutoffDate = startDate ? parseISO(startDate + 'T00:00:00') : new Date(0);
+      endFilterDate = endDate ? parseISO(endDate + 'T23:59:59') : new Date();
+    } else {
+      const days = parseInt(dateRange);
+      cutoffDate = subDays(new Date(), days);
+      endFilterDate = new Date();
     }
-  };
-
-  // Product labels
-  const productLabels = {
-    farina_semola_sacchi: 'Farina Semola',
-    farina_verde: 'Farina Verde',
-    lievito_pacchi: 'Lievito',
-    sugo_latte: 'Sugo',
-    mozzarella_confezioni: 'Mozzarella',
-    sale_pacchi_1kg: 'Sale',
-    origano_barattoli: 'Origano',
-    capperi_barattoli: 'Capperi',
-    alici_barattoli: 'Alici',
-    olive_barattoli: 'Olive',
-    stracciatella_250g: 'Stracciatella',
-    nduja_barattoli: 'Nduja',
-    pistacchio_barattoli: 'Pistacchio',
-    nutella_barattoli: 'Nutella',
-    patate_grammi: 'Patate',
-    crema_gorgonzola_grammi: 'Crema Gorgonzola',
-    salsiccia_grammi: 'Salsiccia',
-    crema_pecorino_grammi: 'Crema Pecorino',
-    friarielli_barattoli: 'Friarielli',
-    cipolle_barattoli: 'Cipolle',
-    radicchio_barattoli: 'Radicchio',
-    pomodorini_barattoli: 'Pomodorini',
-    mascarpone_500g: 'Mascarpone',
-    besciamella_500g: 'Besciamella',
-    sugo_linea_grammi: 'Sugo Linea',
-    mozzarella_linea_grammi: 'Mozzarella Linea',
-    pesca_gianduia: 'Pesca Gianduia',
-    pabassinos_anice: 'Pabassinos Anice',
-    pabassinos_noci: 'Pabassinos Noci',
-    detersivo_piatti: 'Detersivo',
-    buste_spazzatura_gialle: 'Buste Gialle',
-    buste_spazzatura_umido: 'Buste Umido',
-    rotoli_scottex: 'Scottex',
-    coca_cola: 'Coca Cola',
-    coca_cola_zero: 'Coca Zero',
-    acqua_naturale_50cl: 'Acqua Naturale',
-    acqua_frizzante_50cl: 'Acqua Frizzante',
-    fanta: 'Fanta',
-    the_limone: 'Thè Limone',
-    ichnusa_classica: 'Ichnusa Classica',
-    ichnusa_non_filtrata: 'Ichnusa Non Filtrata'
-  };
-
-  // Filter data
-  const filteredRecords = useMemo(() => {
-    return inventoryRecords.filter(record => {
-      // Store filter
-      if (selectedStore !== 'all' && record.store_id !== selectedStore) return false;
-
-      // Date filter
-      if (startDate || endDate) {
-        if (!record.data) return false;
-        const recordDate = parseISO(record.data);
-        const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
-        const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
-
-        if (start && end) {
-          return !isBefore(recordDate, start) && !isAfter(recordDate, end);
-        } else if (start) {
-          return !isBefore(recordDate, start);
-        } else if (end) {
-          return !isAfter(recordDate, end);
-        }
+    
+    return allRilevazioni.filter(r => {
+      if (r.data_rilevazione) {
+        const itemDate = parseISO(r.data_rilevazione);
+        if (isBefore(itemDate, cutoffDate) || isAfter(itemDate, endFilterDate)) return false;
       }
-
+      if (selectedStore !== 'all' && r.store_id !== selectedStore) return false;
       return true;
     });
-  }, [inventoryRecords, selectedStore, startDate, endDate]);
+  }, [allRilevazioni, selectedStore, dateRange, startDate, endDate]);
 
-  // Get products to display based on category
-  const displayProducts = useMemo(() => {
-    if (selectedCategory === 'all') {
-      return Object.values(productCategories).flatMap(cat => cat.products);
-    }
-    return productCategories[selectedCategory]?.products || [];
-  }, [selectedCategory]);
-
-  // Calculate trends
   const productTrends = useMemo(() => {
     const trends = {};
     
-    displayProducts.forEach(product => {
-      const recordsWithProduct = filteredRecords
-        .filter(r => r[product] !== null && r[product] !== undefined)
-        .sort((a, b) => new Date(a.data) - new Date(b.data));
+    products.forEach(product => {
+      if (selectedCategory !== 'all' && product.categoria !== selectedCategory) return;
 
-      if (recordsWithProduct.length > 0) {
-        const latest = recordsWithProduct[recordsWithProduct.length - 1];
-        const previous = recordsWithProduct.length > 1 ? recordsWithProduct[recordsWithProduct.length - 2] : null;
+      const productRilevazioni = filteredRilevazioni
+        .filter(r => r.prodotto_id === product.id)
+        .sort((a, b) => new Date(a.data_rilevazione) - new Date(b.data_rilevazione));
+
+      if (productRilevazioni.length > 0) {
+        const latest = productRilevazioni[productRilevazioni.length - 1];
+        const previous = productRilevazioni.length > 1 ? productRilevazioni[productRilevazioni.length - 2] : null;
         
-        const latestValue = latest[product] || 0;
-        const previousValue = previous ? (previous[product] || 0) : latestValue;
+        const latestValue = latest.quantita_rilevata || 0;
+        const previousValue = previous ? (previous.quantita_rilevata || 0) : latestValue;
         
         const change = latestValue - previousValue;
-        const percentChange = previousValue !== 0 ? ((change / previousValue) * 100) : 0;
+        const avg = productRilevazioni.reduce((sum, r) => sum + (r.quantita_rilevata || 0), 0) / productRilevazioni.length;
 
-        // Calculate average
-        const avg = recordsWithProduct.reduce((sum, r) => sum + (r[product] || 0), 0) / recordsWithProduct.length;
-
-        // Determine status
         let status = 'normal';
-        if (latestValue < avg * 0.3) status = 'critical';
+        if (latest.sotto_minimo) status = 'critical';
         else if (latestValue < avg * 0.5) status = 'warning';
-        else if (latestValue > avg * 1.5) status = 'high';
 
-        trends[product] = {
+        trends[product.id] = {
+          product,
           current: latestValue,
           previous: previousValue,
           change,
-          percentChange,
           average: avg,
           status,
-          recordCount: recordsWithProduct.length,
-          history: recordsWithProduct.map(r => ({
-            date: format(parseISO(r.data), 'dd/MM'),
-            value: r[product] || 0
+          recordCount: productRilevazioni.length,
+          history: productRilevazioni.map(r => ({
+            date: format(parseISO(r.data_rilevazione), 'dd/MM'),
+            value: r.quantita_rilevata || 0
           }))
         };
       }
     });
 
     return trends;
-  }, [filteredRecords, displayProducts]);
+  }, [filteredRilevazioni, products, selectedCategory]);
 
-  // Calculate store comparison
-  const storeComparison = useMemo(() => {
-    const comparison = {};
-    
-    stores.forEach(store => {
-      const storeRecords = filteredRecords.filter(r => r.store_id === store.id);
-      if (storeRecords.length === 0) return;
+  const productsByStatus = useMemo(() => {
+    const critical = [];
+    const warning = [];
+    const ok = [];
 
-      const latestRecord = storeRecords.sort((a, b) => new Date(b.data) - new Date(a.data))[0];
-      
-      displayProducts.forEach(product => {
-        if (!comparison[product]) comparison[product] = [];
-        comparison[product].push({
-          store: store.name,
-          value: latestRecord[product] || 0
-        });
-      });
+    Object.values(productTrends).forEach(trend => {
+      if (trend.status === 'critical') {
+        critical.push(trend);
+      } else if (trend.status === 'warning') {
+        warning.push(trend);
+      } else {
+        ok.push(trend);
+      }
     });
 
-    return comparison;
-  }, [filteredRecords, stores, displayProducts]);
-
-  const clearCustomDates = () => {
-    setStartDate('');
-    setEndDate('');
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'critical': return 'text-red-600';
-      case 'warning': return 'text-yellow-600';
-      case 'high': return 'text-blue-600';
-      default: return 'text-green-600';
-    }
-  };
-
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'critical': return <AlertTriangle className="w-5 h-5 text-red-600" />;
-      case 'warning': return <AlertTriangle className="w-5 h-5 text-yellow-600" />;
-      default: return <CheckCircle className="w-5 h-5 text-green-600" />;
-    }
-  };
-
-  const COLORS = ['#8b7355', '#a68a6a', '#c1a07f', '#dcb794']; // Keeping this from original, although not directly used in the new modal part.
+    return { critical, warning, ok };
+  }, [productTrends]);
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
@@ -241,700 +136,369 @@ export default function Inventory() {
     }));
   };
 
-  // Raggruppa prodotti per stato
-  const productsByStatus = useMemo(() => {
-    const critical = [];
-    const warning = [];
-    const ok = [];
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'critical': return 'text-red-600';
+      case 'warning': return 'text-yellow-600';
+      default: return 'text-green-600';
+    }
+  };
 
-    displayProducts.forEach(product => {
-      const trend = productTrends[product];
-      if (!trend) return;
-
-      if (trend.status === 'critical') {
-        critical.push({ product, trend });
-      } else if (trend.status === 'warning') {
-        warning.push({ product, trend });
-      } else { // 'normal' or 'high'
-        ok.push({ product, trend });
-      }
-    });
-
-    return { critical, warning, ok };
-  }, [displayProducts, productTrends]);
-
-  // Get detailed product history
-  const getProductDetails = (productKey) => {
-    const allRecords = inventoryRecords
-      .filter(r => r[productKey] !== null && r[productKey] !== undefined)
-      .sort((a, b) => new Date(a.data) - new Date(b.data));
-
-    const history = allRecords.map(r => ({
-      date: format(parseISO(r.data), 'dd/MM/yyyy'),
-      value: r[productKey] || 0,
-      store: r.store_name
-    }));
-
-    // Group by store
-    const byStore = {};
-    stores.forEach(store => {
-      const storeRecords = allRecords.filter(r => r.store_id === store.id);
-      if (storeRecords.length > 0) {
-        const latest = storeRecords.sort((a,b) => new Date(b.data) - new Date(a.data))[0];
-        const avg = storeRecords.reduce((sum, r) => sum + (r[productKey] || 0), 0) / storeRecords.length;
-        byStore[store.name] = {
-          current: latest[productKey] || 0,
-          average: avg,
-          recordCount: storeRecords.length
-        };
-      }
-    });
-
-    return { history, byStore };
+  const clearCustomDates = () => {
+    setStartDate('');
+    setEndDate('');
+    setDateRange('30');
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Dashboard Inventario</h1>
-        <p className="text-[#9b9b9b]">Monitora le giacenze e i trend dei prodotti</p>
-      </div>
-
-      {/* Filters */}
-      <NeumorphicCard className="p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <Filter className="w-5 h-5 text-[#8b7355]" />
-          <h2 className="text-lg font-bold text-[#6b6b6b]">Filtri</h2>
+    <ProtectedPage pageName="Inventory">
+      <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
+        <div className="mb-4 lg:mb-6">
+          <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
+            Dashboard Inventario
+          </h1>
+          <p className="text-sm text-slate-500">Monitora le giacenze e i trend dei prodotti</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="text-sm text-[#9b9b9b] mb-2 block">Locale</label>
-            <select
-              value={selectedStore}
-              onChange={(e) => setSelectedStore(e.target.value)}
-              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-            >
-              <option value="all">Tutti i Locali</option>
-              {stores.map(store => (
-                <option key={store.id} value={store.id}>{store.name}</option>
-              ))}
-            </select>
-          </div>
 
-          <div>
-            <label className="text-sm text-[#9b9b9b] mb-2 block">Categoria</label>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-            >
-              <option value="all">Tutte le Categorie</option>
-              {Object.entries(productCategories).map(([key, cat]) => (
-                <option key={key} value={key}>{cat.label}</option>
-              ))}
-            </select>
+        <NeumorphicCard className="p-4 lg:p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Filter className="w-5 h-5 text-blue-600" />
+            <h2 className="text-base lg:text-lg font-bold text-slate-800">Filtri</h2>
           </div>
-
-          <div>
-            <label className="text-sm text-[#9b9b9b] mb-2 block flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              Data Inizio
-            </label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm text-[#9b9b9b] mb-2 block flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              Data Fine
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-              />
-              {(startDate || endDate) && (
-                <button
-                  onClick={clearCustomDates}
-                  className="neumorphic-flat px-3 rounded-xl text-[#9b9b9b] hover:text-red-600 transition-colors"
-                  title="Cancella date"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm text-slate-600 mb-2 block">Locale</label>
+              <select
+                value={selectedStore}
+                onChange={(e) => setSelectedStore(e.target.value)}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+              >
+                <option value="all">Tutti i Locali</option>
+                {stores.map(store => (
+                  <option key={store.id} value={store.id}>{store.name}</option>
+                ))}
+              </select>
             </div>
-          </div>
-        </div>
-      </NeumorphicCard>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <NeumorphicCard className="p-6 text-center">
-          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <Package className="w-8 h-8 text-[#8b7355]" />
-          </div>
-          <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">{filteredRecords.length}</h3>
-          <p className="text-sm text-[#9b9b9b]">Rilevazioni Totali</p>
-        </NeumorphicCard>
+            <div>
+              <label className="text-sm text-slate-600 mb-2 block">Categoria</label>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+              >
+                <option value="all">Tutte</option>
+                <option value="ingredienti">Ingredienti</option>
+                <option value="condimenti">Condimenti</option>
+                <option value="verdure">Verdure</option>
+                <option value="latticini">Latticini</option>
+                <option value="dolci">Dolci</option>
+                <option value="bevande">Bevande</option>
+                <option value="pulizia">Pulizia</option>
+              </select>
+            </div>
 
-        <NeumorphicCard className="p-6 text-center">
-          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <AlertTriangle className="w-8 h-8 text-red-600" />
-          </div>
-          <h3 className="text-3xl font-bold text-red-600 mb-1">
-            {Object.values(productTrends).filter(t => t.status === 'critical').length}
-          </h3>
-          <p className="text-sm text-[#9b9b9b]">Prodotti in Esaurimento</p>
-        </NeumorphicCard>
+            <div>
+              <label className="text-sm text-slate-600 mb-2 block">Periodo</label>
+              <select
+                value={dateRange}
+                onChange={(e) => {
+                  setDateRange(e.target.value);
+                  if (e.target.value !== 'custom') {
+                    setStartDate('');
+                    setEndDate('');
+                  }
+                }}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+              >
+                <option value="7">Ultimi 7 giorni</option>
+                <option value="30">Ultimi 30 giorni</option>
+                <option value="90">Ultimi 90 giorni</option>
+                <option value="custom">Personalizzato</option>
+              </select>
+            </div>
 
-        <NeumorphicCard className="p-6 text-center">
-          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <AlertTriangle className="w-8 h-8 text-yellow-600" />
-          </div>
-          <h3 className="text-3xl font-bold text-yellow-600 mb-1">
-            {Object.values(productTrends).filter(t => t.status === 'warning').length}
-          </h3>
-          <p className="text-sm text-[#9b9b9b]">Prodotti Attenzione</p>
-        </NeumorphicCard>
-
-        <NeumorphicCard className="p-6 text-center">
-          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <CheckCircle className="w-8 h-8 text-green-600" />
-          </div>
-          <h3 className="text-3xl font-bold text-green-600 mb-1">
-            {Object.values(productTrends).filter(t => t.status === 'normal' || t.status === 'high').length}
-          </h3>
-          <p className="text-sm text-[#9b9b9b]">Prodotti OK</p>
-        </NeumorphicCard>
-      </div>
-
-      {/* Product Status Sections */}
-      <NeumorphicCard className="p-6">
-        <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">
-          Stato Prodotti - {selectedCategory === 'all' ? 'Tutti' : productCategories[selectedCategory]?.label}
-        </h2>
-
-        <div className="space-y-4">
-          {/* Prodotti in Esaurimento */}
-          <div className="neumorphic-flat rounded-xl overflow-hidden">
-            <button
-              onClick={() => toggleSection('critical')}
-              className="w-full flex items-center justify-between p-4 hover:bg-[#d5dae3] transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
-                <h3 className="font-bold text-red-700">
-                  Prodotti in Esaurimento ({productsByStatus.critical.length})
-                </h3>
-              </div>
-              {expandedSections.critical ? (
-                <ChevronDown className="w-5 h-5 text-[#6b6b6b]" />
-              ) : (
-                <ChevronRight className="w-5 h-5 text-[#6b6b6b]" />
-              )}
-            </button>
-
-            {expandedSections.critical && (
-              <div className="p-4 border-t border-[#c1c1c1]">
-                {productsByStatus.critical.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {productsByStatus.critical.map(({ product, trend }) => (
-                      <div 
-                        key={product} 
-                        className="neumorphic-pressed p-4 rounded-xl border-2 border-red-200 cursor-pointer hover:border-red-400 transition-all"
-                        onClick={() => setSelectedProduct(product)}
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <h3 className="font-bold text-[#6b6b6b]">{productLabels[product]}</h3>
-                            <p className="text-xs text-[#9b9b9b]">{trend.recordCount} rilevazioni</p>
-                          </div>
-                          <AlertTriangle className="w-5 h-5 text-red-600" />
-                        </div>
-
-                        <div className="space-y-2">
-                          <div>
-                            <p className="text-xs text-[#9b9b9b]">Quantità Attuale</p>
-                            <p className="text-2xl font-bold text-red-600">
-                              {trend.current.toFixed(0)}
-                            </p>
-                          </div>
-
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-[#9b9b9b]">vs Precedente:</span>
-                            <div className="flex items-center gap-1">
-                              {trend.change > 0 ? (
-                                <TrendingUp className="w-4 h-4 text-green-600" />
-                              ) : trend.change < 0 ? (
-                                <TrendingDown className="w-4 h-4 text-red-600" />
-                              ) : null}
-                              <span className={trend.change > 0 ? 'text-green-600' : trend.change < 0 ? 'text-red-600' : 'text-[#6b6b6b]'}>
-                                {trend.change > 0 ? '+' : ''}{trend.change.toFixed(0)}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="neumorphic-flat p-2 rounded-lg">
-                            <p className="text-xs text-[#9b9b9b] mb-1">Media: {trend.average.toFixed(0)}</p>
-                            <div className="h-1 neumorphic-pressed rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-red-600"
-                                style={{ width: `${Math.min((trend.current / trend.average) * 100, 100)}%` }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-center text-[#9b9b9b] py-4">Nessun prodotto in esaurimento 🎉</p>
-                )}
+            {dateRange === 'custom' && (
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm"
+                  placeholder="Inizio"
+                />
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm"
+                  placeholder="Fine"
+                />
               </div>
             )}
           </div>
+        </NeumorphicCard>
 
-          {/* Prodotti Attenzione */}
-          <div className="neumorphic-flat rounded-xl overflow-hidden">
-            <button
-              onClick={() => toggleSection('warning')}
-              className="w-full flex items-center justify-between p-4 hover:bg-[#d5dae3] transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="w-5 h-5 text-yellow-600" />
-                <h3 className="font-bold text-yellow-700">
-                  Prodotti Attenzione ({productsByStatus.warning.length})
-                </h3>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+          <NeumorphicCard className="p-4">
+            <div className="text-center">
+              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 mx-auto mb-2 lg:mb-3 flex items-center justify-center shadow-lg">
+                <Package className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
               </div>
-              {expandedSections.warning ? (
-                <ChevronDown className="w-5 h-5 text-[#6b6b6b]" />
-              ) : (
-                <ChevronRight className="w-5 h-5 text-[#6b6b6b]" />
-              )}
-            </button>
-
-            {expandedSections.warning && (
-              <div className="p-4 border-t border-[#c1c1c1]">
-                {productsByStatus.warning.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {productsByStatus.warning.map(({ product, trend }) => (
-                      <div 
-                        key={product} 
-                        className="neumorphic-pressed p-4 rounded-xl border-2 border-yellow-200 cursor-pointer hover:border-yellow-400 transition-all"
-                        onClick={() => setSelectedProduct(product)}
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <h3 className="font-bold text-[#6b6b6b]">{productLabels[product]}</h3>
-                            <p className="text-xs text-[#9b9b9b]">{trend.recordCount} rilevazioni</p>
-                          </div>
-                          <AlertTriangle className="w-5 h-5 text-yellow-600" />
-                        </div>
-
-                        <div className="space-y-2">
-                          <div>
-                            <p className="text-xs text-[#9b9b9b]">Quantità Attuale</p>
-                            <p className="text-2xl font-bold text-yellow-600">
-                              {trend.current.toFixed(0)}
-                            </p>
-                          </div>
-
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-[#9b9b9b]">vs Precedente:</span>
-                            <div className="flex items-center gap-1">
-                              {trend.change > 0 ? (
-                                <TrendingUp className="w-4 h-4 text-green-600" />
-                              ) : trend.change < 0 ? (
-                                <TrendingDown className="w-4 h-4 text-red-600" />
-                              ) : null}
-                              <span className={trend.change > 0 ? 'text-green-600' : trend.change < 0 ? 'text-red-600' : 'text-[#6b6b6b]'}>
-                                {trend.change > 0 ? '+' : ''}{trend.change.toFixed(0)}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="neumorphic-flat p-2 rounded-lg">
-                            <p className="text-xs text-[#9b9b9b] mb-1">Media: {trend.average.toFixed(0)}</p>
-                            <div className="h-1 neumorphic-pressed rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-yellow-600"
-                                style={{ width: `${Math.min((trend.current / trend.average) * 100, 100)}%` }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-center text-[#9b9b9b] py-4">Nessun prodotto in attenzione</p>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Prodotti OK */}
-          <div className="neumorphic-flat rounded-xl overflow-hidden">
-            <button
-              onClick={() => toggleSection('ok')}
-              className="w-full flex items-center justify-between p-4 hover:bg-[#d5dae3] transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-                <h3 className="font-bold text-green-700">
-                  Prodotti OK ({productsByStatus.ok.length})
-                </h3>
-              </div>
-              {expandedSections.ok ? (
-                <ChevronDown className="w-5 h-5 text-[#6b6b6b]" />
-              ) : (
-                <ChevronRight className="w-5 h-5 text-[#6b6b6b]" />
-              )}
-            </button>
-
-            {expandedSections.ok && (
-              <div className="p-4 border-t border-[#c1c1c1]">
-                {productsByStatus.ok.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {productsByStatus.ok.map(({ product, trend }) => (
-                      <div 
-                        key={product} 
-                        className="neumorphic-pressed p-4 rounded-xl border-2 border-green-200 cursor-pointer hover:border-green-400 transition-all"
-                        onClick={() => setSelectedProduct(product)}
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <h3 className="font-bold text-[#6b6b6b]">{productLabels[product]}</h3>
-                            <p className="text-xs text-[#9b9b9b]">{trend.recordCount} rilevazioni</p>
-                          </div>
-                          <CheckCircle className="w-5 h-5 text-green-600" />
-                        </div>
-
-                        <div className="space-y-2">
-                          <div>
-                            <p className="text-xs text-[#9b9b9b]">Quantità Attuale</p>
-                            <p className="text-2xl font-bold text-green-600">
-                              {trend.current.toFixed(0)}
-                            </p>
-                          </div>
-
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-[#9b9b9b]">vs Precedente:</span>
-                            <div className="flex items-center gap-1">
-                              {trend.change > 0 ? (
-                                <TrendingUp className="w-4 h-4 text-green-600" />
-                              ) : trend.change < 0 ? (
-                                <TrendingDown className="w-4 h-4 text-red-600" />
-                              ) : null}
-                              <span className={trend.change > 0 ? 'text-green-600' : trend.change < 0 ? 'text-red-600' : 'text-[#6b6b6b]'}>
-                                {trend.change > 0 ? '+' : ''}{trend.change.toFixed(0)}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="neumorphic-flat p-2 rounded-lg">
-                            <p className="text-xs text-[#9b9b9b] mb-1">Media: {trend.average.toFixed(0)}</p>
-                            <div className="h-1 neumorphic-pressed rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-green-600"
-                                style={{ width: `${Math.min((trend.current / trend.average) * 100, 100)}%` }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-center text-[#9b9b9b] py-4">Nessun prodotto OK</p>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </NeumorphicCard>
-
-      {/* Product Detail Modal */}
-      {selectedProduct && productTrends[selectedProduct] && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4">
-          <NeumorphicCard className="max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
-            <div className="flex items-start justify-between mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-[#6b6b6b] mb-1">
-                  {productLabels[selectedProduct]}
-                </h2>
-                <p className="text-[#9b9b9b]">Analisi dettagliata andamento giacenze</p>
-              </div>
-              <NeumorphicButton onClick={() => setSelectedProduct(null)}>
-                Chiudi
-              </NeumorphicButton>
+              <h3 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1">{filteredRilevazioni.length}</h3>
+              <p className="text-xs text-slate-500">Rilevazioni</p>
             </div>
+          </NeumorphicCard>
 
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="neumorphic-pressed p-4 rounded-xl text-center">
-                <p className="text-sm text-[#9b9b9b] mb-2">Quantità Attuale</p>
-                <p className={`text-3xl font-bold ${getStatusColor(productTrends[selectedProduct].status)}`}>
-                  {productTrends[selectedProduct].current.toFixed(0)}
-                </p>
+          <NeumorphicCard className="p-4">
+            <div className="text-center">
+              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 mx-auto mb-2 lg:mb-3 flex items-center justify-center shadow-lg">
+                <AlertTriangle className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
               </div>
-
-              <div className="neumorphic-pressed p-4 rounded-xl text-center">
-                <p className="text-sm text-[#9b9b9b] mb-2">Media Storica</p>
-                <p className="text-3xl font-bold text-[#6b6b6b]">
-                  {productTrends[selectedProduct].average.toFixed(0)}
-                </p>
-              </div>
-
-              <div className="neumorphic-pressed p-4 rounded-xl text-center">
-                <p className="text-sm text-[#9b9b9b] mb-2">Variazione</p>
-                <div className="flex items-center justify-center gap-2">
-                  {productTrends[selectedProduct].change > 0 ? (
-                    <TrendingUp className="w-6 h-6 text-green-600" />
-                  ) : productTrends[selectedProduct].change < 0 ? (
-                    <TrendingDown className="w-6 h-6 text-red-600" />
-                  ) : null}
-                  <p className={`text-2xl font-bold ${
-                    productTrends[selectedProduct].change > 0 ? 'text-green-600' : 
-                    productTrends[selectedProduct].change < 0 ? 'text-red-600' : 
-                    'text-[#6b6b6b]'
-                  }`}>
-                    {productTrends[selectedProduct].change > 0 ? '+' : ''}
-                    {productTrends[selectedProduct].change.toFixed(0)}
-                  </p>
-                </div>
-              </div>
-
-              <div className="neumorphic-pressed p-4 rounded-xl text-center">
-                <p className="text-sm text-[#9b9b9b] mb-2">Rilevazioni</p>
-                <p className="text-3xl font-bold text-[#6b6b6b]">
-                  {productTrends[selectedProduct].recordCount}
-                </p>
-              </div>
+              <h3 className="text-xl lg:text-2xl font-bold text-red-600 mb-1">{productsByStatus.critical.length}</h3>
+              <p className="text-xs text-slate-500">Critici</p>
             </div>
+          </NeumorphicCard>
 
-            {/* Trend Chart */}
-            <div className="neumorphic-flat p-6 rounded-xl mb-6">
-              <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Andamento Temporale</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={productTrends[selectedProduct].history}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#c1c1c1" />
-                  <XAxis dataKey="date" stroke="#9b9b9b" />
-                  <YAxis stroke="#9b9b9b" />
-                  <Tooltip
-                    contentStyle={{
-                      background: '#e0e5ec',
-                      border: 'none',
-                      borderRadius: '12px',
-                      boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
-                    }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="value"
-                    stroke="#8b7355"
-                    strokeWidth={3}
-                    dot={{ fill: '#8b7355', r: 5 }}
-                    name="Quantità"
-                  />
-                  {/* Reference line for average */}
-                  <Line
-                    type="monotone"
-                    data={productTrends[selectedProduct].history.map(h => ({
-                      date: h.date,
-                      avg: productTrends[selectedProduct].average
-                    }))}
-                    dataKey="avg"
-                    stroke="#9b9b9b"
-                    strokeWidth={2}
-                    strokeDasharray="5 5"
-                    dot={false}
-                    name="Media"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+          <NeumorphicCard className="p-4">
+            <div className="text-center">
+              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-yellow-500 to-orange-500 mx-auto mb-2 lg:mb-3 flex items-center justify-center shadow-lg">
+                <AlertTriangle className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+              </div>
+              <h3 className="text-xl lg:text-2xl font-bold text-yellow-600 mb-1">{productsByStatus.warning.length}</h3>
+              <p className="text-xs text-slate-500">Attenzione</p>
             </div>
+          </NeumorphicCard>
 
-            {/* Store Comparison */}
-            {selectedStore === 'all' && stores.length > 1 && (() => {
-              const productDetails = getProductDetails(selectedProduct);
-              return Object.keys(productDetails.byStore).length > 0 && (
-                <div className="neumorphic-flat p-6 rounded-xl">
-                  <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Confronto tra Locali</h3>
-                  <ResponsiveContainer width="100%" height={250}>
-                    <BarChart data={Object.entries(productDetails.byStore).map(([store, data]) => ({
-                      store,
-                      current: data.current,
-                      average: data.average
-                    }))}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#c1c1c1" />
-                      <XAxis dataKey="store" stroke="#9b9b9b" />
-                      <YAxis stroke="#9b9b9b" />
-                      <Tooltip
-                        contentStyle={{
-                          background: '#e0e5ec',
-                          border: 'none',
-                          borderRadius: '12px',
-                          boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
-                        }}
-                      />
-                      <Legend />
-                      <Bar dataKey="current" fill="#8b7355" name="Attuale" radius={[8, 8, 0, 0]} />
-                      <Bar dataKey="average" fill="#a68a6a" name="Media" radius={[8, 8, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-
-                  {/* Store Details Table */}
-                  <div className="mt-6 overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b-2 border-[#8b7355]">
-                          <th className="text-left p-3 text-[#9b9b9b] font-medium">Locale</th>
-                          <th className="text-right p-3 text-[#9b9b9b] font-medium">Quantità Attuale</th>
-                          <th className="text-right p-3 text-[#9b9b9b] font-medium">Media</th>
-                          <th className="text-right p-3 text-[#9b9b9b] font-medium">Rilevazioni</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {Object.entries(productDetails.byStore).map(([store, data]) => (
-                          <tr key={store} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
-                            <td className="p-3 text-[#6b6b6b] font-medium">{store}</td>
-                            <td className="p-3 text-right text-[#6b6b6b] font-bold">
-                              {data.current.toFixed(0)}
-                            </td>
-                            <td className="p-3 text-right text-[#6b6b6b]">
-                              {data.average.toFixed(0)}
-                            </td>
-                            <td className="p-3 text-right text-[#6b6b6b]">
-                              {data.recordCount}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              );
-            })()}
+          <NeumorphicCard className="p-4">
+            <div className="text-center">
+              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 mx-auto mb-2 lg:mb-3 flex items-center justify-center shadow-lg">
+                <CheckCircle className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+              </div>
+              <h3 className="text-xl lg:text-2xl font-bold text-green-600 mb-1">{productsByStatus.ok.length}</h3>
+              <p className="text-xs text-slate-500">OK</p>
+            </div>
           </NeumorphicCard>
         </div>
-      )}
 
-      {/* Trend Charts - Top Products */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {displayProducts.slice(0, 4).map(product => {
-          const trend = productTrends[product];
-          if (!trend || trend.history.length < 2) return null;
+        <NeumorphicCard className="p-4 lg:p-6">
+          <h2 className="text-lg font-bold text-slate-800 mb-4">
+            Stato Prodotti
+          </h2>
 
-          return (
-            <NeumorphicCard key={product} className="p-6">
-              <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">
-                Trend {productLabels[product]}
-              </h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={trend.history}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#c1c1c1" />
-                  <XAxis dataKey="date" stroke="#9b9b9b" />
-                  <YAxis stroke="#9b9b9b" />
-                  <Tooltip
-                    contentStyle={{
-                      background: '#e0e5ec',
-                      border: 'none',
-                      borderRadius: '12px',
-                      boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
-                    }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="value"
-                    stroke="#8b7355"
-                    strokeWidth={3}
-                    dot={{ fill: '#8b7355', r: 4 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </NeumorphicCard>
-          );
-        })}
-      </div>
-
-      {/* Store Comparison */}
-      {selectedStore === 'all' && stores.length > 1 && (
-        <NeumorphicCard className="p-6">
-          <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Confronto tra Locali</h2>
-          <div className="space-y-6">
-            {displayProducts.slice(0, 6).map(product => {
-              const comparison = storeComparison[product];
-              if (!comparison || comparison.length === 0) return null;
-
-              return (
-                <div key={product}>
-                  <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">{productLabels[product]}</h3>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={comparison}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#c1c1c1" />
-                      <XAxis dataKey="store" stroke="#9b9b9b" />
-                      <YAxis stroke="#9b9b9b" />
-                      <Tooltip
-                        contentStyle={{
-                          background: '#e0e5ec',
-                          border: 'none',
-                          borderRadius: '12px',
-                          boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
-                        }}
-                      />
-                      <Bar dataKey="value" fill="#8b7355" radius={[8, 8, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
+          <div className="space-y-4">
+            {/* Prodotti Critici */}
+            <div className="neumorphic-flat rounded-xl overflow-hidden">
+              <button
+                onClick={() => toggleSection('critical')}
+                className="w-full flex items-center justify-between p-4 hover:bg-slate-100 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                  <h3 className="font-bold text-red-700 text-sm lg:text-base">
+                    Critici ({productsByStatus.critical.length})
+                  </h3>
                 </div>
-              );
-            })}
+                {expandedSections.critical ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+              </button>
+
+              {expandedSections.critical && (
+                <div className="p-4 border-t border-slate-200">
+                  {productsByStatus.critical.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {productsByStatus.critical.map(({ product, current, change, average }) => (
+                        <div 
+                          key={product.id} 
+                          className="neumorphic-pressed p-3 lg:p-4 rounded-xl border-2 border-red-200 cursor-pointer hover:border-red-400 transition-all"
+                          onClick={() => setSelectedProduct(product)}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <h3 className="font-bold text-slate-800 text-sm">{product.nome_prodotto}</h3>
+                            <AlertTriangle className="w-5 h-5 text-red-600" />
+                          </div>
+                          <div className="space-y-2">
+                            <div>
+                              <p className="text-xs text-slate-500">Attuale</p>
+                              <p className="text-xl font-bold text-red-600">{current.toFixed(0)}</p>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm">
+                              {change > 0 ? (
+                                <TrendingUp className="w-4 h-4 text-green-600" />
+                              ) : change < 0 ? (
+                                <TrendingDown className="w-4 h-4 text-red-600" />
+                              ) : null}
+                              <span className={change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-slate-600'}>
+                                {change > 0 ? '+' : ''}{change.toFixed(0)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-center text-slate-500 py-4 text-sm">Nessun prodotto critico 🎉</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Prodotti Attenzione */}
+            <div className="neumorphic-flat rounded-xl overflow-hidden">
+              <button
+                onClick={() => toggleSection('warning')}
+                className="w-full flex items-center justify-between p-4 hover:bg-slate-100 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-yellow-600" />
+                  <h3 className="font-bold text-yellow-700 text-sm lg:text-base">
+                    Attenzione ({productsByStatus.warning.length})
+                  </h3>
+                </div>
+                {expandedSections.warning ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+              </button>
+
+              {expandedSections.warning && (
+                <div className="p-4 border-t border-slate-200">
+                  {productsByStatus.warning.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {productsByStatus.warning.map(({ product, current, change }) => (
+                        <div 
+                          key={product.id} 
+                          className="neumorphic-pressed p-3 lg:p-4 rounded-xl border-2 border-yellow-200 cursor-pointer hover:border-yellow-400 transition-all"
+                          onClick={() => setSelectedProduct(product)}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <h3 className="font-bold text-slate-800 text-sm">{product.nome_prodotto}</h3>
+                            <AlertTriangle className="w-5 h-5 text-yellow-600" />
+                          </div>
+                          <div className="space-y-2">
+                            <div>
+                              <p className="text-xs text-slate-500">Attuale</p>
+                              <p className="text-xl font-bold text-yellow-600">{current.toFixed(0)}</p>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm">
+                              {change > 0 ? (
+                                <TrendingUp className="w-4 h-4 text-green-600" />
+                              ) : change < 0 ? (
+                                <TrendingDown className="w-4 h-4 text-red-600" />
+                              ) : null}
+                              <span className={change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-slate-600'}>
+                                {change > 0 ? '+' : ''}{change.toFixed(0)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-center text-slate-500 py-4 text-sm">Nessun prodotto in attenzione</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Prodotti OK */}
+            <div className="neumorphic-flat rounded-xl overflow-hidden">
+              <button
+                onClick={() => toggleSection('ok')}
+                className="w-full flex items-center justify-between p-4 hover:bg-slate-100 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <h3 className="font-bold text-green-700 text-sm lg:text-base">
+                    OK ({productsByStatus.ok.length})
+                  </h3>
+                </div>
+                {expandedSections.ok ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+              </button>
+
+              {expandedSections.ok && (
+                <div className="p-4 border-t border-slate-200">
+                  {productsByStatus.ok.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {productsByStatus.ok.map(({ product, current, change }) => (
+                        <div 
+                          key={product.id} 
+                          className="neumorphic-pressed p-3 lg:p-4 rounded-xl border-2 border-green-200 cursor-pointer hover:border-green-400 transition-all"
+                          onClick={() => setSelectedProduct(product)}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <h3 className="font-bold text-slate-800 text-sm">{product.nome_prodotto}</h3>
+                            <CheckCircle className="w-5 h-5 text-green-600" />
+                          </div>
+                          <div className="space-y-2">
+                            <div>
+                              <p className="text-xs text-slate-500">Attuale</p>
+                              <p className="text-xl font-bold text-green-600">{current.toFixed(0)}</p>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm">
+                              {change > 0 ? (
+                                <TrendingUp className="w-4 h-4 text-green-600" />
+                              ) : change < 0 ? (
+                                <TrendingDown className="w-4 h-4 text-red-600" />
+                              ) : null}
+                              <span className={change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-slate-600'}>
+                                {change > 0 ? '+' : ''}{change.toFixed(0)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-center text-slate-500 py-4 text-sm">Nessun prodotto OK</p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </NeumorphicCard>
-      )}
 
-      {/* Latest Records Table */}
-      <NeumorphicCard className="p-6">
-        <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Ultime Rilevazioni</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b-2 border-[#8b7355]">
-                <th className="text-left p-3 text-[#9b9b9b] font-medium">Data</th>
-                <th className="text-left p-3 text-[#9b9b9b] font-medium">Locale</th>
-                <th className="text-right p-3 text-[#9b9b9b] font-medium">Prodotti Registrati</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredRecords.slice(0, 10).map((record, index) => {
-                const productsCount = displayProducts.filter(p => record[p] !== null && record[p] !== undefined).length;
-                
-                return (
-                  <tr key={index} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
-                    <td className="p-3 text-[#6b6b6b]">
-                      {format(parseISO(record.data), 'dd/MM/yyyy')}
-                    </td>
-                    <td className="p-3 text-[#6b6b6b] font-medium">
-                      {record.store_name}
-                    </td>
-                    <td className="p-3 text-right text-[#6b6b6b]">
-                      {productsCount} / {displayProducts.length}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </NeumorphicCard>
-    </div>
+        {selectedProduct && productTrends[selectedProduct.id] && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end lg:items-center justify-center z-50 p-0 lg:p-4">
+            <NeumorphicCard className="w-full lg:max-w-4xl max-h-[90vh] overflow-y-auto p-4 lg:p-6 rounded-t-3xl lg:rounded-2xl">
+              <div className="flex items-start justify-between mb-4 sticky top-0 bg-gradient-to-br from-slate-50 to-slate-100 pb-4 -mt-4 pt-4 -mx-4 px-4 z-10">
+                <h2 className="text-xl lg:text-2xl font-bold text-slate-800">
+                  {selectedProduct.nome_prodotto}
+                </h2>
+                <button
+                  onClick={() => setSelectedProduct(null)}
+                  className="nav-button p-2 rounded-lg"
+                >
+                  <X className="w-5 h-5 text-slate-700" />
+                </button>
+              </div>
+
+              <div className="neumorphic-flat p-4 lg:p-6 rounded-xl">
+                <ResponsiveContainer width="100%" height={250}>
+                  <LineChart data={productTrends[selectedProduct.id].history}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                    <XAxis dataKey="date" stroke="#64748b" tick={{ fontSize: 11 }} />
+                    <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        background: 'rgba(248, 250, 252, 0.95)', 
+                        border: 'none',
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                        fontSize: '11px'
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke="#3b82f6"
+                      strokeWidth={3}
+                      dot={{ fill: '#3b82f6', r: 4 }}
+                      name="Quantità"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </NeumorphicCard>
+          </div>
+        )}
+      </div>
+    </ProtectedPage>
   );
 }
