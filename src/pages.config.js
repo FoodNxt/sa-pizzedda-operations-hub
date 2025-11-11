@@ -51,6 +51,7 @@ import Contratti from './pages/Contratti';
 import FunzionamentoApp from './pages/FunzionamentoApp';
 import AlertPeriodoProva from './pages/AlertPeriodoProva';
 import HRAdmin from './pages/HRAdmin';
+import ContrattiDipendente from './pages/ContrattiDipendente';
 import Layout from './Layout.jsx';
 
 
@@ -108,6 +109,7 @@ export const PAGES = {
     "FunzionamentoApp": FunzionamentoApp,
     "AlertPeriodoProva": AlertPeriodoProva,
     "HRAdmin": HRAdmin,
+    "ContrattiDipendente": ContrattiDipendente,
 }
 
 export const pagesConfig = {
