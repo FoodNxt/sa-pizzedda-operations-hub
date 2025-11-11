@@ -3,12 +3,13 @@ import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import { Star, Filter, Calendar, MapPin, TrendingUp, TrendingDown, X, List } from 'lucide-react';
+import { Star, Filter, MapPin, TrendingUp, TrendingDown, X, List } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
+import ProtectedPage from "../components/ProtectedPage"; // New import
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { format, parseISO } from 'date-fns'; // Added parseISO
+import { format, parseISO, isValid } from 'date-fns'; // Modified import: added isValid
 import { it } from 'date-fns/locale';
 
 // New imports for Recharts
@@ -37,6 +38,19 @@ export default function StoreReviews() {
     queryKey: ['reviews'],
     queryFn: () => base44.entities.Review.list('-review_date'),
   });
+
+  // Helper function to safely format dates - Updated with isValid
+  const safeFormatDate = (dateString, formatStr = 'dd/MM/yyyy HH:mm') => {
+    if (!dateString) return 'N/A';
+    
+    try {
+      const date = parseISO(dateString);
+      if (!isValid(date)) return 'N/A'; // Use isValid here
+      return format(date, formatStr, { locale: it });
+    } catch (e) {
+      return 'N/A';
+    }
+  };
 
   // Calculate store metrics
   const storeMetrics = useMemo(() => {
@@ -120,7 +134,7 @@ export default function StoreReviews() {
       try {
         // Validate date before parsing
         const reviewDate = parseISO(review.review_date);
-        if (isNaN(reviewDate.getTime())) return; // Skip invalid dates
+        if (!isValid(reviewDate)) return; // Skip invalid dates - Updated with isValid
         
         const date = format(reviewDate, 'yyyy-MM-dd');
         if (!reviewsByDate[date]) {
@@ -139,7 +153,7 @@ export default function StoreReviews() {
       .map(([date, data]) => {
         try {
           const parsedDate = parseISO(date);
-          if (isNaN(parsedDate.getTime())) return null; // Skip invalid dates
+          if (!isValid(parsedDate)) return null; // Skip invalid dates - Updated with isValid
           
           return {
             date,
@@ -157,133 +171,123 @@ export default function StoreReviews() {
     return trendData;
   }, [selectedStore]);
 
-  // Helper function to safely format dates
-  const safeFormatDate = (dateString, formatStr = 'dd/MM/yyyy HH:mm') => {
-    if (!dateString) return 'N/A';
-    
-    try {
-      const date = parseISO(dateString);
-      if (isNaN(date.getTime())) return 'N/A';
-      return format(date, formatStr, { locale: it });
-    } catch (e) {
-      return 'N/A';
-    }
-  };
-
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Store Reviews</h1>
-          <p className="text-[#9b9b9b]">Panoramica geografica del feedback dei clienti</p>
-        </div>
-        
-        {/* Filters */}
-        <div className="flex gap-3 flex-wrap">
-          <NeumorphicCard className="px-4 py-2 flex items-center gap-2">
-            <Filter className="w-4 h-4 text-[#9b9b9b]" />
-            <select
-              value={filterRating}
-              onChange={(e) => setFilterRating(e.target.value)}
-              className="bg-transparent text-[#6b6b6b] outline-none text-sm"
-            >
-              <option value="all">Tutte le Valutazioni</option>
-              <option value="4.5">4.5+ Stelle</option>
-              <option value="4.0">4.0+ Stelle</option>
-              <option value="3.5">3.5+ Stelle</option>
-            </select>
-          </NeumorphicCard>
-        </div>
-      </div>
-
-      {/* Map - MOVED TO TOP */}
-      <NeumorphicCard className="p-4 overflow-hidden">
-        <div className="h-[500px] rounded-lg overflow-hidden">
-          {storeMetrics.length > 0 ? (
-            <MapContainer
-              center={mapCenter}
-              zoom={6}
-              style={{ height: '100%', width: '100%' }}
-            >
-              <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              />
-              {filteredStores.map(store => (
-                <Marker
-                  key={store.id}
-                  position={[store.latitude, store.longitude]}
-                  icon={createCustomIcon(store.color)}
-                  eventHandlers={{
-                    click: () => setSelectedStore(store)
-                  }}
+    <ProtectedPage pageName="StoreReviews">
+      <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
+        {/* Header */}
+        <div className="mb-4 lg:mb-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
+                Store Reviews
+              </h1>
+              <p className="text-sm text-slate-500">Panoramica geografica del feedback dei clienti</p>
+            </div>
+            
+            {/* Filters */}
+            <div className="flex gap-3 flex-wrap">
+              <div className="neumorphic-flat px-4 py-2 flex items-center gap-2 rounded-xl">
+                <Filter className="w-4 h-4 text-slate-400" />
+                <select
+                  value={filterRating}
+                  onChange={(e) => setFilterRating(e.target.value)}
+                  className="bg-transparent text-slate-700 outline-none text-sm"
                 >
-                  <Popup>
-                    <div className="p-2">
-                      <h3 className="font-bold text-[#6b6b6b] mb-1">{store.name}</h3>
-                      <p className="text-sm text-[#9b9b9b] mb-2">{store.address}</p>
-                      <div className="flex items-center gap-2 mb-1">
-                        <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                        <span className="font-bold text-[#6b6b6b]">{store.avgRating.toFixed(1)}</span>
-                        <span className="text-sm text-[#9b9b9b]">({store.reviewCount} reviews)</span>
-                      </div>
-                      {store.trend !== 'stable' && (
-                        <div className="flex items-center gap-1 text-sm">
-                          {store.trend === 'up' ? (
-                            <TrendingUp className="w-4 h-4 text-green-600" />
-                          ) : (
-                            <TrendingDown className="w-4 h-4 text-red-600" />
-                          )}
-                          <span className={store.trend === 'up' ? 'text-green-600' : 'text-red-600'}>
-                            {store.trend === 'up' ? 'In Miglioramento' : 'In Calo'}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </Popup>
-                </Marker>
-              ))}
-            </MapContainer>
-          ) : (
-            <div className="h-full flex items-center justify-center text-[#9b9b9b]">
-              <div className="text-center">
-                <MapPin className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>Nessuna posizione disponibile</p>
-                <p className="text-sm mt-1">Aggiungi negozi con coordinate per vederli sulla mappa</p>
+                  <option value="all">Tutte</option>
+                  <option value="4.5">4.5+</option>
+                  <option value="4.0">4.0+</option>
+                  <option value="3.5">3.5+</option>
+                </select>
               </div>
             </div>
-          )}
+          </div>
         </div>
-      </NeumorphicCard>
 
-      {/* Store List - MOVED BELOW MAP */}
-      <NeumorphicCard className="p-6">
-        <h2 className="text-lg font-bold text-[#6b6b6b] mb-4">Panoramica Locali</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Map */}
+        <NeumorphicCard className="p-4 lg:p-6 overflow-hidden">
+          <div className="h-[400px] lg:h-[500px] rounded-xl overflow-hidden">
+            {storeMetrics.length > 0 ? (
+              <MapContainer
+                center={mapCenter}
+                zoom={6}
+                style={{ height: '100%', width: '100%' }}
+              >
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                />
+                {filteredStores.map(store => (
+                  <Marker
+                    key={store.id}
+                    position={[store.latitude, store.longitude]}
+                    icon={createCustomIcon(store.color)}
+                    eventHandlers={{
+                      click: () => setSelectedStore(store)
+                    }}
+                  >
+                    <Popup>
+                      <div className="p-2">
+                        <h3 className="font-bold text-slate-800 mb-1">{store.name}</h3>
+                        <p className="text-sm text-slate-500 mb-2">{store.address}</p>
+                        <div className="flex items-center gap-2 mb-1">
+                          <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                          <span className="font-bold text-slate-800">{store.avgRating.toFixed(1)}</span>
+                          <span className="text-sm text-slate-500">({store.reviewCount})</span>
+                        </div>
+                        {store.trend !== 'stable' && (
+                          <div className="flex items-center gap-1 text-sm">
+                            {store.trend === 'up' ? (
+                              <TrendingUp className="w-4 h-4 text-green-600" />
+                            ) : (
+                              <TrendingDown className="w-4 h-4 text-red-600" />
+                            )}
+                            <span className={store.trend === 'up' ? 'text-green-600' : 'text-red-600'}>
+                              {store.trend === 'up' ? 'Migliora' : 'Calo'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </Popup>
+                  </Marker>
+                ))}
+              </MapContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-slate-500">
+                <div className="text-center">
+                  <MapPin className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>Nessuna posizione disponibile</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </NeumorphicCard>
+
+        {/* Store List */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
           {filteredStores.length > 0 ? (
             filteredStores.map(store => (
               <div
                 key={store.id}
                 onClick={() => setSelectedStore(store)}
-                className={`
-                  neumorphic-flat p-4 cursor-pointer transition-all hover:shadow-xl
-                  ${selectedStore?.id === store.id ? 'neumorphic-pressed' : ''}
-                `}
+                className={`cursor-pointer transition-all hover:shadow-xl p-4 lg:p-5 rounded-xl ${
+                  selectedStore?.id === store.id ? 'neumorphic-pressed' : 'neumorphic-flat'
+                }`}
               >
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-bold text-[#6b6b6b]">{store.name}</h3>
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-slate-800 text-sm lg:text-base truncate">{store.name}</h3>
+                    <p className="text-xs lg:text-sm text-slate-500 truncate">{store.address}</p>
+                  </div>
                   <div 
-                    className="w-3 h-3 rounded-full"
+                    className="w-3 h-3 rounded-full flex-shrink-0"
                     style={{ background: store.color }}
                   />
                 </div>
-                <p className="text-sm text-[#9b9b9b] mb-2">{store.address}</p>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1">
                     <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                    <span className="font-bold text-[#6b6b6b]">{store.avgRating.toFixed(1)}</span>
-                    <span className="text-xs text-[#9b9b9b]">({store.reviewCount})</span>
+                    <span className="font-bold text-slate-800">{store.avgRating.toFixed(1)}</span>
+                    <span className="text-xs text-slate-500">({store.reviewCount})</span>
                   </div>
                   {store.trend !== 'stable' && (
                     store.trend === 'up' ? (
@@ -297,208 +301,202 @@ export default function StoreReviews() {
             ))
           ) : (
             <div className="col-span-full text-center py-8">
-              <p className="text-[#9b9b9b]">Nessun locale corrisponde ai filtri</p>
+              <p className="text-slate-500">Nessun locale</p>
             </div>
           )}
         </div>
-      </NeumorphicCard>
 
-      {/* Selected Store Details */}
-      {selectedStore && (
-        <NeumorphicCard className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-[#6b6b6b]">{selectedStore.name}</h2>
-            <NeumorphicButton onClick={() => setSelectedStore(null)}>
-              Chiudi
-            </NeumorphicButton>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <div className="neumorphic-pressed p-4 rounded-xl text-center">
-              <p className="text-sm text-[#9b9b9b] mb-2">Valutazione Media</p>
-              <div className="flex items-center justify-center gap-2">
-                <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
-                <span className="text-3xl font-bold text-[#6b6b6b]">
-                  {selectedStore.avgRating.toFixed(1)}
-                </span>
-              </div>
-            </div>
-            
-            <div className="neumorphic-pressed p-4 rounded-xl text-center">
-              <p className="text-sm text-[#9b9b9b] mb-2">Totale Recensioni</p>
-              <span className="text-3xl font-bold text-[#6b6b6b]">
-                {selectedStore.reviewCount}
-              </span>
-            </div>
-
-            <div className="neumorphic-pressed p-4 rounded-xl text-center">
-              <p className="text-sm text-[#9b9b9b] mb-2">Trend</p>
-              <div className="flex items-center justify-center gap-2">
-                {selectedStore.trend === 'up' ? (
-                  <>
-                    <TrendingUp className="w-6 h-6 text-green-600" />
-                    <span className="text-xl font-bold text-green-600">In Miglioramento</span>
-                  </>
-                ) : selectedStore.trend === 'down' ? (
-                  <>
-                    <TrendingDown className="w-6 h-6 text-red-600" />
-                    <span className="text-xl font-bold text-red-600">In Calo</span>
-                  </>
-                ) : (
-                  <span className="text-xl font-bold text-[#6b6b6b]">Stabile</span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Rating Trend Chart - FIXED with date validation */}
-          {ratingTrendData.length > 0 && (
-            <NeumorphicCard className="p-6 mb-6">
-              <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Andamento Punteggio Medio</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={ratingTrendData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#c1c1c1" />
-                  <XAxis 
-                    dataKey="date" 
-                    stroke="#9b9b9b"
-                    tickFormatter={(date) => {
-                      try {
-                        const parsedDate = parseISO(date);
-                        if (isNaN(parsedDate.getTime())) return '';
-                        return format(parsedDate, 'dd/MM');
-                      } catch (e) {
-                        return '';
-                      }
-                    }}
-                  />
-                  <YAxis 
-                    stroke="#9b9b9b"
-                    domain={[0, 5]}
-                    ticks={[0, 1, 2, 3, 4, 5]}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      background: '#e0e5ec', 
-                      border: 'none',
-                      borderRadius: '12px',
-                      boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
-                    }}
-                    labelFormatter={(date) => {
-                      try {
-                        const parsedDate = parseISO(date);
-                        if (isNaN(parsedDate.getTime())) return date;
-                        return format(parsedDate, 'dd/MM/yyyy');
-                      } catch (e) {
-                        return date;
-                      }
-                    }}
-                    formatter={(value, name) => {
-                      if (name === 'avgRating') return [value + ' ⭐', 'Media'];
-                      return [value, name];
-                    }}
-                  />
-                  <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="avgRating" 
-                    stroke="#8b7355" 
-                    strokeWidth={3}
-                    name="Punteggio Medio"
-                    dot={{ fill: '#8b7355', r: 4 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-              <p className="text-xs text-[#9b9b9b] text-center mt-2">
-                Ultimi 30 giorni di recensioni Google Maps
-              </p>
-            </NeumorphicCard>
-          )}
-
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-[#6b6b6b]">
-              {showAllReviews ? 'Tutte le Recensioni' : 'Recensioni Recenti'}
-            </h3>
-            <div className="flex items-center gap-3">
-              {showAllReviews && (
-                <select
-                  value={reviewFilterRating}
-                  onChange={(e) => setReviewFilterRating(e.target.value)}
-                  className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none text-sm"
-                >
-                  <option value="all">Tutte le Stelle</option>
-                  <option value="5">⭐⭐⭐⭐⭐ (5)</option>
-                  <option value="4">⭐⭐⭐⭐ (4)</option>
-                  <option value="3">⭐⭐⭐ (3)</option>
-                  <option value="2">⭐⭐ (2)</option>
-                  <option value="1">⭐ (1)</option>
-                </select>
-              )}
-              <NeumorphicButton
-                onClick={() => {
-                  setShowAllReviews(!showAllReviews);
-                  setReviewFilterRating('all');
-                }}
-                className="flex items-center gap-2"
-              >
-                {showAllReviews ? (
-                  <>
-                    <X className="w-4 h-4" />
-                    Mostra Recenti
-                  </>
-                ) : (
-                  <>
-                    <List className="w-4 h-4" />
-                    Mostra Tutte ({selectedStore.reviewCount})
-                  </>
-                )}
+        {/* Selected Store Details */}
+        {selectedStore && (
+          <NeumorphicCard className="p-4 lg:p-6">
+            <div className="flex items-center justify-between mb-4 lg:mb-6">
+              <h2 className="text-xl lg:text-2xl font-bold text-slate-800">{selectedStore.name}</h2>
+              <NeumorphicButton onClick={() => setSelectedStore(null)}>
+                Chiudi
               </NeumorphicButton>
             </div>
-          </div>
 
-          <div className="space-y-3 max-h-[600px] overflow-y-auto">
-            {(showAllReviews ? filteredAllReviews : selectedStore.recentReviews).length > 0 ? (
-              (showAllReviews ? filteredAllReviews : selectedStore.recentReviews).map(review => (
-                <div key={review.id} className="neumorphic-flat p-4 rounded-xl">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-[#6b6b6b]">{review.customer_name || 'Anonimo'}</span>
-                      <div className="flex items-center gap-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`w-4 h-4 ${
-                              i < review.rating
-                                ? 'text-yellow-500 fill-yellow-500'
-                                : 'text-gray-300'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                    <span className="text-sm text-[#9b9b9b]">
-                      {safeFormatDate(review.review_date)}
-                    </span>
-                  </div>
-                  {review.comment && (
-                    <p className="text-sm text-[#6b6b6b]">{review.comment}</p>
-                  )}
-                  {review.employee_assigned_name && (
-                    <p className="text-xs text-blue-600 mt-2">
-                      👤 Assegnata a: {review.employee_assigned_name}
-                    </p>
+            <div className="grid grid-cols-3 gap-3 lg:gap-4 mb-4 lg:mb-6">
+              <div className="neumorphic-pressed p-3 lg:p-4 rounded-xl text-center">
+                <p className="text-xs text-slate-500 mb-1 lg:mb-2">Media</p>
+                <div className="flex items-center justify-center gap-2">
+                  <Star className="w-5 h-5 lg:w-6 lg:h-6 text-yellow-500 fill-yellow-500" />
+                  <span className="text-2xl lg:text-3xl font-bold text-slate-800">
+                    {selectedStore.avgRating.toFixed(1)}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="neumorphic-pressed p-3 lg:p-4 rounded-xl text-center">
+                <p className="text-xs text-slate-500 mb-1 lg:mb-2">Totale</p>
+                <span className="text-2xl lg:text-3xl font-bold text-slate-800">
+                  {selectedStore.reviewCount}
+                </span>
+              </div>
+
+              <div className="neumorphic-pressed p-3 lg:p-4 rounded-xl text-center">
+                <p className="text-xs text-slate-500 mb-1 lg:mb-2">Trend</p>
+                <div className="flex items-center justify-center gap-2">
+                  {selectedStore.trend === 'up' ? (
+                    <TrendingUp className="w-5 h-5 lg:w-6 lg:h-6 text-green-600" />
+                  ) : selectedStore.trend === 'down' ? (
+                    <TrendingDown className="w-5 h-5 lg:w-6 lg:h-6 text-red-600" />
+                  ) : (
+                    <span className="text-base lg:text-lg font-bold text-slate-600">Stabile</span>
                   )}
                 </div>
-              ))
-            ) : (
-              <p className="text-center text-[#9b9b9b] py-8">
-                {showAllReviews && reviewFilterRating !== 'all' 
-                  ? `Nessuna recensione con ${reviewFilterRating} stelle` 
-                  : 'Nessuna recensione disponibile'}
-              </p>
+              </div>
+            </div>
+
+            {/* Rating Trend Chart */}
+            {ratingTrendData.length > 0 && (
+              <div className="neumorphic-flat p-4 lg:p-6 rounded-xl mb-4 lg:mb-6">
+                <h3 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Andamento</h3>
+                <div className="w-full overflow-x-auto">
+                  <div style={{ minWidth: '300px' }}>
+                    <ResponsiveContainer width="100%" height={250}>
+                      <LineChart data={ratingTrendData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                        <XAxis 
+                          dataKey="date" 
+                          stroke="#64748b"
+                          tick={{ fontSize: 11 }}
+                          tickFormatter={(date) => {
+                            try {
+                              const parsedDate = parseISO(date);
+                              if (!isValid(parsedDate)) return ''; // Updated with isValid
+                              return format(parsedDate, 'dd/MM');
+                            } catch (e) {
+                              return '';
+                            }
+                          }}
+                        />
+                        <YAxis 
+                          stroke="#64748b"
+                          domain={[0, 5]}
+                          ticks={[0, 1, 2, 3, 4, 5]}
+                          tick={{ fontSize: 11 }}
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            background: 'rgba(248, 250, 252, 0.95)', 
+                            border: 'none',
+                            borderRadius: '12px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                            fontSize: '11px'
+                          }}
+                          labelFormatter={(date) => {
+                            try {
+                              const parsedDate = parseISO(date);
+                              if (!isValid(parsedDate)) return date; // Updated with isValid
+                              return format(parsedDate, 'dd/MM/yyyy');
+                            } catch (e) {
+                              return date;
+                            }
+                          }}
+                        />
+                        <Legend wrapperStyle={{ fontSize: '11px' }} />
+                        <Line 
+                          type="monotone" 
+                          dataKey="avgRating" 
+                          stroke="#3b82f6" 
+                          strokeWidth={3}
+                          name="Media"
+                          dot={{ fill: '#3b82f6', r: 4 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
             )}
-          </div>
-        </NeumorphicCard>
-      )}
-    </div>
+
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base lg:text-lg font-bold text-slate-800">
+                {showAllReviews ? 'Tutte le Recensioni' : 'Recensioni Recenti'}
+              </h3>
+              <div className="flex items-center gap-3">
+                {showAllReviews && (
+                  <select
+                    value={reviewFilterRating}
+                    onChange={(e) => setReviewFilterRating(e.target.value)}
+                    className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
+                  >
+                    <option value="all">Tutte</option>
+                    <option value="5">⭐⭐⭐⭐⭐</option>
+                    <option value="4">⭐⭐⭐⭐</option>
+                    <option value="3">⭐⭐⭐</option>
+                    <option value="2">⭐⭐</option>
+                    <option value="1">⭐</option>
+                  </select>
+                )}
+                <NeumorphicButton
+                  onClick={() => {
+                    setShowAllReviews(!showAllReviews);
+                    setReviewFilterRating('all');
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  {showAllReviews ? (
+                    <>
+                      <X className="w-4 h-4" />
+                      <span className="hidden sm:inline">Recenti</span>
+                    </>
+                  ) : (
+                    <>
+                      <List className="w-4 h-4" />
+                      <span className="hidden sm:inline">Tutte ({selectedStore.reviewCount})</span>
+                    </>
+                  )}
+                </NeumorphicButton>
+              </div>
+            </div>
+
+            <div className="space-y-3 max-h-[600px] overflow-y-auto">
+              {(showAllReviews ? filteredAllReviews : selectedStore.recentReviews).length > 0 ? (
+                (showAllReviews ? filteredAllReviews : selectedStore.recentReviews).map(review => (
+                  <div key={review.id} className="neumorphic-flat p-3 lg:p-4 rounded-xl">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className="font-medium text-slate-800 text-sm truncate">{review.customer_name || 'Anonimo'}</span>
+                        <div className="flex items-center gap-1">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`w-3 h-3 lg:w-4 lg:h-4 ${
+                                i < review.rating
+                                  ? 'text-yellow-500 fill-yellow-500'
+                                  : 'text-gray-300'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <span className="text-xs text-slate-500 whitespace-nowrap ml-2">
+                        {safeFormatDate(review.review_date, 'dd/MM/yy')}
+                      </span>
+                    </div>
+                    {review.comment && (
+                      <p className="text-xs lg:text-sm text-slate-700">{review.comment}</p>
+                    )}
+                    {review.employee_assigned_name && (
+                      <p className="text-xs text-blue-600 mt-2">
+                        👤 {review.employee_assigned_name}
+                      </p>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <p className="text-center text-slate-500 py-8 text-sm">
+                  {showAllReviews && reviewFilterRating !== 'all' 
+                    ? `Nessuna recensione con ${reviewFilterRating} stelle` 
+                    : 'Nessuna recensione'}
+                </p>
+              )}
+            </div>
+          </NeumorphicCard>
+        )}
+      </div>
+    </ProtectedPage>
   );
 }

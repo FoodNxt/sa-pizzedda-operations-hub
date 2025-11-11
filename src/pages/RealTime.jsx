@@ -4,9 +4,9 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DollarSign, ShoppingCart, TrendingUp, Clock, Zap, Filter, Store, RefreshCw } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
+import ProtectedPage from "../components/ProtectedPage"; // Added ProtectedPage import
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { format, startOfDay, parseISO } from 'date-fns';
-import { it } from 'date-fns/locale';
+import { format } from 'date-fns'; // Removed parseISO and it from date-fns import
 
 export default function RealTime() {
   const [selectedStore, setSelectedStore] = useState('all');
@@ -183,387 +183,364 @@ export default function RealTime() {
     };
   }, [iPraticoData, selectedStore]);
 
-  const COLORS = ['#8b7355', '#a68a6a', '#c1a07f', '#dcb794', '#6b5d51', '#9d8770'];
+  const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4']; // Updated color palette
 
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="text-center py-12">
-          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center animate-pulse">
-            <Clock className="w-8 h-8 text-[#8b7355]" />
-          </div>
-          <p className="text-[#9b9b9b]">Caricamento dati in tempo reale...</p>
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-slate-500">Caricamento...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <Zap className="w-8 h-8 text-[#8b7355]" />
-              <h1 className="text-3xl font-bold text-[#6b6b6b]">Real Time Dashboard</h1>
-            </div>
-            <p className="text-[#9b9b9b]">Monitoraggio in tempo reale della giornata corrente (dati iPratico)</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className={`neumorphic-flat px-4 py-3 rounded-xl flex items-center gap-2 text-[#6b6b6b] hover:text-[#8b7355] transition-all ${
-                isRefreshing ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'
-              }`}
-            >
-              <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span className="font-medium">Aggiorna Dati</span>
-            </button>
-            <div className="text-right">
-              <p className="text-sm text-[#9b9b9b] mb-1">Ultimo aggiornamento</p>
-              <div className="flex items-center gap-2 neumorphic-pressed px-4 py-2 rounded-xl">
-                <Clock className="w-4 h-4 text-[#8b7355]" />
-                <span className="text-[#6b6b6b] font-medium">
-                  {format(lastUpdateTime, 'HH:mm:ss')}
-                </span>
-              </div>
-              <p className="text-xs text-[#9b9b9b] mt-1">Auto-refresh ogni 30s</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Filter */}
-      <NeumorphicCard className="p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <Filter className="w-5 h-5 text-[#8b7355]" />
-          <h2 className="text-lg font-bold text-[#6b6b6b]">Filtri</h2>
-        </div>
-        <div>
-          <label htmlFor="store-select" className="text-sm text-[#9b9b9b] mb-2 block">Locale</label>
-          <select
-            id="store-select"
-            value={selectedStore}
-            onChange={(e) => setSelectedStore(e.target.value)}
-            className="w-full md:w-64 neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-          >
-            <option value="all">Tutti i Locali</option>
-            {stores.map(store => (
-              <option key={store.id} value={store.id}>{store.name}</option>
-            ))}
-          </select>
-        </div>
-      </NeumorphicCard>
-
-      {/* Date Badge */}
-      <NeumorphicCard className="p-4 text-center border-2 border-[#8b7355]">
-        <p className="text-[#9b9b9b] text-sm mb-1">Dati di oggi</p>
-        <h2 className="text-2xl font-bold text-[#8b7355]">
-          {format(new Date(), "EEEE, d MMMM yyyy", { locale: it })}
-        </h2>
-        {selectedStore !== 'all' && (
-          <p className="text-sm text-[#9b9b9b] mt-1">
-            Locale: {stores.find(s => s.id === selectedStore)?.name || 'N/A'}
-          </p>
-        )}
-      </NeumorphicCard>
-
-      {/* Main KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <NeumorphicCard className="p-6">
-          <div className="flex items-start justify-between">
+    <ProtectedPage pageName="RealTime">
+      <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
+        {/* Header */}
+        <div className="mb-4 lg:mb-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
-              <p className="text-sm text-[#9b9b9b] mb-2">Revenue Totale</p>
-              <h3 className="text-4xl font-bold text-[#6b6b6b]">
-                €{todayData.totalRevenue.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </h3>
-              <p className="text-xs text-[#9b9b9b] mt-2">Oggi</p>
+              <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
+                Real Time Dashboard
+              </h1>
+              <p className="text-sm text-slate-500">Monitoraggio in tempo reale (dati iPratico)</p>
             </div>
-            <div className="neumorphic-flat p-4 rounded-full">
-              <DollarSign className="w-8 h-8 text-[#8b7355]" />
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className={`nav-button px-4 py-2.5 rounded-xl flex items-center gap-2 text-slate-700 ${
+                  isRefreshing ? 'opacity-50' : 'hover:shadow-lg'
+                }`}
+              >
+                <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span className="font-medium text-sm">Aggiorna</span>
+              </button>
+              <div className="text-right">
+                <p className="text-xs text-slate-500 mb-1">Aggiornato</p>
+                <div className="flex items-center gap-2 neumorphic-pressed px-3 py-1.5 rounded-xl">
+                  <Clock className="w-4 h-4 text-blue-600" />
+                  <span className="text-slate-700 font-medium text-sm">
+                    {format(lastUpdateTime, 'HH:mm:ss')}
+                  </span>
+                </div>
+              </div>
             </div>
+          </div>
+        </div>
+
+        {/* Filter */}
+        <NeumorphicCard className="p-4 lg:p-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Filter className="w-5 h-5 text-blue-600" />
+            <h2 className="text-base lg:text-lg font-bold text-slate-800">Filtri</h2>
+          </div>
+          <div>
+            <label htmlFor="store-select" className="text-sm text-slate-600 mb-2 block">Locale</label>
+            <select
+              id="store-select"
+              value={selectedStore}
+              onChange={(e) => setSelectedStore(e.target.value)}
+              className="w-full md:w-64 neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+            >
+              <option value="all">Tutti i Locali</option>
+              {stores.map(store => (
+                <option key={store.id} value={store.id}>{store.name}</option>
+              ))}
+            </select>
           </div>
         </NeumorphicCard>
 
-        <NeumorphicCard className="p-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm text-[#9b9b9b] mb-2">Ordini Totali</p>
-              <h3 className="text-4xl font-bold text-[#6b6b6b]">
+        {/* Main KPIs */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
+          <NeumorphicCard className="p-4">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center mb-2 lg:mb-3 shadow-lg">
+                <DollarSign className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+              </div>
+              <h3 className="text-lg lg:text-xl font-bold text-slate-800 mb-1">
+                €{(todayData.totalRevenue / 1000).toFixed(1)}k
+              </h3>
+              <p className="text-xs text-slate-500">Revenue</p>
+            </div>
+          </NeumorphicCard>
+
+          <NeumorphicCard className="p-4">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-2 lg:mb-3 shadow-lg">
+                <ShoppingCart className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+              </div>
+              <h3 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1">
                 {todayData.totalOrders}
               </h3>
-              <p className="text-xs text-[#9b9b9b] mt-2">Ordini completati</p>
+              <p className="text-xs text-slate-500">Ordini</p>
             </div>
-            <div className="neumorphic-flat p-4 rounded-full">
-              <ShoppingCart className="w-8 h-8 text-[#8b7355]" />
-            </div>
-          </div>
-        </NeumorphicCard>
+          </NeumorphicCard>
 
-        <NeumorphicCard className="p-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm text-[#9b9b9b] mb-2">Scontrino Medio</p>
-              <h3 className="text-4xl font-bold text-[#6b6b6b]">
-                €{todayData.avgOrderValue.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </h3>
-              <p className="text-xs text-[#9b9b9b] mt-2">Per ordine</p>
-            </div>
-            <div className="neumorphic-flat p-4 rounded-full">
-              <TrendingUp className="w-8 h-8 text-[#8b7355]" />
-            </div>
-          </div>
-        </NeumorphicCard>
-      </div>
-
-      {/* Revenue per Negozio Table */}
-      <NeumorphicCard className="p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <Store className="w-6 h-6 text-[#8b7355]" />
-          <h2 className="text-xl font-bold text-[#6b6b6b]">Revenue per Negozio</h2>
-        </div>
-        
-        {todayData.storeBreakdown.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b-2 border-[#8b7355]">
-                  <th className="text-left p-4 text-[#9b9b9b] font-medium">Negozio</th>
-                  <th className="text-right p-4 text-[#9b9b9b] font-medium">Revenue Totale</th>
-                  <th className="text-right p-4 text-[#9b9b9b] font-medium">Ordini</th>
-                  <th className="text-right p-4 text-[#9b9b9b] font-medium">Scontrino Medio</th>
-                  <th className="text-right p-4 text-[#9b9b9b] font-medium">% Revenue Totale</th>
-                </tr>
-              </thead>
-              <tbody>
-                {todayData.storeBreakdown.map((store, index) => {
-                  const totalRevenueOverall = todayData.storeBreakdown.reduce((sum, s) => sum + s.revenue, 0);
-                  const percentage = totalRevenueOverall > 0 ? (store.revenue / totalRevenueOverall) * 100 : 0;
-                  
-                  return (
-                    <tr 
-                      key={store.store_id} 
-                      className={`border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors ${
-                        selectedStore === store.store_id ? 'bg-[#e8ecf3] neumorphic-flat' : ''
-                      }`}
-                    >
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div 
-                            className="w-4 h-4 rounded-full" 
-                            style={{ 
-                              background: `hsl(${(index * 60) % 360}, 45%, 55%)` 
-                            }}
-                          />
-                          <span className="text-[#6b6b6b] font-medium">{store.store_name}</span>
-                        </div>
-                      </td>
-                      <td className="p-4 text-right text-[#6b6b6b] font-bold text-lg">
-                        €{store.revenue.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </td>
-                      <td className="p-4 text-right text-[#6b6b6b]">
-                        {store.orders}
-                      </td>
-                      <td className="p-4 text-right text-[#6b6b6b]">
-                        €{store.avgOrderValue.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </td>
-                      <td className="p-4 text-right text-[#6b6b6b] font-medium">
-                        {percentage.toFixed(1)}%
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-[#8b7355] font-bold bg-[#e8ecf3] neumorphic-flat">
-                  <td className="p-4 text-[#6b6b6b]">TOTALE</td>
-                  <td className="p-4 text-right text-[#6b6b6b] text-lg">
-                    €{todayData.storeBreakdown.reduce((sum, s) => sum + s.revenue, 0).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </td>
-                  <td className="p-4 text-right text-[#6b6b6b]">
-                    {todayData.storeBreakdown.reduce((sum, s) => sum + s.orders, 0)}
-                  </td>
-                  <td className="p-4 text-right text-[#6b6b6b]">
-                    {todayData.storeBreakdown.reduce((sum, s) => sum + s.orders, 0) > 0 
-                      ? `€${(todayData.storeBreakdown.reduce((sum, s) => sum + s.revenue, 0) / todayData.storeBreakdown.reduce((sum, s) => sum + s.orders, 0)).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                      : '€0.00'
-                    }
-                  </td>
-                  <td className="p-4 text-right text-[#6b6b6b]">100%</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        ) : (
-          <div className="text-center py-12 text-[#9b9b9b]">
-            <Store className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p>Nessun dato negozio oggi</p>
-          </div>
-        )}
-      </NeumorphicCard>
-
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Revenue per Canale di Vendita */}
-        <NeumorphicCard className="p-6">
-          <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Revenue per Canale di Vendita</h2>
-          {todayData.channelBreakdown.length > 0 ? (
-            <>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={todayData.channelBreakdown}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={100}
-                    dataKey="value"
-                  >
-                    {todayData.channelBreakdown.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ 
-                      background: '#e0e5ec', 
-                      border: 'none',
-                      borderRadius: '12px',
-                      boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
-                    }}
-                    formatter={(value) => `€${value.toFixed(2)}`}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              
-              <div className="mt-6 overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-[#c1c1c1]">
-                      <th className="text-left p-2 text-[#9b9b9b] font-medium">Canale</th>
-                      <th className="text-right p-2 text-[#9b9b9b] font-medium">Revenue</th>
-                      <th className="text-right p-2 text-[#9b9b9b] font-medium">Ordini</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {todayData.channelBreakdown.map((channel, index) => (
-                      <tr key={index} className="border-b border-[#d1d1d1]">
-                        <td className="p-2 text-[#6b6b6b] font-medium">{channel.name}</td>
-                        <td className="p-2 text-right text-[#6b6b6b]">€{channel.value.toFixed(2)}</td>
-                        <td className="p-2 text-right text-[#6b6b6b]">{channel.orders}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          <NeumorphicCard className="p-4">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center mb-2 lg:mb-3 shadow-lg">
+                <TrendingUp className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
               </div>
-            </>
-          ) : (
-            <div className="h-[300px] flex items-center justify-center text-[#9b9b9b]">
-              Nessun dato disponibile per oggi
+              <h3 className="text-base lg:text-lg font-bold text-slate-800 mb-1">
+                €{todayData.avgOrderValue.toFixed(2)}
+              </h3>
+              <p className="text-xs text-slate-500">Medio</p>
             </div>
-          )}
-        </NeumorphicCard>
+          </NeumorphicCard>
+        </div>
 
-        {/* Revenue per App Delivery */}
-        <NeumorphicCard className="p-6">
-          <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Revenue per App Delivery</h2>
-          {todayData.deliveryAppBreakdown.length > 0 ? (
-            <>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={todayData.deliveryAppBreakdown}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#c1c1c1" />
-                  <XAxis dataKey="name" stroke="#9b9b9b" />
-                  <YAxis stroke="#9b9b9b" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      background: '#e0e5ec', 
-                      border: 'none',
-                      borderRadius: '12px',
-                      boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
-                    }}
-                    formatter={(value, name) => {
-                      if (name === 'value') return `€${value.toFixed(2)}`;
-                      return value;
-                    }}
-                  />
-                  <Legend />
-                  <Bar dataKey="value" fill="#8b7355" name="Revenue €" radius={[8, 8, 0, 0]} />
-                  <Bar dataKey="orders" fill="#a68a6a" name="Ordini" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-
-              <div className="mt-6 overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-[#c1c1c1]">
-                      <th className="text-left p-2 text-[#9b9b9b] font-medium">App</th>
-                      <th className="text-right p-2 text-[#9b9b9b] font-medium">Revenue</th>
-                      <th className="text-right p-2 text-[#9b9b9b] font-medium">Ordini</th>
-                      <th className="text-right p-2 text-[#9b9b9b] font-medium">€ Medio</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {todayData.deliveryAppBreakdown.map((app, index) => (
-                      <tr key={index} className="border-b border-[#d1d1d1]">
-                        <td className="p-2">
+        {/* Revenue per Negozio Table */}
+        <NeumorphicCard className="p-4 lg:p-6">
+          <div className="flex items-center gap-3 mb-4 lg:mb-6">
+            <Store className="w-5 h-5 lg:w-6 lg:h-6 text-blue-600" />
+            <h2 className="text-base lg:text-lg font-bold text-slate-800">Revenue per Negozio</h2>
+          </div>
+          
+          {todayData.storeBreakdown.length > 0 ? (
+            <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
+              <table className="w-full min-w-[700px]">
+                <thead>
+                  <tr className="border-b-2 border-blue-600">
+                    <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Negozio</th>
+                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Revenue</th>
+                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ordini</th>
+                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Medio</th>
+                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">%</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {todayData.storeBreakdown.map((store, index) => {
+                    const totalRevenueOverall = todayData.storeBreakdown.reduce((sum, s) => sum + s.revenue, 0);
+                    const percentage = totalRevenueOverall > 0 ? (store.revenue / totalRevenueOverall) * 100 : 0;
+                    
+                    return (
+                      <tr 
+                        key={store.store_id} 
+                        className={`border-b border-slate-200 hover:bg-slate-50 transition-colors ${
+                          selectedStore === store.store_id ? 'bg-slate-50' : ''
+                        }`}
+                      >
+                        <td className="p-2 lg:p-3">
                           <div className="flex items-center gap-2">
                             <div 
-                              className="w-3 h-3 rounded-full" 
-                              style={{ background: COLORS[index % COLORS.length] }}
+                              className="w-3 h-3 rounded-full flex-shrink-0" 
+                              style={{ 
+                                background: `hsl(${(index * 60) % 360}, 45%, 55%)` 
+                              }}
                             />
-                            <span className="text-[#6b6b6b] font-medium">{app.name}</span>
+                            <span className="text-slate-700 font-medium text-sm">{store.store_name}</span>
                           </div>
                         </td>
-                        <td className="p-2 text-right text-[#6b6b6b] font-bold">
-                          €{app.value.toFixed(2)}
+                        <td className="p-2 lg:p-3 text-right text-slate-800 font-bold text-sm lg:text-base">
+                          €{store.revenue.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
                         </td>
-                        <td className="p-2 text-right text-[#6b6b6b]">
-                          {app.orders}
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
+                          {store.orders}
                         </td>
-                        <td className="p-2 text-right text-[#6b6b6b]">
-                          €{app.orders > 0 ? (app.value / app.orders).toFixed(2) : '0.00'}
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
+                          €{store.avgOrderValue.toFixed(2)}
+                        </td>
+                        <td className="p-2 lg:p-3 text-right text-slate-700 font-medium text-sm">
+                          {percentage.toFixed(1)}%
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t-2 border-[#8b7355] font-bold">
-                      <td className="p-2 text-[#6b6b6b]">TOTALE DELIVERY</td>
-                      <td className="p-2 text-right text-[#6b6b6b]">
-                        €{todayData.deliveryAppBreakdown.reduce((sum, app) => sum + app.value, 0).toFixed(2)}
-                      </td>
-                      <td className="p-2 text-right text-[#6b6b6b]">
-                        {todayData.deliveryAppBreakdown.reduce((sum, app) => sum + app.orders, 0)}
-                      </td>
-                      <td className="p-2"></td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-blue-600 font-bold">
+                    <td className="p-2 lg:p-3 text-slate-700">TOTALE</td>
+                    <td className="p-2 lg:p-3 text-right text-slate-700 text-base">
+                      €{todayData.storeBreakdown.reduce((sum, s) => sum + s.revenue, 0).toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className="p-2 lg:p-3 text-right text-slate-700">
+                      {todayData.storeBreakdown.reduce((sum, s) => sum + s.orders, 0)}
+                    </td>
+                    <td className="p-2 lg:p-3 text-right text-slate-700">
+                      {todayData.storeBreakdown.reduce((sum, s) => sum + s.orders, 0) > 0 
+                        ? `€${(todayData.storeBreakdown.reduce((sum, s) => sum + s.revenue, 0) / todayData.storeBreakdown.reduce((sum, s) => sum + s.orders, 0)).toLocaleString('it-IT', { minimumFractionDigits: 2 })}`
+                        : '€0.00'
+                      }
+                    </td>
+                    <td className="p-2 lg:p-3 text-right text-slate-700">100%</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           ) : (
-            <div className="h-[300px] flex items-center justify-center text-[#9b9b9b]">
-              Nessun ordine da app di delivery oggi
+            <div className="text-center py-12 text-slate-500">
+              <Store className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p>Nessun dato oggi</p>
             </div>
           )}
         </NeumorphicCard>
-      </div>
 
-      {/* Summary Info */}
-      <NeumorphicCard className="p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <Zap className="w-5 h-5 text-[#8b7355]" />
-          <h3 className="text-lg font-bold text-[#6b6b6b]">Informazioni</h3>
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+          {/* Revenue per Canale di Vendita */}
+          <NeumorphicCard className="p-4 lg:p-6">
+            <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Canali Vendita</h2>
+            {todayData.channelBreakdown.length > 0 ? (
+              <>
+                <div className="w-full overflow-x-auto">
+                  <div style={{ minWidth: '250px' }}>
+                    <ResponsiveContainer width="100%" height={250}>
+                      <PieChart>
+                        <Pie
+                          data={todayData.channelBreakdown}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={80}
+                          dataKey="value"
+                        >
+                          {todayData.channelBreakdown.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          contentStyle={{ 
+                            background: 'rgba(248, 250, 252, 0.95)', 
+                            border: 'none',
+                            borderRadius: '12px',
+                            fontSize: '11px'
+                          }}
+                          formatter={(value) => `€${value.toFixed(2)}`}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+                
+                <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0 mt-4">
+                  <table className="w-full min-w-[300px]">
+                    <thead>
+                      <tr className="border-b border-slate-300">
+                        <th className="text-left p-2 text-slate-600 font-medium text-xs">Canale</th>
+                        <th className="text-right p-2 text-slate-600 font-medium text-xs">Revenue</th>
+                        <th className="text-right p-2 text-slate-600 font-medium text-xs">Ordini</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {todayData.channelBreakdown.map((channel, index) => (
+                        <tr key={index} className="border-b border-slate-200">
+                          <td className="p-2 text-slate-700 font-medium text-sm">{channel.name}</td>
+                          <td className="p-2 text-right text-slate-700 text-sm">€{channel.value.toFixed(2)}</td>
+                          <td className="p-2 text-right text-slate-700 text-sm">{channel.orders}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            ) : (
+              <div className="h-[250px] flex items-center justify-center text-slate-500">
+                Nessun dato
+              </div>
+            )}
+          </NeumorphicCard>
+
+          {/* Revenue per App Delivery */}
+          <NeumorphicCard className="p-4 lg:p-6">
+            <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">App Delivery</h2>
+            {todayData.deliveryAppBreakdown.length > 0 ? (
+              <>
+                <div className="w-full overflow-x-auto">
+                  <div style={{ minWidth: '250px' }}>
+                    <ResponsiveContainer width="100%" height={250}>
+                      <BarChart data={todayData.deliveryAppBreakdown}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                        <XAxis 
+                          dataKey="name" 
+                          stroke="#64748b"
+                          tick={{ fontSize: 11 }}
+                        />
+                        <YAxis 
+                          stroke="#64748b"
+                          tick={{ fontSize: 11 }}
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            background: 'rgba(248, 250, 252, 0.95)', 
+                            border: 'none',
+                            borderRadius: '12px',
+                            fontSize: '11px'
+                          }}
+                          formatter={(value, name) => {
+                            if (name === 'Revenue') return `€${value.toFixed(2)}`;
+                            return value;
+                          }}
+                        />
+                        <Legend wrapperStyle={{ fontSize: '11px' }} />
+                        <Bar dataKey="value" fill="#3b82f6" name="Revenue" radius={[8, 8, 0, 0]} />
+                        <Bar dataKey="orders" fill="#8b5cf6" name="Ordini" radius={[8, 8, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0 mt-4">
+                  <table className="w-full min-w-[400px]">
+                    <thead>
+                      <tr className="border-b border-slate-300">
+                        <th className="text-left p-2 text-slate-600 font-medium text-xs">App</th>
+                        <th className="text-right p-2 text-slate-600 font-medium text-xs">Revenue</th>
+                        <th className="text-right p-2 text-slate-600 font-medium text-xs">Ordini</th>
+                        <th className="text-right p-2 text-slate-600 font-medium text-xs">€ Medio</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {todayData.deliveryAppBreakdown.map((app, index) => (
+                        <tr key={index} className="border-b border-slate-200">
+                          <td className="p-2">
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="w-3 h-3 rounded-full flex-shrink-0" 
+                                style={{ background: COLORS[index % COLORS.length] }}
+                              />
+                              <span className="text-slate-700 font-medium text-sm">{app.name}</span>
+                            </div>
+                          </td>
+                          <td className="p-2 text-right text-slate-800 font-bold text-sm">
+                            €{app.value.toFixed(2)}
+                          </td>
+                          <td className="p-2 text-right text-slate-700 text-sm">{app.orders}</td>
+                          <td className="p-2 text-right text-slate-700 text-sm">
+                            €{app.orders > 0 ? (app.value / app.orders).toFixed(2) : '0.00'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            ) : (
+              <div className="h-[250px] flex items-center justify-center text-slate-500">
+                Nessun ordine delivery
+              </div>
+            )}
+          </NeumorphicCard>
         </div>
-        <div className="neumorphic-pressed p-4 rounded-xl space-y-2 text-sm text-[#6b6b6b]">
-          <p>📊 Questa dashboard mostra i dati iPratico in tempo reale della giornata corrente</p>
-          <p>🔄 I dati si aggiornano automaticamente ogni 30 secondi</p>
-          <p>💡 Fonte dati: iPratico (importato da Google Sheets)</p>
-          <p>📍 La tabella "Revenue per Negozio" mostra i dati aggregati di tutti i locali per oggi</p>
-        </div>
-      </NeumorphicCard>
-    </div>
+
+        {/* Summary Info (preserved and styled to match new design) */}
+        <NeumorphicCard className="p-4 lg:p-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Zap className="w-5 h-5 text-blue-600" />
+            <h3 className="text-base lg:text-lg font-bold text-slate-800">Informazioni</h3>
+          </div>
+          <div className="neumorphic-pressed p-4 rounded-xl space-y-2 text-sm text-slate-700">
+            <p>📊 Questa dashboard mostra i dati iPratico in tempo reale della giornata corrente</p>
+            <p>🔄 I dati si aggiornano automaticamente ogni 30 secondi</p>
+            <p>💡 Fonte dati: iPratico (importato da Google Sheets)</p>
+            <p>📍 La tabella "Revenue per Negozio" mostra i dati aggregati di tutti i locali per oggi</p>
+          </div>
+        </NeumorphicCard>
+      </div>
+    </ProtectedPage>
   );
 }
