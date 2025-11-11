@@ -47,27 +47,6 @@ export default function ContrattiDipendente() {
     }
   });
 
-  const handleSign = async () => {
-    if (!signatureName.trim()) {
-      alert('Inserisci il tuo nome e cognome per firmare');
-      return;
-    }
-
-    if (!confirm('Confermando, dichiari di aver letto e accettato tutte le condizioni del contratto. Vuoi procedere con la firma?')) {
-      return;
-    }
-
-    await signContractMutation.mutateAsync({
-      id: viewingContract.id,
-      data: {
-        ...viewingContract,
-        status: 'firmato',
-        data_firma: new Date().toISOString(),
-        firma_dipendente: signatureName.trim()
-      }
-    });
-  };
-
   const safeFormatDate = (dateString) => {
     if (!dateString) return 'N/A';
     try {
@@ -88,6 +67,27 @@ export default function ContrattiDipendente() {
     } catch (e) {
       return 'N/A';
     }
+  };
+
+  const handleSign = async () => {
+    if (!signatureName.trim()) {
+      alert('Inserisci il tuo nome e cognome per firmare');
+      return;
+    }
+
+    if (!confirm('Confermando, dichiari di aver letto e accettato tutte le condizioni del contratto. Vuoi procedere con la firma?')) {
+      return;
+    }
+
+    await signContractMutation.mutateAsync({
+      id: viewingContract.id,
+      data: {
+        ...viewingContract,
+        status: 'firmato',
+        data_firma: new Date().toISOString(),
+        firma_dipendente: signatureName.trim()
+      }
+    });
   };
 
   const userContracts = contratti;
@@ -362,26 +362,4 @@ export default function ContrattiDipendente() {
       )}
     </div>
   );
-
-  function safeFormatDate(dateString) {
-    if (!dateString) return 'N/A';
-    try {
-      const date = new Date(dateString);
-      if (!isValid(date)) return 'N/A';
-      return date.toLocaleDateString('it-IT');
-    } catch (e) {
-      return 'N/A';
-    }
-  }
-
-  function safeFormatDateTime(dateString) {
-    if (!dateString) return 'N/A';
-    try {
-      const date = new Date(dateString);
-      if (!isValid(date)) return 'N/A';
-      return date.toLocaleString('it-IT');
-    } catch (e) {
-      return 'N/A';
-    }
-  }
 }
