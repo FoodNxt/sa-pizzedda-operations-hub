@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -15,11 +16,23 @@ import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 
 export default function GestioneAccessoPagine() {
+  const queryClient = useQueryClient();
+
+  const { data: configs = [], isLoading } = useQuery({
+    queryKey: ['page-access-config'],
+    queryFn: async () => {
+      const result = await base44.entities.PageAccessConfig.list();
+      return result;
+    },
+  });
+
+  const activeConfig = configs.find(c => c.is_active) || null;
+
   const [pageConfig, setPageConfig] = useState({
-    after_registration: ['ProfiloDipendente'],
-    after_contract_received: ['ProfiloDipendente', 'ContrattiDipendente'],
-    after_contract_signed: ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'],
-    after_contract_start: [
+    after_registration: activeConfig?.after_registration || ['ProfiloDipendente'],
+    after_contract_received: activeConfig?.after_contract_received || ['ProfiloDipendente', 'ContrattiDipendente'],
+    after_contract_signed: activeConfig?.after_contract_signed || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'],
+    after_contract_start: activeConfig?.after_contract_start || [
       'ProfiloDipendente',
       'ContrattiDipendente', 
       'Academy',
@@ -36,6 +49,47 @@ export default function GestioneAccessoPagine() {
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  const updateConfigMutation = useMutation({
+    mutationFn: async (data) => {
+      if (activeConfig) {
+        return await base44.entities.PageAccessConfig.update(activeConfig.id, data);
+      } else {
+        return await base44.entities.PageAccessConfig.create({
+          ...data,
+          config_name: 'default_config', // Assuming a default name for a new config
+          is_active: true
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['page-access-config'] });
+    },
+  });
+
+  // Update pageConfig when activeConfig loads
+  React.useEffect(() => {
+    if (activeConfig) {
+      setPageConfig({
+        after_registration: activeConfig.after_registration || ['ProfiloDipendente'],
+        after_contract_received: activeConfig.after_contract_received || ['ProfiloDipendente', 'ContrattiDipendente'],
+        after_contract_signed: activeConfig.after_contract_signed || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'],
+        after_contract_start: activeConfig.after_contract_start || [
+          'ProfiloDipendente',
+          'ContrattiDipendente', 
+          'Academy',
+          'Valutazione',
+          'ControlloPuliziaCassiere',
+          'ControlloPuliziaPizzaiolo',
+          'ControlloPuliziaStoreManager',
+          'FormInventario',
+          'ConteggioCassa',
+          'TeglieButtate',
+          'Preparazioni'
+        ]
+      });
+    }
+  }, [activeConfig]);
 
   const availablePages = [
     { value: 'ProfiloDipendente', label: 'Il Mio Profilo', icon: User },
@@ -70,20 +124,29 @@ export default function GestioneAccessoPagine() {
     setSaved(false);
 
     try {
-      // In a real implementation, you would save this to a database
-      // For now, we'll just simulate a save
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await updateConfigMutation.mutateAsync(pageConfig);
       
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
       
-      alert('Configurazione salvata! Nota: questa configurazione è attualmente hard-coded nel Layout.js. Per applicarla effettivamente, dovrai aggiornare il codice del Layout.');
+      alert('✅ Configurazione salvata con successo! Le modifiche sono ora attive.');
     } catch (error) {
-      alert('Errore durante il salvataggio');
+      console.error('Error saving config:', error);
+      alert('Errore durante il salvataggio: ' + error.message);
     } finally {
       setSaving(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="max-w-6xl mx-auto">
+        <NeumorphicCard className="p-8 text-center">
+          <p className="text-[#9b9b9b]">Caricamento configurazione...</p>
+        </NeumorphicCard>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -101,17 +164,17 @@ export default function GestioneAccessoPagine() {
         <div className="flex items-start gap-3">
           <Settings className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
           <div>
-            <h3 className="font-bold text-blue-800 mb-2">📋 Logica Attuale nel Sistema</h3>
+            <h3 className="font-bold text-blue-800 mb-2">📋 Configurazione Dinamica Attiva</h3>
             <p className="text-sm text-blue-700 mb-3">
-              Questa pagina mostra la configurazione attuale dell'accesso progressivo per i dipendenti. 
-              La logica è implementata nel <code className="bg-white px-2 py-1 rounded">Layout.js</code>.
+              Questa pagina gestisce la configurazione dell&apos;accesso progressivo per i dipendenti. 
+              Le modifiche vengono salvate nel database e applicate automaticamente.
             </p>
             <div className="text-xs text-blue-600">
               <p className="mb-1">🔹 Il sistema controlla automaticamente:</p>
               <ul className="list-disc list-inside space-y-1 ml-3">
-                <li>Se l'utente ha ruoli assegnati</li>
-                <li>Se ha ricevuto un contratto (status "inviato" o "firmato")</li>
-                <li>Se ha firmato il contratto (status "firmato")</li>
+                <li>Se l&apos;utente ha ruoli assegnati</li>
+                <li>Se ha ricevuto un contratto (status &quot;inviato&quot; o &quot;firmato&quot;)</li>
+                <li>Se ha firmato il contratto (status &quot;firmato&quot;)</li>
                 <li>Se la data di inizio contratto è passata</li>
               </ul>
             </div>
@@ -159,7 +222,7 @@ export default function GestioneAccessoPagine() {
           </div>
           <div>
             <h2 className="text-xl font-bold text-[#6b6b6b]">Contratto Ricevuto</h2>
-            <p className="text-sm text-[#9b9b9b]">Ha ricevuto un contratto (status "inviato")</p>
+            <p className="text-sm text-[#9b9b9b]">Ha ricevuto un contratto (status &quot;inviato&quot;)</p>
           </div>
         </div>
 
@@ -191,7 +254,7 @@ export default function GestioneAccessoPagine() {
           </div>
           <div>
             <h2 className="text-xl font-bold text-[#6b6b6b]">Contratto Firmato</h2>
-            <p className="text-sm text-[#9b9b9b]">Ha firmato il contratto (status "firmato")</p>
+            <p className="text-sm text-[#9b9b9b]">Ha firmato il contratto (status &quot;firmato&quot;)</p>
           </div>
         </div>
 
@@ -275,24 +338,17 @@ export default function GestioneAccessoPagine() {
       </div>
 
       {/* Info Box */}
-      <NeumorphicCard className="p-6 bg-yellow-50">
+      <NeumorphicCard className="p-6 bg-green-50">
         <div className="flex items-start gap-3">
-          <AlertCircle className="w-6 h-6 text-yellow-700 flex-shrink-0 mt-1" />
-          <div className="text-sm text-yellow-800">
-            <p className="font-medium mb-2">⚠️ Nota Importante</p>
+          <CheckCircle className="w-6 h-6 text-green-700 flex-shrink-0 mt-1" />
+          <div className="text-sm text-green-800">
+            <p className="font-medium mb-2">✅ Configurazione Dinamica Attiva</p>
             <ul className="text-xs space-y-1 list-disc list-inside">
-              <li>Questa pagina mostra la configurazione ATTUALE hard-coded nel <code className="bg-white px-2 py-1 rounded">Layout.js</code></li>
-              <li>Le modifiche qui NON vengono applicate automaticamente al codice</li>
-              <li>Per modificare effettivamente il comportamento, è necessario aggiornare la logica nel file Layout.js</li>
-              <li>I campi "Controllo Pulizia" sono visibili SOLO ai dipendenti con i ruoli corrispondenti (Cassiere, Pizzaiolo, Store Manager)</li>
-              <li>La logica attuale funziona così:
-                <ul className="list-disc list-inside ml-4 mt-1 space-y-0.5">
-                  <li><strong>Fase 1:</strong> Nessun ruolo → SOLO Profilo</li>
-                  <li><strong>Fase 2:</strong> Contratto ricevuto → + Contratti</li>
-                  <li><strong>Fase 3:</strong> Contratto firmato → + Academy</li>
-                  <li><strong>Fase 4:</strong> Data inizio contratto passata + firmato → Accesso completo</li>
-                </ul>
-              </li>
+              <li>Le modifiche vengono salvate nel database (entity: PageAccessConfig)</li>
+              <li>Il Layout.js legge la configurazione dal database e la applica automaticamente</li>
+              <li>I campi &quot;Controllo Pulizia&quot; sono visibili SOLO ai dipendenti con i ruoli corrispondenti</li>
+              <li>Clicca &quot;Salva Configurazione&quot; per rendere effettive le modifiche</li>
+              <li>La configurazione si applica immediatamente dopo il salvataggio</li>
             </ul>
           </div>
         </div>

@@ -543,9 +543,30 @@ export default function UsersManagement() {
                         {viewingUser.documento_identita_url ? (
                           <div className="flex items-center gap-2">
                             <CheckCircle className="w-4 h-4 text-green-600" />
-                            <a href={viewingUser.documento_identita_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-xs hover:underline">
+                            <a 
+                              href={viewingUser.documento_identita_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="text-blue-600 text-xs hover:underline flex items-center gap-1"
+                            >
+                              <Eye className="w-3 h-3" />
                               Visualizza
                             </a>
+                            <button
+                              onClick={() => {
+                                const a = document.createElement('a');
+                                a.href = viewingUser.documento_identita_url;
+                                a.download = `Documento_Identita_${viewingUser.nome_cognome || viewingUser.full_name || 'utente'}.pdf`;
+                                document.body.appendChild(a);
+                                a.click();
+                                a.remove();
+                              }}
+                              className="text-green-600 text-xs hover:underline flex items-center gap-1 bg-transparent border-none p-0 cursor-pointer"
+                              title="Scarica Documento d'Identità"
+                            >
+                              <FileText className="w-3 h-3" />
+                              Scarica
+                            </button>
                           </div>
                         ) : (
                           <X className="w-4 h-4 text-red-600" />
@@ -558,9 +579,30 @@ export default function UsersManagement() {
                         {viewingUser.codice_fiscale_documento_url ? (
                           <div className="flex items-center gap-2">
                             <CheckCircle className="w-4 h-4 text-green-600" />
-                            <a href={viewingUser.codice_fiscale_documento_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-xs hover:underline">
+                            <a 
+                              href={viewingUser.codice_fiscale_documento_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="text-blue-600 text-xs hover:underline flex items-center gap-1"
+                            >
+                              <Eye className="w-3 h-3" />
                               Visualizza
                             </a>
+                            <button
+                              onClick={() => {
+                                const a = document.createElement('a');
+                                a.href = viewingUser.codice_fiscale_documento_url;
+                                a.download = `Codice_Fiscale_${viewingUser.nome_cognome || viewingUser.full_name || 'utente'}.pdf`;
+                                document.body.appendChild(a);
+                                a.click();
+                                a.remove();
+                              }}
+                              className="text-green-600 text-xs hover:underline flex items-center gap-1 bg-transparent border-none p-0 cursor-pointer"
+                              title="Scarica Codice Fiscale"
+                            >
+                              <FileText className="w-3 h-3" />
+                              Scarica
+                            </button>
                           </div>
                         ) : (
                           <X className="w-4 h-4 text-red-600" />
@@ -573,9 +615,30 @@ export default function UsersManagement() {
                         {viewingUser.permesso_soggiorno_url ? (
                           <div className="flex items-center gap-2">
                             <CheckCircle className="w-4 h-4 text-green-600" />
-                            <a href={viewingUser.permesso_soggiorno_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-xs hover:underline">
+                            <a 
+                              href={viewingUser.permesso_soggiorno_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="text-blue-600 text-xs hover:underline flex items-center gap-1"
+                            >
+                              <Eye className="w-3 h-3" />
                               Visualizza
                             </a>
+                            <button
+                              onClick={() => {
+                                const a = document.createElement('a');
+                                a.href = viewingUser.permesso_soggiorno_url;
+                                a.download = `Permesso_Soggiorno_${viewingUser.nome_cognome || viewingUser.full_name || 'utente'}.pdf`;
+                                document.body.appendChild(a);
+                                a.click();
+                                a.remove();
+                              }}
+                              className="text-green-600 text-xs hover:underline flex items-center gap-1 bg-transparent border-none p-0 cursor-pointer"
+                              title="Scarica Permesso di Soggiorno"
+                            >
+                              <FileText className="w-3 h-3" />
+                              Scarica
+                            </button>
                           </div>
                         ) : (
                           <span className="text-[#9b9b9b] text-xs">Non applicabile</span>

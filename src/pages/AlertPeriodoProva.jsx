@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -73,26 +74,26 @@ export default function AlertPeriodoProva() {
       shiftsFromContractStart
     };
   }).filter(item => item.numeroTurni < 10) // Only employees with less than 10 shifts
-    .sort((a, b) => a.numeroTurni - b.numeroTurni); // Sort by number of shifts (ascending)
+    .sort((a, b) => b.numeroTurni - a.numeroTurni); // REVERSED: Sort by number of shifts DESCENDING (9, 8, 7...)
 
   const stats = {
     totaleDipendenti: dipendenteConContratto.length,
     totaleAlert: employeeAlerts.length,
-    critici: employeeAlerts.filter(e => e.numeroTurni <= 5).length,
-    attenzione: employeeAlerts.filter(e => e.numeroTurni > 5 && e.numeroTurni < 10).length
+    critici: employeeAlerts.filter(e => e.numeroTurni >= 8).length, // 8-9 turni = critici (vicini al 10°)
+    attenzione: employeeAlerts.filter(e => e.numeroTurni >= 5 && e.numeroTurni < 8).length // 5-7 turni = attenzione
   };
 
   const getSeverityColor = (numeroTurni) => {
-    if (numeroTurni === 0) return 'bg-red-100 text-red-700 border-red-300';
-    if (numeroTurni <= 3) return 'bg-orange-100 text-orange-700 border-orange-300';
-    if (numeroTurni <= 5) return 'bg-yellow-100 text-yellow-700 border-yellow-300';
-    return 'bg-blue-100 text-blue-700 border-blue-300';
+    if (numeroTurni >= 9) return 'bg-red-100 text-red-700 border-red-300'; // 9 turni = CRITICO
+    if (numeroTurni >= 8) return 'bg-orange-100 text-orange-700 border-orange-300'; // 8 turni = ALTO
+    if (numeroTurni >= 5) return 'bg-yellow-100 text-yellow-700 border-yellow-300'; // 5-7 turni = MEDIO
+    return 'bg-blue-100 text-blue-700 border-blue-300'; // 0-4 turni = BASSO
   };
 
   const getSeverityLabel = (numeroTurni) => {
-    if (numeroTurni === 0) return 'CRITICO';
-    if (numeroTurni <= 3) return 'ALTO';
-    if (numeroTurni <= 5) return 'MEDIO';
+    if (numeroTurni >= 9) return 'CRITICO'; // Vicino al 10° turno
+    if (numeroTurni >= 8) return 'ALTO';
+    if (numeroTurni >= 5) return 'MEDIO';
     return 'BASSO';
   };
 
@@ -130,7 +131,7 @@ export default function AlertPeriodoProva() {
             <TrendingDown className="w-8 h-8 text-red-600" />
           </div>
           <h3 className="text-3xl font-bold text-red-600 mb-1">{stats.critici}</h3>
-          <p className="text-sm text-[#9b9b9b]">Critici (≤5 turni)</p>
+          <p className="text-sm text-[#9b9b9b]">Critici (8-9 turni)</p>
         </NeumorphicCard>
 
         <NeumorphicCard className="p-6 text-center">
@@ -138,7 +139,7 @@ export default function AlertPeriodoProva() {
             <Clock className="w-8 h-8 text-yellow-600" />
           </div>
           <h3 className="text-3xl font-bold text-yellow-600 mb-1">{stats.attenzione}</h3>
-          <p className="text-sm text-[#9b9b9b]">Attenzione (6-9 turni)</p>
+          <p className="text-sm text-[#9b9b9b]">Attenzione (5-7 turni)</p>
         </NeumorphicCard>
       </div>
 
@@ -330,9 +331,10 @@ export default function AlertPeriodoProva() {
               <li>Vengono monitorati SOLO i dipendenti con contratto già iniziato</li>
               <li>Vengono contati i turni completati DALLA DATA DI INIZIO CONTRATTO</li>
               <li>L'alert scatta quando un dipendente ha fatto MENO DI 10 turni</li>
-              <li><strong>CRITICO (0-3 turni):</strong> Richiede attenzione immediata</li>
-              <li><strong>ALTO (4-5 turni):</strong> Situazione da monitorare attentamente</li>
-              <li><strong>MEDIO (6-9 turni):</strong> In fase di integrazione</li>
+              <li><strong>⚠️ LOGICA CRITICITÀ:</strong> Più si avvicina al 10° turno, più è critico (bisogna verificare che sia pronto per essere assunto)</li>
+              <li><strong>CRITICO (8-9 turni):</strong> Prossimi all'assunzione definitiva - richiede verifica immediata</li>
+              <li><strong>ALTO (5-7 turni):</strong> A metà periodo prova - monitoraggio attento</li>
+              <li><strong>MEDIO (0-4 turni):</strong> Inizio periodo prova - normale integrazione</li>
               <li>Il matching dei turni avviene tramite il campo "nome_cognome" identico a Planday</li>
             </ul>
           </div>
