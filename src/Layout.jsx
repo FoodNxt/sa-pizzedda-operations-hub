@@ -30,7 +30,8 @@ import {
   Truck,
   Link as LinkIcon,
   ShoppingCart, // Added ShoppingCart import
-  GraduationCap // Added GraduationCap import
+  GraduationCap, // Added GraduationCap import
+  FileText // Added FileText import for 'Contratti'
 } from "lucide-react";
 import CompleteProfileModal from "./components/auth/CompleteProfileModal";
 
@@ -193,6 +194,11 @@ const navigationStructure = [
         title: "Academy Admin", // NEW ITEM ADDED HERE
         url: createPageUrl("AcademyAdmin"),
         icon: GraduationCap,
+      },
+      {
+        title: "Contratti", // NEW ITEM ADDED HERE
+        url: createPageUrl("Contratti"),
+        icon: FileText,
       },
       {
         title: "Ricalcola Ritardi",
