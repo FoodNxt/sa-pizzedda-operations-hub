@@ -289,20 +289,13 @@ export default function UsersManagement() {
     try {
       setSendingContract(true);
 
-      // STEP 1: Save user data
       console.log('Step 1: Saving user data...');
-      try {
-        await updateMutation.mutateAsync({
-          id: editingUser.id,
-          data: formData
-        });
-        console.log('✓ User data saved successfully');
-      } catch (error) {
-        console.error('✗ Error saving user data:', error);
-        throw new Error('Impossibile salvare i dati utente: ' + (error.message || 'Errore sconosciuto'));
-      }
+      await updateMutation.mutateAsync({
+        id: editingUser.id,
+        data: formData
+      });
+      console.log('✓ User data saved successfully');
 
-      // STEP 2: Find template
       console.log('Step 2: Finding template...');
       const template = templates.find(t => t.id === selectedTemplate);
       if (!template) {
@@ -310,11 +303,11 @@ export default function UsersManagement() {
       }
       console.log('✓ Template found:', template.nome_template);
 
-      // STEP 3: Replace variables in template
       console.log('Step 3: Replacing variables...');
       const replaceVariables = (content, data) => {
         let result = content;
-        const oggi = new Date().toLocaleDateString('it-IT');
+        
+        const oggi = new Date();
         let dataFineContratto = '';
         if (data.data_inizio_contratto && data.durata_contratto_mesi) {
           const dataInizio = new Date(data.data_inizio_contratto);
@@ -335,7 +328,7 @@ export default function UsersManagement() {
           '{{ore_settimanali}}': data.ore_settimanali?.toString() || '',
           '{{data_inizio_contratto}}': data.data_inizio_contratto ? new Date(data.data_inizio_contratto).toLocaleDateString('it-IT') : '',
           '{{durata_contratto_mesi}}': data.durata_contratto_mesi?.toString() || '',
-          '{{data_oggi}}': oggi,
+          '{{data_oggi}}': oggi.toLocaleDateString('it-IT'),
           '{{data_fine_contratto}}': dataFineContratto,
           '{{ruoli}}': (data.ruoli_dipendente || []).join(', ') || 'Nessun ruolo',
           '{{locali}}': (data.assigned_stores || []).join(', ') || 'Tutti i locali'
@@ -351,7 +344,6 @@ export default function UsersManagement() {
       const contenutoContratto = replaceVariables(template.contenuto_template, formData);
       console.log('✓ Variables replaced successfully');
 
-      // STEP 4: Prepare contract data
       console.log('Step 4: Preparing contract data...');
       const contractData = {
         user_id: editingUser.id,
@@ -379,24 +371,12 @@ export default function UsersManagement() {
         data_invio: new Date().toISOString()
       };
       
-      console.log('Contract data prepared:', {
-        user_id: contractData.user_id,
-        user_email: contractData.user_email,
-        template_nome: contractData.template_nome,
-        status: contractData.status
-      });
+      console.log('Contract data prepared');
 
-      // STEP 5: Create contract record
       console.log('Step 5: Creating contract record...');
-      try {
-        await createContrattoMutation.mutateAsync(contractData);
-        console.log('✓ Contract created successfully');
-      } catch (error) {
-        console.error('✗ Error creating contract:', error);
-        throw new Error('Impossibile creare il contratto nel database: ' + (error.message || 'Errore sconosciuto'));
-      }
+      await createContrattoMutation.mutateAsync(contractData);
+      console.log('✓ Contract created successfully');
 
-      // STEP 6: Send email notification
       console.log('Step 6: Sending email notification...');
       try {
         await base44.integrations.Core.SendEmail({
@@ -407,7 +387,6 @@ export default function UsersManagement() {
         console.log('✓ Email sent successfully');
       } catch (error) {
         console.error('✗ Error sending email:', error);
-        // Email failure is not critical - contract is already created
         console.warn('Contract created but email could not be sent');
         alert('Contratto creato con successo, ma l\'email non è stata inviata. Avvisa manualmente il dipendente.');
       }

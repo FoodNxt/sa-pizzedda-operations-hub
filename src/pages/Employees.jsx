@@ -5,15 +5,11 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Users,
   TrendingUp,
-  TrendingDown,
   Award,
   AlertCircle,
   Clock,
   ShoppingCart,
   Star,
-  ChevronDown,
-  ChevronUp,
-  Calendar,
   Eye,
   X
 } from 'lucide-react';
@@ -78,47 +74,24 @@ export default function Employees() {
     allWrongOrderMatches.filter(m => currentOrderIds.has(m.wrong_order_id))
   , [allWrongOrderMatches, currentOrderIds]);
 
-  // Helper function to deduplicate shifts
-  const deduplicateShifts = (shiftsArray) => {
-    const uniqueShiftsMap = new Map();
-
-    shiftsArray.forEach(shift => {
-      // Normalize date to YYYY-MM-DD format for comparison
-      const normalizedDate = shift.shift_date ? new Date(shift.shift_date).toISOString().split('T')[0] : 'no-date';
-
-      // Normalize scheduled times (extract just HH:mm or use 'no-time' if null)
-      const normalizedStart = shift.scheduled_start
-        ? new Date(shift.scheduled_start).toISOString().substring(11, 16)
-        : 'no-start';
-      const normalizedEnd = shift.scheduled_end
-        ? new Date(shift.scheduled_end).toISOString().substring(11, 16)
-        : 'no-end';
-
-      // Create unique key
-      const key = `${shift.employee_name}|${shift.store_id || 'no-store'}|${normalizedDate}|${normalizedStart}|${normalizedEnd}`;
-
-      // Only keep the first occurrence (or the one with older created_date)
-      // If key exists, keep the one with older created_date (assuming older created_date means the "original" shift record)
-      if (!uniqueShiftsMap.has(key)) {
-        uniqueShiftsMap.set(key, shift);
-      } else {
-        const existing = uniqueShiftsMap.get(key);
-        if (shift.created_date && existing.created_date &&
-            new Date(shift.created_date) < new Date(existing.created_date)) {
-          uniqueShiftsMap.set(key, shift);
-        }
-      }
-    });
-
-    return Array.from(uniqueShiftsMap.values());
+  // Helper function to safely parse dates
+  const safeParseDate = (dateString) => {
+    if (!dateString) return null;
+    try {
+      const date = parseISO(dateString);
+      if (!isValid(date)) return null;
+      return date;
+    } catch (e) {
+      return null;
+    }
   };
 
   // Helper function to safely format dates
   const safeFormatDate = (dateString, formatString, options = {}) => {
     if (!dateString) return 'N/A';
+    const date = safeParseDate(dateString);
+    if (!date) return 'N/A';
     try {
-      const date = parseISO(dateString);
-      if (!isValid(date)) return 'N/A';
       return formatDate(date, formatString, { locale: it, ...options });
     } catch (e) {
       return 'N/A';
@@ -161,6 +134,42 @@ export default function Employees() {
     }
   };
 
+  // Helper function to deduplicate shifts
+  const deduplicateShifts = (shiftsArray) => {
+    const uniqueShiftsMap = new Map();
+
+    shiftsArray.forEach(shift => {
+      // Normalize date to YYYY-MM-DD format for comparison
+      const shiftDate = safeParseDate(shift.shift_date);
+      const normalizedDate = shiftDate ? shiftDate.toISOString().split('T')[0] : 'no-date';
+
+      // Normalize scheduled times (extract just HH:mm or use 'no-time' if null)
+      const normalizedStart = shift.scheduled_start
+        ? new Date(shift.scheduled_start).toISOString().substring(11, 16)
+        : 'no-start';
+      const normalizedEnd = shift.scheduled_end
+        ? new Date(shift.scheduled_end).toISOString().substring(11, 16)
+        : 'no-end';
+
+      // Create unique key
+      const key = `${shift.employee_name}|${shift.store_id || 'no-store'}|${normalizedDate}|${normalizedStart}|${normalizedEnd}`;
+
+      // Only keep the first occurrence (or the one with older created_date)
+      // If key exists, keep the one with older created_date (assuming older created_date means the "original" shift record)
+      if (!uniqueShiftsMap.has(key)) {
+        uniqueShiftsMap.set(key, shift);
+      } else {
+        const existing = uniqueShiftsMap.get(key);
+        if (shift.created_date && existing.created_date &&
+            new Date(shift.created_date) < new Date(existing.created_date)) {
+          uniqueShiftsMap.set(key, shift);
+        }
+      }
+    });
+
+    return Array.from(uniqueShiftsMap.values());
+  };
+
   // Calculate employee metrics
   const employeeMetrics = useMemo(() => {
     // Filter reviews by date range
@@ -170,22 +179,18 @@ export default function Employees() {
         // Ensure review_date exists before parsing
         if (!review.review_date) return false;
 
-        try {
-          const reviewDate = parseISO(review.review_date);
-          if (isNaN(reviewDate.getTime())) return false;
+        const reviewDate = safeParseDate(review.review_date);
+        if (!reviewDate) return false;
           
-          const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
-          const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
+        const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
+        const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
 
-          if (start && end) {
-            return isWithinInterval(reviewDate, { start, end });
-          } else if (start) {
-            return reviewDate >= start;
-          } else if (end) {
-            return reviewDate <= end;
-          }
-        } catch (e) {
-          return false;
+        if (start && end) {
+          return isWithinInterval(reviewDate, { start, end });
+        } else if (start) {
+          return reviewDate >= start;
+        } else if (end) {
+          return reviewDate <= end;
         }
         return true;
       });
@@ -200,22 +205,18 @@ export default function Employees() {
         if (startDate || endDate) {
           if (!s.shift_date) return false;
           
-          try {
-            const shiftDate = parseISO(s.shift_date);
-            if (isNaN(shiftDate.getTime())) return false;
+          const shiftDate = safeParseDate(s.shift_date);
+          if (!shiftDate) return false;
             
-            const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
-            const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
+          const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
+          const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
 
-            if (start && end) {
-              return isWithinInterval(shiftDate, { start, end });
-            } else if (start) {
-              return shiftDate >= start;
-            } else if (end) {
-              return shiftDate <= end;
-            }
-          } catch (e) {
-            return false;
+          if (start && end) {
+            return isWithinInterval(shiftDate, { start, end });
+          } else if (start) {
+            return shiftDate >= start;
+          } else if (end) {
+            return shiftDate <= end;
           }
         }
 
@@ -233,22 +234,18 @@ export default function Employees() {
         if (startDate || endDate) {
           if (!m.order_date) return false;
           
-          try {
-            const orderDate = parseISO(m.order_date);
-            if (isNaN(orderDate.getTime())) return false;
+          const orderDate = safeParseDate(m.order_date);
+          if (!orderDate) return false;
             
-            const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
-            const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
+          const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
+          const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
 
-            if (start && end) {
-              return isWithinInterval(orderDate, { start, end });
-            } else if (start) {
-              return orderDate >= start;
-            } else if (end) {
-              return orderDate <= end;
-            }
-          } catch (e) {
-            return false;
+          if (start && end) {
+            return isWithinInterval(orderDate, { start, end });
+          } else if (start) {
+            return orderDate >= start;
+          } else if (end) {
+            return orderDate <= end;
           }
         }
         
@@ -391,7 +388,7 @@ export default function Employees() {
       case 'good': return 'text-blue-600';
       case 'needs_improvement': return 'text-yellow-600';
       case 'poor': return 'text-red-600';
-      default: return 'text-slate-500';
+      default: return 'text-slate-700'; // Changed from 500 to 700
     }
   };
 
@@ -422,9 +419,10 @@ export default function Employees() {
         
         // Apply date filter if set
         if (startDate || endDate) {
-          const shiftDate = parseISO(s.shift_date);
-          const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
-          const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
+          const shiftDate = safeParseDate(s.shift_date);
+          if (!shiftDate) return false;
+          const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
+          const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
 
           if (start && end) {
             return isWithinInterval(shiftDate, { start, end });
@@ -437,7 +435,12 @@ export default function Employees() {
         
         return true;
       })
-      .sort((a, b) => new Date(b.shift_date) - new Date(a.shift_date));
+      .sort((a, b) => {
+        const dateA = safeParseDate(a.shift_date);
+        const dateB = safeParseDate(b.shift_date);
+        if (!dateA || !dateB) return 0;
+        return dateB.getTime() - dateA.getTime(); // Descending order (latest first)
+      });
 
     return deduplicateShifts(lateShifts);
   };
@@ -455,9 +458,10 @@ export default function Employees() {
         
         // Apply date filter if set
         if (startDate || endDate) {
-          const shiftDate = parseISO(s.shift_date);
-          const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
-          const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
+          const shiftDate = safeParseDate(s.shift_date);
+          if (!shiftDate) return false;
+          const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
+          const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
 
           if (start && end) {
             return isWithinInterval(shiftDate, { start, end });
@@ -470,7 +474,12 @@ export default function Employees() {
         
         return true;
       })
-      .sort((a, b) => new Date(b.shift_date) - new Date(a.shift_date));
+      .sort((a, b) => {
+        const dateA = safeParseDate(a.shift_date);
+        const dateB = safeParseDate(b.shift_date);
+        if (!dateA || !dateB) return 0;
+        return dateB.getTime() - dateA.getTime(); // Descending order (latest first)
+      });
 
     return deduplicateShifts(missingClockIns);
   };
@@ -491,9 +500,10 @@ export default function Employees() {
         
         // Apply date filter if set
         if (startDate || endDate) {
-          const reviewDate = parseISO(r.review_date);
-          const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
-          const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
+          const reviewDate = safeParseDate(r.review_date);
+          if (!reviewDate) return false;
+          const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
+          const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
 
           if (start && end) {
             return isWithinInterval(reviewDate, { start, end });
@@ -506,7 +516,12 @@ export default function Employees() {
         
         return true;
       })
-      .sort((a, b) => new Date(b.review_date) - new Date(a.review_date));
+      .sort((a, b) => {
+        const dateA = safeParseDate(a.review_date);
+        const dateB = safeParseDate(b.review_date);
+        if (!dateA || !dateB) return 0;
+        return dateB.getTime() - dateA.getTime(); // Descending order (latest first)
+      });
   };
 
   // Get latest 3 Google reviews for selected employee
@@ -523,27 +538,28 @@ export default function Employees() {
       if (startDate || endDate) {
         if (!m.order_date) return false;
         
-        try {
-          const orderDate = parseISO(m.order_date);
-          if (isNaN(orderDate.getTime())) return false;
-          
-          const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
-          const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
+        const orderDate = safeParseDate(m.order_date);
+        if (!orderDate) return false;
+        
+        const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
+        const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
 
-          if (start && end) {
-            return isWithinInterval(orderDate, { start, end });
-          } else if (start) {
-            return orderDate >= start;
-          } else if (end) {
-            return orderDate <= end;
-          }
-        } catch (e) {
-          return false;
+        if (start && end) {
+          return isWithinInterval(orderDate, { start, end });
+        } else if (start) {
+          return orderDate >= start;
+        } else if (end) {
+          return orderDate <= end;
         }
       }
       
       return true;
-    }).sort((a, b) => new Date(b.order_date) - new Date(a.order_date));
+    }).sort((a, b) => {
+      const dateA = safeParseDate(a.order_date);
+      const dateB = safeParseDate(b.order_date);
+      if (!dateA || !dateB) return 0;
+      return dateB.getTime() - dateA.getTime(); // Descending order (latest first)
+    });
 
     // Enrich with order details
     return employeeMatches.map(match => {
@@ -695,15 +711,13 @@ export default function Employees() {
                         <span className={`text-lg lg:text-xl font-bold ${getPerformanceColor(employee.performanceLevel)}`}>
                           {employee.performanceScore}
                         </span>
-                        {employee.googleReviewCount > 0 ? (
+                        {employee.googleReviewCount > 0 && (
                           <div className="flex items-center gap-1">
                             <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
                             <span className="text-sm font-bold text-slate-700">
                               {employee.avgGoogleRating.toFixed(1)}
                             </span>
                           </div>
-                        ) : (
-                          <span className="text-xs text-slate-400">N/A</span>
                         )}
                       </div>
                     </div>
@@ -779,49 +793,49 @@ export default function Employees() {
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <div className="neumorphic-flat p-4 rounded-xl">
-                  <div className="flex items-center gap-3 mb-3">
-                    <ShoppingCart className="w-5 h-5 text-[#8b7355]" />
-                    <h3 className="font-bold text-slate-800">Order Performance</h3>
+              <div className="space-y-3 lg:space-y-4"> {/* Adjusted spacing */}
+                <div className="neumorphic-flat p-3 lg:p-4 rounded-xl"> {/* Adjusted padding */}
+                  <div className="flex items-center gap-2 lg:gap-3 mb-3"> {/* Adjusted gap */}
+                    <ShoppingCart className="w-5 h-5 text-blue-600" /> {/* Changed icon color */}
+                    <h3 className="font-bold text-slate-800 text-sm lg:text-base">Ordini</h3> {/* Adjusted font size */}
                   </div>
                   {/* Updated to display only Wrong Orders from the new source */}
-                  <div className="grid grid-cols-1 gap-4">
+                  <div className="grid grid-cols-1 gap-3"> {/* Adjusted gap */}
                     <div>
-                      <p className="text-sm text-slate-500">Wrong Orders</p>
-                      <p className="text-xl font-bold text-slate-800">
-                        {selectedEmployee.wrongOrders} ({selectedEmployee.wrongOrderRate.toFixed(1)}% of shifts)
+                      <p className="text-xs text-slate-500">Ordini Sbagliati</p> {/* Adjusted font size */}
+                      <p className="text-lg lg:text-xl font-bold text-slate-800"> {/* Adjusted font size */}
+                        {selectedEmployee.wrongOrders} ({selectedEmployee.wrongOrderRate.toFixed(1)}%)
                       </p>
                     </div>
                     {/* Avg Processing Time and Avg Satisfaction are removed */}
                   </div>
                 </div>
 
-                <div className="neumorphic-flat p-4 rounded-xl">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Clock className="w-5 h-5 text-[#8b7355]" />
-                    <h3 className="font-bold text-slate-800">Attendance & Ritardi</h3>
+                <div className="neumorphic-flat p-3 lg:p-4 rounded-xl"> {/* Adjusted padding */}
+                  <div className="flex items-center gap-2 lg:gap-3 mb-3"> {/* Adjusted gap */}
+                    <Clock className="w-5 h-5 text-blue-600" /> {/* Changed icon color */}
+                    <h3 className="font-bold text-slate-800 text-sm lg:text-base">Presenza</h3> {/* Adjusted font size */}
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3"> {/* Adjusted gap */}
                     <div>
-                      <p className="text-sm text-slate-500">Total Shifts</p>
-                      <p className="text-xl font-bold text-slate-800">{selectedEmployee.totalShifts}</p>
+                      <p className="text-xs text-slate-500">Turni</p> {/* Adjusted font size */}
+                      <p className="text-lg lg:text-xl font-bold text-slate-800">{selectedEmployee.totalShifts}</p> {/* Adjusted font size */}
                     </div>
                     <div>
-                      <p className="text-sm text-slate-500">Avg Lateness</p>
-                      <p className="text-xl font-bold text-slate-800">
-                        {selectedEmployee.avgLateMinutes.toFixed(1)} min
+                      <p className="text-xs text-slate-500">Media Ritardo</p> {/* Adjusted font size */}
+                      <p className="text-lg lg:text-xl font-bold text-slate-800"> {/* Adjusted font size */}
+                        {selectedEmployee.avgLateMinutes.toFixed(1)}m
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-slate-500">Numero Ritardi</p>
-                      <p className="text-xl font-bold text-red-600">
+                      <p className="text-xs text-slate-500">N° Ritardi</p> {/* Adjusted font size */}
+                      <p className="text-lg lg:text-xl font-bold text-red-600"> {/* Adjusted font size */}
                         {selectedEmployee.numeroRitardi}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-slate-500">% Ritardi</p>
-                      <p className="text-xl font-bold text-red-600">
+                      <p className="text-xs text-slate-500">% Ritardi</p> {/* Adjusted font size */}
+                      <p className="text-lg lg:text-xl font-bold text-red-600"> {/* Adjusted font size */}
                         {selectedEmployee.percentualeRitardi.toFixed(1)}%
                       </p>
                     </div>

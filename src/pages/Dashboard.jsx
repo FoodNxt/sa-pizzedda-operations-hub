@@ -5,7 +5,7 @@ import { Store, TrendingUp, Users, DollarSign, Star, AlertTriangle, Filter, Cale
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import ProtectedPage from "../components/ProtectedPage";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { format, subDays, isAfter, isBefore, parseISO } from 'date-fns';
+import { format, subDays, isAfter, isBefore, parseISO, isValid } from 'date-fns';
 
 export default function Dashboard() {
   const [dateRange, setDateRange] = useState('30');
@@ -36,10 +36,19 @@ export default function Dashboard() {
     if (!dateString) return null;
     try {
       const date = parseISO(dateString);
-      if (isNaN(date.getTime())) return null;
+      if (!isValid(date)) return null;
       return date;
     } catch (e) {
       return null;
+    }
+  };
+
+  const safeFormatDate = (date, formatString) => {
+    if (!date || !isValid(date)) return 'N/A';
+    try {
+      return format(date, formatString);
+    } catch (e) {
+      return 'N/A';
     }
   };
 
@@ -57,17 +66,14 @@ export default function Dashboard() {
     }
     
     const filteredData = iPraticoData.filter(item => {
-      if (item.order_date) {
-        try {
-          const itemDate = safeParseDate(item.order_date);
-          if (!itemDate) return false;
-          if (isBefore(itemDate, cutoffDate) || isAfter(itemDate, endFilterDate)) {
-            return false;
-          }
-        } catch (e) {
-          return false;
-        }
-      }
+      if (!item.order_date) return false;
+      
+      const itemDate = safeParseDate(item.order_date);
+      if (!itemDate) return false;
+      
+      if (cutoffDate && isBefore(itemDate, cutoffDate)) return false;
+      if (endFilterDate && isAfter(itemDate, endFilterDate)) return false;
+      
       return true;
     });
 
@@ -81,40 +87,30 @@ export default function Dashboard() {
 
     const revenueByDate = {};
     filteredData.forEach(item => {
-      if (item.order_date) {
-        try {
-          const date = safeParseDate(item.order_date);
-          if (!date) return;
-          const dateStr = item.order_date;
-          if (!revenueByDate[dateStr]) {
-            revenueByDate[dateStr] = { date: dateStr, revenue: 0 };
-          }
-          revenueByDate[dateStr].revenue += item.total_revenue || 0;
-        } catch (e) {}
+      if (!item.order_date) return;
+      
+      const dateStr = item.order_date;
+      if (!revenueByDate[dateStr]) {
+        revenueByDate[dateStr] = { date: dateStr, revenue: 0 };
       }
+      revenueByDate[dateStr].revenue += item.total_revenue || 0;
     });
 
     const dailyRevenue = Object.values(revenueByDate)
-      .sort((a, b) => {
-        const dateA = safeParseDate(a.date);
-        const dateB = safeParseDate(b.date);
-        if (!dateA || !dateB) return 0;
-        return dateA.getTime() - dateB.getTime();
-      })
       .map(d => {
-        try {
-          const date = safeParseDate(d.date);
-          return {
-            date: date ? format(date, 'dd MMM') : 'N/A',
-            revenue: parseFloat(d.revenue.toFixed(2))
-          };
-        } catch (e) {
-          return {
-            date: 'N/A',
-            revenue: parseFloat(d.revenue.toFixed(2))
-          };
-        }
+        const parsedDate = safeParseDate(d.date);
+        return {
+          date: parsedDate,
+          dateStr: d.date,
+          revenue: parseFloat(d.revenue.toFixed(2))
+        };
       })
+      .filter(d => d.date !== null)
+      .sort((a, b) => a.date.getTime() - b.date.getTime())
+      .map(d => ({
+        date: safeFormatDate(d.date, 'dd MMM'),
+        revenue: d.revenue
+      }))
       .filter(d => d.date !== 'N/A');
 
     return { totalRevenue, totalOrders, dailyRevenue };
@@ -137,8 +133,6 @@ export default function Dashboard() {
 
   const alertStores = storeRatings.filter(s => s.avgRating < 3.5 && s.reviewCount > 0);
 
-  const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b'];
-
   const clearCustomDates = () => {
     setStartDate('');
     setEndDate('');
@@ -148,7 +142,6 @@ export default function Dashboard() {
   return (
     <ProtectedPage pageName="Dashboard">
       <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
-        {/* Header */}
         <div className="mb-4 lg:mb-6">
           <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
             Dashboard
@@ -156,7 +149,6 @@ export default function Dashboard() {
           <p className="text-sm text-slate-500">Monitor business performance</p>
         </div>
 
-        {/* Date Range Filter */}
         <NeumorphicCard className="p-4 lg:p-6">
           <div className="flex items-center gap-2 mb-4">
             <Filter className="w-5 h-5 text-blue-600" />
@@ -210,7 +202,6 @@ export default function Dashboard() {
           </div>
         </NeumorphicCard>
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           <NeumorphicCard className="p-4">
             <div className="flex flex-col items-center text-center">
@@ -257,7 +248,6 @@ export default function Dashboard() {
           </NeumorphicCard>
         </div>
 
-        {/* Alerts */}
         {alertStores.length > 0 && (
           <NeumorphicCard className="p-4 lg:p-6 bg-red-50">
             <div className="flex items-center gap-2 mb-3">
@@ -280,103 +270,113 @@ export default function Dashboard() {
           </NeumorphicCard>
         )}
 
-        {/* Charts */}
         <div className="grid grid-cols-1 gap-4 lg:gap-6">
           <NeumorphicCard className="p-4 lg:p-6">
             <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Trend Revenue</h2>
-            <div className="w-full overflow-x-auto">
-              <div style={{ minWidth: '300px' }}>
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={processedData.dailyRevenue}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
-                    <XAxis 
-                      dataKey="date" 
-                      stroke="#64748b" 
-                      tick={{ fontSize: 12 }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={60}
-                    />
-                    <YAxis 
-                      stroke="#64748b"
-                      tick={{ fontSize: 12 }}
-                      width={60}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        background: 'rgba(248, 250, 252, 0.95)', 
-                        border: 'none',
-                        borderRadius: '12px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                        fontSize: '12px'
-                      }}
-                      formatter={(value) => `€${value.toFixed(2)}`}
-                    />
-                    <Legend wrapperStyle={{ fontSize: '12px' }} />
-                    <Line 
-                      type="monotone" 
-                      dataKey="revenue" 
-                      stroke="#3b82f6" 
-                      strokeWidth={2} 
-                      name="Revenue €"
-                      dot={{ fill: '#3b82f6', r: 3 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+            {processedData.dailyRevenue.length > 0 ? (
+              <div className="w-full overflow-x-auto">
+                <div style={{ minWidth: '300px' }}>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <LineChart data={processedData.dailyRevenue}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                      <XAxis 
+                        dataKey="date" 
+                        stroke="#64748b" 
+                        tick={{ fontSize: 12 }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={60}
+                      />
+                      <YAxis 
+                        stroke="#64748b"
+                        tick={{ fontSize: 12 }}
+                        width={60}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          background: 'rgba(248, 250, 252, 0.95)', 
+                          border: 'none',
+                          borderRadius: '12px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                          fontSize: '12px'
+                        }}
+                        formatter={(value) => `€${value.toFixed(2)}`}
+                      />
+                      <Legend wrapperStyle={{ fontSize: '12px' }} />
+                      <Line 
+                        type="monotone" 
+                        dataKey="revenue" 
+                        stroke="#3b82f6" 
+                        strokeWidth={2} 
+                        name="Revenue €"
+                        dot={{ fill: '#3b82f6', r: 3 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="h-[250px] flex items-center justify-center text-slate-500">
+                Nessun dato disponibile per il periodo selezionato
+              </div>
+            )}
           </NeumorphicCard>
 
           <NeumorphicCard className="p-4 lg:p-6">
             <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Rating per Store</h2>
-            <div className="w-full overflow-x-auto">
-              <div style={{ minWidth: '300px' }}>
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={storeRatings.slice(0, 5)}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
-                    <XAxis 
-                      dataKey="name" 
-                      stroke="#64748b"
-                      tick={{ fontSize: 12 }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={60}
-                    />
-                    <YAxis 
-                      stroke="#64748b" 
-                      domain={[0, 5]}
-                      tick={{ fontSize: 12 }}
-                      width={40}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        background: 'rgba(248, 250, 252, 0.95)', 
-                        border: 'none',
-                        borderRadius: '12px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                        fontSize: '12px'
-                      }}
-                    />
-                    <Bar 
-                      dataKey="avgRating" 
-                      fill="url(#colorGradient)" 
-                      name="Avg Rating" 
-                      radius={[8, 8, 0, 0]} 
-                    />
-                    <defs>
-                      <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#f59e0b" />
-                        <stop offset="100%" stopColor="#f97316" />
-                      </linearGradient>
-                    </defs>
-                  </BarChart>
-                </ResponsiveContainer>
+            {storeRatings.length > 0 ? (
+              <div className="w-full overflow-x-auto">
+                <div style={{ minWidth: '300px' }}>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={storeRatings.slice(0, 5)}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                      <XAxis 
+                        dataKey="name" 
+                        stroke="#64748b"
+                        tick={{ fontSize: 12 }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={60}
+                      />
+                      <YAxis 
+                        stroke="#64748b" 
+                        domain={[0, 5]}
+                        tick={{ fontSize: 12 }}
+                        width={40}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          background: 'rgba(248, 250, 252, 0.95)', 
+                          border: 'none',
+                          borderRadius: '12px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                          fontSize: '12px'
+                        }}
+                      />
+                      <Bar 
+                        dataKey="avgRating" 
+                        fill="url(#colorGradient)" 
+                        name="Avg Rating" 
+                        radius={[8, 8, 0, 0]} 
+                      />
+                      <defs>
+                        <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#f59e0b" />
+                          <stop offset="100%" stopColor="#f97316" />
+                        </linearGradient>
+                      </defs>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="h-[250px] flex items-center justify-center text-slate-500">
+                Nessun dato disponibile
+              </div>
+            )}
           </NeumorphicCard>
         </div>
 
-        {/* Quick Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
           <NeumorphicCard className="p-4">
             <div className="text-center">

@@ -1,11 +1,10 @@
-
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { DollarSign, TrendingUp, ShoppingCart, Truck, Filter, Calendar, X } from 'lucide-react';
+import { DollarSign, TrendingUp, Filter, Calendar, X } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { format, subDays, isAfter, isBefore, parseISO } from 'date-fns';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { format, subDays, isAfter, isBefore, parseISO, isValid } from 'date-fns';
 import ProtectedPage from "../components/ProtectedPage";
 
 export default function Financials() {
@@ -13,7 +12,6 @@ export default function Financials() {
   const [dateRange, setDateRange] = useState('30');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  // selectedChannel and selectedDeliveryApp states removed as per changes
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -22,69 +20,58 @@ export default function Financials() {
 
   const { data: iPraticoData = [], isLoading } = useQuery({
     queryKey: ['iPratico'],
-    queryFn: () => base44.entities.iPratico.list('-order_date', 1000), // Fetches up to 1000 records, sorted by order_date
+    queryFn: () => base44.entities.iPratico.list('-order_date', 1000),
   });
 
-  // Helper function to safely parse dates
   const safeParseDate = (dateString) => {
     if (!dateString) return null;
     try {
       const date = parseISO(dateString);
-      if (isNaN(date.getTime())) return null;
+      if (!isValid(date)) return null;
       return date;
     } catch (e) {
       return null;
     }
   };
 
-  // Process and filter data
+  const safeFormatDate = (date, formatString) => {
+    if (!date || !isValid(date)) return 'N/A';
+    try {
+      return format(date, formatString);
+    } catch (e) {
+      return 'N/A';
+    }
+  };
+
   const processedData = useMemo(() => {
     let cutoffDate;
     let endFilterDate;
     
     if (startDate || endDate) {
-      // Ensure time components are set for accurate range filtering covering whole days
-      cutoffDate = startDate ? safeParseDate(startDate + 'T00:00:00') : new Date(0); // Epoch start if no start date
-      endFilterDate = endDate ? safeParseDate(endDate + 'T23:59:59') : new Date(); // Current time if no end date
+      cutoffDate = startDate ? safeParseDate(startDate + 'T00:00:00') : new Date(0);
+      endFilterDate = endDate ? safeParseDate(endDate + 'T23:59:59') : new Date();
     } else {
-      const days = parseInt(dateRange, 10); // Parse string to number
+      const days = parseInt(dateRange, 10);
       cutoffDate = subDays(new Date(), days);
-      // For non-custom ranges, assume we want data up to the end of the current day
       endFilterDate = new Date(); 
     }
     
     let filtered = iPraticoData.filter(item => {
-      // Date filter
-      if (item.order_date) {
-        try {
-          // iPratico data's order_date is assumed to be 'YYYY-MM-DD'.
-          // To compare against cutoffDate and endFilterDate (which include time),
-          // we define the full day range for the item's order_date.
-          const itemDateStart = safeParseDate(item.order_date + 'T00:00:00');
-          const itemDateEnd = safeParseDate(item.order_date + 'T23:59:59');
-          
-          // Check if dates are valid
-          if (!itemDateStart || !itemDateEnd) {
-            return false;
-          }
-
-          // Check for overlap: an item is within range if its start date is before or equal to the filter's end date,
-          // AND its end date is after or equal to the filter's start date.
-          if (isBefore(itemDateEnd, cutoffDate) || isAfter(itemDateStart, endFilterDate)) {
-            return false;
-          }
-        } catch (e) {
-          return false; // Skip items with invalid dates
-        }
-      }
+      if (!item.order_date) return false;
       
-      // Store filter
+      const itemDateStart = safeParseDate(item.order_date + 'T00:00:00');
+      const itemDateEnd = safeParseDate(item.order_date + 'T23:59:59');
+      
+      if (!itemDateStart || !itemDateEnd) return false;
+
+      if (cutoffDate && isBefore(itemDateEnd, cutoffDate)) return false;
+      if (endFilterDate && isAfter(itemDateStart, endFilterDate)) return false;
+      
       if (selectedStore !== 'all' && item.store_id !== selectedStore) return false;
       
       return true;
     });
 
-    // Calculate totals
     const totalRevenue = filtered.reduce((sum, item) => 
       sum + (item.total_revenue || 0), 0
     );
@@ -95,48 +82,33 @@ export default function Financials() {
     
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-    // Revenue by date (group by day)
     const revenueByDate = {};
     
     filtered.forEach(item => {
-      if (item.order_date) {
-        const date = item.order_date; // Use the raw date string for grouping
-        if (!revenueByDate[date]) {
-          revenueByDate[date] = { date, revenue: 0, orders: 0 };
-        }
-        revenueByDate[date].revenue += item.total_revenue || 0;
-        revenueByDate[date].orders += item.total_orders || 0;
+      if (!item.order_date) return;
+      const date = item.order_date;
+      if (!revenueByDate[date]) {
+        revenueByDate[date] = { date, revenue: 0, orders: 0 };
       }
+      revenueByDate[date].revenue += item.total_revenue || 0;
+      revenueByDate[date].orders += item.total_orders || 0;
     });
 
     const dailyRevenue = Object.values(revenueByDate)
-      .sort((a, b) => {
-        const dateA = safeParseDate(a.date);
-        const dateB = safeParseDate(b.date);
-        if (!dateA || !dateB) return 0;
-        return dateA.getTime() - dateB.getTime();
-      })
-      .map(d => {
-        try {
-          const parsedDate = safeParseDate(d.date);
-          return {
-            date: parsedDate ? format(parsedDate, 'dd/MM') : 'N/A',
-            revenue: parseFloat(d.revenue.toFixed(2)),
-            orders: d.orders,
-            avgValue: d.orders > 0 ? parseFloat((d.revenue / d.orders).toFixed(2)) : 0
-          };
-        } catch (e) {
-          return {
-            date: 'N/A',
-            revenue: parseFloat(d.revenue.toFixed(2)),
-            orders: d.orders,
-            avgValue: d.orders > 0 ? parseFloat((d.revenue / d.orders).toFixed(2)) : 0
-          };
-        }
-      })
+      .map(d => ({
+        ...d,
+        parsedDate: safeParseDate(d.date)
+      }))
+      .filter(d => d.parsedDate !== null)
+      .sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime())
+      .map(d => ({
+        date: safeFormatDate(d.parsedDate, 'dd/MM'),
+        revenue: parseFloat(d.revenue.toFixed(2)),
+        orders: d.orders,
+        avgValue: d.orders > 0 ? parseFloat((d.revenue / d.orders).toFixed(2)) : 0
+      }))
       .filter(d => d.date !== 'N/A');
 
-    // Revenue by store
     const revenueByStore = {};
     
     filtered.forEach(item => {
@@ -157,7 +129,6 @@ export default function Financials() {
         avgValue: s.orders > 0 ? parseFloat((s.revenue / s.orders).toFixed(2)) : 0
       }));
 
-    // Revenue by source type (for channel breakdown)
     const revenueByType = {};
     
     filtered.forEach(item => {
@@ -181,12 +152,11 @@ export default function Financials() {
     const channelBreakdown = Object.values(revenueByType)
       .sort((a, b) => b.value - a.value)
       .map(c => ({
-        name: c.name.charAt(0).toUpperCase() + c.name.slice(1), // Capitalize for display
+        name: c.name.charAt(0).toUpperCase() + c.name.slice(1),
         value: parseFloat(c.value.toFixed(2)),
         orders: c.orders
       }));
 
-    // Revenue by source app (for delivery app breakdown)
     const revenueByApp = {};
     
     filtered.forEach(item => {
@@ -212,7 +182,7 @@ export default function Financials() {
     const deliveryAppBreakdown = Object.values(revenueByApp)
       .sort((a, b) => b.value - a.value)
       .map(a => ({
-        name: a.name.charAt(0).toUpperCase() + a.name.slice(1), // Capitalize for display
+        name: a.name.charAt(0).toUpperCase() + a.name.slice(1),
         value: parseFloat(a.value.toFixed(2)),
         orders: a.orders
       }));
@@ -223,8 +193,8 @@ export default function Financials() {
       avgOrderValue,
       dailyRevenue,
       storeBreakdown,
-      channelBreakdown, // This is now source type breakdown
-      deliveryAppBreakdown // This is now source app breakdown
+      channelBreakdown,
+      deliveryAppBreakdown
     };
   }, [iPraticoData, selectedStore, dateRange, startDate, endDate]);
 
@@ -239,7 +209,6 @@ export default function Financials() {
   return (
     <ProtectedPage pageName="Financials">
       <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
-        {/* Header */}
         <div className="mb-4 lg:mb-6">
           <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
             Analisi Finanziaria
@@ -247,7 +216,6 @@ export default function Financials() {
           <p className="text-sm text-slate-500">Dati iPratico</p>
         </div>
 
-        {/* Filters */}
         <NeumorphicCard className="p-4 lg:p-6">
           <div className="flex items-center gap-2 mb-4">
             <Filter className="w-5 h-5 text-blue-600" />
@@ -315,7 +283,6 @@ export default function Financials() {
           </div>
         </NeumorphicCard>
 
-        {/* KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           <NeumorphicCard className="p-4">
             <div className="flex flex-col items-center text-center">
@@ -356,7 +323,7 @@ export default function Financials() {
           <NeumorphicCard className="p-4">
             <div className="flex flex-col items-center text-center">
               <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center mb-3 shadow-lg">
-                <Truck className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+                <TrendingUp className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
               </div>
               <h3 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1">
                 {processedData.deliveryAppBreakdown.reduce((sum, app) => sum + app.orders, 0)}
@@ -366,122 +333,132 @@ export default function Financials() {
           </NeumorphicCard>
         </div>
 
-        {/* Charts Row */}
         <div className="grid grid-cols-1 gap-4 lg:gap-6">
           <NeumorphicCard className="p-4 lg:p-6">
             <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Trend Giornaliero</h2>
-            <div className="w-full overflow-x-auto">
-              <div style={{ minWidth: '300px' }}>
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={processedData.dailyRevenue}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
-                    <XAxis 
-                      dataKey="date" 
-                      stroke="#64748b"
-                      tick={{ fontSize: 11 }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={60}
-                    />
-                    <YAxis 
-                      yAxisId="left"
-                      stroke="#3b82f6"
-                      tick={{ fontSize: 11 }}
-                      width={50}
-                    />
-                    <YAxis 
-                      yAxisId="right" 
-                      orientation="right"
-                      stroke="#22c55e"
-                      tick={{ fontSize: 11 }}
-                      width={50}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        background: 'rgba(248, 250, 252, 0.95)', 
-                        border: 'none',
-                        borderRadius: '12px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                        fontSize: '11px'
-                      }}
-                      formatter={(value) => `€${value.toFixed(2)}`}
-                    />
-                    <Legend wrapperStyle={{ fontSize: '11px' }} />
-                    <Line 
-                      yAxisId="left"
-                      type="monotone" 
-                      dataKey="revenue" 
-                      stroke="#3b82f6" 
-                      strokeWidth={2} 
-                      name="Revenue" 
-                      dot={{ fill: '#3b82f6', r: 3 }}
-                    />
-                    <Line 
-                      yAxisId="right"
-                      type="monotone" 
-                      dataKey="avgValue" 
-                      stroke="#22c55e" 
-                      strokeWidth={2} 
-                      name="Medio"
-                      dot={{ fill: '#22c55e', r: 2 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+            {processedData.dailyRevenue.length > 0 ? (
+              <div className="w-full overflow-x-auto">
+                <div style={{ minWidth: '300px' }}>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <LineChart data={processedData.dailyRevenue}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                      <XAxis 
+                        dataKey="date" 
+                        stroke="#64748b"
+                        tick={{ fontSize: 11 }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={60}
+                      />
+                      <YAxis 
+                        yAxisId="left"
+                        stroke="#3b82f6"
+                        tick={{ fontSize: 11 }}
+                        width={50}
+                      />
+                      <YAxis 
+                        yAxisId="right" 
+                        orientation="right"
+                        stroke="#22c55e"
+                        tick={{ fontSize: 11 }}
+                        width={50}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          background: 'rgba(248, 250, 252, 0.95)', 
+                          border: 'none',
+                          borderRadius: '12px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                          fontSize: '11px'
+                        }}
+                        formatter={(value) => `€${value.toFixed(2)}`}
+                      />
+                      <Legend wrapperStyle={{ fontSize: '11px' }} />
+                      <Line 
+                        yAxisId="left"
+                        type="monotone" 
+                        dataKey="revenue" 
+                        stroke="#3b82f6" 
+                        strokeWidth={2} 
+                        name="Revenue" 
+                        dot={{ fill: '#3b82f6', r: 3 }}
+                      />
+                      <Line 
+                        yAxisId="right"
+                        type="monotone" 
+                        dataKey="avgValue" 
+                        stroke="#22c55e" 
+                        strokeWidth={2} 
+                        name="Medio"
+                        dot={{ fill: '#22c55e', r: 2 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="h-[250px] flex items-center justify-center text-slate-500">
+                Nessun dato disponibile per il periodo selezionato
+              </div>
+            )}
           </NeumorphicCard>
 
           <NeumorphicCard className="p-4 lg:p-6">
             <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Revenue per Locale</h2>
-            <div className="w-full overflow-x-auto">
-              <div style={{ minWidth: '300px' }}>
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={processedData.storeBreakdown}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
-                    <XAxis 
-                      dataKey="name" 
-                      stroke="#64748b"
-                      tick={{ fontSize: 11 }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={60}
-                    />
-                    <YAxis 
-                      stroke="#64748b"
-                      tick={{ fontSize: 11 }}
-                      width={60}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        background: 'rgba(248, 250, 252, 0.95)', 
-                        border: 'none',
-                        borderRadius: '12px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                        fontSize: '11px'
-                      }}
-                      formatter={(value) => `€${value.toFixed(2)}`}
-                    />
-                    <Legend wrapperStyle={{ fontSize: '11px' }} />
-                    <Bar 
-                      dataKey="revenue" 
-                      fill="url(#storeGradient)" 
-                      name="Revenue" 
-                      radius={[8, 8, 0, 0]} 
-                    />
-                    <defs>
-                      <linearGradient id="storeGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#3b82f6" />
-                        <stop offset="100%" stopColor="#2563eb" />
-                      </linearGradient>
-                    </defs>
-                  </BarChart>
-                </ResponsiveContainer>
+            {processedData.storeBreakdown.length > 0 ? (
+              <div className="w-full overflow-x-auto">
+                <div style={{ minWidth: '300px' }}>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={processedData.storeBreakdown}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                      <XAxis 
+                        dataKey="name" 
+                        stroke="#64748b"
+                        tick={{ fontSize: 11 }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={60}
+                      />
+                      <YAxis 
+                        stroke="#64748b"
+                        tick={{ fontSize: 11 }}
+                        width={60}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          background: 'rgba(248, 250, 252, 0.95)', 
+                          border: 'none',
+                          borderRadius: '12px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                          fontSize: '11px'
+                        }}
+                        formatter={(value) => `€${value.toFixed(2)}`}
+                      />
+                      <Legend wrapperStyle={{ fontSize: '11px' }} />
+                      <Bar 
+                        dataKey="revenue" 
+                        fill="url(#storeGradient)" 
+                        name="Revenue" 
+                        radius={[8, 8, 0, 0]} 
+                      />
+                      <defs>
+                        <linearGradient id="storeGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#3b82f6" />
+                          <stop offset="100%" stopColor="#2563eb" />
+                        </linearGradient>
+                      </defs>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="h-[250px] flex items-center justify-center text-slate-500">
+                Nessun dato disponibile
+              </div>
+            )}
           </NeumorphicCard>
         </div>
 
-        {/* Tables - Mobile Optimized */}
         <div className="grid grid-cols-1 gap-4 lg:gap-6">
           <NeumorphicCard className="p-4 lg:p-6">
             <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Dettaglio Locali</h2>
@@ -538,7 +515,6 @@ export default function Financials() {
           </NeumorphicCard>
         </div>
 
-        {/* Delivery Apps Table */}
         {processedData.deliveryAppBreakdown.length > 0 && (
           <NeumorphicCard className="p-4 lg:p-6">
             <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">App Delivery</h2>
