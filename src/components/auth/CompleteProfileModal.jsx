@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { base44 } from "@/api/base44Client";
 import { User, CheckCircle, AlertCircle } from 'lucide-react';
@@ -19,7 +18,7 @@ export default function CompleteProfileModal({ user, onComplete }) {
 
   const verifyUpdate = async (expectedName, maxRetries = 5) => {
     for (let i = 0; i < maxRetries; i++) {
-      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // Increasing delay
+      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
       
       const updatedUser = await base44.auth.me();
       
@@ -56,7 +55,7 @@ export default function CompleteProfileModal({ user, onComplete }) {
 
       console.log('💾 Tentativo salvataggio:', { nome_cognome: trimmedName, attempt: retryCount + 1 });
 
-      // MULTIPLE SAVE ATTEMPTS - Critical for Google OAuth
+      // MULTIPLE SAVE ATTEMPTS
       for (let attempt = 1; attempt <= 3; attempt++) {
         console.log(`🔄 Salvataggio tentativo ${attempt}/3...`);
         
@@ -65,7 +64,6 @@ export default function CompleteProfileModal({ user, onComplete }) {
           profile_manually_completed: true
         });
 
-        // Wait a bit between attempts
         await new Promise(resolve => setTimeout(resolve, 500));
       }
 
@@ -88,7 +86,6 @@ export default function CompleteProfileModal({ user, onComplete }) {
 
       console.log('✅ Verifica completata con successo!');
       
-      // Success!
       onComplete();
 
     } catch (error) {
@@ -112,23 +109,6 @@ export default function CompleteProfileModal({ user, onComplete }) {
           <p className="text-[#9b9b9b] text-sm">
             Inserisci il tuo Nome Cognome come appare nel sistema aziendale
           </p>
-        </div>
-
-        {/* Info Box */}
-        <div className="neumorphic-pressed p-4 rounded-xl mb-6 bg-blue-50">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-blue-800">
-              <p className="font-medium mb-1">⚠️ IMPORTANTE!</p>
-              <p className="text-xs mb-2">
-                Il nome che inserisci QUI verrà salvato PERMANENTEMENTE e protetto dalle sovrascritture di Google.
-              </p>
-              <p className="text-xs font-bold">
-                ✅ Inserisci il Nome Cognome ESATTAMENTE come appare nei turni<br/>
-                (es. "Mario Rossi" non "mario rossi" né "Rossi Mario")
-              </p>
-            </div>
-          </div>
         </div>
 
         {/* Form */}
@@ -200,7 +180,7 @@ export default function CompleteProfileModal({ user, onComplete }) {
             ) : (
               <>
                 <CheckCircle className="w-6 h-6" />
-                Salva Nome (Protetto da Google)
+                Salva Nome
               </>
             )}
           </button>
@@ -210,9 +190,6 @@ export default function CompleteProfileModal({ user, onComplete }) {
         <div className="mt-6 text-center">
           <p className="text-xs text-[#9b9b9b]">
             Dopo il salvataggio, potrai modificare il nome dalla pagina "Profilo"
-          </p>
-          <p className="text-xs text-yellow-600 mt-2 font-medium">
-            ⚠️ Se il problema persiste, modifica il nome da "Profilo" dopo aver effettuato l'accesso
           </p>
         </div>
       </NeumorphicCard>

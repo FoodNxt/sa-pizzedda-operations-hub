@@ -14,7 +14,8 @@ import {
   ShoppingBag,
   Upload,
   FileText,
-  X
+  X,
+  CreditCard
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 
@@ -26,11 +27,11 @@ export default function ProfiloDipendente() {
     phone: '',
     data_nascita: '',
     codice_fiscale: '',
-    indirizzo_domicilio: '',
+    indirizzo_residenza: '',
+    iban: '',
     taglia_maglietta: ''
   });
   
-  // Document upload states
   const [documentFiles, setDocumentFiles] = useState({
     documento_identita: null,
     codice_fiscale_documento: null,
@@ -53,7 +54,8 @@ export default function ProfiloDipendente() {
         phone: u.phone || '',
         data_nascita: u.data_nascita || '',
         codice_fiscale: u.codice_fiscale || '',
-        indirizzo_domicilio: u.indirizzo_domicilio || '',
+        indirizzo_residenza: u.indirizzo_residenza || '',
+        iban: u.iban || '',
         taglia_maglietta: u.taglia_maglietta || ''
       });
       return u;
@@ -106,7 +108,8 @@ export default function ProfiloDipendente() {
         phone: user.phone || '',
         data_nascita: user.data_nascita || '',
         codice_fiscale: user.codice_fiscale || '',
-        indirizzo_domicilio: user.indirizzo_domicilio || '',
+        indirizzo_residenza: user.indirizzo_residenza || '',
+        iban: user.iban || '',
         taglia_maglietta: user.taglia_maglietta || ''
       });
     }
@@ -323,14 +326,29 @@ export default function ProfiloDipendente() {
               <div className="md:col-span-2">
                 <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
                   <MapPin className="w-4 h-4" />
-                  Indirizzo di Domicilio
+                  Indirizzo di Residenza
                 </label>
                 <input
                   type="text"
-                  value={formData.indirizzo_domicilio}
-                  onChange={(e) => setFormData({ ...formData, indirizzo_domicilio: e.target.value })}
+                  value={formData.indirizzo_residenza}
+                  onChange={(e) => setFormData({ ...formData, indirizzo_residenza: e.target.value })}
                   placeholder="Via Roma 123, 20100 Milano (MI)"
                   className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
+                  <CreditCard className="w-4 h-4" />
+                  IBAN
+                </label>
+                <input
+                  type="text"
+                  value={formData.iban}
+                  onChange={(e) => setFormData({ ...formData, iban: e.target.value.toUpperCase() })}
+                  placeholder="IT60 X054 2811 1010 0000 0123 456"
+                  maxLength={34}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none uppercase"
                 />
               </div>
 
@@ -440,9 +458,17 @@ export default function ProfiloDipendente() {
             <div className="neumorphic-pressed p-4 rounded-xl md:col-span-2">
               <p className="text-sm text-[#9b9b9b] mb-1 flex items-center gap-2">
                 <MapPin className="w-4 h-4" />
-                Indirizzo di Domicilio
+                Indirizzo di Residenza
               </p>
-              <p className="text-[#6b6b6b] font-medium">{user?.indirizzo_domicilio || '-'}</p>
+              <p className="text-[#6b6b6b] font-medium">{user?.indirizzo_residenza || '-'}</p>
+            </div>
+
+            <div className="neumorphic-pressed p-4 rounded-xl md:col-span-2">
+              <p className="text-sm text-[#9b9b9b] mb-1 flex items-center gap-2">
+                <CreditCard className="w-4 h-4" />
+                IBAN
+              </p>
+              <p className="text-[#6b6b6b] font-medium uppercase">{user?.iban || '-'}</p>
             </div>
 
             <div className="neumorphic-pressed p-4 rounded-xl">
@@ -456,7 +482,7 @@ export default function ProfiloDipendente() {
         )}
       </NeumorphicCard>
 
-      {/* NEW: Documenti Section */}
+      {/* Documenti Section */}
       <NeumorphicCard className="p-6">
         <h3 className="text-lg font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
           <FileText className="w-5 h-5 text-[#8b7355]" />
