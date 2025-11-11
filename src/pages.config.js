@@ -49,7 +49,6 @@ import AcademyAdmin from './pages/AcademyAdmin';
 import Academy from './pages/Academy';
 import Contratti from './pages/Contratti';
 import FunzionamentoApp from './pages/FunzionamentoApp';
-import ContrattiDipendente from './pages/ContrattiDipendente';
 import AlertPeriodoProva from './pages/AlertPeriodoProva';
 import HRAdmin from './pages/HRAdmin';
 import Layout from './Layout.jsx';
@@ -107,7 +106,6 @@ export const PAGES = {
     "Academy": Academy,
     "Contratti": Contratti,
     "FunzionamentoApp": FunzionamentoApp,
-    "ContrattiDipendente": ContrattiDipendente,
     "AlertPeriodoProva": AlertPeriodoProva,
     "HRAdmin": HRAdmin,
 }
