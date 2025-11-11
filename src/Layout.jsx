@@ -32,7 +32,8 @@ import {
   GraduationCap,
   FileText,
   BookOpen,
-  Settings
+  Settings,
+  Loader2
 } from "lucide-react";
 import CompleteProfileModal from "./components/auth/CompleteProfileModal";
 
@@ -425,16 +426,26 @@ export default function Layout({ children, currentPageName }) {
   });
   const [dipendenteNav, setDipendenteNav] = useState(null);
   const [pageAccessConfig, setPageAccessConfig] = useState(null);
+  
+  // CRITICAL: Loading states to prevent premature menu rendering
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [isLoadingConfig, setIsLoadingConfig] = useState(true);
 
-  // Fetch page access configuration
+  // Fetch page access configuration with loading state
   useEffect(() => {
     const fetchConfig = async () => {
+      setIsLoadingConfig(true);
       try {
         const configs = await base44.entities.PageAccessConfig.list();
         const activeConfig = configs.find(c => c.is_active);
-        setPageAccessConfig(activeConfig);
+        
+        // CRITICAL: Set config even if null to complete loading
+        setPageAccessConfig(activeConfig || null);
       } catch (error) {
         console.error('Error fetching page access config:', error);
+        setPageAccessConfig(null);
+      } finally {
+        setIsLoadingConfig(false);
       }
     };
     fetchConfig();
@@ -442,6 +453,7 @@ export default function Layout({ children, currentPageName }) {
 
   useEffect(() => {
     const fetchUser = async () => {
+      setIsLoadingUser(true);
       try {
         const user = await base44.auth.me();
         setCurrentUser(user);
@@ -454,6 +466,11 @@ export default function Layout({ children, currentPageName }) {
 
         // Only apply progressive access logic for dipendente/user types (not admin/manager)
         if (normalizedUserType === 'dipendente') {
+          // CRITICAL: Wait for config to be loaded before applying restrictions
+          if (isLoadingConfig) {
+            return; // Don't process until config is ready
+          }
+
           const userRoles = user.ruoli_dipendente || [];
 
           // 1. If NO roles → use config or default to ONLY Profilo
@@ -464,6 +481,7 @@ export default function Layout({ children, currentPageName }) {
             if (!allowedFullPaths.includes(location.pathname)) {
               navigate(allowedFullPaths[0] || createPageUrl("ProfiloDipendente"), { replace: true });
             }
+            setIsLoadingUser(false);
             return;
           }
 
@@ -495,15 +513,23 @@ export default function Layout({ children, currentPageName }) {
             navigate(allowedFullPaths[0] || createPageUrl("ProfiloDipendente"), { replace: true });
           }
         }
+
+        setIsLoadingUser(false);
       } catch (error) {
         console.error('Error fetching user:', error);
+        setIsLoadingUser(false);
       }
     };
-    fetchUser();
-  }, [location.pathname, navigate, pageAccessConfig]);
+    
+    // CRITICAL: Only fetch user after config is loaded
+    if (!isLoadingConfig) {
+      fetchUser();
+    }
+  }, [location.pathname, navigate, pageAccessConfig, isLoadingConfig]);
 
+  // CRITICAL: Recalculate dipendente navigation when user or config changes
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser && !isLoadingConfig && !isLoadingUser) {
       const normalizedUserType = currentUser.user_type === 'user' ? 'dipendente' : currentUser.user_type;
       
       if (normalizedUserType === 'dipendente') {
@@ -512,7 +538,7 @@ export default function Layout({ children, currentPageName }) {
         });
       }
     }
-  }, [currentUser, pageAccessConfig]);
+  }, [currentUser, pageAccessConfig, isLoadingConfig, isLoadingUser]);
 
   const checkIfContractSigned = async (userId) => {
     try {
@@ -594,7 +620,7 @@ export default function Layout({ children, currentPageName }) {
 
     const userRoles = user.ruoli_dipendente || [];
 
-    // 1. No roles → use config
+    // 1. No roles → use config (RESTRICTIVE DEFAULT)
     if (userRoles.length === 0) {
       const allowedPages = pageAccessConfig?.after_registration || ['ProfiloDipendente'];
       return [{
@@ -686,20 +712,24 @@ export default function Layout({ children, currentPageName }) {
     return icons[pageName] || User;
   };
 
-  const filteredNavigation = navigationStructure
-    .filter(section => hasAccess(section.requiredUserType))
-    .map(section => ({
-      ...section,
-      items: section.items.filter(item => hasAccess(item.requiredUserType, item.requiredRole))
-    }))
-    .filter(section => section.items.length > 0);
+  // CRITICAL: Build navigation only when everything is loaded
+  const filteredNavigation = (!isLoadingConfig && !isLoadingUser && currentUser) 
+    ? navigationStructure
+        .filter(section => hasAccess(section.requiredUserType))
+        .map(section => ({
+          ...section,
+          items: section.items.filter(item => hasAccess(item.requiredUserType, item.requiredRole))
+        }))
+        .filter(section => section.items.length > 0)
+    : []; // EMPTY navigation while loading
 
   // Normalize user_type for final navigation
   const normalizedUserType = currentUser?.user_type === 'user' ? 'dipendente' : currentUser?.user_type;
   
-  const finalNavigation = normalizedUserType === 'dipendente'
-    ? (dipendenteNav || [])
-    : filteredNavigation;
+  // CRITICAL: Use dipendente nav only when fully loaded, otherwise show nothing
+  const finalNavigation = (!isLoadingConfig && !isLoadingUser && currentUser)
+    ? (normalizedUserType === 'dipendente' ? (dipendenteNav || []) : filteredNavigation)
+    : []; // EMPTY navigation while loading
 
   const getUserDisplayName = () => {
     if (!currentUser) return 'Caricamento...';
@@ -713,6 +743,9 @@ export default function Layout({ children, currentPageName }) {
            userType === 'manager' ? 'Manager' :
            'Dipendente';
   };
+
+  // CRITICAL: Show loading state while data is being fetched
+  const isFullyLoaded = !isLoadingUser && !isLoadingConfig && currentUser;
 
   return (
     <div className="min-h-screen bg-[#e0e5ec]">
@@ -799,103 +832,112 @@ export default function Layout({ children, currentPageName }) {
               </div>
             </div>
 
-            {/* Navigation */}
+            {/* Navigation - CRITICAL: Only render when fully loaded */}
             <nav className="flex-1 space-y-1">
-              {finalNavigation.map((item) => {
-                if (item.type === 'link') {
-                  const isActive = isActiveLink(item.url);
-                  return (
-                    <Link
-                      key={item.title}
-                      to={item.url}
-                      onClick={() => setSidebarOpen(false)}
-                      className={`
-                        flex items-center gap-3 px-4 py-3 rounded-xl
-                        transition-all duration-200
-                        ${isActive ? 'nav-button-active' : 'nav-button'}
-                      `}
-                    >
-                      <item.icon className={`w-5 h-5 ${isActive ? 'text-[#8b7355]' : 'text-[#9b9b9b]'}`} />
-                      <span className={`font-medium ${isActive ? 'text-[#6b6b6b]' : 'text-[#9b9b9b]'}`}>
-                        {item.title}
-                      </span>
-                    </Link>
-                  );
-                }
-
-                if (item.type === 'section') {
-                  const isExpanded = expandedSections[item.title];
-                  const sectionActive = isSectionActive(item);
-
-                  return (
-                    <div key={item.title}>
-                      <button
-                        onClick={() => toggleSection(item.title)}
+              {!isFullyLoaded ? (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <Loader2 className="w-8 h-8 text-[#8b7355] animate-spin mb-3" />
+                  <p className="text-sm text-[#9b9b9b]">Caricamento menu...</p>
+                </div>
+              ) : (
+                finalNavigation.map((item) => {
+                  if (item.type === 'link') {
+                    const isActive = isActiveLink(item.url);
+                    return (
+                      <Link
+                        key={item.title}
+                        to={item.url}
+                        onClick={() => setSidebarOpen(false)}
                         className={`
-                          w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl
+                          flex items-center gap-3 px-4 py-3 rounded-xl
                           transition-all duration-200
-                          ${sectionActive ? 'nav-button-active' : 'nav-button'}
+                          ${isActive ? 'nav-button-active' : 'nav-button'}
                         `}
                       >
-                        <div className="flex items-center gap-3">
-                          <item.icon className={`w-5 h-5 ${sectionActive ? 'text-[#8b7355]' : 'text-[#9b9b9b]'}`} />
-                          <span className={`font-medium ${sectionActive ? 'text-[#6b6b6b]' : 'text-[#9b9b9b]'}`}>
-                            {item.title}
-                          </span>
-                        </div>
-                        {isExpanded ? (
-                          <ChevronDown className="w-4 h-4 text-[#9b9b9b]" />
-                        ) : (
-                          <ChevronRight className="w-4 h-4 text-[#9b9b9b]" />
+                        <item.icon className={`w-5 h-5 ${isActive ? 'text-[#8b7355]' : 'text-[#9b9b9b]'}`} />
+                        <span className={`font-medium ${isActive ? 'text-[#6b6b6b]' : 'text-[#9b9b9b]'}`}>
+                          {item.title}
+                        </span>
+                      </Link>
+                    );
+                  }
+
+                  if (item.type === 'section') {
+                    const isExpanded = expandedSections[item.title];
+                    const sectionActive = isSectionActive(item);
+
+                    return (
+                      <div key={item.title}>
+                        <button
+                          onClick={() => toggleSection(item.title)}
+                          className={`
+                            w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl
+                            transition-all duration-200
+                            ${sectionActive ? 'nav-button-active' : 'nav-button'}
+                          `}
+                        >
+                          <div className="flex items-center gap-3">
+                            <item.icon className={`w-5 h-5 ${sectionActive ? 'text-[#8b7355]' : 'text-[#9b9b9b]'}`} />
+                            <span className={`font-medium ${sectionActive ? 'text-[#6b6b6b]' : 'text-[#9b9b9b]'}`}>
+                              {item.title}
+                            </span>
+                          </div>
+                          {isExpanded ? (
+                            <ChevronDown className="w-4 h-4 text-[#9b9b9b]" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4 text-[#9b9b9b]" />
+                          )}
+                        </button>
+
+                        {isExpanded && (
+                          <div className="ml-4 mt-1 space-y-1">
+                            {item.items.map((subItem) => {
+                              const isActive = isActiveLink(subItem.url);
+                              return (
+                                <Link
+                                  key={subItem.title}
+                                  to={subItem.url}
+                                  onClick={() => setSidebarOpen(false)}
+                                  className={`
+                                    flex items-center gap-3 px-4 py-2 rounded-lg
+                                    transition-all duration-200
+                                    ${isActive ? 'neumorphic-pressed' : 'hover:bg-[#d5dae3]'}
+                                  `}
+                                >
+                                  <subItem.icon className={`w-4 h-4 ${isActive ? 'text-[#8b7355]' : 'text-[#9b9b9b]'}`} />
+                                  <span className={`text-sm font-medium ${isActive ? 'text-[#6b6b6b]' : 'text-[#9b9b9b]'}`}>
+                                    {subItem.title}
+                                  </span>
+                                </Link>
+                              );
+                            })}
+                          </div>
                         )}
-                      </button>
+                      </div>
+                    );
+                  }
 
-                      {isExpanded && (
-                        <div className="ml-4 mt-1 space-y-1">
-                          {item.items.map((subItem) => {
-                            const isActive = isActiveLink(subItem.url);
-                            return (
-                              <Link
-                                key={subItem.title}
-                                to={subItem.url}
-                                onClick={() => setSidebarOpen(false)}
-                                className={`
-                                  flex items-center gap-3 px-4 py-2 rounded-lg
-                                  transition-all duration-200
-                                  ${isActive ? 'neumorphic-pressed' : 'hover:bg-[#d5dae3]'}
-                                `}
-                              >
-                                <subItem.icon className={`w-4 h-4 ${isActive ? 'text-[#8b7355]' : 'text-[#9b9b9b]'}`} />
-                                <span className={`text-sm font-medium ${isActive ? 'text-[#6b6b6b]' : 'text-[#9b9b9b]'}`}>
-                                  {subItem.title}
-                                </span>
-                              </Link>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-
-                return null;
-              })}
+                  return null;
+                })
+              )}
             </nav>
 
             {/* User Info */}
-            <div className="neumorphic-pressed p-4 rounded-xl mt-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full neumorphic-flat flex items-center justify-center">
-                  <span className="text-sm font-bold text-[#8b7355]">
-                    {getUserDisplayName().charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-[#6b6b6b]">{getUserDisplayName()}</p>
-                  <p className="text-xs text-[#9b9b9b]">{getUserTypeName()}</p>
+            {isFullyLoaded && (
+              <div className="neumorphic-pressed p-4 rounded-xl mt-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full neumorphic-flat flex items-center justify-center">
+                    <span className="text-sm font-bold text-[#8b7355]">
+                      {getUserDisplayName().charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-[#6b6b6b]">{getUserDisplayName()}</p>
+                    <p className="text-xs text-[#9b9b9b]">{getUserTypeName()}</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </aside>
 
