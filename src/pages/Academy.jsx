@@ -204,9 +204,13 @@ export default function Academy() {
     return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
   };
 
-  // Filter courses by user role
+  // Filter courses by user role - check if ANY of the user's roles match ANY of the course's roles
   const userRoles = currentUser?.ruoli_dipendente || [];
-  const availableCorsi = corsi.filter(corso => userRoles.includes(corso.ruolo));
+  const availableCorsi = corsi.filter(corso => {
+    const corsoRuoli = corso.ruoli || [];
+    // Check if there's any overlap between user roles and course roles
+    return corsoRuoli.some(ruolo => userRoles.includes(ruolo));
+  });
 
   const corsiCompletati = progressi.filter(p => p.stato === 'completato').length;
   const corsiInCorso = progressi.filter(p => p.stato === 'in_corso').length;
@@ -232,7 +236,7 @@ export default function Academy() {
               {formatDuration(selectedCorso.durata_lezione)}
             </span>
             <span className="flex items-center gap-1">
-              Ruolo: {selectedCorso.ruolo}
+              Ruoli: {(selectedCorso.ruoli || []).join(', ')}
             </span>
           </div>
         </NeumorphicCard>
@@ -434,7 +438,7 @@ export default function Academy() {
         {availableCorsi.length === 0 ? (
           <div className="text-center py-12">
             <GraduationCap className="w-16 h-16 text-[#9b9b9b] mx-auto mb-4" />
-            <p className="text-[#9b9b9b]">Nessun corso disponibile per il tuo ruolo</p>
+            <p className="text-[#9b9b9b]">Nessun corso disponibile per i tuoi ruoli</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

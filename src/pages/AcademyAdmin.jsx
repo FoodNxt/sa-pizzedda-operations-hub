@@ -23,9 +23,9 @@ export default function AcademyAdmin() {
   const [editingCorso, setEditingCorso] = useState(null);
   const [formData, setFormData] = useState({
     nome_corso: '',
-    ruolo: 'Pizzaiolo',
+    ruoli: ['Pizzaiolo'],
     link_video: '',
-    durata_lezione: 600, // Default 10 minuti in secondi
+    durata_lezione: 600,
     domande: [],
     attivo: true,
     ordine: 0
@@ -74,7 +74,7 @@ export default function AcademyAdmin() {
   const resetForm = () => {
     setFormData({
       nome_corso: '',
-      ruolo: 'Pizzaiolo',
+      ruoli: ['Pizzaiolo'],
       link_video: '',
       durata_lezione: 600,
       domande: [],
@@ -89,7 +89,7 @@ export default function AcademyAdmin() {
     setEditingCorso(corso);
     setFormData({
       nome_corso: corso.nome_corso,
-      ruolo: corso.ruolo,
+      ruoli: corso.ruoli || [],
       link_video: corso.link_video,
       durata_lezione: corso.durata_lezione,
       domande: corso.domande || [],
@@ -111,6 +111,17 @@ export default function AcademyAdmin() {
   const handleDelete = (id) => {
     if (confirm('Sei sicuro di voler eliminare questo corso?')) {
       deleteMutation.mutate(id);
+    }
+  };
+
+  const handleRuoloToggle = (ruolo) => {
+    const currentRuoli = formData.ruoli || [];
+    if (currentRuoli.includes(ruolo)) {
+      // Remove if already present
+      setFormData({ ...formData, ruoli: currentRuoli.filter(r => r !== ruolo) });
+    } else {
+      // Add if not present
+      setFormData({ ...formData, ruoli: [...currentRuoli, ruolo] });
     }
   };
 
@@ -288,17 +299,24 @@ export default function AcademyAdmin() {
 
               <div>
                 <label className="block text-sm font-medium text-[#6b6b6b] mb-2">
-                  Ruolo *
+                  Ruoli * (seleziona uno o più)
                 </label>
-                <select
-                  value={formData.ruolo}
-                  onChange={(e) => setFormData({ ...formData, ruolo: e.target.value })}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                >
-                  <option value="Pizzaiolo">Pizzaiolo</option>
-                  <option value="Cassiere">Cassiere</option>
-                  <option value="Store Manager">Store Manager</option>
-                </select>
+                <div className="neumorphic-pressed px-4 py-3 rounded-xl space-y-2">
+                  {['Pizzaiolo', 'Cassiere', 'Store Manager'].map(ruolo => (
+                    <label key={ruolo} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={(formData.ruoli || []).includes(ruolo)}
+                        onChange={() => handleRuoloToggle(ruolo)}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm text-[#6b6b6b]">{ruolo}</span>
+                    </label>
+                  ))}
+                </div>
+                {formData.ruoli.length === 0 && (
+                  <p className="text-xs text-red-600 mt-1">Seleziona almeno un ruolo</p>
+                )}
               </div>
 
               <div>
@@ -447,7 +465,11 @@ export default function AcademyAdmin() {
               <NeumorphicButton type="button" onClick={resetForm}>
                 Annulla
               </NeumorphicButton>
-              <NeumorphicButton type="submit" variant="primary">
+              <NeumorphicButton 
+                type="submit" 
+                variant="primary"
+                disabled={formData.ruoli.length === 0}
+              >
                 {editingCorso ? 'Aggiorna' : 'Crea'} Corso
               </NeumorphicButton>
             </div>
@@ -479,7 +501,7 @@ export default function AcademyAdmin() {
                   <div className="flex items-center gap-4 text-sm text-[#9b9b9b]">
                     <span className="flex items-center gap-1">
                       <Users className="w-4 h-4" />
-                      {corso.ruolo}
+                      {(corso.ruoli || []).join(', ') || 'Nessun ruolo'}
                     </span>
                     <span className="flex items-center gap-1">
                       <Clock className="w-4 h-4" />
