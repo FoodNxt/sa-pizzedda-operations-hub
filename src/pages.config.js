@@ -50,6 +50,7 @@ import Academy from './pages/Academy';
 import Contratti from './pages/Contratti';
 import FunzionamentoApp from './pages/FunzionamentoApp';
 import ContrattiDipendente from './pages/ContrattiDipendente';
+import AlertPeriodoProva from './pages/AlertPeriodoProva';
 import Layout from './Layout.jsx';
 
 
@@ -106,6 +107,7 @@ export const PAGES = {
     "Contratti": Contratti,
     "FunzionamentoApp": FunzionamentoApp,
     "ContrattiDipendente": ContrattiDipendente,
+    "AlertPeriodoProva": AlertPeriodoProva,
 }
 
 export const pagesConfig = {

@@ -18,20 +18,23 @@ import {
   ShoppingBag,
   Store,
   FileText,
-  Send
+  Send,
+  Eye // Added Eye icon
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 
 export default function UsersManagement() {
   const [editingUser, setEditingUser] = useState(null);
+  const [viewingUser, setViewingUser] = useState(null); // Added viewingUser state
+  const [selectedTemplate, setSelectedTemplate] = useState(''); // Added selectedTemplate state
   const [formData, setFormData] = useState({
     nome_cognome: '',
     user_type: 'dipendente',
     ruoli_dipendente: [],
     assigned_stores: [],
     employee_group: '',
-    function_name: '',
+    function_name: '', // Kept function_name to maintain form functionality as it's used in JSX
     phone: '',
     data_nascita: '',
     codice_fiscale: '',
@@ -41,6 +44,7 @@ export default function UsersManagement() {
     ore_settimanali: 0,
     data_inizio_contratto: '',
     durata_contratto_mesi: 0,
+    planday: false, // Added planday
     status: 'active'
   });
   const [sendingContract, setSendingContract] = useState(false);
@@ -55,6 +59,12 @@ export default function UsersManagement() {
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
     queryFn: () => base44.entities.Store.list(),
+  });
+
+  // Added query for contract templates
+  const { data: templates = [] } = useQuery({
+    queryKey: ['contratto-templates'],
+    queryFn: () => base44.entities.ContrattoTemplate.list(),
   });
 
   const updateMutation = useMutation({
@@ -78,6 +88,7 @@ export default function UsersManagement() {
         ore_settimanali: 0,
         data_inizio_contratto: '',
         durata_contratto_mesi: 0,
+        planday: false, // Reset planday
         status: 'active'
       });
     },
@@ -92,6 +103,7 @@ export default function UsersManagement() {
 
   const handleEdit = (user) => {
     setEditingUser(user);
+    setSelectedTemplate(''); // Reset selected template on edit
     setFormData({
       nome_cognome: user.nome_cognome || '',
       user_type: user.user_type || 'dipendente',
@@ -108,8 +120,14 @@ export default function UsersManagement() {
       ore_settimanali: user.ore_settimanali || 0,
       data_inizio_contratto: user.data_inizio_contratto || '',
       durata_contratto_mesi: user.durata_contratto_mesi || 0,
+      planday: user.planday || false, // Set planday
       status: user.status || 'active'
     });
+  };
+
+  // Added handleViewUser function
+  const handleViewUser = (user) => {
+    setViewingUser(user);
   };
 
   const handleSave = () => {
@@ -142,8 +160,10 @@ export default function UsersManagement() {
       ore_settimanali: 0,
       data_inizio_contratto: '',
       durata_contratto_mesi: 0,
+      planday: false, // Reset planday
       status: 'active'
     });
+    setSelectedTemplate(''); // Reset selected template
   };
 
   const handleStoreToggle = (storeName) => {
@@ -151,17 +171,29 @@ export default function UsersManagement() {
       const isCurrentlyAssigned = prev.assigned_stores.includes(storeName);
       let newAssignedStores;
 
-      if (prev.assigned_stores.length === 0 && stores.length > 0) {
-        newAssignedStores = stores.filter(s => s.name !== storeName).map(s => s.name);
-      } else if (isCurrentlyAssigned) {
-        newAssignedStores = prev.assigned_stores.filter(name => name !== storeName);
-      } else {
+      // If no stores are assigned, it means 'All stores'. Toggling one means assigning only that one.
+      // If 'All stores' implicitly, and we toggle one, we should create an explicit list with all *but* the toggled one.
+      if (prev.assigned_stores.length === 0) { // Currently assigned to all
+        if (stores.length === 1 && stores[0].name === storeName) { // Only one store exists and it's the one we're toggling
+            newAssignedStores = []; // Effectively unassign from all, or keep it empty meaning 'all'
+        } else {
+            newAssignedStores = stores.filter(s => s.name !== storeName).map(s => s.name);
+        }
+      } else if (isCurrentlyAssigned) { // Assigned to specific stores, and this one is in the list
+        const filtered = prev.assigned_stores.filter(name => name !== storeName);
+        if (filtered.length === 0) { // If filtering makes it empty, revert to 'all' (empty array)
+            newAssignedStores = [];
+        } else {
+            newAssignedStores = filtered;
+        }
+      } else { // Assigned to specific stores, and this one is not in the list
         newAssignedStores = [...prev.assigned_stores, storeName];
       }
 
       return { ...prev, assigned_stores: newAssignedStores };
     });
   };
+
 
   const handleRoleToggle = (role) => {
     setFormData(prev => {
@@ -175,7 +207,7 @@ export default function UsersManagement() {
     });
   };
 
-  // Check if all required fields are filled
+  // Check if all required fields are filled (function_name removed as per outline)
   const isFormComplete = () => {
     return formData.nome_cognome?.trim() &&
            formData.phone?.trim() &&
@@ -184,15 +216,24 @@ export default function UsersManagement() {
            formData.indirizzo_residenza?.trim() &&
            formData.iban?.trim() &&
            formData.employee_group &&
-           formData.function_name?.trim() &&
            formData.ore_settimanali > 0 &&
            formData.data_inizio_contratto &&
            formData.durata_contratto_mesi > 0;
   };
 
+  // Added canSendContract function
+  const canSendContract = () => {
+    return isFormComplete() && selectedTemplate;
+  };
+
   const handleSendContract = async () => {
-    if (!isFormComplete()) {
-      alert('Compila tutti i campi obbligatori prima di inviare il contratto');
+    // Modified alert logic based on canSendContract
+    if (!canSendContract()) {
+      if (!selectedTemplate) {
+        alert('Seleziona un template per il contratto');
+      } else {
+        alert('Compila tutti i campi obbligatori prima di inviare il contratto');
+      }
       return;
     }
 
@@ -203,11 +244,59 @@ export default function UsersManagement() {
     try {
       setSendingContract(true);
 
+      const template = templates.find(t => t.id === selectedTemplate);
+      if (!template) {
+        alert('Template non trovato');
+        return;
+      }
+
+      // Function to replace variables
+      const replaceVariables = (content, data) => {
+        let result = content;
+        const oggi = new Date().toLocaleDateString('it-IT');
+        let dataFineContratto = '';
+        if (data.data_inizio_contratto && data.durata_contratto_mesi) {
+          const dataInizio = new Date(data.data_inizio_contratto);
+          const dataFine = new Date(dataInizio);
+          dataFine.setMonth(dataFine.getMonth() + parseInt(data.durata_contratto_mesi));
+          dataFineContratto = dataFine.toLocaleDateString('it-IT');
+        }
+        
+        const variables = {
+          '{{nome_cognome}}': data.nome_cognome || '',
+          '{{phone}}': data.phone || '',
+          '{{data_nascita}}': data.data_nascita ? new Date(data.data_nascita).toLocaleDateString('it-IT') : '',
+          '{{citta_nascita}}': data.citta_nascita || '', // Note: citta_nascita is not in formData, will be empty
+          '{{codice_fiscale}}': data.codice_fiscale || '',
+          '{{indirizzo_residenza}}': data.indirizzo_residenza || '',
+          '{{iban}}': data.iban || '',
+          '{{employee_group}}': data.employee_group || '',
+          '{{ore_settimanali}}': data.ore_settimanali?.toString() || '',
+          '{{data_inizio_contratto}}': data.data_inizio_contratto ? new Date(data.data_inizio_contratto).toLocaleDateString('it-IT') : '',
+          '{{durata_contratto_mesi}}': data.durata_contratto_mesi?.toString() || '',
+          '{{data_oggi}}': oggi,
+          '{{data_fine_contratto}}': dataFineContratto,
+          '{{ruoli}}': (data.ruoli_dipendente || []).join(', '),
+          '{{locali}}': (data.assigned_stores || []).join(', ') || 'Tutti i locali'
+        };
+
+        Object.keys(variables).forEach(key => {
+          result = result.split(key).join(variables[key]);
+        });
+
+        return result;
+      };
+
+      const contenutoContratto = replaceVariables(template.contenuto_template, formData);
+
       // Create contract record
       await createContrattoMutation.mutateAsync({
         user_id: editingUser.id,
         user_email: editingUser.email,
         user_nome_cognome: formData.nome_cognome,
+        template_id: template.id, // Added template_id
+        template_nome: template.nome_template, // Added template_nome
+        contenuto_contratto: contenutoContratto, // Added contenuto_contratto
         nome_cognome: formData.nome_cognome,
         phone: formData.phone,
         data_nascita: formData.data_nascita,
@@ -219,7 +308,7 @@ export default function UsersManagement() {
         ruoli_dipendente: formData.ruoli_dipendente,
         assigned_stores: formData.assigned_stores,
         employee_group: formData.employee_group,
-        function_name: formData.function_name,
+        function_name: formData.function_name, // Kept function_name in data payload
         ore_settimanali: formData.ore_settimanali,
         data_inizio_contratto: formData.data_inizio_contratto,
         durata_contratto_mesi: formData.durata_contratto_mesi,
@@ -314,6 +403,145 @@ export default function UsersManagement() {
           <p className="text-sm text-[#9b9b9b]">Dipendenti</p>
         </NeumorphicCard>
       </div>
+
+      {/* View User Modal */}
+      {viewingUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <NeumorphicCard className="p-6 my-8">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-[#6b6b6b]">Scheda Utente</h2>
+                <button
+                  onClick={() => setViewingUser(null)}
+                  className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+                >
+                  <X className="w-5 h-5 text-[#9b9b9b]" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Header */}
+                <div className="neumorphic-flat p-5 rounded-xl">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-16 h-16 rounded-full neumorphic-pressed flex items-center justify-center">
+                      <span className="text-2xl font-bold text-[#8b7355]">
+                        {(viewingUser.nome_cognome || viewingUser.full_name || 'U').charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-[#6b6b6b]">{viewingUser.nome_cognome || viewingUser.full_name}</h3>
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${getUserTypeColor(viewingUser.user_type)}`}>
+                        {getUserTypeLabel(viewingUser.user_type)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dati Anagrafici */}
+                <div className="neumorphic-flat p-5 rounded-xl">
+                  <h3 className="font-bold text-[#6b6b6b] mb-3">Dati Anagrafici</h3>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-[#9b9b9b]">Email</p>
+                      <p className="text-[#6b6b6b] font-medium">{viewingUser.email}</p>
+                    </div>
+                    <div>
+                      <p className="text-[#9b9b9b]">Telefono</p>
+                      <p className="text-[#6b6b6b] font-medium">{viewingUser.phone || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[#9b9b9b]">Data di Nascita</p>
+                      <p className="text-[#6b6b6b] font-medium">
+                        {viewingUser.data_nascita ? new Date(viewingUser.data_nascita).toLocaleDateString('it-IT') : '-'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[#9b9b9b]">Città di Nascita</p>
+                      <p className="text-[#6b6b6b] font-medium">{viewingUser.citta_nascita || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[#9b9b9b]">Codice Fiscale</p>
+                      <p className="text-[#6b6b6b] font-medium uppercase">{viewingUser.codice_fiscale || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[#9b9b9b]">Taglia Maglietta</p>
+                      <p className="text-[#6b6b6b] font-medium">{viewingUser.taglia_maglietta || '-'}</p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-[#9b9b9b]">Indirizzo</p>
+                      <p className="text-[#6b6b6b] font-medium">{viewingUser.indirizzo_residenza || '-'}</p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-[#9b9b9b]">IBAN</p>
+                      <p className="text-[#6b6b6b] font-medium uppercase">{viewingUser.iban || '-'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dati Lavorativi */}
+                <div className="neumorphic-flat p-5 rounded-xl">
+                  <h3 className="font-bold text-[#6b6b6b] mb-3">Dati Lavorativi</h3>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-[#9b9b9b]">Gruppo Contrattuale</p>
+                      <p className="text-[#6b6b6b] font-medium">{viewingUser.employee_group || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[#9b9b9b]">Ore Settimanali</p>
+                      <p className="text-[#6b6b6b] font-medium">{viewingUser.ore_settimanali || '-'}h</p>
+                    </div>
+                    <div>
+                      <p className="text-[#9b9b9b]">Data Inizio</p>
+                      <p className="text-[#6b6b6b] font-medium">
+                        {viewingUser.data_inizio_contratto ? new Date(viewingUser.data_inizio_contratto).toLocaleDateString('it-IT') : '-'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[#9b9b9b]">Durata Contratto</p>
+                      <p className="text-[#6b6b6b] font-medium">{viewingUser.durata_contratto_mesi || '-'} mesi</p>
+                    </div>
+                    {viewingUser.user_type === 'dipendente' && (
+                      <div className="col-span-2">
+                        <p className="text-[#9b9b9b] mb-2">Ruoli</p>
+                        <div className="flex flex-wrap gap-2">
+                          {viewingUser.ruoli_dipendente && viewingUser.ruoli_dipendente.length > 0 ? (
+                            viewingUser.ruoli_dipendente.map((role, idx) => (
+                              <span key={idx} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium">
+                                {role}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-[#6b6b6b]">Nessun ruolo</span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    <div className="col-span-2">
+                      <p className="text-[#9b9b9b]">Locali Assegnati</p>
+                      <p className="text-[#6b6b6b] font-medium">
+                        {!viewingUser.assigned_stores || viewingUser.assigned_stores.length === 0
+                          ? 'Tutti i locali'
+                          : viewingUser.assigned_stores.join(', ')}
+                      </p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-[#9b9b9b]">Planday</p>
+                      <div className="flex items-center gap-2 text-[#6b6b6b] font-medium">
+                        {viewingUser.planday ? (
+                            <CheckCircle className="w-5 h-5 text-green-600" />
+                          ) : (
+                            <X className="w-5 h-5 text-gray-400" />
+                          )}
+                          {viewingUser.planday ? 'Abilitato' : 'Non Abilitato'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </NeumorphicCard>
+          </div>
+        </div>
+      )}
 
       {/* Edit Modal */}
       {editingUser && (
@@ -507,7 +735,7 @@ export default function UsersManagement() {
 
                     <div>
                       <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                        Ruolo/Funzione <span className="text-red-600">*</span>
+                        Ruolo/Funzione
                       </label>
                       <input
                         type="text"
@@ -573,6 +801,18 @@ export default function UsersManagement() {
                         <option value="inactive">Inattivo</option>
                       </select>
                     </div>
+
+                    <div className="md:col-span-2 neumorphic-pressed p-3 rounded-lg">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.planday}
+                          onChange={(e) => setFormData({ ...formData, planday: e.target.checked })}
+                          className="w-5 h-5 rounded"
+                        />
+                        <span className="text-[#6b6b6b] font-medium">Abilitato Planday</span>
+                      </label>
+                    </div>
                   </div>
                 </div>
 
@@ -616,6 +856,33 @@ export default function UsersManagement() {
                   </label>
                   <p className="text-[#6b6b6b] font-medium">{editingUser.email}</p>
                 </div>
+
+                {/* Template Selection */}
+                {isFormComplete() && (
+                  <div className="neumorphic-flat p-5 rounded-xl border-2 border-[#8b7355]">
+                    <h3 className="font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-[#8b7355]" />
+                      Seleziona Template Contratto
+                    </h3>
+                    <select
+                      value={selectedTemplate}
+                      onChange={(e) => setSelectedTemplate(e.target.value)}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                    >
+                      <option value="">-- Seleziona un template --</option>
+                      {templates.filter(t => t.attivo).map(template => (
+                        <option key={template.id} value={template.id}>
+                          {template.nome_template}
+                        </option>
+                      ))}
+                    </select>
+                    {selectedTemplate && (
+                      <p className="text-xs text-[#9b9b9b] mt-2">
+                        {templates.find(t => t.id === selectedTemplate)?.descrizione}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons */}
@@ -644,7 +911,7 @@ export default function UsersManagement() {
                     </>
                   )}
                 </NeumorphicButton>
-                {isFormComplete() && (
+                {canSendContract() && ( // Changed from isFormComplete() to canSendContract()
                   <NeumorphicButton
                     onClick={handleSendContract}
                     className="flex-1 flex items-center justify-center gap-2 bg-blue-500 text-white"
@@ -690,11 +957,11 @@ export default function UsersManagement() {
               <thead>
                 <tr className="border-b-2 border-[#8b7355]">
                   <th className="text-left p-3 text-[#9b9b9b] font-medium">Utente</th>
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Email</th>
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Telefono</th>
+                  {/* Removed Email and Telefono columns */}
                   <th className="text-left p-3 text-[#9b9b9b] font-medium">Ruolo</th>
                   <th className="text-left p-3 text-[#9b9b9b] font-medium">Tipo</th>
                   <th className="text-left p-3 text-[#9b9b9b] font-medium">Locali</th>
+                  <th className="text-center p-3 text-[#9b9b9b] font-medium">Planday</th> {/* Added Planday column */}
                   <th className="text-center p-3 text-[#9b9b9b] font-medium">Stato</th>
                   <th className="text-center p-3 text-[#9b9b9b] font-medium">Azioni</th>
                 </tr>
@@ -721,22 +988,7 @@ export default function UsersManagement() {
                           </div>
                         </div>
                       </td>
-                      <td className="p-3">
-                        <div className="flex items-center gap-2">
-                          <Mail className="w-4 h-4 text-[#9b9b9b]" />
-                          <span className="text-[#6b6b6b] text-sm">{user.email}</span>
-                        </div>
-                      </td>
-                      <td className="p-3">
-                        {user.phone ? (
-                          <div className="flex items-center gap-2">
-                            <Phone className="w-4 h-4 text-[#9b9b9b]" />
-                            <span className="text-[#6b6b6b] text-sm">{user.phone}</span>
-                          </div>
-                        ) : (
-                          <span className="text-[#9b9b9b] text-sm">-</span>
-                        )}
-                      </td>
+                      {/* Removed Email and Telefono cells */}
                       <td className="p-3">
                         <div>
                           <span className="text-sm text-[#6b6b6b]">{user.function_name || '-'}</span>
@@ -765,6 +1017,15 @@ export default function UsersManagement() {
                       </td>
                       <td className="p-3">
                         <div className="flex justify-center">
+                          {user.planday ? ( // Added Planday status cell
+                            <CheckCircle className="w-5 h-5 text-green-600" />
+                          ) : (
+                            <X className="w-5 h-5 text-gray-400" />
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex justify-center">
                           {user.status === 'active' ? (
                             <CheckCircle className="w-5 h-5 text-green-600" />
                           ) : (
@@ -773,7 +1034,15 @@ export default function UsersManagement() {
                         </div>
                       </td>
                       <td className="p-3">
-                        <div className="flex items-center justify-center">
+                        <div className="flex items-center justify-center gap-2">
+                          {/* Added View User button */}
+                          <button
+                            onClick={() => handleViewUser(user)}
+                            className="neumorphic-flat p-2 rounded-lg hover:bg-purple-50 transition-colors"
+                            title="Scheda utente"
+                          >
+                            <Eye className="w-4 h-4 text-purple-600" />
+                          </button>
                           <button
                             onClick={() => handleEdit(user)}
                             className="neumorphic-flat p-2 rounded-lg hover:bg-blue-50 transition-colors"
@@ -799,7 +1068,7 @@ export default function UsersManagement() {
           <div className="text-sm text-blue-800">
             <p className="font-medium mb-1">ℹ️ Gestione Contratti</p>
             <ul className="text-xs space-y-1 list-disc list-inside">
-              <li>Compila TUTTI i campi obbligatori (marcati con *) per abilitare il bottone "Manda Contratto"</li>
+              <li>Compila TUTTI i campi obbligatori (marcati con *) e seleziona un "Template Contratto" per abilitare il bottone "Manda Contratto"</li>
               <li>Il contratto verrà creato automaticamente e inviato via email al dipendente</li>
               <li>Puoi visualizzare e gestire tutti i contratti dalla pagina "Contratti" nel menu People</li>
             </ul>

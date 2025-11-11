@@ -23,7 +23,8 @@ import {
   ShoppingBag,
   FileEdit,
   Eye,
-  Copy
+  Copy,
+  Download // Added Download icon
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -223,11 +224,22 @@ export default function Contratti() {
   const replaceVariables = (templateContent, data) => {
     let result = templateContent;
     
+    // Calculate date variables
+    const oggi = new Date().toLocaleDateString('it-IT');
+    
+    let dataFineContratto = '';
+    if (data.data_inizio_contratto && data.durata_contratto_mesi) {
+      const dataInizio = new Date(data.data_inizio_contratto);
+      const dataFine = new Date(dataInizio);
+      dataFine.setMonth(dataFine.getMonth() + parseInt(data.durata_contratto_mesi));
+      dataFineContratto = dataFine.toLocaleDateString('it-IT');
+    }
+    
     const variables = {
       '{{nome_cognome}}': data.nome_cognome || '',
       '{{phone}}': data.phone || '',
       '{{data_nascita}}': data.data_nascita ? new Date(data.data_nascita).toLocaleDateString('it-IT') : '',
-      '{{citta_nascita}}': data.citta_nascita || '', // Added citta_nascita
+      '{{citta_nascita}}': data.citta_nascita || '',
       '{{codice_fiscale}}': data.codice_fiscale || '',
       '{{indirizzo_residenza}}': data.indirizzo_residenza || '',
       '{{iban}}': data.iban || '',
@@ -236,6 +248,8 @@ export default function Contratti() {
       '{{ore_settimanali}}': data.ore_settimanali?.toString() || '',
       '{{data_inizio_contratto}}': data.data_inizio_contratto ? new Date(data.data_inizio_contratto).toLocaleDateString('it-IT') : '',
       '{{durata_contratto_mesi}}': data.durata_contratto_mesi?.toString() || '',
+      '{{data_oggi}}': oggi,
+      '{{data_fine_contratto}}': dataFineContratto,
       '{{ruoli}}': (data.ruoli_dipendente || []).join(', '),
       '{{locali}}': (data.assigned_stores || []).join(', ') || 'Tutti i locali'
     };
@@ -432,8 +446,48 @@ export default function Contratti() {
   const availableVariables = [
     'nome_cognome', 'phone', 'data_nascita', 'citta_nascita', 'codice_fiscale', 'indirizzo_residenza', 'iban',
     'employee_group', 'function_name', 'ore_settimanali', 'data_inizio_contratto', 
-    'durata_contratto_mesi', 'ruoli', 'locali'
+    'durata_contratto_mesi', 'data_oggi', 'data_fine_contratto', 'ruoli', 'locali'
   ];
+
+  const handleDownloadPDF = async (contratto) => {
+    try {
+      // Create PDF content with contract text and signature
+      const pdfContent = `
+${contratto.contenuto_contratto}
+
+${contratto.status === 'firmato' && contratto.firma_dipendente ? `
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FIRMA DIGITALE
+
+Firmato da: ${contratto.firma_dipendente}
+Data firma: ${new Date(contratto.data_firma).toLocaleDateString('it-IT')} alle ${new Date(contratto.data_firma).toLocaleTimeString('it-IT')}
+
+Questo documento è stato firmato digitalmente sulla piattaforma Sa Pizzedda Workspace.
+ID Contratto: ${contratto.id}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+` : ''}
+      `;
+
+      // Create a blob with the content
+      const blob = new Blob([pdfContent], { type: 'text/plain' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Contratto_${contratto.nome_cognome.replace(/\s/g, '_')}_${contratto.id.substring(0, 8)}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+
+      alert('Contratto scaricato con successo!');
+    } catch (error) {
+      console.error('Error downloading contract:', error);
+      alert('Errore durante il download del contratto');
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -1004,6 +1058,15 @@ export default function Contratti() {
                           >
                             <Eye className="w-4 h-4 text-purple-600" />
                           </button>
+                          {contratto.status === 'firmato' && (
+                            <button
+                              onClick={() => handleDownloadPDF(contratto)}
+                              className="neumorphic-flat p-2 rounded-lg hover:bg-green-50 transition-colors"
+                              title="Scarica Contratto"
+                            >
+                              <Download className="w-4 h-4 text-green-600" />
+                            </button>
+                          )}
                           <button
                             onClick={() => handleEdit(contratto)}
                             className="neumorphic-flat p-2 rounded-lg hover:bg-blue-50 transition-colors"
@@ -1106,11 +1169,11 @@ export default function Contratti() {
                   className="prose prose-sm max-w-none text-[#6b6b6b]"
                   style={{ whiteSpace: 'pre-wrap' }}
                 >
-                  {previewContratto.contenuto_contratto}
+                  {typeof previewContratto === 'string' ? previewContratto : previewContratto.contenuto_contratto}
                 </div>
               </div>
 
-              {previewContratto.status === 'firmato' && previewContratto.firma_dipendente && (
+              {typeof previewContratto !== 'string' && previewContratto.status === 'firmato' && previewContratto.firma_dipendente && (
                 <div className="neumorphic-flat p-5 rounded-xl bg-green-50 mt-4">
                   <h3 className="font-bold text-green-800 mb-2">Firma Digitale</h3>
                   <p className="text-sm text-green-700">

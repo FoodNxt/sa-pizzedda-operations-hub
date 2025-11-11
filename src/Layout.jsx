@@ -201,6 +201,11 @@ const navigationStructure = [
         icon: FileText,
       },
       {
+        title: "Alert Periodo Prova",
+        url: createPageUrl("AlertPeriodoProva"),
+        icon: AlertTriangle,
+      },
+      {
         title: "Ricalcola Ritardi",
         url: createPageUrl("RecalculateShifts"),
         icon: Clock,
