@@ -404,6 +404,16 @@ const navigationStructure = [
   }
 ];
 
+// CRITICAL: Helper function to normalize user_type BEFORE any other logic
+const getNormalizedUserType = (userType) => {
+  // ONLY admin and manager are treated as such
+  // EVERYTHING else (including 'user', 'dipendente', 'N/A', null, undefined, '') → 'dipendente'
+  if (userType === 'admin' || userType === 'manager') {
+    return userType;
+  }
+  return 'dipendente';
+};
+
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -461,10 +471,10 @@ export default function Layout({ children, currentPageName }) {
         const needsProfile = !user.profile_manually_completed;
         setShowProfileModal(needsProfile);
 
-        // Normalize user_type: treat "user" as "dipendente" for access control
-        const normalizedUserType = user.user_type === 'user' ? 'dipendente' : user.user_type;
+        // CRITICAL: Normalize user_type IMMEDIATELY before any logic
+        const normalizedUserType = getNormalizedUserType(user.user_type);
 
-        // Only apply progressive access logic for dipendente/user types (not admin/manager)
+        // Only apply progressive access logic for dipendente types (not admin/manager)
         if (normalizedUserType === 'dipendente') {
           // CRITICAL: Wait for config to be loaded before applying restrictions
           if (isLoadingConfig) {
@@ -530,7 +540,7 @@ export default function Layout({ children, currentPageName }) {
   // CRITICAL: Recalculate dipendente navigation when user or config changes
   useEffect(() => {
     if (currentUser && !isLoadingConfig && !isLoadingUser) {
-      const normalizedUserType = currentUser.user_type === 'user' ? 'dipendente' : currentUser.user_type;
+      const normalizedUserType = getNormalizedUserType(currentUser.user_type);
       
       if (normalizedUserType === 'dipendente') {
         getFilteredNavigationForDipendente(currentUser).then(nav => {
@@ -599,8 +609,8 @@ export default function Layout({ children, currentPageName }) {
     if (!requiredUserType) return true;
     if (!currentUser) return false;
 
-    // Normalize user_type for access check
-    const normalizedUserType = currentUser.user_type === 'user' ? 'dipendente' : (currentUser.user_type || 'dipendente');
+    // CRITICAL: Use normalized user_type for access check
+    const normalizedUserType = getNormalizedUserType(currentUser.user_type);
     const userRoles = currentUser.ruoli_dipendente || [];
 
     if (!requiredUserType.includes(normalizedUserType)) return false;
@@ -613,8 +623,8 @@ export default function Layout({ children, currentPageName }) {
   };
 
   const getFilteredNavigationForDipendente = async (user) => {
-    // Normalize user_type
-    const normalizedUserType = user.user_type === 'user' ? 'dipendente' : user.user_type;
+    // CRITICAL: Use normalized user_type
+    const normalizedUserType = getNormalizedUserType(user.user_type);
     
     if (normalizedUserType !== 'dipendente') return null;
 
@@ -723,8 +733,8 @@ export default function Layout({ children, currentPageName }) {
         .filter(section => section.items.length > 0)
     : []; // EMPTY navigation while loading
 
-  // Normalize user_type for final navigation
-  const normalizedUserType = currentUser?.user_type === 'user' ? 'dipendente' : currentUser?.user_type;
+  // CRITICAL: Use normalized user_type for final navigation
+  const normalizedUserType = currentUser ? getNormalizedUserType(currentUser.user_type) : null;
   
   // CRITICAL: Use dipendente nav only when fully loaded, otherwise show nothing
   const finalNavigation = (!isLoadingConfig && !isLoadingUser && currentUser)
@@ -738,9 +748,9 @@ export default function Layout({ children, currentPageName }) {
 
   const getUserTypeName = () => {
     if (!currentUser) return '';
-    const userType = currentUser.user_type || 'user';
-    return userType === 'admin' ? 'Amministratore' :
-           userType === 'manager' ? 'Manager' :
+    const normalizedType = getNormalizedUserType(currentUser.user_type);
+    return normalizedType === 'admin' ? 'Amministratore' :
+           normalizedType === 'manager' ? 'Manager' :
            'Dipendente';
   };
 
