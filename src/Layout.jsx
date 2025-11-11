@@ -116,7 +116,7 @@ const navigationStructure = [
     requiredUserType: ["admin", "manager"],
     items: [
       {
-        title: "Inventory Dashboard",
+        title: "Analisi Inventario",
         url: createPageUrl("Inventory"),
         icon: Package,
       },
