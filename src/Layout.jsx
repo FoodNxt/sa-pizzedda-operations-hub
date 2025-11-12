@@ -35,7 +35,8 @@ import {
   BookOpen,
   Settings,
   Loader2,
-  Home
+  Home,
+  Edit
 } from "lucide-react";
 import CompleteProfileModal from "./components/auth/CompleteProfileModal";
 
@@ -106,6 +107,11 @@ const navigationStructure = [
         title: "Storico Cassa",
         url: createPageUrl("StoricoCassa"),
         icon: DollarSign,
+      },
+      {
+        title: "Conteggio Cassa",
+        url: createPageUrl("ConteggioCassa"),
+        icon: DollarSign,
       }
     ]
   },
@@ -124,21 +130,6 @@ const navigationStructure = [
         title: "Ricette",
         url: createPageUrl("Ricette"),
         icon: ChefHat,
-      },
-      {
-        title: "Inventario Admin",
-        url: createPageUrl("InventarioAdmin"),
-        icon: ClipboardCheck,
-      },
-      {
-        title: "Form Inventario",
-        url: createPageUrl("FormInventario"),
-        icon: ClipboardList,
-      },
-      {
-        title: "Form Cantina",
-        url: createPageUrl("FormCantina"),
-        icon: ClipboardList,
       },
       {
         title: "Materie Prime",
@@ -161,19 +152,9 @@ const navigationStructure = [
         icon: ShoppingCart,
       },
       {
-        title: "Form Teglie Buttate",
-        url: createPageUrl("FormTeglieButtate"),
-        icon: AlertTriangle,
-      },
-      {
-        title: "Analisi Sprechi",
-        url: createPageUrl("AnalisiSprechi"),
-        icon: BarChart3,
-      },
-      {
-        title: "Form Preparazioni",
-        url: createPageUrl("FormPreparazioni"),
-        icon: Package,
+        title: "Forms",
+        url: createPageUrl("InventoryForms"),
+        icon: Edit,
       }
     ]
   },
@@ -317,24 +298,14 @@ const navigationStructure = [
         requiredRole: "Store Manager"
       },
       {
-        title: "Form Inventario",
-        url: createPageUrl("FormInventario"),
-        icon: ClipboardList,
+        title: "Forms",
+        url: createPageUrl("InventoryForms"),
+        icon: Edit,
       },
       {
         title: "Conteggio Cassa",
         url: createPageUrl("ConteggioCassa"),
         icon: DollarSign,
-      },
-      {
-        title: "Form Teglie Buttate",
-        url: createPageUrl("FormTeglieButtate"),
-        icon: AlertTriangle,
-      },
-      {
-        title: "Form Preparazioni",
-        url: createPageUrl("FormPreparazioni"),
-        icon: Package,
       }
     ]
   },
@@ -501,7 +472,8 @@ export default function Layout({ children, currentPageName }) {
             allowedPages = pageAccessConfig?.after_contract_start || [
               'ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione',
               'ControlloPuliziaCassiere', 'ControlloPuliziaPizzaiolo', 'ControlloPuliziaStoreManager',
-              'FormInventario', 'ConteggioCassa', 'FormTeglieButtate', 'FormPreparazioni'
+              'InventoryForms', // Consolidated forms
+              'ConteggioCassa'
             ];
           } else if (hasSignedContract) {
             allowedPages = pageAccessConfig?.after_contract_signed || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'];
@@ -644,7 +616,8 @@ export default function Layout({ children, currentPageName }) {
       allowedPages = pageAccessConfig?.after_contract_start || [
         'ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione',
         'ControlloPuliziaCassiere', 'ControlloPuliziaPizzaiolo', 'ControlloPuliziaStoreManager',
-        'FormInventario', 'ConteggioCassa', 'FormTeglieButtate', 'FormPreparazioni'
+        'InventoryForms', // Consolidated forms
+        'ConteggioCassa'
       ];
     } else if (hasSignedContract) {
       allowedPages = pageAccessConfig?.after_contract_signed || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'];
@@ -684,10 +657,8 @@ export default function Layout({ children, currentPageName }) {
       'ControlloPuliziaCassiere': 'Pulizia',
       'ControlloPuliziaPizzaiolo': 'Pulizia',
       'ControlloPuliziaStoreManager': 'Pulizia',
-      'FormInventario': 'Inventario',
-      'ConteggioCassa': 'Cassa',
-      'FormTeglieButtate': 'Teglie',
-      'FormPreparazioni': 'Preparazioni'
+      'InventoryForms': 'Forms',
+      'ConteggioCassa': 'Cassa'
     };
     return titles[pageName] || pageName;
   };
@@ -701,10 +672,8 @@ export default function Layout({ children, currentPageName }) {
       'ControlloPuliziaCassiere': Camera,
       'ControlloPuliziaPizzaiolo': Camera,
       'ControlloPuliziaStoreManager': Camera,
-      'FormInventario': ClipboardList,
-      'ConteggioCassa': DollarSign,
-      'FormTeglieButtate': AlertTriangle,
-      'FormPreparazioni': Package
+      'InventoryForms': Edit,
+      'ConteggioCassa': DollarSign
     };
     return icons[pageName] || User;
   };

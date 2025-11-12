@@ -55,6 +55,7 @@ import MateriePrime from './pages/MateriePrime';
 import FormTeglieButtate from './pages/FormTeglieButtate';
 import FormPreparazioni from './pages/FormPreparazioni';
 import AnalisiSprechi from './pages/AnalisiSprechi';
+import InventoryForms from './pages/InventoryForms';
 import Layout from './Layout.jsx';
 
 
@@ -116,6 +117,7 @@ export const PAGES = {
     "FormTeglieButtate": FormTeglieButtate,
     "FormPreparazioni": FormPreparazioni,
     "AnalisiSprechi": AnalisiSprechi,
+    "InventoryForms": InventoryForms,
 }
 
 export const pagesConfig = {

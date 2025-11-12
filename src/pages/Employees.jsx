@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -14,6 +13,7 @@ import {
   X
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
+import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { parseISO, isWithinInterval, isValid, format as formatDate } from 'date-fns';
 import { it } from 'date-fns/locale';
 import ProtectedPage from "../components/ProtectedPage";
@@ -26,21 +26,20 @@ export default function Employees() {
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [expandedView, setExpandedView] = useState(null); // 'late', 'missing', 'reviews', 'wrongOrders', null
+  const [expandedView, setExpandedView] = useState(null);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
     queryFn: () => base44.entities.Store.list(),
   });
 
-  const { data: employees = [] } = useQuery({
-    queryKey: ['employees'],
-    queryFn: () => base44.entities.Employee.list(),
-  });
-
-  const { data: orders = [] } = useQuery({
-    queryKey: ['orders'],
-    queryFn: () => base44.entities.Order.list(),
+  // CHANGED: Fetch users with dipendente role instead of Employee entity
+  const { data: users = [] } = useQuery({
+    queryKey: ['dipendenti-users'],
+    queryFn: async () => {
+      const allUsers = await base44.entities.User.list();
+      return allUsers.filter(u => u.user_type === 'dipendente' || u.user_type === 'user');
+    },
   });
 
   const { data: shifts = [] } = useQuery({
@@ -53,13 +52,11 @@ export default function Employees() {
     queryFn: () => base44.entities.Review.list(),
   });
 
-  // Load ALL wrong order matches
   const { data: allWrongOrderMatches = [] } = useQuery({
-    queryKey: ['all-wrong-order-matches'], // Changed key to differentiate from filtered one
+    queryKey: ['all-wrong-order-matches'],
     queryFn: () => base44.entities.WrongOrderMatch.list(),
   });
 
-  // NEW: Load wrong orders to filter matches
   const { data: wrongOrders = [] } = useQuery({
     queryKey: ['wrong-orders'],
     queryFn: async () => {
@@ -68,13 +65,11 @@ export default function Employees() {
     },
   });
 
-  // FIXED: Filter matches to only include current orders
   const currentOrderIds = useMemo(() => new Set(wrongOrders.map(o => o.id)), [wrongOrders]);
   const wrongOrderMatches = useMemo(() =>
     allWrongOrderMatches.filter(m => currentOrderIds.has(m.wrong_order_id))
   , [allWrongOrderMatches, currentOrderIds]);
 
-  // Helper function to safely parse dates
   const safeParseDate = (dateString) => {
     if (!dateString) return null;
     try {
@@ -86,7 +81,6 @@ export default function Employees() {
     }
   };
 
-  // Helper function to safely format dates
   const safeFormatDate = (dateString, formatString, options = {}) => {
     if (!dateString) return 'N/A';
     const date = safeParseDate(dateString);
@@ -98,7 +92,6 @@ export default function Employees() {
     }
   };
 
-  // Helper function to safely format time from datetime
   const safeFormatTime = (dateTimeString) => {
     if (!dateTimeString) return 'N/A';
     try {
@@ -110,7 +103,6 @@ export default function Employees() {
     }
   };
 
-  // Helper function to safely format date to locale string
   const safeFormatDateLocale = (dateString) => {
     if (!dateString) return 'N/A';
     try {
@@ -122,7 +114,6 @@ export default function Employees() {
     }
   };
 
-  // Helper function to safely format datetime to locale string
   const safeFormatDateTimeLocale = (dateTimeString) => {
     if (!dateTimeString) return 'N/A';
     try {
@@ -134,16 +125,13 @@ export default function Employees() {
     }
   };
 
-  // Helper function to deduplicate shifts
   const deduplicateShifts = (shiftsArray) => {
     const uniqueShiftsMap = new Map();
 
     shiftsArray.forEach(shift => {
-      // Normalize date to YYYY-MM-DD format for comparison
       const shiftDate = safeParseDate(shift.shift_date);
       const normalizedDate = shiftDate ? shiftDate.toISOString().split('T')[0] : 'no-date';
 
-      // Normalize scheduled times (extract just HH:mm or use 'no-time' if null)
       const normalizedStart = shift.scheduled_start
         ? new Date(shift.scheduled_start).toISOString().substring(11, 16)
         : 'no-start';
@@ -151,11 +139,8 @@ export default function Employees() {
         ? new Date(shift.scheduled_end).toISOString().substring(11, 16)
         : 'no-end';
 
-      // Create unique key
       const key = `${shift.employee_name}|${shift.store_id || 'no-store'}|${normalizedDate}|${normalizedStart}|${normalizedEnd}`;
 
-      // Only keep the first occurrence (or the one with older created_date)
-      // If key exists, keep the one with older created_date (assuming older created_date means the "original" shift record)
       if (!uniqueShiftsMap.has(key)) {
         uniqueShiftsMap.set(key, shift);
       } else {
@@ -170,15 +155,12 @@ export default function Employees() {
     return Array.from(uniqueShiftsMap.values());
   };
 
-  // Calculate employee metrics
+  // Calculate employee metrics - UPDATED to work with User entity
   const employeeMetrics = useMemo(() => {
-    // Filter reviews by date range
     let filteredReviews = reviews;
     if (startDate || endDate) {
       filteredReviews = reviews.filter(review => {
-        // Ensure review_date exists before parsing
         if (!review.review_date) return false;
-
         const reviewDate = safeParseDate(review.review_date);
         if (!reviewDate) return false;
           
@@ -196,15 +178,14 @@ export default function Employees() {
       });
     }
 
-    return employees.map(employee => {
-      // Shift metrics (filtered by date)
-      let employeeShifts = shifts.filter(s => {
-        if (s.employee_name !== employee.full_name) return false;
+    return users.map(user => {
+      const employeeName = user.nome_cognome || user.full_name || user.email;
 
-        // Date filter
+      let employeeShifts = shifts.filter(s => {
+        if (s.employee_name !== employeeName) return false;
+
         if (startDate || endDate) {
           if (!s.shift_date) return false;
-          
           const shiftDate = safeParseDate(s.shift_date);
           if (!shiftDate) return false;
             
@@ -219,21 +200,16 @@ export default function Employees() {
             return shiftDate <= end;
           }
         }
-
         return true;
       });
 
-      // ✅ DEDUPLICATE SHIFTS BEFORE CALCULATING METRICS
       employeeShifts = deduplicateShifts(employeeShifts);
 
-      // Orders metrics - REPLACED with WrongOrderMatches
       const employeeWrongOrders = wrongOrderMatches.filter(m => {
-        if (m.matched_employee_name !== employee.full_name) return false;
+        if (m.matched_employee_name !== employeeName) return false;
         
-        // Apply date filter if set
         if (startDate || endDate) {
           if (!m.order_date) return false;
-          
           const orderDate = safeParseDate(m.order_date);
           if (!orderDate) return false;
             
@@ -248,38 +224,28 @@ export default function Employees() {
             return orderDate <= end;
           }
         }
-        
         return true;
       });
 
-      const wrongOrdersCount = employeeWrongOrders.length; // Renamed to avoid confusion with `wrongOrders` array
-
-      // Calculate wrong order rate (per shifts worked)
+      const wrongOrdersCount = employeeWrongOrders.length;
       const wrongOrderRate = employeeShifts.length > 0
         ? (wrongOrdersCount / employeeShifts.length) * 100
         : 0;
 
       const totalLateMinutes = employeeShifts.reduce((sum, s) => sum + (s.minuti_di_ritardo || 0), 0);
       const avgLateMinutes = employeeShifts.length > 0 ? totalLateMinutes / employeeShifts.length : 0;
-
-      // Calcolo ritardi
       const numeroRitardi = employeeShifts.filter(s => s.ritardo === true).length;
       const percentualeRitardi = employeeShifts.length > 0 ? (numeroRitardi / employeeShifts.length) * 100 : 0;
-
-      // ✅ Calcolo timbrature mancate
       const numeroTimbratureMancate = employeeShifts.filter(s => s.timbratura_mancata === true).length;
 
-      // Review mentions (filtered by date)
-      const mentions = filteredReviews.filter(r => r.employee_mentioned === employee.id);
+      const mentions = filteredReviews.filter(r => r.employee_mentioned === user.id);
       const positiveMentions = mentions.filter(r => r.rating >= 4).length;
       const negativeMentions = mentions.filter(r => r.rating < 3).length;
 
-      // Calculate average Google rating from assigned reviews (filtered by date)
       const assignedReviews = filteredReviews.filter(r => {
         if (!r.employee_assigned_name) return false;
-        // Handle cases where employee_assigned_name might be a single string or comma-separated
         const assignedNames = r.employee_assigned_name.split(',').map(n => n.trim().toLowerCase());
-        return assignedNames.includes(employee.full_name.toLowerCase());
+        return assignedNames.includes(employeeName.toLowerCase());
       });
 
       const googleReviews = assignedReviews.filter(r => r.source === 'google');
@@ -287,29 +253,25 @@ export default function Employees() {
         ? googleReviews.reduce((sum, r) => sum + r.rating, 0) / googleReviews.length
         : 0;
 
-      // Calculate overall performance score (0-100)
       let performanceScore = 100;
-      performanceScore -= wrongOrderRate * 2; // Penalty for wrong orders
-      performanceScore -= avgLateMinutes * 0.5; // Penalty for lateness
-      performanceScore -= percentualeRitardi * 0.3; // Penalty for delay percentage
-      performanceScore -= numeroTimbratureMancate * 1; // Penalty for missing clock-ins
-      performanceScore += positiveMentions * 2; // Bonus for positive mentions
-      performanceScore -= negativeMentions * 3; // Penalty for negative mentions
-      // The 'avgSatisfaction' portion has been removed as orders are no longer directly tracked here for satisfaction
+      performanceScore -= wrongOrderRate * 2;
+      performanceScore -= avgLateMinutes * 0.5;
+      performanceScore -= percentualeRitardi * 0.3;
+      performanceScore -= numeroTimbratureMancate * 1;
+      performanceScore += positiveMentions * 2;
+      performanceScore -= negativeMentions * 3;
       performanceScore = Math.max(0, Math.min(100, performanceScore));
 
-      // Performance level
       const performanceLevel = performanceScore >= 80 ? 'excellent' :
                               performanceScore >= 60 ? 'good' :
                               performanceScore >= 40 ? 'needs_improvement' :
                               'poor';
 
       return {
-        ...employee,
-        wrongOrders: wrongOrdersCount, // Using the new count
+        ...user,
+        full_name: employeeName,
+        wrongOrders: wrongOrdersCount,
         wrongOrderRate,
-        // avgProcessingTime is no longer calculated
-        // avgSatisfaction is no longer calculated
         totalLateMinutes,
         avgLateMinutes,
         numeroRitardi,
@@ -320,27 +282,32 @@ export default function Employees() {
         negativeMentions,
         performanceScore: Math.round(performanceScore),
         performanceLevel,
-        // totalOrders is no longer calculated
         totalShifts: employeeShifts.length,
         avgGoogleRating,
         googleReviewCount: googleReviews.length
       };
     });
-  }, [employees, shifts, reviews, wrongOrderMatches, startDate, endDate]);
+  }, [users, shifts, reviews, wrongOrderMatches, startDate, endDate]);
 
-  // Filter and sort employees
   const filteredEmployees = useMemo(() => {
     let filtered = employeeMetrics;
 
     if (selectedStore !== 'all') {
-      filtered = filtered.filter(e => e.store_id === selectedStore);
+      filtered = filtered.filter(e => {
+        if (!e.assigned_stores || e.assigned_stores.length === 0) return true;
+        return e.assigned_stores.some(storeName => {
+          const store = stores.find(s => s.name === storeName);
+          return store && store.id === selectedStore;
+        });
+      });
     }
 
     if (selectedPosition !== 'all') {
-      filtered = filtered.filter(e => e.position === selectedPosition);
+      filtered = filtered.filter(e => {
+        return e.ruoli_dipendente && e.ruoli_dipendente.includes(selectedPosition);
+      });
     }
 
-    // Sort
     filtered.sort((a, b) => {
       let valueA, valueB;
       switch (sortBy) {
@@ -380,7 +347,7 @@ export default function Employees() {
     });
 
     return filtered;
-  }, [employeeMetrics, selectedStore, selectedPosition, sortBy, sortOrder]);
+  }, [employeeMetrics, selectedStore, selectedPosition, sortBy, sortOrder, stores]);
 
   const getPerformanceColor = (level) => {
     switch (level) {
@@ -388,7 +355,7 @@ export default function Employees() {
       case 'good': return 'text-blue-600';
       case 'needs_improvement': return 'text-yellow-600';
       case 'poor': return 'text-red-600';
-      default: return 'text-slate-700'; // Changed from 500 to 700
+      default: return 'text-slate-700';
     }
   };
 
@@ -411,13 +378,11 @@ export default function Employees() {
     }
   };
 
-  // Get ALL late shifts for selected employee (not just 3)
   const getAllLateShifts = (employeeName) => {
     const lateShifts = shifts
       .filter(s => {
         if (s.employee_name !== employeeName || s.ritardo !== true || !s.shift_date) return false;
         
-        // Apply date filter if set
         if (startDate || endDate) {
           const shiftDate = safeParseDate(s.shift_date);
           if (!shiftDate) return false;
@@ -432,31 +397,27 @@ export default function Employees() {
             return shiftDate <= end;
           }
         }
-        
         return true;
       })
       .sort((a, b) => {
         const dateA = safeParseDate(a.shift_date);
         const dateB = safeParseDate(b.shift_date);
         if (!dateA || !dateB) return 0;
-        return dateB.getTime() - dateA.getTime(); // Descending order (latest first)
+        return dateB.getTime() - dateA.getTime();
       });
 
     return deduplicateShifts(lateShifts);
   };
 
-  // Get latest 3 late shifts for selected employee
   const getLatestLateShifts = (employeeName) => {
     return getAllLateShifts(employeeName).slice(0, 3);
   };
 
-  // Get ALL missing clock-ins for selected employee
   const getAllMissingClockIns = (employeeName) => {
     const missingClockIns = shifts
       .filter(s => {
         if (s.employee_name !== employeeName || s.timbratura_mancata !== true || !s.shift_date) return false;
         
-        // Apply date filter if set
         if (startDate || endDate) {
           const shiftDate = safeParseDate(s.shift_date);
           if (!shiftDate) return false;
@@ -471,25 +432,22 @@ export default function Employees() {
             return shiftDate <= end;
           }
         }
-        
         return true;
       })
       .sort((a, b) => {
         const dateA = safeParseDate(a.shift_date);
         const dateB = safeParseDate(b.shift_date);
         if (!dateA || !dateB) return 0;
-        return dateB.getTime() - dateA.getTime(); // Descending order (latest first)
+        return dateB.getTime() - dateA.getTime();
       });
 
     return deduplicateShifts(missingClockIns);
   };
 
-  // Get latest 3 missing clock-ins for selected employee
   const getLatestMissingClockIns = (employeeName) => {
     return getAllMissingClockIns(employeeName).slice(0, 3);
   };
 
-  // Get ALL Google reviews for selected employee
   const getAllGoogleReviews = (employeeName) => {
     return reviews
       .filter(r => {
@@ -498,7 +456,6 @@ export default function Employees() {
         const assignedNames = r.employee_assigned_name.split(',').map(n => n.trim().toLowerCase());
         if (!assignedNames.includes(employeeName.toLowerCase())) return false;
         
-        // Apply date filter if set
         if (startDate || endDate) {
           const reviewDate = safeParseDate(r.review_date);
           if (!reviewDate) return false;
@@ -513,31 +470,26 @@ export default function Employees() {
             return reviewDate <= end;
           }
         }
-        
         return true;
       })
       .sort((a, b) => {
         const dateA = safeParseDate(a.review_date);
         const dateB = safeParseDate(b.review_date);
         if (!dateA || !dateB) return 0;
-        return dateB.getTime() - dateA.getTime(); // Descending order (latest first)
+        return dateB.getTime() - dateA.getTime();
       });
   };
 
-  // Get latest 3 Google reviews for selected employee
   const getLatestGoogleReviews = (employeeName) => {
     return getAllGoogleReviews(employeeName).slice(0, 3);
   };
 
-  // NEW: Get ALL wrong orders for selected employee
   const getAllWrongOrders = (employeeName) => {
     const employeeMatches = wrongOrderMatches.filter(m => {
       if (m.matched_employee_name !== employeeName) return false;
       
-      // Apply date filter if set
       if (startDate || endDate) {
         if (!m.order_date) return false;
-        
         const orderDate = safeParseDate(m.order_date);
         if (!orderDate) return false;
         
@@ -552,16 +504,14 @@ export default function Employees() {
           return orderDate <= end;
         }
       }
-      
       return true;
     }).sort((a, b) => {
       const dateA = safeParseDate(a.order_date);
       const dateB = safeParseDate(b.order_date);
       if (!dateA || !dateB) return 0;
-      return dateB.getTime() - dateA.getTime(); // Descending order (latest first)
+      return dateB.getTime() - dateA.getTime();
     });
 
-    // Enrich with order details
     return employeeMatches.map(match => {
       const orderDetails = wrongOrders.find(o => o.id === match.wrong_order_id);
       return {
@@ -571,7 +521,6 @@ export default function Employees() {
     });
   };
 
-  // NEW: Get latest 3 wrong orders for selected employee
   const getLatestWrongOrders = (employeeName) => {
     return getAllWrongOrders(employeeName).slice(0, 3);
   };
@@ -589,7 +538,6 @@ export default function Employees() {
   return (
     <ProtectedPage pageName="Employees">
       <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
-        {/* Header */}
         <div className="mb-4 lg:mb-6">
           <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
             Performance
@@ -597,17 +545,27 @@ export default function Employees() {
           <p className="text-sm text-slate-500">Ranking dipendenti</p>
         </div>
 
-        {/* Filters */}
         <div className="flex flex-wrap gap-2">
           <select
             value={selectedStore}
             onChange={(e) => setSelectedStore(e.target.value)}
             className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
           >
-            <option value="all">Tutti</option>
+            <option value="all">Tutti i Locali</option>
             {stores.map(store => (
-              <option key={store.id} value={store.name}>{store.name}</option>
+              <option key={store.id} value={store.id}>{store.name}</option>
             ))}
+          </select>
+
+          <select
+            value={selectedPosition}
+            onChange={(e) => setSelectedPosition(e.target.value)}
+            className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
+          >
+            <option value="all">Tutti i Ruoli</option>
+            <option value="Pizzaiolo">Pizzaiolo</option>
+            <option value="Cassiere">Cassiere</option>
+            <option value="Store Manager">Store Manager</option>
           </select>
 
           <input
@@ -615,6 +573,7 @@ export default function Employees() {
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
             className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
+            placeholder="Data inizio"
           />
 
           <input
@@ -622,6 +581,7 @@ export default function Employees() {
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
             className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
+            placeholder="Data fine"
           />
 
           {(startDate || endDate) && (
@@ -637,7 +597,6 @@ export default function Employees() {
           )}
         </div>
 
-        {/* Summary Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           <NeumorphicCard className="p-4">
             <div className="text-center">
@@ -686,16 +645,14 @@ export default function Employees() {
           </NeumorphicCard>
         </div>
 
-        {/* Employee Cards - Mobile Optimized */}
         <div className="grid grid-cols-1 gap-3">
           {filteredEmployees.length > 0 ? (
             filteredEmployees.map((employee, index) => (
               <NeumorphicCard 
                 key={employee.id}
-                className="p-4 hover:shadow-xl transition-all cursor-pointer"
-                onClick={() => setSelectedEmployee(employee)}
+                className="p-4 hover:shadow-xl transition-all"
               >
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md flex-shrink-0">
                       <span className="text-sm lg:text-base font-bold text-white">
@@ -707,6 +664,15 @@ export default function Employees() {
                         {employee.full_name}
                       </p>
                       <p className="text-xs text-slate-500 truncate">{employee.email}</p>
+                      {employee.ruoli_dipendente && employee.ruoli_dipendente.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {employee.ruoli_dipendente.map((role, idx) => (
+                            <span key={idx} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                              {role}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       <div className="flex items-center gap-2 mt-1">
                         <span className={`text-lg lg:text-xl font-bold ${getPerformanceColor(employee.performanceLevel)}`}>
                           {employee.performanceScore}
@@ -735,6 +701,15 @@ export default function Employees() {
                     </span>
                   </div>
                 </div>
+                
+                <NeumorphicButton
+                  onClick={() => setSelectedEmployee(employee)}
+                  variant="primary"
+                  className="w-full flex items-center justify-center gap-2 text-sm"
+                >
+                  <Eye className="w-4 h-4" />
+                  Mostra Dettagli
+                </NeumorphicButton>
               </NeumorphicCard>
             ))
           ) : (
@@ -744,14 +719,15 @@ export default function Employees() {
           )}
         </div>
 
-        {/* Employee Detail Modal */}
         {selectedEmployee && (
           <div className="fixed inset-0 bg-black bg-opacity-40 flex items-end lg:items-center justify-center z-50 p-0 lg:p-4">
             <NeumorphicCard className="w-full lg:max-w-2xl max-h-[85vh] lg:max-h-[90vh] overflow-y-auto p-4 lg:p-6 rounded-t-3xl lg:rounded-2xl">
               <div className="flex items-start justify-between mb-4 lg:mb-6 sticky top-0 bg-gradient-to-br from-slate-50 to-slate-100 pb-4 -mt-4 pt-4 -mx-4 px-4 z-10">
                 <div className="min-w-0 flex-1">
                   <h2 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1 truncate">{selectedEmployee.full_name}</h2>
-                  <p className="text-sm text-slate-500 capitalize truncate">{selectedEmployee.position?.replace(/_/g, ' ')}</p>
+                  {selectedEmployee.ruoli_dipendente && selectedEmployee.ruoli_dipendente.length > 0 && (
+                    <p className="text-sm text-slate-500 truncate">{selectedEmployee.ruoli_dipendente.join(', ')}</p>
+                  )}
                 </div>
                 <button
                   onClick={() => {
@@ -793,93 +769,62 @@ export default function Employees() {
                 </div>
               </div>
 
-              <div className="space-y-3 lg:space-y-4"> {/* Adjusted spacing */}
-                <div className="neumorphic-flat p-3 lg:p-4 rounded-xl"> {/* Adjusted padding */}
-                  <div className="flex items-center gap-2 lg:gap-3 mb-3"> {/* Adjusted gap */}
-                    <ShoppingCart className="w-5 h-5 text-blue-600" /> {/* Changed icon color */}
-                    <h3 className="font-bold text-slate-800 text-sm lg:text-base">Ordini</h3> {/* Adjusted font size */}
+              <div className="space-y-3 lg:space-y-4">
+                <div className="neumorphic-flat p-3 lg:p-4 rounded-xl">
+                  <div className="flex items-center gap-2 lg:gap-3 mb-3">
+                    <ShoppingCart className="w-5 h-5 text-blue-600" />
+                    <h3 className="font-bold text-slate-800 text-sm lg:text-base">Ordini</h3>
                   </div>
-                  {/* Updated to display only Wrong Orders from the new source */}
-                  <div className="grid grid-cols-1 gap-3"> {/* Adjusted gap */}
+                  <div className="grid grid-cols-1 gap-3">
                     <div>
-                      <p className="text-xs text-slate-500">Ordini Sbagliati</p> {/* Adjusted font size */}
-                      <p className="text-lg lg:text-xl font-bold text-slate-800"> {/* Adjusted font size */}
+                      <p className="text-xs text-slate-500">Ordini Sbagliati</p>
+                      <p className="text-lg lg:text-xl font-bold text-slate-800">
                         {selectedEmployee.wrongOrders} ({selectedEmployee.wrongOrderRate.toFixed(1)}%)
                       </p>
                     </div>
-                    {/* Avg Processing Time and Avg Satisfaction are removed */}
                   </div>
                 </div>
 
-                <div className="neumorphic-flat p-3 lg:p-4 rounded-xl"> {/* Adjusted padding */}
-                  <div className="flex items-center gap-2 lg:gap-3 mb-3"> {/* Adjusted gap */}
-                    <Clock className="w-5 h-5 text-blue-600" /> {/* Changed icon color */}
-                    <h3 className="font-bold text-slate-800 text-sm lg:text-base">Presenza</h3> {/* Adjusted font size */}
+                <div className="neumorphic-flat p-3 lg:p-4 rounded-xl">
+                  <div className="flex items-center gap-2 lg:gap-3 mb-3">
+                    <Clock className="w-5 h-5 text-blue-600" />
+                    <h3 className="font-bold text-slate-800 text-sm lg:text-base">Presenza</h3>
                   </div>
-                  <div className="grid grid-cols-2 gap-3"> {/* Adjusted gap */}
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-xs text-slate-500">Turni</p> {/* Adjusted font size */}
-                      <p className="text-lg lg:text-xl font-bold text-slate-800">{selectedEmployee.totalShifts}</p> {/* Adjusted font size */}
+                      <p className="text-xs text-slate-500">Turni</p>
+                      <p className="text-lg lg:text-xl font-bold text-slate-800">{selectedEmployee.totalShifts}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-500">Media Ritardo</p> {/* Adjusted font size */}
-                      <p className="text-lg lg:text-xl font-bold text-slate-800"> {/* Adjusted font size */}
+                      <p className="text-xs text-slate-500">Media Ritardo</p>
+                      <p className="text-lg lg:text-xl font-bold text-slate-800">
                         {selectedEmployee.avgLateMinutes.toFixed(1)}m
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-500">N° Ritardi</p> {/* Adjusted font size */}
-                      <p className="text-lg lg:text-xl font-bold text-red-600"> {/* Adjusted font size */}
+                      <p className="text-xs text-slate-500">N° Ritardi</p>
+                      <p className="text-lg lg:text-xl font-bold text-red-600">
                         {selectedEmployee.numeroRitardi}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-500">% Ritardi</p> {/* Adjusted font size */}
-                      <p className="text-lg lg:text-xl font-bold text-red-600"> {/* Adjusted font size */}
+                      <p className="text-xs text-slate-500">% Ritardi</p>
+                      <p className="text-lg lg:text-xl font-bold text-red-600">
                         {selectedEmployee.percentualeRitardi.toFixed(1)}%
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {/* NEW: Ultimi Ordini Sbagliati */}
                 <div className="neumorphic-flat p-4 rounded-xl">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <ShoppingCart className="w-5 h-5 text-red-600" />
-                      <h3 className="font-bold text-slate-800">
-                        {expandedView === 'wrongOrders' ? 'Tutti gli Ordini Sbagliati' : 'Ultimi 3 Ordini Sbagliati'}
-                      </h3>
-                    </div>
-                    {(() => {
-                      const allWrongOrders = getAllWrongOrders(selectedEmployee.full_name);
-                      return allWrongOrders.length > 3 && (
-                        <button
-                          onClick={() => setExpandedView(expandedView === 'wrongOrders' ? null : 'wrongOrders')}
-                          className="neumorphic-flat px-3 py-1 rounded-lg text-sm text-slate-500 hover:text-slate-700 transition-colors flex items-center gap-1"
-                        >
-                          {expandedView === 'wrongOrders' ? (
-                            <>
-                              <X className="w-4 h-4" />
-                              Chiudi
-                            </>
-                          ) : (
-                            <>
-                              <Eye className="w-4 h-4" />
-                              Vedi tutti ({allWrongOrders.length})
-                            </>
-                          )}
-                        </button>
-                      );
-                    })()}
+                  <div className="flex items-center gap-3 mb-3">
+                    <ShoppingCart className="w-5 h-5 text-red-600" />
+                    <h3 className="font-bold text-slate-800">Ultimi 3 Ordini Sbagliati</h3>
                   </div>
                   {(() => {
-                    const wrongOrdersList = expandedView === 'wrongOrders' 
-                      ? getAllWrongOrders(selectedEmployee.full_name)
-                      : getLatestWrongOrders(selectedEmployee.full_name);
-                      
+                    const wrongOrdersList = getLatestWrongOrders(selectedEmployee.full_name);
                     return wrongOrdersList.length > 0 ? (
-                      <div className={`space-y-2 ${expandedView === 'wrongOrders' ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
+                      <div className="space-y-2">
                         {wrongOrdersList.map((match, index) => (
                           <div key={`${match.id}-${index}`} className="neumorphic-pressed p-3 rounded-lg border-2 border-red-200">
                             <div className="flex items-center justify-between mb-2">
@@ -921,9 +866,6 @@ export default function Employees() {
                                   )}
                                 </>
                               )}
-                              <div className="text-[0.65rem] text-gray-400 mt-1">
-                                Match ID: {match.id} • {match.match_method === 'auto' ? 'Automatico' : 'Manuale'}
-                              </div>
                             </div>
                           </div>
                         ))}
@@ -936,44 +878,15 @@ export default function Employees() {
                   })()}
                 </div>
 
-                {/* Ultimi Turni in Ritardo - IMPROVED DISPLAY */}
                 <div className="neumorphic-flat p-4 rounded-xl">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <AlertCircle className="w-5 h-5 text-red-600" />
-                      <h3 className="font-bold text-slate-800">
-                        {expandedView === 'late' ? 'Tutti i Turni in Ritardo' : 'Ultimi 3 Turni in Ritardo'}
-                      </h3>
-                    </div>
-                    {(() => {
-                      const allLateShifts = getAllLateShifts(selectedEmployee.full_name);
-                      return allLateShifts.length > 3 && (
-                        <button
-                          onClick={() => setExpandedView(expandedView === 'late' ? null : 'late')}
-                          className="neumorphic-flat px-3 py-1 rounded-lg text-sm text-slate-500 hover:text-slate-700 transition-colors flex items-center gap-1"
-                        >
-                          {expandedView === 'late' ? (
-                            <>
-                              <X className="w-4 h-4" />
-                              Chiudi
-                            </>
-                          ) : (
-                            <>
-                              <Eye className="w-4 h-4" />
-                              Vedi tutti ({allLateShifts.length})
-                            </>
-                          )}
-                        </button>
-                      );
-                    })()}
+                  <div className="flex items-center gap-3 mb-3">
+                    <AlertCircle className="w-5 h-5 text-red-600" />
+                    <h3 className="font-bold text-slate-800">Ultimi 3 Turni in Ritardo</h3>
                   </div>
                   {(() => {
-                    const lateShifts = expandedView === 'late' 
-                      ? getAllLateShifts(selectedEmployee.full_name)
-                      : getLatestLateShifts(selectedEmployee.full_name);
-                      
+                    const lateShifts = getLatestLateShifts(selectedEmployee.full_name);
                     return lateShifts.length > 0 ? (
-                      <div className={`space-y-2 ${expandedView === 'late' ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
+                      <div className="space-y-2">
                         {lateShifts.map((shift, index) => (
                           <div key={`${shift.id}-${index}`} className="neumorphic-pressed p-3 rounded-lg">
                             <div className="flex items-center justify-between mb-1">
@@ -984,15 +897,10 @@ export default function Employees() {
                                 +{shift.minuti_di_ritardo || 0} min
                               </span>
                             </div>
-                            <div className="text-xs text-slate-500 space-y-1">
-                              <div>
-                                <strong>Previsto:</strong> {safeFormatTime(shift.scheduled_start)}
-                                {' → '}
-                                <strong>Effettivo:</strong> {safeFormatTime(shift.actual_start)}
-                              </div>
-                              <div className="text-[0.65rem] text-gray-400">
-                                ID: {shift.id} • Creato: {safeFormatDateTimeLocale(shift.created_date)}
-                              </div>
+                            <div className="text-xs text-slate-500">
+                              <strong>Previsto:</strong> {safeFormatTime(shift.scheduled_start)}
+                              {' → '}
+                              <strong>Effettivo:</strong> {safeFormatTime(shift.actual_start)}
                             </div>
                           </div>
                         ))}
@@ -1005,44 +913,15 @@ export default function Employees() {
                   })()}
                 </div>
 
-                {/* Ultimi Turni con Timbratura Mancata */}
                 <div className="neumorphic-flat p-4 rounded-xl">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <AlertCircle className="w-5 h-5 text-orange-600" />
-                      <h3 className="font-bold text-slate-800">
-                        {expandedView === 'missing' ? 'Tutti i Turni con Timbratura Mancata' : 'Ultimi 3 Turni con Timbratura Mancata'}
-                      </h3>
-                    </div>
-                    {(() => {
-                      const allMissingClockIns = getAllMissingClockIns(selectedEmployee.full_name);
-                      return allMissingClockIns.length > 3 && (
-                        <button
-                          onClick={() => setExpandedView(expandedView === 'missing' ? null : 'missing')}
-                          className="neumorphic-flat px-3 py-1 rounded-lg text-sm text-slate-500 hover:text-slate-700 transition-colors flex items-center gap-1"
-                        >
-                          {expandedView === 'missing' ? (
-                            <>
-                              <X className="w-4 h-4" />
-                              Chiudi
-                            </>
-                          ) : (
-                            <>
-                              <Eye className="w-4 h-4" />
-                              Vedi tutti ({allMissingClockIns.length})
-                            </>
-                          )}
-                        </button>
-                      );
-                    })()}
+                  <div className="flex items-center gap-3 mb-3">
+                    <AlertCircle className="w-5 h-5 text-orange-600" />
+                    <h3 className="font-bold text-slate-800">Ultimi 3 Turni con Timbratura Mancata</h3>
                   </div>
                   {(() => {
-                    const missingClockIns = expandedView === 'missing'
-                      ? getAllMissingClockIns(selectedEmployee.full_name)
-                      : getLatestMissingClockIns(selectedEmployee.full_name);
-                      
+                    const missingClockIns = getLatestMissingClockIns(selectedEmployee.full_name);
                     return missingClockIns.length > 0 ? (
-                      <div className={`space-y-2 ${expandedView === 'missing' ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
+                      <div className="space-y-2">
                         {missingClockIns.map((shift, index) => (
                           <div key={`${shift.id}-${index}`} className="neumorphic-pressed p-3 rounded-lg border-2 border-orange-200">
                             <div className="flex items-center justify-between mb-1">
@@ -1053,20 +932,10 @@ export default function Employees() {
                                 NON TIMBRATO
                               </span>
                             </div>
-                            <div className="text-xs text-slate-500 space-y-1">
-                              <div>
-                                <strong>Orario Previsto:</strong> {safeFormatTime(shift.scheduled_start)}
-                                {' - '}
-                                {safeFormatTime(shift.scheduled_end)}
-                              </div>
-                              {shift.shift_type && (
-                                <div>
-                                  <strong>Tipo Turno:</strong> {shift.shift_type}
-                                </div>
-                              )}
-                              <div className="text-[0.65rem] text-gray-400">
-                                ID: {shift.id} • Creato: {safeFormatDateTimeLocale(shift.created_date)}
-                              </div>
+                            <div className="text-xs text-slate-500">
+                              <strong>Orario Previsto:</strong> {safeFormatTime(shift.scheduled_start)}
+                              {' - '}
+                              {safeFormatTime(shift.scheduled_end)}
                             </div>
                           </div>
                         ))}
@@ -1079,44 +948,15 @@ export default function Employees() {
                   })()}
                 </div>
 
-                {/* Ultime Recensioni Google */}
                 <div className="neumorphic-flat p-4 rounded-xl">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                      <h3 className="font-bold text-slate-800">
-                        {expandedView === 'reviews' ? 'Tutte le Recensioni Google Maps' : 'Ultime 3 Recensioni Google Maps'}
-                      </h3>
-                    </div>
-                    {(() => {
-                      const allGoogleReviews = getAllGoogleReviews(selectedEmployee.full_name);
-                      return allGoogleReviews.length > 3 && (
-                        <button
-                          onClick={() => setExpandedView(expandedView === 'reviews' ? null : 'reviews')}
-                          className="neumorphic-flat px-3 py-1 rounded-lg text-sm text-slate-500 hover:text-slate-700 transition-colors flex items-center gap-1"
-                        >
-                          {expandedView === 'reviews' ? (
-                            <>
-                              <X className="w-4 h-4" />
-                              Chiudi
-                            </>
-                          ) : (
-                            <>
-                              <Eye className="w-4 h-4" />
-                              Vedi tutti ({allGoogleReviews.length})
-                            </>
-                          )}
-                        </button>
-                      );
-                    })()}
+                  <div className="flex items-center gap-3 mb-3">
+                    <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+                    <h3 className="font-bold text-slate-800">Ultime 3 Recensioni Google Maps</h3>
                   </div>
                   {(() => {
-                    const googleReviews = expandedView === 'reviews'
-                      ? getAllGoogleReviews(selectedEmployee.full_name)
-                      : getLatestGoogleReviews(selectedEmployee.full_name);
-                      
+                    const googleReviews = getLatestGoogleReviews(selectedEmployee.full_name);
                     return googleReviews.length > 0 ? (
-                      <div className={`space-y-2 ${expandedView === 'reviews' ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
+                      <div className="space-y-2">
                         {googleReviews.map((review) => (
                           <div key={review.id} className="neumorphic-pressed p-3 rounded-lg">
                             <div className="flex items-center justify-between mb-2">
