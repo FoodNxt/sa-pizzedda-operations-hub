@@ -1263,6 +1263,46 @@ export default function Contratti() {
           </div>
         </div>
       )}
+
+      {/* Preview Modal */}
+      {previewContratto && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <NeumorphicCard className="p-6 my-8">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-[#6b6b6b]">
+                  Anteprima Contratto
+                </h2>
+                <button
+                  onClick={() => setPreviewContratto(null)}
+                  className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+                >
+                  <X className="w-5 h-5 text-[#9b9b9b]" />
+                </button>
+              </div>
+
+              <div className="neumorphic-pressed p-6 rounded-xl bg-white">
+                <div 
+                  className="prose prose-sm max-w-none text-[#6b6b6b]"
+                  style={{ whiteSpace: 'pre-wrap' }}
+                >
+                  {typeof previewContratto === 'string' ? previewContratto : previewContratto.contenuto_contratto}
+                </div>
+              </div>
+
+              {typeof previewContratto !== 'string' && previewContratto.status === 'firmato' && previewContratto.firma_dipendente && (
+                <div className="neumorphic-flat p-5 rounded-xl bg-green-50 mt-4">
+                  <h3 className="font-bold text-green-800 mb-2">Firma Digitale</h3>
+                  <p className="text-sm text-green-700">
+                    Firmato da: <strong>{previewContratto.firma_dipendente}</strong><br />
+                    Data firma: {new Date(previewContratto.data_firma).toLocaleDateString('it-IT')} alle {new Date(previewContratto.data_firma).toLocaleTimeString('it-IT')}
+                  </p>
+                </div>
+              )}
+            </NeumorphicCard>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
