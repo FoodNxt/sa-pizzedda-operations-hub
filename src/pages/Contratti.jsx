@@ -1175,6 +1175,7 @@ export default function Contratti() {
             </div>
           )}
         </NeumorphicCard>
+        </>
       ) : (
         <NeumorphicCard className="p-6">
           <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">Template Contratti</h2>
