@@ -30,7 +30,8 @@ export default function ProfiloDipendente() {
     codice_fiscale: '',
     indirizzo_residenza: '',
     iban: '',
-    taglia_maglietta: ''
+    taglia_maglietta: '',
+    cittadinanza_italiana: true
   });
   
   const [documentFiles, setDocumentFiles] = useState({
@@ -58,7 +59,8 @@ export default function ProfiloDipendente() {
         codice_fiscale: u.codice_fiscale || '',
         indirizzo_residenza: u.indirizzo_residenza || '',
         iban: u.iban || '',
-        taglia_maglietta: u.taglia_maglietta || ''
+        taglia_maglietta: u.taglia_maglietta || '',
+        cittadinanza_italiana: u.cittadinanza_italiana !== false
       });
       return u;
     },
@@ -113,7 +115,8 @@ export default function ProfiloDipendente() {
         codice_fiscale: user.codice_fiscale || '',
         indirizzo_residenza: user.indirizzo_residenza || '',
         iban: user.iban || '',
-        taglia_maglietta: user.taglia_maglietta || ''
+        taglia_maglietta: user.taglia_maglietta || '',
+        cittadinanza_italiana: user.cittadinanza_italiana !== false
       });
     }
     setEditing(false);
@@ -392,6 +395,32 @@ export default function ProfiloDipendente() {
               </select>
             </div>
 
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">
+                Hai la cittadinanza italiana?
+              </label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    checked={formData.cittadinanza_italiana === true}
+                    onChange={() => setFormData({ ...formData, cittadinanza_italiana: true })}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm text-slate-700">Sì</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    checked={formData.cittadinanza_italiana === false}
+                    onChange={() => setFormData({ ...formData, cittadinanza_italiana: false })}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm text-slate-700">No</span>
+                </label>
+              </div>
+            </div>
+
             {error && (
               <div className="neumorphic-pressed p-3 rounded-lg bg-red-50">
                 <div className="flex items-center gap-2 text-red-700 text-sm">
@@ -493,7 +522,23 @@ export default function ProfiloDipendente() {
           Documenti
         </h3>
 
-        <div className="space-y-4">
+        {/* Check if anagrafica is complete */}
+        {(!user?.nome_cognome || !user?.phone || !user?.data_nascita || !user?.citta_nascita || !user?.codice_fiscale || !user?.indirizzo_residenza || !user?.iban) ? (
+          <div className="neumorphic-pressed p-4 rounded-xl bg-yellow-50">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-yellow-800 mb-1">
+                  Completa i Dati Anagrafici
+                </p>
+                <p className="text-xs text-yellow-700">
+                  Per caricare i documenti, devi prima completare tutti i campi nella sezione "Dati Anagrafici"
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
           {/* Documento d'Identità */}
           <div className="neumorphic-pressed p-4 rounded-xl">
             <div className="flex items-center justify-between mb-3">
@@ -616,67 +661,70 @@ export default function ProfiloDipendente() {
             )}
           </div>
 
-          {/* Permesso di Soggiorno */}
-          <div className="neumorphic-pressed p-4 rounded-xl">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-medium text-slate-700">Permesso di Soggiorno</h4>
-              {user?.permesso_soggiorno_url && (
-                <button
-                  onClick={() => handleDocumentDelete('permesso_soggiorno')}
-                  className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
-                  title="Elimina"
-                >
-                  <X className="w-4 h-4 text-red-600" />
-                </button>
-              )}
-            </div>
-            
-            {user?.permesso_soggiorno_url ? (
-              <div className="flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-green-700 font-medium">Caricato</p>
-                  <a 
-                    href={user.permesso_soggiorno_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-xs text-blue-600 hover:underline truncate block"
-                  >
-                    Visualizza
-                  </a>
-                </div>
-              </div>
-            ) : (
-              <div>
-                <input
-                  type="file"
-                  accept="image/*,application/pdf"
-                  onChange={(e) => handleDocumentChange('permesso_soggiorno', e.target.files[0])}
-                  className="hidden"
-                  id="doc-permesso"
-                />
-                <label
-                  htmlFor="doc-permesso"
-                  className="nav-button px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 hover:shadow-lg transition-all w-full"
-                >
-                  <Upload className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                  <span className="text-sm text-slate-700 truncate">
-                    {documentFiles.permesso_soggiorno ? documentFiles.permesso_soggiorno.name : 'Seleziona file'}
-                  </span>
-                </label>
-                {documentFiles.permesso_soggiorno && (
+          {/* Permesso di Soggiorno - Only if NOT Italian citizen */}
+          {user?.cittadinanza_italiana === false && (
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-medium text-slate-700">Permesso di Soggiorno</h4>
+                {user?.permesso_soggiorno_url && (
                   <button
-                    onClick={() => handleDocumentUpload('permesso_soggiorno')}
-                    disabled={uploadingDocs}
-                    className="mt-2 w-full bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-2 rounded-lg text-white text-sm font-medium disabled:opacity-50"
+                    onClick={() => handleDocumentDelete('permesso_soggiorno')}
+                    className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
+                    title="Elimina"
                   >
-                    {uploadingDocs ? 'Caricamento...' : 'Carica'}
+                    <X className="w-4 h-4 text-red-600" />
                   </button>
                 )}
               </div>
-            )}
-          </div>
+              
+              {user?.permesso_soggiorno_url ? (
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-green-700 font-medium">Caricato</p>
+                    <a 
+                      href={user.permesso_soggiorno_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-600 hover:underline truncate block"
+                    >
+                      Visualizza
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={(e) => handleDocumentChange('permesso_soggiorno', e.target.files[0])}
+                    className="hidden"
+                    id="doc-permesso"
+                  />
+                  <label
+                    htmlFor="doc-permesso"
+                    className="nav-button px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 hover:shadow-lg transition-all w-full"
+                  >
+                    <Upload className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                    <span className="text-sm text-slate-700 truncate">
+                      {documentFiles.permesso_soggiorno ? documentFiles.permesso_soggiorno.name : 'Seleziona file'}
+                    </span>
+                  </label>
+                  {documentFiles.permesso_soggiorno && (
+                    <button
+                      onClick={() => handleDocumentUpload('permesso_soggiorno')}
+                      disabled={uploadingDocs}
+                      className="mt-2 w-full bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-2 rounded-lg text-white text-sm font-medium disabled:opacity-50"
+                    >
+                      {uploadingDocs ? 'Caricamento...' : 'Carica'}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
+        )}
       </NeumorphicCard>
 
       {/* Info Box */}

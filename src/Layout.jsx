@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -109,8 +108,13 @@ const navigationStructure = [
         icon: DollarSign,
       },
       {
-        title: "Conteggio Cassa",
-        url: createPageUrl("ConteggioCassa"),
+        title: "Form Prelievi",
+        url: createPageUrl("FormPrelievi"),
+        icon: DollarSign,
+      },
+      {
+        title: "Form Deposito",
+        url: createPageUrl("FormDeposito"),
         icon: DollarSign,
       }
     ]

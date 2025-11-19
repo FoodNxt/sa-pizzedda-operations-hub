@@ -107,7 +107,7 @@ export default function CompleteProfileModal({ user, onComplete }) {
             Completa il tuo Profilo
           </h2>
           <p className="text-[#9b9b9b] text-sm">
-            Inserisci il tuo Nome Cognome come appare nel sistema aziendale
+            Inserisci il tuo nome e cognome
           </p>
         </div>
 
@@ -146,12 +146,6 @@ export default function CompleteProfileModal({ user, onComplete }) {
           <div className="neumorphic-pressed p-3 rounded-lg">
             <p className="text-xs text-[#9b9b9b] mb-1">Account email:</p>
             <p className="text-sm text-[#6b6b6b] font-medium">{user?.email}</p>
-            {user?.full_name && (
-              <p className="text-xs text-[#9b9b9b] mt-2">
-                Nome da Google: <span className="text-[#6b6b6b] line-through">{user.full_name}</span>
-                <span className="text-red-600 ml-1">(verrà sostituito)</span>
-              </p>
-            )}
             {retryCount > 0 && (
               <p className="text-xs text-yellow-600 mt-2">
                 Tentativi effettuati: {retryCount}

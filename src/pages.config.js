@@ -56,7 +56,9 @@ import FormTeglieButtate from './pages/FormTeglieButtate';
 import FormPreparazioni from './pages/FormPreparazioni';
 import AnalisiSprechi from './pages/AnalisiSprechi';
 import InventoryForms from './pages/InventoryForms';
-import Layout from './Layout.jsx';
+import FormPrelievi from './pages/FormPrelievi';
+import FormDeposito from './pages/FormDeposito';
+import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
@@ -118,10 +120,12 @@ export const PAGES = {
     "FormPreparazioni": FormPreparazioni,
     "AnalisiSprechi": AnalisiSprechi,
     "InventoryForms": InventoryForms,
+    "FormPrelievi": FormPrelievi,
+    "FormDeposito": FormDeposito,
 }
 
 export const pagesConfig = {
     mainPage: "Dashboard",
     Pages: PAGES,
-    Layout: Layout,
+    Layout: __Layout,
 };
