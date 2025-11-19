@@ -1004,70 +1004,74 @@ export default function Contratti() {
               .filter(c => c.data_scadenza >= oggi && c.data_scadenza <= trentaGiorniFuturo)
               .sort((a, b) => a.data_scadenza - b.data_scadenza);
             
-            return contrattiInScadenza.length > 0 ? (
-              <NeumorphicCard className="p-6 mb-6 border-2 border-orange-400">
-                <h2 className="text-xl font-bold text-orange-700 mb-4 flex items-center gap-2">
-                  <AlertCircle className="w-6 h-6" />
+            return (
+              <NeumorphicCard className={`p-6 mb-6 ${contrattiInScadenza.length > 0 ? 'border-2 border-orange-400' : ''}`}>
+                <h2 className={`text-xl font-bold mb-4 flex items-center gap-2 ${contrattiInScadenza.length > 0 ? 'text-orange-700' : 'text-[#6b6b6b]'}`}>
+                  <AlertCircle className={`w-6 h-6 ${contrattiInScadenza.length > 0 ? 'text-orange-600' : 'text-slate-400'}`} />
                   Contratti in Scadenza (prossimi 30 giorni)
                 </h2>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b-2 border-orange-500">
-                        <th className="text-left p-3 text-[#9b9b9b] font-medium">Dipendente</th>
-                        <th className="text-left p-3 text-[#9b9b9b] font-medium">Contratto</th>
-                        <th className="text-left p-3 text-[#9b9b9b] font-medium">Inizio</th>
-                        <th className="text-left p-3 text-[#9b9b9b] font-medium">Scadenza</th>
-                        <th className="text-center p-3 text-[#9b9b9b] font-medium">Giorni Rimanenti</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {contrattiInScadenza.map((contratto) => {
-                        const giorniRimanenti = Math.ceil((contratto.data_scadenza - oggi) / (1000 * 60 * 60 * 24));
-                        return (
-                          <tr key={contratto.id} className="border-b border-orange-200 hover:bg-orange-50 transition-colors">
-                            <td className="p-3">
-                              <div>
-                                <p className="font-medium text-[#6b6b6b]">{contratto.nome_cognome}</p>
-                                {contratto.user_email && (
-                                  <p className="text-xs text-[#9b9b9b]">{contratto.user_email}</p>
-                                )}
-                              </div>
-                            </td>
-                            <td className="p-3">
-                              <span className="text-sm text-[#6b6b6b]">
-                                {contratto.employee_group} - {contratto.ore_settimanali}h/sett
-                              </span>
-                            </td>
-                            <td className="p-3">
-                              <span className="text-sm text-[#6b6b6b]">
-                                {new Date(contratto.data_inizio_contratto).toLocaleDateString('it-IT')}
-                              </span>
-                            </td>
-                            <td className="p-3">
-                              <span className="text-sm font-bold text-orange-700">
-                                {contratto.data_scadenza.toLocaleDateString('it-IT')}
-                              </span>
-                            </td>
-                            <td className="p-3 text-center">
-                              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                giorniRimanenti <= 7 
-                                  ? 'bg-red-100 text-red-700' 
-                                  : giorniRimanenti <= 15
-                                  ? 'bg-orange-100 text-orange-700'
-                                  : 'bg-yellow-100 text-yellow-700'
-                              }`}>
-                                {giorniRimanenti} giorni
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                {contrattiInScadenza.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b-2 border-orange-500">
+                          <th className="text-left p-3 text-[#9b9b9b] font-medium">Dipendente</th>
+                          <th className="text-left p-3 text-[#9b9b9b] font-medium">Contratto</th>
+                          <th className="text-left p-3 text-[#9b9b9b] font-medium">Inizio</th>
+                          <th className="text-left p-3 text-[#9b9b9b] font-medium">Scadenza</th>
+                          <th className="text-center p-3 text-[#9b9b9b] font-medium">Giorni Rimanenti</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {contrattiInScadenza.map((contratto) => {
+                          const giorniRimanenti = Math.ceil((contratto.data_scadenza - oggi) / (1000 * 60 * 60 * 24));
+                          return (
+                            <tr key={contratto.id} className="border-b border-orange-200 hover:bg-orange-50 transition-colors">
+                              <td className="p-3">
+                                <div>
+                                  <p className="font-medium text-[#6b6b6b]">{contratto.nome_cognome}</p>
+                                  {contratto.user_email && (
+                                    <p className="text-xs text-[#9b9b9b]">{contratto.user_email}</p>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <span className="text-sm text-[#6b6b6b]">
+                                  {contratto.employee_group} - {contratto.ore_settimanali}h/sett
+                                </span>
+                              </td>
+                              <td className="p-3">
+                                <span className="text-sm text-[#6b6b6b]">
+                                  {new Date(contratto.data_inizio_contratto).toLocaleDateString('it-IT')}
+                                </span>
+                              </td>
+                              <td className="p-3">
+                                <span className="text-sm font-bold text-orange-700">
+                                  {contratto.data_scadenza.toLocaleDateString('it-IT')}
+                                </span>
+                              </td>
+                              <td className="p-3 text-center">
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                  giorniRimanenti <= 7 
+                                    ? 'bg-red-100 text-red-700' 
+                                    : giorniRimanenti <= 15
+                                    ? 'bg-orange-100 text-orange-700'
+                                    : 'bg-yellow-100 text-yellow-700'
+                                }`}>
+                                  {giorniRimanenti} giorni
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-[#9b9b9b]">Non ci sono contratti in scadenza nei prossimi 30 giorni</p>
+                )}
               </NeumorphicCard>
-            ) : null;
+            );
           })()}
 
           <NeumorphicCard className="p-6">
