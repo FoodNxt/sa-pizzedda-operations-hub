@@ -131,12 +131,6 @@ const navigationStructure = [
         icon: ChefHat,
       },
       {
-        title: "Gestione Impasti/Precotture",
-        url: createPageUrl("GestioneImpastiPrecotture"),
-        icon: ChefHat,
-        requiredUserType: ["admin"]
-      },
-      {
         title: "Materie Prime",
         url: createPageUrl("MateriePrime"),
         icon: Package,
@@ -155,6 +149,12 @@ const navigationStructure = [
         title: "Prodotti Venduti",
         url: createPageUrl("ProdottiVenduti"),
         icon: ShoppingCart,
+      },
+      {
+        title: "Gestione Impasti/Precotture",
+        url: createPageUrl("GestioneImpastiPrecotture"),
+        icon: ChefHat,
+        requiredUserType: ["admin"]
       },
       {
         title: "Forms",
@@ -311,9 +311,19 @@ const navigationStructure = [
         title: "Conteggio Cassa",
         url: createPageUrl("ConteggioCassa"),
         icon: DollarSign,
+      },
+      {
+        title: "Impasto",
+        url: createPageUrl("Impasto"),
+        icon: ChefHat,
+      },
+      {
+        title: "Precotture",
+        url: createPageUrl("Precotture"),
+        icon: Pizza,
       }
-    ]
-  },
+      ]
+      },
   {
     title: "Zapier Guide",
     icon: Zap,
@@ -664,7 +674,9 @@ export default function Layout({ children, currentPageName }) {
       'ControlloPuliziaStoreManager': 'Pulizia',
       'InventoryForms': 'Forms',
       'ConteggioCassa': 'Cassa',
-      'FinancialForms': 'Forms'
+      'FinancialForms': 'Forms',
+      'Impasto': 'Impasto',
+      'Precotture': 'Precotture'
     };
     return titles[pageName] || pageName;
   };
@@ -679,7 +691,9 @@ export default function Layout({ children, currentPageName }) {
       'ControlloPuliziaPizzaiolo': Camera,
       'ControlloPuliziaStoreManager': Camera,
       'InventoryForms': Edit,
-      'ConteggioCassa': DollarSign
+      'ConteggioCassa': DollarSign,
+      'Impasto': ChefHat,
+      'Precotture': Pizza
     };
     return icons[pageName] || User;
   };
