@@ -32,6 +32,9 @@ export default function MateriePrime() {
     unita_misura: 'pezzi',
     peso_dimensione_unita: '',
     unita_misura_peso: 'kg',
+    unita_per_confezione: '',
+    peso_unita_interna: '',
+    unita_misura_interna: 'kg',
     quantita_minima: '',
     prezzo_unitario: '',
     fornitore: '',
@@ -89,6 +92,9 @@ export default function MateriePrime() {
       unita_misura: 'pezzi',
       peso_dimensione_unita: '',
       unita_misura_peso: 'kg',
+      unita_per_confezione: '',
+      peso_unita_interna: '',
+      unita_misura_interna: 'kg',
       quantita_minima: '',
       prezzo_unitario: '',
       fornitore: '',
@@ -112,6 +118,9 @@ export default function MateriePrime() {
       unita_misura: product.unita_misura,
       peso_dimensione_unita: product.peso_dimensione_unita || '',
       unita_misura_peso: product.unita_misura_peso || 'kg',
+      unita_per_confezione: product.unita_per_confezione || '',
+      peso_unita_interna: product.peso_unita_interna || '',
+      unita_misura_interna: product.unita_misura_interna || 'kg',
       quantita_minima: product.quantita_minima,
       prezzo_unitario: product.prezzo_unitario || '',
       fornitore: product.fornitore || '',
@@ -142,6 +151,9 @@ export default function MateriePrime() {
       prezzo_unitario: formData.prezzo_unitario ? parseFloat(formData.prezzo_unitario) : null,
       peso_dimensione_unita: formData.peso_dimensione_unita ? parseFloat(formData.peso_dimensione_unita) : null,
       unita_misura_peso: formData.peso_dimensione_unita ? formData.unita_misura_peso : null,
+      unita_per_confezione: formData.unita_per_confezione ? parseFloat(formData.unita_per_confezione) : null,
+      peso_unita_interna: formData.peso_unita_interna ? parseFloat(formData.peso_unita_interna) : null,
+      unita_misura_interna: formData.peso_unita_interna ? formData.unita_misura_interna : null,
       store_specific_min_quantities: cleanedStoreQuantities,
       assigned_stores: formData.assigned_stores.length > 0 ? formData.assigned_stores : []
     };
@@ -431,10 +443,58 @@ export default function MateriePrime() {
                       </div>
                     )}
 
-                    {!['kg', 'grammi', 'litri', 'ml'].includes(formData.unita_misura) && (
+                    {['casse', 'confezioni'].includes(formData.unita_misura) ? (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-sm font-medium text-slate-700 mb-2 block">
+                            Quante unità per {formData.unita_misura === 'casse' ? 'cassa' : 'confezione'}?
+                          </label>
+                          <input
+                            type="number"
+                            step="1"
+                            value={formData.unita_per_confezione}
+                            onChange={(e) => setFormData({ ...formData, unita_per_confezione: e.target.value })}
+                            placeholder="es. 24 (bottiglie)"
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                          />
+                          <p className="text-xs text-slate-500 mt-1">
+                            💡 Es: Se hai una cassa di 24 bottiglie, inserisci 24
+                          </p>
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium text-slate-700 mb-2 block">
+                            Peso/Dimensione per ogni unità interna
+                          </label>
+                          <div className="grid grid-cols-2 gap-3">
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={formData.peso_unita_interna}
+                              onChange={(e) => setFormData({ ...formData, peso_unita_interna: e.target.value })}
+                              placeholder="es. 1.5"
+                              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                            />
+                            <select
+                              value={formData.unita_misura_interna}
+                              onChange={(e) => setFormData({ ...formData, unita_misura_interna: e.target.value })}
+                              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                            >
+                              <option value="kg">kg</option>
+                              <option value="g">g</option>
+                              <option value="litri">litri</option>
+                              <option value="ml">ml</option>
+                            </select>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1">
+                            💡 Es: Se ogni bottiglia pesa 1.5 litri, inserisci 1.5 litri
+                          </p>
+                        </div>
+                      </div>
+                    ) : !['kg', 'grammi', 'litri', 'ml'].includes(formData.unita_misura) && (
                       <div>
                         <label className="text-sm font-medium text-slate-700 mb-2 block">
-                          Peso per {formData.unita_misura === 'casse' ? 'Cassa' : formData.unita_misura === 'sacchi' ? 'Sacco' : formData.unita_misura === 'confezioni' ? 'Confezione' : 'Unità'}
+                          Peso per {formData.unita_misura === 'sacchi' ? 'Sacco' : 'Unità'}
                         </label>
                         <div className="grid grid-cols-2 gap-3">
                           <input
@@ -457,9 +517,7 @@ export default function MateriePrime() {
                           </select>
                         </div>
                         <p className="text-xs text-slate-500 mt-1">
-                          {formData.unita_misura === 'casse' 
-                            ? '💡 Es: Cassa da 24 bottiglie → inserisci il peso totale della cassa o il peso di ogni bottiglia dentro la cassa' 
-                            : `💡 Es: ${formData.unita_misura} da 25kg → inserisci 25 kg`}
+                          💡 Es: {formData.unita_misura} da 25kg → inserisci 25 kg
                         </p>
                       </div>
                     )}
