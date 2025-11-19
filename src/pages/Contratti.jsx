@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -24,7 +23,8 @@ import {
   FileEdit,
   Eye,
   Copy,
-  Download // Added Download icon
+  Download,
+  AlertCircle
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -986,8 +986,92 @@ export default function Contratti() {
 
       {/* Content Based on Active Tab */}
       {activeTab === 'contratti' ? (
-        <NeumorphicCard className="p-6">
-          <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">Lista Contratti</h2>
+        <>
+          {/* Contratti in scadenza */}
+          {(() => {
+            const oggi = new Date();
+            const trentaGiorniFuturo = new Date();
+            trentaGiorniFuturo.setDate(oggi.getDate() + 30);
+            
+            const contrattiInScadenza = contratti
+              .filter(c => c.status === 'firmato' && c.data_inizio_contratto && c.durata_contratto_mesi)
+              .map(c => {
+                const dataInizio = new Date(c.data_inizio_contratto);
+                const dataFine = new Date(dataInizio);
+                dataFine.setMonth(dataFine.getMonth() + parseInt(c.durata_contratto_mesi));
+                return { ...c, data_scadenza: dataFine };
+              })
+              .filter(c => c.data_scadenza >= oggi && c.data_scadenza <= trentaGiorniFuturo)
+              .sort((a, b) => a.data_scadenza - b.data_scadenza);
+            
+            return contrattiInScadenza.length > 0 ? (
+              <NeumorphicCard className="p-6 mb-6 border-2 border-orange-400">
+                <h2 className="text-xl font-bold text-orange-700 mb-4 flex items-center gap-2">
+                  <AlertCircle className="w-6 h-6" />
+                  Contratti in Scadenza (prossimi 30 giorni)
+                </h2>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b-2 border-orange-500">
+                        <th className="text-left p-3 text-[#9b9b9b] font-medium">Dipendente</th>
+                        <th className="text-left p-3 text-[#9b9b9b] font-medium">Contratto</th>
+                        <th className="text-left p-3 text-[#9b9b9b] font-medium">Inizio</th>
+                        <th className="text-left p-3 text-[#9b9b9b] font-medium">Scadenza</th>
+                        <th className="text-center p-3 text-[#9b9b9b] font-medium">Giorni Rimanenti</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {contrattiInScadenza.map((contratto) => {
+                        const giorniRimanenti = Math.ceil((contratto.data_scadenza - oggi) / (1000 * 60 * 60 * 24));
+                        return (
+                          <tr key={contratto.id} className="border-b border-orange-200 hover:bg-orange-50 transition-colors">
+                            <td className="p-3">
+                              <div>
+                                <p className="font-medium text-[#6b6b6b]">{contratto.nome_cognome}</p>
+                                {contratto.user_email && (
+                                  <p className="text-xs text-[#9b9b9b]">{contratto.user_email}</p>
+                                )}
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <span className="text-sm text-[#6b6b6b]">
+                                {contratto.employee_group} - {contratto.ore_settimanali}h/sett
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <span className="text-sm text-[#6b6b6b]">
+                                {new Date(contratto.data_inizio_contratto).toLocaleDateString('it-IT')}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <span className="text-sm font-bold text-orange-700">
+                                {contratto.data_scadenza.toLocaleDateString('it-IT')}
+                              </span>
+                            </td>
+                            <td className="p-3 text-center">
+                              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                giorniRimanenti <= 7 
+                                  ? 'bg-red-100 text-red-700' 
+                                  : giorniRimanenti <= 15
+                                  ? 'bg-orange-100 text-orange-700'
+                                  : 'bg-yellow-100 text-yellow-700'
+                              }`}>
+                                {giorniRimanenti} giorni
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </NeumorphicCard>
+            ) : null;
+          })()}
+
+          <NeumorphicCard className="p-6">
+            <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">Lista Contratti</h2>
           
           {contratti.length === 0 ? (
             <p className="text-center text-[#9b9b9b] py-8">Nessun contratto creato</p>
@@ -1000,9 +1084,8 @@ export default function Contratti() {
                     <th className="text-left p-3 text-[#9b9b9b] font-medium">Template</th>
                     <th className="text-left p-3 text-[#9b9b9b] font-medium">Contratto</th>
                     <th className="text-left p-3 text-[#9b9b9b] font-medium">Inizio</th>
-                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Durata</th>
+                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Scadenza</th>
                     <th className="text-center p-3 text-[#9b9b9b] font-medium">Stato</th>
-                    <th className="text-center p-3 text-[#9b9b9b] font-medium">Firma</th>
                     <th className="text-center p-3 text-[#9b9b9b] font-medium">Azioni</th>
                   </tr>
                 </thead>
@@ -1029,22 +1112,18 @@ export default function Contratti() {
                         </span>
                       </td>
                       <td className="p-3">
-                        <span className="text-sm text-[#6b6b6b]">{contratto.durata_contratto_mesi} mesi</span>
+                        <span className="text-sm text-[#6b6b6b]">
+                          {(() => {
+                            if (!contratto.data_inizio_contratto || !contratto.durata_contratto_mesi) return '-';
+                            const dataInizio = new Date(contratto.data_inizio_contratto);
+                            const dataFine = new Date(dataInizio);
+                            dataFine.setMonth(dataFine.getMonth() + parseInt(contratto.durata_contratto_mesi));
+                            return dataFine.toLocaleDateString('it-IT');
+                          })()}
+                        </span>
                       </td>
                       <td className="p-3 text-center">
                         {getStatusBadge(contratto.status)}
-                      </td>
-                      <td className="p-3 text-center">
-                        {contratto.status === 'firmato' ? (
-                          <div className="flex flex-col items-center">
-                            <CheckCircle className="w-5 h-5 text-green-600 mb-1" />
-                            <span className="text-xs text-green-700">
-                              {new Date(contratto.data_firma).toLocaleDateString('it-IT')}
-                            </span>
-                          </div>
-                        ) : (
-                          <Clock className="w-5 h-5 text-gray-400 mx-auto" />
-                        )}
                       </td>
                       <td className="p-3">
                         <div className="flex items-center justify-center gap-2">

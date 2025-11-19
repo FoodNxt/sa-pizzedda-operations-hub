@@ -58,6 +58,7 @@ import AnalisiSprechi from './pages/AnalisiSprechi';
 import InventoryForms from './pages/InventoryForms';
 import FormPrelievi from './pages/FormPrelievi';
 import FormDeposito from './pages/FormDeposito';
+import FinancialForms from './pages/FinancialForms';
 import __Layout from './Layout.jsx';
 
 
@@ -122,6 +123,7 @@ export const PAGES = {
     "InventoryForms": InventoryForms,
     "FormPrelievi": FormPrelievi,
     "FormDeposito": FormDeposito,
+    "FinancialForms": FinancialForms,
 }
 
 export const pagesConfig = {

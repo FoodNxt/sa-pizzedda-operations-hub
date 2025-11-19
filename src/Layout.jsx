@@ -108,14 +108,9 @@ const navigationStructure = [
         icon: DollarSign,
       },
       {
-        title: "Form Prelievi",
-        url: createPageUrl("FormPrelievi"),
-        icon: DollarSign,
-      },
-      {
-        title: "Form Deposito",
-        url: createPageUrl("FormDeposito"),
-        icon: DollarSign,
+        title: "Forms",
+        url: createPageUrl("FinancialForms"),
+        icon: FileText,
       }
     ]
   },
@@ -476,7 +471,7 @@ export default function Layout({ children, currentPageName }) {
             allowedPages = pageAccessConfig?.after_contract_start || [
               'ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione',
               'ControlloPuliziaCassiere', 'ControlloPuliziaPizzaiolo', 'ControlloPuliziaStoreManager',
-              'InventoryForms', // Consolidated forms
+              'InventoryForms',
               'ConteggioCassa'
             ];
           } else if (hasSignedContract) {
@@ -620,7 +615,7 @@ export default function Layout({ children, currentPageName }) {
       allowedPages = pageAccessConfig?.after_contract_start || [
         'ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione',
         'ControlloPuliziaCassiere', 'ControlloPuliziaPizzaiolo', 'ControlloPuliziaStoreManager',
-        'InventoryForms', // Consolidated forms
+        'InventoryForms',
         'ConteggioCassa'
       ];
     } else if (hasSignedContract) {
@@ -662,7 +657,8 @@ export default function Layout({ children, currentPageName }) {
       'ControlloPuliziaPizzaiolo': 'Pulizia',
       'ControlloPuliziaStoreManager': 'Pulizia',
       'InventoryForms': 'Forms',
-      'ConteggioCassa': 'Cassa'
+      'ConteggioCassa': 'Cassa',
+      'FinancialForms': 'Forms'
     };
     return titles[pageName] || pageName;
   };
@@ -711,13 +707,36 @@ export default function Layout({ children, currentPageName }) {
            'Dipendente';
   };
 
+  // Add class to body for dipendente mobile styling
+  useEffect(() => {
+    if (normalizedUserType === 'dipendente' && window.innerWidth < 1024) {
+      document.body.classList.add('dipendente-mobile');
+    } else {
+      document.body.classList.remove('dipendente-mobile');
+    }
+
+    const handleResize = () => {
+      if (normalizedUserType === 'dipendente' && window.innerWidth < 1024) {
+        document.body.classList.add('dipendente-mobile');
+      } else {
+        document.body.classList.remove('dipendente-mobile');
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      document.body.classList.remove('dipendente-mobile');
+    };
+  }, [normalizedUserType]);
+
   const isFullyLoaded = !isLoadingUser && !isLoadingConfig && currentUser;
 
   // Get main navigation items for bottom bar (dipendente only)
   const getBottomNavItems = () => {
     if (!dipendenteNav || dipendenteNav.length === 0) return [];
-    
-    const mainItems = dipendenteNav[0]?.items?.slice(0, 4) || [];
+
+    const mainItems = dipendenteNav[0]?.items?.slice(0, 5) || [];
     return mainItems;
   };
 
@@ -775,11 +794,11 @@ export default function Layout({ children, currentPageName }) {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          padding: 12px 8px;
+          padding: 14px 10px;
           background: linear-gradient(145deg, #f0f4f8, #e1e8ed);
-          border-radius: 16px;
+          border-radius: 18px;
           transition: all 0.3s ease;
-          min-height: 70px;
+          min-height: 80px;
         }
 
         .bottom-nav-item:active {
@@ -794,6 +813,32 @@ export default function Layout({ children, currentPageName }) {
         @media (max-width: 1024px) {
           .hide-on-mobile {
             display: none !important;
+          }
+
+          /* Increase font sizes for dipendente mobile view */
+          body.dipendente-mobile h1 {
+            font-size: 1.75rem !important;
+          }
+          body.dipendente-mobile h2 {
+            font-size: 1.5rem !important;
+          }
+          body.dipendente-mobile h3 {
+            font-size: 1.25rem !important;
+          }
+          body.dipendente-mobile p, 
+          body.dipendente-mobile span,
+          body.dipendente-mobile label {
+            font-size: 1rem !important;
+          }
+          body.dipendente-mobile .text-xs {
+            font-size: 0.875rem !important;
+          }
+          body.dipendente-mobile .text-sm {
+            font-size: 1rem !important;
+          }
+          body.dipendente-mobile button {
+            font-size: 1rem !important;
+            padding: 0.875rem 1.25rem !important;
           }
         }
       `}</style>
@@ -952,7 +997,7 @@ export default function Layout({ children, currentPageName }) {
         {/* Main Content */}
         <main className={`
           flex-1 min-h-screen 
-          ${normalizedUserType === 'dipendente' ? 'pt-20 pb-24' : 'pt-20 lg:pt-0'} 
+          ${normalizedUserType === 'dipendente' ? 'pt-24 pb-28 lg:pt-8 lg:pb-8' : 'pt-20 lg:pt-0'} 
           px-3 py-4 lg:p-8
         `}>
           {children}
@@ -973,8 +1018,8 @@ export default function Layout({ children, currentPageName }) {
                     to={item.url}
                     className={`bottom-nav-item ${isActive ? 'active' : ''}`}
                   >
-                    <Icon className={`w-6 h-6 mb-1 ${isActive ? 'text-white' : 'text-slate-600'}`} />
-                    <span className={`text-xs font-medium ${isActive ? 'text-white' : 'text-slate-600'}`}>
+                    <Icon className={`w-7 h-7 mb-1.5 ${isActive ? 'text-white' : 'text-slate-600'}`} />
+                    <span className={`text-xs font-semibold ${isActive ? 'text-white' : 'text-slate-600'}`}>
                       {item.title}
                     </span>
                   </Link>

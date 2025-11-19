@@ -251,113 +251,107 @@ export default function ContrattiDipendente() {
       )}
 
       {viewingContract && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end lg:items-center justify-center z-50 p-0 lg:p-4">
-          <NeumorphicCard className="w-full lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 lg:p-6 rounded-t-3xl lg:rounded-2xl">
-            <div className="flex items-start justify-between mb-4 sticky top-0 bg-gradient-to-br from-slate-50 to-slate-100 pb-4 -mt-4 pt-4 -mx-4 px-4 z-10">
-              <h2 className="text-xl lg:text-2xl font-bold text-slate-800 flex-1 min-w-0 truncate">
-                Contratto
+        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[60] p-0">
+          <div className="w-full h-full flex flex-col bg-white">
+            {/* Header */}
+            <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-lg flex items-center justify-between">
+              <h2 className="text-lg lg:text-xl font-bold text-slate-800">
+                {viewingContract.template_nome}
               </h2>
               <button
                 onClick={() => {
                   setViewingContract(null);
                   setSignatureName('');
                 }}
-                className="nav-button p-2 rounded-lg flex-shrink-0 ml-3"
+                className="nav-button p-2 rounded-lg"
               >
                 <X className="w-5 h-5 text-slate-700" />
               </button>
             </div>
 
-            <div className="space-y-3 mb-4">
-              <div className="neumorphic-pressed p-3 rounded-xl">
-                <p className="text-xs text-slate-500 mb-1">Template</p>
-                <p className="text-sm font-medium text-slate-700">{viewingContract.template_nome}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="neumorphic-pressed p-3 rounded-xl">
-                  <p className="text-xs text-slate-500 mb-1">Gruppo</p>
-                  <p className="text-sm font-bold text-slate-700">{viewingContract.employee_group}</p>
-                </div>
-                <div className="neumorphic-pressed p-3 rounded-xl">
-                  <p className="text-xs text-slate-500 mb-1">Ore/Sett</p>
-                  <p className="text-sm font-bold text-slate-700">{viewingContract.ore_settimanali}h</p>
-                </div>
-                <div className="neumorphic-pressed p-3 rounded-xl">
-                  <p className="text-xs text-slate-500 mb-1">Inizio</p>
-                  <p className="text-sm font-medium text-slate-700">
-                    {safeFormatDate(viewingContract.data_inizio_contratto)}
-                  </p>
-                </div>
-                <div className="neumorphic-pressed p-3 rounded-xl">
-                  <p className="text-xs text-slate-500 mb-1">Durata</p>
-                  <p className="text-sm font-medium text-slate-700">{viewingContract.durata_contratto_mesi} mesi</p>
+            {/* Contract Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-4 lg:p-8 bg-white">
+              <div className="max-w-4xl mx-auto">
+                <div className="neumorphic-pressed p-6 rounded-xl mb-6">
+                  <pre className="whitespace-pre-wrap text-sm lg:text-base text-slate-700 font-sans leading-relaxed">
+                    {viewingContract.contenuto_contratto}
+                  </pre>
                 </div>
               </div>
             </div>
 
-            <div className="neumorphic-pressed p-4 rounded-xl mb-4 max-h-60 overflow-y-auto">
-              <pre className="whitespace-pre-wrap text-xs lg:text-sm text-slate-700 font-sans">
-                {viewingContract.contenuto_contratto}
-              </pre>
-            </div>
+            {/* Signature Section - Fixed at bottom */}
+            <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-2xl">
+              <div className="max-w-4xl mx-auto">
+                {viewingContract.status === 'inviato' ? (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="neumorphic-pressed p-3 rounded-xl text-center">
+                        <p className="text-xs text-slate-500 mb-1">Gruppo</p>
+                        <p className="text-sm font-bold text-slate-700">{viewingContract.employee_group}</p>
+                      </div>
+                      <div className="neumorphic-pressed p-3 rounded-xl text-center">
+                        <p className="text-xs text-slate-500 mb-1">Ore/Sett</p>
+                        <p className="text-sm font-bold text-slate-700">{viewingContract.ore_settimanali}h</p>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-2 block">
+                        Firma Digitale (Nome Completo)
+                      </label>
+                      <input
+                        type="text"
+                        value={signatureName}
+                        onChange={(e) => setSignatureName(e.target.value)}
+                        placeholder="Mario Rossi"
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      />
+                    </div>
 
-            {viewingContract.status === 'inviato' ? (
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm font-medium text-slate-700 mb-2 block">
-                    Firma Digitale (Nome Completo)
-                  </label>
-                  <input
-                    type="text"
-                    value={signatureName}
-                    onChange={(e) => setSignatureName(e.target.value)}
-                    placeholder="Mario Rossi"
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                  />
-                </div>
+                    <button
+                      onClick={handleSign}
+                      disabled={!signatureName.trim() || signContractMutation.isPending}
+                      className="w-full bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg text-base"
+                    >
+                      {signContractMutation.isPending ? (
+                        <>
+                          <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Firma in corso...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="w-6 h-6" />
+                          Firma Contratto
+                        </>
+                      )}
+                    </button>
 
-                <button
-                  onClick={handleSign}
-                  disabled={!signatureName.trim() || signContractMutation.isPending}
-                  className="w-full bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-3 rounded-xl text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg text-sm"
-                >
-                  {signContractMutation.isPending ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Firma in corso...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="w-5 h-5" />
-                      Firma Contratto
-                    </>
-                  )}
-                </button>
-
-                <NeumorphicCard className="p-3 bg-blue-50">
-                  <p className="text-xs text-blue-800">
-                    ℹ️ Firmando accetti i termini del contratto
-                  </p>
-                </NeumorphicCard>
-              </div>
-            ) : (
-              <div className="neumorphic-pressed p-4 rounded-xl bg-green-50">
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
-                  <div>
-                    <p className="font-medium text-green-800 text-sm">Contratto Firmato</p>
-                    <p className="text-xs text-green-600">
-                      {safeFormatDateTime(viewingContract.data_firma)}
-                    </p>
-                    <p className="text-xs text-green-700 mt-1">
-                      Firma: {viewingContract.firma_dipendente}
-                    </p>
+                    <div className="neumorphic-pressed p-3 rounded-xl bg-blue-50">
+                      <p className="text-xs text-blue-800 text-center">
+                        ℹ️ Firmando accetti i termini del contratto
+                      </p>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="neumorphic-pressed p-4 rounded-xl bg-green-50">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-green-800">Contratto Firmato</p>
+                        <p className="text-xs text-green-600">
+                          {safeFormatDateTime(viewingContract.data_firma)}
+                        </p>
+                        <p className="text-xs text-green-700 mt-1">
+                          Firma: {viewingContract.firma_dipendente}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </NeumorphicCard>
+            </div>
+          </div>
         </div>
       )}
     </div>
