@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -28,6 +29,7 @@ export default function MateriePrime() {
   const [storeQuantities, setStoreQuantities] = useState({});
   const [formData, setFormData] = useState({
     nome_prodotto: '',
+    codice_articolo: '',
     unita_misura: 'pezzi',
     peso_dimensione_unita: '',
     unita_misura_peso: 'kg',
@@ -84,6 +86,7 @@ export default function MateriePrime() {
   const resetForm = () => {
     setFormData({
       nome_prodotto: '',
+      codice_articolo: '',
       unita_misura: 'pezzi',
       peso_dimensione_unita: '',
       unita_misura_peso: 'kg',
@@ -106,6 +109,7 @@ export default function MateriePrime() {
     setEditingProduct(product);
     setFormData({
       nome_prodotto: product.nome_prodotto,
+      codice_articolo: product.codice_articolo || '',
       unita_misura: product.unita_misura,
       peso_dimensione_unita: product.peso_dimensione_unita || '',
       unita_misura_peso: product.unita_misura_peso || 'kg',
@@ -125,13 +129,21 @@ export default function MateriePrime() {
   const handleSubmit = (e) => {
     e.preventDefault();
     
+    // Pulisci store_specific_min_quantities rimuovendo valori null/undefined
+    const cleanedStoreQuantities = {};
+    Object.keys(storeQuantities).forEach(storeId => {
+      if (storeQuantities[storeId] !== null && storeQuantities[storeId] !== undefined && storeQuantities[storeId] !== '') {
+        cleanedStoreQuantities[storeId] = parseFloat(storeQuantities[storeId]);
+      }
+    });
+    
     const data = {
       ...formData,
       quantita_minima: parseFloat(formData.quantita_minima),
       prezzo_unitario: formData.prezzo_unitario ? parseFloat(formData.prezzo_unitario) : null,
       peso_dimensione_unita: formData.peso_dimensione_unita ? parseFloat(formData.peso_dimensione_unita) : null,
       unita_misura_peso: formData.peso_dimensione_unita ? formData.unita_misura_peso : null,
-      store_specific_min_quantities: storeQuantities,
+      store_specific_min_quantities: cleanedStoreQuantities,
       assigned_stores: formData.assigned_stores.length > 0 ? formData.assigned_stores : []
     };
 
@@ -236,7 +248,7 @@ export default function MateriePrime() {
           <NeumorphicCard className="p-4">
             <div className="text-center">
               <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-yellow-500 to-orange-500 mx-auto mb-2 lg:mb-3 flex items-center justify-center shadow-lg">
-                <AlertTriangle className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+                <AlertTriangle className="w-6 h-6 lg:w-7 lg://h-7 text-white" />
               </div>
               <h3 className="text-xl lg:text-2xl font-bold text-yellow-600 mb-1">
                 {Object.keys(productsByCategory).length}
@@ -271,8 +283,6 @@ export default function MateriePrime() {
           </div>
         </NeumorphicCard>
 
-        {/* ... keep existing code (form modal) ... */}
-
         {showForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end lg:items-center justify-center z-50 p-0 lg:p-4">
             <NeumorphicCard className="w-full lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 lg:p-6 rounded-t-3xl lg:rounded-2xl">
@@ -289,121 +299,350 @@ export default function MateriePrime() {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-slate-700 mb-2 block">
-                    Nome Prodotto <span className="text-red-600">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.nome_prodotto}
-                    onChange={(e) => setFormData({ ...formData, nome_prodotto: e.target.value })}
-                    placeholder="es. Farina di Semola"
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                    required
-                  />
+                {/* Dati Base Prodotto */}
+                <div className="neumorphic-flat p-4 rounded-xl">
+                  <h3 className="font-bold text-slate-700 mb-3 text-sm">📦 Dati Prodotto</h3>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-2 block">
+                        Nome Prodotto <span className="text-red-600">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.nome_prodotto}
+                        onChange={(e) => setFormData({ ...formData, nome_prodotto: e.target.value })}
+                        placeholder="es. Farina di Semola"
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-sm font-medium text-slate-700 mb-2 block">
+                          Codice Articolo
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.codice_articolo}
+                          onChange={(e) => setFormData({ ...formData, codice_articolo: e.target.value })}
+                          placeholder="es. FAR001"
+                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium text-slate-700 mb-2 block">
+                          Categoria <span className="text-red-600">*</span>
+                        </label>
+                        <select
+                          value={formData.categoria}
+                          onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
+                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                          required
+                        >
+                          <option value="ingredienti">Ingredienti</option>
+                          <option value="condimenti">Condimenti</option>
+                          <option value="verdure">Verdure</option>
+                          <option value="latticini">Latticini</option>
+                          <option value="dolci">Dolci</option>
+                          <option value="bevande">Bevande</option>
+                          <option value="pulizia">Pulizia</option>
+                          <option value="altro">Altro</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-2 block">
+                        Fornitore
+                      </label>
+                      <select
+                        value={formData.fornitore}
+                        onChange={(e) => setFormData({ ...formData, fornitore: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                      >
+                        <option value="">-- Seleziona fornitore --</option>
+                        {suppliers.map(supplier => (
+                          <option key={supplier.id} value={supplier.ragione_sociale}>
+                            {supplier.ragione_sociale}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 mb-2 block">
-                      Unità <span className="text-red-600">*</span>
-                    </label>
-                    <select
-                      value={formData.unita_misura}
-                      onChange={(e) => setFormData({ ...formData, unita_misura: e.target.value })}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                      required
+                {/* Unità di Misura e Peso */}
+                <div className="neumorphic-flat p-4 rounded-xl">
+                  <h3 className="font-bold text-slate-700 mb-3 text-sm">⚖️ Unità di Misura</h3>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-2 block">
+                        Unità <span className="text-red-600">*</span>
+                      </label>
+                      <select
+                        value={formData.unita_misura}
+                        onChange={(e) => setFormData({ ...formData, unita_misura: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                        required
+                      >
+                        <option value="kg">Kg</option>
+                        <option value="grammi">Grammi</option>
+                        <option value="litri">Litri</option>
+                        <option value="ml">ml</option>
+                        <option value="unità">Unità</option>
+                        <option value="pezzi">Pezzi</option>
+                        <option value="sacchi">Sacchi</option>
+                        <option value="confezioni">Confezioni</option>
+                        <option value="barattoli">Barattoli</option>
+                        <option value="bottiglie">Bottiglie</option>
+                        <option value="rotoli">Rotoli</option>
+                        <option value="casse">Casse</option>
+                      </select>
+                    </div>
+
+                    {['kg', 'grammi', 'litri', 'ml'].includes(formData.unita_misura) && (
+                      <div>
+                        <label className="text-sm font-medium text-slate-700 mb-2 block">
+                          Peso/Dimensione per Unità (es. 25 per 25kg)
+                        </label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={formData.peso_dimensione_unita}
+                            onChange={(e) => setFormData({ ...formData, peso_dimensione_unita: e.target.value })}
+                            placeholder="25"
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                          />
+                          <select
+                            value={formData.unita_misura_peso}
+                            onChange={(e) => setFormData({ ...formData, unita_misura_peso: e.target.value })}
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                          >
+                            <option value="kg">kg</option>
+                            <option value="g">g</option>
+                            <option value="litri">litri</option>
+                            <option value="ml">ml</option>
+                          </select>
+                        </div>
+                      </div>
+                    )}
+
+                    {!['kg', 'grammi', 'litri', 'ml'].includes(formData.unita_misura) && (
+                      <div>
+                        <label className="text-sm font-medium text-slate-700 mb-2 block">
+                          Peso/Dimensione Confezione (opzionale)
+                        </label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={formData.peso_dimensione_unita}
+                            onChange={(e) => setFormData({ ...formData, peso_dimensione_unita: e.target.value })}
+                            placeholder="es. 5 (per 5kg)"
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                          />
+                          <select
+                            value={formData.unita_misura_peso}
+                            onChange={(e) => setFormData({ ...formData, unita_misura_peso: e.target.value })}
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                          >
+                            <option value="kg">kg</option>
+                            <option value="g">g</option>
+                            <option value="litri">litri</option>
+                            <option value="ml">ml</option>
+                          </select>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1">
+                          Es: Se vendi "sacchi da 25kg", inserisci 25 kg
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Quantità e Prezzo */}
+                <div className="neumorphic-flat p-4 rounded-xl">
+                  <h3 className="font-bold text-slate-700 mb-3 text-sm">💰 Quantità e Prezzo</h3>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-2 block">
+                        Qtà Minima Base <span className="text-red-600">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={formData.quantita_minima}
+                        onChange={(e) => setFormData({ ...formData, quantita_minima: e.target.value })}
+                        placeholder="10"
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
+                        <Euro className="w-4 h-4" />
+                        Prezzo Unitario
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={formData.prezzo_unitario}
+                        onChange={(e) => setFormData({ ...formData, prezzo_unitario: e.target.value })}
+                        placeholder="15.50"
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowStoreQuantities(!showStoreQuantities)}
+                    className="mt-3 w-full neumorphic-flat px-4 py-3 rounded-xl text-sm font-medium text-slate-700 flex items-center justify-between"
+                  >
+                    <span>⚙️ Quantità Specifiche per Negozio</span>
+                    {showStoreQuantities ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </button>
+
+                  {showStoreQuantities && (
+                    <div className="mt-3 space-y-2">
+                      {stores.map(store => (
+                        <div key={store.id} className="neumorphic-pressed p-3 rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-slate-700">{store.name}</span>
+                          </div>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={storeQuantities[store.id] || ''}
+                            onChange={(e) => handleStoreQuantityChange(store.id, e.target.value)}
+                            placeholder={`Default: ${formData.quantita_minima || '0'}`}
+                            className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm"
+                          />
+                        </div>
+                      ))}
+                      <p className="text-xs text-slate-500 mt-2">
+                        ℹ️ Lascia vuoto per usare la quantità base
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Assegnazione Negozi */}
+                <div className="neumorphic-flat p-4 rounded-xl">
+                  <h3 className="font-bold text-slate-700 mb-3 text-sm">🏪 Assegnazione Negozi</h3>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 mb-3">
+                      <input
+                        type="checkbox"
+                        id="all-stores"
+                        checked={formData.assigned_stores.length === 0}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setFormData({ ...formData, assigned_stores: [] });
+                          }
+                        }}
+                        className="w-4 h-4"
+                      />
+                      <label htmlFor="all-stores" className="text-sm font-medium text-slate-700">
+                        Tutti i locali
+                      </label>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-2">
+                      {stores.map(store => (
+                        <div key={store.id} className="neumorphic-pressed p-3 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              id={`store-${store.id}`}
+                              checked={formData.assigned_stores.length === 0 || formData.assigned_stores.includes(store.id)}
+                              onChange={() => {
+                                if (formData.assigned_stores.length === 0) {
+                                  // Se erano tutti selezionati, deseleziona solo questo
+                                  setFormData({ 
+                                    ...formData, 
+                                    assigned_stores: stores.filter(s => s.id !== store.id).map(s => s.id)
+                                  });
+                                } else {
+                                  handleStoreToggle(store.id);
+                                }
+                              }}
+                              className="w-4 h-4"
+                            />
+                            <label htmlFor={`store-${store.id}`} className="text-sm text-slate-700 flex-1">
+                              {store.name}
+                            </label>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-slate-500 mt-2">
+                      ℹ️ Deseleziona un negozio per disattivare il prodotto in quel locale
+                    </p>
+                  </div>
+                </div>
+
+                {/* Posizione e Note */}
+                <div className="neumorphic-flat p-4 rounded-xl">
+                  <h3 className="font-bold text-slate-700 mb-3 text-sm">📍 Posizione e Note</h3>
+                  
+                  <div className="flex items-center gap-3 mb-3">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, posizione: 'negozio' })}
+                      className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all text-sm ${
+                        formData.posizione === 'negozio'
+                          ? 'neumorphic-pressed text-blue-600'
+                          : 'neumorphic-flat text-slate-500'
+                      }`}
                     >
-                      <option value="kg">Kg</option>
-                      <option value="grammi">Grammi</option>
-                      <option value="litri">Litri</option>
-                      <option value="ml">ml</option>
-                      <option value="pezzi">Pezzi</option>
-                      <option value="sacchi">Sacchi</option>
-                      <option value="confezioni">Confezioni</option>
-                      <option value="barattoli">Barattoli</option>
-                      <option value="bottiglie">Bottiglie</option>
-                      <option value="rotoli">Rotoli</option>
-                      <option value="casse">Casse</option>
-                    </select>
+                      🏪 Negozio
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, posizione: 'cantina' })}
+                      className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all text-sm ${
+                        formData.posizione === 'cantina'
+                          ? 'neumorphic-pressed text-purple-600'
+                          : 'neumorphic-flat text-slate-500'
+                      }`}
+                    >
+                      📦 Cantina
+                    </button>
                   </div>
 
                   <div>
                     <label className="text-sm font-medium text-slate-700 mb-2 block">
-                      Categoria
+                      Note
                     </label>
-                    <select
-                      value={formData.categoria}
-                      onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                    >
-                      <option value="ingredienti">Ingredienti</option>
-                      <option value="condimenti">Condimenti</option>
-                      <option value="verdure">Verdure</option>
-                      <option value="latticini">Latticini</option>
-                      <option value="dolci">Dolci</option>
-                      <option value="bevande">Bevande</option>
-                      <option value="pulizia">Pulizia</option>
-                      <option value="altro">Altro</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 mb-2 block">
-                      Qtà Minima <span className="text-red-600">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={formData.quantita_minima}
-                      onChange={(e) => setFormData({ ...formData, quantita_minima: e.target.value })}
-                      placeholder="10"
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                      required
+                    <textarea
+                      value={formData.note}
+                      onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                      placeholder="Note aggiuntive..."
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm h-20 resize-none"
                     />
                   </div>
 
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
-                      <Euro className="w-4 h-4" />
-                      Prezzo
-                    </label>
+                  <div className="flex items-center gap-2 mt-3">
                     <input
-                      type="number"
-                      step="0.01"
-                      value={formData.prezzo_unitario}
-                      onChange={(e) => setFormData({ ...formData, prezzo_unitario: e.target.value })}
-                      placeholder="15.50"
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                      type="checkbox"
+                      id="attivo"
+                      checked={formData.attivo}
+                      onChange={(e) => setFormData({ ...formData, attivo: e.target.checked })}
+                      className="w-4 h-4"
                     />
+                    <label htmlFor="attivo" className="text-sm font-medium text-slate-700">
+                      Prodotto Attivo
+                    </label>
                   </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, posizione: 'negozio' })}
-                    className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all text-sm ${
-                      formData.posizione === 'negozio'
-                        ? 'neumorphic-pressed text-blue-600'
-                        : 'neumorphic-flat text-slate-500'
-                    }`}
-                  >
-                    🏪 Negozio
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, posizione: 'cantina' })}
-                    className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all text-sm ${
-                      formData.posizione === 'cantina'
-                        ? 'neumorphic-pressed text-purple-600'
-                        : 'neumorphic-flat text-slate-500'
-                    }`}
-                  >
-                    📦 Cantina
-                  </button>
                 </div>
 
                 <div className="flex gap-3">
