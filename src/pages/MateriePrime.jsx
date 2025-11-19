@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -435,7 +434,7 @@ export default function MateriePrime() {
                     {!['kg', 'grammi', 'litri', 'ml'].includes(formData.unita_misura) && (
                       <div>
                         <label className="text-sm font-medium text-slate-700 mb-2 block">
-                          Peso/Dimensione Confezione (opzionale)
+                          Peso per {formData.unita_misura === 'casse' ? 'Cassa' : formData.unita_misura === 'sacchi' ? 'Sacco' : formData.unita_misura === 'confezioni' ? 'Confezione' : 'Unità'}
                         </label>
                         <div className="grid grid-cols-2 gap-3">
                           <input
@@ -443,7 +442,7 @@ export default function MateriePrime() {
                             step="0.01"
                             value={formData.peso_dimensione_unita}
                             onChange={(e) => setFormData({ ...formData, peso_dimensione_unita: e.target.value })}
-                            placeholder="es. 5 (per 5kg)"
+                            placeholder="es. 25"
                             className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
                           />
                           <select
@@ -458,7 +457,9 @@ export default function MateriePrime() {
                           </select>
                         </div>
                         <p className="text-xs text-slate-500 mt-1">
-                          Es: Se vendi "sacchi da 25kg", inserisci 25 kg
+                          {formData.unita_misura === 'casse' 
+                            ? '💡 Es: Cassa da 24 bottiglie → inserisci il peso totale della cassa o il peso di ogni bottiglia dentro la cassa' 
+                            : `💡 Es: ${formData.unita_misura} da 25kg → inserisci 25 kg`}
                         </p>
                       </div>
                     )}
