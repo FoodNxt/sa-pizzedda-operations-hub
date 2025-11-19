@@ -1070,6 +1070,16 @@ export default function Contratti() {
             ) : null;
           })()}
 
+          {contratti.filter(c => c.status === 'firmato' && c.data_inizio_contratto && c.durata_contratto_mesi).length === 0 && (
+            <NeumorphicCard className="p-6 mb-6">
+              <h2 className="text-xl font-bold text-[#6b6b6b] mb-2 flex items-center gap-2">
+                <AlertCircle className="w-6 h-6 text-slate-400" />
+                Contratti in Scadenza (prossimi 30 giorni)
+              </h2>
+              <p className="text-[#9b9b9b]">Non ci sono contratti in scadenza nei prossimi 30 giorni</p>
+            </NeumorphicCard>
+          )}
+
           <NeumorphicCard className="p-6">
             <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">Lista Contratti</h2>
           

@@ -131,6 +131,12 @@ const navigationStructure = [
         icon: ChefHat,
       },
       {
+        title: "Gestione Impasti/Precotture",
+        url: createPageUrl("GestioneImpastiPrecotture"),
+        icon: ChefHat,
+        requiredUserType: ["admin"]
+      },
+      {
         title: "Materie Prime",
         url: createPageUrl("MateriePrime"),
         icon: Package,
