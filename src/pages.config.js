@@ -59,6 +59,9 @@ import InventoryForms from './pages/InventoryForms';
 import FormPrelievi from './pages/FormPrelievi';
 import FormDeposito from './pages/FormDeposito';
 import FinancialForms from './pages/FinancialForms';
+import GestioneImpastiPrecotture from './pages/GestioneImpastiPrecotture';
+import Impasto from './pages/Impasto';
+import Precotture from './pages/Precotture';
 import __Layout from './Layout.jsx';
 
 
@@ -124,6 +127,9 @@ export const PAGES = {
     "FormPrelievi": FormPrelievi,
     "FormDeposito": FormDeposito,
     "FinancialForms": FinancialForms,
+    "GestioneImpastiPrecotture": GestioneImpastiPrecotture,
+    "Impasto": Impasto,
+    "Precotture": Precotture,
 }
 
 export const pagesConfig = {
