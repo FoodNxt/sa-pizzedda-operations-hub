@@ -37,6 +37,13 @@ export default function ConfrontoListini() {
     })
     .sort(([a], [b]) => a.localeCompare(b));
 
+  // Get the unit label for display (kg for kg/g, litri for litri/ml)
+  const getDisplayUnit = (unitaMisuraPeso) => {
+    if (['kg', 'g'].includes(unitaMisuraPeso)) return 'kg';
+    if (['litri', 'ml'].includes(unitaMisuraPeso)) return 'litri';
+    return unitaMisuraPeso;
+  };
+
   // Normalize weight to base unit (kg/litri) - only for measurable units
   const normalizeToBaseUnit = (product) => {
     // Check if product has peso_dimensione_unita (measurable)
@@ -259,9 +266,9 @@ export default function ConfrontoListini() {
                                     / {product.unita_misura}
                                   </span>
                                 </div>
-                                {normalizedPrice && (
+                                {normalizedPrice && product.unita_misura_peso && (
                                   <div className="text-xs font-bold text-blue-600 mt-1">
-                                    €{normalizedPrice.toFixed(2)}/kg
+                                    €{normalizedPrice.toFixed(2)}/{getDisplayUnit(product.unita_misura_peso)}
                                   </div>
                                 )}
                               </td>
@@ -278,7 +285,7 @@ export default function ConfrontoListini() {
                                 ) : (
                                   <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-bold">
                                     <TrendingUp className="w-3 h-3" />
-                                    +€{priceDiff.toFixed(2)}/kg
+                                    +€{priceDiff.toFixed(2)}/{product.unita_misura_peso ? getDisplayUnit(product.unita_misura_peso) : 'kg'}
                                   </span>
                                 )}
                               </td>

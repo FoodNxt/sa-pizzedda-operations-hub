@@ -56,30 +56,46 @@ export default function VistaDipendente() {
     if (viewId === 'manager') {
       updateData = {
         user_type: 'manager',
-        ruoli_dipendente: []
+        ruoli_dipendente: [],
+        data_inizio_contratto: new Date().toISOString().split('T')[0]
       };
     } else if (viewId === 'dipendente') {
       updateData = {
         user_type: 'dipendente',
-        ruoli_dipendente: []
+        ruoli_dipendente: [],
+        data_inizio_contratto: new Date().toISOString().split('T')[0]
       };
     } else if (viewId === 'cassiere') {
       updateData = {
         user_type: 'dipendente',
-        ruoli_dipendente: ['Cassiere']
+        ruoli_dipendente: ['Cassiere'],
+        data_inizio_contratto: new Date().toISOString().split('T')[0]
       };
     } else if (viewId === 'pizzaiolo') {
       updateData = {
         user_type: 'dipendente',
-        ruoli_dipendente: ['Pizzaiolo']
+        ruoli_dipendente: ['Pizzaiolo'],
+        data_inizio_contratto: new Date().toISOString().split('T')[0]
       };
     }
 
     try {
       await base44.auth.updateMe(updateData);
+      
+      // Create a signed contract for dipendente views
+      if (['dipendente', 'cassiere', 'pizzaiolo'].includes(viewId)) {
+        const contratti = await base44.entities.Contratto.filter({ user_id: currentUser.id });
+        if (contratti.length > 0) {
+          await base44.entities.Contratto.update(contratti[0].id, {
+            status: 'firmato',
+            firma_dipendente: currentUser.nome_cognome || currentUser.full_name,
+            data_firma: new Date().toISOString()
+          });
+        }
+      }
+      
       setSelectedView(viewId);
       
-      // Show success message and reload after 2 seconds
       setTimeout(() => {
         window.location.reload();
       }, 2000);

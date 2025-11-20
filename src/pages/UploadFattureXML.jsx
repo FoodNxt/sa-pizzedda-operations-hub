@@ -1,7 +1,6 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Upload,
   FileText,
@@ -12,7 +11,8 @@ import {
   TrendingUp,
   Calendar,
   Euro,
-  X
+  X,
+  Link as LinkIcon
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -21,6 +21,8 @@ export default function UploadFattureXML() {
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState(null);
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const [matchingProducts, setMatchingProducts] = useState([]);
+  const [showMatchingModal, setShowMatchingModal] = useState(false);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -35,6 +37,11 @@ export default function UploadFattureXML() {
   const { data: prodotti = [] } = useQuery({
     queryKey: ['materie-prime'],
     queryFn: () => base44.entities.MateriePrime.list(),
+  });
+
+  const { data: existingMatches = [] } = useQuery({
+    queryKey: ['fattura-matches'],
+    queryFn: () => base44.entities.FatturaXMLMatch.list(),
   });
 
   const handleFileSelect = (event) => {
@@ -85,6 +92,27 @@ export default function UploadFattureXML() {
         results
       });
 
+      // Extract products for matching
+      const productsToMatch = [];
+      results.forEach(r => {
+        if (r.data?.prodotti) {
+          r.data.prodotti.forEach(p => {
+            productsToMatch.push({
+              descrizione: p.descrizione,
+              codice: p.codice,
+              fornitore: r.data.fattura.fornitore_nome,
+              prezzo_unitario: p.prezzo_unitario,
+              unita_misura: p.unita_misura
+            });
+          });
+        }
+      });
+
+      if (productsToMatch.length > 0) {
+        setMatchingProducts(productsToMatch);
+        setShowMatchingModal(true);
+      }
+
     } catch (error) {
       console.error('Upload error:', error);
       setResult({
@@ -130,6 +158,52 @@ export default function UploadFattureXML() {
   };
 
   const stats = getTotalStats();
+
+  const queryClient = useQueryClient();
+
+  const handleSaveMatch = async (fatturaProduct, materiaPrimaId) => {
+    try {
+      const materiaPrima = prodotti.find(p => p.id === materiaPrimaId);
+      if (!materiaPrima) return;
+
+      const user = await base44.auth.me();
+
+      await base44.entities.FatturaXMLMatch.create({
+        prodotto_fattura_descrizione: fatturaProduct.descrizione,
+        prodotto_fattura_codice: fatturaProduct.codice || '',
+        materia_prima_id: materiaPrimaId,
+        materia_prima_nome: materiaPrima.nome_prodotto,
+        fornitore: fatturaProduct.fornitore,
+        match_confermato: true,
+        created_by_user: user.email
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['fattura-matches'] });
+    } catch (error) {
+      console.error('Error saving match:', error);
+    }
+  };
+
+  const getSuggestedMatch = (fatturaProduct) => {
+    // Check existing matches
+    const existingMatch = existingMatches.find(m => 
+      m.prodotto_fattura_descrizione === fatturaProduct.descrizione ||
+      (fatturaProduct.codice && m.prodotto_fattura_codice === fatturaProduct.codice)
+    );
+
+    if (existingMatch) {
+      return existingMatch.materia_prima_id;
+    }
+
+    // Try to find by name similarity
+    const searchTerm = fatturaProduct.descrizione.toLowerCase();
+    const match = prodotti.find(p => 
+      p.nome_prodotto.toLowerCase().includes(searchTerm) ||
+      searchTerm.includes(p.nome_prodotto.toLowerCase())
+    );
+
+    return match?.id || '';
+  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -447,6 +521,100 @@ export default function UploadFattureXML() {
             </div>
           </div>
         </NeumorphicCard>
+      )}
+
+      {/* Matching Modal */}
+      {showMatchingModal && matchingProducts.length > 0 && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+            <NeumorphicCard className="p-6 my-8">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-[#6b6b6b] flex items-center gap-2">
+                  <LinkIcon className="w-6 h-6 text-[#8b7355]" />
+                  Abbina Prodotti Fattura
+                </h2>
+                <button
+                  onClick={() => setShowMatchingModal(false)}
+                  className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+                >
+                  <X className="w-5 h-5 text-[#9b9b9b]" />
+                </button>
+              </div>
+
+              <p className="text-sm text-[#9b9b9b] mb-6">
+                Abbina i prodotti dalla fattura ai prodotti già presenti in "Materie Prime" per tracciare lo storico prezzi
+              </p>
+
+              <div className="space-y-4">
+                {matchingProducts.map((fp, idx) => {
+                  const [selectedMatch, setSelectedMatchLocal] = useState(getSuggestedMatch(fp));
+                  const existingMatch = existingMatches.find(m => 
+                    m.prodotto_fattura_descrizione === fp.descrizione ||
+                    (fp.codice && m.prodotto_fattura_codice === fp.codice)
+                  );
+
+                  return (
+                    <div key={idx} className="neumorphic-pressed p-4 rounded-xl">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                        <div>
+                          <h3 className="font-bold text-[#6b6b6b] mb-2">Prodotto Fattura</h3>
+                          <p className="text-sm text-[#6b6b6b]">{fp.descrizione}</p>
+                          <p className="text-xs text-[#9b9b9b] mt-1">
+                            {fp.fornitore} • €{fp.prezzo_unitario} / {fp.unita_misura}
+                            {fp.codice && ` • Cod: ${fp.codice}`}
+                          </p>
+                          {existingMatch && (
+                            <div className="mt-2 flex items-center gap-2 text-xs text-green-600">
+                              <CheckCircle className="w-4 h-4" />
+                              Match già salvato
+                            </div>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                            Abbina a Materia Prima
+                          </label>
+                          <select
+                            value={selectedMatch}
+                            onChange={(e) => {
+                              setSelectedMatchLocal(e.target.value);
+                              if (e.target.value) {
+                                handleSaveMatch(fp, e.target.value);
+                              }
+                            }}
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none text-sm"
+                          >
+                            <option value="">-- Non abbinare --</option>
+                            {prodotti
+                              .filter(p => p.attivo !== false)
+                              .sort((a, b) => a.nome_prodotto.localeCompare(b.nome_prodotto))
+                              .map(mp => (
+                                <option key={mp.id} value={mp.id}>
+                                  {mp.nome_prodotto} ({mp.unita_misura})
+                                  {mp.fornitore && ` - ${mp.fornitore}`}
+                                </option>
+                              ))
+                            }
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex justify-end mt-6">
+                <NeumorphicButton
+                  onClick={() => setShowMatchingModal(false)}
+                  variant="primary"
+                >
+                  Chiudi
+                </NeumorphicButton>
+              </div>
+            </NeumorphicCard>
+          </div>
+        </div>
       )}
 
       {/* Instructions */}

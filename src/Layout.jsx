@@ -161,9 +161,9 @@ const navigationStructure = [
         icon: ShoppingCart,
       },
       {
-        title: "Gestione Impasti/Precotture",
-        url: createPageUrl("GestioneImpastiPrecotture"),
-        icon: ChefHat,
+        title: "Inventory Admin",
+        url: createPageUrl("InventarioAdmin"),
+        icon: Settings,
         requiredUserType: ["admin"]
       },
       {
@@ -426,16 +426,16 @@ export default function Layout({ children, currentPageName }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
-    "Dashboard": true,
-    "Reviews": true,
-    "Financials": true,
-    "Inventory": true,
-    "HR": true,
-    "Pulizie": true,
-    "Delivery": true,
-    "View Dipendente": true,
-    "Zapier Guide": true,
-    "Sistema": true,
+    "Dashboard": false,
+    "Reviews": false,
+    "Financials": false,
+    "Inventory": false,
+    "HR": false,
+    "Pulizie": false,
+    "Delivery": false,
+    "View Dipendente": false,
+    "Zapier Guide": false,
+    "Sistema": false,
     "Il Mio Profilo": true,
     "Area Dipendente": true
   });
@@ -906,6 +906,22 @@ export default function Layout({ children, currentPageName }) {
       </div>
 
       <div className="flex">
+        {/* Return to Admin View Banner */}
+        {normalizedUserType !== 'admin' && currentUser?.email && (
+          <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-orange-500 to-red-600 text-white p-3 text-center">
+            <div className="flex items-center justify-center gap-3">
+              <AlertTriangle className="w-5 h-5" />
+              <span className="font-medium">Sei in Vista Dipendente</span>
+              <a 
+                href={createPageUrl("VistaDipendente")}
+                className="bg-white text-orange-600 px-4 py-1 rounded-full font-bold text-sm hover:bg-orange-50 transition-colors"
+              >
+                Torna a Vista Admin
+              </a>
+            </div>
+          </div>
+        )}
+
         {/* Desktop Sidebar (Admin/Manager only) */}
         {normalizedUserType !== 'dipendente' && (
           <aside className={`
@@ -913,6 +929,7 @@ export default function Layout({ children, currentPageName }) {
             w-72 transform transition-transform duration-300 ease-in-out
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
             hide-on-mobile
+            ${normalizedUserType !== 'admin' ? 'mt-12' : ''}
           `}>
             <div className="h-full neumorphic-card m-4 p-6 flex flex-col overflow-y-auto">
               <div className="hidden lg:flex items-center gap-3 mb-8">
@@ -962,7 +979,7 @@ export default function Layout({ children, currentPageName }) {
                             onClick={() => toggleSection(item.title)}
                             className={`
                               w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl
-                              transition-all duration-200
+                              transition-all duration-200 mb-1
                               ${sectionActive ? 'nav-button-active text-white' : 'nav-button text-slate-700'}
                             `}
                           >
@@ -978,7 +995,7 @@ export default function Layout({ children, currentPageName }) {
                           </button>
 
                           {isExpanded && (
-                            <div className="ml-4 mt-1 space-y-1">
+                            <div className="ml-4 mt-1 mb-2 space-y-1">
                               {item.items.map((subItem) => {
                                 const isActive = isActiveLink(subItem.url);
                                 return (
@@ -1032,7 +1049,7 @@ export default function Layout({ children, currentPageName }) {
         {/* Main Content */}
         <main className={`
           flex-1 min-h-screen 
-          ${normalizedUserType === 'dipendente' ? 'pt-24 pb-28 lg:pt-8 lg:pb-8' : 'pt-20 lg:pt-0'} 
+          ${normalizedUserType === 'dipendente' ? 'pt-24 pb-28 lg:pt-8 lg:pb-8' : normalizedUserType !== 'admin' ? 'pt-32 lg:pt-16' : 'pt-20 lg:pt-0'} 
           px-3 py-4 lg:p-8
         `}>
           {children}

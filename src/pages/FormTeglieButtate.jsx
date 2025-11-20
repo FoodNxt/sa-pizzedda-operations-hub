@@ -126,9 +126,12 @@ export default function FormTeglieButtate() {
                 disabled={saving}
               >
                 <option value="">Seleziona locale...</option>
-                {stores.map(store => (
-                  <option key={store.id} value={store.id}>{store.name}</option>
-                ))}
+                {stores
+                  .filter(store => !currentUser?.assigned_stores || currentUser.assigned_stores.length === 0 || currentUser.assigned_stores.includes(store.id))
+                  .map(store => (
+                    <option key={store.id} value={store.id}>{store.name}</option>
+                  ))
+                }
               </select>
             </div>
 
