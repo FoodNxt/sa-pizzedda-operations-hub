@@ -161,6 +161,11 @@ const navigationStructure = [
         icon: ShoppingCart,
       },
       {
+        title: "Inventario Store Manager",
+        url: createPageUrl("InventarioStoreManager"),
+        icon: Settings,
+      },
+      {
         title: "Inventory Admin",
         url: createPageUrl("InventarioAdmin"),
         icon: Settings,
@@ -197,6 +202,16 @@ const navigationStructure = [
       {
         title: "Contratti",
         url: createPageUrl("Contratti"),
+        icon: FileText,
+      },
+      {
+        title: "Lettere di Richiamo",
+        url: createPageUrl("LettereRichiamo"),
+        icon: FileText,
+      },
+      {
+        title: "Regolamento Dipendenti",
+        url: createPageUrl("RegolamentoDipendenti"),
         icon: FileText,
       },
       {

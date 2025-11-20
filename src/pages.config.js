@@ -66,6 +66,7 @@ import ConfrontoListini from './pages/ConfrontoListini';
 import ResetAdmin from './pages/ResetAdmin';
 import LettereRichiamo from './pages/LettereRichiamo';
 import RegolamentoDipendenti from './pages/RegolamentoDipendenti';
+import InventarioStoreManager from './pages/InventarioStoreManager';
 import __Layout from './Layout.jsx';
 
 
@@ -138,6 +139,7 @@ export const PAGES = {
     "ResetAdmin": ResetAdmin,
     "LettereRichiamo": LettereRichiamo,
     "RegolamentoDipendenti": RegolamentoDipendenti,
+    "InventarioStoreManager": InventarioStoreManager,
 }
 
 export const pagesConfig = {
