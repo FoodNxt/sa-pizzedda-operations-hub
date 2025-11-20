@@ -907,7 +907,7 @@ export default function Layout({ children, currentPageName }) {
 
       <div className="flex">
         {/* Return to Admin View Banner */}
-        {normalizedUserType !== 'admin' && currentUser?.email && currentUser?.user_type !== 'admin' && (
+        {normalizedUserType !== 'admin' && currentUser?.email && (
           <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-orange-500 to-red-600 text-white p-3 text-center">
             <div className="flex items-center justify-center gap-3">
               <AlertTriangle className="w-5 h-5" />
