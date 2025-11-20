@@ -111,13 +111,15 @@ export default function VistaDipendente() {
     try {
       await base44.auth.updateMe({
         user_type: 'admin',
-        ruoli_dipendente: []
+        ruoli_dipendente: [],
+        data_inizio_contratto: null,
+        assigned_stores: []
       });
       setSelectedView(null);
       
       setTimeout(() => {
         window.location.reload();
-      }, 2000);
+      }, 1000);
     } catch (error) {
       console.error('Error resetting view:', error);
       alert('Errore durante il ripristino della vista');
