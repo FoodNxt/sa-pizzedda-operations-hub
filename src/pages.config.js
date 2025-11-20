@@ -64,6 +64,8 @@ import Impasto from './pages/Impasto';
 import Precotture from './pages/Precotture';
 import ConfrontoListini from './pages/ConfrontoListini';
 import ResetAdmin from './pages/ResetAdmin';
+import LettereRichiamo from './pages/LettereRichiamo';
+import RegolamentoDipendenti from './pages/RegolamentoDipendenti';
 import __Layout from './Layout.jsx';
 
 
@@ -134,6 +136,8 @@ export const PAGES = {
     "Precotture": Precotture,
     "ConfrontoListini": ConfrontoListini,
     "ResetAdmin": ResetAdmin,
+    "LettereRichiamo": LettereRichiamo,
+    "RegolamentoDipendenti": RegolamentoDipendenti,
 }
 
 export const pagesConfig = {
