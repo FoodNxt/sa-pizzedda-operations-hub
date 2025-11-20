@@ -141,6 +141,11 @@ const navigationStructure = [
         icon: DollarSign,
       },
       {
+        title: "Analisi Sprechi",
+        url: createPageUrl("AnalisiSprechi"),
+        icon: AlertTriangle,
+      },
+      {
         title: "Elenco Fornitori",
         url: createPageUrl("ElencoFornitori"),
         icon: Truck,
@@ -397,6 +402,11 @@ const navigationStructure = [
         title: "Funzionamento App",
         url: createPageUrl("FunzionamentoApp"),
         icon: BookOpen,
+      },
+      {
+        title: "Vista Dipendente",
+        url: createPageUrl("VistaDipendente"),
+        icon: User,
       }
     ]
   }

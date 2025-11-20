@@ -200,50 +200,7 @@ export default function FormTeglieButtate() {
         </NeumorphicCard>
       </form>
 
-      {userType !== 'dipendente' && (
-        <NeumorphicCard className="p-4 lg:p-6">
-          <h2 className="text-lg font-bold text-slate-800 mb-4">Ultime Rilevazioni</h2>
-          
-          {teglie.length > 0 ? (
-            <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
-              <table className="w-full min-w-[600px]">
-                <thead>
-                  <tr className="border-b-2 border-blue-600">
-                    <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Data</th>
-                    <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Locale</th>
-                    <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Rilevato da</th>
-                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Rosse</th>
-                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Bianche</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {teglie.map((t) => (
-                    <tr key={t.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
-                      <td className="p-2 lg:p-3">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-slate-400" />
-                          <span className="text-slate-700 text-sm">
-                            {format(new Date(t.data_rilevazione), 'dd/MM/yyyy HH:mm', { locale: it })}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="p-2 lg:p-3 text-slate-700 text-sm">{t.store_name}</td>
-                      <td className="p-2 lg:p-3 text-slate-700 text-sm">{t.rilevato_da}</td>
-                      <td className="p-2 lg:p-3 text-right text-red-600 font-bold text-sm">{t.teglie_rosse_buttate}</td>
-                      <td className="p-2 lg:p-3 text-right text-gray-600 font-bold text-sm">{t.teglie_bianche_buttate}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <Trash2 className="w-16 h-16 text-slate-300 opacity-50 mx-auto mb-4" />
-              <p className="text-slate-500">Nessuna rilevazione</p>
-            </div>
-          )}
-        </NeumorphicCard>
-      )}
+
     </div>
   );
 }

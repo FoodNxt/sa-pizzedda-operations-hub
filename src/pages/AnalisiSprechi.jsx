@@ -4,23 +4,20 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Trash2,
   TrendingUp,
-  TrendingDown,
-  Filter,
-  Calendar,
   Store,
+  Calendar,
+  Euro,
   AlertTriangle,
-  X
+  BarChart3
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
-import ProtectedPage from "../components/ProtectedPage";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { format, subDays, isAfter, isBefore, parseISO } from 'date-fns';
+import { format, parseISO, startOfWeek, endOfWeek, subDays } from 'date-fns';
+import { it } from 'date-fns/locale';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function AnalisiSprechi() {
   const [selectedStore, setSelectedStore] = useState('all');
   const [dateRange, setDateRange] = useState('30');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -29,405 +26,415 @@ export default function AnalisiSprechi() {
 
   const { data: teglieButtate = [] } = useQuery({
     queryKey: ['teglie-buttate'],
-    queryFn: () => base44.entities.TeglieButtate.list('-data_rilevazione', 1000),
+    queryFn: () => base44.entities.TeglieButtate.list('-data_rilevazione'),
   });
 
+  const { data: ricette = [] } = useQuery({
+    queryKey: ['ricette'],
+    queryFn: () => base44.entities.Ricetta.list(),
+  });
+
+  // Filter by date range
   const filteredData = useMemo(() => {
-    let cutoffDate;
-    let endFilterDate;
-    
-    if (startDate || endDate) {
-      cutoffDate = startDate ? parseISO(startDate + 'T00:00:00') : new Date(0);
-      endFilterDate = endDate ? parseISO(endDate + 'T23:59:59') : new Date();
-    } else {
-      const days = parseInt(dateRange);
-      cutoffDate = subDays(new Date(), days);
-      endFilterDate = new Date();
-    }
-    
-    return teglieButtate.filter(item => {
-      if (!item.data_rilevazione) return false;
-      
-      const itemDate = parseISO(item.data_rilevazione);
-      
-      if (isBefore(itemDate, cutoffDate) || isAfter(itemDate, endFilterDate)) return false;
-      if (selectedStore !== 'all' && item.store_id !== selectedStore) return false;
-      
+    const now = new Date();
+    const daysAgo = parseInt(dateRange);
+    const cutoffDate = subDays(now, daysAgo);
+
+    return teglieButtate.filter(t => {
+      const dataRilevazione = parseISO(t.data_rilevazione);
+      if (dataRilevazione < cutoffDate) return false;
+      if (selectedStore !== 'all' && t.store_id !== selectedStore) return false;
       return true;
     });
-  }, [teglieButtate, selectedStore, dateRange, startDate, endDate]);
+  }, [teglieButtate, dateRange, selectedStore]);
 
+  // Calculate average costs per tray type
+  const averageCosts = useMemo(() => {
+    const ricetteRosse = ricette.filter(r => r.tipo_teglia === 'rossa' && r.costo_unitario);
+    const ricetteBianche = ricette.filter(r => r.tipo_teglia === 'bianca' && r.costo_unitario);
+
+    const avgRossa = ricetteRosse.length > 0
+      ? ricetteRosse.reduce((sum, r) => sum + r.costo_unitario, 0) / ricetteRosse.length
+      : 0;
+
+    const avgBianca = ricetteBianche.length > 0
+      ? ricetteBianche.reduce((sum, r) => sum + r.costo_unitario, 0) / ricetteBianche.length
+      : 0;
+
+    return { rossa: avgRossa, bianca: avgBianca };
+  }, [ricette]);
+
+  // Calculate statistics
   const stats = useMemo(() => {
     const totalRosse = filteredData.reduce((sum, t) => sum + (t.teglie_rosse_buttate || 0), 0);
     const totalBianche = filteredData.reduce((sum, t) => sum + (t.teglie_bianche_buttate || 0), 0);
     const totalTeglie = totalRosse + totalBianche;
-
-    const mediaRosse = filteredData.length > 0 ? totalRosse / filteredData.length : 0;
-    const mediaBianche = filteredData.length > 0 ? totalBianche / filteredData.length : 0;
-
-    const byDate = {};
-    filteredData.forEach(t => {
-      const date = t.data_rilevazione.split('T')[0];
-      if (!byDate[date]) {
-        byDate[date] = { date, rosse: 0, bianche: 0, totali: 0 };
-      }
-      byDate[date].rosse += t.teglie_rosse_buttate || 0;
-      byDate[date].bianche += t.teglie_bianche_buttate || 0;
-      byDate[date].totali += (t.teglie_rosse_buttate || 0) + (t.teglie_bianche_buttate || 0);
-    });
-
-    const dailyData = Object.values(byDate)
-      .sort((a, b) => new Date(a.date) - new Date(b.date))
-      .map(d => ({
-        date: format(parseISO(d.date), 'dd/MM'),
-        rosse: d.rosse,
-        bianche: d.bianche,
-        totali: d.totali
-      }));
-
-    const byStore = {};
-    filteredData.forEach(t => {
-      if (!byStore[t.store_name]) {
-        byStore[t.store_name] = { name: t.store_name, rosse: 0, bianche: 0, totali: 0, count: 0 };
-      }
-      byStore[t.store_name].rosse += t.teglie_rosse_buttate || 0;
-      byStore[t.store_name].bianche += t.teglie_bianche_buttate || 0;
-      byStore[t.store_name].totali += (t.teglie_rosse_buttate || 0) + (t.teglie_bianche_buttate || 0);
-      byStore[t.store_name].count += 1;
-    });
-
-    const storeData = Object.values(byStore)
-      .sort((a, b) => b.totali - a.totali)
-      .map(s => ({
-        name: s.name,
-        rosse: s.rosse,
-        bianche: s.bianche,
-        totali: s.totali,
-        mediaGiornaliera: s.count > 0 ? (s.totali / s.count).toFixed(1) : 0
-      }));
+    const costoTotale = (totalRosse * averageCosts.rossa) + (totalBianche * averageCosts.bianca);
 
     return {
       totalRosse,
       totalBianche,
       totalTeglie,
-      mediaRosse: mediaRosse.toFixed(1),
-      mediaBianche: mediaBianche.toFixed(1),
-      dailyData,
-      storeData,
-      count: filteredData.length
+      costoTotale
     };
-  }, [filteredData]);
+  }, [filteredData, averageCosts]);
 
-  const clearCustomDates = () => {
-    setStartDate('');
-    setEndDate('');
-    setDateRange('30');
-  };
+  // Chart data by date
+  const chartDataByDate = useMemo(() => {
+    const dataByDate = {};
+
+    filteredData.forEach(t => {
+      const date = format(parseISO(t.data_rilevazione), 'dd/MM/yyyy');
+      if (!dataByDate[date]) {
+        dataByDate[date] = { date, rosse: 0, bianche: 0, costo: 0 };
+      }
+      dataByDate[date].rosse += t.teglie_rosse_buttate || 0;
+      dataByDate[date].bianche += t.teglie_bianche_buttate || 0;
+      dataByDate[date].costo += (t.teglie_rosse_buttate || 0) * averageCosts.rossa + 
+                                  (t.teglie_bianche_buttate || 0) * averageCosts.bianca;
+    });
+
+    return Object.values(dataByDate).sort((a, b) => {
+      const [dayA, monthA, yearA] = a.date.split('/');
+      const [dayB, monthB, yearB] = b.date.split('/');
+      return new Date(yearA, monthA - 1, dayA) - new Date(yearB, monthB - 1, dayB);
+    });
+  }, [filteredData, averageCosts]);
+
+  // Chart data by store
+  const chartDataByStore = useMemo(() => {
+    const dataByStore = {};
+
+    filteredData.forEach(t => {
+      if (!dataByStore[t.store_name]) {
+        dataByStore[t.store_name] = { store: t.store_name, rosse: 0, bianche: 0, costo: 0 };
+      }
+      dataByStore[t.store_name].rosse += t.teglie_rosse_buttate || 0;
+      dataByStore[t.store_name].bianche += t.teglie_bianche_buttate || 0;
+      dataByStore[t.store_name].costo += (t.teglie_rosse_buttate || 0) * averageCosts.rossa + 
+                                          (t.teglie_bianche_buttate || 0) * averageCosts.bianca;
+    });
+
+    return Object.values(dataByStore).sort((a, b) => b.costo - a.costo);
+  }, [filteredData, averageCosts]);
+
+  // Chart data by day of week
+  const chartDataByDayOfWeek = useMemo(() => {
+    const giorni = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+    const dataByDay = {};
+
+    giorni.forEach(day => {
+      dataByDay[day] = { giorno: day, totale: 0, costo: 0, count: 0 };
+    });
+
+    filteredData.forEach(t => {
+      const date = parseISO(t.data_rilevazione);
+      const dayIndex = date.getDay();
+      const dayName = giorni[dayIndex];
+      
+      const totalTeglie = (t.teglie_rosse_buttate || 0) + (t.teglie_bianche_buttate || 0);
+      const costo = (t.teglie_rosse_buttate || 0) * averageCosts.rossa + 
+                    (t.teglie_bianche_buttate || 0) * averageCosts.bianca;
+
+      dataByDay[dayName].totale += totalTeglie;
+      dataByDay[dayName].costo += costo;
+      dataByDay[dayName].count += 1;
+    });
+
+    // Calculate averages
+    return giorni.map(day => ({
+      giorno: day,
+      media: dataByDay[day].count > 0 ? (dataByDay[day].totale / dataByDay[day].count).toFixed(1) : 0,
+      costoMedio: dataByDay[day].count > 0 ? (dataByDay[day].costo / dataByDay[day].count).toFixed(2) : 0
+    }));
+  }, [filteredData, averageCosts]);
+
+  // Chart data by day of week per store
+  const chartDataByDayPerStore = useMemo(() => {
+    if (selectedStore === 'all') return [];
+
+    const giorni = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+    const dataByDay = {};
+
+    giorni.forEach(day => {
+      dataByDay[day] = { giorno: day, totale: 0, costo: 0, count: 0 };
+    });
+
+    filteredData.forEach(t => {
+      const date = parseISO(t.data_rilevazione);
+      const dayIndex = date.getDay();
+      const dayName = giorni[dayIndex];
+      
+      const totalTeglie = (t.teglie_rosse_buttate || 0) + (t.teglie_bianche_buttate || 0);
+      const costo = (t.teglie_rosse_buttate || 0) * averageCosts.rossa + 
+                    (t.teglie_bianche_buttate || 0) * averageCosts.bianca;
+
+      dataByDay[dayName].totale += totalTeglie;
+      dataByDay[dayName].costo += costo;
+      dataByDay[dayName].count += 1;
+    });
+
+    return giorni.map(day => ({
+      giorno: day,
+      media: dataByDay[day].count > 0 ? (dataByDay[day].totale / dataByDay[day].count).toFixed(1) : 0,
+      costoMedio: dataByDay[day].count > 0 ? (dataByDay[day].costo / dataByDay[day].count).toFixed(2) : 0
+    }));
+  }, [filteredData, averageCosts, selectedStore]);
 
   return (
-    <ProtectedPage pageName="AnalisiSprechi">
-      <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
-        <div className="mb-4 lg:mb-6">
-          <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
-            Analisi Sprechi
-          </h1>
-          <p className="text-sm text-slate-500">Analizza i dati delle teglie buttate per ridurre gli sprechi</p>
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="mb-6">
+        <div className="flex items-center gap-3 mb-2">
+          <Trash2 className="w-10 h-10 text-orange-600" />
+          <h1 className="text-3xl font-bold text-[#6b6b6b]">Analisi Sprechi</h1>
         </div>
-
-        <NeumorphicCard className="p-4 lg:p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Filter className="w-5 h-5 text-blue-600" />
-            <h2 className="text-base lg:text-lg font-bold text-slate-800">Filtri</h2>
-          </div>
-          <div className="grid grid-cols-1 gap-3">
-            <div>
-              <label className="text-sm text-slate-600 mb-2 block">Locale</label>
-              <select
-                value={selectedStore}
-                onChange={(e) => setSelectedStore(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-              >
-                <option value="all">Tutti i Locali</option>
-                {stores.map(store => (
-                  <option key={store.id} value={store.id}>{store.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm text-slate-600 mb-2 block">Periodo</label>
-              <select
-                value={dateRange}
-                onChange={(e) => {
-                  setDateRange(e.target.value);
-                  if (e.target.value !== 'custom') {
-                    setStartDate('');
-                    setEndDate('');
-                  }
-                }}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-              >
-                <option value="7">Ultimi 7 giorni</option>
-                <option value="30">Ultimi 30 giorni</option>
-                <option value="90">Ultimi 90 giorni</option>
-                <option value="365">Ultimo anno</option>
-                <option value="custom">Personalizzato</option>
-              </select>
-            </div>
-
-            {dateRange === 'custom' && (
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-sm text-slate-600 mb-2 block">Inizio</label>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm text-slate-600 mb-2 block">Fine</label>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        </NeumorphicCard>
-
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-          <NeumorphicCard className="p-4">
-            <div className="text-center">
-              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 mx-auto mb-2 lg:mb-3 flex items-center justify-center shadow-lg">
-                <Trash2 className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
-              </div>
-              <h3 className="text-lg lg:text-xl font-bold text-red-600 mb-1">{stats.totalRosse}</h3>
-              <p className="text-xs text-slate-500">Teglie Rosse</p>
-            </div>
-          </NeumorphicCard>
-
-          <NeumorphicCard className="p-4">
-            <div className="text-center">
-              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-gray-500 to-gray-600 mx-auto mb-2 lg:mb-3 flex items-center justify-center shadow-lg">
-                <Trash2 className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
-              </div>
-              <h3 className="text-lg lg:text-xl font-bold text-gray-600 mb-1">{stats.totalBianche}</h3>
-              <p className="text-xs text-slate-500">Teglie Bianche</p>
-            </div>
-          </NeumorphicCard>
-
-          <NeumorphicCard className="p-4">
-            <div className="text-center">
-              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 mx-auto mb-2 lg:mb-3 flex items-center justify-center shadow-lg">
-                <Trash2 className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
-              </div>
-              <h3 className="text-lg lg:text-xl font-bold text-orange-600 mb-1">{stats.totalTeglie}</h3>
-              <p className="text-xs text-slate-500">Totali</p>
-            </div>
-          </NeumorphicCard>
-
-          <NeumorphicCard className="p-4">
-            <div className="text-center">
-              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 mx-auto mb-2 lg:mb-3 flex items-center justify-center shadow-lg">
-                <Calendar className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
-              </div>
-              <h3 className="text-lg lg:text-xl font-bold text-blue-600 mb-1">{stats.count}</h3>
-              <p className="text-xs text-slate-500">Rilevazioni</p>
-            </div>
-          </NeumorphicCard>
-        </div>
-
-        <NeumorphicCard className="p-4 lg:p-6">
-          <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Trend Giornaliero</h2>
-          {stats.dailyData.length > 0 ? (
-            <div className="w-full overflow-x-auto">
-              <div style={{ minWidth: '300px' }}>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={stats.dailyData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
-                    <XAxis 
-                      dataKey="date" 
-                      stroke="#64748b"
-                      tick={{ fontSize: 11 }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={60}
-                    />
-                    <YAxis 
-                      stroke="#64748b"
-                      tick={{ fontSize: 11 }}
-                      width={50}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        background: 'rgba(248, 250, 252, 0.95)', 
-                        border: 'none',
-                        borderRadius: '12px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                        fontSize: '11px'
-                      }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: '11px' }} />
-                    <Line 
-                      type="monotone" 
-                      dataKey="rosse" 
-                      stroke="#ef4444" 
-                      strokeWidth={2} 
-                      name="Rosse"
-                      dot={{ fill: '#ef4444', r: 3 }}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="bianche" 
-                      stroke="#6b7280" 
-                      strokeWidth={2} 
-                      name="Bianche"
-                      dot={{ fill: '#6b7280', r: 3 }}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="totali" 
-                      stroke="#f97316" 
-                      strokeWidth={3} 
-                      name="Totali"
-                      dot={{ fill: '#f97316', r: 4 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          ) : (
-            <div className="h-[300px] flex items-center justify-center text-slate-500">
-              Nessun dato disponibile per il periodo selezionato
-            </div>
-          )}
-        </NeumorphicCard>
-
-        <NeumorphicCard className="p-4 lg:p-6">
-          <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Confronto per Locale</h2>
-          {stats.storeData.length > 0 ? (
-            <div className="w-full overflow-x-auto">
-              <div style={{ minWidth: '300px' }}>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={stats.storeData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
-                    <XAxis 
-                      dataKey="name" 
-                      stroke="#64748b"
-                      tick={{ fontSize: 11 }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={60}
-                    />
-                    <YAxis 
-                      stroke="#64748b"
-                      tick={{ fontSize: 11 }}
-                      width={50}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        background: 'rgba(248, 250, 252, 0.95)', 
-                        border: 'none',
-                        borderRadius: '12px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                        fontSize: '11px'
-                      }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: '11px' }} />
-                    <Bar dataKey="rosse" fill="#ef4444" name="Rosse" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="bianche" fill="#6b7280" name="Bianche" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          ) : (
-            <div className="h-[300px] flex items-center justify-center text-slate-500">
-              Nessun dato disponibile
-            </div>
-          )}
-        </NeumorphicCard>
-
-        <NeumorphicCard className="p-4 lg:p-6">
-          <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Dettaglio per Locale</h2>
-          {stats.storeData.length > 0 ? (
-            <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
-              <table className="w-full min-w-[600px]">
-                <thead>
-                  <tr className="border-b-2 border-blue-600">
-                    <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Locale</th>
-                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Rosse</th>
-                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Bianche</th>
-                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Totali</th>
-                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Media/Giorno</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.storeData.map((store, index) => (
-                    <tr key={index} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
-                      <td className="p-2 lg:p-3 text-slate-700 font-medium text-sm">{store.name}</td>
-                      <td className="p-2 lg:p-3 text-right text-red-600 font-bold text-sm">{store.rosse}</td>
-                      <td className="p-2 lg:p-3 text-right text-gray-600 font-bold text-sm">{store.bianche}</td>
-                      <td className="p-2 lg:p-3 text-right text-orange-600 font-bold text-sm lg:text-base">{store.totali}</td>
-                      <td className="p-2 lg:p-3 text-right text-blue-600 font-medium text-sm">{store.mediaGiornaliera}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <Trash2 className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <p className="text-slate-500">Nessun dato disponibile</p>
-            </div>
-          )}
-        </NeumorphicCard>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-          <NeumorphicCard className="p-4 lg:p-6">
-            <h3 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Media Giornaliera</h3>
-            <div className="space-y-4">
-              <div className="neumorphic-pressed p-4 rounded-xl">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-slate-600">Teglie Rosse</span>
-                  <Trash2 className="w-5 h-5 text-red-600" />
-                </div>
-                <p className="text-3xl font-bold text-red-600">{stats.mediaRosse}</p>
-                <p className="text-xs text-slate-500 mt-1">al giorno</p>
-              </div>
-
-              <div className="neumorphic-pressed p-4 rounded-xl">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-slate-600">Teglie Bianche</span>
-                  <Trash2 className="w-5 h-5 text-gray-600" />
-                </div>
-                <p className="text-3xl font-bold text-gray-600">{stats.mediaBianche}</p>
-                <p className="text-xs text-slate-500 mt-1">al giorno</p>
-              </div>
-            </div>
-          </NeumorphicCard>
-
-          <NeumorphicCard className="p-4 lg:p-6 bg-amber-50">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-1" />
-              <div className="text-sm text-amber-800">
-                <p className="font-bold mb-2">💡 Insights</p>
-                <ul className="space-y-2 text-xs lg:text-sm">
-                  <li>• Le teglie buttate rappresentano uno spreco di prodotto e costi</li>
-                  <li>• Monitora i trend per locale per identificare pattern</li>
-                  <li>• Una media elevata potrebbe indicare sovraproduzione</li>
-                  <li>• Considera di ottimizzare le quantità prodotte in base ai dati storici</li>
-                </ul>
-              </div>
-            </div>
-          </NeumorphicCard>
-        </div>
+        <p className="text-[#9b9b9b]">Analizza l'andamento delle teglie buttate e il loro impatto economico</p>
       </div>
-    </ProtectedPage>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3">
+        <NeumorphicCard className="px-4 py-2">
+          <select
+            value={selectedStore}
+            onChange={(e) => setSelectedStore(e.target.value)}
+            className="bg-transparent text-[#6b6b6b] outline-none"
+          >
+            <option value="all">Tutti i Locali</option>
+            {stores.map(store => (
+              <option key={store.id} value={store.id}>{store.name}</option>
+            ))}
+          </select>
+        </NeumorphicCard>
+
+        <NeumorphicCard className="px-4 py-2">
+          <select
+            value={dateRange}
+            onChange={(e) => setDateRange(e.target.value)}
+            className="bg-transparent text-[#6b6b6b] outline-none"
+          >
+            <option value="7">Ultimi 7 giorni</option>
+            <option value="30">Ultimi 30 giorni</option>
+            <option value="60">Ultimi 60 giorni</option>
+            <option value="90">Ultimi 90 giorni</option>
+          </select>
+        </NeumorphicCard>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <NeumorphicCard className="p-6 text-center">
+          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
+            <Trash2 className="w-8 h-8 text-orange-600" />
+          </div>
+          <h3 className="text-3xl font-bold text-orange-600 mb-1">{stats.totalTeglie}</h3>
+          <p className="text-sm text-[#9b9b9b]">Teglie Buttate</p>
+        </NeumorphicCard>
+
+        <NeumorphicCard className="p-6 text-center">
+          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
+            <div className="w-4 h-4 rounded-full bg-red-600"></div>
+          </div>
+          <h3 className="text-3xl font-bold text-red-600 mb-1">{stats.totalRosse}</h3>
+          <p className="text-sm text-[#9b9b9b]">Teglie Rosse</p>
+        </NeumorphicCard>
+
+        <NeumorphicCard className="p-6 text-center">
+          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
+            <div className="w-4 h-4 rounded-full bg-gray-400"></div>
+          </div>
+          <h3 className="text-3xl font-bold text-gray-600 mb-1">{stats.totalBianche}</h3>
+          <p className="text-sm text-[#9b9b9b]">Teglie Bianche</p>
+        </NeumorphicCard>
+
+        <NeumorphicCard className="p-6 text-center bg-red-50">
+          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center bg-red-100">
+            <Euro className="w-8 h-8 text-red-700" />
+          </div>
+          <h3 className="text-3xl font-bold text-red-700 mb-1">€{stats.costoTotale.toFixed(2)}</h3>
+          <p className="text-sm text-red-600 font-medium">Impatto Economico</p>
+        </NeumorphicCard>
+      </div>
+
+      {/* Trend temporale */}
+      <NeumorphicCard className="p-6">
+        <h2 className="text-xl font-bold text-[#6b6b6b] mb-6 flex items-center gap-2">
+          <TrendingUp className="w-6 h-6 text-blue-600" />
+          Andamento Temporale
+        </h2>
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={chartDataByDate}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="date" />
+            <YAxis yAxisId="left" />
+            <YAxis yAxisId="right" orientation="right" />
+            <Tooltip />
+            <Legend />
+            <Line yAxisId="left" type="monotone" dataKey="rosse" stroke="#dc2626" name="Teglie Rosse" strokeWidth={2} />
+            <Line yAxisId="left" type="monotone" dataKey="bianche" stroke="#9ca3af" name="Teglie Bianche" strokeWidth={2} />
+            <Line yAxisId="right" type="monotone" dataKey="costo" stroke="#ea580c" name="Costo (€)" strokeWidth={2} />
+          </LineChart>
+        </ResponsiveContainer>
+      </NeumorphicCard>
+
+      {/* Confronto per negozio */}
+      {selectedStore === 'all' && chartDataByStore.length > 0 && (
+        <NeumorphicCard className="p-6">
+          <h2 className="text-xl font-bold text-[#6b6b6b] mb-6 flex items-center gap-2">
+            <Store className="w-6 h-6 text-purple-600" />
+            Confronto per Negozio
+          </h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={chartDataByStore}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="store" />
+              <YAxis yAxisId="left" />
+              <YAxis yAxisId="right" orientation="right" />
+              <Tooltip />
+              <Legend />
+              <Bar yAxisId="left" dataKey="rosse" fill="#dc2626" name="Teglie Rosse" />
+              <Bar yAxisId="left" dataKey="bianche" fill="#9ca3af" name="Teglie Bianche" />
+              <Bar yAxisId="right" dataKey="costo" fill="#ea580c" name="Costo (€)" />
+            </BarChart>
+          </ResponsiveContainer>
+        </NeumorphicCard>
+      )}
+
+      {/* Analisi per giorno della settimana - Tutti i negozi */}
+      {selectedStore === 'all' && (
+        <NeumorphicCard className="p-6">
+          <h2 className="text-xl font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
+            <Calendar className="w-6 h-6 text-green-600" />
+            Analisi per Giorno della Settimana (Tutti i Locali)
+          </h2>
+          <p className="text-sm text-[#9b9b9b] mb-6">Media sprechi per giorno della settimana</p>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={chartDataByDayOfWeek}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="giorno" />
+              <YAxis yAxisId="left" />
+              <YAxis yAxisId="right" orientation="right" />
+              <Tooltip />
+              <Legend />
+              <Bar yAxisId="left" dataKey="media" fill="#3b82f6" name="Media Teglie" />
+              <Bar yAxisId="right" dataKey="costoMedio" fill="#ea580c" name="Costo Medio (€)" />
+            </BarChart>
+          </ResponsiveContainer>
+
+          {/* Insights */}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            {(() => {
+              const maxWaste = chartDataByDayOfWeek.reduce((max, day) => 
+                parseFloat(day.media) > parseFloat(max.media) ? day : max
+              , chartDataByDayOfWeek[0]);
+              
+              const minWaste = chartDataByDayOfWeek.reduce((min, day) => 
+                parseFloat(day.media) < parseFloat(min.media) ? day : min
+              , chartDataByDayOfWeek[0]);
+
+              return (
+                <>
+                  <div className="neumorphic-pressed p-4 rounded-xl bg-red-50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertTriangle className="w-5 h-5 text-red-600" />
+                      <h3 className="font-bold text-red-800">Giorno con più sprechi</h3>
+                    </div>
+                    <p className="text-2xl font-bold text-red-700">{maxWaste.giorno}</p>
+                    <p className="text-sm text-red-600">Media: {maxWaste.media} teglie (€{maxWaste.costoMedio})</p>
+                  </div>
+
+                  <div className="neumorphic-pressed p-4 rounded-xl bg-green-50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <BarChart3 className="w-5 h-5 text-green-600" />
+                      <h3 className="font-bold text-green-800">Giorno con meno sprechi</h3>
+                    </div>
+                    <p className="text-2xl font-bold text-green-700">{minWaste.giorno}</p>
+                    <p className="text-sm text-green-600">Media: {minWaste.media} teglie (€{minWaste.costoMedio})</p>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </NeumorphicCard>
+      )}
+
+      {/* Analisi per giorno della settimana - Singolo negozio */}
+      {selectedStore !== 'all' && chartDataByDayPerStore.length > 0 && (
+        <NeumorphicCard className="p-6">
+          <h2 className="text-xl font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
+            <Calendar className="w-6 h-6 text-green-600" />
+            Analisi per Giorno della Settimana ({stores.find(s => s.id === selectedStore)?.name})
+          </h2>
+          <p className="text-sm text-[#9b9b9b] mb-6">Media sprechi per giorno della settimana</p>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={chartDataByDayPerStore}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="giorno" />
+              <YAxis yAxisId="left" />
+              <YAxis yAxisId="right" orientation="right" />
+              <Tooltip />
+              <Legend />
+              <Bar yAxisId="left" dataKey="media" fill="#3b82f6" name="Media Teglie" />
+              <Bar yAxisId="right" dataKey="costoMedio" fill="#ea580c" name="Costo Medio (€)" />
+            </BarChart>
+          </ResponsiveContainer>
+
+          {/* Insights per negozio */}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            {(() => {
+              const maxWaste = chartDataByDayPerStore.reduce((max, day) => 
+                parseFloat(day.media) > parseFloat(max.media) ? day : max
+              , chartDataByDayPerStore[0]);
+              
+              const minWaste = chartDataByDayPerStore.reduce((min, day) => 
+                parseFloat(day.media) < parseFloat(min.media) ? day : min
+              , chartDataByDayPerStore[0]);
+
+              return (
+                <>
+                  <div className="neumorphic-pressed p-4 rounded-xl bg-red-50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertTriangle className="w-5 h-5 text-red-600" />
+                      <h3 className="font-bold text-red-800">Giorno con più sprechi</h3>
+                    </div>
+                    <p className="text-2xl font-bold text-red-700">{maxWaste.giorno}</p>
+                    <p className="text-sm text-red-600">Media: {maxWaste.media} teglie (€{maxWaste.costoMedio})</p>
+                  </div>
+
+                  <div className="neumorphic-pressed p-4 rounded-xl bg-green-50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <BarChart3 className="w-5 h-5 text-green-600" />
+                      <h3 className="font-bold text-green-800">Giorno con meno sprechi</h3>
+                    </div>
+                    <p className="text-2xl font-bold text-green-700">{minWaste.giorno}</p>
+                    <p className="text-sm text-green-600">Media: {minWaste.media} teglie (€{minWaste.costoMedio})</p>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </NeumorphicCard>
+      )}
+
+      {/* Info box */}
+      <NeumorphicCard className="p-6 bg-blue-50">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="w-6 h-6 text-blue-600 mt-1" />
+          <div>
+            <h3 className="font-bold text-blue-800 mb-2">Come viene calcolato l'impatto economico</h3>
+            <p className="text-sm text-blue-700">
+              Il costo delle teglie buttate è calcolato usando il costo medio delle ricette per tipo di teglia:
+            </p>
+            <ul className="text-sm text-blue-700 mt-2 space-y-1">
+              <li>• <strong>Teglie Rosse:</strong> €{averageCosts.rossa.toFixed(2)} (media da {ricette.filter(r => r.tipo_teglia === 'rossa').length} ricette)</li>
+              <li>• <strong>Teglie Bianche:</strong> €{averageCosts.bianca.toFixed(2)} (media da {ricette.filter(r => r.tipo_teglia === 'bianca').length} ricette)</li>
+            </ul>
+            <p className="text-xs text-blue-600 mt-3">
+              💡 Assegna le ricette alle teglie nella pagina "Ricette" per migliorare la precisione del calcolo
+            </p>
+          </div>
+        </div>
+      </NeumorphicCard>
+    </div>
   );
 }

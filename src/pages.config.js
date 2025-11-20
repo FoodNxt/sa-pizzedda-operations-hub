@@ -63,6 +63,7 @@ import GestioneImpastiPrecotture from './pages/GestioneImpastiPrecotture';
 import Impasto from './pages/Impasto';
 import Precotture from './pages/Precotture';
 import ConfrontoListini from './pages/ConfrontoListini';
+import VistaDipendente from './pages/VistaDipendente';
 import __Layout from './Layout.jsx';
 
 
@@ -132,6 +133,7 @@ export const PAGES = {
     "Impasto": Impasto,
     "Precotture": Precotture,
     "ConfrontoListini": ConfrontoListini,
+    "VistaDipendente": VistaDipendente,
 }
 
 export const pagesConfig = {

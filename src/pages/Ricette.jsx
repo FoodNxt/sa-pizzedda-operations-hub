@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -26,7 +25,8 @@ export default function Ricette() {
   const [formData, setFormData] = useState({
     nome_prodotto: '',
     categoria: 'pizza',
-    is_semilavorato: false, // NEW
+    tipo_teglia: 'nessuna',
+    is_semilavorato: false,
     ingredienti: [],
     prezzo_vendita_online: '',
     prezzo_vendita_offline: '',
@@ -114,7 +114,8 @@ export default function Ricette() {
     setFormData({
       nome_prodotto: '',
       categoria: 'pizza',
-      is_semilavorato: false, // NEW
+      tipo_teglia: 'nessuna',
+      is_semilavorato: false,
       ingredienti: [],
       prezzo_vendita_online: '',
       prezzo_vendita_offline: '',
@@ -133,7 +134,8 @@ export default function Ricette() {
     setFormData({
       nome_prodotto: ricetta.nome_prodotto,
       categoria: ricetta.categoria || 'pizza',
-      is_semilavorato: ricetta.is_semilavorato || false, // NEW
+      tipo_teglia: ricetta.tipo_teglia || 'nessuna',
+      is_semilavorato: ricetta.is_semilavorato || false,
       ingredienti: ricetta.ingredienti || [],
       prezzo_vendita_online: ricetta.prezzo_vendita_online,
       prezzo_vendita_offline: ricetta.prezzo_vendita_offline,
@@ -417,20 +419,37 @@ export default function Ricette() {
                     )}
                   </div>
 
-                  <div>
-                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                      Categoria
-                    </label>
-                    <select
-                      value={formData.categoria}
-                      onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                    >
-                      <option value="pizza">Pizza</option>
-                      <option value="dolce">Dolce</option>
-                      <option value="bevanda">Bevanda</option>
-                      <option value="altro">Altro</option>
-                    </select>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                        Categoria
+                      </label>
+                      <select
+                        value={formData.categoria}
+                        onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                      >
+                        <option value="pizza">Pizza</option>
+                        <option value="dolce">Dolce</option>
+                        <option value="bevanda">Bevanda</option>
+                        <option value="altro">Altro</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                        Tipo Teglia
+                      </label>
+                      <select
+                        value={formData.tipo_teglia}
+                        onChange={(e) => setFormData({ ...formData, tipo_teglia: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                      >
+                        <option value="nessuna">Nessuna</option>
+                        <option value="rossa">🔴 Teglia Rossa</option>
+                        <option value="bianca">⚪ Teglia Bianca</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 

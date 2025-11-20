@@ -37,30 +37,28 @@ export default function ConfrontoListini() {
     })
     .sort(([a], [b]) => a.localeCompare(b));
 
-  // Normalize weight to kg or liters
+  // Normalize weight to base unit (kg/litri) - only for measurable units
   const normalizeToBaseUnit = (product) => {
-    let weightInKg = 0;
-    
-    if (['kg', 'litri'].includes(product.unita_misura)) {
-      weightInKg = 1;
-    } else if (product.unita_misura === 'grammi') {
-      weightInKg = 0.001;
-    } else if (product.unita_misura === 'ml') {
-      weightInKg = 0.001;
-    } else if (product.peso_dimensione_unita && product.unita_misura_peso) {
-      if (product.unita_misura_peso === 'kg' || product.unita_misura_peso === 'litri') {
-        weightInKg = product.peso_dimensione_unita;
-      } else if (product.unita_misura_peso === 'g' || product.unita_misura_peso === 'ml') {
-        weightInKg = product.peso_dimensione_unita / 1000;
+    // Check if product has peso_dimensione_unita (measurable)
+    if (!product.peso_dimensione_unita || !product.unita_misura_peso) {
+      // If unita_per_confezione is set, use that
+      if (product.unita_per_confezione && product.peso_unita_interna && product.unita_misura_interna) {
+        const unitWeight = ['kg', 'litri'].includes(product.unita_misura_interna)
+          ? product.peso_unita_interna
+          : product.peso_unita_interna / 1000;
+        return product.unita_per_confezione * unitWeight;
       }
-    } else if (product.unita_per_confezione && product.peso_unita_interna && product.unita_misura_interna) {
-      const unitWeight = product.unita_misura_interna === 'kg' || product.unita_misura_interna === 'litri'
-        ? product.peso_unita_interna
-        : product.peso_unita_interna / 1000;
-      weightInKg = product.unita_per_confezione * unitWeight;
+      return null; // Not measurable
+    }
+
+    // Convert to kg/litri based on unita_misura_peso
+    if (['kg', 'litri'].includes(product.unita_misura_peso)) {
+      return product.peso_dimensione_unita;
+    } else if (['g', 'ml'].includes(product.unita_misura_peso)) {
+      return product.peso_dimensione_unita / 1000;
     }
     
-    return weightInKg > 0 ? weightInKg : null;
+    return null;
   };
 
   const getNormalizedPrice = (product) => {
