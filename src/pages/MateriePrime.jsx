@@ -332,17 +332,39 @@ export default function MateriePrime() {
                       />
                     </div>
 
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-2 block">
+                        Nome Interno
+                      </label>
+                      <input
+                        type="text"
+                        list="nomi-interni"
+                        value={formData.nome_interno}
+                        onChange={(e) => setFormData({ ...formData, nome_interno: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                        placeholder="es. Farina Tipo 00"
+                      />
+                      <datalist id="nomi-interni">
+                        {[...new Set(products.map(p => p.nome_interno).filter(Boolean))].map(nome => (
+                          <option key={nome} value={nome} />
+                        ))}
+                      </datalist>
+                      <p className="text-xs text-slate-500 mt-1">
+                        💡 Usa lo stesso nome interno per prodotti equivalenti di fornitori diversi
+                      </p>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="text-sm font-medium text-slate-700 mb-2 block">
-                          Codice Articolo
+                          Marca
                         </label>
                         <input
                           type="text"
-                          value={formData.codice_articolo}
-                          onChange={(e) => setFormData({ ...formData, codice_articolo: e.target.value })}
-                          placeholder="es. FAR001"
+                          value={formData.marca}
+                          onChange={(e) => setFormData({ ...formData, marca: e.target.value })}
                           className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                          placeholder="es. Mulino Bianco"
                         />
                       </div>
 
