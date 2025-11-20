@@ -33,16 +33,50 @@ export default function ConfrontoListini() {
     .filter(([nomeInterno, products]) => {
       if (selectedNomeInterno !== 'all' && nomeInterno !== selectedNomeInterno) return false;
       if (selectedCategory !== 'all' && !products.some(p => p.categoria === selectedCategory)) return false;
-      return products.length > 1; // Show only if there are multiple suppliers
+      return true; // Show all products
     })
     .sort(([a], [b]) => a.localeCompare(b));
 
+  // Normalize weight to kg or liters
+  const normalizeToBaseUnit = (product) => {
+    let weightInKg = 0;
+    
+    if (['kg', 'litri'].includes(product.unita_misura)) {
+      weightInKg = 1;
+    } else if (product.unita_misura === 'grammi') {
+      weightInKg = 0.001;
+    } else if (product.unita_misura === 'ml') {
+      weightInKg = 0.001;
+    } else if (product.peso_dimensione_unita && product.unita_misura_peso) {
+      if (product.unita_misura_peso === 'kg' || product.unita_misura_peso === 'litri') {
+        weightInKg = product.peso_dimensione_unita;
+      } else if (product.unita_misura_peso === 'g' || product.unita_misura_peso === 'ml') {
+        weightInKg = product.peso_dimensione_unita / 1000;
+      }
+    } else if (product.unita_per_confezione && product.peso_unita_interna && product.unita_misura_interna) {
+      const unitWeight = product.unita_misura_interna === 'kg' || product.unita_misura_interna === 'litri'
+        ? product.peso_unita_interna
+        : product.peso_unita_interna / 1000;
+      weightInKg = product.unita_per_confezione * unitWeight;
+    }
+    
+    return weightInKg > 0 ? weightInKg : null;
+  };
+
+  const getNormalizedPrice = (product) => {
+    const weight = normalizeToBaseUnit(product);
+    if (!weight || !product.prezzo_unitario) return null;
+    return product.prezzo_unitario / weight;
+  };
+
   const getBestPrice = (products) => {
-    return Math.min(...products.map(p => p.prezzo_unitario));
+    const prices = products.map(p => getNormalizedPrice(p)).filter(p => p !== null);
+    return prices.length > 0 ? Math.min(...prices) : 0;
   };
 
   const getWorstPrice = (products) => {
-    return Math.max(...products.map(p => p.prezzo_unitario));
+    const prices = products.map(p => getNormalizedPrice(p)).filter(p => p !== null);
+    return prices.length > 0 ? Math.max(...prices) : 0;
   };
 
   const getSavingsPercentage = (products) => {
@@ -158,16 +192,18 @@ export default function ConfrontoListini() {
                     <div>
                       <h3 className="font-bold text-lg text-[#6b6b6b]">{nomeInterno}</h3>
                       <p className="text-sm text-[#9b9b9b]">
-                        {products[0].categoria} • {products.length} fornitori
+                        {products[0].categoria} • {products.length} {products.length === 1 ? 'fornitore' : 'fornitori'}
                       </p>
                     </div>
-                    <div className="text-right">
-                      <div className="flex items-center gap-2 text-green-600 font-bold">
-                        <TrendingDown className="w-5 h-5" />
-                        <span>-{savingsPercent}%</span>
+                    {products.length > 1 && (
+                      <div className="text-right">
+                        <div className="flex items-center gap-2 text-green-600 font-bold">
+                          <TrendingDown className="w-5 h-5" />
+                          <span>-{savingsPercent}%</span>
+                        </div>
+                        <p className="text-xs text-[#9b9b9b]">risparmio max</p>
                       </div>
-                      <p className="text-xs text-[#9b9b9b]">risparmio max</p>
-                    </div>
+                    )}
                   </div>
 
                   <div className="overflow-x-auto">
@@ -183,8 +219,11 @@ export default function ConfrontoListini() {
                       </thead>
                       <tbody>
                         {sortedByPrice.map((product, index) => {
-                          const priceDiff = product.prezzo_unitario - bestPrice;
-                          const isBest = index === 0;
+                          const normalizedPrice = getNormalizedPrice(product);
+                          const normalizedBest = getBestPrice(products);
+                          const priceDiff = normalizedPrice && normalizedBest ? normalizedPrice - normalizedBest : 0;
+                          const isBest = normalizedPrice === normalizedBest && products.length > 1;
+                          const weight = normalizeToBaseUnit(product);
 
                           return (
                             <tr 
@@ -197,9 +236,16 @@ export default function ConfrontoListini() {
                                 </span>
                               </td>
                               <td className="p-3">
-                                <span className="text-sm text-[#6b6b6b]">
-                                  {product.nome_prodotto}
-                                </span>
+                                <div>
+                                  <span className="text-sm text-[#6b6b6b]">
+                                    {product.nome_prodotto}
+                                  </span>
+                                  {weight && (
+                                    <div className="text-xs text-[#9b9b9b] mt-1">
+                                      {weight >= 1 ? `${weight.toFixed(2)} kg/L` : `${(weight * 1000).toFixed(0)} g/ml`} per unità
+                                    </div>
+                                  )}
+                                </div>
                               </td>
                               <td className="p-3">
                                 <span className="text-sm text-[#9b9b9b]">
@@ -207,15 +253,26 @@ export default function ConfrontoListini() {
                                 </span>
                               </td>
                               <td className="p-3 text-right">
-                                <span className={`font-bold ${isBest ? 'text-green-600 text-lg' : 'text-[#6b6b6b]'}`}>
-                                  €{product.prezzo_unitario?.toFixed(2)}
-                                </span>
-                                <span className="text-xs text-[#9b9b9b] ml-1">
-                                  / {product.unita_misura}
-                                </span>
+                                <div>
+                                  <span className={`font-bold ${isBest ? 'text-green-600 text-lg' : 'text-[#6b6b6b]'}`}>
+                                    €{product.prezzo_unitario?.toFixed(2)}
+                                  </span>
+                                  <span className="text-xs text-[#9b9b9b] ml-1">
+                                    / {product.unita_misura}
+                                  </span>
+                                </div>
+                                {normalizedPrice && (
+                                  <div className="text-xs font-bold text-blue-600 mt-1">
+                                    €{normalizedPrice.toFixed(2)}/kg
+                                  </div>
+                                )}
                               </td>
                               <td className="p-3 text-center">
-                                {isBest ? (
+                                {products.length === 1 ? (
+                                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-bold">
+                                    Unico Fornitore
+                                  </span>
+                                ) : isBest ? (
                                   <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">
                                     <TrendingDown className="w-3 h-3" />
                                     Miglior Prezzo
@@ -223,7 +280,7 @@ export default function ConfrontoListini() {
                                 ) : (
                                   <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-bold">
                                     <TrendingUp className="w-3 h-3" />
-                                    +€{priceDiff.toFixed(2)}
+                                    +€{priceDiff.toFixed(2)}/kg
                                   </span>
                                 )}
                               </td>

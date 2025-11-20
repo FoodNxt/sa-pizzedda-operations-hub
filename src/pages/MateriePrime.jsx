@@ -26,6 +26,8 @@ export default function MateriePrime() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showStoreQuantities, setShowStoreQuantities] = useState(false);
   const [storeQuantities, setStoreQuantities] = useState({});
+  const [showStorePositions, setShowStorePositions] = useState(false);
+  const [storePositions, setStorePositions] = useState({});
   const [formData, setFormData] = useState({
     nome_prodotto: '',
     nome_interno: '',
@@ -108,6 +110,8 @@ export default function MateriePrime() {
     });
     setStoreQuantities({});
     setShowStoreQuantities(false);
+    setStorePositions({});
+    setShowStorePositions(false);
     setEditingProduct(null);
     setShowForm(false);
   };
@@ -134,6 +138,7 @@ export default function MateriePrime() {
       assigned_stores: product.assigned_stores || []
     });
     setStoreQuantities(product.store_specific_min_quantities || {});
+    setStorePositions(product.store_specific_positions || {});
     setShowForm(true);
   };
 
@@ -147,6 +152,13 @@ export default function MateriePrime() {
         cleanedStoreQuantities[storeId] = parseFloat(storeQuantities[storeId]);
       }
     });
+
+    const cleanedStorePositions = {};
+    Object.keys(storePositions).forEach(storeId => {
+      if (storePositions[storeId]) {
+        cleanedStorePositions[storeId] = storePositions[storeId];
+      }
+    });
     
     const data = {
       ...formData,
@@ -158,6 +170,7 @@ export default function MateriePrime() {
       peso_unita_interna: formData.peso_unita_interna ? parseFloat(formData.peso_unita_interna) : null,
       unita_misura_interna: formData.peso_unita_interna ? formData.unita_misura_interna : null,
       store_specific_min_quantities: cleanedStoreQuantities,
+      store_specific_positions: cleanedStorePositions,
       assigned_stores: formData.assigned_stores.length > 0 ? formData.assigned_stores : []
     };
 
@@ -778,6 +791,7 @@ export default function MateriePrime() {
                   <thead>
                     <tr className="border-b-2 border-blue-600">
                       <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Prodotto</th>
+                      <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Fornitore</th>
                       <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Unità</th>
                       <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Posizione</th>
                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Qtà Min</th>
@@ -800,6 +814,7 @@ export default function MateriePrime() {
                               <p className="text-xs text-slate-500 mt-1 truncate">{product.note}</p>
                             )}
                           </td>
+                          <td className="p-2 lg:p-3 text-slate-700 text-sm">{product.fornitore || '-'}</td>
                           <td className="p-2 lg:p-3 text-slate-700 text-sm">{product.unita_misura}</td>
                           <td className="p-2 lg:p-3">
                             <span className={`px-2 py-1 rounded-full text-xs font-bold ${
