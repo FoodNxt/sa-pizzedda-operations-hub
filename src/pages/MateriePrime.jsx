@@ -28,7 +28,8 @@ export default function MateriePrime() {
   const [storeQuantities, setStoreQuantities] = useState({});
   const [formData, setFormData] = useState({
     nome_prodotto: '',
-    codice_articolo: '',
+    nome_interno: '',
+    marca: '',
     unita_misura: 'pezzi',
     peso_dimensione_unita: '',
     unita_misura_peso: 'kg',
@@ -88,7 +89,8 @@ export default function MateriePrime() {
   const resetForm = () => {
     setFormData({
       nome_prodotto: '',
-      codice_articolo: '',
+      nome_interno: '',
+      marca: '',
       unita_misura: 'pezzi',
       peso_dimensione_unita: '',
       unita_misura_peso: 'kg',
@@ -114,7 +116,8 @@ export default function MateriePrime() {
     setEditingProduct(product);
     setFormData({
       nome_prodotto: product.nome_prodotto,
-      codice_articolo: product.codice_articolo || '',
+      nome_interno: product.nome_interno || '',
+      marca: product.marca || '',
       unita_misura: product.unita_misura,
       peso_dimensione_unita: product.peso_dimensione_unita || '',
       unita_misura_peso: product.unita_misura_peso || 'kg',
