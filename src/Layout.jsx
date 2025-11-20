@@ -402,11 +402,6 @@ const navigationStructure = [
         title: "Funzionamento App",
         url: createPageUrl("FunzionamentoApp"),
         icon: BookOpen,
-      },
-      {
-        title: "Vista Dipendente",
-        url: createPageUrl("VistaDipendente"),
-        icon: User,
       }
     ]
   }
@@ -906,21 +901,6 @@ export default function Layout({ children, currentPageName }) {
       </div>
 
       <div className="flex">
-        {/* Return to Admin View Banner */}
-        {normalizedUserType !== 'admin' && currentUser?.email && (
-          <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-orange-500 to-red-600 text-white p-3 text-center">
-            <div className="flex items-center justify-center gap-3">
-              <AlertTriangle className="w-5 h-5" />
-              <span className="font-medium">Sei in Vista Dipendente</span>
-              <a 
-                href={createPageUrl("VistaDipendente")}
-                className="bg-white text-orange-600 px-4 py-1 rounded-full font-bold text-sm hover:bg-orange-50 transition-colors"
-              >
-                Torna a Vista Admin
-              </a>
-            </div>
-          </div>
-        )}
 
         {/* Desktop Sidebar (Admin/Manager only) */}
         {normalizedUserType !== 'dipendente' && (
