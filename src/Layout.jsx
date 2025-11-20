@@ -126,11 +126,6 @@ const navigationStructure = [
         icon: Package,
       },
       {
-        title: "Ricette",
-        url: createPageUrl("Ricette"),
-        icon: ChefHat,
-      },
-      {
         title: "Materie Prime",
         url: createPageUrl("MateriePrime"),
         icon: Package,
@@ -144,16 +139,6 @@ const navigationStructure = [
         title: "Analisi Sprechi",
         url: createPageUrl("AnalisiSprechi"),
         icon: AlertTriangle,
-      },
-      {
-        title: "Elenco Fornitori",
-        url: createPageUrl("ElencoFornitori"),
-        icon: Truck,
-      },
-      {
-        title: "Upload Fatture XML",
-        url: createPageUrl("UploadFattureXML"),
-        icon: Upload,
       },
       {
         title: "Prodotti Venduti",
