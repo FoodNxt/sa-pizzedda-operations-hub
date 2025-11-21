@@ -11,11 +11,18 @@ export default function FeedbackP2P() {
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab, setActiveTab] = useState('admin');
   const [showQuestionForm, setShowQuestionForm] = useState(false);
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [showSendNowModal, setShowSendNowModal] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [questionForm, setQuestionForm] = useState({
     question_text: '',
     question_order: 1,
     options: ['', '', '']
+  });
+  const [configForm, setConfigForm] = useState({
+    frequency_type: 'weekly',
+    custom_days_interval: 7,
+    is_active: true
   });
 
   const queryClient = useQueryClient();
@@ -50,6 +57,26 @@ export default function FeedbackP2P() {
     queryFn: async () => {
       const allUsers = await base44.entities.User.list();
       return allUsers.filter(u => u.user_type === 'dipendente' || u.user_type === 'user');
+    },
+  });
+
+  const { data: feedbackConfig = [] } = useQuery({
+    queryKey: ['p2p-feedback-config'],
+    queryFn: () => base44.entities.P2PFeedbackConfig.list(),
+  });
+
+  const saveConfigMutation = useMutation({
+    mutationFn: async (data) => {
+      const existing = feedbackConfig[0];
+      if (existing) {
+        return base44.entities.P2PFeedbackConfig.update(existing.id, data);
+      }
+      return base44.entities.P2PFeedbackConfig.create(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['p2p-feedback-config'] });
+      setShowConfigModal(false);
+      alert('Configurazione salvata!');
     },
   });
 
@@ -212,11 +239,21 @@ export default function FeedbackP2P() {
               >
                 Risposte
               </button>
+              <button
+                onClick={() => setActiveTab('config')}
+                className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all ${
+                  activeTab === 'config' 
+                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' 
+                    : 'nav-button text-slate-700'
+                }`}
+              >
+                Configurazione
+              </button>
             </div>
 
             {activeTab === 'admin' && (
               <>
-                <div className="mb-6">
+                <div className="mb-6 flex gap-3">
                   <NeumorphicButton
                     onClick={() => setShowQuestionForm(true)}
                     variant="primary"
@@ -224,6 +261,13 @@ export default function FeedbackP2P() {
                   >
                     <Plus className="w-5 h-5" />
                     Aggiungi Domanda
+                  </NeumorphicButton>
+                  <NeumorphicButton
+                    onClick={() => setShowSendNowModal(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Send className="w-5 h-5" />
+                    Invia Ora
                   </NeumorphicButton>
                 </div>
 
@@ -308,6 +352,48 @@ export default function FeedbackP2P() {
                 )}
               </div>
             )}
+
+            {activeTab === 'config' && (
+              <div className="space-y-4">
+                <NeumorphicCard className="p-6">
+                  <h3 className="text-lg font-bold text-slate-800 mb-4">Frequenza Invio Feedback</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-2 block">
+                        Frequenza
+                      </label>
+                      <select
+                        value={feedbackConfig[0]?.frequency_type || 'weekly'}
+                        onChange={(e) => setConfigForm({ ...configForm, frequency_type: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      >
+                        <option value="weekly">Settimanale</option>
+                        <option value="monthly">Mensile</option>
+                        <option value="custom_days">Personalizzato</option>
+                      </select>
+                    </div>
+                    {(feedbackConfig[0]?.frequency_type === 'custom_days' || configForm.frequency_type === 'custom_days') && (
+                      <div>
+                        <label className="text-sm font-medium text-slate-700 mb-2 block">
+                          Intervallo (giorni)
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={configForm.custom_days_interval}
+                          onChange={(e) => setConfigForm({ ...configForm, custom_days_interval: parseInt(e.target.value) || 7 })}
+                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                        />
+                      </div>
+                    )}
+                    <NeumorphicButton onClick={() => saveConfigMutation.mutate(configForm)} variant="primary" className="w-full">
+                      <Save className="w-5 h-5 mr-2" />
+                      Salva Configurazione
+                    </NeumorphicButton>
+                  </div>
+                </NeumorphicCard>
+              </div>
+            )}
           </NeumorphicCard>
         )}
 
@@ -319,6 +405,38 @@ export default function FeedbackP2P() {
             users={users}
             onSubmit={(data) => submitResponseMutation.mutate(data)}
           />
+        )}
+
+        {showSendNowModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="max-w-md w-full p-6">
+              <div className="flex justify-between mb-4">
+                <h2 className="text-xl font-bold">Invia Feedback Ora</h2>
+                <button onClick={() => setShowSendNowModal(false)}><X className="w-5 h-5" /></button>
+              </div>
+              <p className="text-sm text-slate-600 mb-4">
+                Inviando il feedback ora, tutti i dipendenti riceveranno una notifica per valutare i colleghi.
+              </p>
+              <NeumorphicButton
+                onClick={async () => {
+                  const config = feedbackConfig[0];
+                  if (config) {
+                    await base44.entities.P2PFeedbackConfig.update(config.id, {
+                      last_sent_date: new Date().toISOString().split('T')[0]
+                    });
+                  }
+                  setShowSendNowModal(false);
+                  alert('Promemoria inviato ai dipendenti!');
+                  queryClient.invalidateQueries({ queryKey: ['p2p-feedback-config'] });
+                }}
+                variant="primary"
+                className="w-full"
+              >
+                <Send className="w-5 h-5 mr-2" />
+                Invia Promemoria
+              </NeumorphicButton>
+            </NeumorphicCard>
+          </div>
         )}
 
         {showQuestionForm && (

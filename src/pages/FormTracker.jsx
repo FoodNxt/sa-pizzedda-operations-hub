@@ -17,6 +17,7 @@ export default function FormTracker() {
     temporal_frequency: 'weekly',
     temporal_day_of_week: 1,
     shift_based_timing: 'end',
+    shift_time_filter: '',
     is_active: true,
     assigned_roles: []
   });
@@ -77,6 +78,7 @@ export default function FormTracker() {
       temporal_frequency: 'weekly',
       temporal_day_of_week: 1,
       shift_based_timing: 'end',
+      shift_time_filter: '',
       is_active: true,
       assigned_roles: []
     });
@@ -93,6 +95,7 @@ export default function FormTracker() {
       temporal_frequency: config.temporal_frequency || 'weekly',
       temporal_day_of_week: config.temporal_day_of_week || 1,
       shift_based_timing: config.shift_based_timing || 'end',
+      shift_time_filter: config.shift_time_filter || '',
       is_active: config.is_active !== false,
       assigned_roles: config.assigned_roles || []
     });
@@ -399,19 +402,36 @@ export default function FormTracker() {
                   )}
 
                   {configForm.frequency_type === 'shift_based' && (
-                    <div>
-                      <label className="text-sm font-medium text-slate-700 mb-2 block">
-                        Quando Compilare
-                      </label>
-                      <select
-                        value={configForm.shift_based_timing}
-                        onChange={(e) => setConfigForm({ ...configForm, shift_based_timing: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                      >
-                        <option value="start">Inizio Turno</option>
-                        <option value="end">Fine Turno</option>
-                      </select>
-                    </div>
+                    <>
+                      <div>
+                        <label className="text-sm font-medium text-slate-700 mb-2 block">
+                          Quando Compilare
+                        </label>
+                        <select
+                          value={configForm.shift_based_timing}
+                          onChange={(e) => setConfigForm({ ...configForm, shift_based_timing: e.target.value })}
+                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                        >
+                          <option value="start">Inizio Turno</option>
+                          <option value="end">Fine Turno</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-slate-700 mb-2 block">
+                          Orario Turno (opzionale)
+                        </label>
+                        <input
+                          type="text"
+                          value={configForm.shift_time_filter}
+                          onChange={(e) => setConfigForm({ ...configForm, shift_time_filter: e.target.value })}
+                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                          placeholder="es: 12:00-18:00"
+                        />
+                        <p className="text-xs text-slate-500 mt-2">
+                          Se vuoto, il form sarà richiesto per tutti i turni. Se impostato, solo per turni in questo orario.
+                        </p>
+                      </div>
+                    </>
                   )}
 
                   <div>

@@ -190,18 +190,8 @@ const navigationStructure = [
         icon: DollarSign,
       },
       {
-        title: "Contratti",
-        url: createPageUrl("Contratti"),
-        icon: FileText,
-      },
-      {
-        title: "Lettere di Richiamo",
-        url: createPageUrl("LettereRichiamo"),
-        icon: FileText,
-      },
-      {
-        title: "Regolamento Dipendenti",
-        url: createPageUrl("RegolamentoDipendenti"),
+        title: "Documenti",
+        url: createPageUrl("Documenti"),
         icon: FileText,
       },
       {
