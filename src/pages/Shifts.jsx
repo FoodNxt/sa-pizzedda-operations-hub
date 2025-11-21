@@ -44,8 +44,20 @@ export default function Shifts() {
     setEditFormData({
       store_id: shift.store_id,
       store_name: shift.store_name,
-      scheduled_start: shift.scheduled_start ? new Date(shift.scheduled_start).toISOString().slice(0, 16) : '',
-      scheduled_end: shift.scheduled_end ? new Date(shift.scheduled_end).toISOString().slice(0, 16) : '',
+      scheduled_start: (() => {
+        try {
+          return shift.scheduled_start ? new Date(shift.scheduled_start).toISOString().slice(0, 16) : '';
+        } catch (e) {
+          return '';
+        }
+      })(),
+      scheduled_end: (() => {
+        try {
+          return shift.scheduled_end ? new Date(shift.scheduled_end).toISOString().slice(0, 16) : '';
+        } catch (e) {
+          return '';
+        }
+      })(),
       employee_group_name: shift.employee_group_name || '',
       shift_type: shift.shift_type || '',
       timbratura_mancata: shift.timbratura_mancata || false,
@@ -82,14 +94,20 @@ export default function Shifts() {
     if (selectedEmployee !== 'all' && shift.employee_name !== selectedEmployee) return false;
     
     // Date filter
-    const shiftDate = new Date(shift.shift_date);
-    const now = new Date();
-    const daysDiff = Math.floor((now - shiftDate) / (1000 * 60 * 60 * 24));
-    
-    if (dateFilter === 'today' && daysDiff !== 0) return false;
-    if (dateFilter === 'week' && daysDiff > 7) return false;
-    if (dateFilter === 'month' && daysDiff > 30) return false;
-    if (dateFilter === 'all') return true; // Keep all shifts for 'all' date filter
+    if (!shift.shift_date) return false;
+    try {
+      const shiftDate = new Date(shift.shift_date);
+      if (isNaN(shiftDate.getTime())) return false;
+      const now = new Date();
+      const daysDiff = Math.floor((now - shiftDate) / (1000 * 60 * 60 * 24));
+      
+      if (dateFilter === 'today' && daysDiff !== 0) return false;
+      if (dateFilter === 'week' && daysDiff > 7) return false;
+      if (dateFilter === 'month' && daysDiff > 30) return false;
+      if (dateFilter === 'all') return true;
+    } catch (e) {
+      return false;
+    }
     
     return true;
   });
@@ -224,7 +242,13 @@ export default function Shifts() {
                   return (
                     <tr key={shift.id} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
                       <td className="p-3 text-[#6b6b6b]">
-                        {format(new Date(shift.shift_date), 'dd/MM/yyyy')}
+                        {(() => {
+                          try {
+                            return format(new Date(shift.shift_date), 'dd/MM/yyyy');
+                          } catch (e) {
+                            return shift.shift_date;
+                          }
+                        })()}
                       </td>
                       <td className="p-3">
                         <div className="flex items-center gap-2">
@@ -269,11 +293,35 @@ export default function Shifts() {
                           </div>
                         ) : (
                           <div className="text-[#6b6b6b] text-sm">
-                            {shift.scheduled_start && format(new Date(shift.scheduled_start), 'HH:mm')} - {shift.scheduled_end && format(new Date(shift.scheduled_end), 'HH:mm')}
+                            {(() => {
+                              try {
+                                return shift.scheduled_start && format(new Date(shift.scheduled_start), 'HH:mm');
+                              } catch (e) {
+                                return 'N/A';
+                              }
+                            })()} - {(() => {
+                              try {
+                                return shift.scheduled_end && format(new Date(shift.scheduled_end), 'HH:mm');
+                              } catch (e) {
+                                return 'N/A';
+                              }
+                            })()}
                             {shift.actual_start && (
                               <div className="text-xs text-[#9b9b9b] mt-1">
-                                Effettivo: {format(new Date(shift.actual_start), 'HH:mm')}
-                                {shift.actual_end && ` - ${format(new Date(shift.actual_end), 'HH:mm')}`}
+                                Effettivo: {(() => {
+                                  try {
+                                    return format(new Date(shift.actual_start), 'HH:mm');
+                                  } catch (e) {
+                                    return 'N/A';
+                                  }
+                                })()}
+                                {shift.actual_end && (() => {
+                                  try {
+                                    return ` - ${format(new Date(shift.actual_end), 'HH:mm')}`;
+                                  } catch (e) {
+                                    return '';
+                                  }
+                                })()}
                               </div>
                             )}
                           </div>

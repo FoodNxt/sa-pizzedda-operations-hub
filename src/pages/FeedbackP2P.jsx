@@ -170,9 +170,14 @@ export default function FeedbackP2P() {
     const lastWeekEnd = endOfWeek(subWeeks(new Date(), 1), { weekStartsOn: 1 });
 
     const myShifts = shifts.filter(s => {
-      if (s.employee_name !== employeeName) return false;
-      const shiftDate = parseISO(s.shift_date);
-      return shiftDate >= lastWeekStart && shiftDate <= lastWeekEnd;
+      if (s.employee_name !== employeeName || !s.shift_date) return false;
+      try {
+        const shiftDate = parseISO(s.shift_date);
+        if (isNaN(shiftDate.getTime())) return false;
+        return shiftDate >= lastWeekStart && shiftDate <= lastWeekEnd;
+      } catch (e) {
+        return false;
+      }
     });
 
     const colleaguesSet = new Set();
@@ -336,7 +341,13 @@ export default function FeedbackP2P() {
                           <p className="text-xs text-slate-500">ha valutato {r.reviewed_name}</p>
                         </div>
                         <span className="text-xs text-slate-500">
-                          {new Date(r.submitted_date).toLocaleDateString('it-IT')}
+                          {(() => {
+                            try {
+                              return new Date(r.submitted_date).toLocaleDateString('it-IT');
+                            } catch (e) {
+                              return 'N/A';
+                            }
+                          })()}
                         </span>
                       </div>
                       <div className="space-y-2">
