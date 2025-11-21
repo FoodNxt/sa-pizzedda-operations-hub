@@ -714,16 +714,21 @@ export default function Payroll() {
         // Apply date filter
         if (startDate || endDate) {
           if (!s.shift_date) return false;
-          const shiftDate = parseISO(s.shift_date);
-          const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
-          const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
+          try {
+            const shiftDate = parseISO(s.shift_date);
+            if (isNaN(shiftDate.getTime())) return false;
+            const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
+            const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
 
-          if (start && end) {
-            return isWithinInterval(shiftDate, { start, end });
-          } else if (start) {
-            return shiftDate >= start;
-          } else if (end) {
-            return shiftDate <= end;
+            if (start && end) {
+              return isWithinInterval(shiftDate, { start, end });
+            } else if (start) {
+              return shiftDate >= start;
+            } else if (end) {
+              return shiftDate <= end;
+            }
+          } catch (e) {
+            return false;
           }
         }
 
@@ -734,6 +739,7 @@ export default function Payroll() {
       const dailyData = {};
       employeeShifts.forEach(shift => {
         if (!shift.shift_date) return;
+        try {
         const date = shift.shift_date;
         if (!dailyData[date]) {
           dailyData[date] = {
@@ -765,7 +771,7 @@ export default function Payroll() {
           dailyData[date].ritardo_minutes += shift.minuti_di_ritardo;
         }
         } catch (e) {
-          console.error('Error processing shift for daily data:', e);
+          console.error('Error processing shift date:', e);
         }
       });
 
@@ -933,16 +939,21 @@ export default function Payroll() {
         // Apply date filter
         if (startDate || endDate) {
           if (!s.shift_date) return false;
-          const shiftDate = parseISO(s.shift_date);
-          const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
-          const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
+          try {
+            const shiftDate = parseISO(s.shift_date);
+            if (isNaN(shiftDate.getTime())) return false;
+            const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
+            const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
 
-          if (start && end) {
-            return isWithinInterval(shiftDate, { start, end });
-          } else if (start) {
-            return shiftDate >= start;
-          } else if (end) {
-            return shiftDate <= end;
+            if (start && end) {
+              return isWithinInterval(shiftDate, { start, end });
+            } else if (start) {
+              return shiftDate >= start;
+            } else if (end) {
+              return shiftDate <= end;
+            }
+          } catch (e) {
+            return false;
           }
         }
 
