@@ -405,6 +405,7 @@ export default function LettereRichiamo() {
                       className="bg-white"
                       style={{ minHeight: '250px' }}
                     />
+                  </div>
                   <p className="text-xs text-slate-500 mt-2">
                     💡 Variabili disponibili: {'{{nome_dipendente}}'}, {'{{data_oggi}}'}
                   </p>
