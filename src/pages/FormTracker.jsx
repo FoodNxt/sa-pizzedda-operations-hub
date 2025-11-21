@@ -1,15 +1,16 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ClipboardCheck, Plus, Edit, Trash2, Save, X, AlertTriangle, CheckCircle } from 'lucide-react';
+import { ClipboardCheck, Plus, Edit, Trash2, Save, X, AlertTriangle, CheckCircle, Calendar } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
-import { startOfWeek, startOfMonth, isAfter, parseISO } from 'date-fns';
+import { startOfWeek, startOfMonth, isAfter, parseISO, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 
 export default function FormTracker() {
   const [showConfigForm, setShowConfigForm] = useState(false);
   const [editingConfig, setEditingConfig] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [configForm, setConfigForm] = useState({
     form_name: '',
     form_page: '',
@@ -189,6 +190,68 @@ export default function FormTracker() {
     return missing;
   }, [configs, completions, users, shifts]);
 
+  // Calculate forms for specific date
+  const formsForDate = useMemo(() => {
+    if (!selectedDate) return [];
+    
+    const dateObj = new Date(selectedDate);
+    const dayOfWeek = dateObj.getDay();
+    const forms = [];
+    
+    const activeConfigs = configs.filter(c => c.is_active);
+    
+    activeConfigs.forEach(config => {
+      const eligibleUsers = users.filter(user => {
+        if (!config.assigned_roles || config.assigned_roles.length === 0) return true;
+        return user.ruoli_dipendente?.some(role => config.assigned_roles.includes(role));
+      });
+
+      eligibleUsers.forEach(user => {
+        const userName = user.nome_cognome || user.full_name || user.email;
+        let shouldShow = false;
+
+        if (config.frequency_type === 'temporal') {
+          if (config.temporal_frequency === 'daily') {
+            shouldShow = true;
+          } else if (config.temporal_frequency === 'weekly') {
+            shouldShow = dayOfWeek === (config.temporal_day_of_week || 1);
+          } else if (config.temporal_frequency === 'monthly') {
+            shouldShow = dateObj.getDate() === 1;
+          }
+        } else if (config.frequency_type === 'shift_based') {
+          const hasShift = shifts.some(s => 
+            s.employee_name === userName && 
+            s.shift_date === selectedDate
+          );
+          shouldShow = hasShift;
+        }
+
+        if (shouldShow) {
+          const hasCompleted = completions.some(c => {
+            const compDate = new Date(c.completion_date);
+            return c.user_id === user.id &&
+                   c.form_name === config.form_name &&
+                   compDate.toISOString().split('T')[0] === selectedDate;
+          });
+
+          forms.push({
+            user,
+            userName,
+            config,
+            completed: hasCompleted,
+            completionDate: hasCompleted ? completions.find(c => 
+              c.user_id === user.id && 
+              c.form_name === config.form_name &&
+              new Date(c.completion_date).toISOString().split('T')[0] === selectedDate
+            )?.completion_date : null
+          });
+        }
+      });
+    });
+
+    return forms;
+  }, [selectedDate, configs, users, shifts, completions]);
+
   const availableForms = [
     { name: 'Form Inventario', page: 'FormInventario' },
     { name: 'Form Cantina', page: 'FormCantina' },
@@ -278,6 +341,64 @@ export default function FormTracker() {
         )}
 
         <NeumorphicCard className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+              <Calendar className="w-6 h-6 text-blue-600" />
+              Form per Giorno Specifico
+            </h2>
+          </div>
+
+          <div className="mb-6">
+            <label className="text-sm font-medium text-slate-700 mb-2 block">
+              Seleziona Data
+            </label>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="w-full md:w-auto neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+            />
+          </div>
+
+          {formsForDate.length === 0 ? (
+            <div className="text-center py-12">
+              <ClipboardCheck className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+              <p className="text-slate-500">Nessun form da completare per questa data</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {formsForDate.map((item, idx) => (
+                <div key={idx} className={`neumorphic-pressed p-4 rounded-xl ${
+                  item.completed ? 'border-2 border-green-200' : 'border-2 border-orange-200'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="font-bold text-slate-800">{item.userName}</p>
+                      <p className="text-sm text-slate-600">{item.config.form_name}</p>
+                      {item.completed && item.completionDate && (
+                        <p className="text-xs text-green-600 mt-1">
+                          Completato: {new Date(item.completionDate).toLocaleString('it-IT')}
+                        </p>
+                      )}
+                    </div>
+                    {item.completed ? (
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" />
+                        Completato
+                      </span>
+                    ) : (
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700">
+                        Da Completare
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </NeumorphicCard>
+
+        <NeumorphicCard className="p-6">
           <h2 className="text-xl font-bold text-slate-800 mb-4">Configurazioni Form</h2>
           <div className="space-y-3">
             {configs.length === 0 ? (
@@ -294,10 +415,17 @@ export default function FormTracker() {
                       <div className="text-xs text-slate-600 space-y-1">
                         <p><strong>Tipo:</strong> {config.frequency_type === 'temporal' ? 'Temporale' : 'Basato su turni'}</p>
                         {config.frequency_type === 'temporal' && (
-                          <p><strong>Frequenza:</strong> {
-                            config.temporal_frequency === 'daily' ? 'Giornaliera' :
-                            config.temporal_frequency === 'weekly' ? 'Settimanale' : 'Mensile'
-                          }</p>
+                          <>
+                            <p><strong>Frequenza:</strong> {
+                              config.temporal_frequency === 'daily' ? 'Giornaliera' :
+                              config.temporal_frequency === 'weekly' ? 'Settimanale' : 'Mensile'
+                            }</p>
+                            {config.temporal_frequency === 'weekly' && config.temporal_day_of_week !== undefined && (
+                              <p><strong>Giorno:</strong> {
+                                ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'][config.temporal_day_of_week]
+                              }</p>
+                            )}
+                          </>
                         )}
                         {config.frequency_type === 'shift_based' && (
                           <p><strong>Quando:</strong> {config.shift_based_timing === 'start' ? 'Inizio turno' : 'Fine turno'}</p>
@@ -385,20 +513,43 @@ export default function FormTracker() {
                   </div>
 
                   {configForm.frequency_type === 'temporal' && (
-                    <div>
-                      <label className="text-sm font-medium text-slate-700 mb-2 block">
-                        Frequenza Temporale
-                      </label>
-                      <select
-                        value={configForm.temporal_frequency}
-                        onChange={(e) => setConfigForm({ ...configForm, temporal_frequency: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                      >
-                        <option value="daily">Giornaliera</option>
-                        <option value="weekly">Settimanale</option>
-                        <option value="monthly">Mensile</option>
-                      </select>
-                    </div>
+                   <>
+                     <div>
+                       <label className="text-sm font-medium text-slate-700 mb-2 block">
+                         Frequenza Temporale
+                       </label>
+                       <select
+                         value={configForm.temporal_frequency}
+                         onChange={(e) => setConfigForm({ ...configForm, temporal_frequency: e.target.value })}
+                         className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                       >
+                         <option value="daily">Giornaliera</option>
+                         <option value="weekly">Settimanale</option>
+                         <option value="monthly">Mensile</option>
+                       </select>
+                     </div>
+
+                     {configForm.temporal_frequency === 'weekly' && (
+                       <div>
+                         <label className="text-sm font-medium text-slate-700 mb-2 block">
+                           Giorno della Settimana
+                         </label>
+                         <select
+                           value={configForm.temporal_day_of_week}
+                           onChange={(e) => setConfigForm({ ...configForm, temporal_day_of_week: parseInt(e.target.value) })}
+                           className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                         >
+                           <option value={1}>Lunedì</option>
+                           <option value={2}>Martedì</option>
+                           <option value={3}>Mercoledì</option>
+                           <option value={4}>Giovedì</option>
+                           <option value={5}>Venerdì</option>
+                           <option value={6}>Sabato</option>
+                           <option value={0}>Domenica</option>
+                         </select>
+                       </div>
+                     )}
+                   </>
                   )}
 
                   {configForm.frequency_type === 'shift_based' && (
