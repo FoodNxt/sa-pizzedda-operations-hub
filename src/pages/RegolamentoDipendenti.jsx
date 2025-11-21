@@ -288,6 +288,7 @@ export default function RegolamentoDipendenti() {
                       className="bg-white"
                       style={{ minHeight: '300px' }}
                     />
+                  </div>
                   {regolamentoAttivo && (
                     <p className="text-xs text-orange-600 mt-2">
                       ⚠️ Salvando, verrà creata la versione {(regolamentoAttivo.versione || 0) + 1} e quella attuale diventerà storica.

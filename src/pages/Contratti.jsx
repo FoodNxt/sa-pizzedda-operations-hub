@@ -651,6 +651,7 @@ export default function Contratti() {
                       className="bg-white"
                       style={{ minHeight: '400px' }}
                     />
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-3">
