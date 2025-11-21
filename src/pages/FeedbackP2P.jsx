@@ -169,6 +169,16 @@ export default function FeedbackP2P() {
   const normalizedUserType = currentUser ? (currentUser.user_type === 'user' ? 'dipendente' : currentUser.user_type) : null;
   const isAdmin = normalizedUserType === 'admin' || normalizedUserType === 'manager';
 
+  if (!currentUser) {
+    return (
+      <ProtectedPage pageName="FeedbackP2P">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <p>Caricamento...</p>
+        </div>
+      </ProtectedPage>
+    );
+  }
+
   return (
     <ProtectedPage pageName="FeedbackP2P">
       <div className="max-w-7xl mx-auto space-y-6">

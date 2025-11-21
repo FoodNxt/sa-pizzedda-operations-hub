@@ -4,7 +4,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { BookOpen, Plus, Send, CheckCircle, Clock, Edit, Save, X, History } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
-import ReactQuill from 'react-quill';
 
 export default function RegolamentoDipendenti() {
   const [showForm, setShowForm] = useState(false);
@@ -207,10 +206,9 @@ export default function RegolamentoDipendenti() {
             </div>
           </div>
           <div className="neumorphic-pressed p-6 rounded-xl">
-            <div 
-              className="text-sm text-slate-700 prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: regolamentoAttivo.contenuto }}
-            />
+            <pre className="whitespace-pre-wrap text-sm text-slate-700 font-sans">
+              {regolamentoAttivo.contenuto}
+            </pre>
           </div>
           <p className="text-xs text-slate-500 mt-3">
             Creato il {new Date(regolamentoAttivo.data_creazione || regolamentoAttivo.created_date).toLocaleDateString('it-IT')} 
@@ -272,23 +270,14 @@ export default function RegolamentoDipendenti() {
                   <label className="text-sm font-medium text-slate-700 mb-2 block">
                     Contenuto Regolamento
                   </label>
-                  <div className="neumorphic-pressed rounded-xl overflow-hidden">
-                    <ReactQuill
-                      value={contenuto}
-                      onChange={setContenuto}
-                      modules={{
-                        toolbar: [
-                          [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-                          [{ 'size': ['small', false, 'large', 'huge'] }],
-                          ['bold', 'italic', 'underline'],
-                          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                          ['clean']
-                        ]
-                      }}
-                      className="bg-white"
-                      style={{ minHeight: '300px' }}
-                    />
-                  </div>
+                  <textarea
+                    value={contenuto}
+                    onChange={(e) => setContenuto(e.target.value)}
+                    rows={20}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none resize-none"
+                    placeholder="Inserisci il testo del regolamento..."
+                    required
+                  />
                   {regolamentoAttivo && (
                     <p className="text-xs text-orange-600 mt-2">
                       ⚠️ Salvando, verrà creata la versione {(regolamentoAttivo.versione || 0) + 1} e quella attuale diventerà storica.
