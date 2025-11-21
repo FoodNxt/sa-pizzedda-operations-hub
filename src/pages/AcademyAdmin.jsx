@@ -101,6 +101,17 @@ export default function AcademyAdmin() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Validate that each question has a correct answer
+    for (let i = 0; i < formData.domande.length; i++) {
+      const domanda = formData.domande[i];
+      const hasCorrectAnswer = domanda.risposte.some(r => r.corretta);
+      if (!hasCorrectAnswer) {
+        alert(`La domanda ${i + 1} deve avere almeno una risposta corretta selezionata.`);
+        return;
+      }
+    }
+    
     if (editingCorso) {
       updateMutation.mutate({ id: editingCorso.id, data: formData });
     } else {
@@ -198,13 +209,23 @@ export default function AcademyAdmin() {
 
   // Progress by employee
   const progressiPerDipendente = users.map(user => {
+    const userRuoli = user.ruoli_dipendente || [];
     const userProgressi = progressi.filter(p => p.user_id === user.id);
+    
+    // Filter courses based on user roles
+    const corsiPerUtente = corsi.filter(c => {
+      if (!c.attivo) return false;
+      if (!c.ruoli || c.ruoli.length === 0) return true;
+      return c.ruoli.some(r => userRuoli.includes(r));
+    });
+    
     const completati = userProgressi.filter(p => p.stato === 'completato').length;
     const inCorso = userProgressi.filter(p => p.stato === 'in_corso').length;
-    const totale = corsi.filter(c => c.attivo).length;
+    const totale = corsiPerUtente.length;
     
     return {
       user,
+      ruoli: userRuoli,
       completati,
       inCorso,
       totale,
@@ -541,12 +562,21 @@ export default function AcademyAdmin() {
         </h2>
         
         <div className="space-y-3">
-          {progressiPerDipendente.map(({ user, completati, inCorso, totale, percentuale }) => (
+          {progressiPerDipendente.map(({ user, ruoli, completati, inCorso, totale, percentuale }) => (
             <div key={user.id} className="neumorphic-pressed p-4 rounded-xl">
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <h3 className="font-bold text-[#6b6b6b]">{user.full_name || user.email}</h3>
                   <p className="text-sm text-[#9b9b9b]">{user.email}</p>
+                  {ruoli.length > 0 && (
+                    <div className="flex gap-1 mt-1">
+                      {ruoli.map(ruolo => (
+                        <span key={ruolo} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                          {ruolo}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-bold text-[#8b7355]">{percentuale}%</div>

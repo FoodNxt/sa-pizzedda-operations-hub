@@ -253,10 +253,11 @@ export default function Ricette() {
       return;
     }
 
-
     const costoUnitario = calculateCosts();
-    const prezzoOnline = parseFloat(formData.prezzo_vendita_online);
-    const prezzoOffline = parseFloat(formData.prezzo_vendita_offline);
+    
+    // If semilavorato, set prices to 0
+    const prezzoOnline = formData.is_semilavorato ? 0 : parseFloat(formData.prezzo_vendita_online);
+    const prezzoOffline = formData.is_semilavorato ? 0 : parseFloat(formData.prezzo_vendita_offline);
 
     const data = {
       ...formData,
@@ -577,47 +578,49 @@ export default function Ricette() {
                   )}
                 </div>
 
-                {/* Prezzi Section */}
-                <div className="neumorphic-flat p-6 rounded-xl">
-                  <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Prezzi di Vendita</h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
-                        <Euro className="w-4 h-4" />
-                        Prezzo Online <span className="text-red-600">*</span>
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={formData.prezzo_vendita_online}
-                        onChange={(e) => setFormData({ ...formData, prezzo_vendita_online: e.target.value })}
-                        placeholder="0.00"
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                        required
-                      />
-                    </div>
+                {/* Prezzi Section - Only show if not semilavorato */}
+                {!formData.is_semilavorato && (
+                  <div className="neumorphic-flat p-6 rounded-xl">
+                    <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Prezzi di Vendita</h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
+                          <Euro className="w-4 h-4" />
+                          Prezzo Online <span className="text-red-600">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={formData.prezzo_vendita_online}
+                          onChange={(e) => setFormData({ ...formData, prezzo_vendita_online: e.target.value })}
+                          placeholder="0.00"
+                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                          required
+                        />
+                      </div>
 
-                    <div>
-                      <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
-                        <Euro className="w-4 h-4" />
-                        Prezzo Offline <span className="text-red-600">*</span>
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={formData.prezzo_vendita_offline}
-                        onChange={(e) => setFormData({ ...formData, prezzo_vendita_offline: e.target.value })}
-                        placeholder="0.00"
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                        required
-                      />
+                      <div>
+                        <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
+                          <Euro className="w-4 h-4" />
+                          Prezzo Offline <span className="text-red-600">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={formData.prezzo_vendita_offline}
+                          onChange={(e) => setFormData({ ...formData, prezzo_vendita_offline: e.target.value })}
+                          placeholder="0.00"
+                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                          required
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
-                {/* Costi Preview */}
-                {formData.ingredienti.length > 0 && formData.prezzo_vendita_online && formData.prezzo_vendita_offline && (
+                {/* Costi Preview - Only show if not semilavorato */}
+                {!formData.is_semilavorato && formData.ingredienti.length > 0 && formData.prezzo_vendita_online && formData.prezzo_vendita_offline && (
                   <div className="neumorphic-flat p-6 rounded-xl bg-blue-50">
                     <h3 className="text-lg font-bold text-blue-800 mb-4">📊 Analisi Costi</h3>
                     

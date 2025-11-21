@@ -124,11 +124,30 @@ export default function GestioneImpastiPrecotture() {
         </NeumorphicCard>
 
         {selectedStore && (
-          <NeumorphicCard className="p-6 overflow-x-auto">
-            <div className="flex items-center gap-2 mb-4">
-              <ChefHat className="w-5 h-5 text-blue-600" />
-              <h2 className="text-xl font-bold text-slate-800">Pianificazione Settimanale</h2>
-            </div>
+          <>
+            <NeumorphicCard className="p-6 bg-blue-50">
+              <h3 className="text-lg font-bold text-blue-800 mb-3">ℹ️ Come funziona la colonna "Impasto 3 Giorni"</h3>
+              <div className="space-y-2 text-sm text-blue-900">
+                <p>
+                  <strong>Calcolo:</strong> Per ogni giorno, viene calcolato il totale delle precotture necessarie per i successivi 3 giorni (giorno corrente + 2 giorni futuri).
+                </p>
+                <p>
+                  <strong>Esempio per Lunedì:</strong> Somma delle precotture di Lunedì + Martedì + Mercoledì.
+                </p>
+                <p>
+                  <strong>Utilizzo:</strong> Questo dato indica quante palline di impasto devono essere preparate in anticipo per coprire la produzione dei prossimi 3 giorni. L'impasto viene fatto maturare per 72 ore prima dell'uso.
+                </p>
+                <p className="mt-3 p-3 bg-white rounded-lg">
+                  <strong>💡 Nota:</strong> Se oggi è Lunedì e la colonna mostra "120", significa che devi preparare 120 palline di impasto che saranno pronte da usare Giovedì (dopo 72 ore di maturazione).
+                </p>
+              </div>
+            </NeumorphicCard>
+
+            <NeumorphicCard className="p-6 overflow-x-auto">
+              <div className="flex items-center gap-2 mb-4">
+                <ChefHat className="w-5 h-5 text-blue-600" />
+                <h2 className="text-xl font-bold text-slate-800">Pianificazione Settimanale</h2>
+              </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -265,6 +284,7 @@ export default function GestioneImpastiPrecotture() {
               </table>
             </div>
           </NeumorphicCard>
+          </>
         )}
       </div>
     </ProtectedPage>
