@@ -228,10 +228,16 @@ export default function FormTracker() {
 
         if (shouldShow) {
           const hasCompleted = completions.some(c => {
+            if (!c.completion_date) return false;
             const compDate = new Date(c.completion_date);
-            return c.user_id === user.id &&
-                   c.form_name === config.form_name &&
-                   compDate.toISOString().split('T')[0] === selectedDate;
+            if (isNaN(compDate.getTime())) return false;
+            try {
+              return c.user_id === user.id &&
+                     c.form_name === config.form_name &&
+                     compDate.toISOString().split('T')[0] === selectedDate;
+            } catch (e) {
+              return false;
+            }
           });
 
           forms.push({
@@ -239,11 +245,18 @@ export default function FormTracker() {
             userName,
             config,
             completed: hasCompleted,
-            completionDate: hasCompleted ? completions.find(c => 
-              c.user_id === user.id && 
-              c.form_name === config.form_name &&
-              new Date(c.completion_date).toISOString().split('T')[0] === selectedDate
-            )?.completion_date : null
+            completionDate: hasCompleted ? completions.find(c => {
+              if (!c.completion_date) return false;
+              try {
+                const compDate = new Date(c.completion_date);
+                if (isNaN(compDate.getTime())) return false;
+                return c.user_id === user.id && 
+                       c.form_name === config.form_name &&
+                       compDate.toISOString().split('T')[0] === selectedDate;
+              } catch (e) {
+                return false;
+              }
+            })?.completion_date : null
           });
         }
       });
