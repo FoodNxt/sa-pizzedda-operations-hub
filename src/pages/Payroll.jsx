@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -183,18 +182,23 @@ export default function Payroll() {
     if (startDate || endDate) {
       filteredShifts = filteredShifts.filter(shift => {
         if (!shift.shift_date) return false;
-        const shiftDate = parseISO(shift.shift_date);
-        const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
-        const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
+        try {
+          const shiftDate = parseISO(shift.shift_date);
+          if (isNaN(shiftDate.getTime())) return false;
+          const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
+          const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
 
-        if (start && end) {
-          return isWithinInterval(shiftDate, { start, end });
-        } else if (start) {
-          return shiftDate >= start;
-        } else if (end) {
-          return shiftDate <= end;
+          if (start && end) {
+            return isWithinInterval(shiftDate, { start, end });
+          } else if (start) {
+            return shiftDate >= start;
+          } else if (end) {
+            return shiftDate <= end;
+          }
+          return true;
+        } catch (e) {
+          return false;
         }
-        return true;
       });
     }
 
@@ -359,9 +363,13 @@ export default function Payroll() {
       }
     });
 
-    const dailyArray = Object.values(dailyData).sort((a, b) => 
-      new Date(b.date) - new Date(a.date)
-    );
+    const dailyArray = Object.values(dailyData).sort((a, b) => {
+      try {
+        return new Date(b.date) - new Date(a.date);
+      } catch (e) {
+        return 0;
+      }
+    });
 
     dailyArray.forEach(day => {
       day.total_minutes = Object.values(day.shift_types).reduce((sum, mins) => sum + mins, 0);
@@ -371,10 +379,13 @@ export default function Payroll() {
     const weeklyData = {};
     
     employeeShifts.forEach(shift => {
-      const date = parseISO(shift.shift_date);
-      const weekStart = startOfWeek(date, { weekStartsOn: 1 });
-      const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
-      const weekKey = format(weekStart, 'yyyy-MM-dd');
+      if (!shift.shift_date) return;
+      try {
+        const date = parseISO(shift.shift_date);
+        if (isNaN(date.getTime())) return;
+        const weekStart = startOfWeek(date, { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
+        const weekKey = format(weekStart, 'yyyy-MM-dd');
       
       if (!weeklyData[weekKey]) {
         weeklyData[weekKey] = {
@@ -399,6 +410,9 @@ export default function Payroll() {
 
       if (shift.minuti_di_ritardo && shift.minuti_di_ritardo > 0) {
         weeklyData[weekKey].ritardo_minutes += shift.minuti_di_ritardo;
+      }
+      } catch (e) {
+        console.error('Error processing shift date:', e);
       }
     });
 
@@ -447,16 +461,21 @@ export default function Payroll() {
       // Apply date filter
       if (startDate || endDate) {
         if (!s.shift_date) return false;
-        const shiftDate = parseISO(s.shift_date);
-        const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
-        const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
+        try {
+          const shiftDate = parseISO(s.shift_date);
+          if (isNaN(shiftDate.getTime())) return false;
+          const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
+          const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
 
-        if (start && end) {
-          return isWithinInterval(shiftDate, { start, end });
-        } else if (start) {
-          return shiftDate >= start;
-        } else if (end) {
-          return shiftDate <= end;
+          if (start && end) {
+            return isWithinInterval(shiftDate, { start, end });
+          } else if (start) {
+            return shiftDate >= start;
+          } else if (end) {
+            return shiftDate <= end;
+          }
+        } catch (e) {
+          return false;
         }
       }
 
@@ -500,7 +519,13 @@ export default function Payroll() {
     });
 
     // Sort by date (most recent first)
-    return unpaidShifts.sort((a, b) => new Date(b.shift_date) - new Date(a.shift_date));
+    return unpaidShifts.sort((a, b) => {
+      try {
+        return new Date(b.shift_date) - new Date(a.shift_date);
+      } catch (e) {
+        return 0;
+      }
+    });
   };
 
   const handleUnpaidAbsenceClick = (employee) => {
@@ -592,7 +617,11 @@ export default function Payroll() {
       csv += 'Totale Ore,Totale Ore (Esclusi Straordinari)\n';
 
       employeeDailyBreakdown.days.forEach(day => {
-        csv += `${format(parseISO(day.date), 'dd/MM/yyyy')},`;
+        try {
+          csv += `${format(parseISO(day.date), 'dd/MM/yyyy')},`;
+        } catch (e) {
+          csv += `${day.date},`;
+        }
         
         employeeDailyBreakdown.shiftTypes.forEach(type => {
           const minutes = day.shift_types[type] || 0;
@@ -614,7 +643,12 @@ export default function Payroll() {
       csv += 'Totale Ore,Totale Ore (Esclusi Straordinari)\n';
 
       employeeDailyBreakdown.weeks.forEach(week => {
-        const weekLabel = `Settimana ${format(week.weekStart, 'dd/MM', { locale: it })} - ${format(week.weekEnd, 'dd/MM/yyyy', { locale: it })}`;
+        let weekLabel;
+        try {
+          weekLabel = `Settimana ${format(week.weekStart, 'dd/MM', { locale: it })} - ${format(week.weekEnd, 'dd/MM/yyyy', { locale: it })}`;
+        } catch (e) {
+          weekLabel = 'Settimana non valida';
+        }
         csv += `"${weekLabel}",`;
         
         employeeDailyBreakdown.shiftTypes.forEach(type => {
@@ -699,6 +733,7 @@ export default function Payroll() {
       // Group by date
       const dailyData = {};
       employeeShifts.forEach(shift => {
+        if (!shift.shift_date) return;
         const date = shift.shift_date;
         if (!dailyData[date]) {
           dailyData[date] = {
@@ -728,6 +763,9 @@ export default function Payroll() {
 
         if (shift.minuti_di_ritardo && shift.minuti_di_ritardo > 0) {
           dailyData[date].ritardo_minutes += shift.minuti_di_ritardo;
+        }
+        } catch (e) {
+          console.error('Error processing shift for daily data:', e);
         }
       });
 
@@ -764,14 +802,22 @@ export default function Payroll() {
 
     // Sort by date (most recent first), then by employee name
     allDailyData.sort((a, b) => {
-      const dateCompare = new Date(b.date) - new Date(a.date);
-      if (dateCompare !== 0) return dateCompare;
+      try {
+        const dateCompare = new Date(b.date) - new Date(a.date);
+        if (dateCompare !== 0) return dateCompare;
+      } catch (e) {
+        // Ignore date comparison error
+      }
       return a.employee_name.localeCompare(b.employee_name);
     });
 
     // Write data rows
     allDailyData.forEach(day => {
-      csv += `${format(parseISO(day.date), 'dd/MM/yyyy')},"${day.employee_name}","${day.store_names_display}",`;
+      try {
+        csv += `${format(parseISO(day.date), 'dd/MM/yyyy')},"${day.employee_name}","${day.store_names_display}",`;
+      } catch (e) {
+        csv += `${day.date},"${day.employee_name}","${day.store_names_display}",`;
+      }
       
       shiftTypesArray.forEach(type => {
         const minutes = day.shift_types[type] || 0;
@@ -832,19 +878,32 @@ export default function Payroll() {
     });
 
     relevantShifts.forEach(shift => {
-      const shiftDate = parseISO(shift.shift_date);
-      if (!minDate || shiftDate < minDate) minDate = shiftDate;
-      if (!maxDate || shiftDate > maxDate) maxDate = shiftDate;
+      try {
+        const shiftDate = parseISO(shift.shift_date);
+        if (isNaN(shiftDate.getTime())) return;
+        if (!minDate || shiftDate < minDate) minDate = shiftDate;
+        if (!maxDate || shiftDate > maxDate) maxDate = shiftDate;
+      } catch (e) {
+        console.error('Error parsing shift date:', e);
+      }
     });
 
     // If specific startDate/endDate filters are applied, use them to refine minDate/maxDate
     if (startDate) {
-      const filterStart = parseISO(startDate);
-      if (!minDate || filterStart > minDate) minDate = filterStart;
+      try {
+        const filterStart = parseISO(startDate);
+        if (!isNaN(filterStart.getTime()) && (!minDate || filterStart > minDate)) minDate = filterStart;
+      } catch (e) {
+        console.error('Error parsing startDate:', e);
+      }
     }
     if (endDate) {
-      const filterEnd = parseISO(endDate);
-      if (!maxDate || filterEnd < maxDate) maxDate = filterEnd;
+      try {
+        const filterEnd = parseISO(endDate);
+        if (!isNaN(filterEnd.getTime()) && (!maxDate || filterEnd < maxDate)) maxDate = filterEnd;
+      } catch (e) {
+        console.error('Error parsing endDate:', e);
+      }
     }
     
     if (!minDate || !maxDate) {
@@ -896,9 +955,12 @@ export default function Payroll() {
 
       // Group shifts by week
       employeeShifts.forEach(shift => {
-        const shiftDate = parseISO(shift.shift_date);
-        const weekStart = startOfWeek(shiftDate, { weekStartsOn: 1 });
-        const weekKey = format(weekStart, 'yyyy-MM-dd');
+        if (!shift.shift_date) return;
+        try {
+          const shiftDate = parseISO(shift.shift_date);
+          if (isNaN(shiftDate.getTime())) return;
+          const weekStart = startOfWeek(shiftDate, { weekStartsOn: 1 });
+          const weekKey = format(weekStart, 'yyyy-MM-dd');
 
         if (!employeeWeeklyData[employee.employee_name][weekKey]) {
           employeeWeeklyData[employee.employee_name][weekKey] = {
@@ -930,6 +992,9 @@ export default function Payroll() {
 
         if (shift.minuti_di_ritardo && shift.minuti_di_ritardo > 0) {
           weekData.ritardo_minutes += shift.minuti_di_ritardo;
+        }
+        } catch (e) {
+          console.error('Error processing shift for weekly data:', e);
         }
       });
 
@@ -999,15 +1064,24 @@ export default function Payroll() {
 
     // Sort by week (most recent first), then by employee name
     allRows.sort((a, b) => {
-      const weekCompare = new Date(b.weekKey) - new Date(a.weekKey);
-      if (weekCompare !== 0) return weekCompare;
+      try {
+        const weekCompare = new Date(b.weekKey) - new Date(a.weekKey);
+        if (weekCompare !== 0) return weekCompare;
+      } catch (e) {
+        // Ignore week comparison error
+      }
       return a.employeeName.localeCompare(b.employeeName);
     });
 
     // Write data rows
     allRows.forEach(row => {
       const { employeeName, weekData } = row;
-      const weekLabel = `${format(weekData.weekStart, 'dd/MM/yyyy')} - ${format(weekData.weekEnd, 'dd/MM/yyyy')}`;
+      let weekLabel;
+      try {
+        weekLabel = `${format(weekData.weekStart, 'dd/MM/yyyy')} - ${format(weekData.weekEnd, 'dd/MM/yyyy')}`;
+      } catch (e) {
+        weekLabel = 'Data non valida';
+      }
       
       csv += `"${weekLabel}","${employeeName}","${weekData.store_names_display}",`;
       
@@ -1477,7 +1551,13 @@ export default function Payroll() {
                           className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors"
                         >
                           <td className="p-3 sticky left-0 bg-[#e0e5ec] font-medium text-[#6b6b6b]">
-                            {format(parseISO(day.date), 'dd/MM/yyyy')}
+                           {(() => {
+                             try {
+                               return format(parseISO(day.date), 'dd/MM/yyyy');
+                             } catch (e) {
+                               return day.date;
+                             }
+                           })()}
                           </td>
                           {employeeDailyBreakdown.shiftTypes.map(type => (
                             <td 
@@ -1525,7 +1605,13 @@ export default function Payroll() {
                           <td className="p-3 sticky left-0 bg-[#e0e5ec] font-medium text-[#6b6b6b]">
                             <div>
                               <div className="text-sm">
-                                Settimana {format(week.weekStart, 'dd/MM', { locale: it })} - {format(week.weekEnd, 'dd/MM/yyyy', { locale: it })}
+                                {(() => {
+                                  try {
+                                    return `Settimana ${format(week.weekStart, 'dd/MM', { locale: it })} - ${format(week.weekEnd, 'dd/MM/yyyy', { locale: it })}`;
+                                  } catch (e) {
+                                    return 'Settimana non valida';
+                                  }
+                                })()}
                               </div>
                             </div>
                           </td>
@@ -1626,7 +1712,13 @@ export default function Payroll() {
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <span className="text-lg font-bold text-[#6b6b6b]">
-                            {format(parseISO(shift.shift_date), 'dd/MM/yyyy')}
+                            {(() => {
+                              try {
+                                return format(parseISO(shift.shift_date), 'dd/MM/yyyy');
+                              } catch (e) {
+                                return shift.shift_date;
+                              }
+                            })()}
                           </span>
                           <span className="text-sm text-[#9b9b9b]">
                             {shift.store_name}
@@ -1653,9 +1745,21 @@ export default function Payroll() {
                       <div>
                         <p className="text-xs text-[#9b9b9b] mb-1">Orario Previsto</p>
                         <p className="text-sm text-[#6b6b6b] font-medium">
-                          {shift.scheduled_start ? format(parseISO(shift.scheduled_start), 'HH:mm') : 'N/A'}
+                          {(() => {
+                            try {
+                              return shift.scheduled_start ? format(parseISO(shift.scheduled_start), 'HH:mm') : 'N/A';
+                            } catch (e) {
+                              return 'N/A';
+                            }
+                          })()}
                           {' - '}
-                          {shift.scheduled_end ? format(parseISO(shift.scheduled_end), 'HH:mm') : 'N/A'}
+                          {(() => {
+                            try {
+                              return shift.scheduled_end ? format(parseISO(shift.scheduled_end), 'HH:mm') : 'N/A';
+                            } catch (e) {
+                              return 'N/A';
+                            }
+                          })()}
                         </p>
                       </div>
                       
@@ -1663,8 +1767,20 @@ export default function Payroll() {
                         <div>
                           <p className="text-xs text-[#9b9b9b] mb-1">Orario Effettivo</p>
                           <p className="text-sm text-[#6b6b6b] font-medium">
-                            {format(parseISO(shift.actual_start), 'HH:mm')}
-                            {shift.actual_end ? ` - ${format(parseISO(shift.actual_end), 'HH:mm')}` : ''}
+                            {(() => {
+                              try {
+                                return format(parseISO(shift.actual_start), 'HH:mm');
+                              } catch (e) {
+                                return 'N/A';
+                              }
+                            })()}
+                            {shift.actual_end ? (() => {
+                              try {
+                                return ` - ${format(parseISO(shift.actual_end), 'HH:mm')}`;
+                              } catch (e) {
+                                return '';
+                              }
+                            })() : ''}
                           </p>
                         </div>
                       )}
@@ -1700,7 +1816,13 @@ export default function Payroll() {
                     )}
 
                     <div className="mt-3 pt-3 border-t border-[#d1d1d1] text-xs text-[#9b9b9b]">
-                      ID Turno: {shift.id} • Creato: {shift.created_date ? format(parseISO(shift.created_date), 'dd/MM/yyyy HH:mm') : 'N/A'}
+                      ID Turno: {shift.id} • Creato: {(() => {
+                        try {
+                          return shift.created_date ? format(parseISO(shift.created_date), 'dd/MM/yyyy HH:mm') : 'N/A';
+                        } catch (e) {
+                          return 'N/A';
+                        }
+                      })()}
                     </div>
                   </div>
                 ))
