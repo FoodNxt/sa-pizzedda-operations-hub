@@ -185,12 +185,12 @@ export default function FormTracker() {
               );
 
               if (!hasCompleted && isAfter(new Date(), shiftDate)) {
-              missing.push({
-                user,
-                userName,
-                config,
-                shift,
-                  reason: `Non completato per turno del ${new Date(shift.shift_date).toLocaleDateString('it-IT')}`
+                missing.push({
+                  user,
+                  userName,
+                  config,
+                  shift,
+                  reason: `Non completato per turno del ${shiftDate.toLocaleDateString('it-IT')}`
                 });
               }
             } catch (e) {
