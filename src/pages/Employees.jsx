@@ -10,7 +10,9 @@ import {
   ShoppingCart,
   Star,
   Eye,
-  X
+  X,
+  Settings,
+  Save
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -27,6 +29,7 @@ export default function Employees() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [expandedView, setExpandedView] = useState(null);
+  const [showWeightsModal, setShowWeightsModal] = useState(false);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -63,6 +66,11 @@ export default function Employees() {
       const orders = await base44.entities.WrongOrder.list('-order_date');
       return orders.filter(o => o.store_matched);
     },
+  });
+
+  const { data: metricWeights = [] } = useQuery({
+    queryKey: ['metric-weights'],
+    queryFn: () => base44.entities.MetricWeight.list(),
   });
 
   const currentOrderIds = useMemo(() => new Set(wrongOrders.map(o => o.id)), [wrongOrders]);
@@ -253,13 +261,17 @@ export default function Employees() {
         ? googleReviews.reduce((sum, r) => sum + r.rating, 0) / googleReviews.length
         : 0;
 
+      const getWeight = (metricName) => {
+        const weight = metricWeights.find(w => w.metric_name === metricName && w.is_active);
+        return weight ? weight.weight : 1;
+      };
+
       let performanceScore = 100;
-      performanceScore -= wrongOrderRate * 2;
-      performanceScore -= avgLateMinutes * 0.5;
-      performanceScore -= percentualeRitardi * 0.3;
-      performanceScore -= numeroTimbratureMancate * 1;
-      performanceScore += positiveMentions * 2;
-      performanceScore -= negativeMentions * 3;
+      performanceScore -= wrongOrderRate * getWeight('ordini_sbagliati');
+      performanceScore -= percentualeRitardi * getWeight('ritardi');
+      performanceScore -= numeroTimbratureMancate * getWeight('timbrature_mancanti');
+      performanceScore += assignedReviews.length * getWeight('numero_recensioni');
+      performanceScore += (avgGoogleRating - 3) * getWeight('punteggio_recensioni') * 5;
       performanceScore = Math.max(0, Math.min(100, performanceScore));
 
       const performanceLevel = performanceScore >= 80 ? 'excellent' :
@@ -538,11 +550,20 @@ export default function Employees() {
   return (
     <ProtectedPage pageName="Employees">
       <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
-        <div className="mb-4 lg:mb-6">
-          <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
-            Performance
-          </h1>
-          <p className="text-sm text-slate-500">Ranking dipendenti</p>
+        <div className="mb-4 lg:mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
+              Performance Dipendenti
+            </h1>
+            <p className="text-sm text-slate-500">Ranking dipendenti</p>
+          </div>
+          <NeumorphicButton
+            onClick={() => setShowWeightsModal(true)}
+            className="flex items-center gap-2"
+          >
+            <Settings className="w-5 h-5" />
+            Pesi Metriche
+          </NeumorphicButton>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -1017,7 +1038,96 @@ export default function Employees() {
             </NeumorphicCard>
           </div>
         )}
+
+        {showWeightsModal && (
+          <MetricWeightsModal
+            weights={metricWeights}
+            onClose={() => setShowWeightsModal(false)}
+          />
+        )}
       </div>
     </ProtectedPage>
+  );
+}
+
+function MetricWeightsModal({ weights, onClose }) {
+  const queryClient = useQueryClient();
+  const [localWeights, setLocalWeights] = useState({
+    ordini_sbagliati: weights.find(w => w.metric_name === 'ordini_sbagliati')?.weight || 2,
+    ritardi: weights.find(w => w.metric_name === 'ritardi')?.weight || 0.3,
+    timbrature_mancanti: weights.find(w => w.metric_name === 'timbrature_mancanti')?.weight || 1,
+    numero_recensioni: weights.find(w => w.metric_name === 'numero_recensioni')?.weight || 0.5,
+    punteggio_recensioni: weights.find(w => w.metric_name === 'punteggio_recensioni')?.weight || 2
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async (weightsData) => {
+      for (const [metricName, weight] of Object.entries(weightsData)) {
+        const existing = weights.find(w => w.metric_name === metricName);
+        if (existing) {
+          await base44.entities.MetricWeight.update(existing.id, { weight, is_active: true });
+        } else {
+          await base44.entities.MetricWeight.create({ metric_name: metricName, weight, is_active: true });
+        }
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['metric-weights'] });
+      onClose();
+    }
+  });
+
+  const metricLabels = {
+    ordini_sbagliati: 'Peso Ordini Sbagliati',
+    ritardi: 'Peso Ritardi (%)',
+    timbrature_mancanti: 'Peso Timbrature Mancanti',
+    numero_recensioni: 'Peso Numero Recensioni',
+    punteggio_recensioni: 'Peso Punteggio Recensioni'
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <NeumorphicCard className="max-w-md w-full p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-slate-800">Configura Pesi Metriche</h2>
+          <button onClick={onClose} className="nav-button p-2 rounded-lg">
+            <X className="w-5 h-5 text-slate-600" />
+          </button>
+        </div>
+
+        <div className="space-y-4 mb-6">
+          {Object.entries(localWeights).map(([key, value]) => (
+            <div key={key}>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">
+                {metricLabels[key]}
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                value={value}
+                onChange={(e) => setLocalWeights({ ...localWeights, [key]: parseFloat(e.target.value) || 0 })}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+              />
+            </div>
+          ))}
+        </div>
+
+        <NeumorphicButton
+          onClick={() => saveMutation.mutate(localWeights)}
+          variant="primary"
+          className="w-full flex items-center justify-center gap-2"
+        >
+          <Save className="w-5 h-5" />
+          Salva Configurazione
+        </NeumorphicButton>
+
+        <div className="mt-4 p-4 bg-blue-50 rounded-xl">
+          <p className="text-xs text-blue-800">
+            <strong>ℹ️ Info:</strong> I pesi determinano quanto ogni metrica influenza il punteggio finale. 
+            Valori più alti = maggiore impatto.
+          </p>
+        </div>
+      </NeumorphicCard>
+    </div>
   );
 }

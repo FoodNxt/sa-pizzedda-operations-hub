@@ -29,13 +29,6 @@ export default function InventoryForms() {
       color: "from-purple-500 to-purple-600"
     },
     {
-      title: "Inventario Admin",
-      description: "Form completo per inserimento inventario negozio e cantina",
-      icon: ClipboardCheck,
-      url: createPageUrl("InventarioAdmin"),
-      color: "from-indigo-500 to-indigo-600"
-    },
-    {
       title: "Form Teglie Buttate",
       description: "Registra le teglie rosse e bianche buttate",
       icon: AlertTriangle,
@@ -93,7 +86,6 @@ export default function InventoryForms() {
               <ul className="space-y-1 text-xs">
                 <li>• <strong>Form Inventario</strong>: per rilevazioni rapide del negozio</li>
                 <li>• <strong>Form Cantina</strong>: per rilevazioni rapide della cantina</li>
-                <li>• <strong>Inventario Admin</strong>: form completo con entrambe le sezioni</li>
                 <li>• <strong>Teglie Buttate</strong>: monitora gli sprechi giornalieri</li>
                 <li>• <strong>Preparazioni</strong>: traccia i pesi delle preparazioni</li>
               </ul>

@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FileText, Plus, Send, CheckCircle, Clock, Edit, Trash2, Save, X, AlertTriangle } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
+import ReactQuill from 'react-quill';
 
 export default function LettereRichiamo() {
   const [activeTab, setActiveTab] = useState('lettere');
@@ -388,14 +389,22 @@ export default function LettereRichiamo() {
                   <label className="text-sm font-medium text-slate-700 mb-2 block">
                     Contenuto Template
                   </label>
-                  <textarea
-                    value={templateForm.contenuto}
-                    onChange={(e) => setTemplateForm({ ...templateForm, contenuto: e.target.value })}
-                    rows={12}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none resize-none"
-                    placeholder="Usa variabili: {{nome_dipendente}}, {{data_oggi}}"
-                    required
-                  />
+                  <div className="neumorphic-pressed rounded-xl overflow-hidden">
+                    <ReactQuill
+                      value={templateForm.contenuto}
+                      onChange={(value) => setTemplateForm({ ...templateForm, contenuto: value })}
+                      modules={{
+                        toolbar: [
+                          [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                          [{ 'size': ['small', false, 'large', 'huge'] }],
+                          ['bold', 'italic', 'underline'],
+                          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                          ['clean']
+                        ]
+                      }}
+                      className="bg-white"
+                      style={{ minHeight: '250px' }}
+                    />
                   <p className="text-xs text-slate-500 mt-2">
                     💡 Variabili disponibili: {'{{nome_dipendente}}'}, {'{{data_oggi}}'}
                   </p>

@@ -67,6 +67,8 @@ import ResetAdmin from './pages/ResetAdmin';
 import LettereRichiamo from './pages/LettereRichiamo';
 import RegolamentoDipendenti from './pages/RegolamentoDipendenti';
 import InventarioStoreManager from './pages/InventarioStoreManager';
+import FeedbackP2P from './pages/FeedbackP2P';
+import FormTracker from './pages/FormTracker';
 import __Layout from './Layout.jsx';
 
 
@@ -140,6 +142,8 @@ export const PAGES = {
     "LettereRichiamo": LettereRichiamo,
     "RegolamentoDipendenti": RegolamentoDipendenti,
     "InventarioStoreManager": InventarioStoreManager,
+    "FeedbackP2P": FeedbackP2P,
+    "FormTracker": FormTracker,
 }
 
 export const pagesConfig = {
