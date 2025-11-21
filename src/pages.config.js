@@ -69,6 +69,7 @@ import RegolamentoDipendenti from './pages/RegolamentoDipendenti';
 import InventarioStoreManager from './pages/InventarioStoreManager';
 import FeedbackP2P from './pages/FeedbackP2P';
 import FormTracker from './pages/FormTracker';
+import Documenti from './pages/Documenti';
 import __Layout from './Layout.jsx';
 
 
@@ -144,6 +145,7 @@ export const PAGES = {
     "InventarioStoreManager": InventarioStoreManager,
     "FeedbackP2P": FeedbackP2P,
     "FormTracker": FormTracker,
+    "Documenti": Documenti,
 }
 
 export const pagesConfig = {
