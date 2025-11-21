@@ -55,6 +55,11 @@ const navigationStructure = [
         title: "Summary AI",
         url: createPageUrl("SummaryAI"),
         icon: Zap,
+      },
+      {
+        title: "Form Tracker",
+        url: createPageUrl("FormTracker"),
+        icon: ClipboardCheck,
       }
     ]
   },
@@ -198,6 +203,11 @@ const navigationStructure = [
         title: "Regolamento Dipendenti",
         url: createPageUrl("RegolamentoDipendenti"),
         icon: FileText,
+      },
+      {
+        title: "Feedback P2P",
+        url: createPageUrl("FeedbackP2P"),
+        icon: Users,
       },
       {
         title: "Alert Periodo Prova",

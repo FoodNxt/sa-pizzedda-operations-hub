@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
+import ReactQuill from 'react-quill';
 
 export default function Contratti() {
   const [activeTab, setActiveTab] = useState('contratti'); // 'contratti' or 'templates'
@@ -400,28 +401,14 @@ export default function Contratti() {
   };
 
   const insertVariable = (variable) => {
-    const textarea = templateTextareaRef;
-    if (!textarea) return;
-
-    const startPos = textarea.selectionStart;
-    const endPos = textarea.selectionEnd;
-    const textBefore = templateData.contenuto_template.substring(0, startPos);
-    const textAfter = templateData.contenuto_template.substring(endPos);
     const variableText = `{{${variable}}}`;
-    
-    const newText = textBefore + variableText + textAfter;
+    const currentContent = templateData.contenuto_template || '';
+    const newContent = currentContent + ' ' + variableText + ' ';
     
     setTemplateData(prev => ({
       ...prev,
-      contenuto_template: newText
+      contenuto_template: newContent
     }));
-
-    // Set cursor position after variable
-    setTimeout(() => {
-      textarea.focus();
-      const newCursorPos = startPos + variableText.length;
-      textarea.setSelectionRange(newCursorPos, newCursorPos);
-    }, 0);
   };
 
   const getStatusBadge = (status) => {
@@ -648,14 +635,22 @@ export default function Contratti() {
                   <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
                     Contenuto Contratto <span className="text-red-600">*</span>
                   </label>
-                  <textarea
-                    ref={(el) => setTemplateTextareaRef(el)}
-                    required
-                    value={templateData.contenuto_template}
-                    onChange={(e) => setTemplateData({ ...templateData, contenuto_template: e.target.value })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none h-96 resize-none font-mono text-sm"
-                    placeholder="Scrivi il testo del contratto e clicca sulle variabili per inserirle..."
-                  />
+                  <div className="neumorphic-pressed rounded-xl overflow-hidden">
+                    <ReactQuill
+                      value={templateData.contenuto_template}
+                      onChange={(value) => setTemplateData({ ...templateData, contenuto_template: value })}
+                      modules={{
+                        toolbar: [
+                          [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                          [{ 'size': ['small', false, 'large', 'huge'] }],
+                          ['bold', 'italic', 'underline'],
+                          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                          ['clean']
+                        ]
+                      }}
+                      className="bg-white"
+                      style={{ minHeight: '400px' }}
+                    />
                 </div>
 
                 <div className="flex items-center gap-3">
