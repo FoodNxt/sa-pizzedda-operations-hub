@@ -421,14 +421,14 @@ export default function FormTracker() {
                           Orario Turno (opzionale)
                         </label>
                         <input
-                          type="text"
+                          type="time"
                           value={configForm.shift_time_filter}
                           onChange={(e) => setConfigForm({ ...configForm, shift_time_filter: e.target.value })}
                           className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                          placeholder="es: 12:00-18:00"
+                          placeholder="es: 12:00"
                         />
                         <p className="text-xs text-slate-500 mt-2">
-                          Se vuoto, il form sarà richiesto per tutti i turni. Se impostato, solo per turni in questo orario.
+                          Se vuoto, il form sarà richiesto per tutti i turni. Se impostato, solo per dipendenti in turno in questo orario.
                         </p>
                       </div>
                     </>
