@@ -47,8 +47,13 @@ export default function StoricoCassa() {
     
     return conteggi.filter(c => {
       if (c.data_conteggio) {
-        const itemDate = parseISO(c.data_conteggio);
-        if (isBefore(itemDate, cutoffDate) || isAfter(itemDate, endFilterDate)) return false;
+        try {
+          const itemDate = parseISO(c.data_conteggio);
+          if (isNaN(itemDate.getTime())) return false;
+          if (isBefore(itemDate, cutoffDate) || isAfter(itemDate, endFilterDate)) return false;
+        } catch (e) {
+          return false;
+        }
       }
       if (selectedStore !== 'all' && c.store_id !== selectedStore) return false;
       return true;
@@ -61,19 +66,40 @@ export default function StoricoCassa() {
     
     const byDate = {};
     filteredConteggi.forEach(c => {
-      const date = c.data_conteggio.split('T')[0];
-      if (!byDate[date]) byDate[date] = { date, value: 0, count: 0 };
-      byDate[date].value += c.valore_conteggio || 0;
-      byDate[date].count += 1;
+      if (!c.data_conteggio) return;
+      try {
+        const date = c.data_conteggio.split('T')[0];
+        if (!byDate[date]) byDate[date] = { date, value: 0, count: 0 };
+        byDate[date].value += c.valore_conteggio || 0;
+        byDate[date].count += 1;
+      } catch (e) {
+        console.error('Error processing date:', e);
+      }
     });
 
     const dailyData = Object.values(byDate)
-      .sort((a, b) => new Date(a.date) - new Date(b.date))
-      .map(d => ({
-        date: format(parseISO(d.date), 'dd/MM'),
-        valore: parseFloat(d.value.toFixed(2)),
-        conteggi: d.count
-      }));
+      .sort((a, b) => {
+        try {
+          return new Date(a.date) - new Date(b.date);
+        } catch (e) {
+          return 0;
+        }
+      })
+      .map(d => {
+        try {
+          return {
+            date: format(parseISO(d.date), 'dd/MM'),
+            valore: parseFloat(d.value.toFixed(2)),
+            conteggi: d.count
+          };
+        } catch (e) {
+          return {
+            date: d.date,
+            valore: parseFloat(d.value.toFixed(2)),
+            conteggi: d.count
+          };
+        }
+      });
 
     const byStore = {};
     filteredConteggi.forEach(c => {
@@ -264,8 +290,14 @@ export default function StoricoCassa() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {stores.map(store => {
               const storeConteggi = conteggi
-                .filter(c => c.store_id === store.id)
-                .sort((a, b) => new Date(b.data_conteggio) - new Date(a.data_conteggio));
+                .filter(c => c.store_id === store.id && c.data_conteggio)
+                .sort((a, b) => {
+                  try {
+                    return new Date(b.data_conteggio) - new Date(a.data_conteggio);
+                  } catch (e) {
+                    return 0;
+                  }
+                });
               
               const lastConteggio = storeConteggi[0];
               
@@ -287,7 +319,13 @@ export default function StoricoCassa() {
                       <div className="flex items-center gap-1">
                         <Calendar className="w-3 h-3 text-slate-400" />
                         <span className="text-xs text-slate-600">
-                          {format(parseISO(lastConteggio.data_conteggio), 'dd/MM HH:mm', { locale: it })}
+                          {(() => {
+                            try {
+                              return format(parseISO(lastConteggio.data_conteggio), 'dd/MM HH:mm', { locale: it });
+                            } catch (e) {
+                              return 'Data non valida';
+                            }
+                          })()}
                         </span>
                       </div>
                       <div className="flex items-center gap-1">
@@ -325,7 +363,13 @@ export default function StoricoCassa() {
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-slate-400" />
                           <span className="text-slate-700 text-sm">
-                            {format(parseISO(conteggio.data_conteggio), 'dd/MM/yyyy HH:mm', { locale: it })}
+                            {(() => {
+                              try {
+                                return format(parseISO(conteggio.data_conteggio), 'dd/MM/yyyy HH:mm', { locale: it });
+                              } catch (e) {
+                                return 'Data non valida';
+                              }
+                            })()}
                           </span>
                         </div>
                       </td>
