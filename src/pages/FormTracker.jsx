@@ -77,7 +77,7 @@ export default function FormTracker() {
       form_page: '',
       frequency_type: 'temporal',
       temporal_frequency: 'weekly',
-      temporal_day_of_week: 1,
+      temporal_day_of_week: null,
       shift_based_timing: 'end',
       shift_time_filter: '',
       is_active: true,
@@ -94,7 +94,7 @@ export default function FormTracker() {
       form_page: config.form_page,
       frequency_type: config.frequency_type,
       temporal_frequency: config.temporal_frequency || 'weekly',
-      temporal_day_of_week: config.temporal_day_of_week || 1,
+      temporal_day_of_week: config.temporal_day_of_week !== undefined && config.temporal_day_of_week !== null ? config.temporal_day_of_week : null,
       shift_based_timing: config.shift_based_timing || 'end',
       shift_time_filter: config.shift_time_filter || '',
       is_active: config.is_active !== false,
@@ -564,24 +564,25 @@ export default function FormTracker() {
                      </div>
 
                      {configForm.temporal_frequency === 'weekly' && (
-                       <div>
-                         <label className="text-sm font-medium text-slate-700 mb-2 block">
-                           Giorno della Settimana
-                         </label>
-                         <select
-                           value={configForm.temporal_day_of_week}
-                           onChange={(e) => setConfigForm({ ...configForm, temporal_day_of_week: parseInt(e.target.value) })}
-                           className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                         >
-                           <option value={1}>Lunedì</option>
-                           <option value={2}>Martedì</option>
-                           <option value={3}>Mercoledì</option>
-                           <option value={4}>Giovedì</option>
-                           <option value={5}>Venerdì</option>
-                           <option value={6}>Sabato</option>
-                           <option value={0}>Domenica</option>
-                         </select>
-                       </div>
+                      <div>
+                        <label className="text-sm font-medium text-slate-700 mb-2 block">
+                          Giorno della Settimana (opzionale)
+                        </label>
+                        <select
+                          value={configForm.temporal_day_of_week === null || configForm.temporal_day_of_week === undefined ? '' : configForm.temporal_day_of_week}
+                          onChange={(e) => setConfigForm({ ...configForm, temporal_day_of_week: e.target.value === '' ? null : parseInt(e.target.value) })}
+                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                        >
+                          <option value="">Nessun giorno specifico (tutti i giorni)</option>
+                          <option value={1}>Lunedì</option>
+                          <option value={2}>Martedì</option>
+                          <option value={3}>Mercoledì</option>
+                          <option value={4}>Giovedì</option>
+                          <option value={5}>Venerdì</option>
+                          <option value={6}>Sabato</option>
+                          <option value={0}>Domenica</option>
+                        </select>
+                      </div>
                      )}
                    </>
                   )}

@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -361,7 +360,13 @@ export default function AssignReviews() {
                         </div>
                         <div className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
-                          {format(parseISO(review.review_date), 'dd/MM/yyyy HH:mm')}
+                          {(() => {
+                            try {
+                              return format(parseISO(review.review_date), 'dd/MM/yyyy HH:mm');
+                            } catch (e) {
+                              return review.review_date;
+                            }
+                          })()}
                         </div>
                       </div>
                       <div className="text-xs text-[#9b9b9b] font-mono">
@@ -410,7 +415,19 @@ export default function AssignReviews() {
                           
                           <div className="text-xs text-[#9b9b9b] space-y-1">
                             <p>
-                              Turno: {format(parseISO(match.shift.scheduled_start), 'HH:mm')} - {format(parseISO(match.shift.scheduled_end), 'HH:mm')}
+                              Turno: {(() => {
+                                try {
+                                  return format(parseISO(match.shift.scheduled_start), 'HH:mm');
+                                } catch (e) {
+                                  return 'N/A';
+                                }
+                              })()} - {(() => {
+                                try {
+                                  return format(parseISO(match.shift.scheduled_end), 'HH:mm');
+                                } catch (e) {
+                                  return 'N/A';
+                                }
+                              })()}
                             </p>
                             {match.shift.shift_type && (
                               <p>Tipo: {match.shift.shift_type}</p>

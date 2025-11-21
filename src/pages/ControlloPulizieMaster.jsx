@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -25,8 +24,9 @@ export default function ControlloPulizieMaster() {
     tipo_controllo: 'multipla',
     attrezzatura: '',
     opzioni_risposta: [''],
+    risposta_corretta: '',
     ruoli_assegnati: [],
-    store_ids: [], // NEW: Store selection
+    store_ids: [],
     ordine: 0,
     obbligatoria: true,
     attiva: true
@@ -74,8 +74,9 @@ export default function ControlloPulizieMaster() {
       tipo_controllo: 'multipla',
       attrezzatura: '',
       opzioni_risposta: [''],
+      risposta_corretta: '',
       ruoli_assegnati: [],
-      store_ids: [], // NEW
+      store_ids: [],
       ordine: 0,
       obbligatoria: true,
       attiva: true
@@ -91,8 +92,9 @@ export default function ControlloPulizieMaster() {
       tipo_controllo: domanda.tipo_controllo,
       attrezzatura: domanda.attrezzatura || '',
       opzioni_risposta: domanda.opzioni_risposta || [''],
+      risposta_corretta: domanda.risposta_corretta || '',
       ruoli_assegnati: domanda.ruoli_assegnati || [],
-      store_ids: domanda.store_ids || [], // NEW
+      store_ids: domanda.store_ids || [],
       ordine: domanda.ordine || 0,
       obbligatoria: domanda.obbligatoria !== false,
       attiva: domanda.attiva !== false
@@ -399,6 +401,25 @@ export default function ControlloPulizieMaster() {
                         </div>
                       ))}
                     </div>
+                    
+                    <div className="mt-4">
+                      <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                        Risposta Corretta
+                      </label>
+                      <select
+                        value={formData.risposta_corretta}
+                        onChange={(e) => setFormData({ ...formData, risposta_corretta: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                      >
+                        <option value="">Seleziona la risposta corretta...</option>
+                        {formData.opzioni_risposta.filter(o => o.trim() !== '').map((opzione, index) => (
+                          <option key={index} value={opzione}>{opzione}</option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-[#9b9b9b] mt-2">
+                        💡 Seleziona quale dovrebbe essere la risposta corretta per questa domanda
+                      </p>
+                    </div>
                   </div>
                 )}
 
@@ -608,11 +629,26 @@ export default function ControlloPulizieMaster() {
                         <p className="text-xs text-[#9b9b9b] mb-2">Opzioni:</p>
                         <div className="flex flex-wrap gap-2">
                           {domanda.opzioni_risposta.map((opzione, idx) => (
-                            <span key={idx} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">
+                            <span 
+                              key={idx} 
+                              className={`text-xs px-2 py-1 rounded-full ${
+                                opzione === domanda.risposta_corretta 
+                                  ? 'bg-green-100 text-green-700 font-bold' 
+                                  : 'bg-blue-50 text-blue-700'
+                              }`}
+                            >
                               {opzione}
+                              {opzione === domanda.risposta_corretta && ' ✓'}
                             </span>
                           ))}
                         </div>
+                        {domanda.risposta_corretta && (
+                          <div className="mt-2 pt-2 border-t border-[#d1d1d1]">
+                            <p className="text-xs text-[#9b9b9b]">
+                              Risposta corretta: <span className="font-bold text-green-700">{domanda.risposta_corretta}</span>
+                            </p>
+                          </div>
+                        )}
                       </div>
                     )}
 
