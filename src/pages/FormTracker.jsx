@@ -148,11 +148,18 @@ export default function FormTracker() {
             periodStart.setHours(0, 0, 0, 0);
           }
 
-          const hasCompleted = completions.some(c => 
-            c.user_id === user.id &&
-            c.form_name === config.form_name &&
-            parseISO(c.completion_date) >= periodStart
-          );
+          const hasCompleted = completions.some(c => {
+            if (!c.completion_date) return false;
+            try {
+              const compDate = parseISO(c.completion_date);
+              if (isNaN(compDate.getTime())) return false;
+              return c.user_id === user.id &&
+                     c.form_name === config.form_name &&
+                     compDate >= periodStart;
+            } catch (e) {
+              return false;
+            }
+          });
 
           if (!hasCompleted) {
             missing.push({
@@ -166,21 +173,28 @@ export default function FormTracker() {
           const userShifts = shifts.filter(s => s.employee_name === userName);
           
           userShifts.forEach(shift => {
-            const shiftDate = parseISO(shift.shift_date);
-            const hasCompleted = completions.some(c =>
-              c.user_id === user.id &&
-              c.form_name === config.form_name &&
-              c.shift_id === shift.id
-            );
+            if (!shift.shift_date) return;
+            try {
+              const shiftDate = parseISO(shift.shift_date);
+              if (isNaN(shiftDate.getTime())) return;
+              
+              const hasCompleted = completions.some(c =>
+                c.user_id === user.id &&
+                c.form_name === config.form_name &&
+                c.shift_id === shift.id
+              );
 
-            if (!hasCompleted && isAfter(new Date(), shiftDate)) {
+              if (!hasCompleted && isAfter(new Date(), shiftDate)) {
               missing.push({
                 user,
                 userName,
                 config,
                 shift,
-                reason: `Non completato per turno del ${new Date(shift.shift_date).toLocaleDateString('it-IT')}`
-              });
+                  reason: `Non completato per turno del ${new Date(shift.shift_date).toLocaleDateString('it-IT')}`
+                });
+              }
+            } catch (e) {
+              console.error('Error processing shift date:', e);
             }
           });
         }
@@ -390,7 +404,14 @@ export default function FormTracker() {
                       <p className="text-sm text-slate-600">{item.config.form_name}</p>
                       {item.completed && item.completionDate && (
                         <p className="text-xs text-green-600 mt-1">
-                          Completato: {new Date(item.completionDate).toLocaleString('it-IT')}
+                          Completato: {(() => {
+                            try {
+                              const date = new Date(item.completionDate);
+                              return isNaN(date.getTime()) ? 'Data non valida' : date.toLocaleString('it-IT');
+                            } catch (e) {
+                              return 'Data non valida';
+                            }
+                          })()}
                         </p>
                       )}
                     </div>
