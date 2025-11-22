@@ -40,14 +40,13 @@ export default function GestioneAccessoPagine() {
       'ContrattiDipendente', 
       'Academy',
       'Valutazione',
-      'ControlloPuliziaCassiere',
-      'ControlloPuliziaPizzaiolo',
-      'ControlloPuliziaStoreManager',
-      'FormInventario',
-      'ConteggioCassa',
-      'TeglieButtate',
-      'Preparazioni'
-    ]
+      'FormsDipendente',
+      'Impasto',
+      'Precotture'
+    ],
+    pizzaiolo_pages: activeConfig?.pizzaiolo_pages || ['ControlloPuliziaPizzaiolo'],
+    cassiere_pages: activeConfig?.cassiere_pages || ['ControlloPuliziaCassiere', 'ConteggioCassa'],
+    store_manager_pages: activeConfig?.store_manager_pages || ['ControlloPuliziaStoreManager']
   });
 
   const [saving, setSaving] = useState(false);
@@ -83,14 +82,13 @@ export default function GestioneAccessoPagine() {
           'ContrattiDipendente', 
           'Academy',
           'Valutazione',
-          'ControlloPuliziaCassiere',
-          'ControlloPuliziaPizzaiolo',
-          'ControlloPuliziaStoreManager',
-          'FormInventario',
-          'ConteggioCassa',
-          'TeglieButtate',
-          'Preparazioni'
-        ]
+          'FormsDipendente',
+          'Impasto',
+          'Precotture'
+        ],
+        pizzaiolo_pages: activeConfig.pizzaiolo_pages || ['ControlloPuliziaPizzaiolo'],
+        cassiere_pages: activeConfig.cassiere_pages || ['ControlloPuliziaCassiere', 'ConteggioCassa'],
+        store_manager_pages: activeConfig.store_manager_pages || ['ControlloPuliziaStoreManager']
       });
     }
   }, [activeConfig]);
@@ -517,8 +515,8 @@ export default function GestioneAccessoPagine() {
             <span className="text-xl font-bold text-[#8b7355]">4</span>
           </div>
           <div>
-            <h2 className="text-xl font-bold text-[#6b6b6b]">Dipendenti - Contratto Iniziato</h2>
-            <p className="text-sm text-[#9b9b9b]">Data inizio contratto ≥ data odierna (E contratto firmato)</p>
+            <h2 className="text-xl font-bold text-[#6b6b6b]">Dipendenti - Contratto Iniziato (Base)</h2>
+            <p className="text-sm text-[#9b9b9b]">Pagine visibili a TUTTI i dipendenti dopo inizio contratto</p>
           </div>
         </div>
 
@@ -552,6 +550,94 @@ export default function GestioneAccessoPagine() {
             </div>
           </div>
         ))}
+      </NeumorphicCard>
+
+      {/* Role-Specific Pages */}
+      <NeumorphicCard className="p-6 bg-blue-50 border-2 border-blue-300">
+        <div className="flex items-center gap-3 mb-4">
+          <Users className="w-8 h-8 text-blue-600" />
+          <div>
+            <h2 className="text-xl font-bold text-blue-800">Pagine Specifiche per Ruolo</h2>
+            <p className="text-sm text-blue-600">Queste pagine si aggiungono a quelle base quando il dipendente ha il ruolo specifico</p>
+          </div>
+        </div>
+
+        {/* Pizzaiolo */}
+        <div className="mb-6">
+          <h3 className="font-bold text-[#6b6b6b] mb-3 flex items-center gap-2">
+            🍕 Ruolo: Pizzaiolo
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {['ControlloPuliziaPizzaiolo', 'Impasto', 'Precotture', 'FormPreparazioni'].map(page => (
+              <div key={page} className="neumorphic-pressed p-3 rounded-lg">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={pageConfig.pizzaiolo_pages?.includes(page)}
+                    onChange={() => handlePageToggle('pizzaiolo_pages', page)}
+                    className="w-5 h-5 rounded"
+                  />
+                  <span className="text-sm text-[#6b6b6b]">
+                    {page === 'ControlloPuliziaPizzaiolo' ? '✅ Controllo Pulizia Pizzaiolo' : 
+                     page === 'Impasto' ? '✅ Impasto' : 
+                     page === 'Precotture' ? '✅ Precotture' : '✅ Form Preparazioni'}
+                  </span>
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Cassiere */}
+        <div className="mb-6">
+          <h3 className="font-bold text-[#6b6b6b] mb-3 flex items-center gap-2">
+            💰 Ruolo: Cassiere
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {['ControlloPuliziaCassiere', 'ConteggioCassa', 'FeedbackP2P'].map(page => (
+              <div key={page} className="neumorphic-pressed p-3 rounded-lg">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={pageConfig.cassiere_pages?.includes(page)}
+                    onChange={() => handlePageToggle('cassiere_pages', page)}
+                    className="w-5 h-5 rounded"
+                  />
+                  <span className="text-sm text-[#6b6b6b]">
+                    {page === 'ControlloPuliziaCassiere' ? '✅ Controllo Pulizia Cassiere' : 
+                     page === 'ConteggioCassa' ? '✅ Conteggio Cassa' : '✅ Feedback P2P'}
+                  </span>
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Store Manager */}
+        <div>
+          <h3 className="font-bold text-[#6b6b6b] mb-3 flex items-center gap-2">
+            👔 Ruolo: Store Manager
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {['ControlloPuliziaStoreManager', 'FormInventario', 'FormCantina', 'FormTeglieButtate'].map(page => (
+              <div key={page} className="neumorphic-pressed p-3 rounded-lg">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={pageConfig.store_manager_pages?.includes(page)}
+                    onChange={() => handlePageToggle('store_manager_pages', page)}
+                    className="w-5 h-5 rounded"
+                  />
+                  <span className="text-sm text-[#6b6b6b]">
+                    {page === 'ControlloPuliziaStoreManager' ? '✅ Controllo Pulizia Store Manager' : 
+                     page === 'FormInventario' ? '✅ Form Inventario' : 
+                     page === 'FormCantina' ? '✅ Form Cantina' : '✅ Form Teglie Buttate'}
+                  </span>
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
       </NeumorphicCard>
 
       {/* Save Button */}
