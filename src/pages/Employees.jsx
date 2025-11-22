@@ -73,6 +73,11 @@ export default function Employees() {
     queryFn: () => base44.entities.MetricWeight.list(),
   });
 
+  const { data: p2pResponses = [] } = useQuery({
+    queryKey: ['p2p-responses'],
+    queryFn: () => base44.entities.P2PFeedbackResponse.list('-submitted_date'),
+  });
+
   const currentOrderIds = useMemo(() => new Set(wrongOrders.map(o => o.id)), [wrongOrders]);
   const wrongOrderMatches = useMemo(() =>
     allWrongOrderMatches.filter(m => currentOrderIds.has(m.wrong_order_id))
@@ -266,12 +271,18 @@ export default function Employees() {
         return weight ? weight.weight : 1;
       };
 
+      const w_ordini = getWeight('ordini_sbagliati');
+      const w_ritardi = getWeight('ritardi');
+      const w_timbrature = getWeight('timbrature_mancanti');
+      const w_num_recensioni = getWeight('numero_recensioni');
+      const w_punteggio_recensioni = getWeight('punteggio_recensioni');
+
       let performanceScore = 100;
-      performanceScore -= wrongOrderRate * getWeight('ordini_sbagliati');
-      performanceScore -= percentualeRitardi * getWeight('ritardi');
-      performanceScore -= numeroTimbratureMancate * getWeight('timbrature_mancanti');
-      performanceScore += assignedReviews.length * getWeight('numero_recensioni');
-      performanceScore += (avgGoogleRating - 3) * getWeight('punteggio_recensioni') * 5;
+      performanceScore -= wrongOrderRate * w_ordini;
+      performanceScore -= percentualeRitardi * w_ritardi;
+      performanceScore -= numeroTimbratureMancate * w_timbrature;
+      performanceScore += assignedReviews.length * w_num_recensioni;
+      performanceScore += (avgGoogleRating - 3) * w_punteggio_recensioni * 5;
       performanceScore = Math.max(0, Math.min(100, performanceScore));
 
       const performanceLevel = performanceScore >= 80 ? 'excellent' :
@@ -296,10 +307,17 @@ export default function Employees() {
         performanceLevel,
         totalShifts: employeeShifts.length,
         avgGoogleRating,
-        googleReviewCount: googleReviews.length
+        googleReviewCount: googleReviews.length,
+        weights: {
+          w_ordini,
+          w_ritardi,
+          w_timbrature,
+          w_num_recensioni,
+          w_punteggio_recensioni
+        }
       };
     });
-  }, [users, shifts, reviews, wrongOrderMatches, startDate, endDate]);
+  }, [users, shifts, reviews, wrongOrderMatches, startDate, endDate, metricWeights]);
 
   const filteredEmployees = useMemo(() => {
     let filtered = employeeMetrics;
@@ -535,6 +553,16 @@ export default function Employees() {
 
   const getLatestWrongOrders = (employeeName) => {
     return getAllWrongOrders(employeeName).slice(0, 3);
+  };
+
+  const getP2PFeedbackForEmployee = (employeeName) => {
+    return p2pResponses
+      .filter(r => r.reviewed_name === employeeName)
+      .sort((a, b) => {
+        const dateA = new Date(a.submitted_date || 0);
+        const dateB = new Date(b.submitted_date || 0);
+        return dateB.getTime() - dateA.getTime();
+      });
   };
 
   const getConfidenceBadgeColor = (confidence) => {
@@ -790,6 +818,13 @@ export default function Employees() {
                 </div>
               </div>
 
+              <div className="neumorphic-flat p-3 rounded-xl mb-4 bg-blue-50">
+                <p className="text-xs text-blue-800 leading-relaxed">
+                  <strong>📊 Calcolo Punteggio:</strong><br/>
+                  100 - (ordini sbagliati% × {selectedEmployee.weights.w_ordini}) - (ritardi% × {selectedEmployee.weights.w_ritardi}) - (timbrature mancate × {selectedEmployee.weights.w_timbrature}) + (recensioni × {selectedEmployee.weights.w_num_recensioni}) + ((rating-3) × {selectedEmployee.weights.w_punteggio_recensioni} × 5)
+                </p>
+              </div>
+
               <div className="space-y-3 lg:space-y-4">
                 <div className="neumorphic-flat p-3 lg:p-4 rounded-xl">
                   <div className="flex items-center gap-2 lg:gap-3 mb-3">
@@ -1016,23 +1051,46 @@ export default function Employees() {
 
                 <div className="neumorphic-flat p-4 rounded-xl">
                   <div className="flex items-center gap-3 mb-3">
-                    <Star className="w-5 h-5 text-[#8b7355]" />
-                    <h3 className="font-bold text-slate-800">Customer Feedback</h3>
+                    <Users className="w-5 h-5 text-purple-600" />
+                    <h3 className="font-bold text-slate-800">Valutazione P2P</h3>
                   </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-sm text-slate-500">Mentions</p>
-                      <p className="text-xl font-bold text-slate-800">{selectedEmployee.mentions}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-slate-500">Positive</p>
-                      <p className="text-xl font-bold text-green-600">{selectedEmployee.positiveMentions}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-slate-500">Negative</p>
-                      <p className="text-xl font-bold text-red-600">{selectedEmployee.negativeMentions}</p>
-                    </div>
-                  </div>
+                  {(() => {
+                    const p2pFeedbacks = getP2PFeedbackForEmployee(selectedEmployee.full_name);
+                    return p2pFeedbacks.length > 0 ? (
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {p2pFeedbacks.map((feedback) => (
+                          <div key={feedback.id} className="neumorphic-pressed p-3 rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-medium text-slate-800">
+                                Da: {feedback.reviewer_name}
+                              </span>
+                              <span className="text-xs text-slate-500">
+                                {(() => {
+                                  try {
+                                    return new Date(feedback.submitted_date).toLocaleDateString('it-IT');
+                                  } catch (e) {
+                                    return 'N/A';
+                                  }
+                                })()}
+                              </span>
+                            </div>
+                            <div className="space-y-1">
+                              {feedback.responses?.map((resp, idx) => (
+                                <div key={idx} className="text-xs">
+                                  <span className="text-slate-600">{resp.question_text}:</span>
+                                  <span className="text-slate-800 font-medium ml-1">{resp.answer}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-500 text-center py-2">
+                        Nessuna valutazione P2P ricevuta
+                      </p>
+                    );
+                  })()}
                 </div>
               </div>
             </NeumorphicCard>

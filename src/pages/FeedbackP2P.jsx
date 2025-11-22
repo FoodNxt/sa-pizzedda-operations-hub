@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Users, Plus, Edit, Trash2, Save, X, Send, CheckCircle } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, Save, X, Send, CheckCircle, Star } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
@@ -15,9 +15,9 @@ export default function FeedbackP2P() {
   const [showSendNowModal, setShowSendNowModal] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [questionForm, setQuestionForm] = useState({
-    question_text: '',
-    question_order: 1,
-    options: ['', '', '']
+    metric_name: '',
+    metric_description: '',
+    question_order: 1
   });
   const [configForm, setConfigForm] = useState({
     frequency_type: 'weekly',
@@ -113,9 +113,9 @@ export default function FeedbackP2P() {
 
   const resetQuestionForm = () => {
     setQuestionForm({
-      question_text: '',
-      question_order: questions.length + 1,
-      options: ['', '', '']
+      metric_name: '',
+      metric_description: '',
+      question_order: questions.length + 1
     });
     setEditingQuestion(null);
     setShowQuestionForm(false);
@@ -124,41 +124,20 @@ export default function FeedbackP2P() {
   const handleEditQuestion = (question) => {
     setEditingQuestion(question);
     setQuestionForm({
-      question_text: question.question_text,
-      question_order: question.question_order,
-      options: question.options || ['', '', '']
+      metric_name: question.metric_name,
+      metric_description: question.metric_description || '',
+      question_order: question.question_order
     });
     setShowQuestionForm(true);
   };
 
   const handleSubmitQuestion = (e) => {
     e.preventDefault();
-    const filteredOptions = questionForm.options.filter(o => o.trim() !== '');
-    if (filteredOptions.length < 2) {
-      alert('Inserisci almeno 2 opzioni di risposta');
-      return;
-    }
-    const data = { ...questionForm, options: filteredOptions };
     if (editingQuestion) {
-      updateQuestionMutation.mutate({ id: editingQuestion.id, data });
+      updateQuestionMutation.mutate({ id: editingQuestion.id, data: questionForm });
     } else {
-      createQuestionMutation.mutate(data);
+      createQuestionMutation.mutate(questionForm);
     }
-  };
-
-  const addOption = () => {
-    setQuestionForm({ ...questionForm, options: [...questionForm.options, ''] });
-  };
-
-  const removeOption = (index) => {
-    const newOptions = questionForm.options.filter((_, i) => i !== index);
-    setQuestionForm({ ...questionForm, options: newOptions });
-  };
-
-  const updateOption = (index, value) => {
-    const newOptions = [...questionForm.options];
-    newOptions[index] = value;
-    setQuestionForm({ ...questionForm, options: newOptions });
   };
 
   // Get colleagues from last week
@@ -265,7 +244,7 @@ export default function FeedbackP2P() {
                     className="flex items-center gap-2"
                   >
                     <Plus className="w-5 h-5" />
-                    Aggiungi Domanda
+                    Aggiungi Metrica
                   </NeumorphicButton>
                   <NeumorphicButton
                     onClick={() => setShowSendNowModal(true)}
@@ -289,15 +268,12 @@ export default function FeedbackP2P() {
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
                               <span className="text-xs font-bold text-slate-500">#{q.question_order}</span>
-                              <h3 className="font-bold text-slate-800">{q.question_text}</h3>
+                              <h3 className="font-bold text-slate-800">{q.metric_name}</h3>
                             </div>
-                            <div className="flex flex-wrap gap-2">
-                              {q.options?.map((opt, idx) => (
-                                <span key={idx} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                                  {opt}
-                                </span>
-                              ))}
-                            </div>
+                            {q.metric_description && (
+                              <p className="text-sm text-slate-600">{q.metric_description}</p>
+                            )}
+                            <p className="text-xs text-purple-600 mt-2">Punteggio: 1-5</p>
                           </div>
                           <div className="flex gap-2">
                             <button
@@ -308,7 +284,7 @@ export default function FeedbackP2P() {
                             </button>
                             <button
                               onClick={() => {
-                                if (confirm('Eliminare questa domanda?')) {
+                                if (confirm('Eliminare questa metrica?')) {
                                   deleteQuestionMutation.mutate(q.id);
                                 }
                               }}
@@ -456,7 +432,7 @@ export default function FeedbackP2P() {
               <NeumorphicCard className="p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold text-slate-800">
-                    {editingQuestion ? 'Modifica Domanda' : 'Nuova Domanda'}
+                    {editingQuestion ? 'Modifica Metrica' : 'Nuova Metrica'}
                   </h2>
                   <button onClick={resetQuestionForm} className="nav-button p-2 rounded-lg">
                     <X className="w-5 h-5 text-slate-600" />
@@ -466,14 +442,28 @@ export default function FeedbackP2P() {
                 <form onSubmit={handleSubmitQuestion} className="space-y-4">
                   <div>
                     <label className="text-sm font-medium text-slate-700 mb-2 block">
-                      Testo Domanda
+                      Nome Metrica
                     </label>
                     <input
                       type="text"
-                      value={questionForm.question_text}
-                      onChange={(e) => setQuestionForm({ ...questionForm, question_text: e.target.value })}
+                      value={questionForm.metric_name}
+                      onChange={(e) => setQuestionForm({ ...questionForm, metric_name: e.target.value })}
                       className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      placeholder="es. Puntualità, Lavoro di squadra"
                       required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">
+                      Descrizione (opzionale)
+                    </label>
+                    <input
+                      type="text"
+                      value={questionForm.metric_description}
+                      onChange={(e) => setQuestionForm({ ...questionForm, metric_description: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      placeholder="es. Arriva sempre in orario"
                     />
                   </div>
 
@@ -490,39 +480,10 @@ export default function FeedbackP2P() {
                     />
                   </div>
 
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 mb-2 block">
-                      Opzioni di Risposta
-                    </label>
-                    <div className="space-y-2">
-                      {questionForm.options.map((opt, idx) => (
-                        <div key={idx} className="flex gap-2">
-                          <input
-                            type="text"
-                            value={opt}
-                            onChange={(e) => updateOption(idx, e.target.value)}
-                            className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                            placeholder={`Opzione ${idx + 1}`}
-                          />
-                          {questionForm.options.length > 2 && (
-                            <button
-                              type="button"
-                              onClick={() => removeOption(idx)}
-                              className="nav-button p-3 rounded-lg"
-                            >
-                              <X className="w-4 h-4 text-red-600" />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                      <NeumorphicButton
-                        type="button"
-                        onClick={addOption}
-                        className="w-full"
-                      >
-                        + Aggiungi Opzione
-                      </NeumorphicButton>
-                    </div>
+                  <div className="neumorphic-flat p-4 rounded-xl bg-purple-50">
+                    <p className="text-xs text-purple-800">
+                      <strong>ℹ️ Scala di valutazione:</strong> I dipendenti valuteranno questa metrica con un punteggio da 1 (molto basso) a 5 (eccellente)
+                    </p>
                   </div>
 
                   <div className="flex gap-3 pt-4">
@@ -553,9 +514,9 @@ function DipendenteView({ currentUser, questions, colleagues, users, onSubmit })
     const colleague = users.find(u => (u.nome_cognome || u.full_name || u.email) === selectedColleague);
     
     const responses = questions.map(q => ({
-      question_id: q.id,
-      question_text: q.question_text,
-      answer: answers[q.id] || ''
+      metric_id: q.id,
+      metric_name: q.metric_name,
+      score: parseInt(answers[q.id]) || 1
     }));
 
     const lastWeekStart = startOfWeek(subWeeks(new Date(), 1), { weekStartsOn: 1 });
@@ -622,19 +583,31 @@ function DipendenteView({ currentUser, questions, colleagues, users, onSubmit })
           {questions.map(q => (
             <div key={q.id}>
               <label className="text-sm font-medium text-slate-700 mb-2 block">
-                {q.question_text}
+                {q.metric_name}
+                {q.metric_description && (
+                  <span className="text-xs text-slate-500 block mt-1">{q.metric_description}</span>
+                )}
               </label>
-              <select
-                value={answers[q.id] || ''}
-                onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                required
-              >
-                <option value="">Seleziona una risposta...</option>
-                {q.options?.map((opt, idx) => (
-                  <option key={idx} value={opt}>{opt}</option>
+              <div className="flex gap-2 justify-between">
+                {[1, 2, 3, 4, 5].map(score => (
+                  <button
+                    key={score}
+                    type="button"
+                    onClick={() => setAnswers({ ...answers, [q.id]: score })}
+                    className={`flex-1 py-3 px-2 rounded-xl text-center font-bold transition-all ${
+                      answers[q.id] === score
+                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                        : 'nav-button text-slate-700'
+                    }`}
+                  >
+                    {score}
+                  </button>
                 ))}
-              </select>
+              </div>
+              <div className="flex justify-between mt-1 px-1">
+                <span className="text-xs text-slate-500">Basso</span>
+                <span className="text-xs text-slate-500">Eccellente</span>
+              </div>
             </div>
           ))}
 
