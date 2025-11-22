@@ -496,9 +496,7 @@ export default function Layout({ children, currentPageName }) {
           if (contractStarted && hasSignedContract) {
             allowedPages = pageAccessConfig?.after_contract_start || [
               'ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione',
-              'ControlloPuliziaCassiere', 'ControlloPuliziaPizzaiolo', 'ControlloPuliziaStoreManager',
-              'InventoryForms',
-              'ConteggioCassa'
+              'FormsDipendente', 'FeedbackP2P'
             ];
           } else if (hasSignedContract) {
             allowedPages = pageAccessConfig?.after_contract_signed || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'];
@@ -640,9 +638,7 @@ export default function Layout({ children, currentPageName }) {
     if (contractStarted && hasSignedContract) {
       allowedPages = pageAccessConfig?.after_contract_start || [
         'ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione',
-        'ControlloPuliziaCassiere', 'ControlloPuliziaPizzaiolo', 'ControlloPuliziaStoreManager',
-        'InventoryForms',
-        'ConteggioCassa'
+        'FormsDipendente', 'FeedbackP2P'
       ];
     } else if (hasSignedContract) {
       allowedPages = pageAccessConfig?.after_contract_signed || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'];
@@ -653,12 +649,6 @@ export default function Layout({ children, currentPageName }) {
     }
 
     const menuItems = allowedPages
-      .filter(pageName => {
-        if (pageName === 'ControlloPuliziaCassiere') return userRoles.includes('Cassiere');
-        if (pageName === 'ControlloPuliziaPizzaiolo') return userRoles.includes('Pizzaiolo');
-        if (pageName === 'ControlloPuliziaStoreManager') return userRoles.includes('Store Manager');
-        return true;
-      })
       .map(pageName => ({
         title: getPageTitle(pageName),
         url: createPageUrl(pageName),
@@ -679,6 +669,8 @@ export default function Layout({ children, currentPageName }) {
       'ContrattiDipendente': 'Contratti',
       'Academy': 'Academy',
       'Valutazione': 'Valutazione',
+      'FormsDipendente': 'Form',
+      'FeedbackP2P': 'Feedback P2P',
       'ControlloPuliziaCassiere': 'Pulizia',
       'ControlloPuliziaPizzaiolo': 'Pulizia',
       'ControlloPuliziaStoreManager': 'Pulizia',
@@ -697,6 +689,8 @@ export default function Layout({ children, currentPageName }) {
       'ContrattiDipendente': FileText,
       'Academy': GraduationCap,
       'Valutazione': ClipboardCheck,
+      'FormsDipendente': Edit,
+      'FeedbackP2P': Users,
       'ControlloPuliziaCassiere': Camera,
       'ControlloPuliziaPizzaiolo': Camera,
       'ControlloPuliziaStoreManager': Camera,
@@ -1023,17 +1017,76 @@ export default function Layout({ children, currentPageName }) {
                 </div>
               )}
             </div>
-          </aside>
-        )}
+            </aside>
+            ) : (
+            /* Desktop Sidebar for Dipendente */
+            <aside className="hidden lg:block fixed lg:static inset-y-0 left-0 z-40 w-72">
+            <div className="h-full neumorphic-card m-4 p-6 flex flex-col">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="neumorphic-flat p-3 bg-gradient-to-br from-blue-500 to-blue-600">
+                  <Pizza className="w-8 h-8 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">Sa Pizzedda</h1>
+                  <p className="text-xs text-slate-500">Area Dipendente</p>
+                </div>
+              </div>
 
-        {/* Main Content */}
-        <main className={`
-          flex-1 min-h-screen 
-          ${normalizedUserType === 'dipendente' ? 'pt-24 pb-28 lg:pt-8 lg:pb-8' : normalizedUserType !== 'admin' ? 'pt-32 lg:pt-16' : 'pt-20 lg:pt-0'} 
-          px-3 py-4 lg:p-8
-        `}>
-          {children}
-        </main>
+              <nav className="flex-1 space-y-2">
+                {isFullyLoaded ? (
+                  bottomNavItems.map((item) => {
+                    const isActive = isActiveLink(item.url);
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.url}
+                        to={item.url}
+                        className={`
+                          flex items-center gap-3 px-4 py-3 rounded-xl
+                          transition-all duration-200
+                          ${isActive ? 'nav-button-active text-white' : 'nav-button text-slate-700'}
+                        `}
+                      >
+                        <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-slate-600'}`} />
+                        <span className="font-medium">{item.title}</span>
+                      </Link>
+                    );
+                  })
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <Loader2 className="w-8 h-8 text-blue-500 animate-spin mb-3" />
+                    <p className="text-sm text-slate-500">Caricamento...</p>
+                  </div>
+                )}
+              </nav>
+
+              {isFullyLoaded && (
+                <div className="neumorphic-pressed p-4 rounded-xl mt-4 bg-gradient-to-br from-slate-100 to-slate-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                      <span className="text-sm font-bold text-white">
+                        {getUserDisplayName().charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-700 truncate">{getUserDisplayName()}</p>
+                      <p className="text-xs text-slate-500">{getUserTypeName()}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            </aside>
+            )}
+
+            {/* Main Content */}
+            <main className={`
+            flex-1 min-h-screen 
+            ${normalizedUserType === 'dipendente' ? 'pt-24 pb-28 lg:pt-8 lg:pb-8 lg:ml-0' : normalizedUserType !== 'admin' ? 'pt-32 lg:pt-16' : 'pt-20 lg:pt-0'} 
+            px-3 py-4 lg:p-8
+            `}>
+            {children}
+            </main>
       </div>
 
       {/* Mobile Bottom Navigation (Dipendente only) */}
