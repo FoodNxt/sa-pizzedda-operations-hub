@@ -101,12 +101,39 @@ export default function GestioneAccessoPagine() {
       setPageConfig({
         admin_pages: activeConfig.admin_pages || [],
         manager_pages: activeConfig.manager_pages || [],
-        after_registration: activeConfig.after_registration || ['ProfiloDipendente'],
-        after_contract_received: activeConfig.after_contract_received || ['ProfiloDipendente', 'ContrattiDipendente'],
-        after_contract_signed: activeConfig.after_contract_signed || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'],
-        pizzaiolo_pages: activeConfig.pizzaiolo_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'ControlloPuliziaPizzaiolo'],
-        cassiere_pages: activeConfig.cassiere_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'ControlloPuliziaCassiere'],
-        store_manager_pages: activeConfig.store_manager_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente']
+        after_registration: normalizePages(activeConfig.after_registration || [{ page: 'ProfiloDipendente', showInMenu: true, showInForms: false }]),
+        after_contract_received: normalizePages(activeConfig.after_contract_received || [
+          { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
+          { page: 'ContrattiDipendente', showInMenu: true, showInForms: false }
+        ]),
+        after_contract_signed: normalizePages(activeConfig.after_contract_signed || [
+          { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
+          { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
+          { page: 'Academy', showInMenu: true, showInForms: false }
+        ]),
+        pizzaiolo_pages: normalizePages(activeConfig.pizzaiolo_pages || [
+          { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
+          { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
+          { page: 'Academy', showInMenu: true, showInForms: false },
+          { page: 'Valutazione', showInMenu: true, showInForms: false },
+          { page: 'FormsDipendente', showInMenu: true, showInForms: false },
+          { page: 'ControlloPuliziaPizzaiolo', showInMenu: false, showInForms: true }
+        ]),
+        cassiere_pages: normalizePages(activeConfig.cassiere_pages || [
+          { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
+          { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
+          { page: 'Academy', showInMenu: true, showInForms: false },
+          { page: 'Valutazione', showInMenu: true, showInForms: false },
+          { page: 'FormsDipendente', showInMenu: true, showInForms: false },
+          { page: 'ControlloPuliziaCassiere', showInMenu: false, showInForms: true }
+        ]),
+        store_manager_pages: normalizePages(activeConfig.store_manager_pages || [
+          { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
+          { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
+          { page: 'Academy', showInMenu: true, showInForms: false },
+          { page: 'Valutazione', showInMenu: true, showInForms: false },
+          { page: 'FormsDipendente', showInMenu: true, showInForms: false }
+        ])
       });
     }
   }, [activeConfig]);
