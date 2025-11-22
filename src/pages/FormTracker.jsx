@@ -23,6 +23,7 @@ export default function FormTracker() {
     temporal_day_of_week: 1,
     shift_based_timing: 'end',
     shift_time_filter: '',
+    use_previous_day_shift: false,
     is_active: true,
     assigned_roles: []
   });
@@ -89,6 +90,7 @@ export default function FormTracker() {
       temporal_day_of_week: null,
       shift_based_timing: 'end',
       shift_time_filter: '',
+      use_previous_day_shift: false,
       is_active: true,
       assigned_roles: []
     });
@@ -106,6 +108,7 @@ export default function FormTracker() {
       temporal_day_of_week: config.temporal_day_of_week !== undefined && config.temporal_day_of_week !== null ? config.temporal_day_of_week : null,
       shift_based_timing: config.shift_based_timing || 'end',
       shift_time_filter: config.shift_time_filter || '',
+      use_previous_day_shift: config.use_previous_day_shift || false,
       is_active: config.is_active !== false,
       assigned_roles: config.assigned_roles || []
     });
@@ -270,21 +273,31 @@ export default function FormTracker() {
       eligibleUsers.forEach(user => {
         const userName = user.nome_cognome || user.full_name || user.email;
         
-        // Get user's store from shifts on selected date
+        // Get user's store from shifts on selected date OR previous day (for late-loaded shifts)
         const userShiftOnDate = shifts.find(s => 
           s.employee_name === userName && 
           s.shift_date === selectedDate
         );
-        const userStore = userShiftOnDate?.store_name;
+        
+        // Check yesterday's shift too (for shifts loaded the next day)
+        const yesterday = new Date(dateObj);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+        const userShiftYesterday = shifts.find(s => 
+          s.employee_name === userName && 
+          s.shift_date === yesterdayStr
+        );
 
-        // Filter by selected stores if any
-        if (selectedStoresForDate.length > 0 && (!userStore || !selectedStoresForDate.includes(userStore))) {
-          return;
-        }
+        const userStore = userShiftOnDate?.store_name || userShiftYesterday?.store_name;
 
         let shouldShow = false;
 
         if (config.frequency_type === 'temporal') {
+          // For temporal configs, show regardless of shifts (unless store filter is applied)
+          if (selectedStoresForDate.length > 0 && (!userStore || !selectedStoresForDate.includes(userStore))) {
+            return;
+          }
+
           if (config.temporal_frequency === 'daily') {
             shouldShow = true;
           } else if (config.temporal_frequency === 'weekly') {
@@ -293,7 +306,15 @@ export default function FormTracker() {
             shouldShow = dateObj.getDate() === 1;
           }
         } else if (config.frequency_type === 'shift_based') {
-          shouldShow = !!userShiftOnDate;
+          // For shift-based, only show if there's a shift (today or yesterday for late-loaded)
+          const relevantShift = userShiftOnDate || (config.use_previous_day_shift ? userShiftYesterday : null);
+          
+          if (relevantShift) {
+            if (selectedStoresForDate.length > 0 && !selectedStoresForDate.includes(relevantShift.store_name)) {
+              return;
+            }
+            shouldShow = true;
+          }
         }
 
         if (shouldShow) {
@@ -595,7 +616,12 @@ export default function FormTracker() {
                           </>
                         )}
                         {config.frequency_type === 'shift_based' && (
-                          <p><strong>Quando:</strong> {config.shift_based_timing === 'start' ? 'Inizio turno' : 'Fine turno'}</p>
+                          <>
+                            <p><strong>Quando:</strong> {config.shift_based_timing === 'start' ? 'Inizio turno' : 'Fine turno'}</p>
+                            {config.use_previous_day_shift && (
+                              <p><strong>Usa turno precedente:</strong> Sì</p>
+                            )}
+                          </>
                         )}
                         {config.assigned_roles && config.assigned_roles.length > 0 && (
                           <p><strong>Ruoli:</strong> {config.assigned_roles.join(', ')}</p>
