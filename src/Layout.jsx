@@ -654,11 +654,11 @@ export default function Layout({ children, currentPageName }) {
       allowedPagesConfig = normalizePageConfig(pageAccessConfig?.after_registration || []);
     }
 
-    // Filter only pages that should show in menu
+    // Filter only pages that should show in menu (NEVER show FormTeglieButtate)
     const menuPages = allowedPagesConfig
       .filter(p => p.showInMenu === true)
       .map(p => p.page)
-      .filter(pageName => pageName !== 'FormTeglieButtate'); // Never show TeglieButtate in menu
+      .filter(pageName => pageName !== 'FormTeglieButtate');
 
     const menuItems = menuPages.map(pageName => ({
       title: getPageTitle(pageName),
@@ -1135,6 +1135,13 @@ export default function Layout({ children, currentPageName }) {
                   </Link>
                 );
               })}
+              <button
+                onClick={() => base44.auth.logout()}
+                className="bottom-nav-item"
+              >
+                <LogOut className="w-7 h-7 mb-1.5 text-slate-600" />
+                <span className="text-xs font-semibold text-slate-600">Logout</span>
+              </button>
             </div>
           </div>
         </div>
