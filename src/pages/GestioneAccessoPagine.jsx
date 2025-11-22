@@ -490,26 +490,55 @@ export default function GestioneAccessoPagine() {
             }`}>
               {category}
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {pages.map(page => (
-                <div key={page.value} className={`neumorphic-pressed p-3 rounded-lg ${
-                  !page.recommended && pageConfig.after_registration.includes(page.value) ? 'border-2 border-red-500' : ''
-                }`}>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={pageConfig.after_registration.includes(page.value)}
-                      onChange={() => handlePageToggle('after_registration', page.value)}
-                      className="w-5 h-5 rounded"
-                    />
-                    <span className={`text-sm ${
-                      page.recommended ? 'text-[#6b6b6b]' : 'text-red-600 font-bold'
-                    }`}>
-                      {page.label}
-                    </span>
-                  </label>
-                </div>
-              ))}
+            <div className="grid grid-cols-1 gap-2">
+              {pages.map(page => {
+                const pageData = pageConfig.after_registration.find(p => p.page === page.value);
+                const isChecked = !!pageData;
+
+                return (
+                  <div key={page.value} className={`neumorphic-pressed p-3 rounded-lg ${
+                    !page.recommended && isChecked ? 'border-2 border-red-500' : ''
+                  }`}>
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handlePageToggle('after_registration', page.value)}
+                        className="w-5 h-5 rounded mt-0.5"
+                      />
+                      <div className="flex-1">
+                        <span className={`text-sm block mb-2 ${
+                          page.recommended ? 'text-[#6b6b6b]' : 'text-red-600 font-bold'
+                        }`}>
+                          {page.label}
+                        </span>
+                        {isChecked && (
+                          <div className="flex gap-4 text-xs">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={pageData.showInMenu}
+                                onChange={() => handlePageMenuToggle('after_registration', page.value)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-slate-600">Mostra nel Menu</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={pageData.showInForms}
+                                onChange={() => handlePageFormsToggle('after_registration', page.value)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-slate-600">Box in "Forms"</span>
+                            </label>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}
