@@ -495,7 +495,7 @@ export default function Layout({ children, currentPageName }) {
 
           if (contractStarted && hasSignedContract) {
             allowedPages = pageAccessConfig?.after_contract_start || [
-              'ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente'
+              'ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'Impasto', 'Precotture'
             ];
           } else if (hasSignedContract) {
             allowedPages = pageAccessConfig?.after_contract_signed || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'];
@@ -636,7 +636,7 @@ export default function Layout({ children, currentPageName }) {
 
     if (contractStarted && hasSignedContract) {
       allowedPages = pageAccessConfig?.after_contract_start || [
-        'ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente'
+        'ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'Impasto', 'Precotture'
       ];
     } else if (hasSignedContract) {
       allowedPages = pageAccessConfig?.after_contract_signed || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'];
@@ -667,7 +667,9 @@ export default function Layout({ children, currentPageName }) {
       'ContrattiDipendente': 'Contratti',
       'Academy': 'Academy',
       'Valutazione': 'Valutazione',
-      'FormsDipendente': 'Form'
+      'FormsDipendente': 'Forms',
+      'Impasto': 'Impasto',
+      'Precotture': 'Precotture'
     };
     return titles[pageName] || pageName;
   };
@@ -678,7 +680,9 @@ export default function Layout({ children, currentPageName }) {
       'ContrattiDipendente': FileText,
       'Academy': GraduationCap,
       'Valutazione': ClipboardCheck,
-      'FormsDipendente': Edit
+      'FormsDipendente': Edit,
+      'Impasto': ChefHat,
+      'Precotture': Pizza
     };
     return icons[pageName] || User;
   };
