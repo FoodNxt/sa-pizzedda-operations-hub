@@ -478,7 +478,8 @@ export default function Layout({ children, currentPageName }) {
           const userRoles = user.ruoli_dipendente || [];
 
           if (userRoles.length === 0) {
-            const allowedPages = pageAccessConfig?.after_registration || ['ProfiloDipendente'];
+            const allowedPagesConfig = pageAccessConfig?.after_registration || [{ page: 'ProfiloDipendente', showInMenu: true, showInForms: false }];
+            const allowedPages = allowedPagesConfig.map(p => typeof p === 'string' ? p : p.page);
             const allowedFullPaths = allowedPages.map(p => createPageUrl(p));
             
             if (!allowedFullPaths.includes(location.pathname)) {
@@ -492,36 +493,48 @@ export default function Layout({ children, currentPageName }) {
           const hasSignedContract = await checkIfContractSigned(user.id);
           const contractStarted = user.data_inizio_contratto && new Date(user.data_inizio_contratto) <= new Date();
 
-          let allowedPages = [];
+          let allowedPagesConfig = [];
 
           if (contractStarted && hasSignedContract) {
             // Use role-specific pages directly
-            allowedPages = [];
+            allowedPagesConfig = [];
 
             if (userRoles.includes('Pizzaiolo')) {
-              allowedPages = [...allowedPages, ...(pageAccessConfig?.pizzaiolo_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'ControlloPuliziaPizzaiolo'])];
+              allowedPagesConfig = [...allowedPagesConfig, ...(pageAccessConfig?.pizzaiolo_pages || [])];
             }
             if (userRoles.includes('Cassiere')) {
-              allowedPages = [...allowedPages, ...(pageAccessConfig?.cassiere_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'ControlloPuliziaCassiere'])];
+              allowedPagesConfig = [...allowedPagesConfig, ...(pageAccessConfig?.cassiere_pages || [])];
             }
             if (userRoles.includes('Store Manager')) {
-              allowedPages = [...allowedPages, ...(pageAccessConfig?.store_manager_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente'])];
+              allowedPagesConfig = [...allowedPagesConfig, ...(pageAccessConfig?.store_manager_pages || [])];
             }
 
-            // Remove duplicates
-            allowedPages = [...new Set(allowedPages)];
+            // Remove duplicates by page name
+            const seen = new Set();
+            allowedPagesConfig = allowedPagesConfig.filter(p => {
+              const pageName = typeof p === 'string' ? p : p.page;
+              if (seen.has(pageName)) return false;
+              seen.add(pageName);
+              return true;
+            });
 
             // Fallback if no role-specific pages
-            if (allowedPages.length === 0) {
-              allowedPages = ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'];
+            if (allowedPagesConfig.length === 0) {
+              allowedPagesConfig = [
+                { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
+                { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
+                { page: 'Academy', showInMenu: true, showInForms: false }
+              ];
             }
           } else if (hasSignedContract) {
-            allowedPages = pageAccessConfig?.after_contract_signed || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'];
+            allowedPagesConfig = pageAccessConfig?.after_contract_signed || [];
           } else if (hasReceivedContract) {
-            allowedPages = pageAccessConfig?.after_contract_received || ['ProfiloDipendente', 'ContrattiDipendente'];
+            allowedPagesConfig = pageAccessConfig?.after_contract_received || [];
           } else {
-            allowedPages = pageAccessConfig?.after_registration || ['ProfiloDipendente'];
+            allowedPagesConfig = pageAccessConfig?.after_registration || [];
           }
+
+          const allowedPages = allowedPagesConfig.map(p => typeof p === 'string' ? p : p.page);
 
           const allowedFullPaths = allowedPages.map(p => createPageUrl(p));
 
@@ -633,12 +646,16 @@ export default function Layout({ children, currentPageName }) {
     const userRoles = user.ruoli_dipendente || [];
 
     if (userRoles.length === 0) {
-      const allowedPages = pageAccessConfig?.after_registration || ['ProfiloDipendente'];
+      const allowedPagesConfig = pageAccessConfig?.after_registration || [{ page: 'ProfiloDipendente', showInMenu: true, showInForms: false }];
+      const menuPages = allowedPagesConfig
+        .filter(p => (typeof p === 'string') || p.showInMenu)
+        .map(p => typeof p === 'string' ? p : p.page);
+      
       return [{
         title: "Area Dipendente",
         icon: User,
         type: "section",
-        items: allowedPages.map(pageName => ({
+        items: menuPages.map(pageName => ({
           title: getPageTitle(pageName),
           url: createPageUrl(pageName),
           icon: getPageIcon(pageName)
@@ -650,57 +667,57 @@ export default function Layout({ children, currentPageName }) {
     const hasSignedContract = await checkIfContractSigned(user.id);
     const contractStarted = user.data_inizio_contratto && new Date(user.data_inizio_contratto) <= new Date();
 
-    let allowedPages = [];
+    let allowedPagesConfig = [];
 
     if (contractStarted && hasSignedContract) {
       // Use role-specific pages directly
-      allowedPages = [];
+      allowedPagesConfig = [];
 
       if (userRoles.includes('Pizzaiolo')) {
-        allowedPages = [...allowedPages, ...(pageAccessConfig?.pizzaiolo_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'ControlloPuliziaPizzaiolo'])];
+        allowedPagesConfig = [...allowedPagesConfig, ...(pageAccessConfig?.pizzaiolo_pages || [])];
       }
       if (userRoles.includes('Cassiere')) {
-        allowedPages = [...allowedPages, ...(pageAccessConfig?.cassiere_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'ControlloPuliziaCassiere'])];
+        allowedPagesConfig = [...allowedPagesConfig, ...(pageAccessConfig?.cassiere_pages || [])];
       }
       if (userRoles.includes('Store Manager')) {
-        allowedPages = [...allowedPages, ...(pageAccessConfig?.store_manager_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente'])];
+        allowedPagesConfig = [...allowedPagesConfig, ...(pageAccessConfig?.store_manager_pages || [])];
       }
 
-      // Remove duplicates
-      allowedPages = [...new Set(allowedPages)];
+      // Remove duplicates by page name
+      const seen = new Set();
+      allowedPagesConfig = allowedPagesConfig.filter(p => {
+        const pageName = typeof p === 'string' ? p : p.page;
+        if (seen.has(pageName)) return false;
+        seen.add(pageName);
+        return true;
+      });
 
       // Fallback if no role-specific pages
-      if (allowedPages.length === 0) {
-        allowedPages = ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'];
+      if (allowedPagesConfig.length === 0) {
+        allowedPagesConfig = [
+          { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
+          { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
+          { page: 'Academy', showInMenu: true, showInForms: false }
+        ];
       }
     } else if (hasSignedContract) {
-      allowedPages = pageAccessConfig?.after_contract_signed || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'];
+      allowedPagesConfig = pageAccessConfig?.after_contract_signed || [];
     } else if (hasReceivedContract) {
-      allowedPages = pageAccessConfig?.after_contract_received || ['ProfiloDipendente', 'ContrattiDipendente'];
+      allowedPagesConfig = pageAccessConfig?.after_contract_received || [];
     } else {
-      allowedPages = pageAccessConfig?.after_registration || ['ProfiloDipendente'];
+      allowedPagesConfig = pageAccessConfig?.after_registration || [];
     }
 
-    // Filter out pages that are already in Forms page to avoid menu duplication
-    const pagesToHideFromMenu = [
-      'ControlloPuliziaStoreManager',
-      'FormInventario', 
-      'TeglieButtate',
-      'ConteggioCassa',
-      'Preparazioni',
-      'Impasto',
-      'Precotture',
-      'ControlloPuliziaCassiere',
-      'ControlloPuliziaPizzaiolo'
-    ];
+    // Filter only pages that should show in menu
+    const menuPages = allowedPagesConfig
+      .filter(p => (typeof p === 'string') || p.showInMenu)
+      .map(p => typeof p === 'string' ? p : p.page);
 
-    const menuItems = allowedPages
-      .filter(pageName => !pagesToHideFromMenu.includes(pageName))
-      .map(pageName => ({
-        title: getPageTitle(pageName),
-        url: createPageUrl(pageName),
-        icon: getPageIcon(pageName)
-      }));
+    const menuItems = menuPages.map(pageName => ({
+      title: getPageTitle(pageName),
+      url: createPageUrl(pageName),
+      icon: getPageIcon(pageName)
+    }));
 
     return [{
       title: "Area Dipendente",
