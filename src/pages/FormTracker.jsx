@@ -21,7 +21,7 @@ export default function FormTracker() {
     frequency_type: 'temporal',
     temporal_frequency: 'weekly',
     temporal_day_of_week: 1,
-    shift_based_timing: 'end',
+    shift_based_timing: [],
     shift_sequence: '',
     use_previous_day_shift: false,
     is_active: true,
@@ -88,7 +88,7 @@ export default function FormTracker() {
       frequency_type: 'temporal',
       temporal_frequency: 'weekly',
       temporal_day_of_week: null,
-      shift_based_timing: 'end',
+      shift_based_timing: [],
       shift_sequence: '',
       use_previous_day_shift: false,
       is_active: true,
@@ -100,13 +100,14 @@ export default function FormTracker() {
 
   const handleEditConfig = (config) => {
     setEditingConfig(config);
+    const timing = config.shift_based_timing;
     setConfigForm({
       form_name: config.form_name,
       form_page: config.form_page,
       frequency_type: config.frequency_type,
       temporal_frequency: config.temporal_frequency || 'weekly',
       temporal_day_of_week: config.temporal_day_of_week !== undefined && config.temporal_day_of_week !== null ? config.temporal_day_of_week : null,
-      shift_based_timing: config.shift_based_timing || 'end',
+      shift_based_timing: Array.isArray(timing) ? timing : (timing ? [timing] : []),
       shift_sequence: config.shift_sequence || '',
       use_previous_day_shift: config.use_previous_day_shift || false,
       is_active: config.is_active !== false,
@@ -273,27 +274,24 @@ export default function FormTracker() {
       eligibleUsers.forEach(user => {
         const userName = user.nome_cognome || user.full_name || user.email;
         
-        // Get user's store from shifts on selected date OR previous day (for late-loaded shifts)
-        const userShiftOnDate = shifts.find(s => 
+        // Get user's shifts on selected date
+        const userShiftsOnDate = shifts.filter(s => 
           s.employee_name === userName && 
           s.shift_date === selectedDate
         );
         
-        // Check yesterday's shift too (for shifts loaded the next day)
+        // Check yesterday's shifts too (for late-loaded shifts)
         const yesterday = new Date(dateObj);
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = yesterday.toISOString().split('T')[0];
-        const userShiftYesterday = shifts.find(s => 
+        const userShiftsYesterday = shifts.filter(s => 
           s.employee_name === userName && 
           s.shift_date === yesterdayStr
         );
 
-        const userStore = userShiftOnDate?.store_name || userShiftYesterday?.store_name;
-
-        let shouldShow = false;
-
         if (config.frequency_type === 'temporal') {
           // For temporal configs, determine if should show based on frequency
+          let shouldShow = false;
           if (config.temporal_frequency === 'daily') {
             shouldShow = true;
           } else if (config.temporal_frequency === 'weekly') {
@@ -302,57 +300,119 @@ export default function FormTracker() {
             shouldShow = dateObj.getDate() === 1;
           }
 
-          // Apply store filter only if stores are selected AND user has a store
-          if (shouldShow && selectedStoresForDate.length > 0) {
-            if (!userStore || !selectedStoresForDate.includes(userStore)) {
-              shouldShow = false;
+          if (shouldShow) {
+            const userStore = userShiftsOnDate[0]?.store_name || userShiftsYesterday[0]?.store_name;
+            
+            // Apply store filter only if stores are selected
+            if (selectedStoresForDate.length > 0) {
+              if (!userStore || !selectedStoresForDate.includes(userStore)) {
+                return;
+              }
             }
-          }
-        } else if (config.frequency_type === 'shift_based') {
-          // For shift-based, only show if there's a shift (today or yesterday for late-loaded)
-          const relevantShift = userShiftOnDate || (config.use_previous_day_shift ? userShiftYesterday : null);
-          
-          if (relevantShift) {
-            shouldShow = true;
-            // Apply store filter if selected
-            if (selectedStoresForDate.length > 0 && !selectedStoresForDate.includes(relevantShift.store_name)) {
-              shouldShow = false;
-            }
-          }
-        }
 
-        if (shouldShow) {
-          const hasCompleted = completions.some(c => {
-            if (!c.completion_date) return false;
-            const compDate = new Date(c.completion_date);
-            if (isNaN(compDate.getTime())) return false;
-            try {
-              return c.user_id === user.id &&
-                     c.form_name === config.form_name &&
-                     compDate.toISOString().split('T')[0] === selectedDate;
-            } catch (e) {
-              return false;
-            }
-          });
-
-          forms.push({
-            user,
-            userName,
-            userStore,
-            config,
-            completed: hasCompleted,
-            completionDate: hasCompleted ? completions.find(c => {
+            const hasCompleted = completions.some(c => {
               if (!c.completion_date) return false;
+              const compDate = new Date(c.completion_date);
+              if (isNaN(compDate.getTime())) return false;
               try {
-                const compDate = new Date(c.completion_date);
-                if (isNaN(compDate.getTime())) return false;
-                return c.user_id === user.id && 
+                return c.user_id === user.id &&
                        c.form_name === config.form_name &&
                        compDate.toISOString().split('T')[0] === selectedDate;
               } catch (e) {
                 return false;
               }
-            })?.completion_date : null
+            });
+
+            forms.push({
+              user,
+              userName,
+              userStore,
+              config,
+              completed: hasCompleted,
+              completionDate: hasCompleted ? completions.find(c => {
+                if (!c.completion_date) return false;
+                try {
+                  const compDate = new Date(c.completion_date);
+                  if (isNaN(compDate.getTime())) return false;
+                  return c.user_id === user.id && 
+                         c.form_name === config.form_name &&
+                         compDate.toISOString().split('T')[0] === selectedDate;
+                } catch (e) {
+                  return false;
+                }
+              })?.completion_date : null
+            });
+          }
+        } else if (config.frequency_type === 'shift_based') {
+          // For shift-based, get relevant shifts
+          const relevantShifts = config.use_previous_day_shift ? userShiftsYesterday : userShiftsOnDate;
+          
+          if (relevantShifts.length === 0) return;
+
+          // Filter by shift sequence if specified
+          let shiftsToConsider = relevantShifts;
+          if (config.shift_sequence) {
+            // Sort shifts by scheduled_start
+            const sortedShifts = [...relevantShifts].sort((a, b) => {
+              if (!a.scheduled_start || !b.scheduled_start) return 0;
+              return new Date(a.scheduled_start) - new Date(b.scheduled_start);
+            });
+            
+            if (config.shift_sequence === 'first') {
+              shiftsToConsider = sortedShifts[0] ? [sortedShifts[0]] : [];
+            } else if (config.shift_sequence === 'second') {
+              shiftsToConsider = sortedShifts[1] ? [sortedShifts[1]] : [];
+            }
+          }
+
+          shiftsToConsider.forEach(shift => {
+            // Apply store filter if selected
+            if (selectedStoresForDate.length > 0 && !selectedStoresForDate.includes(shift.store_name)) {
+              return;
+            }
+
+            const timings = Array.isArray(config.shift_based_timing) ? config.shift_based_timing : [config.shift_based_timing];
+            
+            timings.forEach(timing => {
+              const hasCompleted = completions.some(c => {
+                if (!c.completion_date) return false;
+                const compDate = new Date(c.completion_date);
+                if (isNaN(compDate.getTime())) return false;
+                try {
+                  return c.user_id === user.id &&
+                         c.form_name === config.form_name &&
+                         c.shift_id === shift.id &&
+                         c.timing === timing &&
+                         compDate.toISOString().split('T')[0] === selectedDate;
+                } catch (e) {
+                  return false;
+                }
+              });
+
+              forms.push({
+                user,
+                userName,
+                userStore: shift.store_name,
+                config,
+                shift,
+                timing,
+                completed: hasCompleted,
+                completionDate: hasCompleted ? completions.find(c => {
+                  if (!c.completion_date) return false;
+                  try {
+                    const compDate = new Date(c.completion_date);
+                    if (isNaN(compDate.getTime())) return false;
+                    return c.user_id === user.id && 
+                           c.form_name === config.form_name &&
+                           c.shift_id === shift.id &&
+                           c.timing === timing &&
+                           compDate.toISOString().split('T')[0] === selectedDate;
+                  } catch (e) {
+                    return false;
+                  }
+                })?.completion_date : null
+              });
+            });
           });
         }
       });
@@ -457,20 +517,40 @@ export default function FormTracker() {
 
             <div>
               <label className="text-sm font-medium text-slate-700 mb-2 block">
-                Locali
+                Filtra per Locali
               </label>
-              <select
-                multiple
-                value={selectedStoresForMissing}
-                onChange={(e) => setSelectedStoresForMissing(Array.from(e.target.selectedOptions, option => option.value))}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                style={{ minHeight: '120px' }}
-              >
+              <div className="neumorphic-pressed p-4 rounded-xl max-h-60 overflow-y-auto space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedStoresForMissing.length === 0}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedStoresForMissing([]);
+                      }
+                    }}
+                    className="w-4 h-4 rounded"
+                  />
+                  <span className="text-sm text-slate-700 font-medium">Tutti i locali</span>
+                </label>
                 {stores.map(store => (
-                  <option key={store.id} value={store.name}>{store.name}</option>
+                  <label key={store.id} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedStoresForMissing.includes(store.name)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedStoresForMissing([...selectedStoresForMissing, store.name]);
+                        } else {
+                          setSelectedStoresForMissing(selectedStoresForMissing.filter(s => s !== store.name));
+                        }
+                      }}
+                      className="w-4 h-4 rounded"
+                    />
+                    <span className="text-sm text-slate-700">{store.name}</span>
+                  </label>
                 ))}
-              </select>
-              <p className="text-xs text-slate-500 mt-1">Tieni premuto Ctrl/Cmd per selezionare più locali</p>
+              </div>
             </div>
           </div>
 
@@ -525,20 +605,40 @@ export default function FormTracker() {
 
             <div>
               <label className="text-sm font-medium text-slate-700 mb-2 block">
-                Locali
+                Filtra per Locali
               </label>
-              <select
-                multiple
-                value={selectedStoresForDate}
-                onChange={(e) => setSelectedStoresForDate(Array.from(e.target.selectedOptions, option => option.value))}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                style={{ minHeight: '120px' }}
-              >
+              <div className="neumorphic-pressed p-4 rounded-xl max-h-60 overflow-y-auto space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedStoresForDate.length === 0}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedStoresForDate([]);
+                      }
+                    }}
+                    className="w-4 h-4 rounded"
+                  />
+                  <span className="text-sm text-slate-700 font-medium">Tutti i locali</span>
+                </label>
                 {stores.map(store => (
-                  <option key={store.id} value={store.name}>{store.name}</option>
+                  <label key={store.id} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedStoresForDate.includes(store.name)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedStoresForDate([...selectedStoresForDate, store.name]);
+                        } else {
+                          setSelectedStoresForDate(selectedStoresForDate.filter(s => s !== store.name));
+                        }
+                      }}
+                      className="w-4 h-4 rounded"
+                    />
+                    <span className="text-sm text-slate-700">{store.name}</span>
+                  </label>
                 ))}
-              </select>
-              <p className="text-xs text-slate-500 mt-1">Tieni premuto Ctrl/Cmd per selezionare più locali</p>
+              </div>
             </div>
           </div>
 
@@ -557,8 +657,18 @@ export default function FormTracker() {
                     <div className="flex-1">
                       <p className="font-bold text-slate-800">{item.userName}</p>
                       <p className="text-sm text-slate-600">{item.config.form_name}</p>
+                      {item.timing && (
+                        <p className="text-xs text-purple-600">
+                          {item.timing === 'start' ? '🔵 Inizio turno' : '🟢 Fine turno'}
+                        </p>
+                      )}
                       {item.userStore && (
                         <p className="text-xs text-blue-600">Locale: {item.userStore}</p>
+                      )}
+                      {item.shift && (
+                        <p className="text-xs text-slate-500">
+                          Turno: {new Date(item.shift.scheduled_start).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })} - {new Date(item.shift.scheduled_end).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
                       )}
                       {item.completed && item.completionDate && (
                         <p className="text-xs text-green-600 mt-1">
@@ -621,7 +731,11 @@ export default function FormTracker() {
                         )}
                         {config.frequency_type === 'shift_based' && (
                          <>
-                           <p><strong>Quando:</strong> {config.shift_based_timing === 'start' ? 'Inizio turno' : 'Fine turno'}</p>
+                           <p><strong>Quando:</strong> {
+                             Array.isArray(config.shift_based_timing) 
+                               ? config.shift_based_timing.map(t => t === 'start' ? 'Inizio' : 'Fine').join(' e ')
+                               : (config.shift_based_timing === 'start' ? 'Inizio turno' : 'Fine turno')
+                           }</p>
                            {config.shift_sequence && (
                              <p><strong>Turno:</strong> {config.shift_sequence === 'first' ? 'Mattina (primo turno)' : 'Sera (secondo turno)'}</p>
                            )}
@@ -759,14 +873,41 @@ export default function FormTracker() {
                       <label className="text-sm font-medium text-slate-700 mb-2 block">
                         Quando Compilare
                       </label>
-                      <select
-                        value={configForm.shift_based_timing}
-                        onChange={(e) => setConfigForm({ ...configForm, shift_based_timing: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                      >
-                        <option value="start">Inizio Turno</option>
-                        <option value="end">Fine Turno</option>
-                      </select>
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2 cursor-pointer neumorphic-pressed px-4 py-3 rounded-xl">
+                          <input
+                            type="checkbox"
+                            checked={configForm.shift_based_timing.includes('start')}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setConfigForm({ ...configForm, shift_based_timing: [...configForm.shift_based_timing, 'start'] });
+                              } else {
+                                setConfigForm({ ...configForm, shift_based_timing: configForm.shift_based_timing.filter(t => t !== 'start') });
+                              }
+                            }}
+                            className="w-4 h-4 rounded"
+                          />
+                          <span className="text-sm text-slate-700">Inizio Turno</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer neumorphic-pressed px-4 py-3 rounded-xl">
+                          <input
+                            type="checkbox"
+                            checked={configForm.shift_based_timing.includes('end')}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setConfigForm({ ...configForm, shift_based_timing: [...configForm.shift_based_timing, 'end'] });
+                              } else {
+                                setConfigForm({ ...configForm, shift_based_timing: configForm.shift_based_timing.filter(t => t !== 'end') });
+                              }
+                            }}
+                            className="w-4 h-4 rounded"
+                          />
+                          <span className="text-sm text-slate-700">Fine Turno</span>
+                        </label>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-2">
+                        Seleziona uno o entrambi i momenti in cui il form deve essere compilato
+                      </p>
                     </div>
                     <div>
                       <label className="text-sm font-medium text-slate-700 mb-2 block">
