@@ -292,6 +292,9 @@ export default function FormTracker() {
           s.shift_date === yesterdayStr
         );
 
+        // Check if form is assigned to this store
+        const isAssignedToAllStores = !config.assigned_stores || config.assigned_stores.length === 0;
+
         if (config.frequency_type === 'temporal') {
           // For temporal configs, determine if should show based on frequency
           let shouldShow = false;
