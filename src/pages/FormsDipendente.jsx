@@ -37,7 +37,6 @@ export default function FormsDipendente() {
       description: "Controllo pulizia area cassa",
       icon: Camera,
       url: "ControlloPuliziaCassiere",
-      roles: ["Cassiere"],
       color: "from-blue-500 to-cyan-500"
     },
     {
@@ -45,7 +44,6 @@ export default function FormsDipendente() {
       description: "Controllo pulizia area pizza",
       icon: Camera,
       url: "ControlloPuliziaPizzaiolo",
-      roles: ["Pizzaiolo"],
       color: "from-orange-500 to-red-600"
     },
     {
@@ -53,15 +51,21 @@ export default function FormsDipendente() {
       description: "Controllo pulizia generale",
       icon: Camera,
       url: "ControlloPuliziaStoreManager",
-      roles: ["Store Manager"],
       color: "from-purple-500 to-pink-600"
     },
     {
       title: "Inventario",
       description: "Form inventario e gestione magazzino",
       icon: ClipboardList,
-      url: "InventoryForms",
+      url: "FormInventario",
       color: "from-green-500 to-emerald-600"
+    },
+    {
+      title: "Inventario Store Manager",
+      description: "Gestione completa inventario",
+      icon: ClipboardList,
+      url: "InventarioStoreManager",
+      color: "from-emerald-500 to-green-600"
     },
     {
       title: "Conteggio Cassa",
@@ -82,7 +86,6 @@ export default function FormsDipendente() {
       description: "Gestione impasto",
       icon: ChefHat,
       url: "Impasto",
-      roles: ["Pizzaiolo", "Store Manager"],
       color: "from-amber-500 to-yellow-600"
     },
     {
@@ -90,7 +93,6 @@ export default function FormsDipendente() {
       description: "Gestione precotture",
       icon: Pizza,
       url: "Precotture",
-      roles: ["Pizzaiolo", "Store Manager"],
       color: "from-indigo-500 to-blue-600"
     },
     {
@@ -98,7 +100,6 @@ export default function FormsDipendente() {
       description: "Registra teglie buttate",
       icon: Trash2,
       url: "FormTeglieButtate",
-      roles: ["Pizzaiolo", "Store Manager"],
       color: "from-red-500 to-rose-600"
     },
     {
@@ -106,10 +107,20 @@ export default function FormsDipendente() {
       description: "Gestione preparazioni",
       icon: ClipboardList,
       url: "Preparazioni",
-      roles: ["Pizzaiolo", "Store Manager"],
       color: "from-violet-500 to-purple-600"
     }
   ];
+
+  // Normalize config (convert strings to objects)
+  const normalizePageConfig = (pages) => {
+    if (!pages || pages.length === 0) return [];
+    return pages.map(p => {
+      if (typeof p === 'string') {
+        return { page: p, showInMenu: true, showInForms: false };
+      }
+      return p;
+    });
+  };
 
   // Get pages that should show in Forms from config
   const getFormsPages = () => {
@@ -119,26 +130,34 @@ export default function FormsDipendente() {
     let pagesConfig = [];
 
     if (userRoles.length === 0) {
-      pagesConfig = pageAccessConfig.after_registration || [];
+      pagesConfig = normalizePageConfig(pageAccessConfig.after_registration || []);
     } else {
       const contractStarted = user.data_inizio_contratto && new Date(user.data_inizio_contratto) <= new Date();
       
       if (contractStarted) {
         if (userRoles.includes('Pizzaiolo')) {
-          pagesConfig = [...pagesConfig, ...(pageAccessConfig.pizzaiolo_pages || [])];
+          pagesConfig = [...pagesConfig, ...normalizePageConfig(pageAccessConfig.pizzaiolo_pages || [])];
         }
         if (userRoles.includes('Cassiere')) {
-          pagesConfig = [...pagesConfig, ...(pageAccessConfig.cassiere_pages || [])];
+          pagesConfig = [...pagesConfig, ...normalizePageConfig(pageAccessConfig.cassiere_pages || [])];
         }
         if (userRoles.includes('Store Manager')) {
-          pagesConfig = [...pagesConfig, ...(pageAccessConfig.store_manager_pages || [])];
+          pagesConfig = [...pagesConfig, ...normalizePageConfig(pageAccessConfig.store_manager_pages || [])];
         }
       }
     }
 
+    // Remove duplicates by page name
+    const seen = new Set();
+    pagesConfig = pagesConfig.filter(p => {
+      if (seen.has(p.page)) return false;
+      seen.add(p.page);
+      return true;
+    });
+
     // Filter only pages that should show in Forms
     return pagesConfig
-      .filter(p => (typeof p === 'object' && p.showInForms))
+      .filter(p => p.showInForms === true)
       .map(p => p.page);
   };
 
