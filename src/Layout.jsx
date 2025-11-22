@@ -657,7 +657,8 @@ export default function Layout({ children, currentPageName }) {
     // Filter only pages that should show in menu
     const menuPages = allowedPagesConfig
       .filter(p => p.showInMenu === true)
-      .map(p => p.page);
+      .map(p => p.page)
+      .filter(pageName => pageName !== 'FormTeglieButtate'); // Never show TeglieButtate in menu
 
     const menuItems = menuPages.map(pageName => ({
       title: getPageTitle(pageName),
