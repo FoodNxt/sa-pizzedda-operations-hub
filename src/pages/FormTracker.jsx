@@ -25,7 +25,8 @@ export default function FormTracker() {
     shift_sequence: '',
     use_previous_day_shift: false,
     is_active: true,
-    assigned_roles: []
+    assigned_roles: [],
+    assigned_stores: []
   });
 
   const queryClient = useQueryClient();
@@ -92,7 +93,8 @@ export default function FormTracker() {
       shift_sequence: '',
       use_previous_day_shift: false,
       is_active: true,
-      assigned_roles: []
+      assigned_roles: [],
+      assigned_stores: []
     });
     setEditingConfig(null);
     setShowConfigForm(false);
@@ -111,7 +113,8 @@ export default function FormTracker() {
       shift_sequence: config.shift_sequence || '',
       use_previous_day_shift: config.use_previous_day_shift || false,
       is_active: config.is_active !== false,
-      assigned_roles: config.assigned_roles || []
+      assigned_roles: config.assigned_roles || [],
+      assigned_stores: config.assigned_stores || []
     });
     setShowConfigForm(true);
   };
@@ -302,6 +305,12 @@ export default function FormTracker() {
 
           if (shouldShow) {
             const userStore = userShiftsOnDate[0]?.store_name || userShiftsYesterday[0]?.store_name;
+            const userStoreId = stores.find(s => s.name === userStore)?.id;
+            
+            // Check if form is assigned to this store
+            if (!isAssignedToAllStores && userStoreId && !config.assigned_stores.includes(userStoreId)) {
+              return;
+            }
             
             // Apply store filter only if stores are selected
             if (selectedStoresForDate.length > 0) {
@@ -366,6 +375,13 @@ export default function FormTracker() {
           }
 
           shiftsToConsider.forEach(shift => {
+            const shiftStoreId = stores.find(s => s.name === shift.store_name)?.id;
+            
+            // Check if form is assigned to this store
+            if (!isAssignedToAllStores && shiftStoreId && !config.assigned_stores.includes(shiftStoreId)) {
+              return;
+            }
+            
             // Apply store filter if selected
             if (selectedStoresForDate.length > 0 && !selectedStoresForDate.includes(shift.store_name)) {
               return;
@@ -490,29 +506,34 @@ export default function FormTracker() {
             Form Non Completati
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>
               <label className="text-sm font-medium text-slate-700 mb-2 block">
-                Data Inizio
+                Periodo
               </label>
-              <input
-                type="date"
-                value={missingStartDate}
-                onChange={(e) => setMissingStartDate(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-slate-700 mb-2 block">
-                Data Fine
-              </label>
-              <input
-                type="date"
-                value={missingEndDate}
-                onChange={(e) => setMissingEndDate(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-              />
+              <div className="flex gap-2 flex-wrap">
+                {[
+                  { value: '1', label: 'Ultimo giorno' },
+                  { value: '3', label: 'Ultimi 3 giorni' },
+                  { value: '7', label: 'Ultimi 7 giorni' },
+                  { value: '30', label: 'Ultimi 30 giorni' }
+                ].map(option => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => {
+                      const now = new Date();
+                      const start = new Date(now);
+                      start.setDate(start.getDate() - parseInt(option.value));
+                      setMissingStartDate(start.toISOString().split('T')[0]);
+                      setMissingEndDate(now.toISOString().split('T')[0]);
+                    }}
+                    className="px-3 py-2 rounded-xl text-sm font-medium nav-button text-slate-700"
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div>
@@ -595,12 +616,35 @@ export default function FormTracker() {
               <label className="text-sm font-medium text-slate-700 mb-2 block">
                 Seleziona Data
               </label>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-              />
+              <div className="space-y-2">
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                />
+                <div className="flex gap-2 flex-wrap">
+                  {[
+                    { value: '1', label: 'Ieri' },
+                    { value: '0', label: 'Oggi' },
+                    { value: '3', label: '-3 giorni' },
+                    { value: '7', label: '-7 giorni' }
+                  ].map(option => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        const date = new Date();
+                        date.setDate(date.getDate() - parseInt(option.value));
+                        setSelectedDate(date.toISOString().split('T')[0]);
+                      }}
+                      className="px-3 py-2 rounded-xl text-sm font-medium nav-button text-slate-700"
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <div>
@@ -746,6 +790,9 @@ export default function FormTracker() {
                         )}
                         {config.assigned_roles && config.assigned_roles.length > 0 && (
                           <p><strong>Ruoli:</strong> {config.assigned_roles.join(', ')}</p>
+                        )}
+                        {config.assigned_stores && config.assigned_stores.length > 0 && (
+                          <p><strong>Locali:</strong> {config.assigned_stores.map(sid => stores.find(s => s.id === sid)?.name || sid).join(', ')}</p>
                         )}
                       </div>
                     </div>
@@ -963,6 +1010,44 @@ export default function FormTracker() {
                         >
                           {role}
                         </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">
+                      Locali Assegnati (lascia vuoto per tutti)
+                    </label>
+                    <div className="neumorphic-pressed p-4 rounded-xl max-h-60 overflow-y-auto space-y-2">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={configForm.assigned_stores.length === 0}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setConfigForm({ ...configForm, assigned_stores: [] });
+                            }
+                          }}
+                          className="w-4 h-4 rounded"
+                        />
+                        <span className="text-sm text-slate-700 font-medium">Tutti i locali</span>
+                      </label>
+                      {stores.map(store => (
+                        <label key={store.id} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={configForm.assigned_stores.includes(store.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setConfigForm({ ...configForm, assigned_stores: [...configForm.assigned_stores, store.id] });
+                              } else {
+                                setConfigForm({ ...configForm, assigned_stores: configForm.assigned_stores.filter(s => s !== store.id) });
+                              }
+                            }}
+                            className="w-4 h-4 rounded"
+                          />
+                          <span className="text-sm text-slate-700">{store.name}</span>
+                        </label>
                       ))}
                     </div>
                   </div>
