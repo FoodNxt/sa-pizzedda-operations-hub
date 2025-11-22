@@ -149,6 +149,7 @@ export default function GestioneAccessoPagine() {
     { value: 'ContrattiDipendente', label: '✅ I Miei Contratti', icon: FileText, category: 'Area Dipendente', recommended: true },
     { value: 'Academy', label: '✅ Academy', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
     { value: 'Valutazione', label: '✅ La Mia Valutazione', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+    { value: 'FormsDipendente', label: '✅ Forms', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
     { value: 'ControlloPuliziaCassiere', label: '✅ Controllo Pulizia Cassiere (solo ruolo)', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
     { value: 'ControlloPuliziaPizzaiolo', label: '✅ Controllo Pulizia Pizzaiolo (solo ruolo)', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
     { value: 'ControlloPuliziaStoreManager', label: '✅ Controllo Pulizia Store Manager (solo ruolo)', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
@@ -156,6 +157,8 @@ export default function GestioneAccessoPagine() {
     { value: 'ConteggioCassa', label: '✅ Conteggio Cassa', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
     { value: 'TeglieButtate', label: '✅ Teglie Buttate', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
     { value: 'Preparazioni', label: '✅ Preparazioni', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+    { value: 'Impasto', label: '✅ Impasto', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+    { value: 'Precotture', label: '✅ Precotture', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
     
     // Pagine Sensibili - NON dovrebbero essere selezionate per dipendenti
     { value: 'Dashboard', label: '🚫 Dashboard Overview (DATI FINANZIARI)', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
