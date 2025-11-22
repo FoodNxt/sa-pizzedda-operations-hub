@@ -21,6 +21,14 @@ export default function FormsDipendente() {
     queryFn: () => base44.auth.me(),
   });
 
+  const { data: pageAccessConfig } = useQuery({
+    queryKey: ['page-access-config'],
+    queryFn: async () => {
+      const configs = await base44.entities.PageAccessConfig.list();
+      return configs.find(c => c.is_active);
+    },
+  });
+
   const userRoles = user?.ruoli_dipendente || [];
 
   const forms = [
@@ -103,12 +111,41 @@ export default function FormsDipendente() {
     }
   ];
 
-  const hasAccess = (formRoles) => {
-    if (!formRoles || formRoles.length === 0) return true;
-    return formRoles.some(role => userRoles.includes(role));
+  // Get pages that should show in Forms from config
+  const getFormsPages = () => {
+    if (!pageAccessConfig || !user) return [];
+    
+    const userRoles = user.ruoli_dipendente || [];
+    let pagesConfig = [];
+
+    if (userRoles.length === 0) {
+      pagesConfig = pageAccessConfig.after_registration || [];
+    } else {
+      const contractStarted = user.data_inizio_contratto && new Date(user.data_inizio_contratto) <= new Date();
+      
+      if (contractStarted) {
+        if (userRoles.includes('Pizzaiolo')) {
+          pagesConfig = [...pagesConfig, ...(pageAccessConfig.pizzaiolo_pages || [])];
+        }
+        if (userRoles.includes('Cassiere')) {
+          pagesConfig = [...pagesConfig, ...(pageAccessConfig.cassiere_pages || [])];
+        }
+        if (userRoles.includes('Store Manager')) {
+          pagesConfig = [...pagesConfig, ...(pageAccessConfig.store_manager_pages || [])];
+        }
+      }
+    }
+
+    // Filter only pages that should show in Forms
+    return pagesConfig
+      .filter(p => (typeof p === 'object' && p.showInForms))
+      .map(p => p.page);
   };
 
-  const filteredForms = forms.filter(form => hasAccess(form.roles));
+  const formsPages = getFormsPages();
+
+  // Filter forms based on config
+  const filteredForms = forms.filter(form => formsPages.includes(form.url));
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">

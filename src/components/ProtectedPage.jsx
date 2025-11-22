@@ -39,21 +39,37 @@ export default function ProtectedPage({ children, pageName, requiredUserTypes = 
           const userRoles = user.ruoli_dipendente || [];
 
           if (userRoles.length === 0) {
-            allowedPages = activeConfig.after_registration || ['ProfiloDipendente'];
+            const pagesConfig = activeConfig.after_registration || [];
+            allowedPages = pagesConfig.map(p => typeof p === 'string' ? p : p.page);
           } else {
             const hasReceivedContract = await checkIfContractReceived(user.id);
             const hasSignedContract = await checkIfContractSigned(user.id);
             const contractStarted = user.data_inizio_contratto && new Date(user.data_inizio_contratto) <= new Date();
 
+            let pagesConfig = [];
+
             if (contractStarted && hasSignedContract) {
-              allowedPages = activeConfig.after_contract_start || [];
+              if (userRoles.includes('Pizzaiolo')) {
+                pagesConfig = [...pagesConfig, ...(activeConfig.pizzaiolo_pages || [])];
+              }
+              if (userRoles.includes('Cassiere')) {
+                pagesConfig = [...pagesConfig, ...(activeConfig.cassiere_pages || [])];
+              }
+              if (userRoles.includes('Store Manager')) {
+                pagesConfig = [...pagesConfig, ...(activeConfig.store_manager_pages || [])];
+              }
             } else if (hasSignedContract) {
-              allowedPages = activeConfig.after_contract_signed || [];
+              pagesConfig = activeConfig.after_contract_signed || [];
             } else if (hasReceivedContract) {
-              allowedPages = activeConfig.after_contract_received || [];
+              pagesConfig = activeConfig.after_contract_received || [];
             } else {
-              allowedPages = activeConfig.after_registration || ['ProfiloDipendente'];
+              pagesConfig = activeConfig.after_registration || [];
             }
+
+            // Extract page names
+            allowedPages = pagesConfig.map(p => typeof p === 'string' ? p : p.page);
+            // Remove duplicates
+            allowedPages = [...new Set(allowedPages)];
           }
         }
 
