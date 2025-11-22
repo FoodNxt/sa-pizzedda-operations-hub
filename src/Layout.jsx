@@ -850,6 +850,23 @@ export default function Layout({ children, currentPageName }) {
           box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.1);
         }
 
+        body.dipendente-mobile .bottom-nav-item {
+          padding: 28px 16px;
+          min-height: 160px;
+          border-radius: 32px;
+        }
+
+        body.dipendente-mobile .bottom-nav-item svg {
+          width: 3.5rem !important;
+          height: 3.5rem !important;
+          margin-bottom: 0.75rem;
+        }
+
+        body.dipendente-mobile .bottom-nav-item span {
+          font-size: 1.25rem !important;
+          font-weight: 700 !important;
+        }
+
         @media (max-width: 1024px) {
           .hide-on-mobile {
             display: none !important;
