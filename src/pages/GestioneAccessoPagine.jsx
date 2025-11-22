@@ -35,18 +35,9 @@ export default function GestioneAccessoPagine() {
     after_registration: activeConfig?.after_registration || ['ProfiloDipendente'],
     after_contract_received: activeConfig?.after_contract_received || ['ProfiloDipendente', 'ContrattiDipendente'],
     after_contract_signed: activeConfig?.after_contract_signed || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'],
-    after_contract_start: activeConfig?.after_contract_start || [
-      'ProfiloDipendente',
-      'ContrattiDipendente', 
-      'Academy',
-      'Valutazione',
-      'FormsDipendente',
-      'Impasto',
-      'Precotture'
-    ],
-    pizzaiolo_pages: activeConfig?.pizzaiolo_pages || ['ControlloPuliziaPizzaiolo'],
-    cassiere_pages: activeConfig?.cassiere_pages || ['ControlloPuliziaCassiere', 'ConteggioCassa'],
-    store_manager_pages: activeConfig?.store_manager_pages || ['ControlloPuliziaStoreManager']
+    pizzaiolo_pages: activeConfig?.pizzaiolo_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'Impasto', 'Precotture', 'ControlloPuliziaPizzaiolo'],
+    cassiere_pages: activeConfig?.cassiere_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'ControlloPuliziaCassiere', 'ConteggioCassa'],
+    store_manager_pages: activeConfig?.store_manager_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'ControlloPuliziaStoreManager']
   });
 
   const [saving, setSaving] = useState(false);
@@ -77,18 +68,9 @@ export default function GestioneAccessoPagine() {
         after_registration: activeConfig.after_registration || ['ProfiloDipendente'],
         after_contract_received: activeConfig.after_contract_received || ['ProfiloDipendente', 'ContrattiDipendente'],
         after_contract_signed: activeConfig.after_contract_signed || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'],
-        after_contract_start: activeConfig.after_contract_start || [
-          'ProfiloDipendente',
-          'ContrattiDipendente', 
-          'Academy',
-          'Valutazione',
-          'FormsDipendente',
-          'Impasto',
-          'Precotture'
-        ],
-        pizzaiolo_pages: activeConfig.pizzaiolo_pages || ['ControlloPuliziaPizzaiolo'],
-        cassiere_pages: activeConfig.cassiere_pages || ['ControlloPuliziaCassiere', 'ConteggioCassa'],
-        store_manager_pages: activeConfig.store_manager_pages || ['ControlloPuliziaStoreManager']
+        pizzaiolo_pages: activeConfig.pizzaiolo_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'Impasto', 'Precotture', 'ControlloPuliziaPizzaiolo'],
+        cassiere_pages: activeConfig.cassiere_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'ControlloPuliziaCassiere', 'ConteggioCassa'],
+        store_manager_pages: activeConfig.store_manager_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'ControlloPuliziaStoreManager']
       });
     }
   }, [activeConfig]);
@@ -508,15 +490,15 @@ export default function GestioneAccessoPagine() {
         ))}
       </NeumorphicCard>
 
-      {/* Dipendenti - Stage 4: After Contract Start Date */}
+      {/* Dipendenti - Pizzaiolo */}
       <NeumorphicCard className="p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="neumorphic-flat w-12 h-12 rounded-full flex items-center justify-center">
-            <span className="text-xl font-bold text-[#8b7355]">4</span>
+            <span className="text-2xl">🍕</span>
           </div>
           <div>
-            <h2 className="text-xl font-bold text-[#6b6b6b]">Dipendenti - Contratto Iniziato (Base)</h2>
-            <p className="text-sm text-[#9b9b9b]">Pagine visibili a TUTTI i dipendenti dopo inizio contratto</p>
+            <h2 className="text-xl font-bold text-[#6b6b6b]">Ruolo: Pizzaiolo</h2>
+            <p className="text-sm text-[#9b9b9b]">Pagine visibili ai dipendenti con ruolo Pizzaiolo (dopo inizio contratto)</p>
           </div>
         </div>
 
@@ -530,13 +512,13 @@ export default function GestioneAccessoPagine() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {pages.map(page => (
                 <div key={page.value} className={`neumorphic-pressed p-3 rounded-lg ${
-                  !page.recommended && pageConfig.after_contract_start.includes(page.value) ? 'border-2 border-red-500' : ''
+                  !page.recommended && pageConfig.pizzaiolo_pages?.includes(page.value) ? 'border-2 border-red-500' : ''
                 }`}>
                   <label className="flex items-center gap-3 cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={pageConfig.after_contract_start.includes(page.value)}
-                      onChange={() => handlePageToggle('after_contract_start', page.value)}
+                      checked={pageConfig.pizzaiolo_pages?.includes(page.value)}
+                      onChange={() => handlePageToggle('pizzaiolo_pages', page.value)}
                       className="w-5 h-5 rounded"
                     />
                     <span className={`text-sm ${
@@ -552,92 +534,92 @@ export default function GestioneAccessoPagine() {
         ))}
       </NeumorphicCard>
 
-      {/* Role-Specific Pages */}
-      <NeumorphicCard className="p-6 bg-blue-50 border-2 border-blue-300">
+      {/* Dipendenti - Cassiere */}
+      <NeumorphicCard className="p-6">
         <div className="flex items-center gap-3 mb-4">
-          <Users className="w-8 h-8 text-blue-600" />
+          <div className="neumorphic-flat w-12 h-12 rounded-full flex items-center justify-center">
+            <span className="text-2xl">💰</span>
+          </div>
           <div>
-            <h2 className="text-xl font-bold text-blue-800">Pagine Specifiche per Ruolo</h2>
-            <p className="text-sm text-blue-600">Queste pagine si aggiungono a quelle base quando il dipendente ha il ruolo specifico</p>
+            <h2 className="text-xl font-bold text-[#6b6b6b]">Ruolo: Cassiere</h2>
+            <p className="text-sm text-[#9b9b9b]">Pagine visibili ai dipendenti con ruolo Cassiere (dopo inizio contratto)</p>
           </div>
         </div>
 
-        {/* Pizzaiolo */}
-        <div className="mb-6">
-          <h3 className="font-bold text-[#6b6b6b] mb-3 flex items-center gap-2">
-            🍕 Ruolo: Pizzaiolo
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {['ControlloPuliziaPizzaiolo', 'Impasto', 'Precotture', 'FormPreparazioni'].map(page => (
-              <div key={page} className="neumorphic-pressed p-3 rounded-lg">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={pageConfig.pizzaiolo_pages?.includes(page)}
-                    onChange={() => handlePageToggle('pizzaiolo_pages', page)}
-                    className="w-5 h-5 rounded"
-                  />
-                  <span className="text-sm text-[#6b6b6b]">
-                    {page === 'ControlloPuliziaPizzaiolo' ? '✅ Controllo Pulizia Pizzaiolo' : 
-                     page === 'Impasto' ? '✅ Impasto' : 
-                     page === 'Precotture' ? '✅ Precotture' : '✅ Form Preparazioni'}
-                  </span>
-                </label>
-              </div>
-            ))}
+        {Object.entries(groupedDipendentePages).map(([category, pages]) => (
+          <div key={category} className="mb-4">
+            <h3 className={`font-bold mb-2 text-sm ${
+              category === 'Pagine Sensibili - NON Dipendenti' ? 'text-red-600' : 'text-[#6b6b6b]'
+            }`}>
+              {category}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {pages.map(page => (
+                <div key={page.value} className={`neumorphic-pressed p-3 rounded-lg ${
+                  !page.recommended && pageConfig.cassiere_pages?.includes(page.value) ? 'border-2 border-red-500' : ''
+                }`}>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={pageConfig.cassiere_pages?.includes(page.value)}
+                      onChange={() => handlePageToggle('cassiere_pages', page.value)}
+                      className="w-5 h-5 rounded"
+                    />
+                    <span className={`text-sm ${
+                      page.recommended ? 'text-[#6b6b6b]' : 'text-red-600 font-bold'
+                    }`}>
+                      {page.label}
+                    </span>
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </NeumorphicCard>
+
+      {/* Dipendenti - Store Manager */}
+      <NeumorphicCard className="p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="neumorphic-flat w-12 h-12 rounded-full flex items-center justify-center">
+            <span className="text-2xl">👔</span>
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-[#6b6b6b]">Ruolo: Store Manager</h2>
+            <p className="text-sm text-[#9b9b9b]">Pagine visibili ai dipendenti con ruolo Store Manager (dopo inizio contratto)</p>
           </div>
         </div>
 
-        {/* Cassiere */}
-        <div className="mb-6">
-          <h3 className="font-bold text-[#6b6b6b] mb-3 flex items-center gap-2">
-            💰 Ruolo: Cassiere
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {['ControlloPuliziaCassiere', 'ConteggioCassa', 'FeedbackP2P'].map(page => (
-              <div key={page} className="neumorphic-pressed p-3 rounded-lg">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={pageConfig.cassiere_pages?.includes(page)}
-                    onChange={() => handlePageToggle('cassiere_pages', page)}
-                    className="w-5 h-5 rounded"
-                  />
-                  <span className="text-sm text-[#6b6b6b]">
-                    {page === 'ControlloPuliziaCassiere' ? '✅ Controllo Pulizia Cassiere' : 
-                     page === 'ConteggioCassa' ? '✅ Conteggio Cassa' : '✅ Feedback P2P'}
-                  </span>
-                </label>
-              </div>
-            ))}
+        {Object.entries(groupedDipendentePages).map(([category, pages]) => (
+          <div key={category} className="mb-4">
+            <h3 className={`font-bold mb-2 text-sm ${
+              category === 'Pagine Sensibili - NON Dipendenti' ? 'text-red-600' : 'text-[#6b6b6b]'
+            }`}>
+              {category}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {pages.map(page => (
+                <div key={page.value} className={`neumorphic-pressed p-3 rounded-lg ${
+                  !page.recommended && pageConfig.store_manager_pages?.includes(page.value) ? 'border-2 border-red-500' : ''
+                }`}>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={pageConfig.store_manager_pages?.includes(page.value)}
+                      onChange={() => handlePageToggle('store_manager_pages', page.value)}
+                      className="w-5 h-5 rounded"
+                    />
+                    <span className={`text-sm ${
+                      page.recommended ? 'text-[#6b6b6b]' : 'text-red-600 font-bold'
+                    }`}>
+                      {page.label}
+                    </span>
+                  </label>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-
-        {/* Store Manager */}
-        <div>
-          <h3 className="font-bold text-[#6b6b6b] mb-3 flex items-center gap-2">
-            👔 Ruolo: Store Manager
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {['ControlloPuliziaStoreManager', 'FormInventario', 'FormCantina', 'FormTeglieButtate'].map(page => (
-              <div key={page} className="neumorphic-pressed p-3 rounded-lg">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={pageConfig.store_manager_pages?.includes(page)}
-                    onChange={() => handlePageToggle('store_manager_pages', page)}
-                    className="w-5 h-5 rounded"
-                  />
-                  <span className="text-sm text-[#6b6b6b]">
-                    {page === 'ControlloPuliziaStoreManager' ? '✅ Controllo Pulizia Store Manager' : 
-                     page === 'FormInventario' ? '✅ Form Inventario' : 
-                     page === 'FormCantina' ? '✅ Form Cantina' : '✅ Form Teglie Buttate'}
-                  </span>
-                </label>
-              </div>
-            ))}
-          </div>
-        </div>
+        ))}
       </NeumorphicCard>
 
       {/* Save Button */}

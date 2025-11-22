@@ -494,23 +494,26 @@ export default function Layout({ children, currentPageName }) {
           let allowedPages = [];
 
           if (contractStarted && hasSignedContract) {
-            allowedPages = pageAccessConfig?.after_contract_start || [
-              'ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'Impasto', 'Precotture'
-            ];
+            // Use role-specific pages directly
+            allowedPages = [];
 
-            // Add role-specific pages
             if (userRoles.includes('Pizzaiolo')) {
-              allowedPages = [...allowedPages, ...(pageAccessConfig?.pizzaiolo_pages || ['ControlloPuliziaPizzaiolo'])];
+              allowedPages = [...allowedPages, ...(pageAccessConfig?.pizzaiolo_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'Impasto', 'Precotture', 'ControlloPuliziaPizzaiolo'])];
             }
             if (userRoles.includes('Cassiere')) {
-              allowedPages = [...allowedPages, ...(pageAccessConfig?.cassiere_pages || ['ControlloPuliziaCassiere', 'ConteggioCassa'])];
+              allowedPages = [...allowedPages, ...(pageAccessConfig?.cassiere_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'ControlloPuliziaCassiere', 'ConteggioCassa'])];
             }
             if (userRoles.includes('Store Manager')) {
-              allowedPages = [...allowedPages, ...(pageAccessConfig?.store_manager_pages || ['ControlloPuliziaStoreManager'])];
+              allowedPages = [...allowedPages, ...(pageAccessConfig?.store_manager_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'ControlloPuliziaStoreManager'])];
             }
 
             // Remove duplicates
             allowedPages = [...new Set(allowedPages)];
+
+            // Fallback if no role-specific pages
+            if (allowedPages.length === 0) {
+              allowedPages = ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'];
+            }
           } else if (hasSignedContract) {
             allowedPages = pageAccessConfig?.after_contract_signed || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'];
           } else if (hasReceivedContract) {
@@ -649,23 +652,26 @@ export default function Layout({ children, currentPageName }) {
     let allowedPages = [];
 
     if (contractStarted && hasSignedContract) {
-      allowedPages = pageAccessConfig?.after_contract_start || [
-        'ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'Impasto', 'Precotture'
-      ];
+      // Use role-specific pages directly
+      allowedPages = [];
 
-      // Add role-specific pages
       if (userRoles.includes('Pizzaiolo')) {
-        allowedPages = [...allowedPages, ...(pageAccessConfig?.pizzaiolo_pages || ['ControlloPuliziaPizzaiolo'])];
+        allowedPages = [...allowedPages, ...(pageAccessConfig?.pizzaiolo_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'Impasto', 'Precotture', 'ControlloPuliziaPizzaiolo'])];
       }
       if (userRoles.includes('Cassiere')) {
-        allowedPages = [...allowedPages, ...(pageAccessConfig?.cassiere_pages || ['ControlloPuliziaCassiere', 'ConteggioCassa'])];
+        allowedPages = [...allowedPages, ...(pageAccessConfig?.cassiere_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'ControlloPuliziaCassiere', 'ConteggioCassa'])];
       }
       if (userRoles.includes('Store Manager')) {
-        allowedPages = [...allowedPages, ...(pageAccessConfig?.store_manager_pages || ['ControlloPuliziaStoreManager'])];
+        allowedPages = [...allowedPages, ...(pageAccessConfig?.store_manager_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'ControlloPuliziaStoreManager'])];
       }
 
       // Remove duplicates
       allowedPages = [...new Set(allowedPages)];
+
+      // Fallback if no role-specific pages
+      if (allowedPages.length === 0) {
+        allowedPages = ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'];
+      }
     } else if (hasSignedContract) {
       allowedPages = pageAccessConfig?.after_contract_signed || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'];
     } else if (hasReceivedContract) {
