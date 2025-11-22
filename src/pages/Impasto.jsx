@@ -9,7 +9,7 @@ const giorni = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Ve
 
 export default function Impasto() {
   const [selectedStore, setSelectedStore] = useState('');
-  const [pallinePresenti, setPallinePresenti] = useState('');
+  const [barelleInFrigo, setBarelleInFrigo] = useState('');
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -27,7 +27,7 @@ export default function Impasto() {
   });
 
   const risultato = useMemo(() => {
-    if (!selectedStore || !pallinePresenti) return null;
+    if (!selectedStore || !barelleInFrigo) return null;
 
     const oggi = new Date().getDay();
     const storeImpasti = impasti.filter(i => i.store_id === selectedStore || i.store_name === selectedStore);
@@ -46,13 +46,15 @@ export default function Impasto() {
       }
     }
 
-    const impastoNecessario = totaleProssimi3Giorni - parseInt(pallinePresenti);
+    const pallinePresenti = parseInt(barelleInFrigo) * 6;
+    const impastoNecessario = totaleProssimi3Giorni - pallinePresenti;
     return {
       totaleProssimi3Giorni,
-      pallinePresenti: parseInt(pallinePresenti),
+      barelleInFrigo: parseInt(barelleInFrigo),
+      pallinePresenti,
       impastoNecessario: Math.max(0, impastoNecessario)
     };
-  }, [selectedStore, pallinePresenti, impasti]);
+  }, [selectedStore, barelleInFrigo, impasti]);
 
   return (
     <ProtectedPage pageName="Impasto">
@@ -83,16 +85,17 @@ export default function Impasto() {
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Numero Palline Presenti
+              Numero Barelle in frigo
             </label>
             <input
               type="number"
               min="0"
-              value={pallinePresenti}
-              onChange={(e) => setPallinePresenti(e.target.value)}
-              placeholder="Inserisci numero palline"
+              value={barelleInFrigo}
+              onChange={(e) => setBarelleInFrigo(e.target.value)}
+              placeholder="Inserisci numero barelle"
               className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
             />
+            <p className="text-xs text-slate-500 mt-1">Ogni barella contiene 6 palline</p>
           </div>
         </NeumorphicCard>
 
@@ -112,8 +115,9 @@ export default function Impasto() {
               </div>
 
               <div className="neumorphic-pressed p-4 rounded-xl">
-                <p className="text-sm text-slate-500 mb-1">Palline già presenti</p>
-                <p className="text-2xl font-bold text-slate-800">{risultato.pallinePresenti} palline</p>
+                <p className="text-sm text-slate-500 mb-1">Barelle in frigo</p>
+                <p className="text-2xl font-bold text-slate-800">{risultato.barelleInFrigo} barelle</p>
+                <p className="text-sm text-slate-500 mt-1">= {risultato.pallinePresenti} palline</p>
               </div>
 
               <div className="neumorphic-card p-6 rounded-xl bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-400">
@@ -135,7 +139,7 @@ export default function Impasto() {
               <p className="font-medium mb-1">ℹ️ Come funziona</p>
               <p className="text-xs">
                 Il sistema calcola automaticamente quanto impasto serve per i prossimi 3 giorni
-                e sottrae le palline già presenti in negozio.
+                e sottrae le palline già presenti in negozio (6 palline per barella).
               </p>
             </div>
           </div>
