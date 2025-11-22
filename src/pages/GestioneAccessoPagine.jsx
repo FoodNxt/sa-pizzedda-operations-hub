@@ -218,10 +218,12 @@ export default function GestioneAccessoPagine() {
     { value: 'ControlloPuliziaStoreManager', label: '✅ Controllo Pulizia Store Manager (solo ruolo)', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
     { value: 'FormInventario', label: '✅ Form Inventario', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
     { value: 'ConteggioCassa', label: '✅ Conteggio Cassa', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
-    { value: 'TeglieButtate', label: '✅ Teglie Buttate', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+    { value: 'FormTeglieButtate', label: '✅ Teglie Buttate', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
     { value: 'Preparazioni', label: '✅ Preparazioni', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
     { value: 'Impasto', label: '✅ Impasto', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
     { value: 'Precotture', label: '✅ Precotture', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+    { value: 'FeedbackP2P', label: '✅ Feedback P2P', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+    { value: 'InventarioStoreManager', label: '✅ Inventario Store Manager', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
     
     // Pagine Sensibili - NON dovrebbero essere selezionate per dipendenti
     { value: 'Dashboard', label: '🚫 Dashboard Overview (DATI FINANZIARI)', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },
