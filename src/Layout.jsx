@@ -841,6 +841,22 @@ export default function Layout({ children, currentPageName }) {
           min-height: 80px;
         }
 
+        body.dipendente-mobile .bottom-nav-item {
+          padding: 20px 12px;
+          min-height: 110px;
+          border-radius: 24px;
+        }
+
+        body.dipendente-mobile .bottom-nav-item svg {
+          width: 2rem !important;
+          height: 2rem !important;
+        }
+
+        body.dipendente-mobile .bottom-nav-item span {
+          font-size: 1rem !important;
+          margin-top: 0.5rem;
+        }
+
         .bottom-nav-item:active {
           transform: scale(0.95);
         }
