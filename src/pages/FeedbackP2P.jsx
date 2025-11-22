@@ -326,13 +326,27 @@ export default function FeedbackP2P() {
                           })()}
                         </span>
                       </div>
-                      <div className="space-y-2">
-                        {r.responses?.map((resp, idx) => (
-                          <div key={idx} className="neumorphic-pressed p-3 rounded-lg">
-                            <p className="text-xs font-medium text-slate-700 mb-1">{resp.question_text}</p>
-                            <p className="text-sm text-slate-800">{resp.answer}</p>
-                          </div>
-                        ))}
+                      <div className="space-y-1">
+                       {r.responses?.map((resp, idx) => (
+                         <div key={idx} className="flex items-center justify-between">
+                           <span className="text-xs text-slate-600">{resp.metric_name || resp.question_text}:</span>
+                           <div className="flex items-center gap-1">
+                             {[...Array(5)].map((_, i) => (
+                               <Star
+                                 key={i}
+                                 className={`w-3 h-3 ${
+                                   i < (resp.score || 0)
+                                     ? 'text-yellow-500 fill-yellow-500'
+                                     : 'text-gray-300'
+                                 }`}
+                               />
+                             ))}
+                             <span className="text-xs font-bold text-slate-800 ml-1">
+                               {resp.score || resp.answer}
+                             </span>
+                           </div>
+                         </div>
+                       ))}
                       </div>
                     </NeumorphicCard>
                   ))
