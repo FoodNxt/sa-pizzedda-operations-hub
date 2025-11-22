@@ -680,7 +680,21 @@ export default function Layout({ children, currentPageName }) {
       allowedPages = pageAccessConfig?.after_registration || ['ProfiloDipendente'];
     }
 
+    // Filter out pages that are already in Forms page to avoid menu duplication
+    const pagesToHideFromMenu = [
+      'ControlloPuliziaStoreManager',
+      'FormInventario', 
+      'TeglieButtate',
+      'ConteggioCassa',
+      'Preparazioni',
+      'Impasto',
+      'Precotture',
+      'ControlloPuliziaCassiere',
+      'ControlloPuliziaPizzaiolo'
+    ];
+
     const menuItems = allowedPages
+      .filter(pageName => !pagesToHideFromMenu.includes(pageName))
       .map(pageName => ({
         title: getPageTitle(pageName),
         url: createPageUrl(pageName),
