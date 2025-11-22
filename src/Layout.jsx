@@ -766,7 +766,7 @@ export default function Layout({ children, currentPageName }) {
   const getBottomNavItems = () => {
     if (!dipendenteNav || dipendenteNav.length === 0) return [];
 
-    const mainItems = dipendenteNav[0]?.items?.slice(0, 5) || [];
+    const mainItems = dipendenteNav[0]?.items || [];
     return mainItems;
   };
 
@@ -902,8 +902,8 @@ export default function Layout({ children, currentPageName }) {
 
       <div className="flex">
 
-        {/* Desktop Sidebar (Admin/Manager only) */}
-        {normalizedUserType !== 'dipendente' && (
+        {/* Desktop Sidebar */}
+        {normalizedUserType !== 'dipendente' ? (
           <aside className={`
             fixed lg:static inset-y-0 left-0 z-40
             w-72 transform transition-transform duration-300 ease-in-out

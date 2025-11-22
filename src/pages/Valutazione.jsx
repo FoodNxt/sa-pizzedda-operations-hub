@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -49,16 +48,18 @@ export default function Valutazione() {
     queryFn: () => base44.entities.Review.list('-review_date'),
   });
 
-  // Match employee by full_name or nome_cognome
+  // Match shifts and reviews by nome_cognome from User entity
+  // No need to match with Employee entity anymore
   React.useEffect(() => {
-    if (user && employees.length > 0) {
-      const userDisplayName = (user.nome_cognome || user.full_name)?.toLowerCase().trim();
-      const matched = employees.find(emp =>
-        emp.full_name?.toLowerCase().trim() === userDisplayName
-      );
-      setMatchedEmployee(matched);
+    if (user) {
+      // Create a fake employee object from user data for display purposes
+      setMatchedEmployee({
+        full_name: user.nome_cognome || user.full_name || user.email,
+        function_name: user.ruoli_dipendente?.join(', ') || 'Dipendente',
+        employee_group: user.user_type
+      });
     }
-  }, [user, employees]); // Changed dependency from currentUser to user
+  }, [user]);
 
   // Helper function to safely format dates
   const safeFormatDate = (dateString, formatString, options = {}) => {
@@ -166,12 +167,9 @@ export default function Valutazione() {
 
         <NeumorphicCard className="p-8 text-center border-2 border-yellow-300">
           <AlertCircle className="w-16 h-16 text-yellow-600 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-[#6b6b6b] mb-2">Profilo Non Trovato</h2>
+          <h2 className="text-xl font-bold text-[#6b6b6b] mb-2">Completa il Tuo Profilo</h2>
           <p className="text-[#9b9b9b] mb-4">
-            Non è stato trovato un dipendente con il nome: <strong>{user?.full_name || 'N/A'}</strong>
-          </p>
-          <p className="text-sm text-[#9b9b9b]">
-            Contatta l'amministratore per verificare che il tuo profilo dipendente sia stato creato correttamente.
+            Per visualizzare la tua valutazione, completa prima il tuo profilo nella sezione "Profilo"
           </p>
         </NeumorphicCard>
       </div>

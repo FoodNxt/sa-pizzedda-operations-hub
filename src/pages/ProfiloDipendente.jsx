@@ -15,8 +15,7 @@ import {
   Upload,
   FileText,
   X,
-  CreditCard,
-  RotateCcw
+  CreditCard
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 
@@ -41,26 +40,11 @@ export default function ProfiloDipendente() {
     permesso_soggiorno: null
   });
   const [uploadingDocs, setUploadingDocs] = useState(false);
-  const [resettingToAdmin, setResettingToAdmin] = useState(false);
   
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
   const queryClient = useQueryClient();
-
-  const handleResetToAdmin = async () => {
-    if (!confirm('Sei sicuro di voler tornare alla vista Admin?')) return;
-    
-    try {
-      setResettingToAdmin(true);
-      await base44.functions.invoke('resetToAdmin');
-      window.location.href = '/Dashboard';
-    } catch (error) {
-      console.error('Error resetting to admin:', error);
-      alert('Errore durante il ripristino. Riprova.');
-      setResettingToAdmin(false);
-    }
-  };
 
   const { data: user, isLoading } = useQuery({
     queryKey: ['currentUser'],
@@ -200,33 +184,25 @@ export default function ProfiloDipendente() {
     );
   }
 
+  // Check if profile is complete
+  const isProfileComplete = user?.nome_cognome && user?.phone && user?.data_nascita && 
+    user?.citta_nascita && user?.codice_fiscale && user?.indirizzo_residenza && user?.iban &&
+    user?.documento_identita_url && user?.codice_fiscale_documento_url &&
+    (user?.cittadinanza_italiana !== false || user?.permesso_soggiorno_url);
+
   return (
     <div className="max-w-2xl mx-auto space-y-4">
-      {/* Admin Reset Button - Emergency Use Only */}
-      {user?.email && (
-        <NeumorphicCard className="p-4 bg-orange-50 border-2 border-orange-300">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex-1">
-              <h3 className="text-sm font-bold text-orange-900 mb-1">🚨 Ripristino Vista Admin</h3>
-              <p className="text-xs text-orange-700">Se sei bloccato nella vista dipendente, usa questo pulsante</p>
+      {/* Banner after complete profile */}
+      {isProfileComplete && (
+        <NeumorphicCard className="p-4 bg-blue-50 border-2 border-blue-300">
+          <div className="flex items-start gap-3">
+            <CheckCircle className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-base font-bold text-blue-900 mb-1">✅ Dati Ricevuti</h3>
+              <p className="text-sm text-blue-800">
+                Stiamo rivedendo i tuoi dati - riceverai maggiori informazioni a breve
+              </p>
             </div>
-            <button
-              onClick={handleResetToAdmin}
-              disabled={resettingToAdmin}
-              className="bg-gradient-to-r from-orange-500 to-red-600 text-white px-4 py-2 rounded-lg font-medium text-sm hover:from-orange-600 hover:to-red-700 transition-colors disabled:opacity-50 whitespace-nowrap flex items-center gap-2"
-            >
-              {resettingToAdmin ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Ripristino...
-                </>
-              ) : (
-                <>
-                  <RotateCcw className="w-4 h-4" />
-                  Torna Admin
-                </>
-              )}
-            </button>
           </div>
         </NeumorphicCard>
       )}

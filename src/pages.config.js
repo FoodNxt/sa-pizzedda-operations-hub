@@ -70,6 +70,7 @@ import InventarioStoreManager from './pages/InventarioStoreManager';
 import FeedbackP2P from './pages/FeedbackP2P';
 import FormTracker from './pages/FormTracker';
 import Documenti from './pages/Documenti';
+import FormsDipendente from './pages/FormsDipendente';
 import __Layout from './Layout.jsx';
 
 
@@ -146,6 +147,7 @@ export const PAGES = {
     "FeedbackP2P": FeedbackP2P,
     "FormTracker": FormTracker,
     "Documenti": Documenti,
+    "FormsDipendente": FormsDipendente,
 }
 
 export const pagesConfig = {
