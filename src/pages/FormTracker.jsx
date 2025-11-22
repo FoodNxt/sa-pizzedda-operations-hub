@@ -12,6 +12,7 @@ export default function FormTracker() {
   const [editingConfig, setEditingConfig] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedStoresForDate, setSelectedStoresForDate] = useState([]);
+  const [includePastShifts, setIncludePastShifts] = useState(true);
   const [missingStartDate, setMissingStartDate] = useState('');
   const [missingEndDate, setMissingEndDate] = useState('');
   const [selectedStoresForMissing, setSelectedStoresForMissing] = useState([]);
@@ -263,6 +264,7 @@ export default function FormTracker() {
     if (!selectedDate) return [];
     
     const dateObj = new Date(selectedDate);
+    const now = new Date();
     const dayOfWeek = dateObj.getDay();
     const forms = [];
     
@@ -277,20 +279,34 @@ export default function FormTracker() {
       eligibleUsers.forEach(user => {
         const userName = user.nome_cognome || user.full_name || user.email;
         
-        // Get user's shifts on selected date
-        const userShiftsOnDate = shifts.filter(s => 
-          s.employee_name === userName && 
-          s.shift_date === selectedDate
-        );
+        // Get user's shifts on selected date - filter by date and if needed by scheduled_end time
+        const userShiftsOnDate = shifts.filter(s => {
+          if (s.employee_name !== userName || s.shift_date !== selectedDate) return false;
+          
+          // If includePastShifts is false, filter out shifts that have already ended
+          if (!includePastShifts && s.scheduled_end) {
+            const shiftEnd = new Date(s.scheduled_end);
+            if (shiftEnd < now) return false;
+          }
+          
+          return true;
+        });
         
         // Check yesterday's shifts too (for late-loaded shifts)
         const yesterday = new Date(dateObj);
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = yesterday.toISOString().split('T')[0];
-        const userShiftsYesterday = shifts.filter(s => 
-          s.employee_name === userName && 
-          s.shift_date === yesterdayStr
-        );
+        const userShiftsYesterday = shifts.filter(s => {
+          if (s.employee_name !== userName || s.shift_date !== yesterdayStr) return false;
+          
+          // If includePastShifts is false, filter out shifts that have already ended
+          if (!includePastShifts && s.scheduled_end) {
+            const shiftEnd = new Date(s.scheduled_end);
+            if (shiftEnd < now) return false;
+          }
+          
+          return true;
+        });
 
         // Check if form is assigned to this store
         const isAssignedToAllStores = !config.assigned_stores || config.assigned_stores.length === 0;
@@ -438,7 +454,7 @@ export default function FormTracker() {
     });
 
     return forms;
-  }, [selectedDate, configs, users, shifts, completions, selectedStoresForDate]);
+  }, [selectedDate, configs, users, shifts, completions, selectedStoresForDate, includePastShifts]);
 
   const availableForms = [
     { name: 'Form Inventario', page: 'FormInventario' },
@@ -607,11 +623,20 @@ export default function FormTracker() {
         </NeumorphicCard>
 
         <NeumorphicCard className="p-6">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
             <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
               <Calendar className="w-6 h-6 text-blue-600" />
               Form per Giorno Specifico
             </h2>
+            <label className="flex items-center gap-2 cursor-pointer neumorphic-pressed px-4 py-2 rounded-xl">
+              <input
+                type="checkbox"
+                checked={includePastShifts}
+                onChange={(e) => setIncludePastShifts(e.target.checked)}
+                className="w-4 h-4 rounded"
+              />
+              <span className="text-sm font-medium text-slate-700">Includi turni passati</span>
+            </label>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
