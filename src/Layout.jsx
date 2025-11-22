@@ -35,7 +35,8 @@ import {
   Settings,
   Loader2,
   Home,
-  Edit
+  Edit,
+  LogOut
 } from "lucide-react";
 import CompleteProfileModal from "./components/auth/CompleteProfileModal";
 
@@ -1094,19 +1095,28 @@ export default function Layout({ children, currentPageName }) {
               </nav>
 
               {isFullyLoaded && (
-                <div className="neumorphic-pressed p-4 rounded-xl mt-4 bg-gradient-to-br from-slate-100 to-slate-200">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                      <span className="text-sm font-bold text-white">
-                        {getUserDisplayName().charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-700 truncate">{getUserDisplayName()}</p>
-                      <p className="text-xs text-slate-500">{getUserTypeName()}</p>
+                <>
+                  <div className="neumorphic-pressed p-4 rounded-xl mt-4 bg-gradient-to-br from-slate-100 to-slate-200">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                        <span className="text-sm font-bold text-white">
+                          {getUserDisplayName().charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-700 truncate">{getUserDisplayName()}</p>
+                        <p className="text-xs text-slate-500">{getUserTypeName()}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                  <button
+                    onClick={() => base44.auth.logout()}
+                    className="w-full nav-button px-4 py-3 rounded-xl mt-3 text-slate-700 font-medium hover:bg-red-50 hover:text-red-600 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Logout
+                  </button>
+                </>
               )}
             </div>
           </aside>
