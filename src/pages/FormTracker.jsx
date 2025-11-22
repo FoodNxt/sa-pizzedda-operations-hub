@@ -22,7 +22,7 @@ export default function FormTracker() {
     temporal_frequency: 'weekly',
     temporal_day_of_week: 1,
     shift_based_timing: 'end',
-    shift_time_filter: '',
+    shift_sequence: '',
     use_previous_day_shift: false,
     is_active: true,
     assigned_roles: []
@@ -89,7 +89,7 @@ export default function FormTracker() {
       temporal_frequency: 'weekly',
       temporal_day_of_week: null,
       shift_based_timing: 'end',
-      shift_time_filter: '',
+      shift_sequence: '',
       use_previous_day_shift: false,
       is_active: true,
       assigned_roles: []
@@ -107,7 +107,7 @@ export default function FormTracker() {
       temporal_frequency: config.temporal_frequency || 'weekly',
       temporal_day_of_week: config.temporal_day_of_week !== undefined && config.temporal_day_of_week !== null ? config.temporal_day_of_week : null,
       shift_based_timing: config.shift_based_timing || 'end',
-      shift_time_filter: config.shift_time_filter || '',
+      shift_sequence: config.shift_sequence || '',
       use_previous_day_shift: config.use_previous_day_shift || false,
       is_active: config.is_active !== false,
       assigned_roles: config.assigned_roles || []
@@ -620,12 +620,15 @@ export default function FormTracker() {
                           </>
                         )}
                         {config.frequency_type === 'shift_based' && (
-                          <>
-                            <p><strong>Quando:</strong> {config.shift_based_timing === 'start' ? 'Inizio turno' : 'Fine turno'}</p>
-                            {config.use_previous_day_shift && (
-                              <p><strong>Usa turno precedente:</strong> Sì</p>
-                            )}
-                          </>
+                         <>
+                           <p><strong>Quando:</strong> {config.shift_based_timing === 'start' ? 'Inizio turno' : 'Fine turno'}</p>
+                           {config.shift_sequence && (
+                             <p><strong>Turno:</strong> {config.shift_sequence === 'first' ? 'Mattina (primo turno)' : 'Sera (secondo turno)'}</p>
+                           )}
+                           {config.use_previous_day_shift && (
+                             <p><strong>Usa turno precedente:</strong> Sì</p>
+                           )}
+                         </>
                         )}
                         {config.assigned_roles && config.assigned_roles.length > 0 && (
                           <p><strong>Ruoli:</strong> {config.assigned_roles.join(', ')}</p>
@@ -751,52 +754,54 @@ export default function FormTracker() {
                   )}
 
                   {configForm.frequency_type === 'shift_based' && (
-                   <>
-                     <div>
-                       <label className="text-sm font-medium text-slate-700 mb-2 block">
-                         Quando Compilare
-                       </label>
-                       <select
-                         value={configForm.shift_based_timing}
-                         onChange={(e) => setConfigForm({ ...configForm, shift_based_timing: e.target.value })}
-                         className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                       >
-                         <option value="start">Inizio Turno</option>
-                         <option value="end">Fine Turno</option>
-                       </select>
-                     </div>
-                     <div>
-                       <label className="text-sm font-medium text-slate-700 mb-2 block">
-                         Orario Turno (opzionale)
-                       </label>
-                       <input
-                         type="time"
-                         value={configForm.shift_time_filter}
-                         onChange={(e) => setConfigForm({ ...configForm, shift_time_filter: e.target.value })}
-                         className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                         placeholder="es: 12:00"
-                       />
-                       <p className="text-xs text-slate-500 mt-2">
-                         Se vuoto, il form sarà richiesto per tutti i turni. Se impostato, solo per dipendenti in turno in questo orario.
-                       </p>
-                     </div>
-                     <div>
-                       <label className="flex items-center gap-2 cursor-pointer">
-                         <input
-                           type="checkbox"
-                           checked={configForm.use_previous_day_shift}
-                           onChange={(e) => setConfigForm({ ...configForm, use_previous_day_shift: e.target.checked })}
-                           className="w-4 h-4 rounded"
-                         />
-                         <span className="text-sm font-medium text-slate-700">
-                           Usa turno del giorno precedente
-                         </span>
-                       </label>
-                       <p className="text-xs text-slate-500 mt-1 ml-6">
-                         Utile quando i turni vengono caricati il giorno dopo. Il form apparirà oggi ma si riferirà al turno di ieri.
-                       </p>
-                     </div>
-                   </>
+                  <>
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-2 block">
+                        Quando Compilare
+                      </label>
+                      <select
+                        value={configForm.shift_based_timing}
+                        onChange={(e) => setConfigForm({ ...configForm, shift_based_timing: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      >
+                        <option value="start">Inizio Turno</option>
+                        <option value="end">Fine Turno</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-2 block">
+                        Quale Turno (opzionale)
+                      </label>
+                      <select
+                        value={configForm.shift_sequence}
+                        onChange={(e) => setConfigForm({ ...configForm, shift_sequence: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      >
+                        <option value="">Tutti i turni</option>
+                        <option value="first">Turno Mattina (primo turno)</option>
+                        <option value="second">Turno Sera (secondo turno)</option>
+                      </select>
+                      <p className="text-xs text-slate-500 mt-2">
+                        Se vuoto, il form sarà richiesto per tutti i turni. Se impostato, solo per il primo o secondo turno del dipendente nella giornata.
+                      </p>
+                    </div>
+                    <div>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={configForm.use_previous_day_shift}
+                          onChange={(e) => setConfigForm({ ...configForm, use_previous_day_shift: e.target.checked })}
+                          className="w-4 h-4 rounded"
+                        />
+                        <span className="text-sm font-medium text-slate-700">
+                          Usa turno del giorno precedente
+                        </span>
+                      </label>
+                      <p className="text-xs text-slate-500 mt-1 ml-6">
+                        Utile quando i turni vengono caricati il giorno dopo. Il form apparirà oggi ma si riferirà al turno di ieri.
+                      </p>
+                    </div>
+                  </>
                   )}
 
                   <div>
