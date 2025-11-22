@@ -857,28 +857,36 @@ export default function Layout({ children, currentPageName }) {
 
           /* Increase font sizes for dipendente mobile view */
           body.dipendente-mobile h1 {
-            font-size: 1.75rem !important;
+            font-size: 2rem !important;
           }
           body.dipendente-mobile h2 {
-            font-size: 1.5rem !important;
+            font-size: 1.75rem !important;
           }
           body.dipendente-mobile h3 {
-            font-size: 1.25rem !important;
+            font-size: 1.5rem !important;
           }
           body.dipendente-mobile p, 
           body.dipendente-mobile span,
           body.dipendente-mobile label {
-            font-size: 1rem !important;
+            font-size: 1.125rem !important;
           }
           body.dipendente-mobile .text-xs {
-            font-size: 0.875rem !important;
+            font-size: 1rem !important;
           }
           body.dipendente-mobile .text-sm {
-            font-size: 1rem !important;
+            font-size: 1.125rem !important;
           }
           body.dipendente-mobile button {
-            font-size: 1rem !important;
-            padding: 0.875rem 1.25rem !important;
+            font-size: 1.125rem !important;
+            padding: 1rem 1.5rem !important;
+            min-height: 3rem !important;
+          }
+          body.dipendente-mobile input,
+          body.dipendente-mobile select,
+          body.dipendente-mobile textarea {
+            font-size: 1.125rem !important;
+            padding: 1rem !important;
+            min-height: 3rem !important;
           }
         }
       `}</style>
