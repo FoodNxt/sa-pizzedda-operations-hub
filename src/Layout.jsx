@@ -501,10 +501,10 @@ export default function Layout({ children, currentPageName }) {
               allowedPages = [...allowedPages, ...(pageAccessConfig?.pizzaiolo_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'Impasto', 'Precotture', 'ControlloPuliziaPizzaiolo'])];
             }
             if (userRoles.includes('Cassiere')) {
-              allowedPages = [...allowedPages, ...(pageAccessConfig?.cassiere_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'ControlloPuliziaCassiere', 'ConteggioCassa'])];
+              allowedPages = [...allowedPages, ...(pageAccessConfig?.cassiere_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'ControlloPuliziaCassiere'])];
             }
             if (userRoles.includes('Store Manager')) {
-              allowedPages = [...allowedPages, ...(pageAccessConfig?.store_manager_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'ControlloPuliziaStoreManager'])];
+              allowedPages = [...allowedPages, ...(pageAccessConfig?.store_manager_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente'])];
             }
 
             // Remove duplicates
@@ -659,10 +659,10 @@ export default function Layout({ children, currentPageName }) {
         allowedPages = [...allowedPages, ...(pageAccessConfig?.pizzaiolo_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'Impasto', 'Precotture', 'ControlloPuliziaPizzaiolo'])];
       }
       if (userRoles.includes('Cassiere')) {
-        allowedPages = [...allowedPages, ...(pageAccessConfig?.cassiere_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'ControlloPuliziaCassiere', 'ConteggioCassa'])];
+        allowedPages = [...allowedPages, ...(pageAccessConfig?.cassiere_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'ControlloPuliziaCassiere'])];
       }
       if (userRoles.includes('Store Manager')) {
-        allowedPages = [...allowedPages, ...(pageAccessConfig?.store_manager_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'ControlloPuliziaStoreManager'])];
+        allowedPages = [...allowedPages, ...(pageAccessConfig?.store_manager_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente'])];
       }
 
       // Remove duplicates
