@@ -495,8 +495,7 @@ export default function Layout({ children, currentPageName }) {
 
           if (contractStarted && hasSignedContract) {
             allowedPages = pageAccessConfig?.after_contract_start || [
-              'ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione',
-              'FormsDipendente', 'FeedbackP2P'
+              'ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente'
             ];
           } else if (hasSignedContract) {
             allowedPages = pageAccessConfig?.after_contract_signed || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'];
@@ -637,8 +636,7 @@ export default function Layout({ children, currentPageName }) {
 
     if (contractStarted && hasSignedContract) {
       allowedPages = pageAccessConfig?.after_contract_start || [
-        'ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione',
-        'FormsDipendente', 'FeedbackP2P'
+        'ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente'
       ];
     } else if (hasSignedContract) {
       allowedPages = pageAccessConfig?.after_contract_signed || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'];

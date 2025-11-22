@@ -1,6 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
 import {
   Camera,
   ClipboardList,
@@ -13,17 +15,37 @@ import {
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 
 export default function FormsDipendente() {
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const userRoles = user?.ruoli_dipendente || [];
+
   const forms = [
     {
-      title: "Pulizia",
-      description: "Controllo pulizia del tuo ruolo",
+      title: "Controllo Pulizia Cassiere",
+      description: "Controllo pulizia area cassa",
       icon: Camera,
-      pages: [
-        { name: "Cassiere", url: "ControlloPuliziaCassiere", roles: ["Cassiere"] },
-        { name: "Pizzaiolo", url: "ControlloPuliziaPizzaiolo", roles: ["Pizzaiolo"] },
-        { name: "Store Manager", url: "ControlloPuliziaStoreManager", roles: ["Store Manager"] }
-      ],
+      url: "ControlloPuliziaCassiere",
+      roles: ["Cassiere"],
       color: "from-blue-500 to-cyan-500"
+    },
+    {
+      title: "Controllo Pulizia Pizzaiolo",
+      description: "Controllo pulizia area pizza",
+      icon: Camera,
+      url: "ControlloPuliziaPizzaiolo",
+      roles: ["Pizzaiolo"],
+      color: "from-orange-500 to-red-600"
+    },
+    {
+      title: "Controllo Pulizia Store Manager",
+      description: "Controllo pulizia generale",
+      icon: Camera,
+      url: "ControlloPuliziaStoreManager",
+      roles: ["Store Manager"],
+      color: "from-purple-500 to-pink-600"
     },
     {
       title: "Inventario",
@@ -37,14 +59,14 @@ export default function FormsDipendente() {
       description: "Registra il conteggio cassa",
       icon: DollarSign,
       url: "ConteggioCassa",
-      color: "from-purple-500 to-pink-600"
+      color: "from-teal-500 to-cyan-600"
     },
     {
       title: "Feedback P2P",
       description: "Dai feedback ai tuoi colleghi",
       icon: Users,
       url: "FeedbackP2P",
-      color: "from-orange-500 to-red-600"
+      color: "from-rose-500 to-pink-600"
     },
     {
       title: "Impasto",
@@ -64,6 +86,13 @@ export default function FormsDipendente() {
     }
   ];
 
+  const hasAccess = (formRoles) => {
+    if (!formRoles || formRoles.length === 0) return true;
+    return formRoles.some(role => userRoles.includes(role));
+  };
+
+  const filteredForms = forms.filter(form => hasAccess(form.roles));
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="mb-6">
@@ -74,34 +103,9 @@ export default function FormsDipendente() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {forms.map((form, index) => {
+        {filteredForms.map((form, index) => {
           const Icon = form.icon;
-          
-          // If form has sub-pages (like Pulizia)
-          if (form.pages) {
-            return (
-              <NeumorphicCard key={index} className="p-6">
-                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${form.color} mx-auto mb-4 flex items-center justify-center shadow-lg`}>
-                  <Icon className="w-7 h-7 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-800 text-center mb-2">{form.title}</h3>
-                <p className="text-sm text-slate-600 text-center mb-4">{form.description}</p>
-                <div className="space-y-2">
-                  {form.pages.map((page, idx) => (
-                    <Link
-                      key={idx}
-                      to={createPageUrl(page.url)}
-                      className="block w-full nav-button px-4 py-3 rounded-xl text-slate-700 hover:text-slate-900 transition-colors text-center font-medium"
-                    >
-                      {page.name}
-                    </Link>
-                  ))}
-                </div>
-              </NeumorphicCard>
-            );
-          }
 
-          // Regular form card
           return (
             <Link key={index} to={createPageUrl(form.url)}>
               <NeumorphicCard className="p-6 hover:shadow-xl transition-all cursor-pointer">
