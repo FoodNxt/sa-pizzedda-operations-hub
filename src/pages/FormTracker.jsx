@@ -11,6 +11,10 @@ export default function FormTracker() {
   const [showConfigForm, setShowConfigForm] = useState(false);
   const [editingConfig, setEditingConfig] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedStoresForDate, setSelectedStoresForDate] = useState([]);
+  const [missingStartDate, setMissingStartDate] = useState('');
+  const [missingEndDate, setMissingEndDate] = useState('');
+  const [selectedStoresForMissing, setSelectedStoresForMissing] = useState([]);
   const [configForm, setConfigForm] = useState({
     form_name: '',
     form_page: '',
@@ -46,6 +50,11 @@ export default function FormTracker() {
   const { data: shifts = [] } = useQuery({
     queryKey: ['shifts'],
     queryFn: () => base44.entities.Shift.list(),
+  });
+
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores'],
+    queryFn: () => base44.entities.Store.list(),
   });
 
   const createConfigMutation = useMutation({
@@ -135,6 +144,9 @@ export default function FormTracker() {
       eligibleUsers.forEach(user => {
         const userName = user.nome_cognome || user.full_name || user.email;
         
+        // Get user's store from shifts
+        const userStore = shifts.find(s => s.employee_name === userName)?.store_name;
+        
         if (config.frequency_type === 'temporal') {
           let needsCompletion = false;
           let periodStart = null;
@@ -165,6 +177,7 @@ export default function FormTracker() {
             missing.push({
               user,
               userName,
+              userStore,
               config,
               reason: `Non completato questa ${config.temporal_frequency === 'weekly' ? 'settimana' : config.temporal_frequency === 'monthly' ? 'mese' : 'giornata'}`
             });
@@ -188,6 +201,7 @@ export default function FormTracker() {
                 missing.push({
                   user,
                   userName,
+                  userStore,
                   config,
                   shift,
                   reason: `Non completato per turno del ${shiftDate.toLocaleDateString('it-IT')}`
@@ -203,6 +217,39 @@ export default function FormTracker() {
 
     return missing;
   }, [configs, completions, users, shifts]);
+
+  // Filter missing completions by date range and stores
+  const filteredMissingCompletions = useMemo(() => {
+    let filtered = missingCompletions;
+
+    // Filter by date range if set
+    if (missingStartDate && missingEndDate) {
+      const start = startOfDay(new Date(missingStartDate));
+      const end = endOfDay(new Date(missingEndDate));
+      
+      filtered = filtered.filter(item => {
+        if (item.shift?.shift_date) {
+          try {
+            const shiftDate = parseISO(item.shift.shift_date);
+            return isWithinInterval(shiftDate, { start, end });
+          } catch (e) {
+            return false;
+          }
+        }
+        // For temporal configs, check if they fall within the date range
+        return true;
+      });
+    }
+
+    // Filter by stores if selected
+    if (selectedStoresForMissing.length > 0) {
+      filtered = filtered.filter(item => 
+        item.userStore && selectedStoresForMissing.includes(item.userStore)
+      );
+    }
+
+    return filtered;
+  }, [missingCompletions, missingStartDate, missingEndDate, selectedStoresForMissing]);
 
   // Calculate forms for specific date
   const formsForDate = useMemo(() => {
@@ -222,22 +269,31 @@ export default function FormTracker() {
 
       eligibleUsers.forEach(user => {
         const userName = user.nome_cognome || user.full_name || user.email;
+        
+        // Get user's store from shifts on selected date
+        const userShiftOnDate = shifts.find(s => 
+          s.employee_name === userName && 
+          s.shift_date === selectedDate
+        );
+        const userStore = userShiftOnDate?.store_name;
+
+        // Filter by selected stores if any
+        if (selectedStoresForDate.length > 0 && (!userStore || !selectedStoresForDate.includes(userStore))) {
+          return;
+        }
+
         let shouldShow = false;
 
         if (config.frequency_type === 'temporal') {
           if (config.temporal_frequency === 'daily') {
             shouldShow = true;
           } else if (config.temporal_frequency === 'weekly') {
-            shouldShow = dayOfWeek === (config.temporal_day_of_week || 1);
+            shouldShow = config.temporal_day_of_week === null || config.temporal_day_of_week === undefined || dayOfWeek === config.temporal_day_of_week;
           } else if (config.temporal_frequency === 'monthly') {
             shouldShow = dateObj.getDate() === 1;
           }
         } else if (config.frequency_type === 'shift_based') {
-          const hasShift = shifts.some(s => 
-            s.employee_name === userName && 
-            s.shift_date === selectedDate
-          );
-          shouldShow = hasShift;
+          shouldShow = !!userShiftOnDate;
         }
 
         if (shouldShow) {
@@ -257,6 +313,7 @@ export default function FormTracker() {
           forms.push({
             user,
             userName,
+            userStore,
             config,
             completed: hasCompleted,
             completionDate: hasCompleted ? completions.find(c => {
@@ -277,7 +334,7 @@ export default function FormTracker() {
     });
 
     return forms;
-  }, [selectedDate, configs, users, shifts, completions]);
+  }, [selectedDate, configs, users, shifts, completions, selectedStoresForDate]);
 
   const availableForms = [
     { name: 'Form Inventario', page: 'FormInventario' },
@@ -342,19 +399,72 @@ export default function FormTracker() {
           </NeumorphicCard>
         </div>
 
-        {missingCompletions.length > 0 && (
-          <NeumorphicCard className="p-6">
-            <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-              <AlertTriangle className="w-6 h-6 text-red-600" />
-              Form Non Completati
-            </h2>
+        <NeumorphicCard className="p-6">
+          <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <AlertTriangle className="w-6 h-6 text-red-600" />
+            Form Non Completati
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">
+                Data Inizio
+              </label>
+              <input
+                type="date"
+                value={missingStartDate}
+                onChange={(e) => setMissingStartDate(e.target.value)}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">
+                Data Fine
+              </label>
+              <input
+                type="date"
+                value={missingEndDate}
+                onChange={(e) => setMissingEndDate(e.target.value)}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">
+                Locali
+              </label>
+              <select
+                multiple
+                value={selectedStoresForMissing}
+                onChange={(e) => setSelectedStoresForMissing(Array.from(e.target.selectedOptions, option => option.value))}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                style={{ minHeight: '120px' }}
+              >
+                {stores.map(store => (
+                  <option key={store.id} value={store.name}>{store.name}</option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-500 mt-1">Tieni premuto Ctrl/Cmd per selezionare più locali</p>
+            </div>
+          </div>
+
+          {filteredMissingCompletions.length === 0 ? (
+            <div className="text-center py-8">
+              <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+              <p className="text-slate-600">Nessun form mancante con i filtri selezionati</p>
+            </div>
+          ) : (
             <div className="space-y-2">
-              {missingCompletions.map((item, idx) => (
+              {filteredMissingCompletions.map((item, idx) => (
                 <div key={idx} className="neumorphic-pressed p-4 rounded-xl border-2 border-red-200">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-bold text-slate-800">{item.userName}</p>
                       <p className="text-sm text-slate-600">{item.config.form_name}</p>
+                      {item.userStore && (
+                        <p className="text-xs text-blue-600">Locale: {item.userStore}</p>
+                      )}
                       <p className="text-xs text-red-600">{item.reason}</p>
                     </div>
                     <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">
@@ -364,8 +474,8 @@ export default function FormTracker() {
                 </div>
               ))}
             </div>
-          </NeumorphicCard>
-        )}
+          )}
+        </NeumorphicCard>
 
         <NeumorphicCard className="p-6">
           <div className="flex items-center justify-between mb-6">
@@ -375,16 +485,36 @@ export default function FormTracker() {
             </h2>
           </div>
 
-          <div className="mb-6">
-            <label className="text-sm font-medium text-slate-700 mb-2 block">
-              Seleziona Data
-            </label>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-full md:w-auto neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">
+                Seleziona Data
+              </label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">
+                Locali
+              </label>
+              <select
+                multiple
+                value={selectedStoresForDate}
+                onChange={(e) => setSelectedStoresForDate(Array.from(e.target.selectedOptions, option => option.value))}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                style={{ minHeight: '120px' }}
+              >
+                {stores.map(store => (
+                  <option key={store.id} value={store.name}>{store.name}</option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-500 mt-1">Tieni premuto Ctrl/Cmd per selezionare più locali</p>
+            </div>
           </div>
 
           {formsForDate.length === 0 ? (
@@ -402,6 +532,9 @@ export default function FormTracker() {
                     <div className="flex-1">
                       <p className="font-bold text-slate-800">{item.userName}</p>
                       <p className="text-sm text-slate-600">{item.config.form_name}</p>
+                      {item.userStore && (
+                        <p className="text-xs text-blue-600">Locale: {item.userStore}</p>
+                      )}
                       {item.completed && item.completionDate && (
                         <p className="text-xs text-green-600 mt-1">
                           Completato: {(() => {
