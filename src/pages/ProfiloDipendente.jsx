@@ -193,7 +193,7 @@ export default function ProfiloDipendente() {
   return (
     <div className="max-w-2xl mx-auto space-y-4">
       {/* Banner after complete profile */}
-      {isProfileComplete && (
+      {isProfileComplete && (!user?.ruoli_dipendente || user.ruoli_dipendente.length === 0) && (
         <NeumorphicCard className="p-4 bg-blue-50 border-2 border-blue-300">
           <div className="flex items-start gap-3">
             <CheckCircle className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
