@@ -35,7 +35,7 @@ export default function GestioneAccessoPagine() {
     after_registration: activeConfig?.after_registration || ['ProfiloDipendente'],
     after_contract_received: activeConfig?.after_contract_received || ['ProfiloDipendente', 'ContrattiDipendente'],
     after_contract_signed: activeConfig?.after_contract_signed || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'],
-    pizzaiolo_pages: activeConfig?.pizzaiolo_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'Impasto', 'Precotture', 'ControlloPuliziaPizzaiolo'],
+    pizzaiolo_pages: activeConfig?.pizzaiolo_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'ControlloPuliziaPizzaiolo'],
     cassiere_pages: activeConfig?.cassiere_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'ControlloPuliziaCassiere'],
     store_manager_pages: activeConfig?.store_manager_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente']
   });
@@ -68,7 +68,7 @@ export default function GestioneAccessoPagine() {
         after_registration: activeConfig.after_registration || ['ProfiloDipendente'],
         after_contract_received: activeConfig.after_contract_received || ['ProfiloDipendente', 'ContrattiDipendente'],
         after_contract_signed: activeConfig.after_contract_signed || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy'],
-        pizzaiolo_pages: activeConfig.pizzaiolo_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'Impasto', 'Precotture', 'ControlloPuliziaPizzaiolo'],
+        pizzaiolo_pages: activeConfig.pizzaiolo_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'ControlloPuliziaPizzaiolo'],
         cassiere_pages: activeConfig.cassiere_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'ControlloPuliziaCassiere'],
         store_manager_pages: activeConfig.store_manager_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente']
       });

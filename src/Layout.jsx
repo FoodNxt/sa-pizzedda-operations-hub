@@ -498,7 +498,7 @@ export default function Layout({ children, currentPageName }) {
             allowedPages = [];
 
             if (userRoles.includes('Pizzaiolo')) {
-              allowedPages = [...allowedPages, ...(pageAccessConfig?.pizzaiolo_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'Impasto', 'Precotture', 'ControlloPuliziaPizzaiolo'])];
+              allowedPages = [...allowedPages, ...(pageAccessConfig?.pizzaiolo_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'ControlloPuliziaPizzaiolo'])];
             }
             if (userRoles.includes('Cassiere')) {
               allowedPages = [...allowedPages, ...(pageAccessConfig?.cassiere_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'ControlloPuliziaCassiere'])];
@@ -656,7 +656,7 @@ export default function Layout({ children, currentPageName }) {
       allowedPages = [];
 
       if (userRoles.includes('Pizzaiolo')) {
-        allowedPages = [...allowedPages, ...(pageAccessConfig?.pizzaiolo_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'Impasto', 'Precotture', 'ControlloPuliziaPizzaiolo'])];
+        allowedPages = [...allowedPages, ...(pageAccessConfig?.pizzaiolo_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'ControlloPuliziaPizzaiolo'])];
       }
       if (userRoles.includes('Cassiere')) {
         allowedPages = [...allowedPages, ...(pageAccessConfig?.cassiere_pages || ['ProfiloDipendente', 'ContrattiDipendente', 'Academy', 'Valutazione', 'FormsDipendente', 'ControlloPuliziaCassiere'])];
