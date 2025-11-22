@@ -269,72 +269,7 @@ const navigationStructure = [
       }
     ]
   },
-  {
-    title: "View Dipendente",
-    icon: Users,
-    type: "section",
-    requiredUserType: ["dipendente", "user"],
-    items: [
-      {
-        title: "Valutazione",
-        url: createPageUrl("Valutazione"),
-        icon: ClipboardCheck,
-      },
-      {
-        title: "Profilo",
-        url: createPageUrl("ProfiloDipendente"),
-        icon: User,
-      },
-      {
-        title: "Contratti",
-        url: createPageUrl("ContrattiDipendente"),
-        icon: FileText,
-      },
-      {
-        title: "Academy",
-        url: createPageUrl("Academy"),
-        icon: GraduationCap,
-      },
-      {
-        title: "Controllo Pulizia Cassiere",
-        url: createPageUrl("ControlloPuliziaCassiere"),
-        icon: Camera,
-        requiredRole: "Cassiere"
-      },
-      {
-        title: "Controllo Pulizia Pizzaiolo",
-        url: createPageUrl("ControlloPuliziaPizzaiolo"),
-        icon: Camera,
-        requiredRole: "Pizzaiolo"
-      },
-      {
-        title: "Controllo Pulizia Store Manager",
-        url: createPageUrl("ControlloPuliziaStoreManager"),
-        icon: Camera,
-        requiredRole: "Store Manager"
-      },
-      {
-        title: "Forms",
-        url: createPageUrl("InventoryForms"),
-        icon: Edit,
-      },
-      {
-        title: "Conteggio Cassa",
-        url: createPageUrl("ConteggioCassa"),
-        icon: DollarSign,
-      },
-      {
-        title: "Impasto",
-        url: createPageUrl("Impasto"),
-        icon: ChefHat,
-      },
-      {
-        title: "Precotture",
-        url: createPageUrl("Precotture"),
-        icon: Pizza,
-      }
-      ]
-      },
+
   {
     title: "Zapier Guide",
     icon: Zap,
