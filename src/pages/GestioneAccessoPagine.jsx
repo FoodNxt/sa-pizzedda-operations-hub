@@ -563,26 +563,55 @@ export default function GestioneAccessoPagine() {
             }`}>
               {category}
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {pages.map(page => (
-                <div key={page.value} className={`neumorphic-pressed p-3 rounded-lg ${
-                  !page.recommended && pageConfig.after_contract_received.includes(page.value) ? 'border-2 border-red-500' : ''
-                }`}>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={pageConfig.after_contract_received.includes(page.value)}
-                      onChange={() => handlePageToggle('after_contract_received', page.value)}
-                      className="w-5 h-5 rounded"
-                    />
-                    <span className={`text-sm ${
-                      page.recommended ? 'text-[#6b6b6b]' : 'text-red-600 font-bold'
-                    }`}>
-                      {page.label}
-                    </span>
-                  </label>
-                </div>
-              ))}
+            <div className="grid grid-cols-1 gap-2">
+              {pages.map(page => {
+                const pageData = pageConfig.after_contract_received.find(p => p.page === page.value);
+                const isChecked = !!pageData;
+
+                return (
+                  <div key={page.value} className={`neumorphic-pressed p-3 rounded-lg ${
+                    !page.recommended && isChecked ? 'border-2 border-red-500' : ''
+                  }`}>
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handlePageToggle('after_contract_received', page.value)}
+                        className="w-5 h-5 rounded mt-0.5"
+                      />
+                      <div className="flex-1">
+                        <span className={`text-sm block mb-2 ${
+                          page.recommended ? 'text-[#6b6b6b]' : 'text-red-600 font-bold'
+                        }`}>
+                          {page.label}
+                        </span>
+                        {isChecked && (
+                          <div className="flex gap-4 text-xs">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={pageData.showInMenu}
+                                onChange={() => handlePageMenuToggle('after_contract_received', page.value)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-slate-600">Mostra nel Menu</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={pageData.showInForms}
+                                onChange={() => handlePageFormsToggle('after_contract_received', page.value)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-slate-600">Box in "Forms"</span>
+                            </label>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}
@@ -607,26 +636,55 @@ export default function GestioneAccessoPagine() {
             }`}>
               {category}
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {pages.map(page => (
-                <div key={page.value} className={`neumorphic-pressed p-3 rounded-lg ${
-                  !page.recommended && pageConfig.after_contract_signed.includes(page.value) ? 'border-2 border-red-500' : ''
-                }`}>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={pageConfig.after_contract_signed.includes(page.value)}
-                      onChange={() => handlePageToggle('after_contract_signed', page.value)}
-                      className="w-5 h-5 rounded"
-                    />
-                    <span className={`text-sm ${
-                      page.recommended ? 'text-[#6b6b6b]' : 'text-red-600 font-bold'
-                    }`}>
-                      {page.label}
-                    </span>
-                  </label>
-                </div>
-              ))}
+            <div className="grid grid-cols-1 gap-2">
+              {pages.map(page => {
+                const pageData = pageConfig.after_contract_signed.find(p => p.page === page.value);
+                const isChecked = !!pageData;
+
+                return (
+                  <div key={page.value} className={`neumorphic-pressed p-3 rounded-lg ${
+                    !page.recommended && isChecked ? 'border-2 border-red-500' : ''
+                  }`}>
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handlePageToggle('after_contract_signed', page.value)}
+                        className="w-5 h-5 rounded mt-0.5"
+                      />
+                      <div className="flex-1">
+                        <span className={`text-sm block mb-2 ${
+                          page.recommended ? 'text-[#6b6b6b]' : 'text-red-600 font-bold'
+                        }`}>
+                          {page.label}
+                        </span>
+                        {isChecked && (
+                          <div className="flex gap-4 text-xs">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={pageData.showInMenu}
+                                onChange={() => handlePageMenuToggle('after_contract_signed', page.value)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-slate-600">Mostra nel Menu</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={pageData.showInForms}
+                                onChange={() => handlePageFormsToggle('after_contract_signed', page.value)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-slate-600">Box in "Forms"</span>
+                            </label>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}
@@ -651,26 +709,55 @@ export default function GestioneAccessoPagine() {
             }`}>
               {category}
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {pages.map(page => (
-                <div key={page.value} className={`neumorphic-pressed p-3 rounded-lg ${
-                  !page.recommended && pageConfig.pizzaiolo_pages?.includes(page.value) ? 'border-2 border-red-500' : ''
-                }`}>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={pageConfig.pizzaiolo_pages?.includes(page.value)}
-                      onChange={() => handlePageToggle('pizzaiolo_pages', page.value)}
-                      className="w-5 h-5 rounded"
-                    />
-                    <span className={`text-sm ${
-                      page.recommended ? 'text-[#6b6b6b]' : 'text-red-600 font-bold'
-                    }`}>
-                      {page.label}
-                    </span>
-                  </label>
-                </div>
-              ))}
+            <div className="grid grid-cols-1 gap-2">
+              {pages.map(page => {
+                const pageData = pageConfig.pizzaiolo_pages?.find(p => p.page === page.value);
+                const isChecked = !!pageData;
+
+                return (
+                  <div key={page.value} className={`neumorphic-pressed p-3 rounded-lg ${
+                    !page.recommended && isChecked ? 'border-2 border-red-500' : ''
+                  }`}>
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handlePageToggle('pizzaiolo_pages', page.value)}
+                        className="w-5 h-5 rounded mt-0.5"
+                      />
+                      <div className="flex-1">
+                        <span className={`text-sm block mb-2 ${
+                          page.recommended ? 'text-[#6b6b6b]' : 'text-red-600 font-bold'
+                        }`}>
+                          {page.label}
+                        </span>
+                        {isChecked && (
+                          <div className="flex gap-4 text-xs">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={pageData.showInMenu}
+                                onChange={() => handlePageMenuToggle('pizzaiolo_pages', page.value)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-slate-600">Mostra nel Menu</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={pageData.showInForms}
+                                onChange={() => handlePageFormsToggle('pizzaiolo_pages', page.value)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-slate-600">Box in "Forms"</span>
+                            </label>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}
@@ -695,26 +782,55 @@ export default function GestioneAccessoPagine() {
             }`}>
               {category}
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {pages.map(page => (
-                <div key={page.value} className={`neumorphic-pressed p-3 rounded-lg ${
-                  !page.recommended && pageConfig.cassiere_pages?.includes(page.value) ? 'border-2 border-red-500' : ''
-                }`}>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={pageConfig.cassiere_pages?.includes(page.value)}
-                      onChange={() => handlePageToggle('cassiere_pages', page.value)}
-                      className="w-5 h-5 rounded"
-                    />
-                    <span className={`text-sm ${
-                      page.recommended ? 'text-[#6b6b6b]' : 'text-red-600 font-bold'
-                    }`}>
-                      {page.label}
-                    </span>
-                  </label>
-                </div>
-              ))}
+            <div className="grid grid-cols-1 gap-2">
+              {pages.map(page => {
+                const pageData = pageConfig.cassiere_pages?.find(p => p.page === page.value);
+                const isChecked = !!pageData;
+
+                return (
+                  <div key={page.value} className={`neumorphic-pressed p-3 rounded-lg ${
+                    !page.recommended && isChecked ? 'border-2 border-red-500' : ''
+                  }`}>
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handlePageToggle('cassiere_pages', page.value)}
+                        className="w-5 h-5 rounded mt-0.5"
+                      />
+                      <div className="flex-1">
+                        <span className={`text-sm block mb-2 ${
+                          page.recommended ? 'text-[#6b6b6b]' : 'text-red-600 font-bold'
+                        }`}>
+                          {page.label}
+                        </span>
+                        {isChecked && (
+                          <div className="flex gap-4 text-xs">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={pageData.showInMenu}
+                                onChange={() => handlePageMenuToggle('cassiere_pages', page.value)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-slate-600">Mostra nel Menu</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={pageData.showInForms}
+                                onChange={() => handlePageFormsToggle('cassiere_pages', page.value)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-slate-600">Box in "Forms"</span>
+                            </label>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}
@@ -739,26 +855,55 @@ export default function GestioneAccessoPagine() {
             }`}>
               {category}
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {pages.map(page => (
-                <div key={page.value} className={`neumorphic-pressed p-3 rounded-lg ${
-                  !page.recommended && pageConfig.store_manager_pages?.includes(page.value) ? 'border-2 border-red-500' : ''
-                }`}>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={pageConfig.store_manager_pages?.includes(page.value)}
-                      onChange={() => handlePageToggle('store_manager_pages', page.value)}
-                      className="w-5 h-5 rounded"
-                    />
-                    <span className={`text-sm ${
-                      page.recommended ? 'text-[#6b6b6b]' : 'text-red-600 font-bold'
-                    }`}>
-                      {page.label}
-                    </span>
-                  </label>
-                </div>
-              ))}
+            <div className="grid grid-cols-1 gap-2">
+              {pages.map(page => {
+                const pageData = pageConfig.store_manager_pages?.find(p => p.page === page.value);
+                const isChecked = !!pageData;
+
+                return (
+                  <div key={page.value} className={`neumorphic-pressed p-3 rounded-lg ${
+                    !page.recommended && isChecked ? 'border-2 border-red-500' : ''
+                  }`}>
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handlePageToggle('store_manager_pages', page.value)}
+                        className="w-5 h-5 rounded mt-0.5"
+                      />
+                      <div className="flex-1">
+                        <span className={`text-sm block mb-2 ${
+                          page.recommended ? 'text-[#6b6b6b]' : 'text-red-600 font-bold'
+                        }`}>
+                          {page.label}
+                        </span>
+                        {isChecked && (
+                          <div className="flex gap-4 text-xs">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={pageData.showInMenu}
+                                onChange={() => handlePageMenuToggle('store_manager_pages', page.value)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-slate-600">Mostra nel Menu</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={pageData.showInForms}
+                                onChange={() => handlePageFormsToggle('store_manager_pages', page.value)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-slate-600">Box in "Forms"</span>
+                            </label>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}
