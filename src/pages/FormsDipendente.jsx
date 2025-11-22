@@ -92,6 +92,14 @@ export default function FormsDipendente() {
       url: "FormTeglieButtate",
       roles: ["Pizzaiolo", "Store Manager"],
       color: "from-red-500 to-rose-600"
+    },
+    {
+      title: "Preparazioni",
+      description: "Gestione preparazioni",
+      icon: ClipboardList,
+      url: "Preparazioni",
+      roles: ["Pizzaiolo", "Store Manager"],
+      color: "from-violet-500 to-purple-600"
     }
   ];
 
