@@ -258,13 +258,58 @@ export default function GestioneAccessoPagine() {
     setPageConfig(prev => {
       const key = userType === 'admin' ? 'admin_pages' : userType === 'manager' ? 'manager_pages' : userType;
       const currentPages = prev[key];
-      const hasPage = currentPages.includes(pageName);
+      
+      // For admin and manager, keep simple string array
+      if (userType === 'admin' || userType === 'manager') {
+        const hasPage = currentPages.includes(pageName);
+        return {
+          ...prev,
+          [key]: hasPage
+            ? currentPages.filter(p => p !== pageName)
+            : [...currentPages, pageName]
+        };
+      }
+      
+      // For dipendente roles, use object format
+      const hasPage = currentPages.some(p => p.page === pageName);
       
       return {
         ...prev,
         [key]: hasPage
-          ? currentPages.filter(p => p !== pageName)
-          : [...currentPages, pageName]
+          ? currentPages.filter(p => p.page !== pageName)
+          : [...currentPages, { page: pageName, showInMenu: true, showInForms: false }]
+      };
+    });
+  };
+
+  const handlePageMenuToggle = (userType, pageName) => {
+    setPageConfig(prev => {
+      const key = userType;
+      const currentPages = prev[key];
+      
+      return {
+        ...prev,
+        [key]: currentPages.map(p => 
+          p.page === pageName 
+            ? { ...p, showInMenu: !p.showInMenu }
+            : p
+        )
+      };
+    });
+  };
+
+  const handlePageFormsToggle = (userType, pageName) => {
+    setPageConfig(prev => {
+      const key = userType;
+      const currentPages = prev[key];
+      
+      return {
+        ...prev,
+        [key]: currentPages.map(p => 
+          p.page === pageName 
+            ? { ...p, showInForms: !p.showInForms }
+            : p
+        )
       };
     });
   };
