@@ -1017,10 +1017,10 @@ export default function Layout({ children, currentPageName }) {
                 </div>
               )}
             </div>
-            </aside>
-            ) : (
-            /* Desktop Sidebar for Dipendente */
-            <aside className="hidden lg:block fixed lg:static inset-y-0 left-0 z-40 w-72">
+          </aside>
+        ) : (
+          /* Desktop Sidebar for Dipendente */
+          <aside className="hidden lg:block fixed lg:static inset-y-0 left-0 z-40 w-72">
             <div className="h-full neumorphic-card m-4 p-6 flex flex-col">
               <div className="flex items-center gap-3 mb-8">
                 <div className="neumorphic-flat p-3 bg-gradient-to-br from-blue-500 to-blue-600">
@@ -1076,17 +1076,17 @@ export default function Layout({ children, currentPageName }) {
                 </div>
               )}
             </div>
-            </aside>
-            )}
+          </aside>
+        )}
 
-            {/* Main Content */}
-            <main className={`
-            flex-1 min-h-screen 
-            ${normalizedUserType === 'dipendente' ? 'pt-24 pb-28 lg:pt-8 lg:pb-8 lg:ml-0' : normalizedUserType !== 'admin' ? 'pt-32 lg:pt-16' : 'pt-20 lg:pt-0'} 
-            px-3 py-4 lg:p-8
-            `}>
-            {children}
-            </main>
+        {/* Main Content */}
+        <main className={`
+          flex-1 min-h-screen 
+          ${normalizedUserType === 'dipendente' ? 'pt-24 pb-28 lg:pt-8 lg:pb-8 lg:ml-0' : normalizedUserType !== 'admin' ? 'pt-32 lg:pt-16' : 'pt-20 lg:pt-0'} 
+          px-3 py-4 lg:p-8
+        `}>
+          {children}
+        </main>
       </div>
 
       {/* Mobile Bottom Navigation (Dipendente only) */}
