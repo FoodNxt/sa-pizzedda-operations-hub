@@ -667,16 +667,7 @@ export default function Layout({ children, currentPageName }) {
       'ContrattiDipendente': 'Contratti',
       'Academy': 'Academy',
       'Valutazione': 'Valutazione',
-      'FormsDipendente': 'Form',
-      'FeedbackP2P': 'Feedback P2P',
-      'ControlloPuliziaCassiere': 'Pulizia',
-      'ControlloPuliziaPizzaiolo': 'Pulizia',
-      'ControlloPuliziaStoreManager': 'Pulizia',
-      'InventoryForms': 'Forms',
-      'ConteggioCassa': 'Cassa',
-      'FinancialForms': 'Forms',
-      'Impasto': 'Impasto',
-      'Precotture': 'Precotture'
+      'FormsDipendente': 'Form'
     };
     return titles[pageName] || pageName;
   };
@@ -687,15 +678,7 @@ export default function Layout({ children, currentPageName }) {
       'ContrattiDipendente': FileText,
       'Academy': GraduationCap,
       'Valutazione': ClipboardCheck,
-      'FormsDipendente': Edit,
-      'FeedbackP2P': Users,
-      'ControlloPuliziaCassiere': Camera,
-      'ControlloPuliziaPizzaiolo': Camera,
-      'ControlloPuliziaStoreManager': Camera,
-      'InventoryForms': Edit,
-      'ConteggioCassa': DollarSign,
-      'Impasto': ChefHat,
-      'Precotture': Pizza
+      'FormsDipendente': Edit
     };
     return icons[pageName] || User;
   };
