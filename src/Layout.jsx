@@ -681,7 +681,16 @@ export default function Layout({ children, currentPageName }) {
       'Valutazione': 'Valutazione',
       'FormsDipendente': 'Forms',
       'Impasto': 'Impasto',
-      'Precotture': 'Precotture'
+      'Precotture': 'Precotture',
+      'ControlloPuliziaCassiere': 'Pulizia Cassiere',
+      'ControlloPuliziaPizzaiolo': 'Pulizia Pizzaiolo',
+      'ControlloPuliziaStoreManager': 'Pulizia SM',
+      'FormInventario': 'Inventario',
+      'ConteggioCassa': 'Cassa',
+      'FormTeglieButtate': 'Teglie',
+      'Preparazioni': 'Preparazioni',
+      'FeedbackP2P': 'Feedback',
+      'InventarioStoreManager': 'Inventario SM'
     };
     return titles[pageName] || pageName;
   };
@@ -694,7 +703,16 @@ export default function Layout({ children, currentPageName }) {
       'Valutazione': ClipboardCheck,
       'FormsDipendente': Edit,
       'Impasto': ChefHat,
-      'Precotture': Pizza
+      'Precotture': Pizza,
+      'ControlloPuliziaCassiere': Camera,
+      'ControlloPuliziaPizzaiolo': Camera,
+      'ControlloPuliziaStoreManager': Camera,
+      'FormInventario': ClipboardList,
+      'ConteggioCassa': DollarSign,
+      'FormTeglieButtate': AlertTriangle,
+      'Preparazioni': ChefHat,
+      'FeedbackP2P': Users,
+      'InventarioStoreManager': Package
     };
     return icons[pageName] || User;
   };
