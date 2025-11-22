@@ -573,6 +573,17 @@ export default function Layout({ children, currentPageName }) {
     return true;
   };
 
+  // Helper to normalize page config (convert strings to objects)
+  const normalizePageConfig = (pages) => {
+    if (!pages || pages.length === 0) return [];
+    return pages.map(p => {
+      if (typeof p === 'string') {
+        return { page: p, showInMenu: true, showInForms: false };
+      }
+      return p;
+    });
+  };
+
   const getFilteredNavigationForDipendente = async (user) => {
     const normalizedUserType = getNormalizedUserType(user.user_type);
     
@@ -581,10 +592,10 @@ export default function Layout({ children, currentPageName }) {
     const userRoles = user.ruoli_dipendente || [];
 
     if (userRoles.length === 0) {
-      const allowedPagesConfig = pageAccessConfig?.after_registration || [{ page: 'ProfiloDipendente', showInMenu: true, showInForms: false }];
+      const allowedPagesConfig = normalizePageConfig(pageAccessConfig?.after_registration || [{ page: 'ProfiloDipendente', showInMenu: true, showInForms: false }]);
       const menuPages = allowedPagesConfig
-        .filter(p => (typeof p === 'string') || p.showInMenu)
-        .map(p => typeof p === 'string' ? p : p.page);
+        .filter(p => p.showInMenu === true)
+        .map(p => p.page);
       
       return [{
         title: "Area Dipendente",
@@ -609,19 +620,19 @@ export default function Layout({ children, currentPageName }) {
       allowedPagesConfig = [];
 
       if (userRoles.includes('Pizzaiolo')) {
-        allowedPagesConfig = [...allowedPagesConfig, ...(pageAccessConfig?.pizzaiolo_pages || [])];
+        allowedPagesConfig = [...allowedPagesConfig, ...normalizePageConfig(pageAccessConfig?.pizzaiolo_pages || [])];
       }
       if (userRoles.includes('Cassiere')) {
-        allowedPagesConfig = [...allowedPagesConfig, ...(pageAccessConfig?.cassiere_pages || [])];
+        allowedPagesConfig = [...allowedPagesConfig, ...normalizePageConfig(pageAccessConfig?.cassiere_pages || [])];
       }
       if (userRoles.includes('Store Manager')) {
-        allowedPagesConfig = [...allowedPagesConfig, ...(pageAccessConfig?.store_manager_pages || [])];
+        allowedPagesConfig = [...allowedPagesConfig, ...normalizePageConfig(pageAccessConfig?.store_manager_pages || [])];
       }
 
       // Remove duplicates by page name
       const seen = new Set();
       allowedPagesConfig = allowedPagesConfig.filter(p => {
-        const pageName = typeof p === 'string' ? p : p.page;
+        const pageName = p.page;
         if (seen.has(pageName)) return false;
         seen.add(pageName);
         return true;
@@ -636,17 +647,17 @@ export default function Layout({ children, currentPageName }) {
         ];
       }
     } else if (hasSignedContract) {
-      allowedPagesConfig = pageAccessConfig?.after_contract_signed || [];
+      allowedPagesConfig = normalizePageConfig(pageAccessConfig?.after_contract_signed || []);
     } else if (hasReceivedContract) {
-      allowedPagesConfig = pageAccessConfig?.after_contract_received || [];
+      allowedPagesConfig = normalizePageConfig(pageAccessConfig?.after_contract_received || []);
     } else {
-      allowedPagesConfig = pageAccessConfig?.after_registration || [];
+      allowedPagesConfig = normalizePageConfig(pageAccessConfig?.after_registration || []);
     }
 
     // Filter only pages that should show in menu
     const menuPages = allowedPagesConfig
-      .filter(p => (typeof p === 'string') || p.showInMenu)
-      .map(p => typeof p === 'string' ? p : p.page);
+      .filter(p => p.showInMenu === true)
+      .map(p => p.page);
 
     const menuItems = menuPages.map(pageName => ({
       title: getPageTitle(pageName),
