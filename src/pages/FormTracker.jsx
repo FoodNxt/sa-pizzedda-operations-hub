@@ -293,11 +293,7 @@ export default function FormTracker() {
         let shouldShow = false;
 
         if (config.frequency_type === 'temporal') {
-          // For temporal configs, show regardless of shifts (unless store filter is applied)
-          if (selectedStoresForDate.length > 0 && (!userStore || !selectedStoresForDate.includes(userStore))) {
-            return;
-          }
-
+          // For temporal configs, determine if should show based on frequency
           if (config.temporal_frequency === 'daily') {
             shouldShow = true;
           } else if (config.temporal_frequency === 'weekly') {
@@ -305,15 +301,23 @@ export default function FormTracker() {
           } else if (config.temporal_frequency === 'monthly') {
             shouldShow = dateObj.getDate() === 1;
           }
+
+          // Apply store filter only if stores are selected AND user has a store
+          if (shouldShow && selectedStoresForDate.length > 0) {
+            if (!userStore || !selectedStoresForDate.includes(userStore)) {
+              shouldShow = false;
+            }
+          }
         } else if (config.frequency_type === 'shift_based') {
           // For shift-based, only show if there's a shift (today or yesterday for late-loaded)
           const relevantShift = userShiftOnDate || (config.use_previous_day_shift ? userShiftYesterday : null);
           
           if (relevantShift) {
-            if (selectedStoresForDate.length > 0 && !selectedStoresForDate.includes(relevantShift.store_name)) {
-              return;
-            }
             shouldShow = true;
+            // Apply store filter if selected
+            if (selectedStoresForDate.length > 0 && !selectedStoresForDate.includes(relevantShift.store_name)) {
+              shouldShow = false;
+            }
           }
         }
 
