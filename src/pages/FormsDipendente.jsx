@@ -10,7 +10,8 @@ import {
   Edit,
   DollarSign,
   ChefHat,
-  Pizza
+  Pizza,
+  Trash2
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 
@@ -83,6 +84,14 @@ export default function FormsDipendente() {
       url: "Precotture",
       roles: ["Pizzaiolo", "Store Manager"],
       color: "from-indigo-500 to-blue-600"
+    },
+    {
+      title: "Teglie Buttate",
+      description: "Registra teglie buttate",
+      icon: Trash2,
+      url: "FormTeglieButtate",
+      roles: ["Pizzaiolo", "Store Manager"],
+      color: "from-red-500 to-rose-600"
     }
   ];
 
