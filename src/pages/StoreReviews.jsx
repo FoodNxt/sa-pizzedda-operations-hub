@@ -1,15 +1,14 @@
-
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import { Star, Filter, MapPin, TrendingUp, TrendingDown, X, List } from 'lucide-react';
+import { Star, Filter, MapPin, TrendingUp, TrendingDown, X, List, Calendar, Sparkles } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
-import ProtectedPage from "../components/ProtectedPage"; // New import
+import ProtectedPage from "../components/ProtectedPage";
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { format, parseISO, isValid } from 'date-fns'; // Modified import: added isValid
+import { format, parseISO, isValid, subDays, subMonths, isAfter, isBefore } from 'date-fns';
 import { it } from 'date-fns/locale';
 
 // New imports for Recharts
@@ -28,6 +27,9 @@ export default function StoreReviews() {
   const [selectedStore, setSelectedStore] = useState(null);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [reviewFilterRating, setReviewFilterRating] = useState('all');
+  const [dateRange, setDateRange] = useState('30');
+  const [aiAnalysis, setAiAnalysis] = useState(null);
+  const [loadingAnalysis, setLoadingAnalysis] = useState(false);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -39,23 +41,58 @@ export default function StoreReviews() {
     queryFn: () => base44.entities.Review.list('-review_date'),
   });
 
-  // Helper function to safely format dates - Updated with isValid
+  // Helper function to safely format dates
   const safeFormatDate = (dateString, formatStr = 'dd/MM/yyyy HH:mm') => {
     if (!dateString) return 'N/A';
     
     try {
       const date = parseISO(dateString);
-      if (!isValid(date)) return 'N/A'; // Use isValid here
+      if (!isValid(date)) return 'N/A';
       return format(date, formatStr, { locale: it });
     } catch (e) {
       return 'N/A';
     }
   };
 
-  // Calculate store metrics
+  // Calculate date range filter
+  const getDateRangeFilter = () => {
+    const now = new Date();
+    switch (dateRange) {
+      case '7':
+        return subDays(now, 7);
+      case '30':
+        return subDays(now, 30);
+      case '180':
+        return subMonths(now, 6);
+      case '365':
+        return subMonths(now, 12);
+      default:
+        return null;
+    }
+  };
+
+  const dateRangeStart = getDateRangeFilter();
+
+  // Filter reviews by date range
+  const filteredReviewsByDate = useMemo(() => {
+    if (!dateRangeStart) return reviews;
+    
+    return reviews.filter(review => {
+      if (!review.review_date) return false;
+      try {
+        const reviewDate = parseISO(review.review_date);
+        if (!isValid(reviewDate)) return false;
+        return isAfter(reviewDate, dateRangeStart);
+      } catch (e) {
+        return false;
+      }
+    });
+  }, [reviews, dateRangeStart]);
+
+  // Calculate store metrics with date filter
   const storeMetrics = useMemo(() => {
     return stores.map(store => {
-      const storeReviews = reviews.filter(r => r.store_id === store.id);
+      const storeReviews = filteredReviewsByDate.filter(r => r.store_id === store.id);
       const avgRating = storeReviews.length > 0
         ? storeReviews.reduce((sum, r) => sum + r.rating, 0) / storeReviews.length
         : 0;
@@ -76,7 +113,29 @@ export default function StoreReviews() {
         color: avgRating >= 4.5 ? '#22c55e' : avgRating >= 3.5 ? '#eab308' : '#ef4444'
       };
     }).filter(s => s.latitude && s.longitude);
-  }, [stores, reviews]);
+  }, [stores, filteredReviewsByDate]);
+
+  // Calculate overall metrics (when no store is selected)
+  const overallMetrics = useMemo(() => {
+    const allReviews = filteredReviewsByDate;
+    const avgRating = allReviews.length > 0
+      ? allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length
+      : 0;
+    
+    const recent = allReviews.slice(0, 10);
+    const previous = allReviews.slice(10, 20);
+    const recentAvg = recent.length > 0 ? recent.reduce((sum, r) => sum + r.rating, 0) / recent.length : 0;
+    const previousAvg = previous.length > 0 ? previous.reduce((sum, r) => sum + r.rating, 0) / previous.length : 0;
+    const trend = recentAvg > previousAvg ? 'up' : recentAvg < previousAvg ? 'down' : 'stable';
+
+    return {
+      avgRating,
+      reviewCount: allReviews.length,
+      allReviews,
+      recentReviews: allReviews.slice(0, 5),
+      trend
+    };
+  }, [filteredReviewsByDate]);
 
   // Filter stores
   const filteredStores = storeMetrics.filter(store => {
@@ -101,9 +160,30 @@ export default function StoreReviews() {
     return filtered;
   }, [selectedStore, reviewFilterRating]);
 
-  const mapCenter = storeMetrics.length > 0 
-    ? [storeMetrics[0].latitude, storeMetrics[0].longitude]
-    : [41.9028, 12.4964];
+  // Calculate map center and bounds for better zoom
+  const mapCenter = useMemo(() => {
+    if (storeMetrics.length === 0) return [41.9028, 12.4964];
+    
+    const latitudes = storeMetrics.map(s => s.latitude);
+    const longitudes = storeMetrics.map(s => s.longitude);
+    
+    const centerLat = latitudes.reduce((sum, lat) => sum + lat, 0) / latitudes.length;
+    const centerLng = longitudes.reduce((sum, lng) => sum + lng, 0) / longitudes.length;
+    
+    return [centerLat, centerLng];
+  }, [storeMetrics]);
+
+  const mapBounds = useMemo(() => {
+    if (storeMetrics.length === 0) return null;
+    
+    const latitudes = storeMetrics.map(s => s.latitude);
+    const longitudes = storeMetrics.map(s => s.longitude);
+    
+    return [
+      [Math.min(...latitudes), Math.min(...longitudes)],
+      [Math.max(...latitudes), Math.max(...longitudes)]
+    ];
+  }, [storeMetrics]);
 
   const createCustomIcon = (color) => {
     return L.divIcon({
@@ -122,19 +202,17 @@ export default function StoreReviews() {
     });
   };
 
-  // Calculate rating trend data for selected store - FIXED with date validation
+  // Calculate rating trend data for selected store or overall
   const ratingTrendData = useMemo(() => {
-    if (!selectedStore) return [];
+    const reviews = selectedStore ? selectedStore.allReviews : overallMetrics.allReviews;
     
-    // Group reviews by date and calculate average rating
     const reviewsByDate = {};
-    selectedStore.allReviews.forEach(review => {
-      if (!review.review_date) return; // Skip if no date
+    reviews.forEach(review => {
+      if (!review.review_date) return;
       
       try {
-        // Validate date before parsing
         const reviewDate = parseISO(review.review_date);
-        if (!isValid(reviewDate)) return; // Skip invalid dates - Updated with isValid
+        if (!isValid(reviewDate)) return;
         
         const date = format(reviewDate, 'yyyy-MM-dd');
         if (!reviewsByDate[date]) {
@@ -143,17 +221,15 @@ export default function StoreReviews() {
         reviewsByDate[date].ratings.push(review.rating);
         reviewsByDate[date].count++;
       } catch (e) {
-        // Skip reviews with invalid dates
         return;
       }
     });
 
-    // Convert to array and calculate averages
     const trendData = Object.entries(reviewsByDate)
       .map(([date, data]) => {
         try {
           const parsedDate = parseISO(date);
-          if (!isValid(parsedDate)) return null; // Skip invalid dates - Updated with isValid
+          if (!isValid(parsedDate)) return null;
           
           return {
             date,
@@ -164,12 +240,65 @@ export default function StoreReviews() {
           return null;
         }
       })
-      .filter(item => item !== null) // Remove null entries
+      .filter(item => item !== null)
       .sort((a, b) => new Date(a.date) - new Date(b.date))
-      .slice(-30); // Last 30 days
+      .slice(-30);
 
     return trendData;
-  }, [selectedStore]);
+  }, [selectedStore, overallMetrics]);
+
+  // Generate AI analysis
+  const generateAIAnalysis = async () => {
+    setLoadingAnalysis(true);
+    setAiAnalysis(null);
+    
+    try {
+      const reviewsToAnalyze = selectedStore ? selectedStore.allReviews : overallMetrics.allReviews;
+      const storeName = selectedStore ? selectedStore.name : 'tutti i locali';
+      
+      const reviewTexts = reviewsToAnalyze
+        .filter(r => r.comment)
+        .slice(0, 50)
+        .map(r => `[${r.rating}⭐] ${r.comment}`)
+        .join('\n');
+
+      const prompt = `Analizza le seguenti recensioni per ${storeName} nel periodo selezionato (ultimi ${dateRange === '7' ? '7 giorni' : dateRange === '30' ? '30 giorni' : dateRange === '180' ? '6 mesi' : '12 mesi'}):
+
+${reviewTexts}
+
+Fornisci:
+1. Trend generale: cosa emerge dall'andamento delle recensioni
+2. Temi principali: quali sono i 3-4 aspetti più menzionati (positivi e negativi)
+3. Insights: suggerimenti concreti per migliorare
+
+Rispondi in italiano, in modo conciso e actionable.`;
+
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt,
+        response_json_schema: {
+          type: 'object',
+          properties: {
+            trend: { type: 'string' },
+            temi_principali: { 
+              type: 'array',
+              items: { type: 'string' }
+            },
+            insights: { 
+              type: 'array',
+              items: { type: 'string' }
+            }
+          }
+        }
+      });
+
+      setAiAnalysis(result);
+    } catch (error) {
+      console.error('Error generating AI analysis:', error);
+      setAiAnalysis({ error: 'Errore durante l\'analisi' });
+    } finally {
+      setLoadingAnalysis(false);
+    }
+  };
 
   return (
     <ProtectedPage pageName="StoreReviews">
@@ -186,6 +315,22 @@ export default function StoreReviews() {
             
             {/* Filters */}
             <div className="flex gap-3 flex-wrap">
+              <div className="neumorphic-flat px-4 py-2 flex items-center gap-2 rounded-xl">
+                <Calendar className="w-4 h-4 text-slate-400" />
+                <select
+                  value={dateRange}
+                  onChange={(e) => {
+                    setDateRange(e.target.value);
+                    setAiAnalysis(null);
+                  }}
+                  className="bg-transparent text-slate-700 outline-none text-sm"
+                >
+                  <option value="7">Ultimi 7 giorni</option>
+                  <option value="30">Ultimi 30 giorni</option>
+                  <option value="180">Ultimi 6 mesi</option>
+                  <option value="365">Ultimi 12 mesi</option>
+                </select>
+              </div>
               <div className="neumorphic-flat px-4 py-2 flex items-center gap-2 rounded-xl">
                 <Filter className="w-4 h-4 text-slate-400" />
                 <select
@@ -209,7 +354,8 @@ export default function StoreReviews() {
             {storeMetrics.length > 0 ? (
               <MapContainer
                 center={mapCenter}
-                zoom={6}
+                zoom={mapBounds ? undefined : 10}
+                bounds={mapBounds}
                 style={{ height: '100%', width: '100%' }}
               >
                 <TileLayer
@@ -306,12 +452,226 @@ export default function StoreReviews() {
           )}
         </div>
 
+        {/* Overall Metrics (when no store selected) */}
+        {!selectedStore && overallMetrics.reviewCount > 0 && (
+          <NeumorphicCard className="p-4 lg:p-6">
+            <h2 className="text-xl lg:text-2xl font-bold text-slate-800 mb-4 lg:mb-6">Panoramica Generale</h2>
+
+            <div className="grid grid-cols-3 gap-3 lg:gap-4 mb-4 lg:mb-6">
+              <div className="neumorphic-pressed p-3 lg:p-4 rounded-xl text-center">
+                <p className="text-xs text-slate-500 mb-1 lg:mb-2">Media</p>
+                <div className="flex items-center justify-center gap-2">
+                  <Star className="w-5 h-5 lg:w-6 lg:h-6 text-yellow-500 fill-yellow-500" />
+                  <span className="text-2xl lg:text-3xl font-bold text-slate-800">
+                    {overallMetrics.avgRating.toFixed(1)}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="neumorphic-pressed p-3 lg:p-4 rounded-xl text-center">
+                <p className="text-xs text-slate-500 mb-1 lg:mb-2">Totale</p>
+                <span className="text-2xl lg:text-3xl font-bold text-slate-800">
+                  {overallMetrics.reviewCount}
+                </span>
+              </div>
+
+              <div className="neumorphic-pressed p-3 lg:p-4 rounded-xl text-center">
+                <p className="text-xs text-slate-500 mb-1 lg:mb-2">Trend</p>
+                <div className="flex items-center justify-center gap-2">
+                  {overallMetrics.trend === 'up' ? (
+                    <TrendingUp className="w-5 h-5 lg:w-6 lg:h-6 text-green-600" />
+                  ) : overallMetrics.trend === 'down' ? (
+                    <TrendingDown className="w-5 h-5 lg:w-6 lg:h-6 text-red-600" />
+                  ) : (
+                    <span className="text-base lg:text-lg font-bold text-slate-600">Stabile</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* AI Analysis Button and Results */}
+            <div className="mb-4 lg:mb-6">
+              <NeumorphicButton
+                onClick={generateAIAnalysis}
+                disabled={loadingAnalysis}
+                variant="primary"
+                className="w-full flex items-center justify-center gap-2"
+              >
+                {loadingAnalysis ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Analisi in corso...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5" />
+                    Analisi AI
+                  </>
+                )}
+              </NeumorphicButton>
+
+              {aiAnalysis && !aiAnalysis.error && (
+                <div className="neumorphic-flat p-4 lg:p-6 rounded-xl mt-4 space-y-4">
+                  <div>
+                    <h4 className="font-bold text-slate-800 mb-2 flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-blue-600" />
+                      Trend Generale
+                    </h4>
+                    <p className="text-sm text-slate-700">{aiAnalysis.trend}</p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-bold text-slate-800 mb-2 flex items-center gap-2">
+                      <Star className="w-5 h-5 text-yellow-600" />
+                      Temi Principali
+                    </h4>
+                    <ul className="space-y-1">
+                      {aiAnalysis.temi_principali?.map((tema, idx) => (
+                        <li key={idx} className="text-sm text-slate-700 flex items-start gap-2">
+                          <span className="text-blue-600">•</span>
+                          {tema}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h4 className="font-bold text-slate-800 mb-2 flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-purple-600" />
+                      Insights
+                    </h4>
+                    <ul className="space-y-1">
+                      {aiAnalysis.insights?.map((insight, idx) => (
+                        <li key={idx} className="text-sm text-slate-700 flex items-start gap-2">
+                          <span className="text-purple-600">•</span>
+                          {insight}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Rating Trend Chart */}
+            {ratingTrendData.length > 0 && (
+              <div className="neumorphic-flat p-4 lg:p-6 rounded-xl mb-4 lg:mb-6">
+                <h3 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Andamento</h3>
+                <div className="w-full overflow-x-auto">
+                  <div style={{ minWidth: '300px' }}>
+                    <ResponsiveContainer width="100%" height={250}>
+                      <LineChart data={ratingTrendData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                        <XAxis 
+                          dataKey="date" 
+                          stroke="#64748b"
+                          tick={{ fontSize: 11 }}
+                          tickFormatter={(date) => {
+                            try {
+                              const parsedDate = parseISO(date);
+                              if (!isValid(parsedDate)) return '';
+                              return format(parsedDate, 'dd/MM');
+                            } catch (e) {
+                              return '';
+                            }
+                          }}
+                        />
+                        <YAxis 
+                          stroke="#64748b"
+                          domain={[0, 5]}
+                          ticks={[0, 1, 2, 3, 4, 5]}
+                          tick={{ fontSize: 11 }}
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            background: 'rgba(248, 250, 252, 0.95)', 
+                            border: 'none',
+                            borderRadius: '12px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                            fontSize: '11px'
+                          }}
+                          labelFormatter={(date) => {
+                            try {
+                              const parsedDate = parseISO(date);
+                              if (!isValid(parsedDate)) return date;
+                              return format(parsedDate, 'dd/MM/yyyy');
+                            } catch (e) {
+                              return date;
+                            }
+                          }}
+                        />
+                        <Legend wrapperStyle={{ fontSize: '11px' }} />
+                        <Line 
+                          type="monotone" 
+                          dataKey="avgRating" 
+                          stroke="#3b82f6" 
+                          strokeWidth={3}
+                          name="Media"
+                          dot={{ fill: '#3b82f6', r: 4 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base lg:text-lg font-bold text-slate-800">
+                Recensioni Recenti
+              </h3>
+            </div>
+
+            <div className="space-y-3 max-h-[600px] overflow-y-auto">
+              {overallMetrics.recentReviews.length > 0 ? (
+                overallMetrics.recentReviews.map(review => (
+                  <div key={review.id} className="neumorphic-flat p-3 lg:p-4 rounded-xl">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className="font-medium text-slate-800 text-sm truncate">{review.customer_name || 'Anonimo'}</span>
+                        <div className="flex items-center gap-1">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`w-3 h-3 lg:w-4 lg:h-4 ${
+                                i < review.rating
+                                  ? 'text-yellow-500 fill-yellow-500'
+                                  : 'text-gray-300'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <span className="text-xs text-slate-500 whitespace-nowrap ml-2">
+                        {safeFormatDate(review.review_date, 'dd/MM/yy')}
+                      </span>
+                    </div>
+                    {review.comment && (
+                      <p className="text-xs lg:text-sm text-slate-700">{review.comment}</p>
+                    )}
+                    {review.employee_assigned_name && (
+                      <p className="text-xs text-blue-600 mt-2">
+                        👤 {review.employee_assigned_name}
+                      </p>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <p className="text-center text-slate-500 py-8 text-sm">Nessuna recensione</p>
+              )}
+            </div>
+          </NeumorphicCard>
+        )}
+
         {/* Selected Store Details */}
         {selectedStore && (
           <NeumorphicCard className="p-4 lg:p-6">
             <div className="flex items-center justify-between mb-4 lg:mb-6">
               <h2 className="text-xl lg:text-2xl font-bold text-slate-800">{selectedStore.name}</h2>
-              <NeumorphicButton onClick={() => setSelectedStore(null)}>
+              <NeumorphicButton onClick={() => {
+                setSelectedStore(null);
+                setAiAnalysis(null);
+              }}>
                 Chiudi
               </NeumorphicButton>
             </div>
@@ -346,6 +706,70 @@ export default function StoreReviews() {
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* AI Analysis Button and Results */}
+            <div className="mb-4 lg:mb-6">
+              <NeumorphicButton
+                onClick={generateAIAnalysis}
+                disabled={loadingAnalysis}
+                variant="primary"
+                className="w-full flex items-center justify-center gap-2"
+              >
+                {loadingAnalysis ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Analisi in corso...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5" />
+                    Analisi AI
+                  </>
+                )}
+              </NeumorphicButton>
+
+              {aiAnalysis && !aiAnalysis.error && (
+                <div className="neumorphic-flat p-4 lg:p-6 rounded-xl mt-4 space-y-4">
+                  <div>
+                    <h4 className="font-bold text-slate-800 mb-2 flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-blue-600" />
+                      Trend Generale
+                    </h4>
+                    <p className="text-sm text-slate-700">{aiAnalysis.trend}</p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-bold text-slate-800 mb-2 flex items-center gap-2">
+                      <Star className="w-5 h-5 text-yellow-600" />
+                      Temi Principali
+                    </h4>
+                    <ul className="space-y-1">
+                      {aiAnalysis.temi_principali?.map((tema, idx) => (
+                        <li key={idx} className="text-sm text-slate-700 flex items-start gap-2">
+                          <span className="text-blue-600">•</span>
+                          {tema}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h4 className="font-bold text-slate-800 mb-2 flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-purple-600" />
+                      Insights
+                    </h4>
+                    <ul className="space-y-1">
+                      {aiAnalysis.insights?.map((insight, idx) => (
+                        <li key={idx} className="text-sm text-slate-700 flex items-start gap-2">
+                          <span className="text-purple-600">•</span>
+                          {insight}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Rating Trend Chart */}
