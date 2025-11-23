@@ -421,6 +421,8 @@ export default function FeedbackP2P() {
             colleagues={getLastWeekColleagues}
             users={users}
             shifts={shifts}
+            responses={responses}
+            feedbackConfig={feedbackConfig}
             onSubmit={(data) => submitResponseMutation.mutate(data)}
           />
         )}
@@ -536,7 +538,7 @@ export default function FeedbackP2P() {
   );
 }
 
-function DipendenteView({ currentUser, questions, colleagues, users, onSubmit, shifts }) {
+function DipendenteView({ currentUser, questions, colleagues, users, onSubmit, shifts, responses, feedbackConfig }) {
   const [selectedColleague, setSelectedColleague] = useState(null);
   const [answers, setAnswers] = useState({});
   
