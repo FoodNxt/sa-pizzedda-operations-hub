@@ -170,12 +170,28 @@ export default function FeedbackP2P() {
       });
     });
 
+    // Get last sent date from config
+    const lastSentDate = feedbackConfig[0]?.last_sent_date;
+
     const alreadyReviewed = responses
-      .filter(r => r.reviewer_id === currentUser.id)
+      .filter(r => {
+        if (r.reviewer_id !== currentUser.id) return false;
+        // If there's a last sent date, only filter out reviews after that date
+        if (lastSentDate && r.submitted_date) {
+          try {
+            const submittedDate = new Date(r.submitted_date);
+            const sentDate = new Date(lastSentDate);
+            return submittedDate >= sentDate;
+          } catch (e) {
+            return true;
+          }
+        }
+        return true;
+      })
       .map(r => r.reviewed_name);
 
     return Array.from(colleaguesSet).filter(name => !alreadyReviewed.includes(name));
-  }, [currentUser, shifts, responses]);
+  }, [currentUser, shifts, responses, feedbackConfig]);
 
   const normalizedUserType = currentUser ? (currentUser.user_type === 'user' ? 'dipendente' : currentUser.user_type) : null;
   const isAdmin = normalizedUserType === 'admin' || normalizedUserType === 'manager';
@@ -577,6 +593,49 @@ function DipendenteView({ currentUser, questions, colleagues, users, onSubmit })
 
       {!selectedColleague ? (
         <div className="space-y-6">
+          {(() => {
+            const lastSentDate = feedbackConfig[0]?.last_sent_date;
+            const completedThisCycle = responses.filter(r => {
+              if (r.reviewer_id !== currentUser.id) return false;
+              if (lastSentDate && r.submitted_date) {
+                try {
+                  const submittedDate = new Date(r.submitted_date);
+                  const sentDate = new Date(lastSentDate);
+                  return submittedDate >= sentDate;
+                } catch (e) {
+                  return false;
+                }
+              }
+              return false;
+            });
+
+            return completedThisCycle.length > 0 && (
+              <div className="neumorphic-flat p-4 rounded-xl bg-green-50">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <h3 className="font-bold text-green-800">Valutazioni Completate</h3>
+                </div>
+                <div className="space-y-1">
+                  {completedThisCycle.map(resp => (
+                    <div key={resp.id} className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      <span className="text-green-800">{resp.reviewed_name}</span>
+                      <span className="text-xs text-green-600">
+                        ({(() => {
+                          try {
+                            return new Date(resp.submitted_date).toLocaleDateString('it-IT');
+                          } catch (e) {
+                            return 'N/A';
+                          }
+                        })()})
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {colleagues.map(colleague => (
               <button

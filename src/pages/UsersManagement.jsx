@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -1166,6 +1165,7 @@ export default function UsersManagement() {
                   <th className="text-left p-3 text-[#9b9b9b] font-medium">Utente</th>
                   <th className="text-left p-3 text-[#9b9b9b] font-medium">Tipo</th>
                   <th className="text-left p-3 text-[#9b9b9b] font-medium">Locali</th>
+                  <th className="text-center p-3 text-[#9b9b9b] font-medium">Registrato</th>
                   <th className="text-center p-3 text-[#9b9b9b] font-medium">Planday</th>
                   <th className="text-center p-3 text-[#9b9b9b] font-medium">Stato</th>
                   <th className="text-center p-3 text-[#9b9b9b] font-medium">Azioni</th>
@@ -1212,6 +1212,17 @@ export default function UsersManagement() {
                           {assignedStoresCount === stores.length
                             ? 'Tutti'
                             : `${assignedStoresCount}/${stores.length}`}
+                        </span>
+                      </td>
+                      <td className="p-3 text-center">
+                        <span className="text-xs text-[#6b6b6b]">
+                          {user.created_date ? (() => {
+                            try {
+                              return new Date(user.created_date).toLocaleDateString('it-IT');
+                            } catch (e) {
+                              return 'N/A';
+                            }
+                          })() : 'N/A'}
                         </span>
                       </td>
                       <td className="p-3">
