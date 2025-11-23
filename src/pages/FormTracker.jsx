@@ -5,7 +5,7 @@ import { ClipboardCheck, Plus, Edit, Trash2, Save, X, AlertTriangle, CheckCircle
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
-import { startOfWeek, startOfMonth, isAfter, parseISO, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
+import { startOfWeek, startOfMonth, isAfter, isBefore, parseISO, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 
 export default function FormTracker() {
   const [showConfigForm, setShowConfigForm] = useState(false);
