@@ -5,7 +5,7 @@ import { ClipboardCheck, Plus, Edit, Trash2, Save, X, AlertTriangle, CheckCircle
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
-import { startOfWeek, startOfMonth, isAfter, isBefore, parseISO, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
+import { startOfWeek, startOfMonth, isAfter, parseISO, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 
 export default function FormTracker() {
   const [showConfigForm, setShowConfigForm] = useState(false);
@@ -462,7 +462,7 @@ export default function FormTracker() {
   const availableForms = [
     { name: 'Form Inventario', page: 'FormInventario' },
     { name: 'Form Cantina', page: 'FormCantina' },
-    { name: 'Form Teglie Buttate', page: 'FormTeglieButtate' },
+    { name: 'Teglie Buttate', page: 'TeglieButtate' },
     { name: 'Form Preparazioni', page: 'FormPreparazioni' },
     { name: 'Conteggio Cassa', page: 'ConteggioCassa' },
     { name: 'Controllo Pulizia Cassiere', page: 'ControlloPuliziaCassiere' },

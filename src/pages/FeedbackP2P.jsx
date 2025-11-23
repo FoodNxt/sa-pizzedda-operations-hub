@@ -107,8 +107,11 @@ export default function FeedbackP2P() {
     mutationFn: (data) => base44.entities.P2PFeedbackResponse.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['p2p-responses'] });
-      alert('Feedback inviato con successo!');
     },
+    onError: (error) => {
+      console.error('Errore invio feedback:', error);
+      alert('Errore durante l\'invio del feedback. Riprova.');
+    }
   });
 
   const resetQuestionForm = () => {
@@ -140,20 +143,26 @@ export default function FeedbackP2P() {
     }
   };
 
-  // Get colleagues from last week
+  // Get colleagues from last 7 days before form was sent
   const getLastWeekColleagues = useMemo(() => {
     if (!currentUser) return [];
 
     const employeeName = currentUser.nome_cognome || currentUser.full_name || currentUser.email;
-    const lastWeekStart = startOfWeek(subWeeks(new Date(), 1), { weekStartsOn: 1 });
-    const lastWeekEnd = endOfWeek(subWeeks(new Date(), 1), { weekStartsOn: 1 });
+    
+    // Use last_sent_date from config, or default to 7 days ago
+    const lastSentDate = feedbackConfig[0]?.last_sent_date;
+    const referenceDate = lastSentDate ? parseISO(lastSentDate) : new Date();
+    
+    // Get shifts from 7 days before the form was sent
+    const sevenDaysBeforeForm = new Date(referenceDate);
+    sevenDaysBeforeForm.setDate(sevenDaysBeforeForm.getDate() - 7);
 
     const myShifts = shifts.filter(s => {
       if (s.employee_name !== employeeName || !s.shift_date) return false;
       try {
         const shiftDate = parseISO(s.shift_date);
         if (isNaN(shiftDate.getTime())) return false;
-        return shiftDate >= lastWeekStart && shiftDate <= lastWeekEnd;
+        return shiftDate >= sevenDaysBeforeForm && shiftDate <= referenceDate;
       } catch (e) {
         return false;
       }
@@ -170,18 +179,26 @@ export default function FeedbackP2P() {
       });
     });
 
-    // Filter out colleagues already reviewed for this week
-    const currentWeekStart = lastWeekStart.toISOString().split('T')[0];
+    // Filter out colleagues already reviewed for this cycle (based on last_sent_date)
     const alreadyReviewed = responses
       .filter(r => {
         if (r.reviewer_id !== currentUser.id) return false;
-        // Check if this review is for the current evaluation week
-        return r.week_start_date === currentWeekStart;
+        // If form was sent, only count reviews after that date
+        if (lastSentDate && r.submitted_date) {
+          try {
+            const submittedDate = new Date(r.submitted_date);
+            const sentDate = new Date(lastSentDate);
+            return submittedDate >= sentDate;
+          } catch (e) {
+            return false;
+          }
+        }
+        return true;
       })
       .map(r => r.reviewed_name);
 
     return Array.from(colleaguesSet).filter(name => !alreadyReviewed.includes(name));
-  }, [currentUser, shifts, responses]);
+  }, [currentUser, shifts, responses, feedbackConfig]);
 
   const normalizedUserType = currentUser ? (currentUser.user_type === 'user' ? 'dipendente' : currentUser.user_type) : null;
   const isAdmin = normalizedUserType === 'admin' || normalizedUserType === 'manager';
@@ -531,21 +548,28 @@ export default function FeedbackP2P() {
 function DipendenteView({ currentUser, questions, colleagues, users, onSubmit, shifts, responses, feedbackConfig }) {
   const [selectedColleague, setSelectedColleague] = useState(null);
   const [answers, setAnswers] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Get shared shifts with selected colleague
   const getSharedShifts = useMemo(() => {
     if (!selectedColleague || !currentUser) return [];
     
     const employeeName = currentUser.nome_cognome || currentUser.full_name || currentUser.email;
-    const lastWeekStart = startOfWeek(subWeeks(new Date(), 1), { weekStartsOn: 1 });
-    const lastWeekEnd = endOfWeek(subWeeks(new Date(), 1), { weekStartsOn: 1 });
+    
+    // Use last_sent_date from config, or default to now
+    const lastSentDate = feedbackConfig[0]?.last_sent_date;
+    const referenceDate = lastSentDate ? parseISO(lastSentDate) : new Date();
+    
+    // Get shifts from 7 days before the form was sent
+    const sevenDaysBeforeForm = new Date(referenceDate);
+    sevenDaysBeforeForm.setDate(sevenDaysBeforeForm.getDate() - 7);
     
     const myShifts = shifts.filter(s => {
       if (s.employee_name !== employeeName || !s.shift_date) return false;
       try {
         const shiftDate = parseISO(s.shift_date);
         if (isNaN(shiftDate.getTime())) return false;
-        return shiftDate >= lastWeekStart && shiftDate <= lastWeekEnd;
+        return shiftDate >= sevenDaysBeforeForm && shiftDate <= referenceDate;
       } catch (e) {
         return false;
       }
@@ -571,32 +595,53 @@ function DipendenteView({ currentUser, questions, colleagues, users, onSubmit, s
     });
     
     return sharedShifts.sort((a, b) => new Date(a.date) - new Date(b.date));
-  }, [selectedColleague, currentUser, shifts]);
+  }, [selectedColleague, currentUser, shifts, feedbackConfig]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const colleague = users.find(u => (u.nome_cognome || u.full_name || u.email) === selectedColleague);
     
-    const responses = questions.map(q => ({
-      metric_id: q.id,
-      metric_name: q.metric_name,
-      score: parseInt(answers[q.id]) || 1
-    }));
+    // Check all questions are answered
+    const allAnswered = questions.every(q => answers[q.id]);
+    if (!allAnswered) {
+      alert('Per favore, rispondi a tutte le domande prima di inviare.');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      const colleague = users.find(u => (u.nome_cognome || u.full_name || u.email) === selectedColleague);
+      
+      const responseData = questions.map(q => ({
+        metric_id: q.id,
+        metric_name: q.metric_name,
+        score: parseInt(answers[q.id])
+      }));
 
-    const lastWeekStart = startOfWeek(subWeeks(new Date(), 1), { weekStartsOn: 1 });
+      const lastSentDate = feedbackConfig[0]?.last_sent_date;
+      const referenceDate = lastSentDate ? parseISO(lastSentDate) : new Date();
+      const sevenDaysBeforeForm = new Date(referenceDate);
+      sevenDaysBeforeForm.setDate(sevenDaysBeforeForm.getDate() - 7);
 
-    onSubmit({
-      reviewer_id: currentUser.id,
-      reviewer_name: currentUser.nome_cognome || currentUser.full_name || currentUser.email,
-      reviewed_id: colleague?.id,
-      reviewed_name: selectedColleague,
-      week_start_date: lastWeekStart.toISOString().split('T')[0],
-      responses,
-      submitted_date: new Date().toISOString()
-    });
+      await onSubmit({
+        reviewer_id: currentUser.id,
+        reviewer_name: currentUser.nome_cognome || currentUser.full_name || currentUser.email,
+        reviewed_id: colleague?.id,
+        reviewed_name: selectedColleague,
+        week_start_date: sevenDaysBeforeForm.toISOString().split('T')[0],
+        responses: responseData,
+        submitted_date: new Date().toISOString()
+      });
 
-    setSelectedColleague(null);
-    setAnswers({});
+      alert('✅ Feedback inviato con successo!');
+      setSelectedColleague(null);
+      setAnswers({});
+    } catch (error) {
+      console.error('Errore invio feedback:', error);
+      alert('❌ Errore durante l\'invio del feedback. Riprova.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (questions.length === 0) {
@@ -628,39 +673,74 @@ function DipendenteView({ currentUser, questions, colleagues, users, onSubmit, s
       {!selectedColleague ? (
         <div className="space-y-6">
           {(() => {
-            const lastWeekStart = startOfWeek(subWeeks(new Date(), 1), { weekStartsOn: 1 });
-            const currentWeekStart = lastWeekStart.toISOString().split('T')[0];
+            const lastSentDate = feedbackConfig[0]?.last_sent_date;
             
             const completedThisCycle = responses.filter(r => {
               if (r.reviewer_id !== currentUser.id) return false;
-              // Check if this review is for the current evaluation week
-              return r.week_start_date === currentWeekStart;
+              // If form was sent, only count reviews after that date
+              if (lastSentDate && r.submitted_date) {
+                try {
+                  const submittedDate = new Date(r.submitted_date);
+                  const sentDate = new Date(lastSentDate);
+                  return submittedDate >= sentDate;
+                } catch (e) {
+                  return false;
+                }
+              }
+              return true;
             });
 
-            return completedThisCycle.length > 0 && (
-              <div className="neumorphic-flat p-4 rounded-xl bg-green-50">
-                <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                  <h3 className="font-bold text-green-800">Valutazioni Completate</h3>
-                </div>
-                <div className="space-y-1">
-                  {completedThisCycle.map(resp => (
-                    <div key={resp.id} className="flex items-center gap-2 text-sm">
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                      <span className="text-green-800">{resp.reviewed_name}</span>
-                      <span className="text-xs text-green-600">
-                        ({(() => {
-                          try {
-                            return new Date(resp.submitted_date).toLocaleDateString('it-IT');
-                          } catch (e) {
-                            return 'N/A';
-                          }
-                        })()})
-                      </span>
+            return (
+              <>
+                {lastSentDate && (
+                  <div className="neumorphic-flat p-4 rounded-xl bg-blue-50">
+                    <p className="text-sm text-blue-800">
+                      <strong>📅 Form inviato il:</strong> {new Date(lastSentDate).toLocaleDateString('it-IT', { 
+                        weekday: 'long', 
+                        day: 'numeric', 
+                        month: 'long', 
+                        year: 'numeric' 
+                      })}
+                    </p>
+                    <p className="text-xs text-blue-600 mt-1">
+                      Valuta i colleghi con cui hai lavorato nei 7 giorni precedenti
+                    </p>
+                  </div>
+                )}
+                
+                {completedThisCycle.length > 0 && (
+                  <div className="neumorphic-flat p-4 rounded-xl bg-green-50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <h3 className="font-bold text-green-800">Valutazioni Completate ({completedThisCycle.length})</h3>
                     </div>
-                  ))}
-                </div>
-              </div>
+                    <div className="space-y-1">
+                      {completedThisCycle.map(resp => (
+                        <div key={resp.id} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="w-4 h-4 text-green-600" />
+                            <span className="text-green-800 font-medium">{resp.reviewed_name}</span>
+                          </div>
+                          <span className="text-xs text-green-600">
+                            {(() => {
+                              try {
+                                return new Date(resp.submitted_date).toLocaleString('it-IT', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                });
+                              } catch (e) {
+                                return 'N/A';
+                              }
+                            })()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             );
           })()}
           
@@ -754,12 +834,24 @@ function DipendenteView({ currentUser, questions, colleagues, users, onSubmit, s
               type="button" 
               onClick={() => { setSelectedColleague(null); setAnswers({}); }}
               className="flex-1"
+              disabled={isSubmitting}
             >
               Annulla
             </NeumorphicButton>
-            <NeumorphicButton type="submit" variant="primary" className="flex-1">
-              <Send className="w-5 h-5 mr-2" />
-              Invia Feedback
+            <NeumorphicButton 
+              type="submit" 
+              variant="primary" 
+              className="flex-1"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>Invio in corso...</>
+              ) : (
+                <>
+                  <Send className="w-5 h-5 mr-2" />
+                  Invia Feedback
+                </>
+              )}
             </NeumorphicButton>
           </div>
         </form>
