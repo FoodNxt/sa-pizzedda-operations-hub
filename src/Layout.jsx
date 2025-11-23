@@ -224,6 +224,11 @@ const navigationStructure = [
         icon: Zap,
       },
       {
+        title: "Pulizie Match",
+        url: createPageUrl("PulizieMatch"),
+        icon: Users,
+      },
+      {
         title: "Controllo Pulizie Master",
         url: createPageUrl("ControlloPulizieMaster"),
         icon: CheckSquare,

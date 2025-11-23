@@ -592,8 +592,8 @@ export default function Pulizie() {
                   </div>
                 </div>
               </div>
-            )}
-          </NeumorphicCard>
+            </NeumorphicCard>
+          </div>
         </div>
       )}
 
