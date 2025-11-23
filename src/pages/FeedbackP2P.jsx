@@ -576,16 +576,18 @@ function DipendenteView({ currentUser, questions, colleagues, users, onSubmit })
       </p>
 
       {!selectedColleague ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {colleagues.map(colleague => (
-            <button
-              key={colleague}
-              onClick={() => setSelectedColleague(colleague)}
-              className="nav-button p-4 rounded-xl text-left hover:shadow-lg transition-all"
-            >
-              <p className="font-bold text-slate-800">{colleague}</p>
-            </button>
-          ))}
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {colleagues.map(colleague => (
+              <button
+                key={colleague}
+                onClick={() => setSelectedColleague(colleague)}
+                className="nav-button p-4 rounded-xl text-left hover:shadow-lg transition-all"
+              >
+                <p className="font-bold text-slate-800">{colleague}</p>
+              </button>
+            ))}
+          </div>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">

@@ -277,12 +277,20 @@ export default function Employees() {
       const w_num_recensioni = getWeight('numero_recensioni');
       const w_punteggio_recensioni = getWeight('punteggio_recensioni');
 
+      // Calculate base score starting from 100
       let performanceScore = 100;
-      performanceScore -= wrongOrderRate * w_ordini;
-      performanceScore -= percentualeRitardi * w_ritardi;
-      performanceScore -= numeroTimbratureMancate * w_timbrature;
-      performanceScore += assignedReviews.length * w_num_recensioni;
-      performanceScore += (avgGoogleRating - 3) * w_punteggio_recensioni * 5;
+      
+      // Deduct points for negative metrics (use actual counts, not percentages for timbrature)
+      performanceScore -= (wrongOrdersCount * w_ordini);
+      performanceScore -= (numeroRitardi * w_ritardi);
+      performanceScore -= (numeroTimbratureMancate * w_timbrature);
+      
+      // Add points for positive metrics
+      performanceScore += (assignedReviews.length * w_num_recensioni);
+      if (avgGoogleRating > 0) {
+        performanceScore += ((avgGoogleRating - 3) * w_punteggio_recensioni * 5);
+      }
+      
       performanceScore = Math.max(0, Math.min(100, performanceScore));
 
       const performanceLevel = performanceScore >= 80 ? 'excellent' :
@@ -821,7 +829,7 @@ export default function Employees() {
               <div className="neumorphic-flat p-3 rounded-xl mb-4 bg-blue-50">
                 <p className="text-xs text-blue-800 leading-relaxed">
                   <strong>📊 Calcolo Punteggio:</strong><br/>
-                  100 - (ordini sbagliati% × {selectedEmployee.weights.w_ordini}) - (ritardi% × {selectedEmployee.weights.w_ritardi}) - (timbrature mancate × {selectedEmployee.weights.w_timbrature}) + (recensioni × {selectedEmployee.weights.w_num_recensioni}) + ((rating-3) × {selectedEmployee.weights.w_punteggio_recensioni} × 5)
+                  100 - (ordini sbagliati × {selectedEmployee.weights.w_ordini}) - (ritardi × {selectedEmployee.weights.w_ritardi}) - (timbrature mancate × {selectedEmployee.weights.w_timbrature}) + (recensioni × {selectedEmployee.weights.w_num_recensioni}) + ((rating-3) × {selectedEmployee.weights.w_punteggio_recensioni} × 5)
                 </p>
               </div>
 
