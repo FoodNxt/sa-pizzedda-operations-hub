@@ -170,28 +170,18 @@ export default function FeedbackP2P() {
       });
     });
 
-    // Get last sent date from config
-    const lastSentDate = feedbackConfig[0]?.last_sent_date;
-
+    // Filter out colleagues already reviewed for this week
+    const currentWeekStart = lastWeekStart.toISOString().split('T')[0];
     const alreadyReviewed = responses
       .filter(r => {
         if (r.reviewer_id !== currentUser.id) return false;
-        // If there's a last sent date, only filter out reviews after that date
-        if (lastSentDate && r.submitted_date) {
-          try {
-            const submittedDate = new Date(r.submitted_date);
-            const sentDate = new Date(lastSentDate);
-            return submittedDate >= sentDate;
-          } catch (e) {
-            return true;
-          }
-        }
-        return true;
+        // Check if this review is for the current evaluation week
+        return r.week_start_date === currentWeekStart;
       })
       .map(r => r.reviewed_name);
 
     return Array.from(colleaguesSet).filter(name => !alreadyReviewed.includes(name));
-  }, [currentUser, shifts, responses, feedbackConfig]);
+  }, [currentUser, shifts, responses]);
 
   const normalizedUserType = currentUser ? (currentUser.user_type === 'user' ? 'dipendente' : currentUser.user_type) : null;
   const isAdmin = normalizedUserType === 'admin' || normalizedUserType === 'manager';
@@ -638,19 +628,13 @@ function DipendenteView({ currentUser, questions, colleagues, users, onSubmit, s
       {!selectedColleague ? (
         <div className="space-y-6">
           {(() => {
-            const lastSentDate = feedbackConfig[0]?.last_sent_date;
+            const lastWeekStart = startOfWeek(subWeeks(new Date(), 1), { weekStartsOn: 1 });
+            const currentWeekStart = lastWeekStart.toISOString().split('T')[0];
+            
             const completedThisCycle = responses.filter(r => {
               if (r.reviewer_id !== currentUser.id) return false;
-              if (lastSentDate && r.submitted_date) {
-                try {
-                  const submittedDate = new Date(r.submitted_date);
-                  const sentDate = new Date(lastSentDate);
-                  return submittedDate >= sentDate;
-                } catch (e) {
-                  return false;
-                }
-              }
-              return false;
+              // Check if this review is for the current evaluation week
+              return r.week_start_date === currentWeekStart;
             });
 
             return completedThisCycle.length > 0 && (
