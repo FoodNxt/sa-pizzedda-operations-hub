@@ -535,10 +535,10 @@ export default function FormTracker() {
               </label>
               <div className="flex gap-2 flex-wrap">
                 {[
-                  { value: '1', label: 'Ultimo giorno' },
-                  { value: '3', label: 'Ultimi 3 giorni' },
-                  { value: '7', label: 'Ultimi 7 giorni' },
-                  { value: '30', label: 'Ultimi 30 giorni' }
+                  { value: 1, label: 'Ultimo giorno' },
+                  { value: 3, label: 'Ultimi 3 giorni' },
+                  { value: 7, label: 'Ultimi 7 giorni' },
+                  { value: 30, label: 'Ultimi 30 giorni' }
                 ].map(option => (
                   <button
                     key={option.value}
@@ -546,11 +546,21 @@ export default function FormTracker() {
                     onClick={() => {
                       const now = new Date();
                       const start = new Date(now);
-                      start.setDate(start.getDate() - parseInt(option.value));
+                      start.setDate(start.getDate() - option.value);
                       setMissingStartDate(start.toISOString().split('T')[0]);
                       setMissingEndDate(now.toISOString().split('T')[0]);
                     }}
-                    className="px-3 py-2 rounded-xl text-sm font-medium nav-button text-slate-700"
+                    className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                      (() => {
+                        if (!missingStartDate || !missingEndDate) return 'nav-button text-slate-700';
+                        const now = new Date();
+                        const start = new Date(now);
+                        start.setDate(start.getDate() - option.value);
+                        const isActive = missingStartDate === start.toISOString().split('T')[0] && 
+                                        missingEndDate === now.toISOString().split('T')[0];
+                        return isActive ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' : 'nav-button text-slate-700';
+                      })()
+                    }`}
                   >
                     {option.label}
                   </button>

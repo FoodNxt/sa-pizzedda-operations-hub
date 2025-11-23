@@ -280,13 +280,21 @@ export default function Employees() {
       // Calculate base score starting from 100
       let performanceScore = 100;
       
-      // Deduct points for negative metrics (use actual counts, not percentages for timbrature)
-      performanceScore -= (wrongOrdersCount * w_ordini);
-      performanceScore -= (numeroRitardi * w_ritardi);
-      performanceScore -= (numeroTimbratureMancate * w_timbrature);
+      // Deduct points for negative metrics
+      if (wrongOrdersCount > 0) {
+        performanceScore -= (wrongOrdersCount * w_ordini);
+      }
+      if (numeroRitardi > 0) {
+        performanceScore -= (numeroRitardi * w_ritardi);
+      }
+      if (numeroTimbratureMancate > 0) {
+        performanceScore -= (numeroTimbratureMancate * w_timbrature);
+      }
       
       // Add points for positive metrics
-      performanceScore += (assignedReviews.length * w_num_recensioni);
+      if (assignedReviews.length > 0) {
+        performanceScore += (assignedReviews.length * w_num_recensioni);
+      }
       if (avgGoogleRating > 0) {
         performanceScore += ((avgGoogleRating - 3) * w_punteggio_recensioni * 5);
       }

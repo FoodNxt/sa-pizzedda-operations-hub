@@ -420,6 +420,7 @@ export default function FeedbackP2P() {
             questions={questions.filter(q => q.is_active)}
             colleagues={getLastWeekColleagues}
             users={users}
+            shifts={shifts}
             onSubmit={(data) => submitResponseMutation.mutate(data)}
           />
         )}
@@ -535,9 +536,50 @@ export default function FeedbackP2P() {
   );
 }
 
-function DipendenteView({ currentUser, questions, colleagues, users, onSubmit }) {
+function DipendenteView({ currentUser, questions, colleagues, users, onSubmit, shifts }) {
   const [selectedColleague, setSelectedColleague] = useState(null);
   const [answers, setAnswers] = useState({});
+  
+  // Get shared shifts with selected colleague
+  const getSharedShifts = useMemo(() => {
+    if (!selectedColleague || !currentUser) return [];
+    
+    const employeeName = currentUser.nome_cognome || currentUser.full_name || currentUser.email;
+    const lastWeekStart = startOfWeek(subWeeks(new Date(), 1), { weekStartsOn: 1 });
+    const lastWeekEnd = endOfWeek(subWeeks(new Date(), 1), { weekStartsOn: 1 });
+    
+    const myShifts = shifts.filter(s => {
+      if (s.employee_name !== employeeName || !s.shift_date) return false;
+      try {
+        const shiftDate = parseISO(s.shift_date);
+        if (isNaN(shiftDate.getTime())) return false;
+        return shiftDate >= lastWeekStart && shiftDate <= lastWeekEnd;
+      } catch (e) {
+        return false;
+      }
+    });
+    
+    const sharedShifts = [];
+    myShifts.forEach(myShift => {
+      const colleagueShift = shifts.find(s => 
+        s.employee_name === selectedColleague &&
+        s.shift_date === myShift.shift_date &&
+        s.store_id === myShift.store_id
+      );
+      if (colleagueShift) {
+        sharedShifts.push({
+          date: myShift.shift_date,
+          store: myShift.store_name,
+          myStart: myShift.scheduled_start,
+          myEnd: myShift.scheduled_end,
+          colleagueStart: colleagueShift.scheduled_start,
+          colleagueEnd: colleagueShift.scheduled_end
+        });
+      }
+    });
+    
+    return sharedShifts.sort((a, b) => new Date(a.date) - new Date(b.date));
+  }, [selectedColleague, currentUser, shifts]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -652,7 +694,42 @@ function DipendenteView({ currentUser, questions, colleagues, users, onSubmit })
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="neumorphic-pressed p-4 rounded-xl mb-6">
             <p className="text-sm text-slate-500">Stai valutando</p>
-            <p className="text-lg font-bold text-slate-800">{selectedColleague}</p>
+            <p className="text-lg font-bold text-slate-800 mb-3">{selectedColleague}</p>
+            
+            {getSharedShifts.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-slate-300">
+                <p className="text-xs text-slate-500 mb-2 font-medium">Turni condivisi la settimana scorsa:</p>
+                <div className="space-y-2">
+                  {getSharedShifts.map((shift, idx) => (
+                    <div key={idx} className="text-xs text-slate-600 bg-slate-50 p-2 rounded-lg">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-bold text-slate-700">
+                          {(() => {
+                            try {
+                              return new Date(shift.date).toLocaleDateString('it-IT', { 
+                                weekday: 'short', 
+                                day: 'numeric', 
+                                month: 'short' 
+                              });
+                            } catch (e) {
+                              return shift.date;
+                            }
+                          })()}
+                        </span>
+                        <span className="text-blue-600">• {shift.store}</span>
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {shift.myStart && shift.myEnd && (
+                          <span>
+                            {new Date(shift.myStart).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })} - {new Date(shift.myEnd).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {questions.map(q => (
