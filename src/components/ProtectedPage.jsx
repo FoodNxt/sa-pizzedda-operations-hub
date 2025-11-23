@@ -32,8 +32,23 @@ export default function ProtectedPage({ children, pageName, requiredUserTypes = 
 
         if (normalizedUserType === 'admin') {
           allowedPages = activeConfig.admin_pages || [];
+          // Always allow access to admin/manager pages for these user types
+          if (!allowedPages.includes(pageName)) {
+            // Allow any page for admins if not explicitly restricted
+            const adminPages = ['Dashboard', 'Pulizie', 'PulizieMatch', 'Employees', 'Shifts', 'StoreReviews', 'Financials', 'UsersManagement'];
+            if (adminPages.includes(pageName)) {
+              allowedPages.push(pageName);
+            }
+          }
         } else if (normalizedUserType === 'manager') {
           allowedPages = activeConfig.manager_pages || [];
+          // Allow key pages for managers too
+          if (!allowedPages.includes(pageName)) {
+            const managerPages = ['Dashboard', 'Pulizie', 'PulizieMatch', 'Employees', 'Shifts', 'StoreReviews', 'Financials'];
+            if (managerPages.includes(pageName)) {
+              allowedPages.push(pageName);
+            }
+          }
         } else if (normalizedUserType === 'dipendente') {
           // Check contract status for dipendenti
           const userRoles = user.ruoli_dipendente || [];

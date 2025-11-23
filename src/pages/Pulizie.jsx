@@ -623,6 +623,97 @@ export default function Pulizie() {
                 </div>
               </div>
             )}
+
+            {/* Additional Form Questions */}
+            <div className="mt-6 space-y-4">
+              <h3 className="text-xl font-bold text-[#6b6b6b] mb-4">Altre Valutazioni</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {detailsModalInspection.pulizia_pavimenti_angoli && (
+                  <div className="neumorphic-flat p-4 rounded-xl">
+                    <p className="text-sm font-bold text-[#6b6b6b] mb-2">🧹 Pulizia Pavimenti e Angoli</p>
+                    <span className={`inline-block px-3 py-1 rounded-lg text-sm font-medium ${
+                      detailsModalInspection.pulizia_pavimenti_angoli === 'pulito' ? 'bg-green-100 text-green-700' :
+                      detailsModalInspection.pulizia_pavimenti_angoli === 'sporco' ? 'bg-red-100 text-red-700' :
+                      'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      {detailsModalInspection.pulizia_pavimenti_angoli === 'pulito' ? 'Pulito' :
+                       detailsModalInspection.pulizia_pavimenti_angoli === 'sporco' ? 'Sporco' : 'Da Migliorare'}
+                    </span>
+                  </div>
+                )}
+
+                {detailsModalInspection.pulizia_tavoli_sala && (
+                  <div className="neumorphic-flat p-4 rounded-xl">
+                    <p className="text-sm font-bold text-[#6b6b6b] mb-2">🪑 Pulizia Tavoli Sala</p>
+                    <span className={`inline-block px-3 py-1 rounded-lg text-sm font-medium ${
+                      detailsModalInspection.pulizia_tavoli_sala === 'pulito' ? 'bg-green-100 text-green-700' :
+                      detailsModalInspection.pulizia_tavoli_sala === 'sporco' ? 'bg-red-100 text-red-700' :
+                      'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      {detailsModalInspection.pulizia_tavoli_sala === 'pulito' ? 'Pulito' :
+                       detailsModalInspection.pulizia_tavoli_sala === 'sporco' ? 'Sporco' : 'Da Migliorare'}
+                    </span>
+                  </div>
+                )}
+
+                {detailsModalInspection.pulizia_vetrata_ingresso && (
+                  <div className="neumorphic-flat p-4 rounded-xl">
+                    <p className="text-sm font-bold text-[#6b6b6b] mb-2">🚪 Pulizia Vetrata Ingresso</p>
+                    <span className={`inline-block px-3 py-1 rounded-lg text-sm font-medium ${
+                      detailsModalInspection.pulizia_vetrata_ingresso === 'pulito' ? 'bg-green-100 text-green-700' :
+                      detailsModalInspection.pulizia_vetrata_ingresso === 'sporco' ? 'bg-red-100 text-red-700' :
+                      'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      {detailsModalInspection.pulizia_vetrata_ingresso === 'pulito' ? 'Pulito' :
+                       detailsModalInspection.pulizia_vetrata_ingresso === 'sporco' ? 'Sporco' : 'Da Migliorare'}
+                    </span>
+                  </div>
+                )}
+
+                {detailsModalInspection.pulizia_tavolette_takeaway && (
+                  <div className="neumorphic-flat p-4 rounded-xl">
+                    <p className="text-sm font-bold text-[#6b6b6b] mb-2">📦 Pulizia Tavolette Takeaway</p>
+                    <span className={`inline-block px-3 py-1 rounded-lg text-sm font-medium ${
+                      detailsModalInspection.pulizia_tavolette_takeaway === 'pulito' ? 'bg-green-100 text-green-700' :
+                      detailsModalInspection.pulizia_tavolette_takeaway === 'sporco' ? 'bg-red-100 text-red-700' :
+                      'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      {detailsModalInspection.pulizia_tavolette_takeaway === 'pulito' ? 'Pulito' :
+                       detailsModalInspection.pulizia_tavolette_takeaway === 'sporco' ? 'Sporco' : 'Da Migliorare'}
+                    </span>
+                  </div>
+                )}
+
+                {detailsModalInspection.etichette_prodotti_aperti && (
+                  <div className="neumorphic-flat p-4 rounded-xl">
+                    <p className="text-sm font-bold text-[#6b6b6b] mb-2">🏷️ Etichette Prodotti Aperti</p>
+                    <span className={`inline-block px-3 py-1 rounded-lg text-sm font-medium ${
+                      detailsModalInspection.etichette_prodotti_aperti === 'tutti_con_etichette' ? 'bg-green-100 text-green-700' :
+                      detailsModalInspection.etichette_prodotti_aperti === 'nessuno_con_etichette' ? 'bg-red-100 text-red-700' :
+                      'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      {detailsModalInspection.etichette_prodotti_aperti === 'tutti_con_etichette' ? 'Tutti etichettati' :
+                       detailsModalInspection.etichette_prodotti_aperti === 'nessuno_con_etichette' ? 'Nessuna etichetta' : 'Alcuni senza etichette'}
+                    </span>
+                  </div>
+                )}
+
+                {detailsModalInspection.cartoni_pizza_pronti && (
+                  <div className="neumorphic-flat p-4 rounded-xl">
+                    <p className="text-sm font-bold text-[#6b6b6b] mb-2">📦 Cartoni Pizza Disponibili</p>
+                    <span className={`inline-block px-3 py-1 rounded-lg text-sm font-medium ${
+                      detailsModalInspection.cartoni_pizza_pronti === 'piu_di_40' ? 'bg-green-100 text-green-700' :
+                      detailsModalInspection.cartoni_pizza_pronti === 'meno_di_40' ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-red-100 text-red-700'
+                    }`}>
+                      {detailsModalInspection.cartoni_pizza_pronti === 'piu_di_40' ? 'Più di 40' :
+                       detailsModalInspection.cartoni_pizza_pronti === 'meno_di_40' ? 'Meno di 40' : 'Nessun cartone'}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
             </NeumorphicCard>
           </div>
         </div>
