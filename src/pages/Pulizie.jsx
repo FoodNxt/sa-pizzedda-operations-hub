@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -348,8 +347,9 @@ export default function Pulizie() {
 
       {/* Details Modal */}
       {detailsModalInspection && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <NeumorphicCard className="max-w-6xl w-full my-8 p-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="max-w-6xl w-full max-h-[95vh] overflow-y-auto my-4">
+            <NeumorphicCard className="p-6">
             {/* Header */}
             <div className="flex items-start justify-between mb-6">
               <div>

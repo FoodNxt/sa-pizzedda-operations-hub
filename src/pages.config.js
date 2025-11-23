@@ -71,6 +71,7 @@ import FeedbackP2P from './pages/FeedbackP2P';
 import FormTracker from './pages/FormTracker';
 import Documenti from './pages/Documenti';
 import FormsDipendente from './pages/FormsDipendente';
+import PulizieMatch from './pages/PulizieMatch';
 import __Layout from './Layout.jsx';
 
 
@@ -148,6 +149,7 @@ export const PAGES = {
     "FormTracker": FormTracker,
     "Documenti": Documenti,
     "FormsDipendente": FormsDipendente,
+    "PulizieMatch": PulizieMatch,
 }
 
 export const pagesConfig = {
