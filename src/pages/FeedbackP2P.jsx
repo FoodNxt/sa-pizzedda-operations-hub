@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Users, Plus, Edit, Trash2, Save, X, Send, CheckCircle, Star } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, Save, X, Send, CheckCircle, Star, Eye } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
@@ -225,7 +225,7 @@ export default function FeedbackP2P() {
 
         {isAdmin && (
           <NeumorphicCard className="p-6">
-            <div className="flex gap-2 mb-6">
+            <div className="flex gap-2 mb-6 flex-wrap">
               <button
                 onClick={() => setActiveTab('admin')}
                 className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all ${
@@ -245,6 +245,16 @@ export default function FeedbackP2P() {
                 }`}
               >
                 Risposte
+              </button>
+              <button
+                onClick={() => setActiveTab('sent')}
+                className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all ${
+                  activeTab === 'sent' 
+                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' 
+                    : 'nav-button text-slate-700'
+                }`}
+              >
+                Form Inviati
               </button>
               <button
                 onClick={() => setActiveTab('config')}
@@ -375,6 +385,15 @@ export default function FeedbackP2P() {
                   ))
                 )}
               </div>
+            )}
+
+            {activeTab === 'sent' && (
+              <FormsSentTab 
+                feedbackConfig={feedbackConfig} 
+                responses={responses} 
+                users={users} 
+                shifts={shifts} 
+              />
             )}
 
             {activeTab === 'config' && (
@@ -857,5 +876,223 @@ function DipendenteView({ currentUser, questions, colleagues, users, onSubmit, s
         </form>
       )}
     </NeumorphicCard>
+  );
+}
+
+function FormsSentTab({ feedbackConfig, responses, users, shifts }) {
+  const [selectedFormDetails, setSelectedFormDetails] = React.useState(null);
+
+  const formsSent = React.useMemo(() => {
+    const sent = [];
+    
+    // Get all form send dates from config
+    if (feedbackConfig[0]?.last_sent_date) {
+      const lastSentDate = feedbackConfig[0].last_sent_date;
+      const sentDate = parseISO(lastSentDate);
+      
+      // Get 7 days before form was sent
+      const sevenDaysBefore = new Date(sentDate);
+      sevenDaysBefore.setDate(sevenDaysBefore.getDate() - 7);
+      
+      // For each user, check if they completed all evaluations
+      const dipendenti = users.filter(u => u.user_type === 'dipendente' || u.user_type === 'user');
+      
+      const completionData = dipendenti.map(user => {
+        const employeeName = user.nome_cognome || user.full_name || user.email;
+        
+        // Get shifts in the evaluation period
+        const userShifts = shifts.filter(s => {
+          if (s.employee_name !== employeeName || !s.shift_date) return false;
+          try {
+            const shiftDate = parseISO(s.shift_date);
+            if (isNaN(shiftDate.getTime())) return false;
+            return shiftDate >= sevenDaysBefore && shiftDate <= sentDate;
+          } catch (e) {
+            return false;
+          }
+        });
+        
+        // Get colleagues from those shifts
+        const colleaguesSet = new Set();
+        userShifts.forEach(myShift => {
+          shifts.forEach(otherShift => {
+            if (otherShift.employee_name !== employeeName &&
+                otherShift.shift_date === myShift.shift_date &&
+                otherShift.store_id === myShift.store_id) {
+              colleaguesSet.add(otherShift.employee_name);
+            }
+          });
+        });
+        
+        const colleaguesToEvaluate = Array.from(colleaguesSet);
+        
+        // Get evaluations done by this user after last sent date
+        const evaluationsDone = responses.filter(r => {
+          if (r.reviewer_id !== user.id) return false;
+          if (r.submitted_date) {
+            try {
+              const submittedDate = new Date(r.submitted_date);
+              return submittedDate >= sentDate;
+            } catch (e) {
+              return false;
+            }
+          }
+          return false;
+        });
+        
+        const completed = colleaguesToEvaluate.length > 0 && 
+                         evaluationsDone.length === colleaguesToEvaluate.length;
+        
+        return {
+          user,
+          employeeName,
+          colleaguesToEvaluate,
+          evaluationsDone: evaluationsDone.length,
+          completed
+        };
+      });
+      
+      sent.push({
+        sentDate: lastSentDate,
+        completionData
+      });
+    }
+    
+    return sent;
+  }, [feedbackConfig, responses, users, shifts]);
+
+  if (formsSent.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <Send className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+        <p className="text-slate-500">Nessun form inviato ancora</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {formsSent.map((form, idx) => {
+        const completedCount = form.completionData.filter(d => d.completed).length;
+        const totalCount = form.completionData.filter(d => d.colleaguesToEvaluate.length > 0).length;
+        const completionPercentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+        
+        return (
+          <NeumorphicCard key={idx} className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="text-xl font-bold text-slate-800 mb-1">
+                  Form inviato il {new Date(form.sentDate).toLocaleDateString('it-IT', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                  })}
+                </h3>
+                <p className="text-sm text-slate-500">
+                  Periodo valutazione: {(() => {
+                    const sentDate = new Date(form.sentDate);
+                    const sevenDaysBefore = new Date(sentDate);
+                    sevenDaysBefore.setDate(sevenDaysBefore.getDate() - 7);
+                    return `${sevenDaysBefore.toLocaleDateString('it-IT')} - ${sentDate.toLocaleDateString('it-IT')}`;
+                  })()}
+                </p>
+              </div>
+              <NeumorphicButton
+                onClick={() => setSelectedFormDetails(form)}
+                className="flex items-center gap-2"
+              >
+                <Eye className="w-4 h-4" />
+                Dettagli
+              </NeumorphicButton>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                <p className="text-sm text-slate-500 mb-1">Dipendenti Totali</p>
+                <p className="text-2xl font-bold text-slate-800">{totalCount}</p>
+              </div>
+              <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                <p className="text-sm text-slate-500 mb-1">Hanno Completato</p>
+                <p className="text-2xl font-bold text-green-600">{completedCount}</p>
+              </div>
+              <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                <p className="text-sm text-slate-500 mb-1">Completamento</p>
+                <p className="text-2xl font-bold text-blue-600">{completionPercentage.toFixed(0)}%</p>
+              </div>
+            </div>
+            
+            <div className="mt-4">
+              <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-green-500 to-emerald-600 transition-all duration-500"
+                  style={{ width: `${completionPercentage}%` }}
+                />
+              </div>
+            </div>
+          </NeumorphicCard>
+        );
+      })}
+      
+      {selectedFormDetails && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <NeumorphicCard className="max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-slate-800">
+                Dettagli Completamento
+              </h2>
+              <button
+                onClick={() => setSelectedFormDetails(null)}
+                className="nav-button p-2 rounded-lg"
+              >
+                <X className="w-5 h-5 text-slate-600" />
+              </button>
+            </div>
+            
+            <div className="space-y-2">
+              {selectedFormDetails.completionData
+                .filter(d => d.colleaguesToEvaluate.length > 0)
+                .map((data, idx) => (
+                  <div 
+                    key={idx} 
+                    className={`neumorphic-pressed p-4 rounded-xl ${
+                      data.completed ? 'border-2 border-green-200' : 'border-2 border-orange-200'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <p className="font-bold text-slate-800">{data.employeeName}</p>
+                        <p className="text-sm text-slate-600">
+                          Colleghi da valutare: {data.colleaguesToEvaluate.length}
+                        </p>
+                        <p className="text-sm text-slate-600">
+                          Valutazioni completate: {data.evaluationsDone}
+                        </p>
+                        {data.colleaguesToEvaluate.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-xs text-slate-500">
+                              Colleghi: {data.colleaguesToEvaluate.join(', ')}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      {data.completed ? (
+                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" />
+                          Completato
+                        </span>
+                      ) : (
+                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700">
+                          {data.evaluationsDone}/{data.colleaguesToEvaluate.length}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </NeumorphicCard>
+        </div>
+      )}
+    </div>
   );
 }
