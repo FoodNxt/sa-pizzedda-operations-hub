@@ -87,11 +87,41 @@ export default function Pulizie() {
   // Mutation for saving corrections
   const saveCorrectionMutation = useMutation({
     mutationFn: async ({ inspectionId, equipmentKey, correctedStatus, correctionNote }) => {
+      // Get the current inspection to recalculate overall score
+      const inspection = detailsModalInspection;
+      
+      // Count equipment statuses for score calculation
+      let puliti = 0;
+      let medi = 0;
+      let sporchi = 0;
+      let total = 0;
+      
+      equipment.forEach(eq => {
+        const status = eq.key === equipmentKey 
+          ? correctedStatus 
+          : (inspection[`${eq.key}_corrected`] 
+              ? inspection[`${eq.key}_corrected_status`]
+              : inspection[`${eq.key}_pulizia_status`]);
+        
+        if (status && inspection[`${eq.key}_foto_url`]) {
+          total++;
+          if (status === 'pulito') puliti++;
+          else if (status === 'medio') medi++;
+          else if (status === 'sporco') sporchi++;
+        }
+      });
+      
+      // Calculate new overall score (pulito=100, medio=50, sporco=0)
+      const newOverallScore = total > 0 
+        ? Math.round(((puliti * 100 + medi * 50) / total))
+        : 0;
+      
       const updateData = {
         [`${equipmentKey}_corrected`]: true,
         [`${equipmentKey}_corrected_status`]: correctedStatus,
         [`${equipmentKey}_correction_note`]: correctionNote,
-        has_corrections: true
+        has_corrections: true,
+        overall_score: newOverallScore
       };
 
       await base44.entities.CleaningInspection.update(inspectionId, updateData);

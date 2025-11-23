@@ -642,15 +642,17 @@ function DipendenteView({ currentUser, questions, colleagues, users, onSubmit, s
       const sevenDaysBeforeForm = new Date(referenceDate);
       sevenDaysBeforeForm.setDate(sevenDaysBeforeForm.getDate() - 7);
 
-      await onSubmit({
+      const submissionData = {
         reviewer_id: currentUser.id,
         reviewer_name: currentUser.nome_cognome || currentUser.full_name || currentUser.email,
-        reviewed_id: colleague?.id,
+        reviewed_id: colleague?.id || '',
         reviewed_name: selectedColleague,
         week_start_date: sevenDaysBeforeForm.toISOString().split('T')[0],
         responses: responseData,
         submitted_date: new Date().toISOString()
-      });
+      };
+      
+      await onSubmit(submissionData);
 
       alert('✅ Feedback inviato con successo!');
       setSelectedColleague(null);
