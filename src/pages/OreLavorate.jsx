@@ -31,13 +31,24 @@ export default function OreLavorate() {
     queryFn: () => base44.entities.Shift.list('-shift_date'),
   });
 
-  // Filter shifts for current user
+  // Filter shifts for current user and remove duplicates
   const myShifts = useMemo(() => {
     if (!user || !shifts.length) return [];
     const userDisplayName = (user.nome_cognome || user.full_name)?.toLowerCase().trim();
-    return shifts.filter(s =>
+    const userShifts = shifts.filter(s =>
       s.employee_name?.toLowerCase().trim() === userDisplayName
-    ).sort((a, b) => new Date(b.shift_date) - new Date(a.shift_date));
+    );
+    
+    // Remove duplicates based on date + scheduled start/end
+    const seen = new Set();
+    const uniqueShifts = userShifts.filter(s => {
+      const key = `${s.shift_date}_${s.scheduled_start}_${s.scheduled_end}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    
+    return uniqueShifts.sort((a, b) => new Date(b.shift_date) - new Date(a.shift_date));
   }, [user, shifts]);
 
   // Calculate previous month data
