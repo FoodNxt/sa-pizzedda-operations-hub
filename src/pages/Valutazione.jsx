@@ -9,31 +9,26 @@ import {
   Eye,
   X,
   User,
-  Calendar
+  Calendar,
+  AlertTriangle,
+  Filter
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
-import { parseISO, isValid, format as formatDate } from 'date-fns';
+import { parseISO, isValid, format as formatDate, subDays, subMonths } from 'date-fns';
 import { it } from 'date-fns/locale';
 
 export default function Valutazione() {
-  const [expandedView, setExpandedView] = useState(null); // 'late', 'missing', 'reviews'
-  // const [currentUser, setCurrentUser] = useState(null); // Removed: user data now directly from useQuery
+  const [expandedView, setExpandedView] = useState(null);
   const [matchedEmployee, setMatchedEmployee] = useState(null);
+  const [dateRange, setDateRange] = useState('30'); // '30' or '90'
 
   // Fetch current user
   const { data: user, isLoading: userLoading } = useQuery({
     queryKey: ['currentUser'],
     queryFn: async () => {
       const u = await base44.auth.me();
-      // setCurrentUser(u); // Removed: user data now directly from useQuery
       return u;
     },
-  });
-
-  // Fetch employees
-  const { data: employees = [] } = useQuery({
-    queryKey: ['employees'],
-    queryFn: () => base44.entities.Employee.list(),
   });
 
   // Fetch shifts
@@ -48,11 +43,15 @@ export default function Valutazione() {
     queryFn: () => base44.entities.Review.list('-review_date'),
   });
 
+  // Fetch wrong orders
+  const { data: wrongOrders = [] } = useQuery({
+    queryKey: ['wrong-orders'],
+    queryFn: () => base44.entities.WrongOrder.list('-created_date'),
+  });
+
   // Match shifts and reviews by nome_cognome from User entity
-  // No need to match with Employee entity anymore
   React.useEffect(() => {
     if (user) {
-      // Create a fake employee object from user data for display purposes
       setMatchedEmployee({
         full_name: user.nome_cognome || user.full_name || user.email,
         function_name: user.ruoli_dipendente?.join(', ') || 'Dipendente',
@@ -60,6 +59,12 @@ export default function Valutazione() {
       });
     }
   }, [user]);
+
+  // Calculate date filter
+  const filterDate = useMemo(() => {
+    const now = new Date();
+    return dateRange === '30' ? subDays(now, 30) : subMonths(now, 3);
+  }, [dateRange]);
 
   // Helper function to safely format dates
   const safeFormatDate = (dateString, formatString, options = {}) => {
@@ -95,45 +100,75 @@ export default function Valutazione() {
     }
   };
 
-  // Filter shifts for current user - UPDATED TO USE nome_cognome
+  // Filter shifts for current user with date range
   const myShifts = useMemo(() => {
     if (!user || !shifts.length) return [];
     const userDisplayName = (user.nome_cognome || user.full_name)?.toLowerCase().trim();
-    return shifts.filter(s =>
-      s.employee_name?.toLowerCase().trim() === userDisplayName
-    );
-  }, [user, shifts]);
+    return shifts.filter(s => {
+      if (s.employee_name?.toLowerCase().trim() !== userDisplayName) return false;
+      // Apply date filter
+      try {
+        const shiftDate = new Date(s.shift_date);
+        return shiftDate >= filterDate;
+      } catch (e) {
+        return true;
+      }
+    });
+  }, [user, shifts, filterDate]);
 
-  // Filter reviews assigned to current user - UPDATED TO USE nome_cognome
+  // Filter reviews assigned to current user with date range
   const myReviews = useMemo(() => {
     if (!user || !reviews.length) return [];
     const userDisplayName = (user.nome_cognome || user.full_name || '').toLowerCase().trim();
     return reviews.filter(r => {
       if (!r.employee_assigned_name) return false;
       const assignedNames = r.employee_assigned_name.split(',').map(n => n.trim().toLowerCase());
-      return assignedNames.includes(userDisplayName);
+      if (!assignedNames.includes(userDisplayName)) return false;
+      // Apply date filter
+      try {
+        const reviewDate = new Date(r.review_date);
+        return reviewDate >= filterDate;
+      } catch (e) {
+        return true;
+      }
     });
-  }, [user, reviews]);
+  }, [user, reviews, filterDate]);
+
+  // Filter wrong orders assigned to current user with date range
+  const myWrongOrders = useMemo(() => {
+    if (!user || !wrongOrders.length) return [];
+    const userDisplayName = (user.nome_cognome || user.full_name || '').toLowerCase().trim();
+    return wrongOrders.filter(wo => {
+      if (!wo.assigned_employee_name) return false;
+      if (wo.assigned_employee_name.toLowerCase().trim() !== userDisplayName) return false;
+      // Apply date filter
+      try {
+        const orderDate = new Date(wo.created_date || wo.order_date);
+        return orderDate >= filterDate;
+      } catch (e) {
+        return true;
+      }
+    }).sort((a, b) => new Date(b.created_date || b.order_date) - new Date(a.created_date || a.order_date));
+  }, [user, wrongOrders, filterDate]);
 
   // Filter data for current employee
   const employeeData = useMemo(() => {
-    if (!matchedEmployee || !user) { // Added !user for safety, as myShifts/myReviews depend on user
+    if (!matchedEmployee || !user) {
       return {
         lateShifts: [],
         missingClockIns: [],
         googleReviews: [],
+        wrongOrders: [],
         totalShifts: 0,
         latePercentage: 0
       };
     }
 
-    // Use the pre-filtered myShifts and myReviews
     const lateShifts = myShifts.filter(s => s.ritardo === true);
     const missingClockIns = myShifts.filter(s => s.timbratura_mancata === true);
-    // myReviews is already filtered by employee_assigned_name, just filter by source
     const googleReviews = myReviews.filter(r => r.source === 'google');
 
-    const totalShifts = myShifts.length; // total shifts are myShifts length
+    const totalShifts = myShifts.length;
     const latePercentage = totalShifts > 0
       ? (lateShifts.length / totalShifts) * 100
       : 0;
@@ -142,10 +177,11 @@ export default function Valutazione() {
       lateShifts: lateShifts.sort((a, b) => new Date(b.shift_date) - new Date(a.shift_date)),
       missingClockIns: missingClockIns.sort((a, b) => new Date(b.shift_date) - new Date(a.shift_date)),
       googleReviews: googleReviews.sort((a, b) => new Date(b.review_date) - new Date(a.review_date)),
+      wrongOrders: myWrongOrders,
       totalShifts,
       latePercentage
     };
-  }, [user, matchedEmployee, myShifts, myReviews]); // Dependencies adjusted
+  }, [user, matchedEmployee, myShifts, myReviews, myWrongOrders]);
 
   if (userLoading) {
     return (
@@ -184,6 +220,36 @@ export default function Valutazione() {
         <p className="text-[#9b9b9b]">Monitora i tuoi turni, timbrature e recensioni</p>
       </div>
 
+      {/* Date Range Filter */}
+      <NeumorphicCard className="p-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <Filter className="w-5 h-5 text-[#8b7355]" />
+          <span className="text-sm font-medium text-[#6b6b6b]">Periodo:</span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setDateRange('30')}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                dateRange === '30'
+                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                  : 'neumorphic-flat text-[#6b6b6b]'
+              }`}
+            >
+              Ultimi 30 giorni
+            </button>
+            <button
+              onClick={() => setDateRange('90')}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                dateRange === '90'
+                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                  : 'neumorphic-flat text-[#6b6b6b]'
+              }`}
+            >
+              Ultimi 3 mesi
+            </button>
+          </div>
+        </div>
+      </NeumorphicCard>
+
       {/* Employee Info */}
       <NeumorphicCard className="p-6">
         <div className="flex items-center gap-4">
@@ -207,37 +273,37 @@ export default function Valutazione() {
       </NeumorphicCard>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <NeumorphicCard className="p-6 text-center">
-          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <Clock className="w-8 h-8 text-red-600" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <NeumorphicCard className="p-4 text-center">
+          <div className="neumorphic-flat w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center">
+            <Clock className="w-6 h-6 text-red-600" />
           </div>
-          <h3 className="text-3xl font-bold text-red-600 mb-1">{employeeData.lateShifts.length}</h3>
-          <p className="text-sm text-[#9b9b9b]">Turni in Ritardo</p>
-          <p className="text-xs text-[#9b9b9b] mt-1">
-            {employeeData.latePercentage.toFixed(1)}% dei turni
-          </p>
+          <h3 className="text-2xl font-bold text-red-600 mb-1">{employeeData.lateShifts.length}</h3>
+          <p className="text-xs text-[#9b9b9b]">Ritardi</p>
         </NeumorphicCard>
 
-        <NeumorphicCard className="p-6 text-center">
-          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <AlertCircle className="w-8 h-8 text-orange-600" />
+        <NeumorphicCard className="p-4 text-center">
+          <div className="neumorphic-flat w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center">
+            <AlertCircle className="w-6 h-6 text-orange-600" />
           </div>
-          <h3 className="text-3xl font-bold text-orange-600 mb-1">{employeeData.missingClockIns.length}</h3>
-          <p className="text-sm text-[#9b9b9b]">Timbrature Mancanti</p>
+          <h3 className="text-2xl font-bold text-orange-600 mb-1">{employeeData.missingClockIns.length}</h3>
+          <p className="text-xs text-[#9b9b9b]">Timb. Mancanti</p>
         </NeumorphicCard>
 
-        <NeumorphicCard className="p-6 text-center">
-          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <Star className="w-8 h-8 text-yellow-500 fill-yellow-500" />
+        <NeumorphicCard className="p-4 text-center">
+          <div className="neumorphic-flat w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center">
+            <AlertTriangle className="w-6 h-6 text-purple-600" />
           </div>
-          <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">{employeeData.googleReviews.length}</h3>
-          <p className="text-sm text-[#9b9b9b]">Recensioni Google</p>
-          {employeeData.googleReviews.length > 0 && (
-            <p className="text-xs text-[#9b9b9b] mt-1">
-              Media: {(employeeData.googleReviews.reduce((sum, r) => sum + r.rating, 0) / employeeData.googleReviews.length).toFixed(1)} ⭐
-            </p>
-          )}
+          <h3 className="text-2xl font-bold text-purple-600 mb-1">{employeeData.wrongOrders.length}</h3>
+          <p className="text-xs text-[#9b9b9b]">Ordini Sbagliati</p>
+        </NeumorphicCard>
+
+        <NeumorphicCard className="p-4 text-center">
+          <div className="neumorphic-flat w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center">
+            <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
+          </div>
+          <h3 className="text-2xl font-bold text-[#6b6b6b] mb-1">{employeeData.googleReviews.length}</h3>
+          <p className="text-xs text-[#9b9b9b]">Recensioni</p>
         </NeumorphicCard>
       </div>
 
@@ -255,17 +321,7 @@ export default function Valutazione() {
               onClick={() => setExpandedView(expandedView === 'late' ? null : 'late')}
               className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-2"
             >
-              {expandedView === 'late' ? (
-                <>
-                  <X className="w-4 h-4" />
-                  Chiudi
-                </>
-              ) : (
-                <>
-                  <Eye className="w-4 h-4" />
-                  Vedi tutti ({employeeData.lateShifts.length})
-                </>
-              )}
+              {expandedView === 'late' ? <><X className="w-4 h-4" />Chiudi</> : <><Eye className="w-4 h-4" />Vedi tutti ({employeeData.lateShifts.length})</>}
             </button>
           )}
         </div>
@@ -277,21 +333,13 @@ export default function Valutazione() {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-[#9b9b9b]" />
-                    <span className="font-medium text-[#6b6b6b]">
-                      {safeFormatDateLocale(shift.shift_date)}
-                    </span>
-                    {shift.store_name && (
-                      <span className="text-sm text-[#9b9b9b]">• {shift.store_name}</span>
-                    )}
+                    <span className="font-medium text-[#6b6b6b]">{safeFormatDateLocale(shift.shift_date)}</span>
+                    {shift.store_name && <span className="text-sm text-[#9b9b9b]">• {shift.store_name}</span>}
                   </div>
-                  <span className="text-lg font-bold text-red-600">
-                    +{shift.minuti_di_ritardo || 0} min
-                  </span>
+                  <span className="text-lg font-bold text-red-600">+{shift.minuti_di_ritardo || 0} min</span>
                 </div>
                 <div className="text-sm text-[#9b9b9b]">
-                  <strong>Previsto:</strong> {safeFormatTime(shift.scheduled_start)}
-                  {' → '}
-                  <strong>Effettivo:</strong> {safeFormatTime(shift.actual_start)}
+                  <strong>Previsto:</strong> {safeFormatTime(shift.scheduled_start)} → <strong>Effettivo:</strong> {safeFormatTime(shift.actual_start)}
                 </div>
               </div>
             ))}
@@ -300,7 +348,6 @@ export default function Valutazione() {
           <div className="text-center py-8">
             <TrendingUp className="w-12 h-12 text-green-600 mx-auto mb-3" />
             <p className="text-[#6b6b6b] font-medium">Nessun ritardo registrato! 🎉</p>
-            <p className="text-sm text-[#9b9b9b] mt-1">Continua così!</p>
           </div>
         )}
       </NeumorphicCard>
@@ -319,17 +366,7 @@ export default function Valutazione() {
               onClick={() => setExpandedView(expandedView === 'missing' ? null : 'missing')}
               className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-2"
             >
-              {expandedView === 'missing' ? (
-                <>
-                  <X className="w-4 h-4" />
-                  Chiudi
-                </>
-              ) : (
-                <>
-                  <Eye className="w-4 h-4" />
-                  Vedi tutte ({employeeData.missingClockIns.length})
-                </>
-              )}
+              {expandedView === 'missing' ? <><X className="w-4 h-4" />Chiudi</> : <><Eye className="w-4 h-4" />Vedi tutte ({employeeData.missingClockIns.length})</>}
             </button>
           )}
         </div>
@@ -341,23 +378,69 @@ export default function Valutazione() {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-[#9b9b9b]" />
-                    <span className="font-medium text-[#6b6b6b]">
-                      {safeFormatDateLocale(shift.shift_date)}
-                    </span>
-                    {shift.store_name && (
-                      <span className="text-sm text-[#9b9b9b]">• {shift.store_name}</span>
-                    )}
+                    <span className="font-medium text-[#6b6b6b]">{safeFormatDateLocale(shift.shift_date)}</span>
+                    {shift.store_name && <span className="text-sm text-[#9b9b9b]">• {shift.store_name}</span>}
                   </div>
-                  <span className="text-xs font-bold text-orange-600 bg-orange-100 px-3 py-1 rounded-full">
-                    NON TIMBRATO
-                  </span>
+                  <span className="text-xs font-bold text-orange-600 bg-orange-100 px-3 py-1 rounded-full">NON TIMBRATO</span>
                 </div>
                 <div className="text-sm text-[#9b9b9b]">
                   <strong>Orario Previsto:</strong> {safeFormatTime(shift.scheduled_start)} - {safeFormatTime(shift.scheduled_end)}
                 </div>
-                {shift.shift_type && (
-                  <div className="text-xs text-[#9b9b9b] mt-1">
-                    Tipo: {shift.shift_type}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <TrendingUp className="w-12 h-12 text-green-600 mx-auto mb-3" />
+            <p className="text-[#6b6b6b] font-medium">Nessuna timbratura mancante! 🎉</p>
+          </div>
+        )}
+      </NeumorphicCard>
+
+      {/* Ordini Sbagliati */}
+      <NeumorphicCard className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-6 h-6 text-purple-600" />
+            <h2 className="text-xl font-bold text-[#6b6b6b]">
+              {expandedView === 'wrongOrders' ? 'Tutti gli Ordini Sbagliati' : 'Ultimi 5 Ordini Sbagliati'}
+            </h2>
+          </div>
+          {employeeData.wrongOrders.length > 5 && (
+            <button
+              onClick={() => setExpandedView(expandedView === 'wrongOrders' ? null : 'wrongOrders')}
+              className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-2"
+            >
+              {expandedView === 'wrongOrders' ? <><X className="w-4 h-4" />Chiudi</> : <><Eye className="w-4 h-4" />Vedi tutti ({employeeData.wrongOrders.length})</>}
+            </button>
+          )}
+        </div>
+
+        {employeeData.wrongOrders.length > 0 ? (
+          <div className={`space-y-3 ${expandedView === 'wrongOrders' ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
+            {(expandedView === 'wrongOrders' ? employeeData.wrongOrders : employeeData.wrongOrders.slice(0, 5)).map((order, index) => (
+              <div key={`${order.id}-${index}`} className="neumorphic-pressed p-4 rounded-xl border-2 border-purple-200">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-[#9b9b9b]" />
+                    <span className="font-medium text-[#6b6b6b]">{safeFormatDateLocale(order.created_date || order.order_date)}</span>
+                    {order.store_name && <span className="text-sm text-[#9b9b9b]">• {order.store_name}</span>}
+                  </div>
+                  <span className="text-xs font-bold text-purple-600 bg-purple-100 px-3 py-1 rounded-full">
+                    {order.error_type || 'Errore'}
+                  </span>
+                </div>
+                {order.order_id && (
+                  <div className="text-sm text-[#9b9b9b] mb-1">
+                    <strong>ID Ordine:</strong> {order.order_id}
+                  </div>
+                )}
+                {order.description && (
+                  <p className="text-sm text-[#6b6b6b]">{order.description}</p>
+                )}
+                {order.refund_amount && (
+                  <div className="text-sm text-red-600 mt-1">
+                    <strong>Rimborso:</strong> €{order.refund_amount.toFixed(2)}
                   </div>
                 )}
               </div>
@@ -366,7 +449,7 @@ export default function Valutazione() {
         ) : (
           <div className="text-center py-8">
             <TrendingUp className="w-12 h-12 text-green-600 mx-auto mb-3" />
-            <p className="text-[#6b6b6b] font-medium">Nessuna timbratura mancante! 🎉</p>
+            <p className="text-[#6b6b6b] font-medium">Nessun ordine sbagliato! 🎉</p>
             <p className="text-sm text-[#9b9b9b] mt-1">Ottimo lavoro!</p>
           </div>
         )}
@@ -386,17 +469,7 @@ export default function Valutazione() {
               onClick={() => setExpandedView(expandedView === 'reviews' ? null : 'reviews')}
               className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-2"
             >
-              {expandedView === 'reviews' ? (
-                <>
-                  <X className="w-4 h-4" />
-                  Chiudi
-                </>
-              ) : (
-                <>
-                  <Eye className="w-4 h-4" />
-                  Vedi tutte ({employeeData.googleReviews.length})
-                </>
-              )}
+              {expandedView === 'reviews' ? <><X className="w-4 h-4" />Chiudi</> : <><Eye className="w-4 h-4" />Vedi tutte ({employeeData.googleReviews.length})</>}
             </button>
           )}
         </div>
@@ -406,25 +479,14 @@ export default function Valutazione() {
             {(expandedView === 'reviews' ? employeeData.googleReviews : employeeData.googleReviews.slice(0, 5)).map((review, index) => (
               <div key={`${review.id}-${index}`} className="neumorphic-pressed p-4 rounded-xl">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-[#6b6b6b]">
-                    {review.customer_name || 'Anonimo'}
-                  </span>
+                  <span className="font-medium text-[#6b6b6b]">{review.customer_name || 'Anonimo'}</span>
                   <div className="flex items-center gap-1">
                     {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`w-4 h-4 ${
-                          i < review.rating
-                            ? 'text-yellow-500 fill-yellow-500'
-                            : 'text-gray-300'
-                        }`}
-                      />
+                      <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} />
                     ))}
                   </div>
                 </div>
-                {review.comment && (
-                  <p className="text-sm text-[#6b6b6b] mb-2">{review.comment}</p>
-                )}
+                {review.comment && <p className="text-sm text-[#6b6b6b] mb-2">{review.comment}</p>}
                 <div className="flex items-center justify-between text-xs text-[#9b9b9b]">
                   <span>{safeFormatDateLocale(review.review_date)}</span>
                   {review.store_name && <span>• {review.store_name}</span>}
@@ -436,7 +498,6 @@ export default function Valutazione() {
           <div className="text-center py-8">
             <Star className="w-12 h-12 text-[#9b9b9b] mx-auto mb-3" />
             <p className="text-[#6b6b6b] font-medium">Nessuna recensione ancora</p>
-            <p className="text-sm text-[#9b9b9b] mt-1">Continua a fare un ottimo lavoro!</p>
           </div>
         )}
       </NeumorphicCard>

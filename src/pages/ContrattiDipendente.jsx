@@ -6,7 +6,8 @@ import {
   CheckCircle,
   Eye,
   X,
-  Edit
+  Edit,
+  Download
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { isValid } from 'date-fns';
@@ -230,13 +231,26 @@ export default function ContrattiDipendente() {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => setViewingContract(contract)}
-                  className="w-full nav-button px-4 py-2.5 rounded-xl text-blue-600 font-medium flex items-center justify-center gap-2 text-sm"
-                >
-                  <Eye className="w-4 h-4" />
-                  Visualizza
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setViewingContract(contract)}
+                    className="flex-1 nav-button px-4 py-2.5 rounded-xl text-blue-600 font-medium flex items-center justify-center gap-2 text-sm"
+                  >
+                    <Eye className="w-4 h-4" />
+                    Visualizza
+                  </button>
+                  {contract.pdf_url && (
+                    <a
+                      href={contract.pdf_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="nav-button px-4 py-2.5 rounded-xl text-green-600 font-medium flex items-center justify-center gap-2 text-sm"
+                    >
+                      <Download className="w-4 h-4" />
+                      PDF
+                    </a>
+                  )}
+                </div>
               </NeumorphicCard>
             ))}
           </div>

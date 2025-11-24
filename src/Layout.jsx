@@ -682,7 +682,7 @@ export default function Layout({ children, currentPageName }) {
   const getPageTitle = (pageName) => {
     const titles = {
       'ProfiloDipendente': 'Profilo',
-      'ContrattiDipendente': 'Contratti',
+      'ContrattiDipendente': 'Documenti',
       'Academy': 'Academy',
       'Valutazione': 'Valutazione',
       'FormsDipendente': 'Forms',

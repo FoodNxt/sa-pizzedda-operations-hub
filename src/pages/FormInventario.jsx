@@ -14,7 +14,7 @@ import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 export default function FormInventario() {
   const [selectedStore, setSelectedStore] = useState('');
   const [quantities, setQuantities] = useState({});
-  const [notes, setNotes] = useState({});
+  
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
@@ -49,12 +49,7 @@ export default function FormInventario() {
     }));
   };
 
-  const handleNoteChange = (productId, value) => {
-    setNotes(prev => ({
-      ...prev,
-      [productId]: value
-    }));
-  };
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -93,7 +88,7 @@ export default function FormInventario() {
             unita_misura: product.unita_misura,
             quantita_minima: product.quantita_minima,
             sotto_minimo: quantitaRilevata < product.quantita_minima,
-            note: notes[productId] || ''
+            note: ''
           };
         });
 
@@ -101,7 +96,7 @@ export default function FormInventario() {
 
       setSaveSuccess(true);
       setQuantities({});
-      setNotes({});
+      
       
       queryClient.invalidateQueries({ queryKey: ['rilevazioni-inventario'] });
 
@@ -204,7 +199,17 @@ export default function FormInventario() {
               >
                 <option value="">Seleziona locale...</option>
                 {stores
-                  .filter(store => !currentUser?.assigned_stores || currentUser.assigned_stores.length === 0 || currentUser.assigned_stores.includes(store.id))
+                  .filter(store => {
+                    // Admin/Manager can see all stores
+                    if (currentUser?.user_type === 'admin' || currentUser?.user_type === 'manager') {
+                      return true;
+                    }
+                    // Dipendente: only show assigned stores, or all if none assigned
+                    if (!currentUser?.assigned_stores || currentUser.assigned_stores.length === 0) {
+                      return true;
+                    }
+                    return currentUser.assigned_stores.includes(store.id);
+                  })
                   .map(store => (
                     <option key={store.id} value={store.id}>{store.name}</option>
                   ))
@@ -244,7 +249,7 @@ export default function FormInventario() {
                       isUnderMinimum ? 'border-2 border-red-300 bg-red-50' : ''
                     }`}
                   >
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
                       <div className="md:col-span-1">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1 min-w-0">
@@ -259,15 +264,23 @@ export default function FormInventario() {
                         </div>
                       </div>
 
-                      <div>
+                      <div className="md:col-span-2">
                         <label className="text-xs lg:text-sm font-medium text-slate-700 mb-2 block">
                           Quantità ({product.unita_misura})
                         </label>
                         <input
                           type="number"
-                          step="0.01"
+                          step={['kg', 'litri', 'grammi', 'ml'].includes(product.unita_misura) ? '0.01' : '1'}
+                          min="0"
                           value={quantities[product.id] || ''}
-                          onChange={(e) => handleQuantityChange(product.id, e.target.value)}
+                          onChange={(e) => {
+                            let value = e.target.value;
+                            // For non-weight units, force integer
+                            if (!['kg', 'litri', 'grammi', 'ml'].includes(product.unita_misura) && value !== '') {
+                              value = Math.floor(parseFloat(value) || 0).toString();
+                            }
+                            handleQuantityChange(product.id, value);
+                          }}
                           placeholder="0"
                           className={`w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none text-sm lg:text-base ${
                             isUnderMinimum ? 'text-red-600 font-bold' : 'text-slate-700'
@@ -278,19 +291,6 @@ export default function FormInventario() {
                             ⚠️ Sotto minimo
                           </p>
                         )}
-                      </div>
-
-                      <div>
-                        <label className="text-xs lg:text-sm font-medium text-slate-700 mb-2 block">
-                          Note (opzionale)
-                        </label>
-                        <input
-                          type="text"
-                          value={notes[product.id] || ''}
-                          onChange={(e) => handleNoteChange(product.id, e.target.value)}
-                          placeholder="Note..."
-                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                        />
                       </div>
                     </div>
                   </div>
