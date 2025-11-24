@@ -224,6 +224,7 @@ export default function GestioneAccessoPagine() {
     { value: 'Precotture', label: '✅ Precotture', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
     { value: 'FeedbackP2P', label: '✅ Feedback P2P', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
     { value: 'InventarioStoreManager', label: '✅ Inventario Store Manager', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+    { value: 'OreLavorate', label: '✅ Ore Lavorate', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
     
     // Pagine Sensibili - NON dovrebbero essere selezionate per dipendenti
     { value: 'Dashboard', label: '🚫 Dashboard Overview (DATI FINANZIARI)', icon: AlertCircle, category: 'Pagine Sensibili - NON Dipendenti', recommended: false },

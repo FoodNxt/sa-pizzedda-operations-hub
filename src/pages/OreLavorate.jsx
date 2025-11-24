@@ -175,35 +175,29 @@ export default function OreLavorate() {
               Riepilogo {previousMonthData.monthName}
             </h2>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {/* Stats Grid - Main metrics */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
               <div className="neumorphic-pressed p-4 rounded-xl text-center">
                 <Clock className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-[#6b6b6b]">{previousMonthData.totalActualHours}h</p>
-                <p className="text-xs text-[#9b9b9b]">Ore Lavorate</p>
+                <p className="text-2xl font-bold text-[#6b6b6b]">{previousMonthData.totalScheduledHours}h</p>
+                <p className="text-xs text-[#9b9b9b]">Ore Turni</p>
               </div>
 
               <div className="neumorphic-pressed p-4 rounded-xl text-center">
-                <Calendar className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-[#6b6b6b]">{previousMonthData.totalShifts}</p>
-                <p className="text-xs text-[#9b9b9b]">Turni Totali</p>
+                <TrendingUp className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-green-600">{previousMonthData.straordinari}</p>
+                <p className="text-xs text-[#9b9b9b]">Ore Straordinari</p>
               </div>
 
               <div className="neumorphic-pressed p-4 rounded-xl text-center">
                 <AlertCircle className="w-8 h-8 text-red-600 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-red-600">{previousMonthData.lateCount}</p>
+                <p className="text-2xl font-bold text-red-600">{(previousMonthData.totalLateMinutes / 60).toFixed(1)}h</p>
                 <p className="text-xs text-[#9b9b9b]">Ritardi</p>
-              </div>
-
-              <div className="neumorphic-pressed p-4 rounded-xl text-center">
-                <XCircle className="w-8 h-8 text-orange-600 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-orange-600">{previousMonthData.missingClockIns}</p>
-                <p className="text-xs text-[#9b9b9b]">Timb. Mancanti</p>
               </div>
             </div>
 
-            {/* Detailed Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* Secondary Stats */}
+            <div className="grid grid-cols-2 gap-4">
               <div className="neumorphic-flat p-4 rounded-xl">
                 <div className="flex items-center gap-2 mb-2">
                   <Sun className="w-5 h-5 text-blue-600" />
@@ -218,36 +212,6 @@ export default function OreLavorate() {
                   <span className="font-medium text-[#6b6b6b]">Malattia</span>
                 </div>
                 <p className="text-xl font-bold text-yellow-600">{previousMonthData.malattia} giorni</p>
-              </div>
-
-              <div className="neumorphic-flat p-4 rounded-xl">
-                <div className="flex items-center gap-2 mb-2">
-                  <TrendingUp className="w-5 h-5 text-green-600" />
-                  <span className="font-medium text-[#6b6b6b]">Straordinari</span>
-                </div>
-                <p className="text-xl font-bold text-green-600">{previousMonthData.straordinari} turni</p>
-              </div>
-
-              <div className="neumorphic-flat p-4 rounded-xl">
-                <div className="flex items-center gap-2 mb-2">
-                  <XCircle className="w-5 h-5 text-red-600" />
-                  <span className="font-medium text-[#6b6b6b]">Assenze N.R.</span>
-                </div>
-                <p className="text-xl font-bold text-red-600">{previousMonthData.assenzaNonRetribuita} giorni</p>
-              </div>
-            </div>
-
-            {/* Additional Info */}
-            <div className="mt-6 neumorphic-pressed p-4 rounded-xl bg-blue-50">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-[#9b9b9b]">Ore Previste</p>
-                  <p className="font-bold text-[#6b6b6b]">{previousMonthData.totalScheduledHours}h</p>
-                </div>
-                <div>
-                  <p className="text-[#9b9b9b]">Minuti Ritardo Totali</p>
-                  <p className="font-bold text-red-600">{previousMonthData.totalLateMinutes} min</p>
-                </div>
               </div>
             </div>
           </NeumorphicCard>
@@ -315,16 +279,16 @@ export default function OreLavorate() {
                       </div>
 
                       <div className="neumorphic-flat p-2 rounded-lg">
-                        <p className="text-xs text-[#9b9b9b]">Ore Previste</p>
+                        <p className="text-xs text-[#9b9b9b]">Durata Turno</p>
                         <p className="font-medium text-[#6b6b6b]">
                           {shift.scheduled_minutes ? (shift.scheduled_minutes / 60).toFixed(1) : '--'}h
                         </p>
                       </div>
 
                       <div className="neumorphic-flat p-2 rounded-lg">
-                        <p className="text-xs text-[#9b9b9b]">Ore Effettive</p>
-                        <p className="font-medium text-[#6b6b6b]">
-                          {shift.actual_minutes ? (shift.actual_minutes / 60).toFixed(1) : '--'}h
+                        <p className="text-xs text-[#9b9b9b]">Ritardo</p>
+                        <p className={`font-medium ${shift.minuti_di_ritardo > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                          {shift.minuti_di_ritardo || 0} min
                         </p>
                       </div>
                     </div>
