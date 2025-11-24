@@ -680,48 +680,50 @@ export default function Layout({ children, currentPageName }) {
   };
 
   const getPageTitle = (pageName) => {
-    const titles = {
-      'ProfiloDipendente': 'Profilo',
-      'ContrattiDipendente': 'Documenti',
-      'Academy': 'Academy',
-      'Valutazione': 'Valutazione',
-      'FormsDipendente': 'Forms',
-      'Impasto': 'Impasto',
-      'Precotture': 'Precotture',
-      'ControlloPuliziaCassiere': 'Pulizia Cassiere',
-      'ControlloPuliziaPizzaiolo': 'Pulizia Pizzaiolo',
-      'ControlloPuliziaStoreManager': 'Pulizia SM',
-      'FormInventario': 'Inventario',
-      'ConteggioCassa': 'Cassa',
-      'FormTeglieButtate': 'Teglie',
-      'Preparazioni': 'Preparazioni',
-      'FeedbackP2P': 'Feedback',
-      'InventarioStoreManager': 'Inventario SM'
-    };
-    return titles[pageName] || pageName;
-  };
+        const titles = {
+          'ProfiloDipendente': 'Profilo',
+          'ContrattiDipendente': 'Documenti',
+          'Academy': 'Academy',
+          'Valutazione': 'Valutazione',
+          'FormsDipendente': 'Forms',
+          'Impasto': 'Impasto',
+          'Precotture': 'Precotture',
+          'ControlloPuliziaCassiere': 'Pulizia Cassiere',
+          'ControlloPuliziaPizzaiolo': 'Pulizia Pizzaiolo',
+          'ControlloPuliziaStoreManager': 'Pulizia SM',
+          'FormInventario': 'Inventario',
+          'ConteggioCassa': 'Cassa',
+          'FormTeglieButtate': 'Teglie',
+          'Preparazioni': 'Preparazioni',
+          'FeedbackP2P': 'Feedback',
+          'InventarioStoreManager': 'Inventario SM',
+          'OreLavorate': 'Ore Lavorate'
+        };
+        return titles[pageName] || pageName;
+      };
 
   const getPageIcon = (pageName) => {
-    const icons = {
-      'ProfiloDipendente': User,
-      'ContrattiDipendente': FileText,
-      'Academy': GraduationCap,
-      'Valutazione': ClipboardCheck,
-      'FormsDipendente': Edit,
-      'Impasto': ChefHat,
-      'Precotture': Pizza,
-      'ControlloPuliziaCassiere': Camera,
-      'ControlloPuliziaPizzaiolo': Camera,
-      'ControlloPuliziaStoreManager': Camera,
-      'FormInventario': ClipboardList,
-      'ConteggioCassa': DollarSign,
-      'FormTeglieButtate': AlertTriangle,
-      'Preparazioni': ChefHat,
-      'FeedbackP2P': Users,
-      'InventarioStoreManager': Package
-    };
-    return icons[pageName] || User;
-  };
+        const icons = {
+          'ProfiloDipendente': User,
+          'ContrattiDipendente': FileText,
+          'Academy': GraduationCap,
+          'Valutazione': ClipboardCheck,
+          'FormsDipendente': Edit,
+          'Impasto': ChefHat,
+          'Precotture': Pizza,
+          'ControlloPuliziaCassiere': Camera,
+          'ControlloPuliziaPizzaiolo': Camera,
+          'ControlloPuliziaStoreManager': Camera,
+          'FormInventario': ClipboardList,
+          'ConteggioCassa': DollarSign,
+          'FormTeglieButtate': AlertTriangle,
+          'Preparazioni': ChefHat,
+          'FeedbackP2P': Users,
+          'InventarioStoreManager': Package,
+          'OreLavorate': Clock
+        };
+        return icons[pageName] || User;
+      };
 
   const filteredNavigation = (!isLoadingConfig && !isLoadingUser && currentUser) 
     ? navigationStructure

@@ -72,6 +72,7 @@ import FormTracker from './pages/FormTracker';
 import Documenti from './pages/Documenti';
 import FormsDipendente from './pages/FormsDipendente';
 import PulizieMatch from './pages/PulizieMatch';
+import OreLavorate from './pages/OreLavorate';
 import __Layout from './Layout.jsx';
 
 
@@ -150,6 +151,7 @@ export const PAGES = {
     "Documenti": Documenti,
     "FormsDipendente": FormsDipendente,
     "PulizieMatch": PulizieMatch,
+    "OreLavorate": OreLavorate,
 }
 
 export const pagesConfig = {

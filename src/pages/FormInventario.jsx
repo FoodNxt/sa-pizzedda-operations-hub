@@ -127,12 +127,7 @@ export default function FormInventario() {
     altro: 'Altro'
   };
 
-  const getSottoMinimo = () => 
-    Object.entries(quantities)
-      .filter(([productId, qty]) => {
-        const product = products.find(p => p.id === productId);
-        return product && parseFloat(qty) < product.quantita_minima;
-      }).length;
+  
 
   if (products.length === 0 && !productsLoading) {
     return (
@@ -239,60 +234,45 @@ export default function FormInventario() {
 
             <div className="grid grid-cols-1 gap-3">
               {categoryProducts.map((product) => {
-                const currentQty = parseFloat(quantities[product.id]);
-                const isUnderMinimum = !isNaN(currentQty) && currentQty < product.quantita_minima;
-                
                 return (
                   <div 
-                    key={product.id} 
-                    className={`neumorphic-pressed p-3 lg:p-4 rounded-xl transition-all ${
-                      isUnderMinimum ? 'border-2 border-red-300 bg-red-50' : ''
-                    }`}
+                  key={product.id} 
+                  className="neumorphic-pressed p-3 lg:p-4 rounded-xl transition-all"
                   >
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
-                      <div className="md:col-span-1">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-slate-800 text-sm lg:text-base truncate">{product.nome_prodotto}</h3>
-                            <p className="text-xs lg:text-sm text-slate-500">
-                              Min: {product.quantita_minima} {product.unita_misura}
-                            </p>
-                          </div>
-                          {isUnderMinimum && (
-                            <AlertTriangle className="w-5 h-5 text-red-600 ml-2 flex-shrink-0" />
-                          )}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
+                    <div className="md:col-span-1">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-slate-800 text-sm lg:text-base truncate">{product.nome_prodotto}</h3>
+                          <p className="text-xs lg:text-sm text-slate-500">
+                            {product.unita_misura}
+                          </p>
                         </div>
                       </div>
-
-                      <div className="md:col-span-2">
-                        <label className="text-xs lg:text-sm font-medium text-slate-700 mb-2 block">
-                          Quantità ({product.unita_misura})
-                        </label>
-                        <input
-                          type="number"
-                          step={['kg', 'litri', 'grammi', 'ml'].includes(product.unita_misura) ? '0.01' : '1'}
-                          min="0"
-                          value={quantities[product.id] || ''}
-                          onChange={(e) => {
-                            let value = e.target.value;
-                            // For non-weight units, force integer
-                            if (!['kg', 'litri', 'grammi', 'ml'].includes(product.unita_misura) && value !== '') {
-                              value = Math.floor(parseFloat(value) || 0).toString();
-                            }
-                            handleQuantityChange(product.id, value);
-                          }}
-                          placeholder="0"
-                          className={`w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none text-sm lg:text-base ${
-                            isUnderMinimum ? 'text-red-600 font-bold' : 'text-slate-700'
-                          }`}
-                        />
-                        {isUnderMinimum && (
-                          <p className="text-xs text-red-600 mt-1 font-medium">
-                            ⚠️ Sotto minimo
-                          </p>
-                        )}
-                      </div>
                     </div>
+
+                    <div className="md:col-span-2">
+                      <label className="text-xs lg:text-sm font-medium text-slate-700 mb-2 block">
+                        Quantità ({product.unita_misura})
+                      </label>
+                      <input
+                        type="number"
+                        step={['kg', 'litri', 'grammi', 'ml'].includes(product.unita_misura) ? '0.01' : '1'}
+                        min="0"
+                        value={quantities[product.id] || ''}
+                        onChange={(e) => {
+                          let value = e.target.value;
+                          // For non-weight units, force integer
+                          if (!['kg', 'litri', 'grammi', 'ml'].includes(product.unita_misura) && value !== '') {
+                            value = Math.floor(parseFloat(value) || 0).toString();
+                          }
+                          handleQuantityChange(product.id, value);
+                        }}
+                        placeholder="0"
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none text-sm lg:text-base text-slate-700"
+                      />
+                    </div>
+                  </div>
                   </div>
                 );
               })}
@@ -320,20 +300,7 @@ export default function FormInventario() {
             )}
           </NeumorphicButton>
 
-          {getSottoMinimo() > 0 && (
-            <div className="neumorphic-pressed p-4 rounded-xl mt-4 bg-yellow-50">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-yellow-800">
-                  <p className="font-bold mb-1">Attenzione!</p>
-                  <p>
-                    Hai {getSottoMinimo()} prodotti sotto la quantità minima. 
-                    Considera di effettuare un ordine al più presto.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+
         </NeumorphicCard>
       </form>
     </div>

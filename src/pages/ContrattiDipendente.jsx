@@ -239,17 +239,23 @@ export default function ContrattiDipendente() {
                     <Eye className="w-4 h-4" />
                     Visualizza
                   </button>
-                  {contract.pdf_url && (
-                    <a
-                      href={contract.pdf_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="nav-button px-4 py-2.5 rounded-xl text-green-600 font-medium flex items-center justify-center gap-2 text-sm"
-                    >
-                      <Download className="w-4 h-4" />
-                      PDF
-                    </a>
-                  )}
+                  <button
+                    onClick={() => {
+                      const blob = new Blob([contract.contenuto_contratto || ''], { type: 'text/plain' });
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `contratto_${contract.template_nome?.replace(/\s+/g, '_') || 'firmato'}.txt`;
+                      document.body.appendChild(a);
+                      a.click();
+                      window.URL.revokeObjectURL(url);
+                      a.remove();
+                    }}
+                    className="nav-button px-4 py-2.5 rounded-xl text-green-600 font-medium flex items-center justify-center gap-2 text-sm"
+                  >
+                    <Download className="w-4 h-4" />
+                    Scarica
+                  </button>
                 </div>
               </NeumorphicCard>
             ))}
