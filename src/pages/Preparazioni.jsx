@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -176,9 +175,15 @@ export default function Preparazioni() {
                 disabled={saving}
               >
                 <option value="">Seleziona locale...</option>
-                {stores.map(store => (
-                  <option key={store.id} value={store.id}>{store.name}</option>
-                ))}
+                {stores
+                  .filter(store => {
+                    if (currentUser?.user_type === 'admin' || currentUser?.user_type === 'manager') return true;
+                    if (!currentUser?.assigned_stores || currentUser.assigned_stores.length === 0) return true;
+                    return currentUser.assigned_stores.includes(store.id);
+                  })
+                  .map(store => (
+                    <option key={store.id} value={store.id}>{store.name}</option>
+                  ))}
               </select>
             </div>
 
