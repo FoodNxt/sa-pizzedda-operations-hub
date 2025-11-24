@@ -241,11 +241,12 @@ export default function ContrattiDipendente() {
                   </button>
                   <button
                     onClick={() => {
-                      const blob = new Blob([contract.contenuto_contratto || ''], { type: 'text/plain' });
+                      const content = contract.contenuto_contratto || '';
+                      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
                       const url = window.URL.createObjectURL(blob);
                       const a = document.createElement('a');
                       a.href = url;
-                      a.download = `contratto_${contract.template_nome?.replace(/\s+/g, '_') || 'firmato'}.txt`;
+                      a.download = `${contract.template_nome || 'Contratto'}_firmato.txt`;
                       document.body.appendChild(a);
                       a.click();
                       window.URL.revokeObjectURL(url);

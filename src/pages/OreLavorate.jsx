@@ -4,68 +4,32 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Clock,
   Calendar,
-  TrendingUp,
   AlertCircle,
+  TrendingUp,
   Sun,
+  Moon,
   Coffee,
   XCircle,
-  Filter,
-  List,
-  BarChart3
+  Filter
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
-import { parseISO, isValid, startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
+import { format, parseISO, isValid, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { it } from 'date-fns/locale';
 
 export default function OreLavorate() {
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'month'
-  const [currentUser, setCurrentUser] = useState(null);
 
   // Fetch current user
   const { data: user, isLoading: userLoading } = useQuery({
-    queryKey: ['currentUser-ore'],
-    queryFn: async () => {
-      const u = await base44.auth.me();
-      setCurrentUser(u);
-      return u;
-    },
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
   });
 
   // Fetch shifts
-  const { data: shifts = [], isLoading: shiftsLoading } = useQuery({
-    queryKey: ['shifts-ore'],
+  const { data: shifts = [] } = useQuery({
+    queryKey: ['shifts'],
     queryFn: () => base44.entities.Shift.list('-shift_date'),
   });
-
-  // Helper functions
-  const safeFormatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    try {
-      const date = new Date(dateString);
-      if (!isValid(date)) return 'N/A';
-      return format(date, 'dd MMM yyyy', { locale: it });
-    } catch (e) {
-      return 'N/A';
-    }
-  };
-
-  const safeFormatTime = (dateTimeString) => {
-    if (!dateTimeString) return 'N/A';
-    try {
-      const date = new Date(dateTimeString);
-      if (!isValid(date)) return 'N/A';
-      return date.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-    } catch (e) {
-      return 'N/A';
-    }
-  };
-
-  const formatMinutesToHours = (minutes) => {
-    if (!minutes || minutes === 0) return '0h 0m';
-    const hours = Math.floor(minutes / 60);
-    const mins = Math.round(minutes % 60);
-    return `${hours}h ${mins}m`;
-  };
 
   // Filter shifts for current user
   const myShifts = useMemo(() => {
@@ -97,53 +61,68 @@ export default function OreLavorate() {
     const lateShifts = monthShifts.filter(s => s.ritardo === true);
     const totalLateMinutes = lateShifts.reduce((sum, s) => sum + (s.minuti_di_ritardo || 0), 0);
     const missingClockIns = monthShifts.filter(s => s.timbratura_mancata === true);
-    const ferieShifts = monthShifts.filter(s => s.shift_type?.toLowerCase().includes('ferie'));
-    const straordinariShifts = monthShifts.filter(s => s.shift_type?.toLowerCase().includes('straordinari'));
-    const assenzeShifts = monthShifts.filter(s => 
+    
+    // Count by shift type
+    const ferie = monthShifts.filter(s => s.shift_type?.toLowerCase().includes('ferie')).length;
+    const malattia = monthShifts.filter(s => s.shift_type?.toLowerCase().includes('malattia')).length;
+    const straordinari = monthShifts.filter(s => s.shift_type?.toLowerCase().includes('straordinario')).length;
+    const assenzaNonRetribuita = monthShifts.filter(s => 
       s.shift_type?.toLowerCase().includes('assenza') && 
-      !s.shift_type?.toLowerCase().includes('retribuit')
-    );
+      !s.shift_type?.toLowerCase().includes('retribuita')
+    ).length;
 
     return {
       monthName: format(prevMonth, 'MMMM yyyy', { locale: it }),
       totalShifts: monthShifts.length,
-      totalScheduledMinutes,
-      totalActualMinutes,
+      totalScheduledHours: (totalScheduledMinutes / 60).toFixed(1),
+      totalActualHours: (totalActualMinutes / 60).toFixed(1),
       lateCount: lateShifts.length,
       totalLateMinutes,
       missingClockIns: missingClockIns.length,
-      ferieCount: ferieShifts.length,
-      straordinariCount: straordinariShifts.length,
-      assenzeCount: assenzeShifts.length,
-      shifts: monthShifts
+      ferie,
+      malattia,
+      straordinari,
+      assenzaNonRetribuita
     };
   }, [myShifts]);
 
-  // Get shift type badge
+  const safeFormatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      if (!isValid(date)) return 'N/A';
+      return format(date, 'dd/MM/yyyy', { locale: it });
+    } catch (e) {
+      return 'N/A';
+    }
+  };
+
+  const safeFormatTime = (dateTimeString) => {
+    if (!dateTimeString) return '--:--';
+    try {
+      const date = new Date(dateTimeString);
+      if (!isValid(date)) return '--:--';
+      return format(date, 'HH:mm');
+    } catch (e) {
+      return '--:--';
+    }
+  };
+
   const getShiftTypeBadge = (shiftType) => {
     if (!shiftType) return null;
     const type = shiftType.toLowerCase();
-    if (type.includes('ferie')) {
-      return <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Ferie</span>;
-    }
-    if (type.includes('straordinari')) {
-      return <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">Straordinario</span>;
-    }
-    if (type.includes('malattia')) {
-      return <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">Malattia</span>;
-    }
-    if (type.includes('assenza')) {
-      return <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">Assenza</span>;
-    }
-    return <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-medium">{shiftType}</span>;
+    if (type.includes('ferie')) return { color: 'bg-blue-100 text-blue-700', icon: Sun };
+    if (type.includes('malattia')) return { color: 'bg-yellow-100 text-yellow-700', icon: Coffee };
+    if (type.includes('straordinario')) return { color: 'bg-green-100 text-green-700', icon: TrendingUp };
+    if (type.includes('assenza')) return { color: 'bg-red-100 text-red-700', icon: XCircle };
+    return { color: 'bg-gray-100 text-gray-700', icon: Clock };
   };
 
-  if (userLoading || shiftsLoading) {
+  if (userLoading) {
     return (
       <div className="max-w-5xl mx-auto p-8 text-center">
         <NeumorphicCard className="p-8">
-          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600">Caricamento...</p>
+          <p className="text-slate-500">Caricamento...</p>
         </NeumorphicCard>
       </div>
     );
@@ -153,38 +132,34 @@ export default function OreLavorate() {
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
-          Ore Lavorate
-        </h1>
-        <p className="text-sm text-slate-500">I tuoi turni, ore lavorate e statistiche</p>
+        <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Ore Lavorate</h1>
+        <p className="text-[#9b9b9b]">Visualizza i tuoi turni, ore lavorate e assenze</p>
       </div>
 
       {/* View Mode Selector */}
       <NeumorphicCard className="p-4">
         <div className="flex items-center gap-3 flex-wrap">
           <Filter className="w-5 h-5 text-[#8b7355]" />
-          <span className="text-sm font-medium text-slate-700">Visualizza:</span>
+          <span className="text-sm font-medium text-[#6b6b6b]">Visualizza:</span>
           <div className="flex gap-2">
             <button
               onClick={() => setViewMode('list')}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                 viewMode === 'list'
                   ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                  : 'neumorphic-flat text-slate-700'
+                  : 'neumorphic-flat text-[#6b6b6b]'
               }`}
             >
-              <List className="w-4 h-4" />
               Lista Turni
             </button>
             <button
               onClick={() => setViewMode('month')}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                 viewMode === 'month'
                   ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                  : 'neumorphic-flat text-slate-700'
+                  : 'neumorphic-flat text-[#6b6b6b]'
               }`}
             >
-              <BarChart3 className="w-4 h-4" />
               Mese Precedente
             </button>
           </div>
@@ -193,214 +168,177 @@ export default function OreLavorate() {
 
       {viewMode === 'month' ? (
         /* Previous Month Summary View */
-        <>
+        <div className="space-y-6">
           <NeumorphicCard className="p-6">
-            <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <h2 className="text-xl font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
               <Calendar className="w-6 h-6 text-[#8b7355]" />
               Riepilogo {previousMonthData.monthName}
             </h2>
 
+            {/* Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <div className="neumorphic-pressed p-4 rounded-xl text-center">
-                <Clock className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-slate-800">{previousMonthData.totalShifts}</p>
-                <p className="text-xs text-slate-500">Turni Totali</p>
+                <Clock className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-[#6b6b6b]">{previousMonthData.totalActualHours}h</p>
+                <p className="text-xs text-[#9b9b9b]">Ore Lavorate</p>
               </div>
 
               <div className="neumorphic-pressed p-4 rounded-xl text-center">
-                <TrendingUp className="w-6 h-6 text-green-600 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-slate-800">{formatMinutesToHours(previousMonthData.totalActualMinutes)}</p>
-                <p className="text-xs text-slate-500">Ore Lavorate</p>
+                <Calendar className="w-8 h-8 text-purple-600 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-[#6b6b6b]">{previousMonthData.totalShifts}</p>
+                <p className="text-xs text-[#9b9b9b]">Turni Totali</p>
               </div>
 
               <div className="neumorphic-pressed p-4 rounded-xl text-center">
-                <AlertCircle className="w-6 h-6 text-red-600 mx-auto mb-2" />
+                <AlertCircle className="w-8 h-8 text-red-600 mx-auto mb-2" />
                 <p className="text-2xl font-bold text-red-600">{previousMonthData.lateCount}</p>
-                <p className="text-xs text-slate-500">Ritardi</p>
+                <p className="text-xs text-[#9b9b9b]">Ritardi</p>
               </div>
 
               <div className="neumorphic-pressed p-4 rounded-xl text-center">
-                <XCircle className="w-6 h-6 text-orange-600 mx-auto mb-2" />
+                <XCircle className="w-8 h-8 text-orange-600 mx-auto mb-2" />
                 <p className="text-2xl font-bold text-orange-600">{previousMonthData.missingClockIns}</p>
-                <p className="text-xs text-slate-500">Timb. Mancanti</p>
+                <p className="text-xs text-[#9b9b9b]">Timb. Mancanti</p>
               </div>
             </div>
 
+            {/* Detailed Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="neumorphic-flat p-4 rounded-xl">
                 <div className="flex items-center gap-2 mb-2">
-                  <Sun className="w-5 h-5 text-green-600" />
-                  <span className="text-sm font-medium text-slate-700">Ferie</span>
+                  <Sun className="w-5 h-5 text-blue-600" />
+                  <span className="font-medium text-[#6b6b6b]">Ferie</span>
                 </div>
-                <p className="text-xl font-bold text-green-600">{previousMonthData.ferieCount} giorni</p>
+                <p className="text-xl font-bold text-blue-600">{previousMonthData.ferie} giorni</p>
               </div>
 
               <div className="neumorphic-flat p-4 rounded-xl">
                 <div className="flex items-center gap-2 mb-2">
-                  <Coffee className="w-5 h-5 text-blue-600" />
-                  <span className="text-sm font-medium text-slate-700">Straordinari</span>
+                  <Coffee className="w-5 h-5 text-yellow-600" />
+                  <span className="font-medium text-[#6b6b6b]">Malattia</span>
                 </div>
-                <p className="text-xl font-bold text-blue-600">{previousMonthData.straordinariCount} turni</p>
+                <p className="text-xl font-bold text-yellow-600">{previousMonthData.malattia} giorni</p>
+              </div>
+
+              <div className="neumorphic-flat p-4 rounded-xl">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingUp className="w-5 h-5 text-green-600" />
+                  <span className="font-medium text-[#6b6b6b]">Straordinari</span>
+                </div>
+                <p className="text-xl font-bold text-green-600">{previousMonthData.straordinari} turni</p>
               </div>
 
               <div className="neumorphic-flat p-4 rounded-xl">
                 <div className="flex items-center gap-2 mb-2">
                   <XCircle className="w-5 h-5 text-red-600" />
-                  <span className="text-sm font-medium text-slate-700">Assenze N.R.</span>
+                  <span className="font-medium text-[#6b6b6b]">Assenze N.R.</span>
                 </div>
-                <p className="text-xl font-bold text-red-600">{previousMonthData.assenzeCount} giorni</p>
+                <p className="text-xl font-bold text-red-600">{previousMonthData.assenzaNonRetribuita} giorni</p>
               </div>
+            </div>
 
-              <div className="neumorphic-flat p-4 rounded-xl">
-                <div className="flex items-center gap-2 mb-2">
-                  <Clock className="w-5 h-5 text-red-600" />
-                  <span className="text-sm font-medium text-slate-700">Min. Ritardo</span>
+            {/* Additional Info */}
+            <div className="mt-6 neumorphic-pressed p-4 rounded-xl bg-blue-50">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-[#9b9b9b]">Ore Previste</p>
+                  <p className="font-bold text-[#6b6b6b]">{previousMonthData.totalScheduledHours}h</p>
                 </div>
-                <p className="text-xl font-bold text-red-600">{previousMonthData.totalLateMinutes} min</p>
+                <div>
+                  <p className="text-[#9b9b9b]">Minuti Ritardo Totali</p>
+                  <p className="font-bold text-red-600">{previousMonthData.totalLateMinutes} min</p>
+                </div>
               </div>
             </div>
           </NeumorphicCard>
-
-          {/* Previous Month Shifts List */}
-          <NeumorphicCard className="p-6">
-            <h3 className="text-lg font-bold text-slate-800 mb-4">Dettaglio Turni - {previousMonthData.monthName}</h3>
-            
-            {previousMonthData.shifts.length > 0 ? (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {previousMonthData.shifts.map((shift, index) => (
-                  <div key={`${shift.id}-${index}`} className="neumorphic-pressed p-4 rounded-xl">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-slate-500" />
-                        <span className="font-medium text-slate-800">{safeFormatDate(shift.shift_date)}</span>
-                        {shift.store_name && <span className="text-sm text-slate-500">• {shift.store_name}</span>}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {getShiftTypeBadge(shift.shift_type)}
-                        {shift.ritardo && (
-                          <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
-                            +{shift.minuti_di_ritardo || 0}min
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-sm text-slate-600">
-                      <span><strong>Previsto:</strong> {safeFormatTime(shift.scheduled_start)} - {safeFormatTime(shift.scheduled_end)}</span>
-                      {shift.actual_start && (
-                        <span className="ml-4"><strong>Effettivo:</strong> {safeFormatTime(shift.actual_start)} - {safeFormatTime(shift.actual_end)}</span>
-                      )}
-                    </div>
-                    <div className="text-xs text-slate-500 mt-1">
-                      Durata: {formatMinutesToHours(shift.actual_minutes || shift.scheduled_minutes || 0)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-center text-slate-500 py-8">Nessun turno nel mese precedente</p>
-            )}
-          </NeumorphicCard>
-        </>
+        </div>
       ) : (
-        /* List View - All Shifts */
-        <>
-          {/* Quick Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <NeumorphicCard className="p-4 text-center">
-              <Clock className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-              <p className="text-xl font-bold text-slate-800">{myShifts.length}</p>
-              <p className="text-xs text-slate-500">Turni Totali</p>
-            </NeumorphicCard>
+        /* Shift List View */
+        <NeumorphicCard className="p-6">
+          <h2 className="text-xl font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
+            <Clock className="w-6 h-6 text-[#8b7355]" />
+            I Tuoi Turni
+          </h2>
 
-            <NeumorphicCard className="p-4 text-center">
-              <TrendingUp className="w-6 h-6 text-green-600 mx-auto mb-2" />
-              <p className="text-xl font-bold text-slate-800">
-                {formatMinutesToHours(myShifts.reduce((sum, s) => sum + (s.actual_minutes || 0), 0))}
-              </p>
-              <p className="text-xs text-slate-500">Ore Totali</p>
-            </NeumorphicCard>
+          {myShifts.length > 0 ? (
+            <div className="space-y-3 max-h-[600px] overflow-y-auto">
+              {myShifts.slice(0, 50).map((shift, index) => {
+                const badge = getShiftTypeBadge(shift.shift_type);
+                const BadgeIcon = badge?.icon || Clock;
 
-            <NeumorphicCard className="p-4 text-center">
-              <AlertCircle className="w-6 h-6 text-red-600 mx-auto mb-2" />
-              <p className="text-xl font-bold text-red-600">{myShifts.filter(s => s.ritardo).length}</p>
-              <p className="text-xs text-slate-500">Ritardi</p>
-            </NeumorphicCard>
-
-            <NeumorphicCard className="p-4 text-center">
-              <XCircle className="w-6 h-6 text-orange-600 mx-auto mb-2" />
-              <p className="text-xl font-bold text-orange-600">{myShifts.filter(s => s.timbratura_mancata).length}</p>
-              <p className="text-xs text-slate-500">Timb. Mancanti</p>
-            </NeumorphicCard>
-          </div>
-
-          {/* All Shifts List */}
-          <NeumorphicCard className="p-6">
-            <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-              <List className="w-5 h-5 text-[#8b7355]" />
-              Tutti i Turni
-            </h2>
-
-            {myShifts.length > 0 ? (
-              <div className="space-y-3 max-h-[600px] overflow-y-auto">
-                {myShifts.map((shift, index) => (
-                  <div 
-                    key={`${shift.id}-${index}`} 
-                    className={`neumorphic-pressed p-4 rounded-xl ${
-                      shift.ritardo ? 'border-l-4 border-red-400' : 
-                      shift.timbratura_mancata ? 'border-l-4 border-orange-400' : ''
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-slate-500" />
-                        <span className="font-medium text-slate-800">{safeFormatDate(shift.shift_date)}</span>
-                        {shift.store_name && <span className="text-sm text-slate-500">• {shift.store_name}</span>}
+                return (
+                  <div key={`${shift.id}-${index}`} className="neumorphic-pressed p-4 rounded-xl">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <div className="neumorphic-flat w-12 h-12 rounded-xl flex items-center justify-center">
+                          <Calendar className="w-6 h-6 text-[#8b7355]" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-[#6b6b6b]">{safeFormatDate(shift.shift_date)}</p>
+                          <p className="text-sm text-[#9b9b9b]">{shift.store_name}</p>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 flex-wrap justify-end">
-                        {getShiftTypeBadge(shift.shift_type)}
+
+                      <div className="flex items-center gap-2">
                         {shift.ritardo && (
-                          <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
-                            Ritardo +{shift.minuti_di_ritardo || 0}min
+                          <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium">
+                            +{shift.minuti_di_ritardo || 0} min
                           </span>
                         )}
                         {shift.timbratura_mancata && (
-                          <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium">
-                            Non Timbrato
+                          <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full font-medium">
+                            Non timbrato
+                          </span>
+                        )}
+                        {badge && shift.shift_type && (
+                          <span className={`text-xs px-2 py-1 rounded-full font-medium flex items-center gap-1 ${badge.color}`}>
+                            <BadgeIcon className="w-3 h-3" />
+                            {shift.shift_type}
                           </span>
                         )}
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                      <div className="text-slate-600">
-                        <strong>Previsto:</strong> {safeFormatTime(shift.scheduled_start)} - {safeFormatTime(shift.scheduled_end)}
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                      <div className="neumorphic-flat p-2 rounded-lg">
+                        <p className="text-xs text-[#9b9b9b]">Orario Previsto</p>
+                        <p className="font-medium text-[#6b6b6b]">
+                          {safeFormatTime(shift.scheduled_start)} - {safeFormatTime(shift.scheduled_end)}
+                        </p>
                       </div>
-                      {shift.actual_start && (
-                        <div className="text-slate-600">
-                          <strong>Effettivo:</strong> {safeFormatTime(shift.actual_start)} - {safeFormatTime(shift.actual_end)}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-xs text-slate-500">
-                        Durata prevista: {formatMinutesToHours(shift.scheduled_minutes || 0)}
-                      </span>
-                      {shift.actual_minutes && (
-                        <span className="text-xs text-slate-700 font-medium">
-                          Durata effettiva: {formatMinutesToHours(shift.actual_minutes)}
-                        </span>
-                      )}
+
+                      <div className="neumorphic-flat p-2 rounded-lg">
+                        <p className="text-xs text-[#9b9b9b]">Orario Effettivo</p>
+                        <p className="font-medium text-[#6b6b6b]">
+                          {safeFormatTime(shift.actual_start)} - {safeFormatTime(shift.actual_end)}
+                        </p>
+                      </div>
+
+                      <div className="neumorphic-flat p-2 rounded-lg">
+                        <p className="text-xs text-[#9b9b9b]">Ore Previste</p>
+                        <p className="font-medium text-[#6b6b6b]">
+                          {shift.scheduled_minutes ? (shift.scheduled_minutes / 60).toFixed(1) : '--'}h
+                        </p>
+                      </div>
+
+                      <div className="neumorphic-flat p-2 rounded-lg">
+                        <p className="text-xs text-[#9b9b9b]">Ore Effettive</p>
+                        <p className="font-medium text-[#6b6b6b]">
+                          {shift.actual_minutes ? (shift.actual_minutes / 60).toFixed(1) : '--'}h
+                        </p>
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <Clock className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <p className="text-slate-500">Nessun turno registrato</p>
-              </div>
-            )}
-          </NeumorphicCard>
-        </>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Clock className="w-16 h-16 text-[#9b9b9b] mx-auto mb-4 opacity-50" />
+              <p className="text-[#9b9b9b]">Nessun turno trovato</p>
+            </div>
+          )}
+        </NeumorphicCard>
       )}
     </div>
   );
