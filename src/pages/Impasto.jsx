@@ -77,9 +77,15 @@ export default function Impasto() {
               className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
             >
               <option value="">-- Seleziona --</option>
-              {stores.map(store => (
-                <option key={store.id} value={store.id}>{store.name}</option>
-              ))}
+              {stores
+                .filter(store => {
+                  if (user?.user_type === 'admin' || user?.user_type === 'manager') return true;
+                  if (!user?.assigned_stores || user.assigned_stores.length === 0) return true;
+                  return user.assigned_stores.includes(store.id);
+                })
+                .map(store => (
+                  <option key={store.id} value={store.id}>{store.name}</option>
+                ))}
             </select>
           </div>
 
@@ -131,6 +137,18 @@ export default function Impasto() {
             </div>
           </NeumorphicCard>
         )}
+
+        <NeumorphicCard className="p-4 bg-orange-50 border-2 border-orange-300">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-orange-800">
+              <p className="font-bold mb-1">⚠️ IMPORTANTE</p>
+              <p className="text-xs mb-2">
+                Il numero di barelle deve essere contato <strong>DOPO</strong> aver spallinato l'impasto presente in frigo.
+              </p>
+            </div>
+          </div>
+        </NeumorphicCard>
 
         <NeumorphicCard className="p-4 bg-blue-50">
           <div className="flex items-start gap-3">

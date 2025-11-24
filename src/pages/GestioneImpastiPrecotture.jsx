@@ -50,9 +50,9 @@ export default function GestioneImpastiPrecotture() {
 
   const getTotaleGiornaliero = (data) => {
     if (!data) return 0;
-    return (data.pranzo_bianche || 0) + (data.pranzo_rosse || 0) +
-           (data.pomeriggio_bianche || 0) + (data.pomeriggio_rosse || 0) +
-           (data.cena_bianche || 0) + (data.cena_rosse || 0);
+    return (data.pranzo_rosse || 0) +
+           (data.pomeriggio_rosse || 0) +
+           (data.cena_rosse || 0);
   };
 
   const getImpastoPer3Giorni = (giornoIndex) => {
@@ -68,11 +68,8 @@ export default function GestioneImpastiPrecotture() {
   const handleEdit = (giorno, data) => {
     setEditingRow(giorno);
     setEditData(data || {
-      pranzo_bianche: 0,
       pranzo_rosse: 0,
-      pomeriggio_bianche: 0,
       pomeriggio_rosse: 0,
-      cena_bianche: 0,
       cena_rosse: 0
     });
   };
@@ -154,11 +151,8 @@ export default function GestioneImpastiPrecotture() {
                 <thead>
                   <tr className="border-b-2 border-slate-200">
                     <th className="text-left py-3 px-2 font-semibold text-slate-700">Giorno</th>
-                    <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-blue-50">Pranzo<br/>Bianche</th>
                     <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-red-50">Pranzo<br/>Rosse</th>
-                    <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-blue-50">Pomeriggio<br/>Bianche</th>
                     <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-red-50">Pomeriggio<br/>Rosse</th>
-                    <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-blue-50">Cena<br/>Bianche</th>
                     <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-red-50">Cena<br/>Rosse</th>
                     <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-green-50">Totale<br/>Giornata</th>
                     <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-yellow-50">Impasto<br/>3 Giorni</th>
@@ -186,26 +180,8 @@ export default function GestioneImpastiPrecotture() {
                               <input
                                 type="number"
                                 min="0"
-                                value={editData.pranzo_bianche || 0}
-                                onChange={(e) => setEditData({...editData, pranzo_bianche: parseInt(e.target.value) || 0})}
-                                className="w-16 text-center neumorphic-pressed px-2 py-1 rounded-lg"
-                              />
-                            </td>
-                            <td className="text-center py-2 px-1">
-                              <input
-                                type="number"
-                                min="0"
                                 value={editData.pranzo_rosse || 0}
                                 onChange={(e) => setEditData({...editData, pranzo_rosse: parseInt(e.target.value) || 0})}
-                                className="w-16 text-center neumorphic-pressed px-2 py-1 rounded-lg"
-                              />
-                            </td>
-                            <td className="text-center py-2 px-1">
-                              <input
-                                type="number"
-                                min="0"
-                                value={editData.pomeriggio_bianche || 0}
-                                onChange={(e) => setEditData({...editData, pomeriggio_bianche: parseInt(e.target.value) || 0})}
                                 className="w-16 text-center neumorphic-pressed px-2 py-1 rounded-lg"
                               />
                             </td>
@@ -222,15 +198,6 @@ export default function GestioneImpastiPrecotture() {
                               <input
                                 type="number"
                                 min="0"
-                                value={editData.cena_bianche || 0}
-                                onChange={(e) => setEditData({...editData, cena_bianche: parseInt(e.target.value) || 0})}
-                                className="w-16 text-center neumorphic-pressed px-2 py-1 rounded-lg"
-                              />
-                            </td>
-                            <td className="text-center py-2 px-1">
-                              <input
-                                type="number"
-                                min="0"
                                 value={editData.cena_rosse || 0}
                                 onChange={(e) => setEditData({...editData, cena_rosse: parseInt(e.target.value) || 0})}
                                 className="w-16 text-center neumorphic-pressed px-2 py-1 rounded-lg"
@@ -239,11 +206,8 @@ export default function GestioneImpastiPrecotture() {
                           </>
                         ) : (
                           <>
-                            <td className="text-center py-2 px-2 bg-blue-50">{data?.pranzo_bianche || 0}</td>
                             <td className="text-center py-2 px-2 bg-red-50">{data?.pranzo_rosse || 0}</td>
-                            <td className="text-center py-2 px-2 bg-blue-50">{data?.pomeriggio_bianche || 0}</td>
                             <td className="text-center py-2 px-2 bg-red-50">{data?.pomeriggio_rosse || 0}</td>
-                            <td className="text-center py-2 px-2 bg-blue-50">{data?.cena_bianche || 0}</td>
                             <td className="text-center py-2 px-2 bg-red-50">{data?.cena_rosse || 0}</td>
                           </>
                         )}

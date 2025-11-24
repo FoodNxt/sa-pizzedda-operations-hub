@@ -9,12 +9,16 @@ const giorni = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Ve
 
 export default function Precotture() {
   const [selectedStore, setSelectedStore] = useState('');
-  const [bianchePresenti, setBianchePresenti] = useState('');
   const [rossePresenti, setRossePresenti] = useState('');
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
     queryFn: () => base44.entities.Store.list(),
+  });
+
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
   });
 
   const { data: impasti = [] } = useQuery({
@@ -23,7 +27,7 @@ export default function Precotture() {
   });
 
   const risultato = useMemo(() => {
-    if (!selectedStore || bianchePresenti === '' || rossePresenti === '') return null;
+    if (!selectedStore || rossePresenti === '') return null;
 
     const ora = new Date().getHours();
     const minuti = new Date().getMinutes();
@@ -50,34 +54,25 @@ export default function Precotture() {
       return { error: 'Nessuna configurazione trovata per oggi' };
     }
 
-    let biancheRichieste = 0;
     let rosseRichieste = 0;
 
     if (turno === 'pranzo') {
-      biancheRichieste = datiOggi.pranzo_bianche || 0;
       rosseRichieste = datiOggi.pranzo_rosse || 0;
     } else if (turno === 'pomeriggio') {
-      biancheRichieste = datiOggi.pomeriggio_bianche || 0;
       rosseRichieste = datiOggi.pomeriggio_rosse || 0;
     } else if (turno === 'cena') {
-      biancheRichieste = datiOggi.cena_bianche || 0;
       rosseRichieste = datiOggi.cena_rosse || 0;
     }
 
-    const biancheDaFare = Math.max(0, biancheRichieste - parseInt(bianchePresenti));
     const rosseDaFare = Math.max(0, rosseRichieste - parseInt(rossePresenti));
 
     return {
       turno,
-      biancheRichieste,
       rosseRichieste,
-      bianchePresenti: parseInt(bianchePresenti),
       rossePresenti: parseInt(rossePresenti),
-      biancheDaFare,
-      rosseDaFare,
-      totaleDaFare: biancheDaFare + rosseDaFare
+      rosseDaFare
     };
-  }, [selectedStore, bianchePresenti, rossePresenti, impasti]);
+  }, [selectedStore, rossePresenti, impasti]);
 
   const getTurnoLabel = (turno) => {
     if (turno === 'pranzo') return 'Pranzo (9:30 - 13:00)';
@@ -107,40 +102,30 @@ export default function Precotture() {
               className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
             >
               <option value="">-- Seleziona --</option>
-              {stores.map(store => (
-                <option key={store.id} value={store.id}>{store.name}</option>
-              ))}
+              {stores
+                .filter(store => {
+                  if (user?.user_type === 'admin' || user?.user_type === 'manager') return true;
+                  if (!user?.assigned_stores || user.assigned_stores.length === 0) return true;
+                  return user.assigned_stores.includes(store.id);
+                })
+                .map(store => (
+                  <option key={store.id} value={store.id}>{store.name}</option>
+                ))}
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Precotture Bianche Presenti
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={bianchePresenti}
-                onChange={(e) => setBianchePresenti(e.target.value)}
-                placeholder="0"
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Precotture Rosse Presenti
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={rossePresenti}
-                onChange={(e) => setRossePresenti(e.target.value)}
-                placeholder="0"
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Precotture Rosse Presenti
+            </label>
+            <input
+              type="number"
+              min="0"
+              value={rossePresenti}
+              onChange={(e) => setRossePresenti(e.target.value)}
+              placeholder="0"
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+            />
           </div>
         </NeumorphicCard>
 
@@ -166,50 +151,24 @@ export default function Precotture() {
                 </div>
 
                 <div className="space-y-3 mb-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="neumorphic-pressed p-4 rounded-xl bg-blue-50">
-                      <p className="text-xs text-slate-500 mb-1">Richieste Bianche</p>
-                      <p className="text-2xl font-bold text-blue-700">{risultato.biancheRichieste}</p>
-                    </div>
-                    <div className="neumorphic-pressed p-4 rounded-xl bg-red-50">
-                      <p className="text-xs text-slate-500 mb-1">Richieste Rosse</p>
-                      <p className="text-2xl font-bold text-red-700">{risultato.rosseRichieste}</p>
-                    </div>
+                  <div className="neumorphic-pressed p-4 rounded-xl bg-red-50">
+                    <p className="text-xs text-slate-500 mb-1">Richieste Rosse</p>
+                    <p className="text-2xl font-bold text-red-700">{risultato.rosseRichieste}</p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="neumorphic-pressed p-4 rounded-xl">
-                      <p className="text-xs text-slate-500 mb-1">Già presenti Bianche</p>
-                      <p className="text-xl font-bold text-slate-700">{risultato.bianchePresenti}</p>
-                    </div>
-                    <div className="neumorphic-pressed p-4 rounded-xl">
-                      <p className="text-xs text-slate-500 mb-1">Già presenti Rosse</p>
-                      <p className="text-xl font-bold text-slate-700">{risultato.rossePresenti}</p>
-                    </div>
+                  <div className="neumorphic-pressed p-4 rounded-xl">
+                    <p className="text-xs text-slate-500 mb-1">Già presenti Rosse</p>
+                    <p className="text-xl font-bold text-slate-700">{risultato.rossePresenti}</p>
                   </div>
                 </div>
 
                 <div className="neumorphic-card p-6 rounded-xl bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-400">
                   <div className="flex items-center gap-3 mb-3">
                     <Pizza className="w-6 h-6 text-green-700" />
-                    <p className="text-sm font-medium text-green-700">Precotture da preparare</p>
+                    <p className="text-sm font-medium text-green-700">Precotture Rosse da preparare</p>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-3 mb-3">
-                    <div>
-                      <p className="text-sm text-green-600 mb-1">Bianche</p>
-                      <p className="text-3xl font-bold text-green-800">{risultato.biancheDaFare}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-green-600 mb-1">Rosse</p>
-                      <p className="text-3xl font-bold text-green-800">{risultato.rosseDaFare}</p>
-                    </div>
-                  </div>
-
-                  <div className="pt-3 border-t-2 border-green-300">
-                    <p className="text-sm text-green-600 mb-1">Totale</p>
-                    <p className="text-4xl font-bold text-green-800">{risultato.totaleDaFare}</p>
-                  </div>
+                  <p className="text-4xl font-bold text-green-800">{risultato.rosseDaFare}</p>
                 </div>
               </NeumorphicCard>
             )}
