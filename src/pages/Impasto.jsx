@@ -71,12 +71,7 @@ export default function Impasto() {
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Seleziona Negozio
             </label>
-            <select
-              value={selectedStore}
-              onChange={(e) => setSelectedStore(e.target.value)}
-              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-            >
-              <option value="">-- Seleziona --</option>
+            <div className="flex flex-wrap gap-2">
               {stores
                 .filter(store => {
                   if (user?.user_type === 'admin' || user?.user_type === 'manager') return true;
@@ -84,9 +79,20 @@ export default function Impasto() {
                   return user.assigned_stores.includes(store.id);
                 })
                 .map(store => (
-                  <option key={store.id} value={store.id}>{store.name}</option>
+                  <button
+                    key={store.id}
+                    type="button"
+                    onClick={() => setSelectedStore(store.id)}
+                    className={`px-4 py-3 rounded-xl font-medium transition-all ${
+                      selectedStore === store.id
+                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                        : 'neumorphic-flat text-slate-700 hover:shadow-md'
+                    }`}
+                  >
+                    {store.name}
+                  </button>
                 ))}
-            </select>
+            </div>
           </div>
 
           <div>

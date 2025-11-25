@@ -151,19 +151,25 @@ export default function InventarioStoreManager() {
               <MapPin className="w-4 h-4" />
               Seleziona Locale
             </label>
-            <select
-              value={selectedStore}
-              onChange={(e) => {
-                setSelectedStore(e.target.value);
-                setQuantities({});
-              }}
-              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-            >
-              <option value="">-- Seleziona Locale --</option>
+            <div className="flex flex-wrap gap-2">
               {filteredStores.map(store => (
-                <option key={store.id} value={store.id}>{store.name}</option>
+                <button
+                  key={store.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedStore(store.id);
+                    setQuantities({});
+                  }}
+                  className={`px-4 py-3 rounded-xl font-medium transition-all ${
+                    selectedStore === store.id
+                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                      : 'neumorphic-flat text-slate-700 hover:shadow-md'
+                  }`}
+                >
+                  {store.name}
+                </button>
               ))}
-            </select>
+            </div>
           </div>
 
           {selectedStore && (

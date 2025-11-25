@@ -156,14 +156,7 @@ export default function Preparazioni() {
                 <Store className="w-4 h-4" />
                 Locale <span className="text-red-600">*</span>
               </label>
-              <select
-                value={selectedStore}
-                onChange={(e) => setSelectedStore(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                required
-                disabled={saving}
-              >
-                <option value="">Seleziona locale...</option>
+              <div className="flex flex-wrap gap-2">
                 {stores
                   .filter(store => {
                     if (currentUser?.user_type === 'admin' || currentUser?.user_type === 'manager') return true;
@@ -171,9 +164,21 @@ export default function Preparazioni() {
                     return currentUser.assigned_stores.includes(store.id);
                   })
                   .map(store => (
-                    <option key={store.id} value={store.id}>{store.name}</option>
-                  ))}
-              </select>
+                    <button
+                      key={store.id}
+                      type="button"
+                      onClick={() => setSelectedStore(store.id)}
+                      disabled={saving}
+                      className={`px-4 py-3 rounded-xl font-medium transition-all ${
+                        selectedStore === store.id
+                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                          : 'neumorphic-flat text-[#6b6b6b] hover:shadow-md'
+                      }`}
+                    >
+                      {store.name}
+                    </button>
+                }
+              </div>
             </div>
 
             <div>

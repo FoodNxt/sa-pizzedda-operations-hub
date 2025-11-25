@@ -832,7 +832,7 @@ export default function Layout({ children, currentPageName }) {
         .nav-button-active {
           background: linear-gradient(145deg, #3b82f6, #2563eb);
           box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.1), inset -3px -3px 8px rgba(255, 255, 255, 0.1);
-          color: white;
+          color: #1e293b;
         }
 
         .bottom-nav-item {
@@ -855,6 +855,7 @@ export default function Layout({ children, currentPageName }) {
         .bottom-nav-item.active {
           background: linear-gradient(145deg, #3b82f6, #2563eb);
           box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.1);
+          color: #1e293b;
         }
 
         body.dipendente-mobile .bottom-nav-item {

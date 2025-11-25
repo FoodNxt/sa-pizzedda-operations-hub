@@ -19,7 +19,7 @@ export default function NeumorphicButton({
 
   const getVariantStyles = () => {
     if (variant === "primary") {
-      return "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg hover:shadow-xl";
+      return "bg-gradient-to-r from-blue-500 to-blue-600 text-slate-900 shadow-lg hover:shadow-xl";
     }
     return "bg-gradient-to-br from-slate-100 to-slate-200 text-slate-700";
   };
