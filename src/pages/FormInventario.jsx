@@ -190,7 +190,7 @@ export default function FormInventario() {
                 {stores
                   .filter(store => {
                     if (currentUser?.user_type === 'admin' || currentUser?.user_type === 'manager') return true;
-                    if (!currentUser?.assigned_stores || currentUser.assigned_stores.length === 0) return true;
+                    if (!currentUser?.assigned_stores || currentUser.assigned_stores.length === 0) return false;
                     return currentUser.assigned_stores.includes(store.id);
                   })
                   .map(store => (
