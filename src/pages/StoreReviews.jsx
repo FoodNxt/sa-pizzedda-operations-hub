@@ -618,13 +618,51 @@ Rispondi in italiano, in modo conciso e actionable.`;
 
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base lg:text-lg font-bold text-slate-800">
-                Recensioni Recenti
+                {showAllReviews ? 'Tutte le Recensioni' : 'Recensioni Recenti'}
               </h3>
+              <NeumorphicButton
+                onClick={() => setShowAllReviews(!showAllReviews)}
+                className="flex items-center gap-2"
+              >
+                {showAllReviews ? (
+                  <>
+                    <X className="w-4 h-4" />
+                    <span className="hidden sm:inline">Recenti</span>
+                  </>
+                ) : (
+                  <>
+                    <List className="w-4 h-4" />
+                    <span className="hidden sm:inline">Tutte ({overallMetrics.reviewCount})</span>
+                  </>
+                )}
+              </NeumorphicButton>
             </div>
 
+            {showAllReviews && (
+              <div className="flex gap-2 mb-4">
+                <select
+                  value={reviewFilterRating}
+                  onChange={(e) => setReviewFilterRating(e.target.value)}
+                  className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
+                >
+                  <option value="all">Tutte</option>
+                  <option value="5">⭐⭐⭐⭐⭐</option>
+                  <option value="4">⭐⭐⭐⭐</option>
+                  <option value="3">⭐⭐⭐</option>
+                  <option value="2">⭐⭐</option>
+                  <option value="1">⭐</option>
+                </select>
+              </div>
+            )}
+
             <div className="space-y-3 max-h-[600px] overflow-y-auto">
-              {overallMetrics.recentReviews.length > 0 ? (
-                overallMetrics.recentReviews.map(review => (
+              {(() => {
+                let reviewsToShow = showAllReviews ? overallMetrics.allReviews : overallMetrics.recentReviews;
+                if (showAllReviews && reviewFilterRating !== 'all') {
+                  reviewsToShow = reviewsToShow.filter(r => r.rating === parseInt(reviewFilterRating));
+                }
+                return reviewsToShow.length > 0 ? (
+                reviewsToShow.map(review => (
                   <div key={review.id} className="neumorphic-flat p-3 lg:p-4 rounded-xl">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -657,8 +695,13 @@ Rispondi in italiano, in modo conciso e actionable.`;
                   </div>
                 ))
               ) : (
-                <p className="text-center text-slate-500 py-8 text-sm">Nessuna recensione</p>
-              )}
+                <p className="text-center text-slate-500 py-8 text-sm">
+                  {showAllReviews && reviewFilterRating !== 'all' 
+                    ? `Nessuna recensione con ${reviewFilterRating} stelle` 
+                    : 'Nessuna recensione'}
+                </p>
+              );
+              })()}
             </div>
           </NeumorphicCard>
         )}
