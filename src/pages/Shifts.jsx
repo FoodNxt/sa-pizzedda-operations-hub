@@ -58,6 +58,20 @@ export default function Shifts() {
           return '';
         }
       })(),
+      actual_start: (() => {
+        try {
+          return shift.actual_start ? new Date(shift.actual_start).toISOString().slice(0, 16) : '';
+        } catch (e) {
+          return '';
+        }
+      })(),
+      actual_end: (() => {
+        try {
+          return shift.actual_end ? new Date(shift.actual_end).toISOString().slice(0, 16) : '';
+        } catch (e) {
+          return '';
+        }
+      })(),
       employee_group_name: shift.employee_group_name || '',
       shift_type: shift.shift_type || '',
       timbratura_mancata: shift.timbratura_mancata || false,
@@ -76,6 +90,8 @@ export default function Shifts() {
         store_name: selectedStore?.name || editFormData.store_name,
         scheduled_start: editFormData.scheduled_start,
         scheduled_end: editFormData.scheduled_end,
+        actual_start: editFormData.actual_start || null,
+        actual_end: editFormData.actual_end || null,
         employee_group_name: editFormData.employee_group_name,
         shift_type: editFormData.shift_type,
         timbratura_mancata: editFormData.timbratura_mancata,
@@ -278,18 +294,38 @@ export default function Shifts() {
                       <td className="p-3">
                         {isEditing ? (
                           <div className="space-y-1">
-                            <input
-                              type="datetime-local"
-                              value={editFormData.scheduled_start}
-                              onChange={(e) => setEditFormData({ ...editFormData, scheduled_start: e.target.value })}
-                              className="neumorphic-pressed px-2 py-1 rounded-lg text-xs text-[#6b6b6b] outline-none w-full"
-                            />
-                            <input
-                              type="datetime-local"
-                              value={editFormData.scheduled_end}
-                              onChange={(e) => setEditFormData({ ...editFormData, scheduled_end: e.target.value })}
-                              className="neumorphic-pressed px-2 py-1 rounded-lg text-xs text-[#6b6b6b] outline-none w-full"
-                            />
+                            <div>
+                              <label className="text-xs text-[#9b9b9b]">Previsto:</label>
+                              <input
+                                type="datetime-local"
+                                value={editFormData.scheduled_start}
+                                onChange={(e) => setEditFormData({ ...editFormData, scheduled_start: e.target.value })}
+                                className="neumorphic-pressed px-2 py-1 rounded-lg text-xs text-[#6b6b6b] outline-none w-full"
+                              />
+                              <input
+                                type="datetime-local"
+                                value={editFormData.scheduled_end}
+                                onChange={(e) => setEditFormData({ ...editFormData, scheduled_end: e.target.value })}
+                                className="neumorphic-pressed px-2 py-1 rounded-lg text-xs text-[#6b6b6b] outline-none w-full mt-1"
+                              />
+                            </div>
+                            <div className="mt-2">
+                              <label className="text-xs text-[#9b9b9b]">Effettivo:</label>
+                              <input
+                                type="datetime-local"
+                                value={editFormData.actual_start || ''}
+                                onChange={(e) => setEditFormData({ ...editFormData, actual_start: e.target.value })}
+                                className="neumorphic-pressed px-2 py-1 rounded-lg text-xs text-[#6b6b6b] outline-none w-full"
+                                placeholder="Inizio effettivo"
+                              />
+                              <input
+                                type="datetime-local"
+                                value={editFormData.actual_end || ''}
+                                onChange={(e) => setEditFormData({ ...editFormData, actual_end: e.target.value })}
+                                className="neumorphic-pressed px-2 py-1 rounded-lg text-xs text-[#6b6b6b] outline-none w-full mt-1"
+                                placeholder="Fine effettiva"
+                              />
+                            </div>
                           </div>
                         ) : (
                           <div className="text-[#6b6b6b] text-sm">
@@ -329,13 +365,19 @@ export default function Shifts() {
                       </td>
                       <td className="p-3 text-center">
                         {isEditing ? (
-                          <input
-                            type="text"
+                          <select
                             value={editFormData.employee_group_name}
                             onChange={(e) => setEditFormData({ ...editFormData, employee_group_name: e.target.value })}
                             className="neumorphic-pressed px-2 py-1 rounded-lg text-sm text-[#6b6b6b] outline-none w-full"
-                            placeholder="Ruolo"
-                          />
+                          >
+                            <option value="">Seleziona ruolo</option>
+                            <option value="Pizzaiolo">Pizzaiolo</option>
+                            <option value="Cassiere">Cassiere</option>
+                            <option value="Store Manager">Store Manager</option>
+                            <option value="FT">FT</option>
+                            <option value="PT">PT</option>
+                            <option value="CM">CM</option>
+                          </select>
                         ) : (
                           <span className="text-sm text-[#6b6b6b]">
                             {shift.employee_group_name || '-'}
@@ -344,13 +386,21 @@ export default function Shifts() {
                       </td>
                       <td className="p-3 text-center">
                         {isEditing ? (
-                          <input
-                            type="text"
+                          <select
                             value={editFormData.shift_type}
                             onChange={(e) => setEditFormData({ ...editFormData, shift_type: e.target.value })}
                             className="neumorphic-pressed px-2 py-1 rounded-lg text-sm text-[#6b6b6b] outline-none w-full"
-                            placeholder="Tipo"
-                          />
+                          >
+                            <option value="">Turno normale</option>
+                            <option value="Affiancamento">Affiancamento</option>
+                            <option value="Straordinario">Straordinario</option>
+                            <option value="Ferie">Ferie</option>
+                            <option value="Malattia">Malattia</option>
+                            <option value="Malattia (No Certificato)">Malattia (No Certificato)</option>
+                            <option value="Permesso">Permesso</option>
+                            <option value="Assenza">Assenza</option>
+                            <option value="Ritardo">Ritardo</option>
+                          </select>
                         ) : (
                           <span className="text-sm text-[#6b6b6b]">
                             {shift.shift_type || '-'}
