@@ -14,6 +14,7 @@ export default function Payroll() {
   const [viewMode, setViewMode] = useState('daily');
   const [showUnpaidAbsenceModal, setShowUnpaidAbsenceModal] = useState(false);
   const [unpaidAbsenceDetails, setUnpaidAbsenceDetails] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(null); // 'ferie', 'straordinario', etc.
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -536,6 +537,59 @@ export default function Payroll() {
       totalMinutes: unpaidShifts.reduce((sum, s) => sum + s.unpaid_minutes, 0)
     });
     setShowUnpaidAbsenceModal(true);
+  };
+
+  // Get shifts by type for detail view
+  const getShiftsByType = (employeeName, shiftType) => {
+    const targetNormalizedName = normalizeEmployeeName(employeeName);
+    
+    let employeeShifts = shifts.filter(s => {
+      if (normalizeEmployeeName(s.employee_name) !== targetNormalizedName) return false;
+      if (selectedStore !== 'all' && s.store_id !== selectedStore) return false;
+
+      if (startDate || endDate) {
+        if (!s.shift_date) return false;
+        try {
+          const shiftDate = parseISO(s.shift_date);
+          if (isNaN(shiftDate.getTime())) return false;
+          const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
+          const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
+
+          if (start && end) {
+            return isWithinInterval(shiftDate, { start, end });
+          } else if (start) {
+            return shiftDate >= start;
+          } else if (end) {
+            return shiftDate <= end;
+          }
+        } catch (e) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    // Filter by shift type
+    return employeeShifts.filter(s => {
+      const normalized = normalizeShiftType(s.shift_type);
+      return normalized === shiftType;
+    }).sort((a, b) => {
+      try {
+        return new Date(b.shift_date) - new Date(a.shift_date);
+      } catch (e) {
+        return 0;
+      }
+    });
+  };
+
+  const handleShiftTypeClick = (employee, shiftType) => {
+    const shiftsForType = getShiftsByType(employee.employee_name, shiftType);
+    setShowDetailModal({
+      employee,
+      shiftType,
+      shifts: shiftsForType,
+      totalMinutes: shiftsForType.reduce((sum, s) => sum + (s.scheduled_minutes || 0), 0)
+    });
   };
 
   const minutesToHours = (minutes) => {
@@ -1342,26 +1396,37 @@ export default function Payroll() {
                       <td className="p-3 text-[#6b6b6b] text-sm">
                         {employee.store_names_display}
                       </td>
-                      {payrollData.shiftTypes.map(type => (
-                        <td 
-                          key={type} 
-                          className={`p-3 text-center ${
-                            type === 'Assenza non retribuita' 
-                              ? 'text-red-600 font-bold cursor-pointer hover:bg-red-50 transition-colors' 
-                              : 'text-[#6b6b6b]'
-                          }`}
-                          onClick={type === 'Assenza non retribuita' && employee.shift_types[type] ? () => handleUnpaidAbsenceClick(employee) : undefined}
-                          title={type === 'Assenza non retribuita' && employee.shift_types[type] ? 'Click per vedere i dettagli' : ''}
-                        >
-                          {employee.shift_types[type] ? (
-                            <div className="font-bold">
-                              {minutesToHours(employee.shift_types[type])}
-                            </div>
-                          ) : (
-                            <span className="text-[#9b9b9b]">-</span>
-                          )}
-                        </td>
-                      ))}
+                      {payrollData.shiftTypes.map(type => {
+                        const isClickable = employee.shift_types[type] && employee.shift_types[type] > 0;
+                        const isAssenza = type === 'Assenza non retribuita';
+                        
+                        return (
+                          <td 
+                            key={type} 
+                            className={`p-3 text-center ${
+                              isAssenza 
+                                ? 'text-red-600 font-bold' 
+                                : 'text-[#6b6b6b]'
+                            } ${isClickable ? 'cursor-pointer hover:bg-blue-50 transition-colors' : ''}`}
+                            onClick={isClickable ? () => {
+                              if (isAssenza) {
+                                handleUnpaidAbsenceClick(employee);
+                              } else {
+                                handleShiftTypeClick(employee, type);
+                              }
+                            } : undefined}
+                            title={isClickable ? 'Click per vedere i dettagli' : ''}
+                          >
+                            {employee.shift_types[type] ? (
+                              <div className="font-bold">
+                                {minutesToHours(employee.shift_types[type])}
+                              </div>
+                            ) : (
+                              <span className="text-[#9b9b9b]">-</span>
+                            )}
+                          </td>
+                        );
+                      })}
                       <td className="p-3 text-right">
                         <div className="font-bold text-[#6b6b6b]">
                           {minutesToHours(employee.total_minutes)}
@@ -1847,6 +1912,146 @@ export default function Payroll() {
             <div className="mt-6 pt-6 border-t border-[#c1c1c1]">
               <button
                 onClick={() => setShowUnpaidAbsenceModal(false)}
+                className="neumorphic-flat px-6 py-3 rounded-lg text-[#6b6b6b] hover:text-[#8b7355] transition-colors mx-auto block"
+              >
+                Chiudi
+              </button>
+            </div>
+          </NeumorphicCard>
+        </div>
+      )}
+
+      {/* Shift Type Detail Modal */}
+      {showDetailModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <NeumorphicCard className="max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-[#6b6b6b] mb-1">
+                  Dettaglio {showDetailModal.shiftType}
+                </h2>
+                <p className="text-[#9b9b9b] mb-1">{showDetailModal.employee.employee_name}</p>
+                <p className="text-sm text-[#9b9b9b]">
+                  {startDate && endDate ? (
+                    <span>
+                      Periodo: {format(parseISO(startDate), 'dd/MM/yyyy')} - {format(parseISO(endDate), 'dd/MM/yyyy')}
+                    </span>
+                  ) : startDate ? (
+                    <span>Da: {format(parseISO(startDate), 'dd/MM/yyyy')}</span>
+                  ) : endDate ? (
+                    <span>Fino a: {format(parseISO(endDate), 'dd/MM/yyyy')}</span>
+                  ) : (
+                    <span>Tutti i turni</span>
+                  )}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowDetailModal(null)}
+                className="neumorphic-flat p-2 rounded-lg text-[#6b6b6b] hover:text-red-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Summary */}
+            <div className="neumorphic-pressed p-6 rounded-xl mb-6 text-center">
+              <p className="text-sm text-[#9b9b9b] mb-2">Totale Ore {showDetailModal.shiftType}</p>
+              <p className="text-4xl font-bold text-[#6b6b6b]">
+                {minutesToHours(showDetailModal.totalMinutes)}
+              </p>
+              <p className="text-sm text-[#9b9b9b] mt-2">
+                {showDetailModal.shifts.length} turni
+              </p>
+            </div>
+
+            {/* Shifts List */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Dettaglio Turni</h3>
+              
+              {showDetailModal.shifts.length > 0 ? (
+                showDetailModal.shifts.map((shift, index) => (
+                  <div key={`${shift.id}-${index}`} className="neumorphic-flat p-4 rounded-xl hover:bg-[#e8ecf3] transition-colors">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="text-lg font-bold text-[#6b6b6b]">
+                            {(() => {
+                              try {
+                                return format(parseISO(shift.shift_date), 'dd/MM/yyyy');
+                              } catch (e) {
+                                return shift.shift_date;
+                              }
+                            })()}
+                          </span>
+                          <span className="text-sm text-[#9b9b9b]">
+                            {shift.store_name}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-[#6b6b6b]">
+                          {minutesToHours(shift.scheduled_minutes || 0)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-[#d1d1d1]">
+                      <div>
+                        <p className="text-xs text-[#9b9b9b] mb-1">Orario Previsto</p>
+                        <p className="text-sm text-[#6b6b6b] font-medium">
+                          {(() => {
+                            try {
+                              return shift.scheduled_start ? format(parseISO(shift.scheduled_start), 'HH:mm') : 'N/A';
+                            } catch (e) {
+                              return 'N/A';
+                            }
+                          })()}
+                          {' - '}
+                          {(() => {
+                            try {
+                              return shift.scheduled_end ? format(parseISO(shift.scheduled_end), 'HH:mm') : 'N/A';
+                            } catch (e) {
+                              return 'N/A';
+                            }
+                          })()}
+                        </p>
+                      </div>
+                      
+                      {shift.actual_start && (
+                        <div>
+                          <p className="text-xs text-[#9b9b9b] mb-1">Orario Effettivo</p>
+                          <p className="text-sm text-[#6b6b6b] font-medium">
+                            {(() => {
+                              try {
+                                return format(parseISO(shift.actual_start), 'HH:mm');
+                              } catch (e) {
+                                return 'N/A';
+                              }
+                            })()}
+                            {shift.actual_end ? (() => {
+                              try {
+                                return ` - ${format(parseISO(shift.actual_end), 'HH:mm')}`;
+                              } catch (e) {
+                                return '';
+                              }
+                            })() : ''}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-[#9b9b9b]">Nessun turno trovato</p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-[#c1c1c1]">
+              <button
+                onClick={() => setShowDetailModal(null)}
                 className="neumorphic-flat px-6 py-3 rounded-lg text-[#6b6b6b] hover:text-[#8b7355] transition-colors mx-auto block"
               >
                 Chiudi
