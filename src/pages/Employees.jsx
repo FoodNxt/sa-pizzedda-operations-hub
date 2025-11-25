@@ -889,12 +889,26 @@ export default function Employees() {
                 </div>
 
                 <div className="neumorphic-flat p-4 rounded-xl">
-                  <div className="flex items-center gap-3 mb-3">
-                    <ShoppingCart className="w-5 h-5 text-red-600" />
-                    <h3 className="font-bold text-slate-800">Ultimi 3 Ordini Sbagliati</h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <ShoppingCart className="w-5 h-5 text-red-600" />
+                      <h3 className="font-bold text-slate-800">
+                        {expandedView === 'wrongOrders' ? 'Tutti gli' : 'Ultimi 3'} Ordini Sbagliati
+                      </h3>
+                    </div>
+                    {getAllWrongOrders(selectedEmployee.full_name).length > 3 && (
+                      <button
+                        onClick={() => setExpandedView(expandedView === 'wrongOrders' ? null : 'wrongOrders')}
+                        className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        {expandedView === 'wrongOrders' ? 'Mostra meno' : `Vedi tutti (${getAllWrongOrders(selectedEmployee.full_name).length})`}
+                      </button>
+                    )}
                   </div>
                   {(() => {
-                    const wrongOrdersList = getLatestWrongOrders(selectedEmployee.full_name);
+                    const wrongOrdersList = expandedView === 'wrongOrders' 
+                      ? getAllWrongOrders(selectedEmployee.full_name) 
+                      : getLatestWrongOrders(selectedEmployee.full_name);
                     return wrongOrdersList.length > 0 ? (
                       <div className="space-y-2">
                         {wrongOrdersList.map((match, index) => (
@@ -951,12 +965,26 @@ export default function Employees() {
                 </div>
 
                 <div className="neumorphic-flat p-4 rounded-xl">
-                  <div className="flex items-center gap-3 mb-3">
-                    <AlertCircle className="w-5 h-5 text-red-600" />
-                    <h3 className="font-bold text-slate-800">Ultimi 3 Turni in Ritardo</h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <AlertCircle className="w-5 h-5 text-red-600" />
+                      <h3 className="font-bold text-slate-800">
+                        {expandedView === 'lateShifts' ? 'Tutti i' : 'Ultimi 3'} Turni in Ritardo
+                      </h3>
+                    </div>
+                    {getAllLateShifts(selectedEmployee.full_name).length > 3 && (
+                      <button
+                        onClick={() => setExpandedView(expandedView === 'lateShifts' ? null : 'lateShifts')}
+                        className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        {expandedView === 'lateShifts' ? 'Mostra meno' : `Vedi tutti (${getAllLateShifts(selectedEmployee.full_name).length})`}
+                      </button>
+                    )}
                   </div>
                   {(() => {
-                    const lateShifts = getLatestLateShifts(selectedEmployee.full_name);
+                    const lateShifts = expandedView === 'lateShifts'
+                      ? getAllLateShifts(selectedEmployee.full_name)
+                      : getLatestLateShifts(selectedEmployee.full_name);
                     return lateShifts.length > 0 ? (
                       <div className="space-y-2">
                         {lateShifts.map((shift, index) => (
@@ -986,12 +1014,26 @@ export default function Employees() {
                 </div>
 
                 <div className="neumorphic-flat p-4 rounded-xl">
-                  <div className="flex items-center gap-3 mb-3">
-                    <AlertCircle className="w-5 h-5 text-orange-600" />
-                    <h3 className="font-bold text-slate-800">Ultimi 3 Turni con Timbratura Mancata</h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <AlertCircle className="w-5 h-5 text-orange-600" />
+                      <h3 className="font-bold text-slate-800">
+                        {expandedView === 'missingClockIns' ? 'Tutti i' : 'Ultimi 3'} Turni con Timbratura Mancata
+                      </h3>
+                    </div>
+                    {getAllMissingClockIns(selectedEmployee.full_name).length > 3 && (
+                      <button
+                        onClick={() => setExpandedView(expandedView === 'missingClockIns' ? null : 'missingClockIns')}
+                        className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        {expandedView === 'missingClockIns' ? 'Mostra meno' : `Vedi tutti (${getAllMissingClockIns(selectedEmployee.full_name).length})`}
+                      </button>
+                    )}
                   </div>
                   {(() => {
-                    const missingClockIns = getLatestMissingClockIns(selectedEmployee.full_name);
+                    const missingClockIns = expandedView === 'missingClockIns'
+                      ? getAllMissingClockIns(selectedEmployee.full_name)
+                      : getLatestMissingClockIns(selectedEmployee.full_name);
                     return missingClockIns.length > 0 ? (
                       <div className="space-y-2">
                         {missingClockIns.map((shift, index) => (
@@ -1021,12 +1063,26 @@ export default function Employees() {
                 </div>
 
                 <div className="neumorphic-flat p-4 rounded-xl">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                    <h3 className="font-bold text-slate-800">Ultime 3 Recensioni Google Maps</h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+                      <h3 className="font-bold text-slate-800">
+                        {expandedView === 'googleReviews' ? 'Tutte le' : 'Ultime 3'} Recensioni Google Maps
+                      </h3>
+                    </div>
+                    {getAllGoogleReviews(selectedEmployee.full_name).length > 3 && (
+                      <button
+                        onClick={() => setExpandedView(expandedView === 'googleReviews' ? null : 'googleReviews')}
+                        className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        {expandedView === 'googleReviews' ? 'Mostra meno' : `Vedi tutte (${getAllGoogleReviews(selectedEmployee.full_name).length})`}
+                      </button>
+                    )}
                   </div>
                   {(() => {
-                    const googleReviews = getLatestGoogleReviews(selectedEmployee.full_name);
+                    const googleReviews = expandedView === 'googleReviews'
+                      ? getAllGoogleReviews(selectedEmployee.full_name)
+                      : getLatestGoogleReviews(selectedEmployee.full_name);
                     return googleReviews.length > 0 ? (
                       <div className="space-y-2">
                         {googleReviews.map((review) => (
