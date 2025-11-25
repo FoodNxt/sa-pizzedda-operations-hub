@@ -177,7 +177,7 @@ export default function Preparazioni() {
                     >
                       {store.name}
                     </button>
-                }
+                  ))}
               </div>
             </div>
 
