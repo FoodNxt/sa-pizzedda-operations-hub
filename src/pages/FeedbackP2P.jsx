@@ -377,6 +377,11 @@ export default function FeedbackP2P() {
                              <span className="text-xs font-bold text-slate-800 ml-1">
                                {resp.score || resp.answer}
                              </span>
+                             {resp.note && (
+                               <span className="text-xs text-slate-500 ml-2 italic">
+                                 "{resp.note}"
+                               </span>
+                             )}
                            </div>
                          </div>
                        ))}
@@ -567,6 +572,7 @@ export default function FeedbackP2P() {
 function DipendenteView({ currentUser, questions, colleagues, users, onSubmit, shifts, responses, feedbackConfig }) {
   const [selectedColleague, setSelectedColleague] = useState(null);
   const [answers, setAnswers] = useState({});
+  const [notes, setNotes] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Get shared shifts with selected colleague
@@ -634,7 +640,8 @@ function DipendenteView({ currentUser, questions, colleagues, users, onSubmit, s
       const responseData = questions.map(q => ({
         metric_id: q.id,
         metric_name: q.metric_name,
-        score: parseInt(answers[q.id])
+        score: parseInt(answers[q.id]),
+        note: notes[q.id] || ''
       }));
 
       const lastSentDate = feedbackConfig[0]?.last_sent_date;
@@ -657,6 +664,7 @@ function DipendenteView({ currentUser, questions, colleagues, users, onSubmit, s
       alert('✅ Feedback inviato con successo!');
       setSelectedColleague(null);
       setAnswers({});
+      setNotes({});
     } catch (error) {
       console.error('Errore invio feedback:', error);
       alert('❌ Errore durante l\'invio del feedback. Riprova.');
@@ -820,7 +828,7 @@ function DipendenteView({ currentUser, questions, colleagues, users, onSubmit, s
           </div>
 
           {questions.map(q => (
-            <div key={q.id}>
+            <div key={q.id} className="neumorphic-flat p-4 rounded-xl">
               <label className="text-sm font-medium text-slate-700 mb-2 block">
                 {q.metric_name}
                 {q.metric_description && (
@@ -843,9 +851,18 @@ function DipendenteView({ currentUser, questions, colleagues, users, onSubmit, s
                   </button>
                 ))}
               </div>
-              <div className="flex justify-between mt-1 px-1">
+              <div className="flex justify-between mt-1 px-1 mb-3">
                 <span className="text-xs text-slate-500">Basso</span>
                 <span className="text-xs text-slate-500">Eccellente</span>
+              </div>
+              <div>
+                <input
+                  type="text"
+                  value={notes[q.id] || ''}
+                  onChange={(e) => setNotes({ ...notes, [q.id]: e.target.value })}
+                  placeholder="Note (opzionale)"
+                  className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm"
+                />
               </div>
             </div>
           ))}

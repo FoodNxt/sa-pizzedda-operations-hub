@@ -39,10 +39,12 @@ export default function OreLavorate() {
       s.employee_name?.toLowerCase().trim() === userDisplayName
     );
     
-    // Remove duplicates based on date + scheduled start/end
+    // Remove duplicates based on date + scheduled start time only (same start time = duplicate)
     const seen = new Set();
     const uniqueShifts = userShifts.filter(s => {
-      const key = `${s.shift_date}_${s.scheduled_start}_${s.scheduled_end}`;
+      // Extract just the time part from scheduled_start for comparison
+      const startTime = s.scheduled_start ? new Date(s.scheduled_start).toTimeString().slice(0, 5) : '';
+      const key = `${s.shift_date}_${startTime}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;

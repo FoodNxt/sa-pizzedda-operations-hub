@@ -53,9 +53,8 @@ export default function Preparazioni() {
 
   const tipiPreparazione = [
     'Salsiccia',
-    'Crema di Gorgonzola',
-    'Crema di pecorino',
-    'Patate'
+    'Patate',
+    'Zucca'
   ];
 
   const addPreparazione = () => {
@@ -146,16 +145,6 @@ export default function Preparazioni() {
           </div>
         </NeumorphicCard>
       )}
-
-      <NeumorphicCard className="p-6 text-center">
-        <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-          <Package className="w-8 h-8 text-[#8b7355]" />
-        </div>
-        <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">
-          {totalOggi}
-        </h3>
-        <p className="text-sm text-[#9b9b9b]">Preparazioni Oggi</p>
-      </NeumorphicCard>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <NeumorphicCard className="p-6">

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Package, Save, MapPin, Search } from 'lucide-react';
+import { Package, Save, MapPin, Search, AlertCircle, Info } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 
@@ -126,8 +126,23 @@ export default function InventarioStoreManager() {
         <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
           Inventario Store Manager
         </h1>
-        <p className="text-sm text-slate-500">Inventario completo - Negozio e Cantina</p>
+        <p className="text-sm text-slate-500">Inventario preciso - Negozio e Cantina</p>
       </div>
+
+      <NeumorphicCard className="p-4 bg-orange-50 border-2 border-orange-300 mb-4">
+        <div className="flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-orange-800">
+            <p className="font-bold mb-1">⚠️ IMPORTANTE - Inventario Preciso</p>
+            <p className="text-xs">
+              Conta le <strong>singole unità</strong> di ogni prodotto, NON le confezioni/casse intere.
+            </p>
+            <p className="text-xs mt-1">
+              Esempio: se hai 2 casse da 6 bottiglie ciascuna, inserisci <strong>12</strong> (non 2).
+            </p>
+          </div>
+        </div>
+      </NeumorphicCard>
 
       <NeumorphicCard className="p-6">
         <div className="space-y-4">
@@ -215,14 +230,21 @@ export default function InventarioStoreManager() {
                             <p className="text-xs text-slate-500">
                               Min: {prodotto.store_specific_min_quantities?.[selectedStore] || prodotto.quantita_minima} {prodotto.unita_misura}
                             </p>
+                            {prodotto.unita_per_confezione && (
+                              <p className="text-xs text-blue-600 mt-1">
+                                <Info className="w-3 h-3 inline mr-1" />
+                                Conta singole unità (1 conf = {prodotto.unita_per_confezione} unità)
+                              </p>
+                            )}
                           </div>
                           <div className="w-32">
                             <input
                               type="number"
-                              step="0.01"
+                              step={['kg', 'litri', 'grammi', 'ml'].includes(prodotto.unita_misura) ? '0.01' : '1'}
+                              min="0"
                               value={quantities[prodotto.id] || ''}
                               onChange={(e) => handleQuantityChange(prodotto.id, e.target.value)}
-                              placeholder="Qtà"
+                              placeholder="Unità"
                               className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm"
                             />
                           </div>
