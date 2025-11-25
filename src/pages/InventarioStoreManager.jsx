@@ -197,14 +197,21 @@ export default function InventarioStoreManager() {
                             <p className="text-xs text-slate-500">
                               Min: {prodotto.store_specific_min_quantities?.[selectedStore] || prodotto.quantita_minima} {prodotto.unita_misura}
                             </p>
+                            {prodotto.unita_per_confezione && (
+                              <p className="text-xs text-blue-600 mt-1">
+                                <Info className="w-3 h-3 inline mr-1" />
+                                Conta singole unità (1 conf = {prodotto.unita_per_confezione} unità)
+                              </p>
+                            )}
                           </div>
                           <div className="w-32">
                             <input
                               type="number"
-                              step="0.01"
+                              step={['kg', 'litri', 'grammi', 'ml'].includes(prodotto.unita_misura) ? '0.01' : '1'}
+                              min="0"
                               value={quantities[prodotto.id] || ''}
                               onChange={(e) => handleQuantityChange(prodotto.id, e.target.value)}
-                              placeholder="Qtà"
+                              placeholder="Unità"
                               className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm"
                             />
                           </div>
