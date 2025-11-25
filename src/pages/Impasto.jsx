@@ -75,7 +75,7 @@ export default function Impasto() {
               {stores
                 .filter(store => {
                   if (user?.user_type === 'admin' || user?.user_type === 'manager') return true;
-                  if (!user?.assigned_stores || user.assigned_stores.length === 0) return true;
+                  if (!user?.assigned_stores || user.assigned_stores.length === 0) return false;
                   return user.assigned_stores.includes(store.id);
                 })
                 .map(store => (
