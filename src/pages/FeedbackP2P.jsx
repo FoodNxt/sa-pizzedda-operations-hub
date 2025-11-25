@@ -335,61 +335,11 @@ export default function FeedbackP2P() {
             )}
 
             {activeTab === 'responses' && (
-              <div className="space-y-3">
-                {responses.length === 0 ? (
-                  <div className="text-center py-12">
-                    <CheckCircle className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                    <p className="text-slate-500">Nessuna risposta ricevuta</p>
-                  </div>
-                ) : (
-                  responses.map(r => (
-                    <NeumorphicCard key={r.id} className="p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <p className="font-bold text-slate-800">{r.reviewer_name}</p>
-                          <p className="text-xs text-slate-500">ha valutato {r.reviewed_name}</p>
-                        </div>
-                        <span className="text-xs text-slate-500">
-                          {(() => {
-                            try {
-                              return new Date(r.submitted_date).toLocaleDateString('it-IT');
-                            } catch (e) {
-                              return 'N/A';
-                            }
-                          })()}
-                        </span>
-                      </div>
-                      <div className="space-y-1">
-                       {r.responses?.map((resp, idx) => (
-                         <div key={idx} className="flex items-center justify-between">
-                           <span className="text-xs text-slate-600">{resp.metric_name || resp.question_text}:</span>
-                           <div className="flex items-center gap-1">
-                             {[...Array(5)].map((_, i) => (
-                               <Star
-                                 key={i}
-                                 className={`w-3 h-3 ${
-                                   i < (resp.score || 0)
-                                     ? 'text-yellow-500 fill-yellow-500'
-                                     : 'text-gray-300'
-                                 }`}
-                               />
-                             ))}
-                             <span className="text-xs font-bold text-slate-800 ml-1">
-                               {resp.score || resp.answer}
-                             </span>
-                             {resp.note && (
-                               <span className="text-xs text-slate-500 ml-2 italic">
-                                 "{resp.note}"
-                               </span>
-                             )}
-                           </div>
-                         </div>
-                       ))}
-                      </div>
-                    </NeumorphicCard>
-                  ))
-                )}
-              </div>
+              <ResponsesTab 
+                responses={responses} 
+                users={users}
+                questions={questions}
+              />
             )}
 
             {activeTab === 'sent' && (
@@ -895,6 +845,300 @@ function DipendenteView({ currentUser, questions, colleagues, users, onSubmit, s
         </form>
       )}
     </NeumorphicCard>
+  );
+}
+
+function ResponsesTab({ responses, users, questions }) {
+  const [viewMode, setViewMode] = useState('singole'); // 'singole' or 'dipendente'
+  const [selectedDipendente, setSelectedDipendente] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(null);
+
+  // Calculate average score for a single response
+  const getResponseAverage = (response) => {
+    if (!response.responses || response.responses.length === 0) return 0;
+    const total = response.responses.reduce((sum, r) => sum + (r.score || 0), 0);
+    return (total / response.responses.length).toFixed(1);
+  };
+
+  // Get unique reviewed employees with their stats
+  const reviewedEmployees = useMemo(() => {
+    const employeeMap = {};
+    
+    responses.forEach(r => {
+      const name = r.reviewed_name;
+      if (!employeeMap[name]) {
+        employeeMap[name] = {
+          name,
+          reviewed_id: r.reviewed_id,
+          totalResponses: 0,
+          metricTotals: {},
+          metricCounts: {},
+          allFeedback: []
+        };
+      }
+      
+      employeeMap[name].totalResponses++;
+      employeeMap[name].allFeedback.push(r);
+      
+      r.responses?.forEach(resp => {
+        const metricName = resp.metric_name || resp.question_text || 'Unknown';
+        if (!employeeMap[name].metricTotals[metricName]) {
+          employeeMap[name].metricTotals[metricName] = 0;
+          employeeMap[name].metricCounts[metricName] = 0;
+        }
+        employeeMap[name].metricTotals[metricName] += resp.score || 0;
+        employeeMap[name].metricCounts[metricName]++;
+      });
+    });
+
+    // Calculate averages
+    Object.values(employeeMap).forEach(emp => {
+      emp.metricAverages = {};
+      let totalSum = 0;
+      let totalCount = 0;
+      
+      Object.keys(emp.metricTotals).forEach(metric => {
+        emp.metricAverages[metric] = (emp.metricTotals[metric] / emp.metricCounts[metric]).toFixed(1);
+        totalSum += emp.metricTotals[metric];
+        totalCount += emp.metricCounts[metric];
+      });
+      
+      emp.overallAverage = totalCount > 0 ? (totalSum / totalCount).toFixed(1) : '0';
+    });
+
+    return Object.values(employeeMap).sort((a, b) => b.overallAverage - a.overallAverage);
+  }, [responses]);
+
+  if (viewMode === 'singole') {
+    return (
+      <div className="space-y-4">
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setViewMode('singole')}
+            className="px-4 py-2 rounded-xl font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg"
+          >
+            Risposte Singole
+          </button>
+          <button
+            onClick={() => setViewMode('dipendente')}
+            className="px-4 py-2 rounded-xl font-medium nav-button text-slate-700"
+          >
+            Per Dipendente
+          </button>
+        </div>
+
+        {responses.length === 0 ? (
+          <div className="text-center py-12">
+            <CheckCircle className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+            <p className="text-slate-500">Nessuna risposta ricevuta</p>
+          </div>
+        ) : (
+          responses.map(r => {
+            const avgScore = getResponseAverage(r);
+            return (
+              <NeumorphicCard key={r.id} className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex-1">
+                    <p className="font-bold text-slate-800">{r.reviewer_name}</p>
+                    <p className="text-xs text-slate-500">ha valutato {r.reviewed_name}</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-lg font-bold text-blue-600">{avgScore}</span>
+                      <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                    </div>
+                    <span className="text-xs text-slate-500">
+                      {(() => {
+                        try {
+                          return new Date(r.submitted_date).toLocaleDateString('it-IT');
+                        } catch (e) {
+                          return 'N/A';
+                        }
+                      })()}
+                    </span>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                 {r.responses?.map((resp, idx) => (
+                   <div key={idx} className="flex items-center justify-between">
+                     <span className="text-xs text-slate-600">{resp.metric_name || resp.question_text}:</span>
+                     <div className="flex items-center gap-1">
+                       {[...Array(5)].map((_, i) => (
+                         <Star
+                           key={i}
+                           className={`w-3 h-3 ${
+                             i < (resp.score || 0)
+                               ? 'text-yellow-500 fill-yellow-500'
+                               : 'text-gray-300'
+                           }`}
+                         />
+                       ))}
+                       <span className="text-xs font-bold text-slate-800 ml-1">
+                         {resp.score || resp.answer}
+                       </span>
+                       {resp.note && (
+                         <span className="text-xs text-slate-500 ml-2 italic">
+                           "{resp.note}"
+                         </span>
+                       )}
+                     </div>
+                   </div>
+                 ))}
+                </div>
+              </NeumorphicCard>
+            );
+          })
+        )}
+      </div>
+    );
+  }
+
+  // Dipendente view
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={() => setViewMode('singole')}
+          className="px-4 py-2 rounded-xl font-medium nav-button text-slate-700"
+        >
+          Risposte Singole
+        </button>
+        <button
+          onClick={() => setViewMode('dipendente')}
+          className="px-4 py-2 rounded-xl font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg"
+        >
+          Per Dipendente
+        </button>
+      </div>
+
+      {reviewedEmployees.length === 0 ? (
+        <div className="text-center py-12">
+          <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+          <p className="text-slate-500">Nessun feedback ricevuto</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {reviewedEmployees.map(emp => (
+            <NeumorphicCard key={emp.name} className="p-4">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <h3 className="font-bold text-slate-800 text-lg">{emp.name}</h3>
+                  <p className="text-sm text-slate-500">{emp.totalResponses} valutazioni ricevute</p>
+                </div>
+                <div className="text-right">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl font-bold text-blue-600">{emp.overallAverage}</span>
+                    <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
+                  </div>
+                  <p className="text-xs text-slate-500">Media totale</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
+                {Object.entries(emp.metricAverages).map(([metric, avg]) => (
+                  <div key={metric} className="neumorphic-pressed p-3 rounded-xl">
+                    <p className="text-xs text-slate-500 mb-1 truncate" title={metric}>{metric}</p>
+                    <div className="flex items-center gap-1">
+                      <span className="text-lg font-bold text-slate-800">{avg}</span>
+                      <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <NeumorphicButton
+                onClick={() => setShowDetailModal(emp)}
+                className="w-full flex items-center justify-center gap-2"
+              >
+                <Eye className="w-4 h-4" />
+                Vedi tutti i feedback
+              </NeumorphicButton>
+            </NeumorphicCard>
+          ))}
+        </div>
+      )}
+
+      {/* Detail Modal */}
+      {showDetailModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <NeumorphicCard className="max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-800">{showDetailModal.name}</h2>
+                <p className="text-sm text-slate-500">{showDetailModal.totalResponses} valutazioni ricevute</p>
+              </div>
+              <button
+                onClick={() => setShowDetailModal(null)}
+                className="nav-button p-2 rounded-lg"
+              >
+                <X className="w-5 h-5 text-slate-600" />
+              </button>
+            </div>
+
+            <div className="neumorphic-pressed p-4 rounded-xl mb-6 text-center">
+              <p className="text-sm text-slate-500 mb-2">Media Totale</p>
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-4xl font-bold text-blue-600">{showDetailModal.overallAverage}</span>
+                <Star className="w-8 h-8 text-yellow-500 fill-yellow-500" />
+              </div>
+            </div>
+
+            <h3 className="text-lg font-bold text-slate-800 mb-4">Tutti i Feedback Ricevuti</h3>
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {showDetailModal.allFeedback.map((fb, idx) => {
+                const avgScore = getResponseAverage(fb);
+                return (
+                  <div key={idx} className="neumorphic-flat p-4 rounded-xl">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="font-medium text-slate-800">Da: {fb.reviewer_name}</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-blue-600">{avgScore}</span>
+                        <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-500 mb-2">
+                      {(() => {
+                        try {
+                          return new Date(fb.submitted_date).toLocaleDateString('it-IT', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric'
+                          });
+                        } catch (e) {
+                          return 'N/A';
+                        }
+                      })()}
+                    </p>
+                    <div className="space-y-1">
+                      {fb.responses?.map((resp, i) => (
+                        <div key={i} className="flex items-center justify-between text-sm">
+                          <span className="text-slate-600">{resp.metric_name || resp.question_text}:</span>
+                          <div className="flex items-center gap-1">
+                            {[...Array(5)].map((_, j) => (
+                              <Star
+                                key={j}
+                                className={`w-3 h-3 ${
+                                  j < (resp.score || 0)
+                                    ? 'text-yellow-500 fill-yellow-500'
+                                    : 'text-gray-300'
+                                }`}
+                              />
+                            ))}
+                            {resp.note && (
+                              <span className="text-xs text-slate-500 ml-2 italic">"{resp.note}"</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </NeumorphicCard>
+        </div>
+      )}
+    </div>
   );
 }
 
