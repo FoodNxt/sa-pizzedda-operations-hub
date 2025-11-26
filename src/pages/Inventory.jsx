@@ -409,111 +409,199 @@ export default function Inventory() {
 
         {/* History Tab */}
         {activeTab === 'history' && (
-          <NeumorphicCard className="p-4 lg:p-6">
-            <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-              <History className="w-5 h-5" />
-              Storico Rilevazioni Inventario
-            </h2>
-            
-            {/* Product selector for history */}
-            <div className="mb-4">
-              <select
-                value={historyProduct || ''}
-                onChange={(e) => setHistoryProduct(e.target.value || null)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-              >
-                <option value="">Seleziona un prodotto per vedere lo storico...</option>
-                {products.filter(p => p.attivo !== false).map(p => (
-                  <option key={p.id} value={p.id}>{p.nome_prodotto} ({p.fornitore || 'N/D'})</option>
-                ))}
-              </select>
-            </div>
+          <div className="space-y-6">
+            {/* Product History */}
+            <NeumorphicCard className="p-4 lg:p-6">
+              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <Package className="w-5 h-5" />
+                Storico per Prodotto
+              </h2>
+              
+              {/* Product selector for history */}
+              <div className="mb-4">
+                <select
+                  value={historyProduct || ''}
+                  onChange={(e) => setHistoryProduct(e.target.value || null)}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                >
+                  <option value="">Seleziona un prodotto per vedere lo storico...</option>
+                  {products.filter(p => p.attivo !== false).map(p => (
+                    <option key={p.id} value={p.id}>{p.nome_prodotto} ({p.fornitore || 'N/D'})</option>
+                  ))}
+                </select>
+              </div>
 
-            {historyProduct && (
-              <div className="space-y-4">
-                {/* Chart */}
-                <div className="neumorphic-flat p-4 rounded-xl">
-                  <h3 className="font-bold text-slate-800 mb-4">Andamento Quantità</h3>
-                  <div className="w-full overflow-x-auto">
-                    <div style={{ minWidth: '300px' }}>
-                      <ResponsiveContainer width="100%" height={250}>
-                        <LineChart data={getFullProductHistory(historyProduct).slice(0, 30).reverse().map(item => ({
-                          date: format(parseISO(item.data_rilevazione), 'dd/MM', { locale: it }),
-                          quantita: item.quantita_rilevata,
-                          store: stores.find(s => s.id === item.store_id)?.name || 'N/D'
-                        }))}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
-                          <XAxis dataKey="date" stroke="#64748b" tick={{ fontSize: 11 }} />
-                          <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
-                          <Tooltip 
-                            contentStyle={{ 
-                              background: 'rgba(248, 250, 252, 0.95)', 
-                              border: 'none',
-                              borderRadius: '12px',
-                              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                              fontSize: '11px'
-                            }}
-                          />
-                          <Legend wrapperStyle={{ fontSize: '11px' }} />
-                          <Line 
-                            type="monotone" 
-                            dataKey="quantita" 
-                            stroke="#3b82f6" 
-                            strokeWidth={3}
-                            name="Quantità"
-                            dot={{ fill: '#3b82f6', r: 4 }}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
+              {historyProduct && (
+                <div className="space-y-4">
+                  {/* Chart */}
+                  <div className="neumorphic-flat p-4 rounded-xl">
+                    <h3 className="font-bold text-slate-800 mb-4">Andamento Quantità</h3>
+                    <div className="w-full overflow-x-auto">
+                      <div style={{ minWidth: '300px' }}>
+                        <ResponsiveContainer width="100%" height={250}>
+                          <LineChart data={getFullProductHistory(historyProduct).slice(0, 30).reverse().map(item => ({
+                            date: format(parseISO(item.data_rilevazione), 'dd/MM', { locale: it }),
+                            quantita: item.quantita_rilevata,
+                            store: stores.find(s => s.id === item.store_id)?.name || 'N/D'
+                          }))}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                            <XAxis dataKey="date" stroke="#64748b" tick={{ fontSize: 11 }} />
+                            <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
+                            <Tooltip 
+                              contentStyle={{ 
+                                background: 'rgba(248, 250, 252, 0.95)', 
+                                border: 'none',
+                                borderRadius: '12px',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                fontSize: '11px'
+                              }}
+                            />
+                            <Legend wrapperStyle={{ fontSize: '11px' }} />
+                            <Line 
+                              type="monotone" 
+                              dataKey="quantita" 
+                              stroke="#3b82f6" 
+                              strokeWidth={3}
+                              name="Quantità"
+                              dot={{ fill: '#3b82f6', r: 4 }}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* History table */}
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[600px]">
-                    <thead>
-                      <tr className="border-b-2 border-blue-600">
-                        <th className="text-left p-3 text-slate-600 font-medium text-sm">Data</th>
-                        <th className="text-left p-3 text-slate-600 font-medium text-sm">Locale</th>
-                        <th className="text-right p-3 text-slate-600 font-medium text-sm">Quantità</th>
-                        <th className="text-left p-3 text-slate-600 font-medium text-sm">Rilevato da</th>
-                        <th className="text-left p-3 text-slate-600 font-medium text-sm">Note</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {getFullProductHistory(historyProduct).slice(0, 50).map((item, idx) => (
-                        <tr key={idx} className="border-b border-slate-200 hover:bg-slate-50">
-                          <td className="p-3 text-sm text-slate-700">
-                            {format(parseISO(item.data_rilevazione), 'dd/MM/yyyy HH:mm', { locale: it })}
-                          </td>
-                          <td className="p-3 text-sm text-slate-700">
-                            {stores.find(s => s.id === item.store_id)?.name || item.store_name || 'N/D'}
-                          </td>
-                          <td className="p-3 text-sm text-right font-bold text-blue-600">
-                            {item.quantita_rilevata} {item.unita_misura}
-                          </td>
-                          <td className="p-3 text-sm text-slate-700">
-                            {item.rilevato_da || 'N/D'}
-                          </td>
-                          <td className="p-3 text-sm text-slate-500">
-                            {item.note || '-'}
-                          </td>
+                  {/* History table */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[600px]">
+                      <thead>
+                        <tr className="border-b-2 border-blue-600">
+                          <th className="text-left p-3 text-slate-600 font-medium text-sm">Data</th>
+                          <th className="text-left p-3 text-slate-600 font-medium text-sm">Locale</th>
+                          <th className="text-right p-3 text-slate-600 font-medium text-sm">Quantità</th>
+                          <th className="text-left p-3 text-slate-600 font-medium text-sm">Rilevato da</th>
+                          <th className="text-left p-3 text-slate-600 font-medium text-sm">Note</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {getFullProductHistory(historyProduct).slice(0, 50).map((item, idx) => (
+                          <tr key={idx} className="border-b border-slate-200 hover:bg-slate-50">
+                            <td className="p-3 text-sm text-slate-700">
+                              {format(parseISO(item.data_rilevazione), 'dd/MM/yyyy HH:mm', { locale: it })}
+                            </td>
+                            <td className="p-3 text-sm text-slate-700">
+                              {stores.find(s => s.id === item.store_id)?.name || item.store_name || 'N/D'}
+                            </td>
+                            <td className="p-3 text-sm text-right font-bold text-blue-600">
+                              {item.quantita_rilevata} {item.unita_misura}
+                            </td>
+                            <td className="p-3 text-sm text-slate-700">
+                              {item.rilevato_da || 'N/D'}
+                            </td>
+                            <td className="p-3 text-sm text-slate-500">
+                              {item.note || '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {!historyProduct && (
-              <div className="text-center py-12 text-slate-500">
-                <History className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                <p>Seleziona un prodotto per visualizzare lo storico delle rilevazioni</p>
-              </div>
-            )}
-          </NeumorphicCard>
+              {!historyProduct && (
+                <div className="text-center py-8 text-slate-500">
+                  <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">Seleziona un prodotto per visualizzare lo storico</p>
+                </div>
+              )}
+            </NeumorphicCard>
+
+            {/* All Form Completions */}
+            <NeumorphicCard className="p-4 lg:p-6">
+              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <History className="w-5 h-5" />
+                Form Inventario Completati
+              </h2>
+              
+              {(() => {
+                // Group all inventory by date/user/store to show form completions
+                const allInventory = [...inventory, ...inventoryCantina];
+                const formCompletions = {};
+                
+                allInventory.forEach(item => {
+                  // Group by date (rounded to minute), store, and user
+                  const dateKey = format(parseISO(item.data_rilevazione), 'yyyy-MM-dd HH:mm');
+                  const key = `${dateKey}-${item.store_id}-${item.rilevato_da}`;
+                  
+                  if (!formCompletions[key]) {
+                    formCompletions[key] = {
+                      data: item.data_rilevazione,
+                      store_id: item.store_id,
+                      store_name: item.store_name || stores.find(s => s.id === item.store_id)?.name || 'N/D',
+                      rilevato_da: item.rilevato_da || 'N/D',
+                      prodotti: [],
+                      isCantina: inventoryCantina.some(c => c.id === item.id)
+                    };
+                  }
+                  formCompletions[key].prodotti.push(item);
+                });
+                
+                const sortedCompletions = Object.values(formCompletions)
+                  .sort((a, b) => new Date(b.data) - new Date(a.data))
+                  .filter(fc => selectedStore === 'all' || fc.store_id === selectedStore)
+                  .slice(0, 50);
+                
+                if (sortedCompletions.length === 0) {
+                  return (
+                    <div className="text-center py-8 text-slate-500">
+                      <History className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                      <p className="text-sm">Nessun form inventario completato</p>
+                    </div>
+                  );
+                }
+                
+                return (
+                  <div className="space-y-3">
+                    {sortedCompletions.map((completion, idx) => (
+                      <div key={idx} className="neumorphic-pressed p-4 rounded-xl">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-slate-800">{completion.store_name}</span>
+                              {completion.isCantina && (
+                                <span className="px-2 py-0.5 rounded-full text-xs bg-purple-100 text-purple-700">Cantina</span>
+                              )}
+                            </div>
+                            <p className="text-sm text-slate-500">
+                              {format(parseISO(completion.data), 'dd/MM/yyyy HH:mm', { locale: it })}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-medium text-slate-700">{completion.rilevato_da}</p>
+                            <p className="text-xs text-slate-500">{completion.prodotti.length} prodotti</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {completion.prodotti.slice(0, 5).map((prod, pIdx) => (
+                            <span key={pIdx} className="px-2 py-1 rounded-lg text-xs bg-slate-100 text-slate-600">
+                              {prod.nome_prodotto}: {prod.quantita_rilevata}
+                            </span>
+                          ))}
+                          {completion.prodotti.length > 5 && (
+                            <span className="px-2 py-1 rounded-lg text-xs bg-blue-100 text-blue-700">
+                              +{completion.prodotti.length - 5} altri
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </NeumorphicCard>
+          </div>
         )}
 
         {/* Orders Tab */}
