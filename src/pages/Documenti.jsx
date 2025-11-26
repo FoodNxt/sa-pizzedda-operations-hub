@@ -8,10 +8,79 @@ import {
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
+import { isValid } from 'date-fns';
 
 export default function Documenti() {
   const [activeTab, setActiveTab] = useState('contratti');
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
+  useEffect(() => {
+    base44.auth.me().then(user => {
+      setCurrentUser(user);
+      const normalizedType = user.user_type === 'user' ? 'dipendente' : user.user_type;
+      setIsAdmin(normalizedType === 'admin' || normalizedType === 'manager');
+    });
+  }, []);
+
+  if (!currentUser) {
+    return (
+      <ProtectedPage pageName="Documenti">
+        <div className="max-w-7xl mx-auto p-8 text-center">
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        </div>
+      </ProtectedPage>
+    );
+  }
+
+  // Vista Dipendente
+  if (!isAdmin) {
+    return (
+      <ProtectedPage pageName="Documenti">
+        <div className="max-w-2xl mx-auto space-y-4">
+          <div className="mb-4">
+            <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
+              I Miei Documenti
+            </h1>
+            <p className="text-sm text-slate-500">Contratti, lettere e regolamenti</p>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab('contratti')}
+              className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all text-sm ${
+                activeTab === 'contratti' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'nav-button text-slate-700'
+              }`}
+            >
+              Contratti
+            </button>
+            <button
+              onClick={() => setActiveTab('lettere')}
+              className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all text-sm ${
+                activeTab === 'lettere' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'nav-button text-slate-700'
+              }`}
+            >
+              Lettere
+            </button>
+            <button
+              onClick={() => setActiveTab('regolamento')}
+              className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all text-sm ${
+                activeTab === 'regolamento' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'nav-button text-slate-700'
+              }`}
+            >
+              Regolamento
+            </button>
+          </div>
+
+          {activeTab === 'contratti' && <DipendenteContrattiSection currentUser={currentUser} />}
+          {activeTab === 'lettere' && <DipendenteLettereSection currentUser={currentUser} />}
+          {activeTab === 'regolamento' && <DipendenteRegolamentoSection currentUser={currentUser} />}
+        </div>
+      </ProtectedPage>
+    );
+  }
+
+  // Vista Admin
   return (
     <ProtectedPage pageName="Documenti">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -59,6 +128,429 @@ export default function Documenti() {
     </ProtectedPage>
   );
 }
+
+// ============= DIPENDENTE VIEWS =============
+
+function DipendenteContrattiSection({ currentUser }) {
+  const [viewingContract, setViewingContract] = useState(null);
+  const [signatureName, setSignatureName] = useState(currentUser?.nome_cognome || currentUser?.full_name || '');
+  const queryClient = useQueryClient();
+
+  const { data: contratti = [], isLoading } = useQuery({
+    queryKey: ['miei-contratti', currentUser?.id],
+    queryFn: () => base44.entities.Contratto.filter({ user_id: currentUser.id }),
+    enabled: !!currentUser,
+  });
+
+  const signMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Contratto.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['miei-contratti'] });
+      setViewingContract(null);
+      alert('Contratto firmato con successo!');
+    },
+  });
+
+  const handleSign = () => {
+    if (!signatureName.trim()) {
+      alert('Inserisci il tuo nome per firmare');
+      return;
+    }
+    if (!confirm('Confermi di aver letto e accettato il contratto?')) return;
+    
+    signMutation.mutate({
+      id: viewingContract.id,
+      data: { ...viewingContract, status: 'firmato', data_firma: new Date().toISOString(), firma_dipendente: signatureName.trim() }
+    });
+  };
+
+  const toSign = contratti.filter(c => c.status === 'inviato');
+  const signed = contratti.filter(c => c.status === 'firmato');
+
+  if (isLoading) return <NeumorphicCard className="p-8 text-center"><p>Caricamento...</p></NeumorphicCard>;
+
+  return (
+    <>
+      {toSign.length > 0 && (
+        <div>
+          <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+            <Edit className="w-5 h-5 text-orange-600" /> Da Firmare ({toSign.length})
+          </h2>
+          <div className="space-y-3">
+            {toSign.map(c => (
+              <NeumorphicCard key={c.id} className="p-4 border-2 border-orange-300">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className="font-bold text-slate-800">{c.template_nome}</h3>
+                    <p className="text-xs text-slate-500">{c.employee_group} - {c.ore_settimanali}h/sett</p>
+                  </div>
+                  <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold">Da Firmare</span>
+                </div>
+                <button onClick={() => setViewingContract(c)} className="w-full bg-gradient-to-r from-orange-500 to-red-600 px-4 py-3 rounded-xl text-white font-medium flex items-center justify-center gap-2">
+                  <Edit className="w-4 h-4" /> Visualizza e Firma
+                </button>
+              </NeumorphicCard>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {signed.length > 0 && (
+        <div>
+          <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+            <CheckCircle className="w-5 h-5 text-green-600" /> Firmati ({signed.length})
+          </h2>
+          <div className="space-y-3">
+            {signed.map(c => (
+              <NeumorphicCard key={c.id} className="p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-bold text-slate-800">{c.template_nome}</h3>
+                    <p className="text-xs text-slate-500">Firmato: {c.data_firma ? new Date(c.data_firma).toLocaleDateString('it-IT') : 'N/A'}</p>
+                  </div>
+                  <button onClick={() => setViewingContract(c)} className="nav-button p-2 rounded-lg">
+                    <Eye className="w-4 h-4 text-blue-600" />
+                  </button>
+                </div>
+              </NeumorphicCard>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {contratti.length === 0 && (
+        <NeumorphicCard className="p-8 text-center">
+          <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+          <p className="text-slate-500">Nessun contratto disponibile</p>
+        </NeumorphicCard>
+      )}
+
+      {viewingContract && (
+        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[60] p-0">
+          <div className="w-full h-full flex flex-col bg-white">
+            <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-lg flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-800">{viewingContract.template_nome}</h2>
+              <button onClick={() => setViewingContract(null)} className="nav-button p-2 rounded-lg"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 bg-white">
+              <div className="max-w-4xl mx-auto neumorphic-pressed p-6 rounded-xl">
+                <pre className="whitespace-pre-wrap text-sm text-slate-700 font-sans">{viewingContract.contenuto_contratto}</pre>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-2xl">
+              <div className="max-w-4xl mx-auto">
+                {viewingContract.status === 'inviato' ? (
+                  <div className="space-y-3">
+                    <input type="text" value={signatureName} onChange={(e) => setSignatureName(e.target.value)} placeholder="Nome e Cognome" className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
+                    <button onClick={handleSign} disabled={signMutation.isPending} className="w-full bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-4 rounded-xl text-white font-bold flex items-center justify-center gap-2">
+                      <CheckCircle className="w-6 h-6" /> {signMutation.isPending ? 'Firma in corso...' : 'Firma Contratto'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="neumorphic-pressed p-4 rounded-xl bg-green-50">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-6 h-6 text-green-600" />
+                      <div>
+                        <p className="font-medium text-green-800">Contratto Firmato</p>
+                        <p className="text-xs text-green-600">Firma: {viewingContract.firma_dipendente}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function DipendenteLettereSection({ currentUser }) {
+  const [viewingLettera, setViewingLettera] = useState(null);
+  const [signatureName, setSignatureName] = useState(currentUser?.nome_cognome || currentUser?.full_name || '');
+  const queryClient = useQueryClient();
+
+  const { data: lettere = [], isLoading } = useQuery({
+    queryKey: ['mie-lettere', currentUser?.id],
+    queryFn: () => base44.entities.LetteraRichiamo.filter({ user_id: currentUser.id }),
+    enabled: !!currentUser,
+  });
+
+  const signMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.LetteraRichiamo.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['mie-lettere'] });
+      setViewingLettera(null);
+      alert('Documento firmato con successo!');
+    },
+  });
+
+  const handleSign = () => {
+    if (!signatureName.trim()) {
+      alert('Inserisci il tuo nome per firmare');
+      return;
+    }
+    if (!confirm('Confermi di aver letto e preso visione del documento?')) return;
+    
+    signMutation.mutate({
+      id: viewingLettera.id,
+      data: { ...viewingLettera, status: 'firmata', data_firma: new Date().toISOString(), firma_dipendente: signatureName.trim() }
+    });
+  };
+
+  const toSign = lettere.filter(l => l.status === 'inviata');
+  const signed = lettere.filter(l => l.status === 'firmata');
+
+  const getTipoLabel = (tipo) => {
+    return tipo === 'lettera_richiamo' ? 'Lettera di Richiamo' : 'Chiusura Procedura';
+  };
+
+  if (isLoading) return <NeumorphicCard className="p-8 text-center"><p>Caricamento...</p></NeumorphicCard>;
+
+  return (
+    <>
+      {toSign.length > 0 && (
+        <div>
+          <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-orange-600" /> Da Firmare ({toSign.length})
+          </h2>
+          <div className="space-y-3">
+            {toSign.map(l => (
+              <NeumorphicCard key={l.id} className="p-4 border-2 border-orange-300">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className="font-bold text-slate-800">{getTipoLabel(l.tipo_lettera)}</h3>
+                    <p className="text-xs text-slate-500">Ricevuta: {l.data_invio ? new Date(l.data_invio).toLocaleDateString('it-IT') : 'N/A'}</p>
+                  </div>
+                  <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold">Da Firmare</span>
+                </div>
+                <button onClick={() => setViewingLettera(l)} className="w-full bg-gradient-to-r from-orange-500 to-red-600 px-4 py-3 rounded-xl text-white font-medium flex items-center justify-center gap-2">
+                  <Eye className="w-4 h-4" /> Visualizza e Firma
+                </button>
+              </NeumorphicCard>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {signed.length > 0 && (
+        <div>
+          <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+            <CheckCircle className="w-5 h-5 text-green-600" /> Firmati ({signed.length})
+          </h2>
+          <div className="space-y-3">
+            {signed.map(l => (
+              <NeumorphicCard key={l.id} className="p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-bold text-slate-800">{getTipoLabel(l.tipo_lettera)}</h3>
+                    <p className="text-xs text-slate-500">Firmato: {l.data_firma ? new Date(l.data_firma).toLocaleDateString('it-IT') : 'N/A'}</p>
+                  </div>
+                  <button onClick={() => setViewingLettera(l)} className="nav-button p-2 rounded-lg">
+                    <Eye className="w-4 h-4 text-blue-600" />
+                  </button>
+                </div>
+              </NeumorphicCard>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {lettere.length === 0 && (
+        <NeumorphicCard className="p-8 text-center">
+          <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+          <p className="text-slate-500">Nessuna lettera disponibile</p>
+        </NeumorphicCard>
+      )}
+
+      {viewingLettera && (
+        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[60] p-0">
+          <div className="w-full h-full flex flex-col bg-white">
+            <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-lg flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-800">{getTipoLabel(viewingLettera.tipo_lettera)}</h2>
+              <button onClick={() => setViewingLettera(null)} className="nav-button p-2 rounded-lg"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 bg-white">
+              <div className="max-w-4xl mx-auto neumorphic-pressed p-6 rounded-xl">
+                <pre className="whitespace-pre-wrap text-sm text-slate-700 font-sans">{viewingLettera.contenuto_lettera}</pre>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-2xl">
+              <div className="max-w-4xl mx-auto">
+                {viewingLettera.status === 'inviata' ? (
+                  <div className="space-y-3">
+                    <input type="text" value={signatureName} onChange={(e) => setSignatureName(e.target.value)} placeholder="Nome e Cognome" className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
+                    <button onClick={handleSign} disabled={signMutation.isPending} className="w-full bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-4 rounded-xl text-white font-bold flex items-center justify-center gap-2">
+                      <CheckCircle className="w-6 h-6" /> {signMutation.isPending ? 'Firma in corso...' : 'Firma per Presa Visione'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="neumorphic-pressed p-4 rounded-xl bg-green-50">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-6 h-6 text-green-600" />
+                      <div>
+                        <p className="font-medium text-green-800">Documento Firmato</p>
+                        <p className="text-xs text-green-600">Firma: {viewingLettera.firma_dipendente}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function DipendenteRegolamentoSection({ currentUser }) {
+  const [viewingRegolamento, setViewingRegolamento] = useState(null);
+  const [signatureName, setSignatureName] = useState(currentUser?.nome_cognome || currentUser?.full_name || '');
+  const queryClient = useQueryClient();
+
+  const { data: firme = [], isLoading } = useQuery({
+    queryKey: ['mie-firme-regolamento', currentUser?.id],
+    queryFn: () => base44.entities.RegolamentoFirmato.filter({ user_id: currentUser.id }),
+    enabled: !!currentUser,
+  });
+
+  const { data: regolamenti = [] } = useQuery({
+    queryKey: ['regolamenti-attivi'],
+    queryFn: () => base44.entities.RegolamentoDipendenti.list('-versione'),
+  });
+
+  const signMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.RegolamentoFirmato.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['mie-firme-regolamento'] });
+      setViewingRegolamento(null);
+      alert('Regolamento firmato con successo!');
+    },
+  });
+
+  const handleSign = () => {
+    if (!signatureName.trim()) {
+      alert('Inserisci il tuo nome per firmare');
+      return;
+    }
+    if (!confirm('Confermi di aver letto e accettato il regolamento?')) return;
+    
+    signMutation.mutate({
+      id: viewingRegolamento.id,
+      data: { ...viewingRegolamento, firmato: true, data_firma: new Date().toISOString(), firma_dipendente: signatureName.trim() }
+    });
+  };
+
+  const getRegolamentoContent = (regolamentoId) => {
+    const reg = regolamenti.find(r => r.id === regolamentoId);
+    return reg?.contenuto || 'Contenuto non disponibile';
+  };
+
+  const toSign = firme.filter(f => !f.firmato);
+  const signed = firme.filter(f => f.firmato);
+
+  if (isLoading) return <NeumorphicCard className="p-8 text-center"><p>Caricamento...</p></NeumorphicCard>;
+
+  return (
+    <>
+      {toSign.length > 0 && (
+        <div>
+          <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+            <BookOpen className="w-5 h-5 text-orange-600" /> Da Firmare ({toSign.length})
+          </h2>
+          <div className="space-y-3">
+            {toSign.map(f => (
+              <NeumorphicCard key={f.id} className="p-4 border-2 border-orange-300">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className="font-bold text-slate-800">Regolamento Dipendenti v{f.versione}</h3>
+                    <p className="text-xs text-slate-500">Ricevuto: {f.created_date ? new Date(f.created_date).toLocaleDateString('it-IT') : 'N/A'}</p>
+                  </div>
+                  <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold">Da Firmare</span>
+                </div>
+                <button onClick={() => setViewingRegolamento(f)} className="w-full bg-gradient-to-r from-orange-500 to-red-600 px-4 py-3 rounded-xl text-white font-medium flex items-center justify-center gap-2">
+                  <Eye className="w-4 h-4" /> Visualizza e Firma
+                </button>
+              </NeumorphicCard>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {signed.length > 0 && (
+        <div>
+          <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+            <CheckCircle className="w-5 h-5 text-green-600" /> Firmati ({signed.length})
+          </h2>
+          <div className="space-y-3">
+            {signed.map(f => (
+              <NeumorphicCard key={f.id} className="p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-bold text-slate-800">Regolamento v{f.versione}</h3>
+                    <p className="text-xs text-slate-500">Firmato: {f.data_firma ? new Date(f.data_firma).toLocaleDateString('it-IT') : 'N/A'}</p>
+                  </div>
+                  <button onClick={() => setViewingRegolamento(f)} className="nav-button p-2 rounded-lg">
+                    <Eye className="w-4 h-4 text-blue-600" />
+                  </button>
+                </div>
+              </NeumorphicCard>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {firme.length === 0 && (
+        <NeumorphicCard className="p-8 text-center">
+          <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+          <p className="text-slate-500">Nessun regolamento disponibile</p>
+        </NeumorphicCard>
+      )}
+
+      {viewingRegolamento && (
+        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[60] p-0">
+          <div className="w-full h-full flex flex-col bg-white">
+            <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-lg flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-800">Regolamento Dipendenti v{viewingRegolamento.versione}</h2>
+              <button onClick={() => setViewingRegolamento(null)} className="nav-button p-2 rounded-lg"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 bg-white">
+              <div className="max-w-4xl mx-auto neumorphic-pressed p-6 rounded-xl">
+                <pre className="whitespace-pre-wrap text-sm text-slate-700 font-sans">{getRegolamentoContent(viewingRegolamento.regolamento_id)}</pre>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-2xl">
+              <div className="max-w-4xl mx-auto">
+                {!viewingRegolamento.firmato ? (
+                  <div className="space-y-3">
+                    <input type="text" value={signatureName} onChange={(e) => setSignatureName(e.target.value)} placeholder="Nome e Cognome" className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
+                    <button onClick={handleSign} disabled={signMutation.isPending} className="w-full bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-4 rounded-xl text-white font-bold flex items-center justify-center gap-2">
+                      <CheckCircle className="w-6 h-6" /> {signMutation.isPending ? 'Firma in corso...' : 'Firma Regolamento'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="neumorphic-pressed p-4 rounded-xl bg-green-50">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-6 h-6 text-green-600" />
+                      <div>
+                        <p className="font-medium text-green-800">Regolamento Firmato</p>
+                        <p className="text-xs text-green-600">Firma: {viewingRegolamento.firma_dipendente}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ============= ADMIN VIEWS =============
 
 // Contratti Section
 function ContrattiSection() {
