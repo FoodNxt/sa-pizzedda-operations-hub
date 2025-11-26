@@ -24,9 +24,10 @@ export default function ControlloStoreManager() {
     queryKey: ['sm-inspections'],
     queryFn: async () => {
       const allInspections = await base44.entities.CleaningInspection.list('-inspection_date');
-      // Filter only inspections from Store Manager form
+      // Filter only inspections from Store Manager form (by role OR type for backward compatibility)
       return allInspections.filter(i => {
-        return i.inspector_role === 'Store Manager' && i.analysis_status === 'completed';
+        const isStoreManagerForm = i.inspector_role === 'Store Manager' || i.inspection_type === 'store_manager';
+        return isStoreManagerForm && i.analysis_status === 'completed';
       });
     },
   });

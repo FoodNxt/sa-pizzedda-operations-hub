@@ -21,7 +21,11 @@ export default function PulizieMatch() {
     queryFn: async () => {
       const allInspections = await base44.entities.CleaningInspection.list('-inspection_date');
       // Exclude Store Manager form inspections (they go to ControlloStoreManager page)
-      return allInspections.filter(i => i.inspector_role !== 'Store Manager');
+      // Filter by inspector_role OR inspection_type for backward compatibility
+      return allInspections.filter(i => 
+        i.inspector_role !== 'Store Manager' && 
+        i.inspection_type !== 'store_manager'
+      );
     },
   });
 
