@@ -151,16 +151,39 @@ export default function Ricette() {
       return;
     }
 
-    const materiaPrima = materiePrime.find(m => m.id === selectedIngredient);
-    if (!materiaPrima) return;
+    let newIngredient;
 
-    const newIngredient = {
-      materia_prima_id: materiaPrima.id,
-      nome_prodotto: materiaPrima.nome_prodotto,
-      quantita: parseFloat(ingredientQuantity),
-      unita_misura: ingredientUnit,
-      prezzo_unitario: materiaPrima.prezzo_unitario || 0
-    };
+    if (selectedIngredient.startsWith('mp_')) {
+      // Materia Prima
+      const id = selectedIngredient.replace('mp_', '');
+      const materiaPrima = materiePrime.find(m => m.id === id);
+      if (!materiaPrima) return;
+
+      newIngredient = {
+        materia_prima_id: materiaPrima.id,
+        nome_prodotto: materiaPrima.nome_prodotto,
+        quantita: parseFloat(ingredientQuantity),
+        unita_misura: ingredientUnit,
+        prezzo_unitario: materiaPrima.prezzo_unitario || 0,
+        is_semilavorato: false
+      };
+    } else if (selectedIngredient.startsWith('sl_')) {
+      // Semilavorato
+      const id = selectedIngredient.replace('sl_', '');
+      const semilavorato = ricette.find(r => r.id === id);
+      if (!semilavorato) return;
+
+      newIngredient = {
+        materia_prima_id: semilavorato.id,
+        nome_prodotto: semilavorato.nome_prodotto + ' (Semilavorato)',
+        quantita: parseFloat(ingredientQuantity),
+        unita_misura: ingredientUnit,
+        prezzo_unitario: semilavorato.costo_unitario || 0,
+        is_semilavorato: true
+      };
+    } else {
+      return;
+    }
 
     setFormData(prev => ({
       ...prev,
@@ -183,6 +206,14 @@ export default function Ricette() {
     let totalCost = 0;
 
     formData.ingredienti.forEach(ing => {
+      // Check if it's a semilavorato
+      if (ing.is_semilavorato) {
+        // For semilavorati, use the stored cost directly multiplied by quantity
+        // Assuming quantity is in "pezzi" or "unità" for semilavorati
+        totalCost += ing.quantita * (ing.prezzo_unitario || 0);
+        return;
+      }
+
       const materiaPrima = materiePrime.find(m => m.id === ing.materia_prima_id);
       if (!materiaPrima || !materiaPrima.prezzo_unitario) return;
 
@@ -502,14 +533,25 @@ export default function Ricette() {
                         className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                       >
                         <option value="">Seleziona ingrediente...</option>
-                        {materiePrime
-                          .filter(m => m.attivo !== false && m.prezzo_unitario)
-                          .map(mp => (
-                            <option key={mp.id} value={mp.id}>
-                              {mp.nome_prodotto} - €{mp.prezzo_unitario?.toFixed(2)}/{mp.unita_misura}
-                              {mp.peso_dimensione_unita ? ` (${mp.peso_dimensione_unita}${mp.unita_misura_peso})` : ''}
-                            </option>
-                          ))}
+                        <optgroup label="📦 Materie Prime">
+                          {materiePrime
+                            .filter(m => m.attivo !== false && m.prezzo_unitario)
+                            .map(mp => (
+                              <option key={mp.id} value={`mp_${mp.id}`}>
+                                {mp.nome_prodotto} - €{mp.prezzo_unitario?.toFixed(2)}/{mp.unita_misura}
+                                {mp.peso_dimensione_unita ? ` (${mp.peso_dimensione_unita}${mp.unita_misura_peso})` : ''}
+                              </option>
+                            ))}
+                        </optgroup>
+                        <optgroup label="🍳 Semilavorati">
+                          {ricette
+                            .filter(r => r.is_semilavorato && r.attivo !== false && r.costo_unitario)
+                            .map(sl => (
+                              <option key={sl.id} value={`sl_${sl.id}`}>
+                                {sl.nome_prodotto} (Semilavorato) - €{sl.costo_unitario?.toFixed(2)}
+                              </option>
+                            ))}
+                        </optgroup>
                       </select>
                     </div>
 

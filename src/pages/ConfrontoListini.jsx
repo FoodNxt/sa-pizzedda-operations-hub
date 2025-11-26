@@ -96,11 +96,27 @@ export default function ConfrontoListini() {
     return worst > 0 ? (((worst - best) / worst) * 100).toFixed(1) : 0;
   };
 
-  // Calculate total potential savings
-  const totalPotentialSavings = filteredGrouped.reduce((sum, [_, products]) => {
-    const best = getBestPrice(products);
-    const worst = getWorstPrice(products);
-    return sum + (worst - best);
+  // Calculate total potential savings - only for products currently in use that are not the best price
+  const totalPotentialSavings = filteredGrouped.reduce((sum, [nomeInterno, products]) => {
+    if (products.length <= 1) return sum;
+    
+    const bestPrice = getBestPrice(products);
+    
+    // Find products in use that are NOT the best price
+    let savingsForThisProduct = 0;
+    products.forEach(product => {
+      const productPrice = getNormalizedPrice(product);
+      if (!productPrice || productPrice === bestPrice) return;
+      
+      const inUsoPerStore = product.in_uso_per_store || {};
+      const isInUse = Object.values(inUsoPerStore).some(v => v);
+      
+      if (isInUse && productPrice > bestPrice) {
+        savingsForThisProduct = Math.max(savingsForThisProduct, productPrice - bestPrice);
+      }
+    });
+    
+    return sum + savingsForThisProduct;
   }, 0);
 
   // Find products in use that are not the best price (for specific store or all stores)

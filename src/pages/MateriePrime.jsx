@@ -38,7 +38,8 @@ export default function MateriePrime() {
     unita_per_confezione: '',
     peso_unita_interna: '',
     unita_misura_interna: 'kg',
-    quantita_minima: '',
+    quantita_critica: '',
+    quantita_ordine: '',
     prezzo_unitario: '',
     fornitore: '',
     categoria: 'altro',
@@ -50,6 +51,8 @@ export default function MateriePrime() {
     in_uso_per_store: {}
   });
   const [inUsoPerStore, setInUsoPerStore] = useState({});
+  const [storeQuantitaCritica, setStoreQuantitaCritica] = useState({});
+  const [storeQuantitaOrdine, setStoreQuantitaOrdine] = useState({});
 
   const queryClient = useQueryClient();
 
@@ -102,7 +105,8 @@ export default function MateriePrime() {
       unita_per_confezione: '',
       peso_unita_interna: '',
       unita_misura_interna: 'kg',
-      quantita_minima: '',
+      quantita_critica: '',
+      quantita_ordine: '',
       prezzo_unitario: '',
       fornitore: '',
       categoria: 'altro',
@@ -118,6 +122,8 @@ export default function MateriePrime() {
     setStorePositions({});
     setShowStorePositions(false);
     setInUsoPerStore({});
+    setStoreQuantitaCritica({});
+    setStoreQuantitaOrdine({});
     setEditingProduct(null);
     setShowForm(false);
   };
@@ -134,7 +140,8 @@ export default function MateriePrime() {
       unita_per_confezione: product.unita_per_confezione || '',
       peso_unita_interna: product.peso_unita_interna || '',
       unita_misura_interna: product.unita_misura_interna || 'kg',
-      quantita_minima: product.quantita_minima,
+      quantita_critica: product.quantita_critica || product.quantita_minima || '',
+      quantita_ordine: product.quantita_ordine || '',
       prezzo_unitario: product.prezzo_unitario || '',
       fornitore: product.fornitore || '',
       categoria: product.categoria || 'altro',
@@ -148,6 +155,8 @@ export default function MateriePrime() {
     setStoreQuantities(product.store_specific_min_quantities || {});
     setStorePositions(product.store_specific_positions || {});
     setInUsoPerStore(product.in_uso_per_store || {});
+    setStoreQuantitaCritica(product.store_specific_quantita_critica || {});
+    setStoreQuantitaOrdine(product.store_specific_quantita_ordine || {});
     setShowForm(true);
   };
 
@@ -169,9 +178,25 @@ export default function MateriePrime() {
       }
     });
     
+    // Clean store-specific quantities
+    const cleanedStoreQuantitaCritica = {};
+    Object.keys(storeQuantitaCritica).forEach(storeId => {
+      if (storeQuantitaCritica[storeId] !== null && storeQuantitaCritica[storeId] !== undefined && storeQuantitaCritica[storeId] !== '') {
+        cleanedStoreQuantitaCritica[storeId] = Math.round(parseFloat(storeQuantitaCritica[storeId]));
+      }
+    });
+
+    const cleanedStoreQuantitaOrdine = {};
+    Object.keys(storeQuantitaOrdine).forEach(storeId => {
+      if (storeQuantitaOrdine[storeId] !== null && storeQuantitaOrdine[storeId] !== undefined && storeQuantitaOrdine[storeId] !== '') {
+        cleanedStoreQuantitaOrdine[storeId] = Math.round(parseFloat(storeQuantitaOrdine[storeId]));
+      }
+    });
+
     const data = {
       ...formData,
-      quantita_minima: Math.round(parseFloat(formData.quantita_minima)),
+      quantita_critica: Math.round(parseFloat(formData.quantita_critica)),
+      quantita_ordine: Math.round(parseFloat(formData.quantita_ordine)),
       prezzo_unitario: formData.prezzo_unitario ? Math.round(parseFloat(formData.prezzo_unitario)) : null,
       peso_dimensione_unita: formData.peso_dimensione_unita ? Math.round(parseFloat(formData.peso_dimensione_unita)) : null,
       unita_misura_peso: formData.peso_dimensione_unita ? formData.unita_misura_peso : null,
@@ -180,6 +205,8 @@ export default function MateriePrime() {
       unita_misura_interna: formData.peso_unita_interna ? formData.unita_misura_interna : null,
       store_specific_min_quantities: cleanedStoreQuantities,
       store_specific_positions: cleanedStorePositions,
+      store_specific_quantita_critica: cleanedStoreQuantitaCritica,
+      store_specific_quantita_ordine: cleanedStoreQuantitaOrdine,
       assigned_stores: formData.assigned_stores.length > 0 ? formData.assigned_stores : [],
       in_uso_per_store: inUsoPerStore
     };
@@ -577,29 +604,47 @@ export default function MateriePrime() {
                 <div className="neumorphic-flat p-4 rounded-xl">
                   <h3 className="font-bold text-slate-700 mb-3 text-sm">💰 Quantità e Prezzo</h3>
                   
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-3 gap-3">
                     <div>
                       <label className="text-sm font-medium text-slate-700 mb-2 block">
-                        Qtà Minima Base <span className="text-red-600">*</span>
+                        Qtà Critica <span className="text-red-600">*</span>
                       </label>
                       <input
                         type="number"
                         step="1"
-                        value={formData.quantita_minima}
-                        onChange={(e) => setFormData({ ...formData, quantita_minima: e.target.value })}
+                        value={formData.quantita_critica}
+                        onChange={(e) => setFormData({ ...formData, quantita_critica: e.target.value })}
+                        placeholder="5"
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                        required
+                      />
+                      <p className="text-xs text-slate-500 mt-1">
+                        💡 Sotto questa soglia: ordinare
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-2 block">
+                        Qtà Ordine <span className="text-red-600">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        step="1"
+                        value={formData.quantita_ordine}
+                        onChange={(e) => setFormData({ ...formData, quantita_ordine: e.target.value })}
                         placeholder="10"
                         className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
                         required
                       />
                       <p className="text-xs text-slate-500 mt-1">
-                        💡 Valori interi senza decimali
+                        💡 Quantità da ordinare
                       </p>
                     </div>
 
                     <div>
                       <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
                         <Euro className="w-4 h-4" />
-                        Prezzo Confezione/Cassa
+                        Prezzo
                       </label>
                       <input
                         type="number"
@@ -610,7 +655,7 @@ export default function MateriePrime() {
                         className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
                       />
                       <p className="text-xs text-slate-500 mt-1">
-                        💡 Prezzo per confezione/cassa selezionata come unità (senza decimali)
+                        💡 Per confezione/cassa
                       </p>
                     </div>
                   </div>
@@ -631,18 +676,34 @@ export default function MateriePrime() {
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-sm font-medium text-slate-700">{store.name}</span>
                           </div>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={storeQuantities[store.id] || ''}
-                            onChange={(e) => handleStoreQuantityChange(store.id, e.target.value)}
-                            placeholder={`Default: ${formData.quantita_minima || '0'}`}
-                            className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm"
-                          />
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-xs text-slate-500">Qtà Critica</label>
+                              <input
+                                type="number"
+                                step="1"
+                                value={storeQuantitaCritica[store.id] || ''}
+                                onChange={(e) => setStoreQuantitaCritica(prev => ({...prev, [store.id]: e.target.value}))}
+                                placeholder={`Default: ${formData.quantita_critica || '0'}`}
+                                className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs text-slate-500">Qtà Ordine</label>
+                              <input
+                                type="number"
+                                step="1"
+                                value={storeQuantitaOrdine[store.id] || ''}
+                                onChange={(e) => setStoreQuantitaOrdine(prev => ({...prev, [store.id]: e.target.value}))}
+                                placeholder={`Default: ${formData.quantita_ordine || '0'}`}
+                                className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm"
+                              />
+                            </div>
+                          </div>
                         </div>
                       ))}
                       <p className="text-xs text-slate-500 mt-2">
-                        ℹ️ Lascia vuoto per usare la quantità base
+                        ℹ️ Lascia vuoto per usare i valori di default
                       </p>
                     </div>
                   )}
@@ -860,7 +921,8 @@ export default function MateriePrime() {
                       <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Fornitore</th>
                       <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Unità</th>
                       <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Posizione</th>
-                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Qtà Min</th>
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Qtà Critica</th>
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Qtà Ordine</th>
                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Prezzo</th>
                       <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Stato</th>
                       <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">In Uso</th>
@@ -892,8 +954,11 @@ export default function MateriePrime() {
                               {product.posizione === 'cantina' ? '📦' : '🏪'}
                             </span>
                           </td>
+                          <td className="p-2 lg:p-3 text-right font-bold text-red-600 text-sm">
+                            {product.quantita_critica || product.quantita_minima || '-'}
+                          </td>
                           <td className="p-2 lg:p-3 text-right font-bold text-blue-600 text-sm">
-                            {product.quantita_minima}
+                            {product.quantita_ordine || '-'}
                           </td>
                           <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
                             {product.prezzo_unitario ? `€${Math.round(product.prezzo_unitario)}` : '-'}
