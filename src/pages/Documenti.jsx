@@ -449,7 +449,10 @@ function DipendenteRegolamentoSection({ currentUser }) {
   };
 
   const toSign = firme.filter(f => !f.firmato);
-  const signed = firme.filter(f => f.firmato);
+  const signed = firme.filter(f => f.firmato).sort((a, b) => (b.versione || 0) - (a.versione || 0));
+  
+  // Get the latest signed version
+  const latestSigned = signed.length > 0 ? signed[0] : null;
 
   if (isLoading) return <NeumorphicCard className="p-8 text-center"><p>Caricamento...</p></NeumorphicCard>;
 
@@ -479,21 +482,43 @@ function DipendenteRegolamentoSection({ currentUser }) {
         </div>
       )}
 
-      {signed.length > 0 && (
+      {/* Latest Signed Regulation - Always visible */}
+      {latestSigned && (
         <div>
           <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
-            <CheckCircle className="w-5 h-5 text-green-600" /> Firmati ({signed.length})
+            <CheckCircle className="w-5 h-5 text-green-600" /> Regolamento Attuale
+          </h2>
+          <NeumorphicCard className="p-4 border-2 border-green-200">
+            <div className="flex justify-between items-start mb-3">
+              <div>
+                <h3 className="font-bold text-slate-800">Regolamento v{latestSigned.versione}</h3>
+                <p className="text-xs text-green-600">✓ Firmato: {latestSigned.data_firma ? new Date(latestSigned.data_firma).toLocaleDateString('it-IT') : 'N/A'}</p>
+              </div>
+              <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">Attivo</span>
+            </div>
+            <button onClick={() => setViewingRegolamento(latestSigned)} className="w-full nav-button px-4 py-3 rounded-xl text-blue-600 font-medium flex items-center justify-center gap-2">
+              <Eye className="w-4 h-4" /> Visualizza Regolamento
+            </button>
+          </NeumorphicCard>
+        </div>
+      )}
+
+      {/* Previous versions */}
+      {signed.length > 1 && (
+        <div>
+          <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+            <History className="w-5 h-5 text-slate-500" /> Versioni Precedenti ({signed.length - 1})
           </h2>
           <div className="space-y-3">
-            {signed.map(f => (
-              <NeumorphicCard key={f.id} className="p-4">
+            {signed.slice(1).map(f => (
+              <NeumorphicCard key={f.id} className="p-4 opacity-75">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="font-bold text-slate-800">Regolamento v{f.versione}</h3>
+                    <h3 className="font-bold text-slate-600">Regolamento v{f.versione}</h3>
                     <p className="text-xs text-slate-500">Firmato: {f.data_firma ? new Date(f.data_firma).toLocaleDateString('it-IT') : 'N/A'}</p>
                   </div>
                   <button onClick={() => setViewingRegolamento(f)} className="nav-button p-2 rounded-lg">
-                    <Eye className="w-4 h-4 text-blue-600" />
+                    <Eye className="w-4 h-4 text-slate-500" />
                   </button>
                 </div>
               </NeumorphicCard>
@@ -878,6 +903,53 @@ function ContrattiSection() {
         );
       })()}
 
+      {/* Templates Section */}
+      <NeumorphicCard className="p-6 mb-6">
+        <h2 className="text-xl font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
+          <FileEdit className="w-5 h-5" />
+          Templates Contratti
+        </h2>
+        {templates.length === 0 ? (
+          <p className="text-center text-[#9b9b9b] py-4">Nessun template creato</p>
+        ) : (
+          <div className="space-y-3">
+            {templates.map(t => (
+              <NeumorphicCard key={t.id} className="p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-bold text-[#6b6b6b]">{t.nome_template}</p>
+                    <p className="text-xs text-[#9b9b9b]">
+                      {t.descrizione || 'Nessuna descrizione'}
+                      {!t.attivo && ' • Disattivato'}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => {
+                        setEditingTemplate(t);
+                        setTemplateData({
+                          nome_template: t.nome_template,
+                          contenuto_template: t.contenuto_template,
+                          descrizione: t.descrizione || '',
+                          attivo: t.attivo !== false
+                        });
+                        setShowTemplateForm(true);
+                      }}
+                      className="nav-button p-2 rounded-lg"
+                    >
+                      <Edit className="w-4 h-4 text-blue-600" />
+                    </button>
+                    <button onClick={() => deleteTemplateMutation.mutate(t.id)} className="nav-button p-2 rounded-lg">
+                      <Trash2 className="w-4 h-4 text-red-600" />
+                    </button>
+                  </div>
+                </div>
+              </NeumorphicCard>
+            ))}
+          </div>
+        )}
+      </NeumorphicCard>
+
       <NeumorphicCard className="p-6">
         <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">Lista Contratti</h2>
         {contratti.length === 0 ? (
@@ -935,7 +1007,7 @@ function ContrattiSection() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <NeumorphicCard className="max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between mb-4">
-              <h2 className="text-xl font-bold">Template Contratto</h2>
+              <h2 className="text-xl font-bold">{editingTemplate ? 'Modifica Template' : 'Nuovo Template'}</h2>
               <button onClick={resetTemplateForm}><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={handleSubmitTemplate} className="space-y-4">
@@ -947,6 +1019,23 @@ function ContrattiSection() {
                 className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
                 required
               />
+              <input
+                type="text"
+                placeholder="Descrizione (opzionale)"
+                value={templateData.descrizione}
+                onChange={(e) => setTemplateData({ ...templateData, descrizione: e.target.value })}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+              />
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="template-attivo"
+                  checked={templateData.attivo}
+                  onChange={(e) => setTemplateData({ ...templateData, attivo: e.target.checked })}
+                  className="w-5 h-5"
+                />
+                <label htmlFor="template-attivo" className="text-sm text-slate-700">Template attivo</label>
+              </div>
               <div className="neumorphic-pressed p-3 rounded-xl">
                 <p className="text-xs mb-2">Variabili:</p>
                 <div className="flex flex-wrap gap-2">
@@ -966,7 +1055,9 @@ function ContrattiSection() {
                 placeholder="Contenuto del contratto..."
                 required
               />
-              <NeumorphicButton type="submit" variant="primary" className="w-full">Salva Template</NeumorphicButton>
+              <NeumorphicButton type="submit" variant="primary" className="w-full">
+                {editingTemplate ? 'Aggiorna Template' : 'Salva Template'}
+              </NeumorphicButton>
             </form>
           </NeumorphicCard>
         </div>
@@ -1253,23 +1344,138 @@ function LettereSection() {
         </NeumorphicCard>
       )}
 
+      {/* Templates Section */}
+      <NeumorphicCard className="p-6 mb-6">
+        <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <FileEdit className="w-5 h-5" />
+          Templates Lettere
+        </h2>
+        {templates.length === 0 ? (
+          <p className="text-center text-slate-500 py-4">Nessun template creato</p>
+        ) : (
+          <div className="space-y-3">
+            {templates.map(t => (
+              <NeumorphicCard key={t.id} className="p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-bold text-slate-800">{t.nome_template}</p>
+                    <p className="text-xs text-slate-500">
+                      {t.tipo_lettera === 'lettera_richiamo' ? 'Lettera di Richiamo' : 'Chiusura Procedura'}
+                      {!t.attivo && ' • Disattivato'}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => {
+                        setEditingTemplate(t);
+                        setTemplateForm({
+                          nome_template: t.nome_template,
+                          tipo_lettera: t.tipo_lettera,
+                          contenuto: t.contenuto,
+                          attivo: t.attivo !== false
+                        });
+                        setShowTemplateForm(true);
+                      }}
+                      className="nav-button p-2 rounded-lg"
+                    >
+                      <Edit className="w-4 h-4 text-blue-600" />
+                    </button>
+                    <button onClick={() => deleteTemplateMutation.mutate(t.id)} className="nav-button p-2 rounded-lg">
+                      <Trash2 className="w-4 h-4 text-red-600" />
+                    </button>
+                  </div>
+                </div>
+              </NeumorphicCard>
+            ))}
+          </div>
+        )}
+      </NeumorphicCard>
+
       <NeumorphicCard className="p-6">
         <h2 className="text-xl font-bold text-slate-800 mb-4">Lettere Inviate</h2>
         {lettere.length === 0 ? (
           <p className="text-center text-slate-500 py-8">Nessuna lettera inviata</p>
         ) : (
           <div className="space-y-3">
-            {lettere.map(l => (
-              <NeumorphicCard key={l.id} className="p-4">
-                <div className="flex justify-between">
-                  <div>
-                    <p className="font-bold">{l.user_name}</p>
-                    <p className="text-xs text-slate-500">{l.tipo_lettera === 'lettera_richiamo' ? 'Lettera di Richiamo' : 'Chiusura Procedura'}</p>
-                  </div>
-                  {getStatusBadge(l.status === 'firmata' ? 'firmato' : 'inviato')}
-                </div>
-              </NeumorphicCard>
-            ))}
+            {(() => {
+              // Group letters by user to show richiamo + chiusura together
+              const lettereRichiamo = lettere.filter(l => l.tipo_lettera === 'lettera_richiamo');
+              
+              return lettereRichiamo.map(richiamo => {
+                // Find associated chiusura procedura for this user after this richiamo
+                const chiusura = lettere.find(l => 
+                  l.tipo_lettera === 'chiusura_procedura' && 
+                  l.user_id === richiamo.user_id &&
+                  new Date(l.data_invio) > new Date(richiamo.data_invio)
+                );
+                
+                // Check if auto-send is configured
+                const autoSendEnabled = currentConfig?.invio_automatico_chiusura;
+                const giorniAttesa = currentConfig?.giorni_attesa_chiusura || 0;
+                
+                // Calculate when chiusura will be sent (if richiamo is signed and no chiusura yet)
+                let chiusuraScheduled = null;
+                if (richiamo.status === 'firmata' && !chiusura && autoSendEnabled && richiamo.data_firma) {
+                  const dataFirma = new Date(richiamo.data_firma);
+                  chiusuraScheduled = new Date(dataFirma);
+                  chiusuraScheduled.setDate(chiusuraScheduled.getDate() + giorniAttesa);
+                }
+                
+                return (
+                  <NeumorphicCard key={richiamo.id} className="p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <p className="font-bold text-slate-800">{richiamo.user_name}</p>
+                        <p className="text-xs text-orange-600 font-medium">Lettera di Richiamo</p>
+                      </div>
+                      {getStatusBadge(richiamo.status === 'firmata' ? 'firmato' : 'inviato')}
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                      <div className="neumorphic-pressed p-2 rounded-lg">
+                        <p className="text-slate-500">Inviata</p>
+                        <p className="font-medium text-slate-700">
+                          {richiamo.data_invio ? new Date(richiamo.data_invio).toLocaleDateString('it-IT') : 'N/A'}
+                        </p>
+                      </div>
+                      <div className="neumorphic-pressed p-2 rounded-lg">
+                        <p className="text-slate-500">Firmata</p>
+                        <p className="font-medium text-slate-700">
+                          {richiamo.data_firma ? new Date(richiamo.data_firma).toLocaleDateString('it-IT') : 'In attesa'}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Chiusura Procedura Status */}
+                    <div className="neumorphic-flat p-3 rounded-lg bg-green-50 border border-green-200">
+                      <p className="text-xs font-bold text-green-800 mb-1 flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" />
+                        Chiusura Procedura
+                      </p>
+                      {chiusura ? (
+                        <div className="text-xs text-green-700">
+                          <p>Inviata: {new Date(chiusura.data_invio).toLocaleDateString('it-IT')}</p>
+                          <p>Stato: {chiusura.status === 'firmata' ? '✓ Firmata' : 'In attesa firma'}</p>
+                        </div>
+                      ) : chiusuraScheduled ? (
+                        <p className="text-xs text-blue-700">
+                          <Clock className="w-3 h-3 inline mr-1" />
+                          Programmata per: {chiusuraScheduled.toLocaleDateString('it-IT')}
+                        </p>
+                      ) : richiamo.status === 'firmata' ? (
+                        <p className="text-xs text-orange-600">
+                          ⚠️ Da inviare manualmente
+                        </p>
+                      ) : (
+                        <p className="text-xs text-slate-500">
+                          Sarà disponibile dopo la firma del richiamo
+                        </p>
+                      )}
+                    </div>
+                  </NeumorphicCard>
+                );
+              });
+            })()}
           </div>
         )}
       </NeumorphicCard>
@@ -1278,7 +1484,7 @@ function LettereSection() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <NeumorphicCard className="max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between mb-4">
-              <h2 className="text-xl font-bold">Template Lettera</h2>
+              <h2 className="text-xl font-bold">{editingTemplate ? 'Modifica Template' : 'Nuovo Template'}</h2>
               <button onClick={resetTemplateForm}><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={handleSubmitTemplate} className="space-y-4">
@@ -1291,11 +1497,23 @@ function LettereSection() {
                 <option value="lettera_richiamo">Lettera di Richiamo</option>
                 <option value="chiusura_procedura">Chiusura Procedura</option>
               </select>
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="lettera-template-attivo"
+                  checked={templateForm.attivo}
+                  onChange={(e) => setTemplateForm({ ...templateForm, attivo: e.target.checked })}
+                  className="w-5 h-5"
+                />
+                <label htmlFor="lettera-template-attivo" className="text-sm text-slate-700">Template attivo</label>
+              </div>
               <textarea value={templateForm.contenuto}
                 onChange={(e) => setTemplateForm({ ...templateForm, contenuto: e.target.value })}
                 className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none h-64 resize-none"
                 placeholder="Usa {{nome_dipendente}}, {{data_oggi}}" required />
-              <NeumorphicButton type="submit" variant="primary" className="w-full">Salva Template</NeumorphicButton>
+              <NeumorphicButton type="submit" variant="primary" className="w-full">
+                {editingTemplate ? 'Aggiorna Template' : 'Salva Template'}
+              </NeumorphicButton>
             </form>
           </NeumorphicCard>
         </div>
