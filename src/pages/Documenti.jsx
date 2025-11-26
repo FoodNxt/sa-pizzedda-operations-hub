@@ -1200,7 +1200,7 @@ function LettereSection() {
     },
   });
 
-  const generateLetteraContent = (templateId, userId, dataInvioRichiamo = null) => {
+  const generateLetteraContent = (templateId, userId, richiamoData = null) => {
     const template = templates.find(t => t.id === templateId);
     const user = users.find(u => u.id === userId);
     if (!template || !user) return '';
@@ -1208,8 +1208,24 @@ function LettereSection() {
     let contenuto = template.contenuto;
     contenuto = contenuto.replace(/{{nome_dipendente}}/g, user.nome_cognome || user.full_name || user.email);
     contenuto = contenuto.replace(/{{data_oggi}}/g, new Date().toLocaleDateString('it-IT'));
-    if (dataInvioRichiamo) {
-      contenuto = contenuto.replace(/{{data_invio_richiamo}}/g, new Date(dataInvioRichiamo).toLocaleDateString('it-IT'));
+    
+    if (richiamoData) {
+      // Data invio richiamo
+      if (richiamoData.data_invio) {
+        contenuto = contenuto.replace(/{{data_invio_richiamo}}/g, new Date(richiamoData.data_invio).toLocaleDateString('it-IT'));
+      }
+      // Data firma richiamo
+      if (richiamoData.data_firma) {
+        const dataFirma = new Date(richiamoData.data_firma);
+        contenuto = contenuto.replace(/{{data_firma_richiamo}}/g, dataFirma.toLocaleDateString('it-IT'));
+        // Mese firma richiamo
+        const mesi = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
+        contenuto = contenuto.replace(/{{mese_firma_richiamo}}/g, mesi[dataFirma.getMonth()] + ' ' + dataFirma.getFullYear());
+      }
+      // Testo lettera richiamo
+      if (richiamoData.contenuto_lettera) {
+        contenuto = contenuto.replace(/{{testo_lettera_richiamo}}/g, richiamoData.contenuto_lettera);
+      }
     }
     return contenuto;
   };
@@ -1262,7 +1278,7 @@ function LettereSection() {
       setChiusuraPreviewContent('Nessun template di chiusura configurato');
       return;
     }
-    const content = generateLetteraContent(chiusuraTemplate.id, richiamo.user_id, richiamo.data_invio);
+    const content = generateLetteraContent(chiusuraTemplate.id, richiamo.user_id, richiamo);
     setChiusuraPreviewContent(content);
   };
 
@@ -1574,7 +1590,7 @@ function LettereSection() {
               <div className="neumorphic-pressed p-3 rounded-xl mb-2">
                 <p className="text-xs text-slate-600 mb-2">Variabili disponibili:</p>
                 <div className="flex flex-wrap gap-2">
-                  {['nome_dipendente', 'data_oggi', ...(templateForm.tipo_lettera === 'chiusura_procedura' ? ['data_invio_richiamo'] : [])].map(v => (
+                  {['nome_dipendente', 'data_oggi', ...(templateForm.tipo_lettera === 'chiusura_procedura' ? ['data_invio_richiamo', 'data_firma_richiamo', 'mese_firma_richiamo', 'testo_lettera_richiamo'] : [])].map(v => (
                     <button key={v} type="button" 
                       onClick={() => setTemplateForm({ ...templateForm, contenuto: (templateForm.contenuto || '') + ` {{${v}}} ` })}
                       className="neumorphic-flat px-2 py-1 rounded text-xs hover:bg-blue-50">
@@ -1586,7 +1602,7 @@ function LettereSection() {
               <textarea value={templateForm.contenuto}
                 onChange={(e) => setTemplateForm({ ...templateForm, contenuto: e.target.value })}
                 className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none h-64 resize-none"
-                placeholder="Usa {{nome_dipendente}}, {{data_oggi}}, {{data_invio_richiamo}} (solo chiusura)" required />
+                placeholder="Usa {{nome_dipendente}}, {{data_oggi}}, {{data_invio_richiamo}}, {{data_firma_richiamo}}, {{mese_firma_richiamo}}, {{testo_lettera_richiamo}} (solo chiusura)" required />
               <NeumorphicButton type="submit" variant="primary" className="w-full">
                 {editingTemplate ? 'Aggiorna Template' : 'Salva Template'}
               </NeumorphicButton>
