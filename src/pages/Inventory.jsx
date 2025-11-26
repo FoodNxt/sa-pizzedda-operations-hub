@@ -9,16 +9,23 @@ import {
   TrendingDown,
   Minus,
   Filter,
-  X
+  X,
+  ShoppingCart,
+  History,
+  Building2,
+  Truck
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { format, subDays, parseISO } from 'date-fns';
+import { it } from 'date-fns/locale';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import ProtectedPage from "../components/ProtectedPage";
 
 export default function Inventory() {
+  const [activeTab, setActiveTab] = useState('overview');
   const [selectedStore, setSelectedStore] = useState('all');
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [historyProduct, setHistoryProduct] = useState(null);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -33,6 +40,11 @@ export default function Inventory() {
   const { data: products = [] } = useQuery({
     queryKey: ['materie-prime'],
     queryFn: () => base44.entities.MateriePrime.list(),
+  });
+
+  const { data: inventoryCantina = [] } = useQuery({
+    queryKey: ['rilevazione-inventario-cantina'],
+    queryFn: () => base44.entities.RilevazioneInventarioCantina.list('-data_rilevazione', 500),
   });
 
   // Filter inventory by store
@@ -77,6 +89,82 @@ export default function Inventory() {
     const usage = (r.quantita_minima - r.quantita_rilevata) / r.quantita_minima;
     return !r.sotto_minimo && usage <= 0.7;
   });
+
+  // Calculate orders needed - products below critical quantity
+  const ordersNeeded = useMemo(() => {
+    const orders = [];
+    
+    // Combine negozio and cantina inventory
+    const allInventory = [...inventory, ...inventoryCantina];
+    
+    // Get latest reading per product per store
+    const latestByProduct = {};
+    allInventory.forEach(item => {
+      const key = `${item.store_id}-${item.prodotto_id}`;
+      if (!latestByProduct[key] || new Date(item.data_rilevazione) > new Date(latestByProduct[key].data_rilevazione)) {
+        latestByProduct[key] = item;
+      }
+    });
+    
+    // Check each product against critical levels
+    Object.values(latestByProduct).forEach(reading => {
+      const product = products.find(p => p.id === reading.prodotto_id);
+      if (!product) return;
+      
+      const store = stores.find(s => s.id === reading.store_id);
+      if (!store) return;
+      
+      // Get store-specific or default quantities
+      const quantitaCritica = product.store_specific_quantita_critica?.[reading.store_id] || product.quantita_critica || product.quantita_minima || 0;
+      const quantitaOrdine = product.store_specific_quantita_ordine?.[reading.store_id] || product.quantita_ordine || 0;
+      
+      if (reading.quantita_rilevata <= quantitaCritica && quantitaOrdine > 0) {
+        orders.push({
+          ...reading,
+          product,
+          store,
+          quantita_critica: quantitaCritica,
+          quantita_ordine: quantitaOrdine,
+          fornitore: product.fornitore || 'Non specificato'
+        });
+      }
+    });
+    
+    return orders;
+  }, [inventory, inventoryCantina, products, stores]);
+
+  // Group orders by store and supplier
+  const ordersByStoreAndSupplier = useMemo(() => {
+    const grouped = {};
+    
+    ordersNeeded.forEach(order => {
+      const storeKey = order.store_id;
+      const supplierKey = order.fornitore;
+      
+      if (!grouped[storeKey]) {
+        grouped[storeKey] = {
+          store: order.store,
+          suppliers: {}
+        };
+      }
+      
+      if (!grouped[storeKey].suppliers[supplierKey]) {
+        grouped[storeKey].suppliers[supplierKey] = [];
+      }
+      
+      grouped[storeKey].suppliers[supplierKey].push(order);
+    });
+    
+    return grouped;
+  }, [ordersNeeded]);
+
+  // Get all inventory history for a specific product
+  const getFullProductHistory = (productId) => {
+    const allInventory = [...inventory, ...inventoryCantina];
+    return allInventory
+      .filter(item => item.prodotto_id === productId)
+      .sort((a, b) => new Date(b.data_rilevazione) - new Date(a.data_rilevazione));
+  };
 
   // Calculate product trends
   const getProductTrend = (productId, storeId) => {
@@ -173,6 +261,12 @@ export default function Inventory() {
     );
   };
 
+  const tabs = [
+    { id: 'overview', label: 'Panoramica', icon: Package },
+    { id: 'history', label: 'Storico', icon: History },
+    { id: 'orders', label: 'Ordini', icon: ShoppingCart }
+  ];
+
   return (
     <ProtectedPage pageName="Inventory">
       <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
@@ -185,6 +279,29 @@ export default function Inventory() {
               <p className="text-sm text-slate-500">Monitora lo stato delle scorte in tempo reale</p>
             </div>
           </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
+                activeTab === tab.id
+                  ? 'neumorphic-pressed bg-blue-50 text-blue-700'
+                  : 'neumorphic-flat text-slate-600 hover:text-slate-800'
+              }`}
+            >
+              <tab.icon className="w-4 h-4" />
+              {tab.label}
+              {tab.id === 'orders' && ordersNeeded.length > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-xs bg-red-500 text-white">
+                  {ordersNeeded.length}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
 
         <div className="flex items-center gap-2">
@@ -201,49 +318,52 @@ export default function Inventory() {
           </select>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-          <NeumorphicCard className="p-4">
-            <div className="text-center">
-              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 mx-auto mb-2 lg:mb-3 flex items-center justify-center shadow-lg">
-                <AlertTriangle className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
-              </div>
-              <h3 className="text-xl lg:text-2xl font-bold text-red-600 mb-1">{stats.critical}</h3>
-              <p className="text-xs text-slate-500">Critici</p>
-            </div>
-          </NeumorphicCard>
+        {/* Overview Tab */}
+        {activeTab === 'overview' && (
+          <>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+              <NeumorphicCard className="p-4">
+                <div className="text-center">
+                  <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 mx-auto mb-2 lg:mb-3 flex items-center justify-center shadow-lg">
+                    <AlertTriangle className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+                  </div>
+                  <h3 className="text-xl lg:text-2xl font-bold text-red-600 mb-1">{stats.critical}</h3>
+                  <p className="text-xs text-slate-500">Critici</p>
+                </div>
+              </NeumorphicCard>
 
-          <NeumorphicCard className="p-4">
-            <div className="text-center">
-              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-yellow-500 to-orange-500 mx-auto mb-2 lg:mb-3 flex items-center justify-center shadow-lg">
-                <AlertTriangle className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
-              </div>
-              <h3 className="text-xl lg:text-2xl font-bold text-yellow-600 mb-1">{stats.warning}</h3>
-              <p className="text-xs text-slate-500">Warning</p>
-            </div>
-          </NeumorphicCard>
+              <NeumorphicCard className="p-4">
+                <div className="text-center">
+                  <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-yellow-500 to-orange-500 mx-auto mb-2 lg:mb-3 flex items-center justify-center shadow-lg">
+                    <AlertTriangle className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+                  </div>
+                  <h3 className="text-xl lg:text-2xl font-bold text-yellow-600 mb-1">{stats.warning}</h3>
+                  <p className="text-xs text-slate-500">Warning</p>
+                </div>
+              </NeumorphicCard>
 
-          <NeumorphicCard className="p-4">
-            <div className="text-center">
-              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 mx-auto mb-2 lg:mb-3 flex items-center justify-center shadow-lg">
-                <CheckCircle className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
-              </div>
-              <h3 className="text-xl lg:text-2xl font-bold text-green-600 mb-1">{stats.ok}</h3>
-              <p className="text-xs text-slate-500">OK</p>
-            </div>
-          </NeumorphicCard>
+              <NeumorphicCard className="p-4">
+                <div className="text-center">
+                  <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 mx-auto mb-2 lg:mb-3 flex items-center justify-center shadow-lg">
+                    <CheckCircle className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+                  </div>
+                  <h3 className="text-xl lg:text-2xl font-bold text-green-600 mb-1">{stats.ok}</h3>
+                  <p className="text-xs text-slate-500">OK</p>
+                </div>
+              </NeumorphicCard>
 
-          <NeumorphicCard className="p-4">
-            <div className="text-center">
-              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 mx-auto mb-2 lg:mb-3 flex items-center justify-center shadow-lg">
-                <Package className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
-              </div>
-              <h3 className="text-xl lg:text-2xl font-bold text-blue-600 mb-1">{stats.total}</h3>
-              <p className="text-xs text-slate-500">Totale</p>
+              <NeumorphicCard className="p-4">
+                <div className="text-center">
+                  <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 mx-auto mb-2 lg:mb-3 flex items-center justify-center shadow-lg">
+                    <Package className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+                  </div>
+                  <h3 className="text-xl lg:text-2xl font-bold text-blue-600 mb-1">{stats.total}</h3>
+                  <p className="text-xs text-slate-500">Totale</p>
+                </div>
+              </NeumorphicCard>
             </div>
-          </NeumorphicCard>
-        </div>
 
-        {criticalProducts.length > 0 && (
+            {criticalProducts.length > 0 && (
           <div>
             <div className="flex items-center gap-2 mb-4">
               <AlertTriangle className="w-5 h-5 text-red-600" />
@@ -271,17 +391,199 @@ export default function Inventory() {
           </div>
         )}
 
-        {okProducts.length > 0 && (
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              <h2 className="text-lg font-bold text-slate-800">Prodotti OK</h2>
+            {okProducts.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <h2 className="text-lg font-bold text-slate-800">Prodotti OK</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+                  {okProducts.map(item => (
+                    <ProductCard key={`${item.store_id}-${item.prodotto_id}`} item={item} status="ok" />
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* History Tab */}
+        {activeTab === 'history' && (
+          <NeumorphicCard className="p-4 lg:p-6">
+            <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <History className="w-5 h-5" />
+              Storico Rilevazioni Inventario
+            </h2>
+            
+            {/* Product selector for history */}
+            <div className="mb-4">
+              <select
+                value={historyProduct || ''}
+                onChange={(e) => setHistoryProduct(e.target.value || null)}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+              >
+                <option value="">Seleziona un prodotto per vedere lo storico...</option>
+                {products.filter(p => p.attivo !== false).map(p => (
+                  <option key={p.id} value={p.id}>{p.nome_prodotto} ({p.fornitore || 'N/D'})</option>
+                ))}
+              </select>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
-              {okProducts.map(item => (
-                <ProductCard key={`${item.store_id}-${item.prodotto_id}`} item={item} status="ok" />
-              ))}
-            </div>
+
+            {historyProduct && (
+              <div className="space-y-4">
+                {/* Chart */}
+                <div className="neumorphic-flat p-4 rounded-xl">
+                  <h3 className="font-bold text-slate-800 mb-4">Andamento Quantità</h3>
+                  <div className="w-full overflow-x-auto">
+                    <div style={{ minWidth: '300px' }}>
+                      <ResponsiveContainer width="100%" height={250}>
+                        <LineChart data={getFullProductHistory(historyProduct).slice(0, 30).reverse().map(item => ({
+                          date: format(parseISO(item.data_rilevazione), 'dd/MM', { locale: it }),
+                          quantita: item.quantita_rilevata,
+                          store: stores.find(s => s.id === item.store_id)?.name || 'N/D'
+                        }))}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                          <XAxis dataKey="date" stroke="#64748b" tick={{ fontSize: 11 }} />
+                          <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
+                          <Tooltip 
+                            contentStyle={{ 
+                              background: 'rgba(248, 250, 252, 0.95)', 
+                              border: 'none',
+                              borderRadius: '12px',
+                              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                              fontSize: '11px'
+                            }}
+                          />
+                          <Legend wrapperStyle={{ fontSize: '11px' }} />
+                          <Line 
+                            type="monotone" 
+                            dataKey="quantita" 
+                            stroke="#3b82f6" 
+                            strokeWidth={3}
+                            name="Quantità"
+                            dot={{ fill: '#3b82f6', r: 4 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </div>
+
+                {/* History table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[600px]">
+                    <thead>
+                      <tr className="border-b-2 border-blue-600">
+                        <th className="text-left p-3 text-slate-600 font-medium text-sm">Data</th>
+                        <th className="text-left p-3 text-slate-600 font-medium text-sm">Locale</th>
+                        <th className="text-right p-3 text-slate-600 font-medium text-sm">Quantità</th>
+                        <th className="text-left p-3 text-slate-600 font-medium text-sm">Rilevato da</th>
+                        <th className="text-left p-3 text-slate-600 font-medium text-sm">Note</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getFullProductHistory(historyProduct).slice(0, 50).map((item, idx) => (
+                        <tr key={idx} className="border-b border-slate-200 hover:bg-slate-50">
+                          <td className="p-3 text-sm text-slate-700">
+                            {format(parseISO(item.data_rilevazione), 'dd/MM/yyyy HH:mm', { locale: it })}
+                          </td>
+                          <td className="p-3 text-sm text-slate-700">
+                            {stores.find(s => s.id === item.store_id)?.name || item.store_name || 'N/D'}
+                          </td>
+                          <td className="p-3 text-sm text-right font-bold text-blue-600">
+                            {item.quantita_rilevata} {item.unita_misura}
+                          </td>
+                          <td className="p-3 text-sm text-slate-700">
+                            {item.rilevato_da || 'N/D'}
+                          </td>
+                          <td className="p-3 text-sm text-slate-500">
+                            {item.note || '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {!historyProduct && (
+              <div className="text-center py-12 text-slate-500">
+                <History className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                <p>Seleziona un prodotto per visualizzare lo storico delle rilevazioni</p>
+              </div>
+            )}
+          </NeumorphicCard>
+        )}
+
+        {/* Orders Tab */}
+        {activeTab === 'orders' && (
+          <div className="space-y-6">
+            {ordersNeeded.length === 0 ? (
+              <NeumorphicCard className="p-12 text-center">
+                <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-slate-800 mb-2">Nessun ordine necessario</h3>
+                <p className="text-slate-500">Tutte le scorte sono sopra il livello critico</p>
+              </NeumorphicCard>
+            ) : (
+              Object.entries(ordersByStoreAndSupplier)
+                .filter(([storeId]) => selectedStore === 'all' || storeId === selectedStore)
+                .map(([storeId, storeData]) => (
+                  <NeumorphicCard key={storeId} className="p-4 lg:p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                        <Building2 className="w-5 h-5 text-white" />
+                      </div>
+                      <h2 className="text-lg font-bold text-slate-800">{storeData.store.name}</h2>
+                    </div>
+
+                    <div className="space-y-4">
+                      {Object.entries(storeData.suppliers).map(([supplier, orders]) => (
+                        <div key={supplier} className="neumorphic-pressed p-4 rounded-xl">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Truck className="w-5 h-5 text-slate-600" />
+                            <h3 className="font-bold text-slate-700">{supplier}</h3>
+                            <span className="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700">
+                              {orders.length} prodotti
+                            </span>
+                          </div>
+
+                          <div className="overflow-x-auto">
+                            <table className="w-full min-w-[500px]">
+                              <thead>
+                                <tr className="border-b border-slate-300">
+                                  <th className="text-left p-2 text-slate-600 font-medium text-xs">Prodotto</th>
+                                  <th className="text-right p-2 text-slate-600 font-medium text-xs">Attuale</th>
+                                  <th className="text-right p-2 text-slate-600 font-medium text-xs">Critica</th>
+                                  <th className="text-right p-2 text-slate-600 font-medium text-xs">Da Ordinare</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {orders.map((order, idx) => (
+                                  <tr key={idx} className="border-b border-slate-200">
+                                    <td className="p-2 text-sm text-slate-700">
+                                      {order.nome_prodotto}
+                                    </td>
+                                    <td className="p-2 text-sm text-right text-red-600 font-bold">
+                                      {order.quantita_rilevata} {order.unita_misura}
+                                    </td>
+                                    <td className="p-2 text-sm text-right text-slate-500">
+                                      {order.quantita_critica} {order.unita_misura}
+                                    </td>
+                                    <td className="p-2 text-sm text-right font-bold text-green-600">
+                                      {order.quantita_ordine} {order.unita_misura}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </NeumorphicCard>
+                ))
+            )}
           </div>
         )}
 
