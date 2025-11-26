@@ -1150,9 +1150,11 @@ function LettereSection() {
     }
   };
 
+  const chiusuraTemplates = templates.filter(t => t.tipo_lettera === 'chiusura_procedura' && t.attivo);
+
   return (
     <>
-      <div className="flex gap-3 mb-6">
+      <div className="flex gap-3 mb-6 flex-wrap">
         <NeumorphicButton onClick={() => setShowTemplateForm(true)} className="flex items-center gap-2">
           <Plus className="w-5 h-5" />
           Nuovo Template
@@ -1161,7 +1163,95 @@ function LettereSection() {
           <Send className="w-5 h-5" />
           Invia Lettera
         </NeumorphicButton>
+        <NeumorphicButton onClick={() => setShowAutoConfig(true)} className="flex items-center gap-2">
+          <Settings className="w-5 h-5" />
+          Automazione
+        </NeumorphicButton>
       </div>
+
+      {/* Configurazione Automazione */}
+      {showAutoConfig && (
+        <NeumorphicCard className="p-6 mb-6 border-2 border-blue-300">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+              <Settings className="w-5 h-5 text-blue-600" />
+              Invio Automatico Chiusura Procedura
+            </h2>
+            <button onClick={() => setShowAutoConfig(false)} className="nav-button p-2 rounded-lg">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="invio-auto"
+                checked={currentConfig?.invio_automatico_chiusura || false}
+                onChange={(e) => saveConfigMutation.mutate({ 
+                  ...currentConfig, 
+                  invio_automatico_chiusura: e.target.checked 
+                })}
+                className="w-5 h-5"
+              />
+              <label htmlFor="invio-auto" className="text-sm font-medium text-slate-700">
+                Invia automaticamente chiusura procedura dopo la firma della lettera di richiamo
+              </label>
+            </div>
+
+            {(currentConfig?.invio_automatico_chiusura) && (
+              <>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                    Giorni di attesa dopo la firma (0 = immediato)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={currentConfig?.giorni_attesa_chiusura || 0}
+                    onChange={(e) => saveConfigMutation.mutate({ 
+                      ...currentConfig, 
+                      giorni_attesa_chiusura: parseInt(e.target.value) || 0 
+                    })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                    Template chiusura procedura da usare
+                  </label>
+                  <select
+                    value={currentConfig?.template_chiusura_id || ''}
+                    onChange={(e) => saveConfigMutation.mutate({ 
+                      ...currentConfig, 
+                      template_chiusura_id: e.target.value 
+                    })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  >
+                    <option value="">-- Seleziona template --</option>
+                    {chiusuraTemplates.map(t => (
+                      <option key={t.id} value={t.id}>{t.nome_template}</option>
+                    ))}
+                  </select>
+                  {chiusuraTemplates.length === 0 && (
+                    <p className="text-xs text-orange-600 mt-1">
+                      ⚠️ Nessun template di chiusura procedura disponibile. Creane uno prima.
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
+
+            <div className="neumorphic-flat p-3 rounded-lg bg-blue-50">
+              <p className="text-xs text-blue-800">
+                <strong>ℹ️ Come funziona:</strong> Quando un dipendente firma una lettera di richiamo, 
+                il sistema invierà automaticamente la chiusura procedura (se configurata).
+              </p>
+            </div>
+          </div>
+        </NeumorphicCard>
+      )}
 
       <NeumorphicCard className="p-6">
         <h2 className="text-xl font-bold text-slate-800 mb-4">Lettere Inviate</h2>
