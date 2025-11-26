@@ -1534,22 +1534,47 @@ function LettereSection() {
                             </p>
                           )}
                         </div>
-                        {(chiusura || (richiamo.status === 'firmata' && currentConfig?.template_chiusura_id)) && (
-                          <button
-                            onClick={() => {
-                              if (chiusura) {
-                                setViewingChiusura({ tipo: 'inviata', chiusura });
-                              } else {
-                                generateChiusuraPreview(richiamo);
-                                setViewingChiusura({ tipo: 'preview', richiamo });
-                              }
-                            }}
-                            className="nav-button p-1.5 rounded-lg"
-                            title="Visualizza"
-                          >
-                            <Eye className="w-3.5 h-3.5 text-blue-600" />
-                          </button>
-                        )}
+                        <div className="flex gap-1">
+                          {richiamo.status === 'firmata' && !chiusura && (
+                            <button
+                              onClick={() => {
+                                // Find default template or first chiusura template
+                                const defaultTemplate = chiusuraTemplates.find(t => t.nome_template === 'Chiusura Procedura - Multa') || chiusuraTemplates[0];
+                                if (defaultTemplate) {
+                                  const content = generateLetteraContent(defaultTemplate.id, richiamo.user_id, richiamo);
+                                  setViewingChiusura({ 
+                                    tipo: 'edit', 
+                                    richiamo,
+                                    selectedTemplateId: defaultTemplate.id,
+                                    editableContent: content
+                                  });
+                                } else {
+                                  alert('Nessun template di chiusura procedura disponibile');
+                                }
+                              }}
+                              className="nav-button p-1.5 rounded-lg"
+                              title="Seleziona e modifica chiusura"
+                            >
+                              <Edit className="w-3.5 h-3.5 text-orange-600" />
+                            </button>
+                          )}
+                          {(chiusura || (richiamo.status === 'firmata' && currentConfig?.template_chiusura_id)) && (
+                            <button
+                              onClick={() => {
+                                if (chiusura) {
+                                  setViewingChiusura({ tipo: 'inviata', chiusura });
+                                } else {
+                                  generateChiusuraPreview(richiamo);
+                                  setViewingChiusura({ tipo: 'preview', richiamo });
+                                }
+                              }}
+                              className="nav-button p-1.5 rounded-lg"
+                              title="Visualizza"
+                            >
+                              <Eye className="w-3.5 h-3.5 text-blue-600" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </NeumorphicCard>
@@ -1678,21 +1703,89 @@ function LettereSection() {
           <NeumorphicCard className="max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between mb-4">
               <h2 className="text-xl font-bold">
-                {viewingChiusura.tipo === 'preview' ? 'Anteprima Chiusura Procedura' : 'Chiusura Procedura Inviata'}
+                {viewingChiusura.tipo === 'preview' ? 'Anteprima Chiusura Procedura' : 
+                 viewingChiusura.tipo === 'edit' ? 'Modifica Chiusura Procedura' : 
+                 'Chiusura Procedura Inviata'}
               </h2>
               <button onClick={() => setViewingChiusura(null)}><X className="w-5 h-5" /></button>
             </div>
-            <div className="neumorphic-pressed p-6 rounded-xl bg-white">
-              <pre className="whitespace-pre-wrap text-sm font-sans text-slate-700">
-                {viewingChiusura.tipo === 'preview' ? chiusuraPreviewContent : viewingChiusura.chiusura?.contenuto_lettera}
-              </pre>
-            </div>
-            {viewingChiusura.tipo === 'preview' && (
-              <div className="mt-4 neumorphic-flat p-3 rounded-lg bg-blue-50">
-                <p className="text-xs text-blue-700">
-                  ℹ️ Questa è un'anteprima. La chiusura verrà inviata automaticamente secondo la configurazione.
-                </p>
-              </div>
+            
+            {viewingChiusura.tipo === 'edit' ? (
+              <>
+                <div className="mb-4">
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Template:</label>
+                  <select
+                    value={viewingChiusura.selectedTemplateId || ''}
+                    onChange={(e) => {
+                      const newTemplateId = e.target.value;
+                      const content = generateLetteraContent(newTemplateId, viewingChiusura.richiamo.user_id, viewingChiusura.richiamo);
+                      setViewingChiusura({
+                        ...viewingChiusura,
+                        selectedTemplateId: newTemplateId,
+                        editableContent: content
+                      });
+                    }}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  >
+                    {chiusuraTemplates.map(t => (
+                      <option key={t.id} value={t.id}>{t.nome_template}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="mb-4">
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Contenuto:</label>
+                  <textarea
+                    value={viewingChiusura.editableContent || ''}
+                    onChange={(e) => setViewingChiusura({
+                      ...viewingChiusura,
+                      editableContent: e.target.value
+                    })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none h-80 resize-none font-mono text-sm"
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={() => setViewingChiusura(null)} className="flex-1 nav-button px-4 py-3 rounded-xl font-medium">
+                    Annulla
+                  </button>
+                  <NeumorphicButton 
+                    onClick={async () => {
+                      if (!confirm('Confermi l\'invio della chiusura procedura?')) return;
+                      const user = users.find(u => u.id === viewingChiusura.richiamo.user_id);
+                      await base44.entities.LetteraRichiamo.create({
+                        user_id: user.id,
+                        user_email: user.email,
+                        user_name: user.nome_cognome || user.full_name || user.email,
+                        tipo_lettera: 'chiusura_procedura',
+                        contenuto_lettera: viewingChiusura.editableContent,
+                        data_invio: new Date().toISOString(),
+                        status: 'inviata'
+                      });
+                      queryClient.invalidateQueries({ queryKey: ['lettere-richiamo'] });
+                      setViewingChiusura(null);
+                      alert('Chiusura procedura inviata!');
+                    }}
+                    variant="primary" 
+                    className="flex-1 flex items-center justify-center gap-2"
+                  >
+                    <Send className="w-4 h-4" /> Invia Chiusura
+                  </NeumorphicButton>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="neumorphic-pressed p-6 rounded-xl bg-white">
+                  <pre className="whitespace-pre-wrap text-sm font-sans text-slate-700">
+                    {viewingChiusura.tipo === 'preview' ? chiusuraPreviewContent : viewingChiusura.chiusura?.contenuto_lettera}
+                  </pre>
+                </div>
+                {viewingChiusura.tipo === 'preview' && (
+                  <div className="mt-4 neumorphic-flat p-3 rounded-lg bg-blue-50">
+                    <p className="text-xs text-blue-700">
+                      ℹ️ Questa è un'anteprima. La chiusura verrà inviata automaticamente secondo la configurazione.
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </NeumorphicCard>
         </div>
