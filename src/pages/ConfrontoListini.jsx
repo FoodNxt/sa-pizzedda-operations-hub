@@ -1,16 +1,22 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { TrendingDown, TrendingUp, Package, DollarSign, Building2 } from 'lucide-react';
+import { TrendingDown, TrendingUp, Package, DollarSign, Building2, AlertTriangle, Store } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 
 export default function ConfrontoListini() {
   const [selectedNomeInterno, setSelectedNomeInterno] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedStore, setSelectedStore] = useState('all');
 
   const { data: materiePrime = [], isLoading } = useQuery({
     queryKey: ['materie-prime'],
     queryFn: () => base44.entities.MateriePrime.list(),
+  });
+
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores'],
+    queryFn: () => base44.entities.Store.list(),
   });
 
   // Get unique nomi interni
@@ -97,6 +103,63 @@ export default function ConfrontoListini() {
     return sum + (worst - best);
   }, 0);
 
+  // Find products in use that are not the best price (for specific store or all stores)
+  const getProductsNotOptimal = () => {
+    const issues = [];
+    
+    filteredGrouped.forEach(([nomeInterno, products]) => {
+      const bestPriceProduct = products.reduce((best, p) => {
+        const currentPrice = getNormalizedPrice(p);
+        const bestPrice = getNormalizedPrice(best);
+        if (!currentPrice) return best;
+        if (!bestPrice) return p;
+        return currentPrice < bestPrice ? p : best;
+      }, products[0]);
+
+      const bestPrice = getNormalizedPrice(bestPriceProduct);
+
+      products.forEach(product => {
+        const productPrice = getNormalizedPrice(product);
+        if (!productPrice || !bestPrice) return;
+        
+        const inUsoPerStore = product.in_uso_per_store || {};
+        
+        if (selectedStore === 'all') {
+          // Check all stores
+          stores.forEach(store => {
+            if (inUsoPerStore[store.id] && productPrice > bestPrice) {
+              issues.push({
+                store: store.name,
+                storeId: store.id,
+                nomeInterno,
+                productInUse: product,
+                bestProduct: bestPriceProduct,
+                priceDiff: productPrice - bestPrice
+              });
+            }
+          });
+        } else {
+          // Check specific store
+          if (inUsoPerStore[selectedStore] && productPrice > bestPrice) {
+            const store = stores.find(s => s.id === selectedStore);
+            issues.push({
+              store: store?.name || 'N/D',
+              storeId: selectedStore,
+              nomeInterno,
+              productInUse: product,
+              bestProduct: bestPriceProduct,
+              priceDiff: productPrice - bestPrice
+            });
+          }
+        }
+      });
+    });
+    
+    return issues;
+  };
+
+  const notOptimalProducts = getProductsNotOptimal();
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -140,7 +203,67 @@ export default function ConfrontoListini() {
             <option value="altro">Altro</option>
           </select>
         </NeumorphicCard>
+
+        <NeumorphicCard className="px-4 py-2">
+          <select
+            value={selectedStore}
+            onChange={(e) => setSelectedStore(e.target.value)}
+            className="bg-transparent text-[#6b6b6b] outline-none"
+          >
+            <option value="all">Tutti i Negozi</option>
+            {stores.map(store => (
+              <option key={store.id} value={store.id}>{store.name}</option>
+            ))}
+          </select>
+        </NeumorphicCard>
       </div>
+
+      {/* Alert for non-optimal products */}
+      {notOptimalProducts.length > 0 && (
+        <NeumorphicCard className="p-6 bg-orange-50 border-2 border-orange-200">
+          <div className="flex items-start gap-3 mb-4">
+            <AlertTriangle className="w-6 h-6 text-orange-600 flex-shrink-0" />
+            <div>
+              <h3 className="font-bold text-orange-800 mb-1">
+                ⚠️ Prodotti in uso non ottimali ({notOptimalProducts.length})
+              </h3>
+              <p className="text-sm text-orange-700">
+                {selectedStore === 'all' 
+                  ? 'Ci sono prodotti in uso che non hanno il miglior prezzo disponibile'
+                  : `Nel negozio selezionato ci sono prodotti in uso che non hanno il miglior prezzo`
+                }
+              </p>
+            </div>
+          </div>
+          
+          <div className="space-y-3 max-h-60 overflow-y-auto">
+            {notOptimalProducts.map((issue, idx) => (
+              <div key={idx} className="neumorphic-pressed p-3 rounded-lg bg-white">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-bold text-slate-700 text-sm">{issue.nomeInterno}</p>
+                    <p className="text-xs text-slate-500">
+                      <Store className="w-3 h-3 inline mr-1" />
+                      {issue.store}
+                    </p>
+                    <p className="text-xs text-orange-600 mt-1">
+                      In uso: <strong>{issue.productInUse.nome_prodotto}</strong> ({issue.productInUse.fornitore || 'N/D'})
+                    </p>
+                    <p className="text-xs text-green-600">
+                      Miglior prezzo: <strong>{issue.bestProduct.nome_prodotto}</strong> ({issue.bestProduct.fornitore || 'N/D'})
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-red-600 font-bold text-sm">
+                      +€{issue.priceDiff.toFixed(2)}/kg
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </NeumorphicCard>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -273,21 +396,36 @@ export default function ConfrontoListini() {
                                 )}
                               </td>
                               <td className="p-3 text-center">
-                                {products.length === 1 ? (
-                                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-bold">
-                                    Unico Fornitore
-                                  </span>
-                                ) : isBest ? (
-                                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">
-                                    <TrendingDown className="w-3 h-3" />
-                                    Miglior Prezzo
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-bold">
-                                    <TrendingUp className="w-3 h-3" />
-                                    +€{priceDiff.toFixed(2)}/{product.unita_misura_peso ? getDisplayUnit(product.unita_misura_peso) : 'kg'}
-                                  </span>
-                                )}
+                                <div className="flex flex-col items-center gap-1">
+                                  {products.length === 1 ? (
+                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-bold">
+                                      Unico Fornitore
+                                    </span>
+                                  ) : isBest ? (
+                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">
+                                      <TrendingDown className="w-3 h-3" />
+                                      Miglior Prezzo
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-bold">
+                                      <TrendingUp className="w-3 h-3" />
+                                      +€{priceDiff.toFixed(2)}/{product.unita_misura_peso ? getDisplayUnit(product.unita_misura_peso) : 'kg'}
+                                    </span>
+                                  )}
+                                  {/* Show if product is in use for any store */}
+                                  {product.in_uso_per_store && Object.entries(product.in_uso_per_store).some(([storeId, inUso]) => {
+                                    if (!inUso) return false;
+                                    if (selectedStore !== 'all' && storeId !== selectedStore) return false;
+                                    return true;
+                                  }) && (
+                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+                                      isBest ? 'bg-green-50 text-green-600' : 'bg-orange-100 text-orange-700'
+                                    }`}>
+                                      ✓ In uso
+                                      {!isBest && <AlertTriangle className="w-3 h-3" />}
+                                    </span>
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           );
