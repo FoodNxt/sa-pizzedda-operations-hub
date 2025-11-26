@@ -12,6 +12,7 @@ import { it } from 'date-fns/locale';
 export default function Pulizie() {
   const [selectedStore, setSelectedStore] = useState('all');
   const [dateFilter, setDateFilter] = useState('month');
+  const [roleFilter, setRoleFilter] = useState('all');
   const [detailsModalInspection, setDetailsModalInspection] = useState(null);
   const [correctingEquipment, setCorrectingEquipment] = useState(null);
   const [correctionData, setCorrectionData] = useState({});
@@ -38,6 +39,9 @@ export default function Pulizie() {
 
     if (dateFilter === 'week' && daysDiff > 7) return false;
     if (dateFilter === 'month' && daysDiff > 30) return false;
+
+    // Filter by role
+    if (roleFilter !== 'all' && inspection.inspector_role !== roleFilter) return false;
 
     return true;
   });
@@ -242,6 +246,19 @@ export default function Pulizie() {
             <option value="week">Ultima Settimana</option>
             <option value="month">Ultimo Mese</option>
             <option value="all">Tutte</option>
+          </select>
+        </NeumorphicCard>
+
+        <NeumorphicCard className="px-4 py-2">
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="bg-transparent text-[#6b6b6b] outline-none"
+          >
+            <option value="all">Tutti i Ruoli</option>
+            <option value="Pizzaiolo">Pizzaiolo</option>
+            <option value="Cassiere">Cassiere</option>
+            <option value="Store Manager">Store Manager</option>
           </select>
         </NeumorphicCard>
       </div>

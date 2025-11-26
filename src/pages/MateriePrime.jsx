@@ -45,8 +45,11 @@ export default function MateriePrime() {
     note: '',
     attivo: true,
     posizione: 'negozio',
-    assigned_stores: []
+    assigned_stores: [],
+    in_uso: false,
+    in_uso_per_store: {}
   });
+  const [inUsoPerStore, setInUsoPerStore] = useState({});
 
   const queryClient = useQueryClient();
 
@@ -106,12 +109,15 @@ export default function MateriePrime() {
       note: '',
       attivo: true,
       posizione: 'negozio',
-      assigned_stores: []
+      assigned_stores: [],
+      in_uso: false,
+      in_uso_per_store: {}
     });
     setStoreQuantities({});
     setShowStoreQuantities(false);
     setStorePositions({});
     setShowStorePositions(false);
+    setInUsoPerStore({});
     setEditingProduct(null);
     setShowForm(false);
   };
@@ -135,10 +141,13 @@ export default function MateriePrime() {
       note: product.note || '',
       attivo: product.attivo !== false,
       posizione: product.posizione || 'negozio',
-      assigned_stores: product.assigned_stores || []
+      assigned_stores: product.assigned_stores || [],
+      in_uso: product.in_uso || false,
+      in_uso_per_store: product.in_uso_per_store || {}
     });
     setStoreQuantities(product.store_specific_min_quantities || {});
     setStorePositions(product.store_specific_positions || {});
+    setInUsoPerStore(product.in_uso_per_store || {});
     setShowForm(true);
   };
 
@@ -162,16 +171,17 @@ export default function MateriePrime() {
     
     const data = {
       ...formData,
-      quantita_minima: parseFloat(formData.quantita_minima),
-      prezzo_unitario: formData.prezzo_unitario ? parseFloat(formData.prezzo_unitario) : null,
-      peso_dimensione_unita: formData.peso_dimensione_unita ? parseFloat(formData.peso_dimensione_unita) : null,
+      quantita_minima: Math.round(parseFloat(formData.quantita_minima)),
+      prezzo_unitario: formData.prezzo_unitario ? Math.round(parseFloat(formData.prezzo_unitario)) : null,
+      peso_dimensione_unita: formData.peso_dimensione_unita ? Math.round(parseFloat(formData.peso_dimensione_unita)) : null,
       unita_misura_peso: formData.peso_dimensione_unita ? formData.unita_misura_peso : null,
-      unita_per_confezione: formData.unita_per_confezione ? parseFloat(formData.unita_per_confezione) : null,
-      peso_unita_interna: formData.peso_unita_interna ? parseFloat(formData.peso_unita_interna) : null,
+      unita_per_confezione: formData.unita_per_confezione ? Math.round(parseFloat(formData.unita_per_confezione)) : null,
+      peso_unita_interna: formData.peso_unita_interna ? Math.round(parseFloat(formData.peso_unita_interna)) : null,
       unita_misura_interna: formData.peso_unita_interna ? formData.unita_misura_interna : null,
       store_specific_min_quantities: cleanedStoreQuantities,
       store_specific_positions: cleanedStorePositions,
-      assigned_stores: formData.assigned_stores.length > 0 ? formData.assigned_stores : []
+      assigned_stores: formData.assigned_stores.length > 0 ? formData.assigned_stores : [],
+      in_uso_per_store: inUsoPerStore
     };
 
     if (editingProduct) {
@@ -347,7 +357,7 @@ export default function MateriePrime() {
 
                     <div>
                       <label className="text-sm font-medium text-slate-700 mb-2 block">
-                        Nome Interno
+                        Nome Interno <span className="text-red-600">*</span>
                       </label>
                       <input
                         type="text"
@@ -356,6 +366,7 @@ export default function MateriePrime() {
                         onChange={(e) => setFormData({ ...formData, nome_interno: e.target.value })}
                         className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
                         placeholder="es. Farina Tipo 00"
+                        required
                       />
                       <datalist id="nomi-interni">
                         {[...new Set(products.map(p => p.nome_interno).filter(Boolean))].map(nome => (
@@ -573,28 +584,34 @@ export default function MateriePrime() {
                       </label>
                       <input
                         type="number"
-                        step="0.01"
+                        step="1"
                         value={formData.quantita_minima}
                         onChange={(e) => setFormData({ ...formData, quantita_minima: e.target.value })}
                         placeholder="10"
                         className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
                         required
                       />
+                      <p className="text-xs text-slate-500 mt-1">
+                        💡 Valori interi senza decimali
+                      </p>
                     </div>
 
                     <div>
                       <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
                         <Euro className="w-4 h-4" />
-                        Prezzo Unitario
+                        Prezzo Confezione/Cassa
                       </label>
                       <input
                         type="number"
-                        step="0.01"
+                        step="1"
                         value={formData.prezzo_unitario}
                         onChange={(e) => setFormData({ ...formData, prezzo_unitario: e.target.value })}
-                        placeholder="15.50"
+                        placeholder="15"
                         className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
                       />
+                      <p className="text-xs text-slate-500 mt-1">
+                        💡 Prezzo per confezione/cassa selezionata come unità (senza decimali)
+                      </p>
                     </div>
                   </div>
 
@@ -742,6 +759,55 @@ export default function MateriePrime() {
                   </div>
                 </div>
 
+                {/* In Uso per Store */}
+                <div className="neumorphic-flat p-4 rounded-xl">
+                  <h3 className="font-bold text-slate-700 mb-3 text-sm">✅ Prodotto In Uso (per Locale)</h3>
+                  <p className="text-xs text-slate-500 mb-3">
+                    Seleziona i locali in cui questo prodotto è attualmente in uso. Solo un prodotto con lo stesso nome interno può essere "in uso" per locale.
+                  </p>
+                  
+                  <div className="space-y-2">
+                    {stores.map(store => {
+                      // Check if another product with same nome_interno is already in use for this store
+                      const otherProductInUse = products.find(p => 
+                        p.id !== editingProduct?.id && 
+                        p.nome_interno === formData.nome_interno && 
+                        p.in_uso_per_store?.[store.id] === true
+                      );
+                      
+                      return (
+                        <div key={store.id} className="neumorphic-pressed p-3 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                id={`in-uso-${store.id}`}
+                                checked={inUsoPerStore[store.id] || false}
+                                onChange={(e) => {
+                                  setInUsoPerStore(prev => ({
+                                    ...prev,
+                                    [store.id]: e.target.checked
+                                  }));
+                                }}
+                                disabled={otherProductInUse && !inUsoPerStore[store.id]}
+                                className="w-4 h-4"
+                              />
+                              <label htmlFor={`in-uso-${store.id}`} className="text-sm text-slate-700">
+                                {store.name}
+                              </label>
+                            </div>
+                            {otherProductInUse && !inUsoPerStore[store.id] && (
+                              <span className="text-xs text-orange-600">
+                                In uso: {otherProductInUse.nome_prodotto}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div className="flex gap-3">
                   <NeumorphicButton
                     type="button"
@@ -797,6 +863,7 @@ export default function MateriePrime() {
                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Qtà Min</th>
                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Prezzo</th>
                       <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Stato</th>
+                      <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">In Uso</th>
                       <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Azioni</th>
                     </tr>
                   </thead>
@@ -829,7 +896,7 @@ export default function MateriePrime() {
                             {product.quantita_minima}
                           </td>
                           <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
-                            {product.prezzo_unitario ? `€${product.prezzo_unitario.toFixed(2)}` : '-'}
+                            {product.prezzo_unitario ? `€${Math.round(product.prezzo_unitario)}` : '-'}
                           </td>
                           <td className="p-2 lg:p-3">
                             <div className="flex justify-center">
@@ -837,6 +904,17 @@ export default function MateriePrime() {
                                 <CheckCircle className="w-5 h-5 text-green-600" />
                               ) : (
                                 <X className="w-5 h-5 text-gray-400" />
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-2 lg:p-3">
+                            <div className="flex justify-center">
+                              {product.in_uso_per_store && Object.values(product.in_uso_per_store).some(v => v) ? (
+                                <span className="px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                                  ✓ In uso
+                                </span>
+                              ) : (
+                                <span className="text-xs text-slate-400">-</span>
                               )}
                             </div>
                           </td>
