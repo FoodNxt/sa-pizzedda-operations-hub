@@ -543,6 +543,16 @@ function LettereSection() {
   });
   const [letteraForm, setLetteraForm] = useState({ user_id: '', tipo_lettera: 'lettera_richiamo', template_id: '' });
 
+  const getStatusBadge = (status) => {
+    const badges = {
+      'bozza': { bg: 'bg-gray-100', text: 'text-gray-700', label: 'Bozza' },
+      'inviato': { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Inviato' },
+      'firmato': { bg: 'bg-green-100', text: 'text-green-700', label: 'Firmato ✓' },
+    };
+    const badge = badges[status] || badges.bozza;
+    return <span className={`px-3 py-1 rounded-full text-xs font-bold ${badge.bg} ${badge.text}`}>{badge.label}</span>;
+  };
+
   const queryClient = useQueryClient();
   const { data: templates = [] } = useQuery({
     queryKey: ['lettera-templates'],
