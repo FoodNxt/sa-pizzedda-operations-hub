@@ -48,7 +48,6 @@ import AcademyAdmin from './pages/AcademyAdmin';
 import Academy from './pages/Academy';
 import Contratti from './pages/Contratti';
 import FunzionamentoApp from './pages/FunzionamentoApp';
-import AlertPeriodoProva from './pages/AlertPeriodoProva';
 import HRAdmin from './pages/HRAdmin';
 import ContrattiDipendente from './pages/ContrattiDipendente';
 import MateriePrime from './pages/MateriePrime';
@@ -73,6 +72,7 @@ import Documenti from './pages/Documenti';
 import FormsDipendente from './pages/FormsDipendente';
 import PulizieMatch from './pages/PulizieMatch';
 import OreLavorate from './pages/OreLavorate';
+import Alerts from './pages/Alerts';
 import __Layout from './Layout.jsx';
 
 
@@ -127,7 +127,6 @@ export const PAGES = {
     "Academy": Academy,
     "Contratti": Contratti,
     "FunzionamentoApp": FunzionamentoApp,
-    "AlertPeriodoProva": AlertPeriodoProva,
     "HRAdmin": HRAdmin,
     "ContrattiDipendente": ContrattiDipendente,
     "MateriePrime": MateriePrime,
@@ -152,6 +151,7 @@ export const PAGES = {
     "FormsDipendente": FormsDipendente,
     "PulizieMatch": PulizieMatch,
     "OreLavorate": OreLavorate,
+    "Alerts": Alerts,
 }
 
 export const pagesConfig = {
