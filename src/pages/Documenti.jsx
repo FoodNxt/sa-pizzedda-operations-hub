@@ -820,37 +820,41 @@ function ContrattiSection() {
     alert('Contratto inviato con successo!');
   };
 
-  const downloadContrattoFirmato = (contratto) => {
-    // Create contract content with signature
-    let contenuto = contratto.contenuto_contratto || '';
-    
-    // Add signature section
-    const firmaSection = `
+  const [downloadingPdf, setDownloadingPdf] = useState(null);
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-FIRMA DEL DIPENDENTE
-
-Nome e Cognome: ${contratto.firma_dipendente || contratto.nome_cognome}
-Data Firma: ${contratto.data_firma ? new Date(contratto.data_firma).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
-
-Firma digitale: ✓ ${contratto.firma_dipendente}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-`;
-
-    const fullContent = contenuto + firmaSection;
-
-    // Create and download file
-    const blob = new Blob([fullContent], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Contratto_${contratto.nome_cognome.replace(/\s+/g, '_')}_${new Date(contratto.data_firma).toISOString().split('T')[0]}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const downloadContrattoFirmato = async (contratto) => {
+    setDownloadingPdf(contratto.id);
+    try {
+      const response = await base44.functions.invoke('downloadContrattoPDF', { contrattoId: contratto.id });
+      
+      if (response.data.success) {
+        // Convert base64 to blob
+        const byteCharacters = atob(response.data.pdf);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'application/pdf' });
+        
+        // Download
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = response.data.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } else {
+        alert('Errore nel download: ' + (response.data.error || 'Errore sconosciuto'));
+      }
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      alert('Errore nel download del PDF');
+    } finally {
+      setDownloadingPdf(null);
+    }
   };
 
   const getStatusBadge = (status) => {
@@ -1020,8 +1024,17 @@ Firma digitale: ✓ ${contratto.firma_dipendente}
                         <Eye className="w-4 h-4 text-purple-600" />
                       </button>
                       {c.status === 'firmato' && (
-                        <button onClick={() => downloadContrattoFirmato(c)} className="nav-button p-2 rounded-lg" title="Scarica contratto firmato">
-                          <Download className="w-4 h-4 text-blue-600" />
+                        <button 
+                          onClick={() => downloadContrattoFirmato(c)} 
+                          className="nav-button p-2 rounded-lg" 
+                          title="Scarica contratto firmato PDF"
+                          disabled={downloadingPdf === c.id}
+                        >
+                          {downloadingPdf === c.id ? (
+                            <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                          ) : (
+                            <Download className="w-4 h-4 text-blue-600" />
+                          )}
                         </button>
                       )}
                       {c.status === 'bozza' && (
