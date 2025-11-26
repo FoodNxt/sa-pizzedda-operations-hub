@@ -21,7 +21,7 @@ import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 function PeriodoProvaTab() {
   const [viewingUser, setViewingUser] = useState(null);
   const [showConfig, setShowConfig] = useState(false);
-  const [giorniPerMese, setGiorniPerMese] = useState('');
+  const [turniPerMese, setTurniPerMese] = useState('');
 
   const queryClient = useQueryClient();
 
@@ -71,21 +71,14 @@ function PeriodoProvaTab() {
   const employeeAlerts = useMemo(() => {
     if (isLoadingConfig) return [];
     
-    const giorniProvaPerMese = currentConfig?.giorni_prova_per_mese || 15; // default 15 giorni per mese
+    const turniProvaPerMese = currentConfig?.giorni_prova_per_mese || 10; // default 10 turni per mese
 
     return dipendenteConContratto.map(user => {
       const dataInizio = new Date(user.data_inizio_contratto);
       const nomeCompleto = user.nome_cognome || user.full_name || '';
       
       const contractDuration = user.durata_contratto_mesi || 0;
-      const giorniProvaTotali = contractDuration * giorniProvaPerMese;
-      const dataFineProva = new Date(dataInizio);
-      dataFineProva.setDate(dataFineProva.getDate() + giorniProvaTotali);
-      
-      const oggi = new Date();
-      const giorniTrascorsi = Math.floor((oggi - dataInizio) / (1000 * 60 * 60 * 24));
-      const giorniRimanenti = Math.max(0, giorniProvaTotali - giorniTrascorsi);
-      const inPeriodoProva = oggi < dataFineProva;
+      const turniProvaTotali = contractDuration * turniProvaPerMese;
 
       const shiftsFromContractStart = shifts.filter(shift => {
         const employeeNameMatch = shift.employee_name === nomeCompleto;
@@ -97,41 +90,41 @@ function PeriodoProvaTab() {
         } catch(e) { return false; }
       });
 
-      const numeroTurni = shiftsFromContractStart.length;
+      const numeroTurniEffettuati = shiftsFromContractStart.length;
+      const turniRimanenti = Math.max(0, turniProvaTotali - numeroTurniEffettuati);
+      const inPeriodoProva = numeroTurniEffettuati < turniProvaTotali;
 
       return {
         user,
-        numeroTurni,
-        giorniProvaTotali,
-        giorniTrascorsi,
-        giorniRimanenti,
+        numeroTurniEffettuati,
+        turniProvaTotali,
+        turniRimanenti,
         dataInizio,
-        dataFineProva,
         inPeriodoProva,
         shiftsFromContractStart
       };
     }).filter(item => item.inPeriodoProva)
-      .sort((a, b) => a.giorniRimanenti - b.giorniRimanenti);
+      .sort((a, b) => a.turniRimanenti - b.turniRimanenti);
   }, [dipendenteConContratto, shifts, configs, isLoadingConfig, currentConfig]);
 
   const stats = {
     totaleDipendenti: dipendenteConContratto.length,
     totaleInProva: employeeAlerts.length,
-    critici: employeeAlerts.filter(e => e.giorniRimanenti <= 7).length,
-    attenzione: employeeAlerts.filter(e => e.giorniRimanenti > 7 && e.giorniRimanenti <= 15).length
+    critici: employeeAlerts.filter(e => e.turniRimanenti <= 3).length,
+    attenzione: employeeAlerts.filter(e => e.turniRimanenti > 3 && e.turniRimanenti <= 6).length
   };
 
-  const getSeverityColor = (giorniRimanenti) => {
-    if (giorniRimanenti <= 7) return 'bg-red-100 text-red-700 border-red-300';
-    if (giorniRimanenti <= 15) return 'bg-orange-100 text-orange-700 border-orange-300';
-    if (giorniRimanenti <= 30) return 'bg-yellow-100 text-yellow-700 border-yellow-300';
+  const getSeverityColor = (turniRimanenti) => {
+    if (turniRimanenti <= 3) return 'bg-red-100 text-red-700 border-red-300';
+    if (turniRimanenti <= 6) return 'bg-orange-100 text-orange-700 border-orange-300';
+    if (turniRimanenti <= 10) return 'bg-yellow-100 text-yellow-700 border-yellow-300';
     return 'bg-blue-100 text-blue-700 border-blue-300';
   };
 
-  const getSeverityLabel = (giorniRimanenti) => {
-    if (giorniRimanenti <= 7) return 'CRITICO';
-    if (giorniRimanenti <= 15) return 'ALTO';
-    if (giorniRimanenti <= 30) return 'MEDIO';
+  const getSeverityLabel = (turniRimanenti) => {
+    if (turniRimanenti <= 3) return 'CRITICO';
+    if (turniRimanenti <= 6) return 'ALTO';
+    if (turniRimanenti <= 10) return 'MEDIO';
     return 'BASSO';
   };
 
@@ -149,19 +142,19 @@ function PeriodoProvaTab() {
                 <div className="space-y-4">
                     <div className="neumorphic-pressed p-4 rounded-xl">
                         <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                            Giorni di prova per ogni mese di contratto
+                            Turni di prova per ogni mese di contratto
                         </label>
                         <div className="flex items-center gap-3">
                             <input
                                 type="number"
                                 min="1"
-                                placeholder="Es: 15"
-                                value={giorniPerMese || currentConfig?.giorni_prova_per_mese || ''}
-                                onChange={(e) => setGiorniPerMese(e.target.value)}
+                                placeholder="Es: 10"
+                                value={turniPerMese || currentConfig?.giorni_prova_per_mese || ''}
+                                onChange={(e) => setTurniPerMese(e.target.value)}
                                 className="neumorphic-pressed px-4 py-3 rounded-lg flex-1 outline-none"
                             />
                             <NeumorphicButton 
-                                onClick={() => saveConfigMutation.mutate({ giorni_prova_per_mese: parseInt(giorniPerMese) || 15 })} 
+                                onClick={() => saveConfigMutation.mutate({ giorni_prova_per_mese: parseInt(turniPerMese) || 10 })} 
                                 variant="primary"
                                 disabled={saveConfigMutation.isPending}
                             >
@@ -170,13 +163,13 @@ function PeriodoProvaTab() {
                             </NeumorphicButton>
                         </div>
                         <p className="text-xs text-[#9b9b9b] mt-2">
-                            Esempio: Se imposti 15, un contratto di 6 mesi avrà 90 giorni di prova (6 × 15)
+                            Esempio: Se imposti 10, un contratto di 6 mesi avrà 60 turni di prova (6 × 10)
                         </p>
                     </div>
                     {currentConfig && (
                         <div className="neumorphic-flat p-3 rounded-lg bg-blue-50">
                             <p className="text-sm text-blue-800">
-                                <strong>Configurazione attuale:</strong> {currentConfig.giorni_prova_per_mese} giorni per mese
+                                <strong>Configurazione attuale:</strong> {currentConfig.giorni_prova_per_mese} turni per mese
                             </p>
                         </div>
                     )}
@@ -200,7 +193,7 @@ function PeriodoProvaTab() {
                 </div>
             ) : (
                 <div className="space-y-3">{employeeAlerts.map((alert, idx) => (
-                    <div key={idx} className={`neumorphic-pressed p-5 rounded-xl border-2 ${getSeverityColor(alert.giorniRimanenti)}`}>
+                    <div key={idx} className={`neumorphic-pressed p-5 rounded-xl border-2 ${getSeverityColor(alert.turniRimanenti)}`}>
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-3">
@@ -224,8 +217,8 @@ function PeriodoProvaTab() {
                                 </div>
                               </div>
                               <div className="text-right">
-                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${getSeverityColor(alert.giorniRimanenti)}`}>
-                                  {getSeverityLabel(alert.giorniRimanenti)}
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${getSeverityColor(alert.turniRimanenti)}`}>
+                                  {getSeverityLabel(alert.turniRimanenti)}
                                 </span>
                               </div>
                             </div>
@@ -234,9 +227,9 @@ function PeriodoProvaTab() {
                               <div className="neumorphic-flat p-3 rounded-lg">
                                 <div className="flex items-center gap-2 text-[#9b9b9b] mb-1">
                                   <Clock className="w-4 h-4" />
-                                  <span className="text-xs">Giorni Rimanenti</span>
+                                  <span className="text-xs">Turni Rimanenti</span>
                                 </div>
-                                <p className="text-2xl font-bold text-[#6b6b6b]">{alert.giorniRimanenti}</p>
+                                <p className="text-2xl font-bold text-[#6b6b6b]">{alert.turniRimanenti}</p>
                               </div>
 
                               <div className="neumorphic-flat p-3 rounded-lg">
@@ -251,20 +244,18 @@ function PeriodoProvaTab() {
 
                               <div className="neumorphic-flat p-3 rounded-lg">
                                 <div className="flex items-center gap-2 text-[#9b9b9b] mb-1">
-                                  <Calendar className="w-4 h-4" />
-                                  <span className="text-xs">Fine Prova</span>
+                                  <Users className="w-4 h-4" />
+                                  <span className="text-xs">Turni Effettuati</span>
                                 </div>
-                                <p className="text-sm font-bold text-[#6b6b6b]">
-                                  {alert.dataFineProva.toLocaleDateString('it-IT')}
-                                </p>
+                                <p className="text-2xl font-bold text-[#6b6b6b]">{alert.numeroTurniEffettuati}</p>
                               </div>
 
                               <div className="neumorphic-flat p-3 rounded-lg">
                                 <div className="flex items-center gap-2 text-[#9b9b9b] mb-1">
                                   <Users className="w-4 h-4" />
-                                  <span className="text-xs">Turni Effettuati</span>
+                                  <span className="text-xs">Turni Totali Prova</span>
                                 </div>
-                                <p className="text-2xl font-bold text-[#6b6b6b]">{alert.numeroTurni}</p>
+                                <p className="text-2xl font-bold text-[#6b6b6b]">{alert.turniProvaTotali}</p>
                               </div>
                             </div>
                           </div>
