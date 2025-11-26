@@ -1634,37 +1634,6 @@ function LettereSection() {
               // Group letters by user to show richiamo + chiusura together
               const lettereRichiamo = lettere.filter(l => l.tipo_lettera === 'lettera_richiamo');
               
-              const downloadLetteraPDFAdmin = async (lettera) => {
-                setDownloadingPdfAdmin(lettera.id);
-                try {
-                  const response = await base44.functions.invoke('downloadLetteraPDF', { letteraId: lettera.id });
-                  if (response.data.success) {
-                    const byteCharacters = atob(response.data.pdf);
-                    const byteNumbers = new Array(byteCharacters.length);
-                    for (let i = 0; i < byteCharacters.length; i++) {
-                      byteNumbers[i] = byteCharacters.charCodeAt(i);
-                    }
-                    const byteArray = new Uint8Array(byteNumbers);
-                    const blob = new Blob([byteArray], { type: 'application/pdf' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = response.data.filename;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                  } else {
-                    alert('Errore nel download');
-                  }
-                } catch (error) {
-                  console.error('Error downloading PDF:', error);
-                  alert('Errore nel download del PDF');
-                } finally {
-                  setDownloadingPdfAdmin(null);
-                }
-              };
-
               return lettereRichiamo.map(richiamo => {
                 // Find associated chiusura procedura for this user after this richiamo
                 const chiusura = lettere.find(l => 
