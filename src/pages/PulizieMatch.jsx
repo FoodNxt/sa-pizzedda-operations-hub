@@ -20,40 +20,9 @@ export default function PulizieMatch() {
     queryKey: ['cleaningInspections'],
     queryFn: async () => {
       const allInspections = await base44.entities.CleaningInspection.list('-inspection_date');
-      // Exclude Store Manager form inspections (they go to ControlloStoreManager page)
-      return allInspections.filter(i => {
-        // Check if the inspector has Store Manager role - exclude those
-        const inspectorName = i.inspector_name || '';
-        // We'll filter by checking if inspection was made by SM forms
-        // SM inspections typically include specific SM-only questions
-        // For now, include all but we can refine this logic
-        return true; // Will be refined based on actual data structure
-      });
+      return allInspections;
     },
   });
-
-  // Filter for employee history
-  const [selectedEmployeeFilter, setSelectedEmployeeFilter] = useState('all');
-
-  // Get unique employees from all inspections
-  const allMatchedEmployees = useMemo(() => {
-    const employeeSet = new Set();
-    inspections.forEach(inspection => {
-      const employees = getMatchingEmployees(inspection);
-      employees.forEach(emp => employeeSet.add(emp.employeeName));
-    });
-    return Array.from(employeeSet).sort();
-  }, [inspections, shifts, users]);
-
-  // Filter inspections by selected employee
-  const filteredInspections = useMemo(() => {
-    if (selectedEmployeeFilter === 'all') return inspections;
-    
-    return inspections.filter(inspection => {
-      const employees = getMatchingEmployees(inspection);
-      return employees.some(emp => emp.employeeName === selectedEmployeeFilter);
-    });
-  }, [inspections, selectedEmployeeFilter, shifts, users]);
 
   const { data: shifts = [] } = useQuery({
     queryKey: ['shifts'],
@@ -72,6 +41,9 @@ export default function PulizieMatch() {
     queryKey: ['cleaning-questions'],
     queryFn: () => base44.entities.DomandaPulizia.list('ordine'),
   });
+
+  // Filter for employee history
+  const [selectedEmployeeFilter, setSelectedEmployeeFilter] = useState('all');
 
   // Get the employee whose shift ended immediately before the inspection (by roles array)
   const getMatchingEmployeeByRoles = (inspection, roles) => {
@@ -211,6 +183,26 @@ export default function PulizieMatch() {
   };
 
   const roleOptions = ['Pizzaiolo', 'Cassiere', 'Store Manager'];
+
+  // Get unique employees from all inspections
+  const allMatchedEmployees = useMemo(() => {
+    const employeeSet = new Set();
+    inspections.forEach(inspection => {
+      const employees = getMatchingEmployees(inspection);
+      employees.forEach(emp => employeeSet.add(emp.employeeName));
+    });
+    return Array.from(employeeSet).sort();
+  }, [inspections, shifts, users]);
+
+  // Filter inspections by selected employee
+  const filteredInspections = useMemo(() => {
+    if (selectedEmployeeFilter === 'all') return inspections;
+    
+    return inspections.filter(inspection => {
+      const employees = getMatchingEmployees(inspection);
+      return employees.some(emp => emp.employeeName === selectedEmployeeFilter);
+    });
+  }, [inspections, selectedEmployeeFilter, shifts, users]);
 
   return (
     <ProtectedPage pageName="PulizieMatch">
