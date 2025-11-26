@@ -18,6 +18,23 @@ export default function ControlloPuliziaStoreManager() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
   const [error, setError] = useState('');
+  const [isAfterDeadline, setIsAfterDeadline] = useState(false);
+
+  // Check if current time is after 10:30
+  useEffect(() => {
+    const checkTime = () => {
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      const totalMinutes = hours * 60 + minutes;
+      // 10:30 = 10*60 + 30 = 630 minutes
+      setIsAfterDeadline(totalMinutes > 630);
+    };
+    checkTime();
+    // Check every minute
+    const interval = setInterval(checkTime, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -190,6 +207,24 @@ export default function ControlloPuliziaStoreManager() {
             </p>
             <p className="text-sm text-[#9b9b9b]">
               I tuoi ruoli attuali: <strong>{userRoles.length > 0 ? userRoles.join(', ') : 'Nessun ruolo assegnato'}</strong>
+            </p>
+          </NeumorphicCard>
+        </div>
+      );
+    }
+
+    // Block after 10:30 for dipendenti
+    if (isAfterDeadline) {
+      return (
+        <div className="max-w-5xl mx-auto space-y-6">
+          <NeumorphicCard className="p-8 text-center">
+            <AlertCircle className="w-16 h-16 text-orange-600 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-[#6b6b6b] mb-2">Compilazione Non Disponibile</h2>
+            <p className="text-[#9b9b9b] mb-4">
+              Il form Pulizia Store Manager può essere compilato solo <strong>entro le 10:30</strong> di ogni giorno.
+            </p>
+            <p className="text-sm text-[#9b9b9b]">
+              Riprova domani mattina prima delle 10:30.
             </p>
           </NeumorphicCard>
         </div>
