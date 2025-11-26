@@ -73,6 +73,7 @@ import FormsDipendente from './pages/FormsDipendente';
 import PulizieMatch from './pages/PulizieMatch';
 import OreLavorate from './pages/OreLavorate';
 import Alerts from './pages/Alerts';
+import ControlloStoreManager from './pages/ControlloStoreManager';
 import __Layout from './Layout.jsx';
 
 
@@ -152,6 +153,7 @@ export const PAGES = {
     "PulizieMatch": PulizieMatch,
     "OreLavorate": OreLavorate,
     "Alerts": Alerts,
+    "ControlloStoreManager": ControlloStoreManager,
 }
 
 export const pagesConfig = {

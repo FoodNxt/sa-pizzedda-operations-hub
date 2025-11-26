@@ -234,26 +234,31 @@ const navigationStructure = [
         icon: Users,
       },
       {
+        title: "Controllo Store Manager",
+        url: createPageUrl("ControlloStoreManager"),
+        icon: CheckSquare,
+      },
+      {
         title: "Controllo Pulizie Master",
         url: createPageUrl("ControlloPulizieMaster"),
         icon: CheckSquare,
       },
       {
-        title: "Controllo Pulizia Cassiere",
+        title: "Form Pulizia Cassiere",
         url: createPageUrl("ControlloPuliziaCassiere"),
         icon: Camera,
         requiredUserType: ["admin", "manager"],
         requiredRole: null
       },
       {
-        title: "Controllo Pulizia Pizzaiolo",
+        title: "Form Pulizia Pizzaiolo",
         url: createPageUrl("ControlloPuliziaPizzaiolo"),
         icon: Camera,
         requiredUserType: ["admin", "manager"],
         requiredRole: null
       },
       {
-        title: "Controllo Pulizia Store Manager",
+        title: "Form Pulizia Store Manager",
         url: createPageUrl("ControlloPuliziaStoreManager"),
         icon: Camera,
         requiredUserType: ["admin", "manager"],
@@ -694,9 +699,9 @@ export default function Layout({ children, currentPageName }) {
       'FormsDipendente': 'Forms',
       'Impasto': 'Impasto',
       'Precotture': 'Precotture',
-      'ControlloPuliziaCassiere': 'Pulizia Cassiere',
-      'ControlloPuliziaPizzaiolo': 'Pulizia Pizzaiolo',
-      'ControlloPuliziaStoreManager': 'Pulizia SM',
+      'ControlloPuliziaCassiere': 'Form Pulizia Cassiere',
+      'ControlloPuliziaPizzaiolo': 'Form Pulizia Pizzaiolo',
+      'ControlloPuliziaStoreManager': 'Form Pulizia SM',
       'FormInventario': 'Inventario',
       'ConteggioCassa': 'Cassa',
       'FormTeglieButtate': 'Teglie',

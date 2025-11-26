@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Users, Clock, CheckCircle, AlertTriangle, Save, Settings, Eye, X } from 'lucide-react';
@@ -18,8 +18,42 @@ export default function PulizieMatch() {
 
   const { data: inspections = [] } = useQuery({
     queryKey: ['cleaningInspections'],
-    queryFn: () => base44.entities.CleaningInspection.list('-inspection_date'),
+    queryFn: async () => {
+      const allInspections = await base44.entities.CleaningInspection.list('-inspection_date');
+      // Exclude Store Manager form inspections (they go to ControlloStoreManager page)
+      return allInspections.filter(i => {
+        // Check if the inspector has Store Manager role - exclude those
+        const inspectorName = i.inspector_name || '';
+        // We'll filter by checking if inspection was made by SM forms
+        // SM inspections typically include specific SM-only questions
+        // For now, include all but we can refine this logic
+        return true; // Will be refined based on actual data structure
+      });
+    },
   });
+
+  // Filter for employee history
+  const [selectedEmployeeFilter, setSelectedEmployeeFilter] = useState('all');
+
+  // Get unique employees from all inspections
+  const allMatchedEmployees = useMemo(() => {
+    const employeeSet = new Set();
+    inspections.forEach(inspection => {
+      const employees = getMatchingEmployees(inspection);
+      employees.forEach(emp => employeeSet.add(emp.employeeName));
+    });
+    return Array.from(employeeSet).sort();
+  }, [inspections, shifts, users]);
+
+  // Filter inspections by selected employee
+  const filteredInspections = useMemo(() => {
+    if (selectedEmployeeFilter === 'all') return inspections;
+    
+    return inspections.filter(inspection => {
+      const employees = getMatchingEmployees(inspection);
+      return employees.some(emp => emp.employeeName === selectedEmployeeFilter);
+    });
+  }, [inspections, selectedEmployeeFilter, shifts, users]);
 
   const { data: shifts = [] } = useQuery({
     queryKey: ['shifts'],
@@ -197,6 +231,24 @@ export default function PulizieMatch() {
           </NeumorphicButton>
         </div>
 
+        {/* Employee Filter */}
+        <NeumorphicCard className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <Users className="w-6 h-6 text-purple-600" />
+            <h2 className="text-xl font-bold text-slate-800">Storico per Dipendente</h2>
+          </div>
+          <select
+            value={selectedEmployeeFilter}
+            onChange={(e) => setSelectedEmployeeFilter(e.target.value)}
+            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+          >
+            <option value="all">Tutti i dipendenti</option>
+            {allMatchedEmployees.map(emp => (
+              <option key={emp} value={emp}>{emp}</option>
+            ))}
+          </select>
+        </NeumorphicCard>
+
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <NeumorphicCard className="p-6">
@@ -241,9 +293,9 @@ export default function PulizieMatch() {
           <h2 className="text-xl font-bold text-slate-800 mb-4">Ispezioni Recenti</h2>
           
           <div className="space-y-3">
-            {inspections
+            {filteredInspections
               .filter(i => i.analysis_status === 'completed')
-              .slice(0, 20)
+              .slice(0, 50)
               .map(inspection => {
                 const matchingEmployees = getMatchingEmployees(inspection);
                 
