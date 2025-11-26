@@ -38,47 +38,84 @@ export default function PulizieMatch() {
     queryFn: () => base44.entities.DomandaPulizia.list('ordine'),
   });
 
-  // Get matching employees for an inspection
-  const getMatchingEmployees = (inspection) => {
-    if (!inspection) return [];
+  // Get the employee whose shift ended immediately before the inspection (by role)
+  // Example: If Cassiere 1 has shift 11-15 and Cassiere 2 has shift 15-22, and Cassiere 2 fills the form,
+  // assign responsibility to Cassiere 1 (the one whose shift ended first before the form)
+  const getMatchingEmployeeByRole = (inspection, role) => {
+    if (!inspection) return null;
 
     const inspectionDate = parseISO(inspection.inspection_date);
     const inspectionStoreId = inspection.store_id;
 
-    // Find shifts that ended within 2 hours before the inspection
-    const matchingShifts = shifts.filter(shift => {
-      if (shift.store_id !== inspectionStoreId || !shift.actual_end) return false;
+    // Find all shifts that ended BEFORE the inspection for this store
+    const eligibleShifts = shifts.filter(shift => {
+      if (shift.store_id !== inspectionStoreId) return false;
+      
+      // Use scheduled_end if actual_end not available
+      const shiftEnd = shift.actual_end || shift.scheduled_end;
+      if (!shiftEnd) return false;
 
       try {
-        const shiftEndDate = parseISO(shift.actual_end);
-        const minutesDiff = differenceInMinutes(inspectionDate, shiftEndDate);
-
-        // Match if shift ended 0-120 minutes before inspection
-        return minutesDiff >= 0 && minutesDiff <= 120;
+        const shiftEndDate = parseISO(shiftEnd);
+        // Shift must have ended before the inspection
+        return shiftEndDate < inspectionDate;
       } catch (e) {
         return false;
       }
     });
 
-    // Get unique employees with their shift info
-    const employeeMatches = matchingShifts.map(shift => {
+    // Filter by role if specified
+    const roleFilteredShifts = eligibleShifts.filter(shift => {
+      if (!role) return true;
       const user = users.find(u => 
         (u.nome_cognome || u.full_name || u.email) === shift.employee_name
       );
-
-      return {
-        employeeName: shift.employee_name,
-        userId: user?.id,
-        shiftEndTime: shift.actual_end,
-        minutesBeforeInspection: differenceInMinutes(
-          inspectionDate, 
-          parseISO(shift.actual_end)
-        ),
-        roles: user?.ruoli_dipendente || []
-      };
+      return user?.ruoli_dipendente?.includes(role);
     });
 
-    return employeeMatches.sort((a, b) => a.minutesBeforeInspection - b.minutesBeforeInspection);
+    // Sort by shift end time descending (most recent first) and get the last one that ended
+    const sortedShifts = roleFilteredShifts.sort((a, b) => {
+      const endA = parseISO(a.actual_end || a.scheduled_end);
+      const endB = parseISO(b.actual_end || b.scheduled_end);
+      return endB - endA; // Most recent first
+    });
+
+    // Get the most recent shift that ended before the inspection
+    const matchingShift = sortedShifts[0];
+    if (!matchingShift) return null;
+
+    const user = users.find(u => 
+      (u.nome_cognome || u.full_name || u.email) === matchingShift.employee_name
+    );
+
+    const shiftEnd = matchingShift.actual_end || matchingShift.scheduled_end;
+
+    return {
+      employeeName: matchingShift.employee_name,
+      userId: user?.id,
+      shiftEndTime: shiftEnd,
+      minutesBeforeInspection: differenceInMinutes(inspectionDate, parseISO(shiftEnd)),
+      roles: user?.ruoli_dipendente || []
+    };
+  };
+
+  // Get all matching employees (one per role that ended shift before inspection)
+  const getMatchingEmployees = (inspection) => {
+    if (!inspection) return [];
+
+    const roleMatches = [];
+    const seenEmployees = new Set();
+
+    // Get match for each role
+    for (const role of roleOptions) {
+      const match = getMatchingEmployeeByRole(inspection, role);
+      if (match && !seenEmployees.has(match.employeeName)) {
+        roleMatches.push({ ...match, matchedRole: role });
+        seenEmployees.add(match.employeeName);
+      }
+    }
+
+    return roleMatches.sort((a, b) => a.minutesBeforeInspection - b.minutesBeforeInspection);
   };
 
   const saveResponsibilityMutation = useMutation({
@@ -110,15 +147,6 @@ export default function PulizieMatch() {
   const handleSaveResponsibilities = () => {
     saveResponsibilityMutation.mutate(responsibilities);
   };
-
-  const equipment = [
-    { name: 'Forno', key: 'forno', icon: '🔥' },
-    { name: 'Impastatrice', key: 'impastatrice', icon: '⚙️' },
-    { name: 'Tavolo', key: 'tavolo_lavoro', icon: '📋' },
-    { name: 'Frigo', key: 'frigo', icon: '❄️' },
-    { name: 'Cassa', key: 'cassa', icon: '💰' },
-    { name: 'Lavandino', key: 'lavandino', icon: '🚰' }
-  ];
 
   const roleOptions = ['Pizzaiolo', 'Cassiere', 'Store Manager'];
 
@@ -221,8 +249,9 @@ export default function PulizieMatch() {
                             {matchingEmployees.map((emp, idx) => (
                               <div key={idx} className="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-200">
                                 <span className="font-medium">{emp.employeeName}</span>
+                                <span className="text-purple-600 ml-1">({emp.matchedRole})</span>
                                 <span className="text-blue-500 ml-1">
-                                  ({emp.minutesBeforeInspection}min prima)
+                                  - turno finito {emp.minutesBeforeInspection}min prima
                                 </span>
                               </div>
                             ))}
@@ -230,7 +259,7 @@ export default function PulizieMatch() {
                         ) : (
                           <div className="text-xs text-orange-600 bg-orange-50 px-3 py-1 rounded-lg inline-block mt-2">
                             <AlertTriangle className="w-3 h-3 inline mr-1" />
-                            Nessun dipendente trovato nelle 2h precedenti
+                            Nessun dipendente con turno terminato prima del form
                           </div>
                         )}
                       </div>
@@ -329,36 +358,42 @@ export default function PulizieMatch() {
                   })()}
                 </div>
 
-                {/* Equipment Status */}
+                {/* Domande e Responsabili */}
                 <div>
-                  <h3 className="text-lg font-bold text-slate-800 mb-3">Dettagli Attrezzature</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {equipment.map(eq => {
-                      const status = selectedInspection[`${eq.key}_corrected`]
-                        ? selectedInspection[`${eq.key}_corrected_status`]
-                        : selectedInspection[`${eq.key}_pulizia_status`];
-                      
-                      const responsibleRole = responsibilities[eq.key];
+                  <h3 className="text-lg font-bold text-slate-800 mb-3">Domande e Responsabili Assegnati</h3>
+                  <div className="space-y-2">
+                    {cleaningQuestions.filter(q => q.attiva !== false).map(q => {
+                      const responsibleRole = responsibilities[`question_${q.id}`];
+                      const matchedEmployee = responsibleRole 
+                        ? getMatchingEmployeeByRole(selectedInspection, responsibleRole)
+                        : null;
                       
                       return (
-                        <div key={eq.key} className={`neumorphic-pressed p-4 rounded-xl border-2 ${
-                          status === 'pulito' ? 'border-green-200 bg-green-50' :
-                          status === 'medio' ? 'border-yellow-200 bg-yellow-50' :
-                          status === 'sporco' ? 'border-red-200 bg-red-50' :
-                          'border-gray-200 bg-gray-50'
-                        }`}>
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-2xl">{eq.icon}</span>
-                            {status === 'pulito' && <CheckCircle className="w-5 h-5 text-green-600" />}
-                            {status === 'sporco' && <AlertTriangle className="w-5 h-5 text-red-600" />}
+                        <div key={q.id} className="neumorphic-flat p-3 rounded-xl">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-slate-800">{q.testo_domanda}</p>
+                              {q.attrezzatura && (
+                                <p className="text-xs text-slate-500">({q.attrezzatura})</p>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              {responsibleRole ? (
+                                <div>
+                                  <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                                    {responsibleRole}
+                                  </span>
+                                  {matchedEmployee && (
+                                    <p className="text-xs text-green-600 mt-1">
+                                      → {matchedEmployee.employeeName}
+                                    </p>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-xs text-slate-400">Non assegnato</span>
+                              )}
+                            </div>
                           </div>
-                          <p className="text-sm font-bold text-slate-800 mb-1">{eq.name}</p>
-                          <p className="text-xs text-slate-600 capitalize">{status}</p>
-                          {responsibleRole && (
-                            <p className="text-xs text-purple-600 mt-1">
-                              👤 {responsibleRole}
-                            </p>
-                          )}
                         </div>
                       );
                     })}
@@ -377,10 +412,10 @@ export default function PulizieMatch() {
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h2 className="text-2xl font-bold text-slate-800">
-                      Assegnazione Responsabilità
+                      Assegnazione Responsabilità Domande
                     </h2>
                     <p className="text-sm text-slate-500">
-                      Assegna ogni attrezzatura/area a una tipologia di dipendente
+                      Assegna ogni domanda del form pulizie a una tipologia di dipendente
                     </p>
                   </div>
                   <button
@@ -392,20 +427,28 @@ export default function PulizieMatch() {
                 </div>
 
                 <div className="space-y-4 mb-6">
-                  {equipment.map(eq => (
-                    <div key={eq.key} className="neumorphic-flat p-4 rounded-xl">
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className="text-2xl">{eq.icon}</span>
-                        <h3 className="font-bold text-slate-800">{eq.name}</h3>
+                  {cleaningQuestions.filter(q => q.attiva !== false).map(q => (
+                    <div key={q.id} className="neumorphic-flat p-4 rounded-xl">
+                      <div className="flex items-start gap-3 mb-3">
+                        <span className="text-xl">{q.tipo_controllo === 'foto' ? '📷' : '📋'}</span>
+                        <div className="flex-1">
+                          <h3 className="font-bold text-slate-800">{q.testo_domanda}</h3>
+                          {q.attrezzatura && (
+                            <p className="text-xs text-slate-500">Attrezzatura: {q.attrezzatura}</p>
+                          )}
+                          <p className="text-xs text-blue-600 mt-1">
+                            Tipo: {q.tipo_controllo === 'foto' ? 'Foto' : 'Risposta multipla'}
+                          </p>
+                        </div>
                       </div>
                       <label className="text-sm font-medium text-slate-700 mb-2 block">
                         Responsabile:
                       </label>
                       <select
-                        value={responsibilities[eq.key] || ''}
+                        value={responsibilities[`question_${q.id}`] || ''}
                         onChange={(e) => setResponsibilities({
                           ...responsibilities,
-                          [eq.key]: e.target.value
+                          [`question_${q.id}`]: e.target.value
                         })}
                         className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
                       >
@@ -417,32 +460,12 @@ export default function PulizieMatch() {
                     </div>
                   ))}
 
-                  {/* Cleaning Questions */}
-                  <div className="neumorphic-flat p-4 rounded-xl">
-                    <h3 className="font-bold text-slate-800 mb-3">Altre Domande Form</h3>
-                    <div className="space-y-3">
-                      {cleaningQuestions.filter(q => q.is_active).map(q => (
-                        <div key={q.id} className="neumorphic-pressed p-3 rounded-lg">
-                          <label className="text-sm font-medium text-slate-700 mb-2 block">
-                            {q.testo_domanda}
-                          </label>
-                          <select
-                            value={responsibilities[`question_${q.id}`] || ''}
-                            onChange={(e) => setResponsibilities({
-                              ...responsibilities,
-                              [`question_${q.id}`]: e.target.value
-                            })}
-                            className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm"
-                          >
-                            <option value="">Nessun responsabile specifico</option>
-                            {roleOptions.map(role => (
-                              <option key={role} value={role}>{role}</option>
-                            ))}
-                          </select>
-                        </div>
-                      ))}
+                  {cleaningQuestions.filter(q => q.attiva !== false).length === 0 && (
+                    <div className="neumorphic-pressed p-8 rounded-xl text-center">
+                      <p className="text-slate-500">Nessuna domanda pulizie configurata</p>
+                      <p className="text-xs text-slate-400 mt-2">Vai in Controllo Pulizie Master per aggiungere domande</p>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 <NeumorphicButton
@@ -471,10 +494,13 @@ export default function PulizieMatch() {
             <div>
               <h3 className="font-bold text-blue-800 mb-2">Come Funziona il Matching</h3>
               <p className="text-sm text-blue-700 mb-2">
-                Il sistema associa automaticamente le ispezioni ai dipendenti che erano in turno nelle 2 ore precedenti.
+                Il sistema assegna automaticamente le ispezioni al dipendente che ha terminato il turno <strong>immediatamente prima</strong> della compilazione del form.
+              </p>
+              <p className="text-sm text-blue-700 mb-2">
+                <strong>Esempio:</strong> Se Cassiere 1 ha turno 11:00-15:00 e Cassiere 2 ha turno 15:00-22:00, quando Cassiere 2 compila il form, la responsabilità viene assegnata a Cassiere 1.
               </p>
               <p className="text-sm text-blue-700">
-                Nella sezione "Assegnazione Responsabilità" puoi definire quale ruolo è responsabile di ogni attrezzatura/area.
+                Nella sezione "Assegnazione Responsabilità" puoi definire quale ruolo è responsabile di ogni domanda del form.
               </p>
             </div>
           </div>
