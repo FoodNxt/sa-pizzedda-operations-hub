@@ -21,6 +21,7 @@ import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 function PeriodoProvaTab() {
   const [viewingUser, setViewingUser] = useState(null);
   const [showConfig, setShowConfig] = useState(false);
+  const [giorniPerMese, setGiorniPerMese] = useState('');
 
   const queryClient = useQueryClient();
 
@@ -39,21 +40,20 @@ function PeriodoProvaTab() {
     queryFn: () => base44.entities.PeriodoProvaConfig.list(),
   });
 
-  const [newConfig, setNewConfig] = useState({ durata_contratto_mesi: '', turni_richiesti: '' });
+  const currentConfig = configs[0];
 
-  const createConfigMutation = useMutation({
-    mutationFn: (data) => base44.entities.PeriodoProvaConfig.create(data),
+  const saveConfigMutation = useMutation({
+    mutationFn: async (data) => {
+      if (currentConfig) {
+        return base44.entities.PeriodoProvaConfig.update(currentConfig.id, data);
+      }
+      return base44.entities.PeriodoProvaConfig.create(data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['periodoProvaConfig'] });
-      setNewConfig({ durata_contratto_mesi: '', turni_richiesti: '' });
+      alert('Configurazione salvata!');
     },
   });
-
-  const deleteConfigMutation = useMutation({
-    mutationFn: (id) => base44.entities.PeriodoProvaConfig.delete(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['periodoProvaConfig'] }),
-  });
-
 
   const dipendenteConContratto = users.filter(u => {
     if (u.user_type !== 'dipendente' && u.user_type !== 'user') return false;
@@ -71,12 +71,22 @@ function PeriodoProvaTab() {
   const employeeAlerts = useMemo(() => {
     if (isLoadingConfig) return [];
     
-    const defaultConfig = configs.find(c => c.durata_contratto_mesi === 0) || { turni_richiesti: 10 };
+    const giorniProvaPerMese = currentConfig?.giorni_prova_per_mese || 15; // default 15 giorni per mese
 
     return dipendenteConContratto.map(user => {
       const dataInizio = new Date(user.data_inizio_contratto);
       const nomeCompleto = user.nome_cognome || user.full_name || '';
       
+      const contractDuration = user.durata_contratto_mesi || 0;
+      const giorniProvaTotali = contractDuration * giorniProvaPerMese;
+      const dataFineProva = new Date(dataInizio);
+      dataFineProva.setDate(dataFineProva.getDate() + giorniProvaTotali);
+      
+      const oggi = new Date();
+      const giorniTrascorsi = Math.floor((oggi - dataInizio) / (1000 * 60 * 60 * 24));
+      const giorniRimanenti = Math.max(0, giorniProvaTotali - giorniTrascorsi);
+      const inPeriodoProva = oggi < dataFineProva;
+
       const shiftsFromContractStart = shifts.filter(shift => {
         const employeeNameMatch = shift.employee_name === nomeCompleto;
         if (!employeeNameMatch) return false;
@@ -88,44 +98,40 @@ function PeriodoProvaTab() {
       });
 
       const numeroTurni = shiftsFromContractStart.length;
-      const giorni = Math.floor((new Date() - dataInizio) / (1000 * 60 * 60 * 24));
-
-      const contractDuration = user.durata_contratto_mesi || 0;
-      const specificConfig = configs.find(c => c.durata_contratto_mesi === contractDuration);
-      const turniRichiesti = specificConfig ? specificConfig.turni_richiesti : defaultConfig.turni_richiesti;
 
       return {
         user,
         numeroTurni,
-        turniRichiesti,
-        giorni,
+        giorniProvaTotali,
+        giorniTrascorsi,
+        giorniRimanenti,
         dataInizio,
+        dataFineProva,
+        inPeriodoProva,
         shiftsFromContractStart
       };
-    }).filter(item => item.numeroTurni < item.turniRichiesti)
-      .sort((a, b) => b.numeroTurni - a.numeroTurni);
-  }, [dipendenteConContratto, shifts, configs, isLoadingConfig]);
+    }).filter(item => item.inPeriodoProva)
+      .sort((a, b) => a.giorniRimanenti - b.giorniRimanenti);
+  }, [dipendenteConContratto, shifts, configs, isLoadingConfig, currentConfig]);
 
   const stats = {
     totaleDipendenti: dipendenteConContratto.length,
-    totaleAlert: employeeAlerts.length,
-    critici: employeeAlerts.filter(e => (e.turniRichiesti - e.numeroTurni) <= 2).length,
-    attenzione: employeeAlerts.filter(e => (e.turniRichiesti - e.numeroTurni) > 2 && (e.turniRichiesti - e.numeroTurni) <= 5).length
+    totaleInProva: employeeAlerts.length,
+    critici: employeeAlerts.filter(e => e.giorniRimanenti <= 7).length,
+    attenzione: employeeAlerts.filter(e => e.giorniRimanenti > 7 && e.giorniRimanenti <= 15).length
   };
 
-  const getSeverityColor = (numeroTurni, turniRichiesti) => {
-    const diff = turniRichiesti - numeroTurni;
-    if (diff <= 1) return 'bg-red-100 text-red-700 border-red-300';
-    if (diff <= 3) return 'bg-orange-100 text-orange-700 border-orange-300';
-    if (diff <= 6) return 'bg-yellow-100 text-yellow-700 border-yellow-300';
+  const getSeverityColor = (giorniRimanenti) => {
+    if (giorniRimanenti <= 7) return 'bg-red-100 text-red-700 border-red-300';
+    if (giorniRimanenti <= 15) return 'bg-orange-100 text-orange-700 border-orange-300';
+    if (giorniRimanenti <= 30) return 'bg-yellow-100 text-yellow-700 border-yellow-300';
     return 'bg-blue-100 text-blue-700 border-blue-300';
   };
 
-  const getSeverityLabel = (numeroTurni, turniRichiesti) => {
-    const diff = turniRichiesti - numeroTurni;
-    if (diff <= 1) return 'CRITICO';
-    if (diff <= 3) return 'ALTO';
-    if (diff <= 6) return 'MEDIO';
+  const getSeverityLabel = (giorniRimanenti) => {
+    if (giorniRimanenti <= 7) return 'CRITICO';
+    if (giorniRimanenti <= 15) return 'ALTO';
+    if (giorniRimanenti <= 30) return 'MEDIO';
     return 'BASSO';
   };
 
@@ -135,45 +141,45 @@ function PeriodoProvaTab() {
             <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-[#6b6b6b]">Configurazione Periodo di Prova</h2>
                 <NeumorphicButton onClick={() => setShowConfig(!showConfig)}>
-                    {showConfig ? 'Nascondi' : 'Mostra'}
+                    <Settings className="w-4 h-4 mr-2" />
+                    {showConfig ? 'Nascondi' : 'Configura'}
                 </NeumorphicButton>
             </div>
             {showConfig && (
                 <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {configs.map(config => (
-                            <div key={config.id} className="neumorphic-pressed p-3 rounded-lg flex items-center justify-between">
-                                <div>
-                                    <p className="font-bold text-[#6b6b6b]">
-                                        {config.durata_contratto_mesi === 0 ? 'Default' : `${config.durata_contratto_mesi} mesi`}
-                                    </p>
-                                    <p className="text-sm text-[#9b9b9b]">Richiede {config.turni_richiesti} turni</p>
-                                </div>
-                                <button onClick={() => deleteConfigMutation.mutate(config.id)} className="text-red-500 hover:text-red-700">
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                            </div>
-                        ))}
+                    <div className="neumorphic-pressed p-4 rounded-xl">
+                        <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                            Giorni di prova per ogni mese di contratto
+                        </label>
+                        <div className="flex items-center gap-3">
+                            <input
+                                type="number"
+                                min="1"
+                                placeholder="Es: 15"
+                                value={giorniPerMese || currentConfig?.giorni_prova_per_mese || ''}
+                                onChange={(e) => setGiorniPerMese(e.target.value)}
+                                className="neumorphic-pressed px-4 py-3 rounded-lg flex-1 outline-none"
+                            />
+                            <NeumorphicButton 
+                                onClick={() => saveConfigMutation.mutate({ giorni_prova_per_mese: parseInt(giorniPerMese) || 15 })} 
+                                variant="primary"
+                                disabled={saveConfigMutation.isPending}
+                            >
+                                <Save className="w-4 h-4 mr-2" />
+                                Salva
+                            </NeumorphicButton>
+                        </div>
+                        <p className="text-xs text-[#9b9b9b] mt-2">
+                            Esempio: Se imposti 15, un contratto di 6 mesi avrà 90 giorni di prova (6 × 15)
+                        </p>
                     </div>
-                    <div className="flex items-end gap-3 pt-4 border-t">
-                        <input
-                            type="number"
-                            placeholder="Mesi contratto (0 per default)"
-                            value={newConfig.durata_contratto_mesi}
-                            onChange={(e) => setNewConfig({ ...newConfig, durata_contratto_mesi: e.target.value })}
-                            className="neumorphic-pressed px-3 py-2 rounded-lg w-full"
-                        />
-                        <input
-                            type="number"
-                            placeholder="Turni richiesti"
-                            value={newConfig.turni_richiesti}
-                            onChange={(e) => setNewConfig({ ...newConfig, turni_richiesti: e.target.value })}
-                            className="neumorphic-pressed px-3 py-2 rounded-lg w-full"
-                        />
-                        <NeumorphicButton onClick={() => createConfigMutation.mutate(newConfig)} variant="primary">
-                            <Plus className="w-5 h-5"/>
-                        </NeumorphicButton>
-                    </div>
+                    {currentConfig && (
+                        <div className="neumorphic-flat p-3 rounded-lg bg-blue-50">
+                            <p className="text-sm text-blue-800">
+                                <strong>Configurazione attuale:</strong> {currentConfig.giorni_prova_per_mese} giorni per mese
+                            </p>
+                        </div>
+                    )}
                 </div>
             )}
         </NeumorphicCard>
