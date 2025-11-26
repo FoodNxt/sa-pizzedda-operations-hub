@@ -12,6 +12,7 @@ export default function PulizieMatch() {
   const [selectedInspection, setSelectedInspection] = useState(null);
   const [showResponsibilityModal, setShowResponsibilityModal] = useState(false);
   const [responsibilities, setResponsibilities] = useState({});
+  // Structure: { question_id: { primary: ['Pizzaiolo', 'Cassiere'], secondary: 'Store Manager' } }
 
   const queryClient = useQueryClient();
 
@@ -38,11 +39,9 @@ export default function PulizieMatch() {
     queryFn: () => base44.entities.DomandaPulizia.list('ordine'),
   });
 
-  // Get the employee whose shift ended immediately before the inspection (by role)
-  // Example: If Cassiere 1 has shift 11-15 and Cassiere 2 has shift 15-22, and Cassiere 2 fills the form,
-  // assign responsibility to Cassiere 1 (the one whose shift ended first before the form)
-  const getMatchingEmployeeByRole = (inspection, role) => {
-    if (!inspection) return null;
+  // Get the employee whose shift ended immediately before the inspection (by roles array)
+  const getMatchingEmployeeByRoles = (inspection, roles) => {
+    if (!inspection || !roles || roles.length === 0) return null;
 
     const inspectionDate = parseISO(inspection.inspection_date);
     const inspectionStoreId = inspection.store_id;
@@ -51,36 +50,32 @@ export default function PulizieMatch() {
     const eligibleShifts = shifts.filter(shift => {
       if (shift.store_id !== inspectionStoreId) return false;
       
-      // Use scheduled_end if actual_end not available
       const shiftEnd = shift.actual_end || shift.scheduled_end;
       if (!shiftEnd) return false;
 
       try {
         const shiftEndDate = parseISO(shiftEnd);
-        // Shift must have ended before the inspection
         return shiftEndDate < inspectionDate;
       } catch (e) {
         return false;
       }
     });
 
-    // Filter by role if specified
+    // Filter by any of the roles
     const roleFilteredShifts = eligibleShifts.filter(shift => {
-      if (!role) return true;
       const user = users.find(u => 
         (u.nome_cognome || u.full_name || u.email) === shift.employee_name
       );
-      return user?.ruoli_dipendente?.includes(role);
+      return roles.some(role => user?.ruoli_dipendente?.includes(role));
     });
 
-    // Sort by shift end time descending (most recent first) and get the last one that ended
+    // Sort by shift end time descending (most recent first)
     const sortedShifts = roleFilteredShifts.sort((a, b) => {
       const endA = parseISO(a.actual_end || a.scheduled_end);
       const endB = parseISO(b.actual_end || b.scheduled_end);
-      return endB - endA; // Most recent first
+      return endB - endA;
     });
 
-    // Get the most recent shift that ended before the inspection
     const matchingShift = sortedShifts[0];
     if (!matchingShift) return null;
 
@@ -89,26 +84,59 @@ export default function PulizieMatch() {
     );
 
     const shiftEnd = matchingShift.actual_end || matchingShift.scheduled_end;
+    const matchedRole = roles.find(role => user?.ruoli_dipendente?.includes(role));
 
     return {
       employeeName: matchingShift.employee_name,
       userId: user?.id,
       shiftEndTime: shiftEnd,
       minutesBeforeInspection: differenceInMinutes(inspectionDate, parseISO(shiftEnd)),
-      roles: user?.ruoli_dipendente || []
+      roles: user?.ruoli_dipendente || [],
+      matchedRole
     };
   };
 
-  // Get all matching employees (one per role that ended shift before inspection)
+  // Get matching employee for a question based on primary/secondary responsibility config
+  // Logic: assign to primary, EXCEPT when the last shift ended was from secondary role
+  const getMatchingEmployeeForQuestion = (inspection, questionId) => {
+    const config = responsibilities[`question_${questionId}`];
+    if (!config || !config.primary || config.primary.length === 0) return null;
+
+    const primaryRoles = config.primary;
+    const secondaryRole = config.secondary;
+
+    // If no secondary, just match primary
+    if (!secondaryRole) {
+      return getMatchingEmployeeByRoles(inspection, primaryRoles);
+    }
+
+    // Check who ended their shift last (between primary and secondary)
+    const lastPrimaryEmployee = getMatchingEmployeeByRoles(inspection, primaryRoles);
+    const lastSecondaryEmployee = getMatchingEmployeeByRoles(inspection, [secondaryRole]);
+
+    // If secondary role employee ended their shift AFTER all primary roles,
+    // then assign to secondary, otherwise assign to primary
+    if (lastSecondaryEmployee && lastPrimaryEmployee) {
+      if (lastSecondaryEmployee.minutesBeforeInspection < lastPrimaryEmployee.minutesBeforeInspection) {
+        // Secondary ended more recently (less minutes before inspection)
+        return { ...lastSecondaryEmployee, assignedAs: 'secondary' };
+      }
+    } else if (lastSecondaryEmployee && !lastPrimaryEmployee) {
+      return { ...lastSecondaryEmployee, assignedAs: 'secondary' };
+    }
+
+    return lastPrimaryEmployee ? { ...lastPrimaryEmployee, assignedAs: 'primary' } : null;
+  };
+
+  // Get all matching employees for display
   const getMatchingEmployees = (inspection) => {
     if (!inspection) return [];
 
     const roleMatches = [];
     const seenEmployees = new Set();
 
-    // Get match for each role
     for (const role of roleOptions) {
-      const match = getMatchingEmployeeByRole(inspection, role);
+      const match = getMatchingEmployeeByRoles(inspection, [role]);
       if (match && !seenEmployees.has(match.employeeName)) {
         roleMatches.push({ ...match, matchedRole: role });
         seenEmployees.add(match.employeeName);
@@ -363,10 +391,8 @@ export default function PulizieMatch() {
                   <h3 className="text-lg font-bold text-slate-800 mb-3">Domande e Responsabili Assegnati</h3>
                   <div className="space-y-2">
                     {cleaningQuestions.filter(q => q.attiva !== false).map(q => {
-                      const responsibleRole = responsibilities[`question_${q.id}`];
-                      const matchedEmployee = responsibleRole 
-                        ? getMatchingEmployeeByRole(selectedInspection, responsibleRole)
-                        : null;
+                      const config = responsibilities[`question_${q.id}`];
+                      const matchedEmployee = getMatchingEmployeeForQuestion(selectedInspection, q.id);
                       
                       return (
                         <div key={q.id} className="neumorphic-flat p-3 rounded-xl">
@@ -378,14 +404,24 @@ export default function PulizieMatch() {
                               )}
                             </div>
                             <div className="text-right">
-                              {responsibleRole ? (
+                              {config?.primary?.length > 0 ? (
                                 <div>
-                                  <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
-                                    {responsibleRole}
-                                  </span>
+                                  <div className="flex flex-wrap gap-1 justify-end mb-1">
+                                    {config.primary.map(role => (
+                                      <span key={role} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                                        {role}
+                                      </span>
+                                    ))}
+                                    {config.secondary && (
+                                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                                        +{config.secondary}
+                                      </span>
+                                    )}
+                                  </div>
                                   {matchedEmployee && (
-                                    <p className="text-xs text-green-600 mt-1">
-                                      → {matchedEmployee.employeeName}
+                                    <p className={`text-xs mt-1 ${matchedEmployee.assignedAs === 'secondary' ? 'text-orange-600' : 'text-green-600'}`}>
+                                      → {matchedEmployee.employeeName} 
+                                      {matchedEmployee.assignedAs === 'secondary' && ' (sec.)'}
                                     </p>
                                   )}
                                 </div>
@@ -415,7 +451,7 @@ export default function PulizieMatch() {
                       Assegnazione Responsabilità Domande
                     </h2>
                     <p className="text-sm text-slate-500">
-                      Assegna ogni domanda del form pulizie a una tipologia di dipendente
+                      Assegna responsabili primari e secondari per ogni domanda
                     </p>
                   </div>
                   <button
@@ -427,38 +463,81 @@ export default function PulizieMatch() {
                 </div>
 
                 <div className="space-y-4 mb-6">
-                  {cleaningQuestions.filter(q => q.attiva !== false).map(q => (
-                    <div key={q.id} className="neumorphic-flat p-4 rounded-xl">
-                      <div className="flex items-start gap-3 mb-3">
-                        <span className="text-xl">{q.tipo_controllo === 'foto' ? '📷' : '📋'}</span>
-                        <div className="flex-1">
-                          <h3 className="font-bold text-slate-800">{q.testo_domanda}</h3>
-                          {q.attrezzatura && (
-                            <p className="text-xs text-slate-500">Attrezzatura: {q.attrezzatura}</p>
-                          )}
-                          <p className="text-xs text-blue-600 mt-1">
-                            Tipo: {q.tipo_controllo === 'foto' ? 'Foto' : 'Risposta multipla'}
+                  {cleaningQuestions.filter(q => q.attiva !== false).map(q => {
+                    const config = responsibilities[`question_${q.id}`] || { primary: [], secondary: '' };
+                    
+                    return (
+                      <div key={q.id} className="neumorphic-flat p-4 rounded-xl">
+                        <div className="flex items-start gap-3 mb-4">
+                          <span className="text-xl">{q.tipo_controllo === 'foto' ? '📷' : '📋'}</span>
+                          <div className="flex-1">
+                            <h3 className="font-bold text-slate-800">{q.testo_domanda}</h3>
+                            {q.attrezzatura && (
+                              <p className="text-xs text-slate-500">Attrezzatura: {q.attrezzatura}</p>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Primary Responsibilities (multiple selection) */}
+                        <div className="mb-3">
+                          <label className="text-sm font-medium text-slate-700 mb-2 block">
+                            Responsabili Primari (seleziona uno o più):
+                          </label>
+                          <div className="flex flex-wrap gap-2">
+                            {roleOptions.map(role => {
+                              const isSelected = config.primary?.includes(role);
+                              return (
+                                <button
+                                  key={role}
+                                  type="button"
+                                  onClick={() => {
+                                    const currentPrimary = config.primary || [];
+                                    const newPrimary = isSelected
+                                      ? currentPrimary.filter(r => r !== role)
+                                      : [...currentPrimary, role];
+                                    setResponsibilities({
+                                      ...responsibilities,
+                                      [`question_${q.id}`]: { ...config, primary: newPrimary }
+                                    });
+                                  }}
+                                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                                    isSelected 
+                                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' 
+                                      : 'neumorphic-flat text-slate-700'
+                                  }`}
+                                >
+                                  {role}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Secondary Responsibility (optional, single selection) */}
+                        <div>
+                          <label className="text-sm font-medium text-slate-700 mb-2 block">
+                            Responsabile Secondario (opzionale):
+                          </label>
+                          <select
+                            value={config.secondary || ''}
+                            onChange={(e) => setResponsibilities({
+                              ...responsibilities,
+                              [`question_${q.id}`]: { ...config, secondary: e.target.value }
+                            })}
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                          >
+                            <option value="">Nessun secondario</option>
+                            {roleOptions.filter(r => !config.primary?.includes(r)).map(role => (
+                              <option key={role} value={role}>{role}</option>
+                            ))}
+                          </select>
+                          <p className="text-xs text-slate-500 mt-1">
+                            Se l'ultimo turno terminato è del secondario, la responsabilità va a lui
                           </p>
                         </div>
                       </div>
-                      <label className="text-sm font-medium text-slate-700 mb-2 block">
-                        Responsabile:
-                      </label>
-                      <select
-                        value={responsibilities[`question_${q.id}`] || ''}
-                        onChange={(e) => setResponsibilities({
-                          ...responsibilities,
-                          [`question_${q.id}`]: e.target.value
-                        })}
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                      >
-                        <option value="">Nessun responsabile specifico</option>
-                        {roleOptions.map(role => (
-                          <option key={role} value={role}>{role}</option>
-                        ))}
-                      </select>
-                    </div>
-                  ))}
+                    );
+                  })}
 
                   {cleaningQuestions.filter(q => q.attiva !== false).length === 0 && (
                     <div className="neumorphic-pressed p-8 rounded-xl text-center">
@@ -479,7 +558,7 @@ export default function PulizieMatch() {
 
                 <div className="mt-4 p-4 bg-blue-50 rounded-xl">
                   <p className="text-xs text-blue-800">
-                    💡 Le responsabilità assegnate verranno utilizzate per identificare chi è responsabile di ogni area durante il matching delle ispezioni.
+                    💡 <strong>Logica:</strong> La responsabilità viene assegnata ai ruoli primari, TRANNE quando l'ultimo dipendente che ha terminato il turno appartiene al ruolo secondario.
                   </p>
                 </div>
               </NeumorphicCard>
