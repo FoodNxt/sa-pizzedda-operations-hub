@@ -1029,6 +1029,7 @@ function ContrattiSection() {
 function LettereSection() {
   const [showTemplateForm, setShowTemplateForm] = useState(false);
   const [showLetteraForm, setShowLetteraForm] = useState(false);
+  const [showAutoConfig, setShowAutoConfig] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [templateForm, setTemplateForm] = useState({
     nome_template: '', tipo_lettera: 'lettera_richiamo', contenuto: '', attivo: true
