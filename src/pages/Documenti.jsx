@@ -1480,6 +1480,9 @@ function LettereSection() {
                   chiusuraScheduled = new Date(dataFirma);
                   chiusuraScheduled.setDate(chiusuraScheduled.getDate() + giorniAttesa);
                 }
+
+                // Find default template for this richiamo
+                const defaultChiusuraTemplate = chiusuraTemplates.find(t => t.nome_template === 'Chiusura Procedura - Multa') || chiusuraTemplates[0];
                 
                 return (
                   <NeumorphicCard key={richiamo.id} className="p-4">
@@ -1509,7 +1512,7 @@ function LettereSection() {
                     {/* Chiusura Procedura Status */}
                     <div className="neumorphic-flat p-3 rounded-lg bg-green-50 border border-green-200">
                       <div className="flex items-start justify-between">
-                        <div>
+                        <div className="flex-1">
                           <p className="text-xs font-bold text-green-800 mb-1 flex items-center gap-1">
                             <CheckCircle className="w-3 h-3" />
                             Chiusura Procedura
@@ -1538,14 +1541,12 @@ function LettereSection() {
                           {richiamo.status === 'firmata' && !chiusura && (
                             <button
                               onClick={() => {
-                                // Find default template or first chiusura template
-                                const defaultTemplate = chiusuraTemplates.find(t => t.nome_template === 'Chiusura Procedura - Multa') || chiusuraTemplates[0];
-                                if (defaultTemplate) {
-                                  const content = generateLetteraContent(defaultTemplate.id, richiamo.user_id, richiamo);
+                                if (defaultChiusuraTemplate) {
+                                  const content = generateLetteraContent(defaultChiusuraTemplate.id, richiamo.user_id, richiamo);
                                   setViewingChiusura({ 
                                     tipo: 'edit', 
                                     richiamo,
-                                    selectedTemplateId: defaultTemplate.id,
+                                    selectedTemplateId: defaultChiusuraTemplate.id,
                                     editableContent: content
                                   });
                                 } else {
@@ -1576,6 +1577,33 @@ function LettereSection() {
                           )}
                         </div>
                       </div>
+                      
+                      {/* Template selector for chiusura */}
+                      {richiamo.status === 'firmata' && !chiusura && chiusuraTemplates.length > 0 && (
+                        <div className="mt-2 pt-2 border-t border-green-200">
+                          <select
+                            className="w-full text-xs neumorphic-pressed px-2 py-1.5 rounded-lg outline-none bg-white"
+                            defaultValue={defaultChiusuraTemplate?.id || ''}
+                            onChange={(e) => {
+                              const selectedTemplate = chiusuraTemplates.find(t => t.id === e.target.value);
+                              if (selectedTemplate) {
+                                const content = generateLetteraContent(selectedTemplate.id, richiamo.user_id, richiamo);
+                                setViewingChiusura({ 
+                                  tipo: 'edit', 
+                                  richiamo,
+                                  selectedTemplateId: selectedTemplate.id,
+                                  editableContent: content
+                                });
+                              }
+                            }}
+                          >
+                            <option value="" disabled>Seleziona template...</option>
+                            {chiusuraTemplates.map(t => (
+                              <option key={t.id} value={t.id}>{t.nome_template}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
                     </div>
                   </NeumorphicCard>
                 );
