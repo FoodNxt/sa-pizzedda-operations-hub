@@ -175,46 +175,7 @@ const navigationStructure = [
     type: "section",
     requiredUserType: ["admin", "manager"],
     items: [
-      {
-        title: "Performance Dipendenti",
-        url: createPageUrl("Employees"),
-        icon: Users,
-      },
-      {
-        title: "Shifts",
-        url: createPageUrl("Shifts"),
-        icon: Clock,
-      },
-      {
-        title: "Payroll",
-        url: createPageUrl("Payroll"),
-        icon: DollarSign,
-      },
-      {
-        title: "Alerts",
-        url: createPageUrl("Alerts"),
-        icon: AlertTriangle,
-      },
-      {
-        title: "Academy",
-        url: createPageUrl("AcademyAdmin"),
-        icon: GraduationCap,
-      },
-      {
-        title: "Documenti",
-        url: createPageUrl("Documenti"),
-        icon: FileText,
-      },
-      {
-        title: "Feedback P2P",
-        url: createPageUrl("FeedbackP2P"),
-        icon: Users,
-      },
-      {
-        title: "HR Admin",
-        url: createPageUrl("HRAdmin"),
-        icon: Settings,
-      }
+      {\n            title: \"Performance Dipendenti\",\n            url: createPageUrl(\"Employees\"),\n            icon: Users,\n          },\n          {\n            title: \"Shifts\",\n            url: createPageUrl(\ \"Shifts\"),\n            icon: Clock,\n          },\n          {\n            title: \"Payroll\",\n            url: createPageUrl(\"Payroll\"),\n            icon: DollarSign,\n          },\n          {\n            title: \"Alerts\",\n            url: createPageUrl(\"Alerts\"),\n            icon: AlertTriangle,\n          },\n          {\n            title: \"Academy\",\n            url: createPageUrl(\"AcademyAdmin\"),\n            icon: GraduationCap,\n          },\n          {\n            title: \"Documenti\",\n            url: createPageUrl(\"Documenti\"),\n            icon: FileText,\n          },\n          {\n            title: \"Feedback P2P\",\n            url: createPageUrl(\"FeedbackP2P\"),\n            icon: Users,\n          },\n          {\n            title: \"HR Admin\",\n            url: createPageUrl(\"HRAdmin\"),\n            icon: Settings,\n          }
     ]
   },
   {

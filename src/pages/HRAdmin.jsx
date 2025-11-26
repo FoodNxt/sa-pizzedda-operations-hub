@@ -78,13 +78,7 @@ export default function HRAdmin() {
   };
 
   const adminTools = [
-    {
-      title: "Academy Admin",
-      description: "Gestisci corsi, lezioni e quiz per la formazione dei dipendenti",
-      url: createPageUrl("AcademyAdmin"),
-      icon: GraduationCap,
-      color: "text-purple-600"
-    },
+
     {
       title: "Ricalcola Ritardi Turni",
       description: "Ricalcola i ritardi e le timbrature mancanti per tutti i turni",
