@@ -1126,6 +1126,10 @@ function LettereSection() {
     nome_template: '', tipo_lettera: 'lettera_richiamo', contenuto: '', attivo: true
   });
   const [letteraForm, setLetteraForm] = useState({ user_id: '', tipo_lettera: 'lettera_richiamo', template_id: '' });
+  const [previewContent, setPreviewContent] = useState('');
+  const [showPreview, setShowPreview] = useState(false);
+  const [viewingChiusura, setViewingChiusura] = useState(null);
+  const [chiusuraPreviewContent, setChiusuraPreviewContent] = useState('');
 
   const getStatusBadge = (status) => {
     const badges = {
@@ -1196,20 +1200,40 @@ function LettereSection() {
     },
   });
 
+  const generateLetteraContent = (templateId, userId, dataInvioRichiamo = null) => {
+    const template = templates.find(t => t.id === templateId);
+    const user = users.find(u => u.id === userId);
+    if (!template || !user) return '';
+    
+    let contenuto = template.contenuto;
+    contenuto = contenuto.replace(/{{nome_dipendente}}/g, user.nome_cognome || user.full_name || user.email);
+    contenuto = contenuto.replace(/{{data_oggi}}/g, new Date().toLocaleDateString('it-IT'));
+    if (dataInvioRichiamo) {
+      contenuto = contenuto.replace(/{{data_invio_richiamo}}/g, new Date(dataInvioRichiamo).toLocaleDateString('it-IT'));
+    }
+    return contenuto;
+  };
+
+  const handlePreviewLettera = () => {
+    if (!letteraForm.template_id || !letteraForm.user_id) {
+      alert('Seleziona dipendente e template');
+      return;
+    }
+    const content = generateLetteraContent(letteraForm.template_id, letteraForm.user_id);
+    setPreviewContent(content);
+    setShowPreview(true);
+  };
+
   const inviaLetteraMutation = useMutation({
     mutationFn: async (data) => {
-      const template = templates.find(t => t.id === data.template_id);
       const user = users.find(u => u.id === data.user_id);
-      let contenuto = template.contenuto;
-      contenuto = contenuto.replace(/{{nome_dipendente}}/g, user.nome_cognome || user.full_name || user.email);
-      contenuto = contenuto.replace(/{{data_oggi}}/g, new Date().toLocaleDateString('it-IT'));
       
       return base44.entities.LetteraRichiamo.create({
         user_id: user.id,
         user_email: user.email,
         user_name: user.nome_cognome || user.full_name || user.email,
         tipo_lettera: data.tipo_lettera,
-        contenuto_lettera: contenuto,
+        contenuto_lettera: data.contenuto,
         data_invio: new Date().toISOString(),
         status: 'inviata'
       });
@@ -1218,9 +1242,29 @@ function LettereSection() {
       queryClient.invalidateQueries({ queryKey: ['lettere-richiamo'] });
       alert('Lettera inviata con successo!');
       setShowLetteraForm(false);
+      setShowPreview(false);
+      setPreviewContent('');
       resetLetteraForm();
     },
   });
+
+  const handleSendFromPreview = () => {
+    if (!confirm('Confermi l\'invio della lettera?')) return;
+    inviaLetteraMutation.mutate({
+      ...letteraForm,
+      contenuto: previewContent
+    });
+  };
+
+  const generateChiusuraPreview = (richiamo) => {
+    const chiusuraTemplate = templates.find(t => t.id === currentConfig?.template_chiusura_id);
+    if (!chiusuraTemplate) {
+      setChiusuraPreviewContent('Nessun template di chiusura configurato');
+      return;
+    }
+    const content = generateLetteraContent(chiusuraTemplate.id, richiamo.user_id, richiamo.data_invio);
+    setChiusuraPreviewContent(content);
+  };
 
   const resetTemplateForm = () => {
     setTemplateForm({ nome_template: '', tipo_lettera: 'lettera_richiamo', contenuto: '', attivo: true });
@@ -1448,29 +1492,49 @@ function LettereSection() {
                     
                     {/* Chiusura Procedura Status */}
                     <div className="neumorphic-flat p-3 rounded-lg bg-green-50 border border-green-200">
-                      <p className="text-xs font-bold text-green-800 mb-1 flex items-center gap-1">
-                        <CheckCircle className="w-3 h-3" />
-                        Chiusura Procedura
-                      </p>
-                      {chiusura ? (
-                        <div className="text-xs text-green-700">
-                          <p>Inviata: {new Date(chiusura.data_invio).toLocaleDateString('it-IT')}</p>
-                          <p>Stato: {chiusura.status === 'firmata' ? '✓ Firmata' : 'In attesa firma'}</p>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-xs font-bold text-green-800 mb-1 flex items-center gap-1">
+                            <CheckCircle className="w-3 h-3" />
+                            Chiusura Procedura
+                          </p>
+                          {chiusura ? (
+                            <div className="text-xs text-green-700">
+                              <p>Inviata: {new Date(chiusura.data_invio).toLocaleDateString('it-IT')}</p>
+                              <p>Stato: {chiusura.status === 'firmata' ? '✓ Firmata' : 'In attesa firma'}</p>
+                            </div>
+                          ) : chiusuraScheduled ? (
+                            <p className="text-xs text-blue-700">
+                              <Clock className="w-3 h-3 inline mr-1" />
+                              Programmata per: {chiusuraScheduled.toLocaleDateString('it-IT')}
+                            </p>
+                          ) : richiamo.status === 'firmata' ? (
+                            <p className="text-xs text-orange-600">
+                              ⚠️ Da inviare manualmente
+                            </p>
+                          ) : (
+                            <p className="text-xs text-slate-500">
+                              Sarà disponibile dopo la firma del richiamo
+                            </p>
+                          )}
                         </div>
-                      ) : chiusuraScheduled ? (
-                        <p className="text-xs text-blue-700">
-                          <Clock className="w-3 h-3 inline mr-1" />
-                          Programmata per: {chiusuraScheduled.toLocaleDateString('it-IT')}
-                        </p>
-                      ) : richiamo.status === 'firmata' ? (
-                        <p className="text-xs text-orange-600">
-                          ⚠️ Da inviare manualmente
-                        </p>
-                      ) : (
-                        <p className="text-xs text-slate-500">
-                          Sarà disponibile dopo la firma del richiamo
-                        </p>
-                      )}
+                        {(chiusura || (richiamo.status === 'firmata' && currentConfig?.template_chiusura_id)) && (
+                          <button
+                            onClick={() => {
+                              if (chiusura) {
+                                setViewingChiusura({ tipo: 'inviata', chiusura });
+                              } else {
+                                generateChiusuraPreview(richiamo);
+                                setViewingChiusura({ tipo: 'preview', richiamo });
+                              }
+                            }}
+                            className="nav-button p-1.5 rounded-lg"
+                            title="Visualizza"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-blue-600" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </NeumorphicCard>
                 );
@@ -1507,10 +1571,22 @@ function LettereSection() {
                 />
                 <label htmlFor="lettera-template-attivo" className="text-sm text-slate-700">Template attivo</label>
               </div>
+              <div className="neumorphic-pressed p-3 rounded-xl mb-2">
+                <p className="text-xs text-slate-600 mb-2">Variabili disponibili:</p>
+                <div className="flex flex-wrap gap-2">
+                  {['nome_dipendente', 'data_oggi', ...(templateForm.tipo_lettera === 'chiusura_procedura' ? ['data_invio_richiamo'] : [])].map(v => (
+                    <button key={v} type="button" 
+                      onClick={() => setTemplateForm({ ...templateForm, contenuto: (templateForm.contenuto || '') + ` {{${v}}} ` })}
+                      className="neumorphic-flat px-2 py-1 rounded text-xs hover:bg-blue-50">
+                      {`{{${v}}}`}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <textarea value={templateForm.contenuto}
                 onChange={(e) => setTemplateForm({ ...templateForm, contenuto: e.target.value })}
                 className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none h-64 resize-none"
-                placeholder="Usa {{nome_dipendente}}, {{data_oggi}}" required />
+                placeholder="Usa {{nome_dipendente}}, {{data_oggi}}, {{data_invio_richiamo}} (solo chiusura)" required />
               <NeumorphicButton type="submit" variant="primary" className="w-full">
                 {editingTemplate ? 'Aggiorna Template' : 'Salva Template'}
               </NeumorphicButton>
@@ -1519,14 +1595,14 @@ function LettereSection() {
         </div>
       )}
 
-      {showLetteraForm && (
+      {showLetteraForm && !showPreview && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <NeumorphicCard className="max-w-2xl w-full p-6">
             <div className="flex justify-between mb-4">
               <h2 className="text-xl font-bold">Invia Lettera</h2>
               <button onClick={() => setShowLetteraForm(false)}><X className="w-5 h-5" /></button>
             </div>
-            <form onSubmit={(e) => { e.preventDefault(); inviaLetteraMutation.mutate(letteraForm); }} className="space-y-4">
+            <form onSubmit={(e) => { e.preventDefault(); handlePreviewLettera(); }} className="space-y-4">
               <select value={letteraForm.user_id} onChange={(e) => setLetteraForm({ ...letteraForm, user_id: e.target.value })}
                 className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required>
                 <option value="">Seleziona dipendente...</option>
@@ -1546,8 +1622,62 @@ function LettereSection() {
                   <option key={t.id} value={t.id}>{t.nome_template}</option>
                 ))}
               </select>
-              <NeumorphicButton type="submit" variant="primary" className="w-full">Invia Lettera</NeumorphicButton>
+              <NeumorphicButton type="submit" variant="primary" className="w-full flex items-center justify-center gap-2">
+                <Eye className="w-4 h-4" /> Anteprima
+              </NeumorphicButton>
             </form>
+          </NeumorphicCard>
+        </div>
+      )}
+
+      {showPreview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <NeumorphicCard className="max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between mb-4">
+              <h2 className="text-xl font-bold">Anteprima Lettera</h2>
+              <button onClick={() => setShowPreview(false)}><X className="w-5 h-5" /></button>
+            </div>
+            <div className="mb-4">
+              <label className="text-sm font-medium text-slate-700 mb-2 block">Modifica contenuto prima dell'invio:</label>
+              <textarea
+                value={previewContent}
+                onChange={(e) => setPreviewContent(e.target.value)}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none h-80 resize-none font-mono text-sm"
+              />
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setShowPreview(false)} className="flex-1 nav-button px-4 py-3 rounded-xl font-medium">
+                Indietro
+              </button>
+              <NeumorphicButton onClick={handleSendFromPreview} variant="primary" className="flex-1 flex items-center justify-center gap-2">
+                <Send className="w-4 h-4" /> Invia Lettera
+              </NeumorphicButton>
+            </div>
+          </NeumorphicCard>
+        </div>
+      )}
+
+      {viewingChiusura && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <NeumorphicCard className="max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between mb-4">
+              <h2 className="text-xl font-bold">
+                {viewingChiusura.tipo === 'preview' ? 'Anteprima Chiusura Procedura' : 'Chiusura Procedura Inviata'}
+              </h2>
+              <button onClick={() => setViewingChiusura(null)}><X className="w-5 h-5" /></button>
+            </div>
+            <div className="neumorphic-pressed p-6 rounded-xl bg-white">
+              <pre className="whitespace-pre-wrap text-sm font-sans text-slate-700">
+                {viewingChiusura.tipo === 'preview' ? chiusuraPreviewContent : viewingChiusura.chiusura?.contenuto_lettera}
+              </pre>
+            </div>
+            {viewingChiusura.tipo === 'preview' && (
+              <div className="mt-4 neumorphic-flat p-3 rounded-lg bg-blue-50">
+                <p className="text-xs text-blue-700">
+                  ℹ️ Questa è un'anteprima. La chiusura verrà inviata automaticamente secondo la configurazione.
+                </p>
+              </div>
+            )}
           </NeumorphicCard>
         </div>
       )}
