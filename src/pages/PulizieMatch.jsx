@@ -20,7 +20,8 @@ export default function PulizieMatch() {
     queryKey: ['cleaningInspections'],
     queryFn: async () => {
       const allInspections = await base44.entities.CleaningInspection.list('-inspection_date');
-      return allInspections;
+      // Exclude Store Manager form inspections (they go to ControlloStoreManager page)
+      return allInspections.filter(i => i.inspector_role !== 'Store Manager');
     },
   });
 

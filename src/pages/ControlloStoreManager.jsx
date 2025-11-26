@@ -6,8 +6,6 @@ import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { format, parseISO, subDays } from 'date-fns';
 import { it } from 'date-fns/locale';
-import ProtectedPage from "../components/ProtectedPage";
-
 export default function ControlloStoreManager() {
   const [percentuale, setPercentuale] = useState('');
   const [selectedInspection, setSelectedInspection] = useState(null);
@@ -26,10 +24,9 @@ export default function ControlloStoreManager() {
     queryKey: ['sm-inspections'],
     queryFn: async () => {
       const allInspections = await base44.entities.CleaningInspection.list('-inspection_date');
-      // Filter only inspections from Store Manager form (inspector has Store Manager role)
+      // Filter only inspections from Store Manager form
       return allInspections.filter(i => {
-        // Check if inspector_name contains hints of SM or check ruoli
-        return i.inspector_name && i.analysis_status === 'completed';
+        return i.inspector_role === 'Store Manager' && i.analysis_status === 'completed';
       });
     },
   });
@@ -162,8 +159,7 @@ export default function ControlloStoreManager() {
   }, [filteredInspections, currentConfig]);
 
   return (
-    <ProtectedPage pageName="ControlloStoreManager">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
         <div className="mb-6">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
             Controllo Store Manager
@@ -430,7 +426,6 @@ export default function ControlloStoreManager() {
             </div>
           </div>
         )}
-      </div>
-    </ProtectedPage>
+    </div>
   );
 }
