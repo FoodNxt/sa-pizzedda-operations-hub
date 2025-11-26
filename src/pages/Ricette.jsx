@@ -318,6 +318,10 @@ export default function Ricette() {
     r.nome_prodotto?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Separate semilavorati and prodotti finiti
+  const semilavorati = filteredRicette.filter(r => r.is_semilavorato);
+  const prodottiFiniti = filteredRicette.filter(r => !r.is_semilavorato);
+
   const getCostoPreview = () => calculateCosts();
 
   return (
@@ -805,108 +809,183 @@ export default function Ricette() {
           </h3>
         </NeumorphicCard>
       ) : (
-        <NeumorphicCard className="p-4 lg:p-6">
-          <h2 className="text-lg font-bold text-slate-800 mb-4">Lista Ricette</h2>
+        <>
+          {/* Semilavorati */}
+          {semilavorati.length > 0 && (
+            <NeumorphicCard className="p-4 lg:p-6">
+              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                🍳 Semilavorati
+                <span className="text-sm font-normal text-slate-500">({semilavorati.length})</span>
+              </h2>
 
-          <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
-            <table className="w-full min-w-[900px]">
-              <thead>
-                <tr className="border-b-2 border-blue-600">
-                  <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Prodotto</th>
-                  <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Costo</th>
-                  <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">P. Online</th>
-                  <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">P. Offline</th>
-                  <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">FC Online</th>
-                  <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">FC Offline</th>
-                  <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ing</th>
-                  <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Stato</th>
-                  <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Azioni</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRicette.map((ricetta) => (
-                  <tr key={ricetta.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
-                    <td className="p-2 lg:p-3">
-                      <div>
-                        <p className="font-medium text-slate-800 text-sm">{ricetta.nome_prodotto}</p>
-                        <p className="text-xs text-slate-500">{ricetta.categoria} {ricetta.is_semilavorato && '(Semil.)'}</p>
-                      </div>
-                    </td>
-                    <td className="p-2 lg:p-3 text-right font-bold text-blue-600 text-sm">
-                      €{ricetta.costo_unitario?.toFixed(2)}
-                    </td>
-                    <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
-                      €{ricetta.prezzo_vendita_online?.toFixed(2)}
-                      <span className="block text-xs text-green-600">
-                        +€{ricetta.margine_online?.toFixed(2)}
-                      </span>
-                    </td>
-                    <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
-                      €{ricetta.prezzo_vendita_offline?.toFixed(2)}
-                      <span className="block text-xs text-green-600">
-                        +€{ricetta.margine_offline?.toFixed(2)}
-                      </span>
-                    </td>
-                    <td className="p-2 lg:p-3">
-                      <div className="flex justify-center">
-                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                          ricetta.food_cost_online < 30 
-                            ? 'bg-green-100 text-green-700' 
-                            : ricetta.food_cost_online < 40
-                            ? 'bg-yellow-100 text-yellow-700'
-                            : 'bg-red-100 text-red-700'
-                        }`}>
-                          {ricetta.food_cost_online?.toFixed(1)}%
-                        </span>
-                      </div>
-                    </td>
-                    <td className="p-2 lg:p-3">
-                      <div className="flex justify-center">
-                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                          ricetta.food_cost_offline < 30 
-                            ? 'bg-green-100 text-green-700' 
-                            : ricetta.food_cost_offline < 40
-                            ? 'bg-yellow-100 text-yellow-700'
-                            : 'bg-red-100 text-red-700'
-                        }`}>
-                          {ricetta.food_cost_offline?.toFixed(1)}%
-                        </span>
-                      </div>
-                    </td>
-                    <td className="p-2 lg:p-3 text-center text-slate-700 text-sm">
-                      {ricetta.ingredienti?.length || 0}
-                    </td>
-                    <td className="p-2 lg:p-3">
-                      <div className="flex justify-center">
-                        {ricetta.attivo !== false ? (
-                          <CheckCircle className="w-5 h-5 text-green-600" />
-                        ) : (
-                          <X className="w-5 h-5 text-gray-400" />
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-2 lg:p-3">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => handleEdit(ricetta)}
-                          className="nav-button p-2 rounded-lg hover:bg-blue-50 transition-colors"
-                        >
-                          <Edit className="w-4 h-4 text-blue-600" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(ricetta.id)}
-                          className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4 text-red-600" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </NeumorphicCard>
+              <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
+                <table className="w-full min-w-[600px]">
+                  <thead>
+                    <tr className="border-b-2 border-purple-600">
+                      <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Prodotto</th>
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Costo</th>
+                      <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ing</th>
+                      <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Stato</th>
+                      <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Azioni</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {semilavorati.map((ricetta) => (
+                      <tr key={ricetta.id} className="border-b border-slate-200 hover:bg-purple-50 transition-colors">
+                        <td className="p-2 lg:p-3">
+                          <div>
+                            <p className="font-medium text-slate-800 text-sm">{ricetta.nome_prodotto}</p>
+                            <p className="text-xs text-purple-600">{ricetta.categoria}</p>
+                          </div>
+                        </td>
+                        <td className="p-2 lg:p-3 text-right font-bold text-purple-600 text-sm">
+                          €{ricetta.costo_unitario?.toFixed(2)}
+                        </td>
+                        <td className="p-2 lg:p-3 text-center text-slate-700 text-sm">
+                          {ricetta.ingredienti?.length || 0}
+                        </td>
+                        <td className="p-2 lg:p-3">
+                          <div className="flex justify-center">
+                            {ricetta.attivo !== false ? (
+                              <CheckCircle className="w-5 h-5 text-green-600" />
+                            ) : (
+                              <X className="w-5 h-5 text-gray-400" />
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-2 lg:p-3">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => handleEdit(ricetta)}
+                              className="nav-button p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                            >
+                              <Edit className="w-4 h-4 text-blue-600" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(ricetta.id)}
+                              className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </NeumorphicCard>
+          )}
+
+          {/* Prodotti Finiti */}
+          {prodottiFiniti.length > 0 && (
+            <NeumorphicCard className="p-4 lg:p-6">
+              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                🍕 Prodotti Finiti
+                <span className="text-sm font-normal text-slate-500">({prodottiFiniti.length})</span>
+              </h2>
+
+              <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
+                <table className="w-full min-w-[900px]">
+                  <thead>
+                    <tr className="border-b-2 border-blue-600">
+                      <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Prodotto</th>
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Costo</th>
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">P. Online</th>
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">P. Offline</th>
+                      <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">FC Online</th>
+                      <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">FC Offline</th>
+                      <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ing</th>
+                      <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Stato</th>
+                      <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Azioni</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {prodottiFiniti.map((ricetta) => (
+                      <tr key={ricetta.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                        <td className="p-2 lg:p-3">
+                          <div>
+                            <p className="font-medium text-slate-800 text-sm">{ricetta.nome_prodotto}</p>
+                            <p className="text-xs text-slate-500">{ricetta.categoria}</p>
+                          </div>
+                        </td>
+                        <td className="p-2 lg:p-3 text-right font-bold text-blue-600 text-sm">
+                          €{ricetta.costo_unitario?.toFixed(2)}
+                        </td>
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
+                          €{ricetta.prezzo_vendita_online?.toFixed(2)}
+                          <span className="block text-xs text-green-600">
+                            +€{ricetta.margine_online?.toFixed(2)}
+                          </span>
+                        </td>
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
+                          €{ricetta.prezzo_vendita_offline?.toFixed(2)}
+                          <span className="block text-xs text-green-600">
+                            +€{ricetta.margine_offline?.toFixed(2)}
+                          </span>
+                        </td>
+                        <td className="p-2 lg:p-3">
+                          <div className="flex justify-center">
+                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                              ricetta.food_cost_online < 30 
+                                ? 'bg-green-100 text-green-700' 
+                                : ricetta.food_cost_online < 40
+                                ? 'bg-yellow-100 text-yellow-700'
+                                : 'bg-red-100 text-red-700'
+                            }`}>
+                              {ricetta.food_cost_online?.toFixed(1)}%
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-2 lg:p-3">
+                          <div className="flex justify-center">
+                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                              ricetta.food_cost_offline < 30 
+                                ? 'bg-green-100 text-green-700' 
+                                : ricetta.food_cost_offline < 40
+                                ? 'bg-yellow-100 text-yellow-700'
+                                : 'bg-red-100 text-red-700'
+                            }`}>
+                              {ricetta.food_cost_offline?.toFixed(1)}%
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-2 lg:p-3 text-center text-slate-700 text-sm">
+                          {ricetta.ingredienti?.length || 0}
+                        </td>
+                        <td className="p-2 lg:p-3">
+                          <div className="flex justify-center">
+                            {ricetta.attivo !== false ? (
+                              <CheckCircle className="w-5 h-5 text-green-600" />
+                            ) : (
+                              <X className="w-5 h-5 text-gray-400" />
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-2 lg:p-3">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => handleEdit(ricetta)}
+                              className="nav-button p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                            >
+                              <Edit className="w-4 h-4 text-blue-600" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(ricetta.id)}
+                              className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </NeumorphicCard>
+          )}
+        </>
       )}
     </div>
   );

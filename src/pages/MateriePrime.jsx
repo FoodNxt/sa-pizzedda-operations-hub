@@ -859,7 +859,7 @@ export default function MateriePrime() {
                             </div>
                             {otherProductInUse && !inUsoPerStore[store.id] && (
                               <span className="text-xs text-orange-600">
-                                In uso: {otherProductInUse.nome_prodotto}
+                                In uso: {otherProductInUse.fornitore || otherProductInUse.nome_prodotto}
                               </span>
                             )}
                           </div>
