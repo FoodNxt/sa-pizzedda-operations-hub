@@ -834,11 +834,17 @@ export default function Employees() {
                 </div>
               </div>
 
-              <div className="neumorphic-flat p-3 rounded-xl mb-4 bg-blue-50">
-                <p className="text-xs text-blue-800 leading-relaxed">
-                  <strong>📊 Calcolo Punteggio:</strong><br/>
-                  100 - (ordini sbagliati × {selectedEmployee.weights.w_ordini}) - (ritardi × {selectedEmployee.weights.w_ritardi}) - (timbrature mancate × {selectedEmployee.weights.w_timbrature}) + (recensioni × {selectedEmployee.weights.w_num_recensioni}) + ((rating-3) × {selectedEmployee.weights.w_punteggio_recensioni} × 5)
-                </p>
+              <div className="neumorphic-flat p-4 rounded-xl mb-4 bg-blue-50">
+                <h4 class="text-sm font-bold text-blue-800 mb-2">Dettaglio Calcolo Punteggio</h4>
+                <div class="text-xs text-blue-800 space-y-1">
+                  <p><strong>Base:</strong> 100 punti</p>
+                  <p className="text-red-600"><strong>- Ordini Sbagliati:</strong> {selectedEmployee.wrongOrders} × {selectedEmployee.weights.w_ordini} = -{(selectedEmployee.wrongOrders * selectedEmployee.weights.w_ordini).toFixed(1)}</p>
+                  <p className="text-red-600"><strong>- Ritardi:</strong> {selectedEmployee.numeroRitardi} × {selectedEmployee.weights.w_ritardi} = -{(selectedEmployee.numeroRitardi * selectedEmployee.weights.w_ritardi).toFixed(1)}</p>
+                  <p className="text-red-600"><strong>- Timbrature Mancate:</strong> {selectedEmployee.numeroTimbratureMancate} × {selectedEmployee.weights.w_timbrature} = -{(selectedEmployee.numeroTimbratureMancate * selectedEmployee.weights.w_timbrature).toFixed(1)}</p>
+                  <p className="text-green-600"><strong>+ N. Recensioni:</strong> {selectedEmployee.googleReviewCount} × {selectedEmployee.weights.w_num_recensioni} = +{(selectedEmployee.googleReviewCount * selectedEmployee.weights.w_num_recensioni).toFixed(1)}</p>
+                  <p className="text-green-600"><strong>+ Media Recensioni:</strong> ({selectedEmployee.avgGoogleRating.toFixed(1)} - 3) × {selectedEmployee.weights.w_punteggio_recensioni} × 5 = +{((selectedEmployee.avgGoogleRating - 3) * selectedEmployee.weights.w_punteggio_recensioni * 5).toFixed(1)}</p>
+                  <p className="font-bold mt-2 pt-2 border-t border-blue-200"><strong>Punteggio Finale:</strong> {selectedEmployee.performanceScore}</p>
+                </div>
               </div>
 
               <div className="space-y-3 lg:space-y-4">
