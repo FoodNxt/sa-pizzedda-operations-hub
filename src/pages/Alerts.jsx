@@ -189,18 +189,18 @@ function PeriodoProvaTab() {
         </div>
 
         <NeumorphicCard className="p-6">
-            <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">Dipendenti in Periodo Prova</h2>
+            <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">Dipendenti in Periodo di Prova</h2>
             {employeeAlerts.length === 0 ? (
                 <div className="text-center py-12">
                 <AlertTriangle className="w-16 h-16 text-green-600 mx-auto mb-4 opacity-50" />
-                <h3 className="text-xl font-bold text-green-700 mb-2">Nessun Alert!</h3>
+                <h3 className="text-xl font-bold text-green-700 mb-2">Nessun dipendente in prova!</h3>
                 <p className="text-[#6b6b6b]">
-                    Tutti i dipendenti hanno completato i turni richiesti per il periodo di prova.
+                    Non ci sono dipendenti attualmente in periodo di prova.
                 </p>
                 </div>
             ) : (
                 <div className="space-y-3">{employeeAlerts.map((alert, idx) => (
-                    <div key={idx} className={`neumorphic-pressed p-5 rounded-xl border-2 ${getSeverityColor(alert.numeroTurni, alert.turniRichiesti)}`}>
+                    <div key={idx} className={`neumorphic-pressed p-5 rounded-xl border-2 ${getSeverityColor(alert.giorniRimanenti)}`}>
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-3">
@@ -224,8 +224,8 @@ function PeriodoProvaTab() {
                                 </div>
                               </div>
                               <div className="text-right">
-                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${getSeverityColor(alert.numeroTurni, alert.turniRichiesti)}`}>
-                                  {getSeverityLabel(alert.numeroTurni, alert.turniRichiesti)}
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${getSeverityColor(alert.giorniRimanenti)}`}>
+                                  {getSeverityLabel(alert.giorniRimanenti)}
                                 </span>
                               </div>
                             </div>
@@ -234,9 +234,9 @@ function PeriodoProvaTab() {
                               <div className="neumorphic-flat p-3 rounded-lg">
                                 <div className="flex items-center gap-2 text-[#9b9b9b] mb-1">
                                   <Clock className="w-4 h-4" />
-                                  <span className="text-xs">Turni Completati</span>
+                                  <span className="text-xs">Giorni Rimanenti</span>
                                 </div>
-                                <p className="text-2xl font-bold text-[#6b6b6b]">{alert.numeroTurni}/{alert.turniRichiesti}</p>
+                                <p className="text-2xl font-bold text-[#6b6b6b]">{alert.giorniRimanenti}</p>
                               </div>
 
                               <div className="neumorphic-flat p-3 rounded-lg">
@@ -251,20 +251,20 @@ function PeriodoProvaTab() {
 
                               <div className="neumorphic-flat p-3 rounded-lg">
                                 <div className="flex items-center gap-2 text-[#9b9b9b] mb-1">
-                                  <Clock className="w-4 h-4" />
-                                  <span className="text-xs">Giorni Trascorsi</span>
+                                  <Calendar className="w-4 h-4" />
+                                  <span className="text-xs">Fine Prova</span>
                                 </div>
-                                <p className="text-2xl font-bold text-[#6b6b6b]">{alert.giorni}</p>
+                                <p className="text-sm font-bold text-[#6b6b6b]">
+                                  {alert.dataFineProva.toLocaleDateString('it-IT')}
+                                </p>
                               </div>
 
                               <div className="neumorphic-flat p-3 rounded-lg">
                                 <div className="flex items-center gap-2 text-[#9b9b9b] mb-1">
                                   <Users className="w-4 h-4" />
-                                  <span className="text-xs">Media Turni/Sett</span>
+                                  <span className="text-xs">Turni Effettuati</span>
                                 </div>
-                                <p className="text-2xl font-bold text-[#6b6b6b]">
-                                  {alert.giorni > 0 ? ((alert.numeroTurni / alert.giorni) * 7).toFixed(1) : 0}
-                                </p>
+                                <p className="text-2xl font-bold text-[#6b6b6b]">{alert.numeroTurni}</p>
                               </div>
                             </div>
                           </div>
