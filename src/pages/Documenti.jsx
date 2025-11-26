@@ -1602,8 +1602,6 @@ function LettereSection() {
               // Group letters by user to show richiamo + chiusura together
               const lettereRichiamo = lettere.filter(l => l.tipo_lettera === 'lettera_richiamo');
               
-              const [downloadingPdfAdmin, setDownloadingPdfAdmin] = useState(null);
-
               const downloadLetteraPDFAdmin = async (lettera) => {
                 setDownloadingPdfAdmin(lettera.id);
                 try {
