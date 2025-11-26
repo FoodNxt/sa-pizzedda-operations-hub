@@ -134,7 +134,39 @@ export default function Documenti() {
 function DipendenteContrattiSection({ currentUser }) {
   const [viewingContract, setViewingContract] = useState(null);
   const [signatureName, setSignatureName] = useState(currentUser?.nome_cognome || currentUser?.full_name || '');
+  const [downloadingPdf, setDownloadingPdf] = useState(null);
   const queryClient = useQueryClient();
+
+  const downloadContrattoFirmato = async (contratto) => {
+    setDownloadingPdf(contratto.id);
+    try {
+      const response = await base44.functions.invoke('downloadContrattoPDF', { contrattoId: contratto.id });
+      if (response.data.success) {
+        const byteCharacters = atob(response.data.pdf);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = response.data.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } else {
+        alert('Errore nel download');
+      }
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      alert('Errore nel download del PDF');
+    } finally {
+      setDownloadingPdf(null);
+    }
+  };
 
   const { data: contratti = [], isLoading } = useQuery({
     queryKey: ['miei-contratti', currentUser?.id],
@@ -208,9 +240,22 @@ function DipendenteContrattiSection({ currentUser }) {
                     <h3 className="font-bold text-slate-800">{c.template_nome}</h3>
                     <p className="text-xs text-slate-500">Firmato: {c.data_firma ? new Date(c.data_firma).toLocaleDateString('it-IT') : 'N/A'}</p>
                   </div>
-                  <button onClick={() => setViewingContract(c)} className="nav-button p-2 rounded-lg">
-                    <Eye className="w-4 h-4 text-blue-600" />
-                  </button>
+                  <div className="flex gap-2">
+                    <button onClick={() => setViewingContract(c)} className="nav-button p-2 rounded-lg">
+                      <Eye className="w-4 h-4 text-blue-600" />
+                    </button>
+                    <button 
+                      onClick={() => downloadContrattoFirmato(c)} 
+                      className="nav-button p-2 rounded-lg"
+                      disabled={downloadingPdf === c.id}
+                    >
+                      {downloadingPdf === c.id ? (
+                        <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                      ) : (
+                        <Download className="w-4 h-4 text-green-600" />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </NeumorphicCard>
             ))}
@@ -269,7 +314,39 @@ function DipendenteContrattiSection({ currentUser }) {
 function DipendenteLettereSection({ currentUser }) {
   const [viewingLettera, setViewingLettera] = useState(null);
   const [signatureName, setSignatureName] = useState(currentUser?.nome_cognome || currentUser?.full_name || '');
+  const [downloadingPdf, setDownloadingPdf] = useState(null);
   const queryClient = useQueryClient();
+
+  const downloadLetteraPDF = async (lettera) => {
+    setDownloadingPdf(lettera.id);
+    try {
+      const response = await base44.functions.invoke('downloadLetteraPDF', { letteraId: lettera.id });
+      if (response.data.success) {
+        const byteCharacters = atob(response.data.pdf);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = response.data.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } else {
+        alert('Errore nel download');
+      }
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      alert('Errore nel download del PDF');
+    } finally {
+      setDownloadingPdf(null);
+    }
+  };
 
   const { data: lettere = [], isLoading } = useQuery({
     queryKey: ['mie-lettere', currentUser?.id],
@@ -347,9 +424,22 @@ function DipendenteLettereSection({ currentUser }) {
                     <h3 className="font-bold text-slate-800">{getTipoLabel(l.tipo_lettera)}</h3>
                     <p className="text-xs text-slate-500">Firmato: {l.data_firma ? new Date(l.data_firma).toLocaleDateString('it-IT') : 'N/A'}</p>
                   </div>
-                  <button onClick={() => setViewingLettera(l)} className="nav-button p-2 rounded-lg">
-                    <Eye className="w-4 h-4 text-blue-600" />
-                  </button>
+                  <div className="flex gap-2">
+                    <button onClick={() => setViewingLettera(l)} className="nav-button p-2 rounded-lg">
+                      <Eye className="w-4 h-4 text-blue-600" />
+                    </button>
+                    <button 
+                      onClick={() => downloadLetteraPDF(l)} 
+                      className="nav-button p-2 rounded-lg"
+                      disabled={downloadingPdf === l.id}
+                    >
+                      {downloadingPdf === l.id ? (
+                        <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                      ) : (
+                        <Download className="w-4 h-4 text-green-600" />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </NeumorphicCard>
             ))}
