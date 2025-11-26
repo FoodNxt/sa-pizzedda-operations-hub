@@ -1710,7 +1710,23 @@ function LettereSection() {
                           {chiusura ? (
                             <div className="text-xs text-green-700">
                               <p>Inviata: {new Date(chiusura.data_invio).toLocaleDateString('it-IT')}</p>
-                              <p>Stato: {chiusura.status === 'firmata' ? '✓ Firmata' : 'In attesa firma'}</p>
+                              <p className="flex items-center gap-2">
+                                Stato: {chiusura.status === 'firmata' ? '✓ Firmata' : 'In attesa firma'}
+                                {chiusura.status === 'firmata' && (
+                                  <button
+                                    onClick={() => downloadLetteraPDFAdmin(chiusura)}
+                                    className="nav-button p-1 rounded"
+                                    title="Scarica PDF"
+                                    disabled={downloadingPdfAdmin === chiusura.id}
+                                  >
+                                    {downloadingPdfAdmin === chiusura.id ? (
+                                      <Loader2 className="w-3 h-3 text-blue-600 animate-spin" />
+                                    ) : (
+                                      <Download className="w-3 h-3 text-blue-600" />
+                                    )}
+                                  </button>
+                                )}
+                              </p>
                             </div>
                           ) : chiusuraScheduled ? (
                             <p className="text-xs text-blue-700">
