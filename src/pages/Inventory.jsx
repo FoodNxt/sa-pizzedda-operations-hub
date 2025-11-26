@@ -363,33 +363,33 @@ export default function Inventory() {
               </NeumorphicCard>
             </div>
 
-            {criticalProducts.length > 0 && (
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <AlertTriangle className="w-5 h-5 text-red-600" />
-              <h2 className="text-lg font-bold text-slate-800">Prodotti Critici</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
-              {criticalProducts.map(item => (
-                <ProductCard key={`${item.store_id}-${item.prodotto_id}`} item={item} status="critical" />
-              ))}
-            </div>
-          </div>
-        )}
+                {criticalProducts.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                  <h2 className="text-lg font-bold text-slate-800">Prodotti Critici</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+                  {criticalProducts.map(item => (
+                    <ProductCard key={`${item.store_id}-${item.prodotto_id}`} item={item} status="critical" />
+                  ))}
+                </div>
+              </div>
+            )}
 
-        {warningProducts.length > 0 && (
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <AlertTriangle className="w-5 h-5 text-yellow-600" />
-              <h2 className="text-lg font-bold text-slate-800">Prodotti in Warning</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
-              {warningProducts.map(item => (
-                <ProductCard key={`${item.store_id}-${item.prodotto_id}`} item={item} status="warning" />
-              ))}
-            </div>
-          </div>
-        )}
+            {warningProducts.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <AlertTriangle className="w-5 h-5 text-yellow-600" />
+                  <h2 className="text-lg font-bold text-slate-800">Prodotti in Warning</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+                  {warningProducts.map(item => (
+                    <ProductCard key={`${item.store_id}-${item.prodotto_id}`} item={item} status="warning" />
+                  ))}
+                </div>
+              </div>
+            )}
 
             {okProducts.length > 0 && (
               <div>
