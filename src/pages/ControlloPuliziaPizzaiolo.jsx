@@ -124,6 +124,7 @@ export default function ControlloPuliziaPizzaiolo() {
         store_id: store.id,
         inspection_date: new Date().toISOString(),
         inspector_name: currentUser.nome_cognome || currentUser.full_name || currentUser.email,
+        inspector_role: 'Pizzaiolo',
         analysis_status: 'processing',
         inspection_type: 'pizzaiolo',
         domande_risposte: domande.map(d => ({

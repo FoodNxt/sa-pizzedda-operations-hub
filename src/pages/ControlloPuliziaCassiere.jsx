@@ -128,6 +128,7 @@ export default function ControlloPuliziaCassiere() {
         store_id: store.id,
         inspection_date: new Date().toISOString(),
         inspector_name: currentUser.nome_cognome || currentUser.full_name || currentUser.email,
+        inspector_role: 'Cassiere',
         analysis_status: 'processing',
         inspection_type: 'cassiere',
         domande_risposte: domande.map(d => ({
