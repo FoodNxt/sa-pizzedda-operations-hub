@@ -1084,6 +1084,27 @@ function LettereSection() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['lettera-templates'] }),
   });
 
+  const { data: lettereConfig = [] } = useQuery({
+    queryKey: ['lettere-config'],
+    queryFn: () => base44.entities.LettereConfig.list(),
+  });
+
+  const currentConfig = lettereConfig[0];
+
+  const saveConfigMutation = useMutation({
+    mutationFn: async (data) => {
+      if (currentConfig) {
+        return base44.entities.LettereConfig.update(currentConfig.id, data);
+      }
+      return base44.entities.LettereConfig.create(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lettere-config'] });
+      alert('Configurazione salvata!');
+      setShowAutoConfig(false);
+    },
+  });
+
   const inviaLetteraMutation = useMutation({
     mutationFn: async (data) => {
       const template = templates.find(t => t.id === data.template_id);
