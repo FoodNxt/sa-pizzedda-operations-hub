@@ -193,6 +193,76 @@ export default function FormTracker() {
     { name: 'Controllo Pulizia Store Manager', page: 'ControlloPuliziaStoreManager' }
   ];
 
+  // Check if a specific form was completed
+  const checkFormCompletion = (formPage, employeeName, storeName, date, shift) => {
+    const dateStart = new Date(date);
+    dateStart.setHours(0, 0, 0, 0);
+    const dateEnd = new Date(date);
+    dateEnd.setHours(23, 59, 59, 999);
+
+    // Also check next day until 6am (for forms completed after midnight)
+    const nextDayEnd = new Date(dateEnd);
+    nextDayEnd.setDate(nextDayEnd.getDate() + 1);
+    nextDayEnd.setHours(6, 0, 0, 0);
+
+    switch (formPage) {
+      case 'ControlloPuliziaCassiere':
+      case 'ControlloPuliziaPizzaiolo':
+      case 'ControlloPuliziaStoreManager': {
+        const inspection = cleaningInspections.find(i => {
+          const inspDate = new Date(i.inspection_date);
+          return i.store_name === storeName &&
+                 i.inspector_name === employeeName &&
+                 inspDate >= dateStart && inspDate <= nextDayEnd;
+        });
+        return { completed: !!inspection, data: inspection };
+      }
+
+      case 'FormInventario': {
+        const rilevazione = inventarioRilevazioni.find(r => {
+          const rilDate = new Date(r.data_rilevazione);
+          return r.store_name === storeName &&
+                 r.rilevato_da === employeeName &&
+                 rilDate >= dateStart && rilDate <= nextDayEnd;
+        });
+        return { completed: !!rilevazione, data: rilevazione };
+      }
+
+      case 'ConteggioCassa': {
+        const conteggio = conteggiCassa.find(c => {
+          const contDate = new Date(c.data_conteggio);
+          return c.store_name === storeName &&
+                 c.rilevato_da === employeeName &&
+                 contDate >= dateStart && contDate <= nextDayEnd;
+        });
+        return { completed: !!conteggio, data: conteggio };
+      }
+
+      case 'FormTeglieButtate': {
+        const teglie = teglieButtate.find(t => {
+          const tegDate = new Date(t.data_rilevazione);
+          return t.store_name === storeName &&
+                 t.rilevato_da === employeeName &&
+                 tegDate >= dateStart && tegDate <= nextDayEnd;
+        });
+        return { completed: !!teglie, data: teglie };
+      }
+
+      case 'FormPreparazioni': {
+        const prep = preparazioni.find(p => {
+          const prepDate = new Date(p.data_rilevazione);
+          return p.store_name === storeName &&
+                 p.rilevato_da === employeeName &&
+                 prepDate >= dateStart && prepDate <= nextDayEnd;
+        });
+        return { completed: !!prep, data: prep };
+      }
+
+      default:
+        return { completed: false, data: null };
+    }
+  };
+
   // Calculate expected vs completed forms for selected date and store
   const formStatus = useMemo(() => {
     if (!selectedDate) return { byStore: {}, summary: { total: 0, completed: 0, missing: 0 } };
