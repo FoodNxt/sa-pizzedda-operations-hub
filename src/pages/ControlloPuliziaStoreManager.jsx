@@ -430,7 +430,7 @@ export default function ControlloPuliziaStoreManager() {
             </NeumorphicCard>
           )}
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 pb-32 lg:pb-0">
             <button
               type="button"
               onClick={() => navigate(createPageUrl('Pulizie'))}
@@ -443,9 +443,9 @@ export default function ControlloPuliziaStoreManager() {
             <button
               type="submit"
               disabled={!canSubmit()}
-              className={`flex-1 neumorphic-flat px-6 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 ${
+              className={`flex-1 neumorphic-flat px-6 py-4 lg:py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 text-lg lg:text-base ${
                 canSubmit()
-                  ? 'text-[#8b7355] hover:shadow-lg'
+                  ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg hover:shadow-xl'
                   : 'text-[#9b9b9b] opacity-50 cursor-not-allowed'
               }`}
             >
