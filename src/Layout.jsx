@@ -923,8 +923,12 @@ export default function Layout({ children, currentPageName }) {
             font-size: inherit !important;
           }
           body.dipendente-mobile .bottom-nav-item span {
-            font-size: 0.875rem !important;
-            font-weight: 600 !important;
+            font-size: 1.1rem !important;
+            font-weight: 700 !important;
+          }
+          body.dipendente-mobile .bottom-nav-item svg {
+            width: 1.75rem !important;
+            height: 1.75rem !important;
           }
           body.dipendente-mobile button:not(.bottom-nav-item) {
             font-size: 1.5rem !important;
@@ -1165,7 +1169,7 @@ export default function Layout({ children, currentPageName }) {
         {/* Main Content */}
         <main className={`
           flex-1 min-h-screen 
-          ${normalizedUserType === 'dipendente' ? 'pt-24 pb-28 lg:pt-8 lg:pb-8 lg:ml-0' : normalizedUserType !== 'admin' ? 'pt-32 lg:pt-16' : 'pt-20 lg:pt-0'} 
+          ${normalizedUserType === 'dipendente' ? 'pt-28 pb-32 lg:pt-8 lg:pb-8 lg:ml-0' : normalizedUserType !== 'admin' ? 'pt-32 lg:pt-16' : 'pt-20 lg:pt-0'} 
           px-3 py-4 lg:p-8
         `}>
           {children}
