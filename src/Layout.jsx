@@ -892,36 +892,50 @@ export default function Layout({ children, currentPageName }) {
 
           /* Increase font sizes for dipendente mobile view */
           body.dipendente-mobile h1 {
-            font-size: 2rem !important;
+            font-size: 2.25rem !important;
           }
           body.dipendente-mobile h2 {
-            font-size: 1.75rem !important;
+            font-size: 1.875rem !important;
           }
           body.dipendente-mobile h3 {
             font-size: 1.5rem !important;
           }
           body.dipendente-mobile p, 
           body.dipendente-mobile span,
-          body.dipendente-mobile label {
-            font-size: 1.125rem !important;
+          body.dipendente-mobile label,
+          body.dipendente-mobile div {
+            font-size: 1.25rem !important;
+            line-height: 1.6 !important;
           }
           body.dipendente-mobile .text-xs {
-            font-size: 1rem !important;
+            font-size: 1.125rem !important;
           }
           body.dipendente-mobile .text-sm {
-            font-size: 1.125rem !important;
+            font-size: 1.25rem !important;
           }
-          body.dipendente-mobile button {
-            font-size: 1.125rem !important;
+          body.dipendente-mobile .text-base {
+            font-size: 1.25rem !important;
+          }
+          /* Exclude bottom nav buttons from font increase */
+          body.dipendente-mobile .bottom-nav-item,
+          body.dipendente-mobile .bottom-nav-item span,
+          body.dipendente-mobile .bottom-nav-item div {
+            font-size: inherit !important;
+          }
+          body.dipendente-mobile .bottom-nav-item span {
+            font-size: 0.75rem !important;
+          }
+          body.dipendente-mobile button:not(.bottom-nav-item) {
+            font-size: 1.25rem !important;
             padding: 1rem 1.5rem !important;
-            min-height: 3rem !important;
+            min-height: 3.5rem !important;
           }
           body.dipendente-mobile input,
           body.dipendente-mobile select,
           body.dipendente-mobile textarea {
-            font-size: 1.125rem !important;
+            font-size: 1.25rem !important;
             padding: 1rem !important;
-            min-height: 3rem !important;
+            min-height: 3.5rem !important;
           }
         }
       `}</style>
