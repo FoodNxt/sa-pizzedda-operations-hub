@@ -145,8 +145,21 @@ export default function FormTracker() {
 
   const handleSubmitConfig = (e) => {
     e.preventDefault();
+    
+    // Validate at least one shift sequence is selected
+    if (!configForm.shift_sequences || configForm.shift_sequences.length === 0) {
+      alert('Seleziona almeno un turno (mattina o sera)');
+      return;
+    }
+    
     const dataToSave = {
-      ...configForm,
+      form_name: configForm.form_name,
+      form_page: configForm.form_page,
+      assigned_roles: configForm.assigned_roles,
+      shift_timing: configForm.shift_timing,
+      shift_sequences: configForm.shift_sequences,
+      days_of_week: configForm.days_of_week,
+      is_active: configForm.is_active,
       frequency_type: 'shift_based',
       shift_based_timing: [configForm.shift_timing],
       shift_sequence: configForm.shift_sequences[0] // backward compatibility
