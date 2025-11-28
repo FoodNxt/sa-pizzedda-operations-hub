@@ -25,7 +25,8 @@ export default function FormTracker() {
     form_page: '',
     assigned_roles: [],
     shift_timing: 'end', // 'start' or 'end'
-    shift_sequence: 'first', // 'first' or 'second'
+    shift_sequences: ['first'], // array: 'first', 'second' or both
+    days_of_week: [], // empty = all days, or array of 0-6 (0=Sunday)
     is_active: true
   });
 
@@ -111,7 +112,8 @@ export default function FormTracker() {
       form_page: '',
       assigned_roles: [],
       shift_timing: 'end',
-      shift_sequence: 'first',
+      shift_sequences: ['first'],
+      days_of_week: [],
       is_active: true
     });
     setEditingConfig(null);
@@ -120,12 +122,22 @@ export default function FormTracker() {
 
   const handleEditConfig = (config) => {
     setEditingConfig(config);
+    // Handle backward compatibility for shift_sequence
+    let sequences = config.shift_sequences || [];
+    if (sequences.length === 0 && config.shift_sequence) {
+      sequences = [config.shift_sequence];
+    }
+    if (sequences.length === 0) {
+      sequences = ['first'];
+    }
+    
     setConfigForm({
       form_name: config.form_name,
       form_page: config.form_page,
       assigned_roles: config.assigned_roles || [],
       shift_timing: config.shift_based_timing?.[0] || config.shift_timing || 'end',
-      shift_sequence: config.shift_sequence || 'first',
+      shift_sequences: sequences,
+      days_of_week: config.days_of_week || [],
       is_active: config.is_active !== false
     });
     setShowConfigForm(true);
@@ -136,7 +148,8 @@ export default function FormTracker() {
     const dataToSave = {
       ...configForm,
       frequency_type: 'shift_based',
-      shift_based_timing: [configForm.shift_timing]
+      shift_based_timing: [configForm.shift_timing],
+      shift_sequence: configForm.shift_sequences[0] // backward compatibility
     };
     
     if (editingConfig) {
@@ -213,8 +226,15 @@ export default function FormTracker() {
       // For each config
       activeConfigs.forEach(config => {
         const configRoles = config.assigned_roles || [];
-        const shiftSequence = config.shift_sequence || 'first';
+        const shiftSequences = config.shift_sequences || (config.shift_sequence ? [config.shift_sequence] : ['first']);
         const shiftTiming = config.shift_based_timing?.[0] || config.shift_timing || 'end';
+        const daysOfWeek = config.days_of_week || [];
+        
+        // Check if this config applies to the selected date's day of week
+        const selectedDayOfWeek = new Date(selectedDate).getDay();
+        if (daysOfWeek.length > 0 && !daysOfWeek.includes(selectedDayOfWeek)) {
+          return; // Skip this config for this day
+        }
 
         // Find employees who should complete this form
         Object.entries(shiftsByEmployee).forEach(([employeeName, employeeShifts]) => {
@@ -232,43 +252,46 @@ export default function FormTracker() {
             return;
           }
 
-          // Get the appropriate shift based on sequence
-          const targetShift = shiftSequence === 'first' 
-            ? employeeShifts[0] 
-            : (employeeShifts[1] || null);
+          // Process each shift sequence
+          shiftSequences.forEach(shiftSequence => {
+            // Get the appropriate shift based on sequence
+            const targetShift = shiftSequence === 'first' 
+              ? employeeShifts[0] 
+              : (employeeShifts[1] || null);
 
-          if (!targetShift) return;
+            if (!targetShift) return;
 
-          totalExpected++;
+            totalExpected++;
 
-          // Check if form was completed
-          const isCompleted = checkFormCompletion(
-            config.form_page,
-            employeeName,
-            storeName,
-            selectedDate,
-            targetShift
-          );
+            // Check if form was completed
+            const isCompleted = checkFormCompletion(
+              config.form_page,
+              employeeName,
+              storeName,
+              selectedDate,
+              targetShift
+            );
 
-          const formEntry = {
-            config,
-            employeeName,
-            user,
-            shift: targetShift,
-            shiftTiming,
-            shiftSequence,
-            completed: isCompleted.completed,
-            completionData: isCompleted.data
-          };
+            const formEntry = {
+              config,
+              employeeName,
+              user,
+              shift: targetShift,
+              shiftTiming,
+              shiftSequence,
+              completed: isCompleted.completed,
+              completionData: isCompleted.data
+            };
 
-          byStore[storeName].forms.push(formEntry);
+            byStore[storeName].forms.push(formEntry);
 
-          if (isCompleted.completed) {
-            byStore[storeName].completed++;
-            totalCompleted++;
-          } else {
-            byStore[storeName].missing++;
-          }
+            if (isCompleted.completed) {
+              byStore[storeName].completed++;
+              totalCompleted++;
+            } else {
+              byStore[storeName].missing++;
+            }
+          });
         });
       });
     });
@@ -644,7 +667,7 @@ export default function FormTracker() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <h3 className="font-bold text-slate-800 mb-2">{config.form_name}</h3>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
                             <div className="neumorphic-pressed p-2 rounded-lg">
                               <p className="text-slate-500">Ruoli</p>
                               <p className="font-medium text-slate-700">
@@ -664,7 +687,23 @@ export default function FormTracker() {
                             <div className="neumorphic-pressed p-2 rounded-lg">
                               <p className="text-slate-500">Turno</p>
                               <p className="font-medium text-slate-700">
-                                {config.shift_sequence === 'first' ? '☀️ Mattina' : '🌙 Sera'}
+                                {(() => {
+                                  const seqs = config.shift_sequences || (config.shift_sequence ? [config.shift_sequence] : ['first']);
+                                  if (seqs.includes('first') && seqs.includes('second')) return '☀️🌙 Entrambi';
+                                  if (seqs.includes('second')) return '🌙 Sera';
+                                  return '☀️ Mattina';
+                                })()}
+                              </p>
+                            </div>
+                            <div className="neumorphic-pressed p-2 rounded-lg">
+                              <p className="text-slate-500">Giorni</p>
+                              <p className="font-medium text-slate-700 text-xs">
+                                {(() => {
+                                  const days = config.days_of_week || [];
+                                  if (days.length === 0) return 'Tutti';
+                                  const dayNames = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'];
+                                  return days.map(d => dayNames[d]).join(', ');
+                                })()}
                               </p>
                             </div>
                             <div className="neumorphic-pressed p-2 rounded-lg">
@@ -795,14 +834,21 @@ export default function FormTracker() {
 
                   <div>
                     <label className="text-sm font-medium text-slate-700 mb-2 block">
-                      Quale turno della giornata
+                      Quale turno della giornata (puoi selezionare entrambi)
                     </label>
                     <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={() => setConfigForm({ ...configForm, shift_sequence: 'first' })}
+                        onClick={() => {
+                          const seqs = configForm.shift_sequences || [];
+                          if (seqs.includes('first')) {
+                            setConfigForm({ ...configForm, shift_sequences: seqs.filter(s => s !== 'first') });
+                          } else {
+                            setConfigForm({ ...configForm, shift_sequences: [...seqs, 'first'] });
+                          }
+                        }}
                         className={`flex-1 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                          configForm.shift_sequence === 'first'
+                          configForm.shift_sequences?.includes('first')
                             ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
                             : 'nav-button text-slate-700'
                         }`}
@@ -811,9 +857,16 @@ export default function FormTracker() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setConfigForm({ ...configForm, shift_sequence: 'second' })}
+                        onClick={() => {
+                          const seqs = configForm.shift_sequences || [];
+                          if (seqs.includes('second')) {
+                            setConfigForm({ ...configForm, shift_sequences: seqs.filter(s => s !== 'second') });
+                          } else {
+                            setConfigForm({ ...configForm, shift_sequences: [...seqs, 'second'] });
+                          }
+                        }}
                         className={`flex-1 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                          configForm.shift_sequence === 'second'
+                          configForm.shift_sequences?.includes('second')
                             ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
                             : 'nav-button text-slate-700'
                         }`}
@@ -824,6 +877,43 @@ export default function FormTracker() {
                     <p className="text-xs text-slate-500 mt-2">
                       Per ogni dipendente, il primo turno è quello che inizia prima nella giornata
                     </p>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">
+                      Giorni della settimana (vuoto = tutti i giorni)
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { value: 1, label: 'Lun' },
+                        { value: 2, label: 'Mar' },
+                        { value: 3, label: 'Mer' },
+                        { value: 4, label: 'Gio' },
+                        { value: 5, label: 'Ven' },
+                        { value: 6, label: 'Sab' },
+                        { value: 0, label: 'Dom' }
+                      ].map(day => (
+                        <button
+                          key={day.value}
+                          type="button"
+                          onClick={() => {
+                            const days = configForm.days_of_week || [];
+                            if (days.includes(day.value)) {
+                              setConfigForm({ ...configForm, days_of_week: days.filter(d => d !== day.value) });
+                            } else {
+                              setConfigForm({ ...configForm, days_of_week: [...days, day.value] });
+                            }
+                          }}
+                          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                            configForm.days_of_week?.includes(day.value)
+                              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                              : 'nav-button text-slate-700'
+                          }`}
+                        >
+                          {day.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-3">
