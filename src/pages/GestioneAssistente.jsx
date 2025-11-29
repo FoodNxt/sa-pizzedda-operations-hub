@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
@@ -7,7 +7,7 @@ import ProtectedPage from "../components/ProtectedPage";
 import { 
   Bot, Plus, Edit, Trash2, Save, X, Search, AlertTriangle, 
   MessageSquare, Book, Tag, Store, CheckCircle, XCircle, Loader2,
-  ChevronDown, ChevronRight, Eye, Folder
+  ChevronDown, ChevronRight, Eye, Folder, RefreshCw
 } from "lucide-react";
 import moment from "moment";
 
