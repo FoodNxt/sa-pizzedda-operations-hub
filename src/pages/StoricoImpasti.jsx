@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import ProtectedPage from "../components/ProtectedPage";
-import { ChefHat, Calendar, Store, User, TrendingUp } from "lucide-react";
+import { ChefHat, Calendar, Store, User, TrendingUp, BarChart3 } from "lucide-react";
 import moment from "moment";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 export default function StoricoImpasti() {
   const [selectedStore, setSelectedStore] = useState('');
