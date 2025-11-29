@@ -153,6 +153,11 @@ const navigationStructure = [
         icon: ShoppingCart,
       },
       {
+        title: "Impasti",
+        url: createPageUrl("StoricoImpasti"),
+        icon: ChefHat,
+      },
+      {
         title: "Inventario Store Manager",
         url: createPageUrl("InventarioStoreManager"),
         icon: Settings,
