@@ -690,39 +690,85 @@ export default function Shifts() {
                       <MapPin className="w-4 h-4" />
                       {data.storeName}
                       <span className="px-2 py-0.5 rounded-full text-xs bg-orange-100 text-orange-700">
-                        {data.days.length} giorni
+                        {data.days.length} mancanti
                       </span>
-                    </h3>
-                    <div className="space-y-2">
-                      {data.days.slice(0, 10).map(date => (
-                        <div key={date} className="flex items-center justify-between bg-white p-2 rounded-lg">
-                          <span className="text-sm text-[#6b6b6b]">
-                            {new Date(date).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                          </span>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => markAsClosed(storeId, date)}
-                              className="px-3 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-1"
-                            >
-                              <CalendarOff className="w-3 h-3" />
-                              Chiusura
-                            </button>
-                            <button
-                              onClick={() => openCreateShiftWithDate(storeId, date)}
-                              className="px-3 py-1 rounded-lg text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 flex items-center gap-1"
-                            >
-                              <Plus className="w-3 h-3" />
-                              Aggiungi Turno
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                      {data.days.length > 10 && (
-                        <p className="text-xs text-[#9b9b9b] text-center">
-                          ... e altri {data.days.length - 10} giorni
-                        </p>
+                      {(data.closedDays || []).length > 0 && (
+                        <span className="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-700">
+                          {data.closedDays.length} chiusure
+                        </span>
                       )}
-                    </div>
+                    </h3>
+                    
+                    {/* Missing days */}
+                    {data.days.length > 0 && (
+                      <div className="space-y-2 mb-3">
+                        <p className="text-xs font-medium text-orange-600 mb-1">Giorni senza turni:</p>
+                        {data.days.slice(0, 10).map(date => (
+                          <div key={date} className="flex items-center justify-between bg-white p-2 rounded-lg border-l-4 border-orange-400">
+                            <span className="text-sm text-[#6b6b6b]">
+                              {new Date(date).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                            </span>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => markAsClosed(storeId, date)}
+                                className="px-3 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-1"
+                              >
+                                <CalendarOff className="w-3 h-3" />
+                                Chiusura
+                              </button>
+                              <button
+                                onClick={() => openCreateShiftWithDate(storeId, date)}
+                                className="px-3 py-1 rounded-lg text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 flex items-center gap-1"
+                              >
+                                <Plus className="w-3 h-3" />
+                                Aggiungi Turno
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                        {data.days.length > 10 && (
+                          <p className="text-xs text-[#9b9b9b] text-center">
+                            ... e altri {data.days.length - 10} giorni
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Closed days */}
+                    {(data.closedDays || []).length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-gray-600 mb-1">Giorni segnati come chiusura:</p>
+                        {data.closedDays.slice(0, 10).map(date => (
+                          <div key={date} className="flex items-center justify-between bg-gray-50 p-2 rounded-lg border-l-4 border-gray-400">
+                            <span className="text-sm text-[#6b6b6b] flex items-center gap-2">
+                              <CalendarOff className="w-4 h-4 text-gray-500" />
+                              {new Date(date).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                            </span>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => unmarkAsClosed(storeId, date)}
+                                className="px-3 py-1 rounded-lg text-xs font-medium bg-orange-100 text-orange-700 hover:bg-orange-200 flex items-center gap-1"
+                              >
+                                <X className="w-3 h-3" />
+                                Rimuovi chiusura
+                              </button>
+                              <button
+                                onClick={() => openCreateShiftWithDate(storeId, date)}
+                                className="px-3 py-1 rounded-lg text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 flex items-center gap-1"
+                              >
+                                <Plus className="w-3 h-3" />
+                                Aggiungi Turno
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                        {data.closedDays.length > 10 && (
+                          <p className="text-xs text-[#9b9b9b] text-center">
+                            ... e altri {data.closedDays.length - 10} giorni
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
