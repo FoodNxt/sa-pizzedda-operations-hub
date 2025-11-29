@@ -78,7 +78,7 @@ export default function StrutturaTurno() {
     colore: 'blue',
     richiede_form: false,
     form_page: '',
-    corso_id: '',
+    corsi_ids: [],
     attrezzature_pulizia: []
   });
   const [editingSlotIndex, setEditingSlotIndex] = useState(null);
@@ -199,11 +199,16 @@ export default function StrutturaTurno() {
         slots: [...formData.slots, slotToAdd].sort((a, b) => a.ora_inizio.localeCompare(b.ora_inizio))
       });
     }
-    setNewSlot({ ora_inizio: newSlot.ora_fine, ora_fine: newSlot.ora_fine, attivita: '', colore: 'blue', richiede_form: false, form_page: '', corso_id: '', attrezzature_pulizia: [] });
+    setNewSlot({ ora_inizio: newSlot.ora_fine, ora_fine: newSlot.ora_fine, attivita: '', colore: 'blue', richiede_form: false, form_page: '', corsi_ids: [], attrezzature_pulizia: [] });
   };
 
   const startEditSlot = (index) => {
     const slot = formData.slots[index];
+    // Handle backward compatibility: convert corso_id to corsi_ids
+    let corsiIds = slot.corsi_ids || [];
+    if (corsiIds.length === 0 && slot.corso_id) {
+      corsiIds = [slot.corso_id];
+    }
     setNewSlot({
       ora_inizio: slot.ora_inizio,
       ora_fine: slot.ora_fine,
@@ -211,7 +216,7 @@ export default function StrutturaTurno() {
       colore: slot.colore || 'blue',
       richiede_form: slot.richiede_form || false,
       form_page: slot.form_page || '',
-      corso_id: slot.corso_id || '',
+      corsi_ids: corsiIds,
       attrezzature_pulizia: slot.attrezzature_pulizia || []
     });
     setEditingSlotIndex(index);
@@ -219,11 +224,31 @@ export default function StrutturaTurno() {
 
   const cancelEditSlot = () => {
     setEditingSlotIndex(null);
-    setNewSlot({ ora_inizio: '09:00', ora_fine: '09:15', attivita: '', colore: 'blue', richiede_form: false, form_page: '', corso_id: '', attrezzature_pulizia: [] });
+    setNewSlot({ ora_inizio: '09:00', ora_fine: '09:15', attivita: '', colore: 'blue', richiede_form: false, form_page: '', corsi_ids: [], attrezzature_pulizia: [] });
   };
 
   const getCorsoName = (corsoId) => {
     return corsi.find(c => c.id === corsoId)?.nome_corso || '';
+  };
+
+  const toggleCorso = (corsoId) => {
+    const current = newSlot.corsi_ids || [];
+    if (current.includes(corsoId)) {
+      setNewSlot({ ...newSlot, corsi_ids: current.filter(id => id !== corsoId) });
+    } else {
+      setNewSlot({ ...newSlot, corsi_ids: [...current, corsoId] });
+    }
+  };
+
+  const getSlotCorsi = (slot) => {
+    // Handle backward compatibility
+    if (slot.corsi_ids && slot.corsi_ids.length > 0) {
+      return slot.corsi_ids;
+    }
+    if (slot.corso_id) {
+      return [slot.corso_id];
+    }
+    return [];
   };
 
   const toggleAttrezzatura = (attr) => {
@@ -470,10 +495,13 @@ export default function StrutturaTurno() {
                                 {getFormLabel(slot.form_page)}
                               </span>
                             )}
-                            {slot.corso_id && (
+                            {getSlotCorsi(slot).length > 0 && (
                               <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 flex items-center gap-1">
                                 <GraduationCap className="w-3 h-3" />
-                                {corsi.find(c => c.id === slot.corso_id)?.nome_corso || ''}
+                                {getSlotCorsi(slot).length === 1 
+                                  ? getCorsoName(getSlotCorsi(slot)[0])
+                                  : `${getSlotCorsi(slot).length} corsi`
+                                }
                               </span>
                             )}
                             {(slot.attrezzature_pulizia || []).length > 0 && (
@@ -663,21 +691,27 @@ export default function StrutturaTurno() {
                             </select>
                           </div>
                         )}
-                        <div>
+                        <div className="col-span-2 md:col-span-3">
                           <label className="text-xs font-medium text-slate-600 mb-1 block">
                             <GraduationCap className="w-3 h-3 inline mr-1" />
-                            Corso
+                            Corsi
                           </label>
-                          <select
-                            value={newSlot.corso_id}
-                            onChange={(e) => setNewSlot({ ...newSlot, corso_id: e.target.value })}
-                            className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
-                          >
-                            <option value="">Nessun corso</option>
+                          <div className="flex flex-wrap gap-2">
                             {corsi.filter(c => c.attivo !== false).map(c => (
-                              <option key={c.id} value={c.id}>{c.nome_corso}</option>
+                              <button
+                                key={c.id}
+                                type="button"
+                                onClick={() => toggleCorso(c.id)}
+                                className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                                  (newSlot.corsi_ids || []).includes(c.id)
+                                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                                    : 'nav-button text-slate-700'
+                                }`}
+                              >
+                                {c.nome_corso}
+                              </button>
                             ))}
-                          </select>
+                          </div>
                         </div>
                       </div>
                       
@@ -784,10 +818,13 @@ export default function StrutturaTurno() {
                                   {getFormLabel(slot.form_page)}
                                 </span>
                               )}
-                              {slot.corso_id && (
-                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 flex items-center gap-1">
+                              {getSlotCorsi(slot).length > 0 && (
+                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 flex items-center gap-1" title={getSlotCorsi(slot).map(id => getCorsoName(id)).join(', ')}>
                                   <GraduationCap className="w-3 h-3" />
-                                  {getCorsoName(slot.corso_id)}
+                                  {getSlotCorsi(slot).length === 1 
+                                    ? getCorsoName(getSlotCorsi(slot)[0])
+                                    : `${getSlotCorsi(slot).length} corsi`
+                                  }
                                 </span>
                               )}
                               {(slot.attrezzature_pulizia || []).length > 0 && (
