@@ -460,6 +460,18 @@ export default function StrutturaTurno() {
                                 {getFormLabel(slot.form_page)}
                               </span>
                             )}
+                            {slot.corso_id && (
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 flex items-center gap-1">
+                                <GraduationCap className="w-3 h-3" />
+                                {corsi.find(c => c.id === slot.corso_id)?.titolo || ''}
+                              </span>
+                            )}
+                            {(slot.attrezzature_pulizia || []).length > 0 && (
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 flex items-center gap-1" title={slot.attrezzature_pulizia.join(', ')}>
+                                <Sparkles className="w-3 h-3" />
+                                {slot.attrezzature_pulizia.length} attrezz.
+                              </span>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -731,6 +743,18 @@ export default function StrutturaTurno() {
                                 <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700 flex items-center gap-1">
                                   <FileText className="w-3 h-3" />
                                   {getFormLabel(slot.form_page)}
+                                </span>
+                              )}
+                              {slot.corso_id && (
+                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 flex items-center gap-1">
+                                  <GraduationCap className="w-3 h-3" />
+                                  {getCorsoName(slot.corso_id)}
+                                </span>
+                              )}
+                              {(slot.attrezzature_pulizia || []).length > 0 && (
+                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 flex items-center gap-1">
+                                  <Sparkles className="w-3 h-3" />
+                                  {slot.attrezzature_pulizia.length} attrezz.
                                 </span>
                               )}
                             </div>
