@@ -362,6 +362,9 @@ export default function StrutturaTurno() {
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h3 className="font-bold text-slate-800 text-lg">{schema.nome_schema}</h3>
+                    <p className="text-sm text-slate-500 mt-1">
+                      📅 {GIORNI[schema.giorno_settimana]}
+                    </p>
                     <div className="flex flex-wrap gap-2 mt-2">
                       <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
                         {schema.ruolo}
