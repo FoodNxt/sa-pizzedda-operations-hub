@@ -294,32 +294,54 @@ export default function StrutturaTurno() {
     }
   };
 
+  const [copyTargetStores, setCopyTargetStores] = useState([]);
+
   const openCopyModal = (schema) => {
     setSchemaToCopy(schema);
     setCopyTargetDays([]);
+    setCopyTargetStores([]);
     setShowCopyModal(true);
   };
 
   const handleCopy = async () => {
-    if (copyTargetDays.length === 0) {
-      alert('Seleziona almeno un giorno');
-      return;
+    // Copia su altri giorni
+    if (copyTargetDays.length > 0) {
+      for (const giorno of copyTargetDays) {
+        await createMutation.mutateAsync({
+          nome_schema: `${schemaToCopy.nome_schema} (${GIORNI[giorno]})`,
+          giorno_settimana: giorno,
+          ruolo: schemaToCopy.ruolo,
+          assigned_stores: schemaToCopy.assigned_stores || [],
+          slots: schemaToCopy.slots || [],
+          is_active: true
+        });
+      }
     }
 
-    for (const giorno of copyTargetDays) {
-      await createMutation.mutateAsync({
-        nome_schema: `${schemaToCopy.nome_schema} (${GIORNI[giorno]})`,
-        giorno_settimana: giorno,
-        ruolo: schemaToCopy.ruolo,
-        assigned_stores: schemaToCopy.assigned_stores || [],
-        slots: schemaToCopy.slots || [],
-        is_active: true
-      });
+    // Copia su altri store (stesso giorno)
+    if (copyTargetStores.length > 0) {
+      for (const storeId of copyTargetStores) {
+        const storeName = getStoreName(storeId);
+        await createMutation.mutateAsync({
+          nome_schema: `${schemaToCopy.nome_schema} (${storeName})`,
+          giorno_settimana: schemaToCopy.giorno_settimana,
+          ruolo: schemaToCopy.ruolo,
+          assigned_stores: [storeId],
+          slots: schemaToCopy.slots || [],
+          is_active: true
+        });
+      }
+    }
+
+    if (copyTargetDays.length === 0 && copyTargetStores.length === 0) {
+      alert('Seleziona almeno un giorno o uno store');
+      return;
     }
 
     setShowCopyModal(false);
     setSchemaToCopy(null);
     setCopyTargetDays([]);
+    setCopyTargetStores([]);
   };
 
   const getColoreClass = (colore) => {
