@@ -319,7 +319,15 @@ export default function FormTracker() {
       // For each config
       activeConfigs.forEach(config => {
         const configRoles = config.assigned_roles || [];
-        const shiftSequences = config.shift_sequences || (config.shift_sequence ? [config.shift_sequence] : ['first']);
+        // Handle backward compatibility for shift sequences
+        let shiftSequences = config.shift_sequences || [];
+        if (shiftSequences.length === 0 && config.shift_sequence) {
+          shiftSequences = [config.shift_sequence];
+        }
+        // Default to both if nothing specified
+        if (shiftSequences.length === 0) {
+          shiftSequences = ['first', 'second'];
+        }
         const shiftTiming = config.shift_based_timing?.[0] || config.shift_timing || 'end';
         const daysOfWeek = config.days_of_week || [];
         
