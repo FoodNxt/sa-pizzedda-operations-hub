@@ -659,62 +659,123 @@ export default function GestioneAssistente() {
 
         {/* Conversazioni Tab */}
         {activeTab === 'conversazioni' && (
-          <NeumorphicCard className="p-6">
-            <h2 className="text-xl font-bold text-slate-800 mb-4">Conversazioni Dipendenti</h2>
-            
-            {conversations.length === 0 ? (
-              <p className="text-slate-500 text-center py-8">Nessuna conversazione trovata</p>
-            ) : (
-              <div className="space-y-3">
-                {conversations.map(conv => (
-                  <div key={conv.id} className="neumorphic-pressed p-4 rounded-xl">
-                    <div 
-                      className="flex items-center justify-between cursor-pointer"
-                      onClick={() => setExpandedConversation(expandedConversation === conv.id ? null : conv.id)}
-                    >
-                      <div className="flex items-center gap-3">
-                        {expandedConversation === conv.id ? (
-                          <ChevronDown className="w-4 h-4 text-slate-500" />
-                        ) : (
-                          <ChevronRight className="w-4 h-4 text-slate-500" />
-                        )}
-                        <div>
-                          <p className="font-medium text-slate-800">
-                            {conv.metadata?.name || 'Conversazione'}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            {moment(conv.created_date).format('DD/MM/YYYY HH:mm')} • 
-                            {conv.messages?.length || 0} messaggi
-                          </p>
-                        </div>
-                      </div>
-                      <Eye className="w-4 h-4 text-slate-400" />
-                    </div>
-                    
-                    {expandedConversation === conv.id && conv.messages && (
-                      <div className="mt-4 space-y-2 max-h-96 overflow-y-auto">
-                        {conv.messages.map((msg, idx) => (
-                          <div 
-                            key={idx}
-                            className={`p-3 rounded-lg ${
-                              msg.role === 'user' 
-                                ? 'bg-blue-50 ml-8' 
-                                : 'bg-slate-50 mr-8'
-                            }`}
-                          >
-                            <p className="text-xs font-medium text-slate-500 mb-1">
-                              {msg.role === 'user' ? 'Dipendente' : 'Assistente'}
-                            </p>
-                            <p className="text-sm text-slate-700">{msg.content}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
+          <>
+            {/* Suggerimenti informazioni mancanti */}
+            <NeumorphicCard className="p-6 bg-yellow-50 border border-yellow-200">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
+                <div>
+                  <h3 className="font-bold text-yellow-800 mb-2">💡 Suggerimenti per migliorare la Knowledge Base</h3>
+                  <p className="text-sm text-yellow-700 mb-3">
+                    Analizzando le conversazioni, potrebbero essere utili informazioni su:
+                  </p>
+                  <ul className="text-sm text-yellow-700 space-y-1 list-disc ml-4">
+                    <li>Procedure specifiche per la gestione degli imprevisti</li>
+                    <li>FAQ sulle domande più frequenti dei dipendenti</li>
+                    <li>Orari e contatti di emergenza aggiornati</li>
+                    <li>Procedure per apertura/chiusura locale</li>
+                    <li>Istruzioni per l'utilizzo delle attrezzature</li>
+                  </ul>
+                </div>
               </div>
-            )}
-          </NeumorphicCard>
+            </NeumorphicCard>
+
+            <NeumorphicCard className="p-6">
+              <h2 className="text-xl font-bold text-slate-800 mb-4">Conversazioni Dipendenti</h2>
+              
+              {conversations.length === 0 ? (
+                <p className="text-slate-500 text-center py-8">Nessuna conversazione trovata</p>
+              ) : (
+                <div className="space-y-3">
+                  {conversations.map(conv => (
+                    <div key={conv.id} className="neumorphic-pressed p-4 rounded-xl">
+                      <div 
+                        className="flex items-center justify-between cursor-pointer"
+                        onClick={() => setExpandedConversation(expandedConversation === conv.id ? null : conv.id)}
+                      >
+                        <div className="flex items-center gap-3">
+                          {expandedConversation === conv.id ? (
+                            <ChevronDown className="w-4 h-4 text-slate-500" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4 text-slate-500" />
+                          )}
+                          <div>
+                            <p className="font-medium text-slate-800">
+                              {conv.metadata?.name || 'Conversazione'}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              {moment(conv.created_date).format('DD/MM/YYYY HH:mm')} • 
+                              {conv.messages?.length || 0} messaggi
+                            </p>
+                          </div>
+                        </div>
+                        <Eye className="w-4 h-4 text-slate-400" />
+                      </div>
+                      
+                      {expandedConversation === conv.id && conv.messages && (
+                        <div className="mt-4 space-y-2 max-h-96 overflow-y-auto">
+                          {conv.messages.map((msg, idx) => (
+                            <div 
+                              key={idx}
+                              className={`p-3 rounded-lg ${
+                                msg.role === 'user' 
+                                  ? 'bg-blue-50 ml-8' 
+                                  : 'bg-slate-50 mr-8'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <p className="text-xs font-medium text-slate-500">
+                                  {msg.role === 'user' ? 'Dipendente' : 'Assistente'}
+                                </p>
+                                {msg.role === 'assistant' && (
+                                  <div className="flex items-center gap-2">
+                                    {msg.confidence && (
+                                      <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                        msg.confidence >= 0.8 ? 'bg-green-100 text-green-700' :
+                                        msg.confidence >= 0.5 ? 'bg-yellow-100 text-yellow-700' :
+                                        'bg-red-100 text-red-700'
+                                      }`}>
+                                        Confidenza: {Math.round((msg.confidence || 0.7) * 100)}%
+                                      </span>
+                                    )}
+                                    {!msg.confidence && (
+                                      <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                                        Confidenza: ~70%
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                              <p className="text-sm text-slate-700">{msg.content}</p>
+                              {msg.role === 'assistant' && msg.sources && msg.sources.length > 0 && (
+                                <div className="mt-2 pt-2 border-t border-slate-200">
+                                  <p className="text-xs text-slate-500 mb-1">📚 Fonti utilizzate:</p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {msg.sources.map((source, sIdx) => (
+                                      <span key={sIdx} className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 rounded">
+                                        {source}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {msg.role === 'assistant' && !msg.sources && (
+                                <div className="mt-2 pt-2 border-t border-slate-200">
+                                  <p className="text-xs text-slate-400 italic">
+                                    📚 Fonte: Knowledge Base generale
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </NeumorphicCard>
+          </>
         )}
 
         {/* Verifica Coerenza Tab */}

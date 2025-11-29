@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
-import { ChefHat, Plus, Edit, Save, X, Calendar, History, Store, User } from "lucide-react";
+import { ChefHat, Plus, Edit, Save, X, Calendar, History, Store, User, Trash2 } from "lucide-react";
 import moment from "moment";
 
 const giorni = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"];
@@ -46,6 +46,13 @@ export default function PrecottureAdmin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gestione-impasti'] });
       setEditingRow(null);
+    },
+  });
+
+  const deletePreparazioneMutation = useMutation({
+    mutationFn: (id) => base44.entities.Preparazioni.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['preparazioni-storico'] });
     },
   });
 
@@ -401,6 +408,7 @@ export default function PrecottureAdmin() {
                         <th className="text-center py-3 px-2 text-slate-700">Turno</th>
                         <th className="text-right py-3 px-2 text-red-700 bg-red-50">Rosse</th>
                         <th className="text-right py-3 px-2 text-yellow-700 bg-yellow-50">Bianche</th>
+                        <th className="text-center py-3 px-2 text-slate-700">Azioni</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -430,6 +438,19 @@ export default function PrecottureAdmin() {
                           </td>
                           <td className="py-3 px-2 text-right font-bold text-yellow-700 bg-yellow-50">
                             {prep.bianche_preparate || 0}
+                          </td>
+                          <td className="py-3 px-2 text-center">
+                            <button
+                              onClick={() => {
+                                if (confirm('Eliminare questa registrazione?')) {
+                                  deletePreparazioneMutation.mutate(prep.id);
+                                }
+                              }}
+                              className="nav-button p-2 rounded-lg hover:bg-red-50"
+                              title="Elimina"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                            </button>
                           </td>
                         </tr>
                       ))}

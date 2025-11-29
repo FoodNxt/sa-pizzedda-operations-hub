@@ -5,7 +5,6 @@ import {
   ChefHat,
   Truck,
   Upload,
-  Pizza,
   Settings
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
@@ -33,13 +32,6 @@ export default function InventarioAdmin() {
       icon: Upload,
       url: createPageUrl("UploadFattureXML"),
       gradient: "from-purple-500 to-pink-600"
-    },
-    {
-      title: "Gestione Impasti/Precotture",
-      description: "Gestisci la pianificazione settimanale degli impasti",
-      icon: Pizza,
-      url: createPageUrl("GestioneImpastiPrecotture"),
-      gradient: "from-green-500 to-emerald-600"
     }
   ];
 
@@ -83,7 +75,6 @@ export default function InventarioAdmin() {
             <p><strong>• Ricette:</strong> Crea e gestisci le ricette con calcolo automatico del food cost</p>
             <p><strong>• Elenco Fornitori:</strong> Gestisci i dati dei fornitori e i loro contatti</p>
             <p><strong>• Upload Fatture XML:</strong> Importa automaticamente fornitori e prodotti dalle fatture elettroniche</p>
-            <p><strong>• Gestione Impasti:</strong> Pianifica le quantità di impasti per ogni giorno della settimana</p>
           </div>
         </NeumorphicCard>
       </div>
