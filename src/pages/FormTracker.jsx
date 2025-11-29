@@ -417,26 +417,27 @@ export default function FormTracker() {
 
           // Process each shift sequence
           shiftSequences.forEach(shiftSequence => {
-            // Determine morning vs evening based on shift start time (before/after 15:00)
+            // Sort shifts by start time
+            const sortedShifts = [...employeeShifts].sort((a, b) => 
+              new Date(a.scheduled_start) - new Date(b.scheduled_start)
+            );
+            
             let targetShift = null;
             
-            if (shiftSequence === 'first') {
-              // Morning shift = starts before 15:00
-              targetShift = employeeShifts.find(s => {
-                const startHour = new Date(s.scheduled_start).getHours();
-                return startHour < 15;
-              });
-            } else {
-              // Evening shift = starts at 15:00 or later
-              targetShift = employeeShifts.find(s => {
-                const startHour = new Date(s.scheduled_start).getHours();
-                return startHour >= 15;
-              });
-            }
-
-            // If no matching shift for this sequence, use first available shift
-            if (!targetShift && employeeShifts.length > 0) {
-              targetShift = employeeShifts[0];
+            if (sortedShifts.length === 1) {
+              // Only one shift - use it for 'first' (morning), skip 'second' (evening)
+              if (shiftSequence === 'first') {
+                targetShift = sortedShifts[0];
+              } else {
+                return; // No second shift available
+              }
+            } else if (sortedShifts.length >= 2) {
+              // Multiple shifts - first one is morning, second is evening
+              if (shiftSequence === 'first') {
+                targetShift = sortedShifts[0];
+              } else {
+                targetShift = sortedShifts[1];
+              }
             }
 
             if (!targetShift) return;
