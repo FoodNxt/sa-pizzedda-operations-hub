@@ -273,8 +273,15 @@ export default function FormTracker() {
     let totalExpected = 0;
     let totalCompleted = 0;
 
-    // Get shifts for selected date
-    const shiftsForDate = shifts.filter(s => s.shift_date === selectedDate);
+    // Get shifts for selected date, excluding malattia, ferie, assenza
+    const shiftsForDate = shifts.filter(s => {
+      if (s.shift_date !== selectedDate) return false;
+      const shiftType = (s.shift_type || '').toLowerCase();
+      if (shiftType.includes('malattia') || shiftType.includes('ferie') || shiftType.includes('assenza')) {
+        return false;
+      }
+      return true;
+    });
 
     // Group shifts by store
     const shiftsByStore = {};
