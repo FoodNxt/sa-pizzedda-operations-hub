@@ -169,6 +169,64 @@ export default function Inventory() {
     return grouped;
   }, [ordersNeeded]);
 
+  // Get fornitore info by name
+  const getFornitoreByName = (name) => {
+    return fornitori.find(f => 
+      f.ragione_sociale?.toLowerCase() === name?.toLowerCase() ||
+      f.ragione_sociale?.toLowerCase().includes(name?.toLowerCase()) ||
+      name?.toLowerCase().includes(f.ragione_sociale?.toLowerCase())
+    );
+  };
+
+  // Send order email to supplier
+  const sendOrderEmail = async (storeName, supplierName, orders) => {
+    const fornitore = getFornitoreByName(supplierName);
+    
+    if (!fornitore?.contatto_email) {
+      alert(`Email non trovata per il fornitore "${supplierName}". Aggiungi l'email del fornitore nella sezione Fornitori.`);
+      return;
+    }
+
+    const emailKey = `${storeName}-${supplierName}`;
+    setSendingEmail(prev => ({ ...prev, [emailKey]: true }));
+
+    try {
+      // Build email body
+      const productList = orders.map(order => 
+        `• ${order.nome_prodotto}: ${order.quantita_ordine} ${order.unita_misura}`
+      ).join('\n');
+
+      const emailBody = `Gentile ${fornitore.referente_nome || fornitore.ragione_sociale},
+
+Vi inviamo il seguente ordine per il locale ${storeName}:
+
+${productList}
+
+Grazie per la collaborazione.
+
+Cordiali saluti,
+Sa Pizzedda`;
+
+      await base44.integrations.Core.SendEmail({
+        to: fornitore.contatto_email,
+        subject: `Ordine Sa Pizzedda - ${storeName}`,
+        body: emailBody,
+        from_name: 'Sa Pizzedda'
+      });
+
+      setEmailSent(prev => ({ ...prev, [emailKey]: true }));
+      setTimeout(() => {
+        setEmailSent(prev => ({ ...prev, [emailKey]: false }));
+      }, 5000);
+
+    } catch (error) {
+      console.error('Errore invio email:', error);
+      alert(`Errore nell'invio dell'email: ${error.message}`);
+    } finally {
+      setSendingEmail(prev => ({ ...prev, [emailKey]: false }));
+    }
+  };
+
   // Get all inventory history for a specific product
   const getFullProductHistory = (productId) => {
     const allInventory = [...inventory, ...inventoryCantina];
