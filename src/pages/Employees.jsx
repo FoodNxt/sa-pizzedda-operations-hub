@@ -12,13 +12,15 @@ import {
   Eye,
   X,
   Settings,
-  Save
+  Save,
+  BarChart3
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { parseISO, isWithinInterval, isValid, format as formatDate } from 'date-fns';
 import { it } from 'date-fns/locale';
 import ProtectedPage from "../components/ProtectedPage";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceDot } from 'recharts';
 
 export default function Employees() {
   const [selectedStore, setSelectedStore] = useState('all');
