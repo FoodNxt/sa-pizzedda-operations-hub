@@ -770,9 +770,9 @@ export default function GestioneAssistente() {
                         <Eye className="w-4 h-4 text-slate-400" />
                       </div>
                       
-                      {expandedConversation === conv.id && conv.messages && (
+                      {expandedConversation === conv.id && (liveMessages[conv.id] || conv.messages) && (
                         <div className="mt-4 space-y-2 max-h-96 overflow-y-auto">
-                          {conv.messages.map((msg, idx) => (
+                          {(liveMessages[conv.id] || conv.messages || []).map((msg, idx) => (
                             <div 
                               key={idx}
                               className={`p-3 rounded-lg ${
