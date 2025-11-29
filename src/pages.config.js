@@ -75,6 +75,7 @@ import OreLavorate from './pages/OreLavorate';
 import Alerts from './pages/Alerts';
 import ControlloStoreManager from './pages/ControlloStoreManager';
 import StrutturaTurno from './pages/StrutturaTurno';
+import StoricoImpasti from './pages/StoricoImpasti';
 import __Layout from './Layout.jsx';
 
 
@@ -156,6 +157,7 @@ export const PAGES = {
     "Alerts": Alerts,
     "ControlloStoreManager": ControlloStoreManager,
     "StrutturaTurno": StrutturaTurno,
+    "StoricoImpasti": StoricoImpasti,
 }
 
 export const pagesConfig = {
