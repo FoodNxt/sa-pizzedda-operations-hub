@@ -41,12 +41,14 @@ export default function GestioneAssistente() {
     categoria: 'Procedure Operative',
     titolo: '',
     contenuto: '',
+    notion_url: '',
     tags: [],
     store_specifico: '',
     priorita: 0,
     attivo: true
   });
   const [newTag, setNewTag] = useState('');
+  const [loadingNotion, setLoadingNotion] = useState(false);
 
   const queryClient = useQueryClient();
 
