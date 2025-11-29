@@ -33,6 +33,11 @@ export default function GestioneImpastiPrecotture() {
     queryFn: () => base44.entities.GestioneImpasti.list(),
   });
 
+  const { data: ricettaIngredienti = [] } = useQuery({
+    queryKey: ['ricetta-impasto'],
+    queryFn: () => base44.entities.RicettaImpasto.list(),
+  });
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.GestioneImpasti.create(data),
     onSuccess: () => {
@@ -48,6 +53,62 @@ export default function GestioneImpastiPrecotture() {
       setEditingRow(null);
     },
   });
+
+  const createIngredientMutation = useMutation({
+    mutationFn: (data) => base44.entities.RicettaImpasto.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ricetta-impasto'] });
+      resetIngredientForm();
+    },
+  });
+
+  const updateIngredientMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.RicettaImpasto.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ricetta-impasto'] });
+      resetIngredientForm();
+    },
+  });
+
+  const deleteIngredientMutation = useMutation({
+    mutationFn: (id) => base44.entities.RicettaImpasto.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ricetta-impasto'] });
+    },
+  });
+
+  const resetIngredientForm = () => {
+    setIngredientForm({ nome_ingrediente: '', quantita_per_pallina: '', unita_misura: 'g', ordine: 0 });
+    setEditingIngredient(null);
+    setShowIngredientForm(false);
+  };
+
+  const handleSaveIngredient = () => {
+    const data = {
+      ...ingredientForm,
+      quantita_per_pallina: parseFloat(ingredientForm.quantita_per_pallina),
+      ordine: parseInt(ingredientForm.ordine) || 0,
+      attivo: true
+    };
+    if (editingIngredient) {
+      updateIngredientMutation.mutate({ id: editingIngredient.id, data });
+    } else {
+      createIngredientMutation.mutate(data);
+    }
+  };
+
+  const handleEditIngredient = (ing) => {
+    setEditingIngredient(ing);
+    setIngredientForm({
+      nome_ingrediente: ing.nome_ingrediente,
+      quantita_per_pallina: ing.quantita_per_pallina,
+      unita_misura: ing.unita_misura,
+      ordine: ing.ordine || 0
+    });
+    setShowIngredientForm(true);
+  };
+
+  const sortedIngredienti = [...ricettaIngredienti].sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
 
   const filteredImpasti = useMemo(() => {
     if (!selectedStore) return [];
