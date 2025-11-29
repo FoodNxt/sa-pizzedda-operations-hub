@@ -65,9 +65,23 @@ export default function GestioneAssistente() {
     queryFn: () => base44.entities.AssistenteCategoria.list('ordine'),
   });
 
-  const { data: conversations = [] } = useQuery({
+  const { data: conversations = [], isLoading: loadingConversations } = useQuery({
     queryKey: ['assistente-conversations'],
-    queryFn: () => base44.agents.listConversations({ agent_name: 'assistente_dipendenti' }),
+    queryFn: async () => {
+      const convs = await base44.agents.listConversations({ agent_name: 'assistente_dipendenti' });
+      // Per ogni conversazione, carica i messaggi completi
+      const convsWithMessages = await Promise.all(
+        convs.map(async (conv) => {
+          try {
+            const fullConv = await base44.agents.getConversation(conv.id);
+            return fullConv;
+          } catch (e) {
+            return conv;
+          }
+        })
+      );
+      return convsWithMessages;
+    },
     enabled: activeTab === 'conversazioni'
   });
 
