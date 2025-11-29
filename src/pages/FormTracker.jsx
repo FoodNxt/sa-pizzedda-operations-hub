@@ -366,16 +366,25 @@ export default function FormTracker() {
         Object.entries(shiftsByEmployee).forEach(([employeeName, employeeShifts]) => {
           // Get the user to check their role
           const user = users.find(u => 
-            (u.nome_cognome === employeeName || u.full_name === employeeName)
+            (u.nome_cognome === employeeName || u.full_name === employeeName) ||
+            (u.nome_cognome && employeeName.includes(u.nome_cognome)) ||
+            (u.full_name && employeeName.includes(u.full_name))
           );
           
-          if (!user) return;
-
-          const userRoles = user.ruoli_dipendente || [];
+          // Try to get role from shift data if user not found
+          const shiftRole = employeeShifts[0]?.employee_group_name;
+          const userRoles = user?.ruoli_dipendente || [];
           
-          // Check if user has the required role
-          if (configRoles.length > 0 && !configRoles.some(r => userRoles.includes(r))) {
-            return;
+          // If config requires specific roles, check if user/shift has that role
+          if (configRoles.length > 0) {
+            const hasMatchingRole = configRoles.some(r => 
+              userRoles.includes(r) || 
+              (shiftRole && shiftRole.toLowerCase().includes(r.toLowerCase())) ||
+              (shiftRole && r.toLowerCase().includes(shiftRole.toLowerCase()))
+            );
+            if (!hasMatchingRole) {
+              return;
+            }
           }
 
           // Process each shift sequence
@@ -413,7 +422,7 @@ export default function FormTracker() {
             const formEntry = {
               config,
               employeeName,
-              user,
+              user: user || { nome_cognome: employeeName },
               shift: targetShift,
               shiftTiming,
               shiftSequence,
