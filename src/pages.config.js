@@ -76,6 +76,8 @@ import Alerts from './pages/Alerts';
 import ControlloStoreManager from './pages/ControlloStoreManager';
 import StrutturaTurno from './pages/StrutturaTurno';
 import StoricoImpasti from './pages/StoricoImpasti';
+import GestioneAssistente from './pages/GestioneAssistente';
+import AssistenteDipendente from './pages/AssistenteDipendente';
 import __Layout from './Layout.jsx';
 
 
@@ -158,6 +160,8 @@ export const PAGES = {
     "ControlloStoreManager": ControlloStoreManager,
     "StrutturaTurno": StrutturaTurno,
     "StoricoImpasti": StoricoImpasti,
+    "GestioneAssistente": GestioneAssistente,
+    "AssistenteDipendente": AssistenteDipendente,
 }
 
 export const pagesConfig = {

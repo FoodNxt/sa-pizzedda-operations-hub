@@ -1,0 +1,623 @@
+import React, { useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
+import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
+import ProtectedPage from "../components/ProtectedPage";
+import { 
+  Bot, Plus, Edit, Trash2, Save, X, Search, AlertTriangle, 
+  MessageSquare, Book, Tag, Store, CheckCircle, XCircle, Loader2,
+  ChevronDown, ChevronRight, Eye
+} from "lucide-react";
+import moment from "moment";
+
+const CATEGORIE = [
+  "Procedure Operative",
+  "Ricette e Preparazioni", 
+  "Pulizia e Igiene",
+  "Gestione Cassa",
+  "Gestione Magazzino",
+  "Sicurezza sul Lavoro",
+  "Orari e Turni",
+  "Contatti e Emergenze",
+  "Regolamenti Interni",
+  "FAQ Generali"
+];
+
+export default function GestioneAssistente() {
+  const [activeTab, setActiveTab] = useState('knowledge');
+  const [showForm, setShowForm] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterCategoria, setFilterCategoria] = useState('');
+  const [checkingInconsistencies, setCheckingInconsistencies] = useState(false);
+  const [inconsistencies, setInconsistencies] = useState(null);
+  const [expandedConversation, setExpandedConversation] = useState(null);
+  
+  const [formData, setFormData] = useState({
+    categoria: 'Procedure Operative',
+    titolo: '',
+    contenuto: '',
+    tags: [],
+    store_specifico: '',
+    priorita: 0,
+    attivo: true
+  });
+  const [newTag, setNewTag] = useState('');
+
+  const queryClient = useQueryClient();
+
+  const { data: knowledge = [] } = useQuery({
+    queryKey: ['assistente-knowledge'],
+    queryFn: () => base44.entities.AssistenteKnowledge.list('-priorita'),
+  });
+
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores'],
+    queryFn: () => base44.entities.Store.list(),
+  });
+
+  const { data: conversations = [] } = useQuery({
+    queryKey: ['assistente-conversations'],
+    queryFn: () => base44.agents.listConversations({ agent_name: 'assistente_dipendenti' }),
+    enabled: activeTab === 'conversazioni'
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (data) => base44.entities.AssistenteKnowledge.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assistente-knowledge'] });
+      resetForm();
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.AssistenteKnowledge.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assistente-knowledge'] });
+      resetForm();
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.AssistenteKnowledge.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assistente-knowledge'] });
+    },
+  });
+
+  const resetForm = () => {
+    setFormData({
+      categoria: 'Procedure Operative',
+      titolo: '',
+      contenuto: '',
+      tags: [],
+      store_specifico: '',
+      priorita: 0,
+      attivo: true
+    });
+    setEditingItem(null);
+    setShowForm(false);
+    setNewTag('');
+  };
+
+  const handleEdit = (item) => {
+    setEditingItem(item);
+    setFormData({
+      categoria: item.categoria,
+      titolo: item.titolo,
+      contenuto: item.contenuto,
+      tags: item.tags || [],
+      store_specifico: item.store_specifico || '',
+      priorita: item.priorita || 0,
+      attivo: item.attivo !== false
+    });
+    setShowForm(true);
+  };
+
+  const handleSave = () => {
+    if (editingItem) {
+      updateMutation.mutate({ id: editingItem.id, data: formData });
+    } else {
+      createMutation.mutate(formData);
+    }
+  };
+
+  const addTag = () => {
+    if (newTag.trim() && !formData.tags.includes(newTag.trim())) {
+      setFormData({ ...formData, tags: [...formData.tags, newTag.trim()] });
+      setNewTag('');
+    }
+  };
+
+  const removeTag = (tag) => {
+    setFormData({ ...formData, tags: formData.tags.filter(t => t !== tag) });
+  };
+
+  const checkInconsistencies = async () => {
+    setCheckingInconsistencies(true);
+    try {
+      const allContent = knowledge.map(k => 
+        `[${k.categoria}] ${k.titolo}: ${k.contenuto}`
+      ).join('\n\n');
+
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: `Analizza le seguenti informazioni della knowledge base di un'azienda di pizzerie e identifica eventuali incongruenze, contraddizioni o informazioni duplicate/conflittuali. Se trovi problemi, elencali in modo chiaro. Se non trovi problemi, conferma che la knowledge base è coerente.\n\nKnowledge Base:\n${allContent}`,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            has_issues: { type: "boolean" },
+            issues: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  tipo: { type: "string" },
+                  descrizione: { type: "string" },
+                  elementi_coinvolti: { type: "array", items: { type: "string" } }
+                }
+              }
+            },
+            summary: { type: "string" }
+          }
+        }
+      });
+      setInconsistencies(result);
+    } catch (error) {
+      console.error('Error checking inconsistencies:', error);
+    }
+    setCheckingInconsistencies(false);
+  };
+
+  const filteredKnowledge = knowledge.filter(k => {
+    if (filterCategoria && k.categoria !== filterCategoria) return false;
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      return k.titolo.toLowerCase().includes(query) || 
+             k.contenuto.toLowerCase().includes(query) ||
+             (k.tags || []).some(t => t.toLowerCase().includes(query));
+    }
+    return true;
+  });
+
+  const getStoreName = (storeId) => {
+    return stores.find(s => s.id === storeId)?.name || storeId;
+  };
+
+  const groupedByCategory = CATEGORIE.reduce((acc, cat) => {
+    acc[cat] = filteredKnowledge.filter(k => k.categoria === cat);
+    return acc;
+  }, {});
+
+  return (
+    <ProtectedPage pageName="GestioneAssistente">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
+              Gestione Assistente AI
+            </h1>
+            <p className="text-slate-500 mt-1">Configura la knowledge base e monitora le conversazioni</p>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => setActiveTab('knowledge')}
+            className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
+              activeTab === 'knowledge'
+                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                : 'neumorphic-flat text-slate-700'
+            }`}
+          >
+            <Book className="w-4 h-4" />
+            Knowledge Base ({knowledge.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('conversazioni')}
+            className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
+              activeTab === 'conversazioni'
+                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                : 'neumorphic-flat text-slate-700'
+            }`}
+          >
+            <MessageSquare className="w-4 h-4" />
+            Conversazioni
+          </button>
+          <button
+            onClick={() => setActiveTab('verifica')}
+            className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
+              activeTab === 'verifica'
+                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                : 'neumorphic-flat text-slate-700'
+            }`}
+          >
+            <AlertTriangle className="w-4 h-4" />
+            Verifica Coerenza
+          </button>
+        </div>
+
+        {/* Knowledge Base Tab */}
+        {activeTab === 'knowledge' && (
+          <>
+            <NeumorphicCard className="p-6">
+              <div className="flex flex-wrap gap-4 items-end">
+                <div className="flex-1 min-w-[200px]">
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Cerca</label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Cerca per titolo, contenuto o tag..."
+                      className="w-full neumorphic-pressed pl-10 pr-4 py-3 rounded-xl text-slate-700 outline-none"
+                    />
+                  </div>
+                </div>
+                <div className="min-w-[200px]">
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Categoria</label>
+                  <select
+                    value={filterCategoria}
+                    onChange={(e) => setFilterCategoria(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                  >
+                    <option value="">Tutte le categorie</option>
+                    {CATEGORIE.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+                <NeumorphicButton
+                  onClick={() => setShowForm(true)}
+                  variant="primary"
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Aggiungi
+                </NeumorphicButton>
+              </div>
+            </NeumorphicCard>
+
+            {/* Form */}
+            {showForm && (
+              <NeumorphicCard className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-slate-800">
+                    {editingItem ? 'Modifica Informazione' : 'Nuova Informazione'}
+                  </h2>
+                  <button onClick={resetForm} className="nav-button p-2 rounded-lg">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Categoria *</label>
+                    <select
+                      value={formData.categoria}
+                      onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    >
+                      {CATEGORIE.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Titolo *</label>
+                    <input
+                      type="text"
+                      value={formData.titolo}
+                      onChange={(e) => setFormData({ ...formData, titolo: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      placeholder="Titolo breve"
+                    />
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Contenuto *</label>
+                  <textarea
+                    value={formData.contenuto}
+                    onChange={(e) => setFormData({ ...formData, contenuto: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none min-h-[150px]"
+                    placeholder="Descrizione dettagliata dell'informazione..."
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Store Specifico</label>
+                    <select
+                      value={formData.store_specifico}
+                      onChange={(e) => setFormData({ ...formData, store_specifico: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    >
+                      <option value="">Tutti i locali</option>
+                      {stores.map(store => (
+                        <option key={store.id} value={store.id}>{store.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Priorità</label>
+                    <input
+                      type="number"
+                      value={formData.priorita}
+                      onChange={(e) => setFormData({ ...formData, priorita: parseInt(e.target.value) || 0 })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    />
+                  </div>
+                  <div className="flex items-center pt-6">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.attivo}
+                        onChange={(e) => setFormData({ ...formData, attivo: e.target.checked })}
+                        className="w-5 h-5"
+                      />
+                      <span className="text-sm font-medium text-slate-700">Attivo</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Tags</label>
+                  <div className="flex gap-2 flex-wrap mb-2">
+                    {formData.tags.map(tag => (
+                      <span key={tag} className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm flex items-center gap-1">
+                        {tag}
+                        <button onClick={() => removeTag(tag)} className="hover:text-blue-900">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newTag}
+                      onChange={(e) => setNewTag(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                      className="flex-1 neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
+                      placeholder="Aggiungi tag..."
+                    />
+                    <NeumorphicButton onClick={addTag}>
+                      <Tag className="w-4 h-4" />
+                    </NeumorphicButton>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <NeumorphicButton onClick={resetForm} className="flex-1">Annulla</NeumorphicButton>
+                  <NeumorphicButton 
+                    onClick={handleSave} 
+                    variant="primary" 
+                    className="flex-1 flex items-center justify-center gap-2"
+                    disabled={!formData.titolo || !formData.contenuto}
+                  >
+                    <Save className="w-4 h-4" />
+                    Salva
+                  </NeumorphicButton>
+                </div>
+              </NeumorphicCard>
+            )}
+
+            {/* Knowledge List */}
+            <div className="space-y-4">
+              {CATEGORIE.filter(cat => groupedByCategory[cat].length > 0 || !filterCategoria).map(categoria => {
+                const items = groupedByCategory[categoria];
+                if (items.length === 0 && filterCategoria) return null;
+                
+                return (
+                  <NeumorphicCard key={categoria} className="p-4">
+                    <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
+                      <Book className="w-4 h-4 text-blue-600" />
+                      {categoria}
+                      <span className="text-sm font-normal text-slate-500">({items.length})</span>
+                    </h3>
+                    {items.length === 0 ? (
+                      <p className="text-slate-500 text-sm italic">Nessuna informazione in questa categoria</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {items.map(item => (
+                          <div 
+                            key={item.id} 
+                            className={`neumorphic-pressed p-4 rounded-xl ${!item.attivo ? 'opacity-50' : ''}`}
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1">
+                                <h4 className="font-medium text-slate-800">{item.titolo}</h4>
+                                <p className="text-sm text-slate-600 mt-1 line-clamp-2">{item.contenuto}</p>
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                  {(item.tags || []).map(tag => (
+                                    <span key={tag} className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs">
+                                      {tag}
+                                    </span>
+                                  ))}
+                                  {item.store_specifico && (
+                                    <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-xs flex items-center gap-1">
+                                      <Store className="w-3 h-3" />
+                                      {getStoreName(item.store_specifico)}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={() => handleEdit(item)}
+                                  className="nav-button p-2 rounded-lg hover:bg-blue-50"
+                                >
+                                  <Edit className="w-4 h-4 text-blue-600" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (confirm('Eliminare questa informazione?')) {
+                                      deleteMutation.mutate(item.id);
+                                    }
+                                  }}
+                                  className="nav-button p-2 rounded-lg hover:bg-red-50"
+                                >
+                                  <Trash2 className="w-4 h-4 text-red-600" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </NeumorphicCard>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {/* Conversazioni Tab */}
+        {activeTab === 'conversazioni' && (
+          <NeumorphicCard className="p-6">
+            <h2 className="text-xl font-bold text-slate-800 mb-4">Conversazioni Dipendenti</h2>
+            
+            {conversations.length === 0 ? (
+              <p className="text-slate-500 text-center py-8">Nessuna conversazione trovata</p>
+            ) : (
+              <div className="space-y-3">
+                {conversations.map(conv => (
+                  <div key={conv.id} className="neumorphic-pressed p-4 rounded-xl">
+                    <div 
+                      className="flex items-center justify-between cursor-pointer"
+                      onClick={() => setExpandedConversation(expandedConversation === conv.id ? null : conv.id)}
+                    >
+                      <div className="flex items-center gap-3">
+                        {expandedConversation === conv.id ? (
+                          <ChevronDown className="w-4 h-4 text-slate-500" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4 text-slate-500" />
+                        )}
+                        <div>
+                          <p className="font-medium text-slate-800">
+                            {conv.metadata?.name || 'Conversazione'}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {moment(conv.created_date).format('DD/MM/YYYY HH:mm')} • 
+                            {conv.messages?.length || 0} messaggi
+                          </p>
+                        </div>
+                      </div>
+                      <Eye className="w-4 h-4 text-slate-400" />
+                    </div>
+                    
+                    {expandedConversation === conv.id && conv.messages && (
+                      <div className="mt-4 space-y-2 max-h-96 overflow-y-auto">
+                        {conv.messages.map((msg, idx) => (
+                          <div 
+                            key={idx}
+                            className={`p-3 rounded-lg ${
+                              msg.role === 'user' 
+                                ? 'bg-blue-50 ml-8' 
+                                : 'bg-slate-50 mr-8'
+                            }`}
+                          >
+                            <p className="text-xs font-medium text-slate-500 mb-1">
+                              {msg.role === 'user' ? 'Dipendente' : 'Assistente'}
+                            </p>
+                            <p className="text-sm text-slate-700">{msg.content}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </NeumorphicCard>
+        )}
+
+        {/* Verifica Coerenza Tab */}
+        {activeTab === 'verifica' && (
+          <NeumorphicCard className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">Verifica Coerenza Knowledge Base</h2>
+                <p className="text-sm text-slate-500 mt-1">
+                  Analizza la knowledge base per trovare incongruenze o contraddizioni
+                </p>
+              </div>
+              <NeumorphicButton
+                onClick={checkInconsistencies}
+                variant="primary"
+                disabled={checkingInconsistencies || knowledge.length === 0}
+                className="flex items-center gap-2"
+              >
+                {checkingInconsistencies ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <AlertTriangle className="w-4 h-4" />
+                )}
+                Verifica
+              </NeumorphicButton>
+            </div>
+
+            {inconsistencies && (
+              <div className="space-y-4">
+                <div className={`p-4 rounded-xl flex items-center gap-3 ${
+                  inconsistencies.has_issues 
+                    ? 'bg-red-50 border border-red-200' 
+                    : 'bg-green-50 border border-green-200'
+                }`}>
+                  {inconsistencies.has_issues ? (
+                    <XCircle className="w-6 h-6 text-red-600" />
+                  ) : (
+                    <CheckCircle className="w-6 h-6 text-green-600" />
+                  )}
+                  <div>
+                    <p className={`font-medium ${inconsistencies.has_issues ? 'text-red-800' : 'text-green-800'}`}>
+                      {inconsistencies.has_issues ? 'Problemi Rilevati' : 'Nessun Problema'}
+                    </p>
+                    <p className={`text-sm ${inconsistencies.has_issues ? 'text-red-600' : 'text-green-600'}`}>
+                      {inconsistencies.summary}
+                    </p>
+                  </div>
+                </div>
+
+                {inconsistencies.has_issues && inconsistencies.issues?.length > 0 && (
+                  <div className="space-y-3">
+                    {inconsistencies.issues.map((issue, idx) => (
+                      <div key={idx} className="neumorphic-pressed p-4 rounded-xl">
+                        <div className="flex items-start gap-3">
+                          <AlertTriangle className="w-5 h-5 text-orange-500 mt-0.5" />
+                          <div>
+                            <p className="font-medium text-slate-800">{issue.tipo}</p>
+                            <p className="text-sm text-slate-600 mt-1">{issue.descrizione}</p>
+                            {issue.elementi_coinvolti?.length > 0 && (
+                              <div className="mt-2 flex flex-wrap gap-1">
+                                {issue.elementi_coinvolti.map((el, i) => (
+                                  <span key={i} className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-xs">
+                                    {el}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!inconsistencies && !checkingInconsistencies && (
+              <div className="text-center py-12 text-slate-500">
+                <Bot className="w-16 h-16 mx-auto mb-4 text-slate-300" />
+                <p>Clicca su "Verifica" per analizzare la knowledge base</p>
+              </div>
+            )}
+          </NeumorphicCard>
+        )}
+      </div>
+    </ProtectedPage>
+  );
+}
