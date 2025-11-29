@@ -47,6 +47,61 @@ export default function StoricoImpasti() {
     totaleImpasto: filteredLogs.reduce((sum, l) => sum + (l.impasto_suggerito || 0), 0)
   };
 
+  // Trend data - grouped by date
+  const trendData = useMemo(() => {
+    const grouped = {};
+    filteredLogs.forEach(log => {
+      const date = moment(log.data_calcolo).format('DD/MM');
+      if (!grouped[date]) {
+        grouped[date] = { barelle: [], impasto: [] };
+      }
+      grouped[date].barelle.push(log.barelle_in_frigo || 0);
+      grouped[date].impasto.push(log.impasto_suggerito || 0);
+    });
+
+    return Object.entries(grouped)
+      .map(([date, values]) => ({
+        data: date,
+        mediaBarelle: values.barelle.length > 0 
+          ? parseFloat((values.barelle.reduce((a, b) => a + b, 0) / values.barelle.length).toFixed(1))
+          : 0,
+        mediaImpasto: values.impasto.length > 0 
+          ? Math.round(values.impasto.reduce((a, b) => a + b, 0) / values.impasto.length)
+          : 0
+      }))
+      .sort((a, b) => {
+        const [dayA, monthA] = a.data.split('/').map(Number);
+        const [dayB, monthB] = b.data.split('/').map(Number);
+        if (monthA !== monthB) return monthA - monthB;
+        return dayA - dayB;
+      });
+  }, [filteredLogs]);
+
+  // Data by day of week
+  const dayOfWeekData = useMemo(() => {
+    const giorni = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+    const grouped = {};
+    giorni.forEach((g, idx) => {
+      grouped[idx] = { barelle: [], impasto: [] };
+    });
+
+    filteredLogs.forEach(log => {
+      const dayIndex = moment(log.data_calcolo).day();
+      grouped[dayIndex].barelle.push(log.barelle_in_frigo || 0);
+      grouped[dayIndex].impasto.push(log.impasto_suggerito || 0);
+    });
+
+    return giorni.map((giorno, idx) => ({
+      giorno: giorno.slice(0, 3),
+      mediaBarelle: grouped[idx].barelle.length > 0
+        ? parseFloat((grouped[idx].barelle.reduce((a, b) => a + b, 0) / grouped[idx].barelle.length).toFixed(1))
+        : 0,
+      mediaImpasto: grouped[idx].impasto.length > 0
+        ? Math.round(grouped[idx].impasto.reduce((a, b) => a + b, 0) / grouped[idx].impasto.length)
+        : 0
+    }));
+  }, [filteredLogs]);
+
   return (
     <ProtectedPage pageName="StoricoImpasti">
       <div className="max-w-7xl mx-auto space-y-6">
