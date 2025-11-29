@@ -7,11 +7,11 @@ import ProtectedPage from "../components/ProtectedPage";
 import { 
   Bot, Plus, Edit, Trash2, Save, X, Search, AlertTriangle, 
   MessageSquare, Book, Tag, Store, CheckCircle, XCircle, Loader2,
-  ChevronDown, ChevronRight, Eye
+  ChevronDown, ChevronRight, Eye, Folder
 } from "lucide-react";
 import moment from "moment";
 
-const CATEGORIE = [
+const DEFAULT_CATEGORIE = [
   "Procedure Operative",
   "Ricette e Preparazioni", 
   "Pulizia e Igiene",
@@ -33,6 +33,9 @@ export default function GestioneAssistente() {
   const [checkingInconsistencies, setCheckingInconsistencies] = useState(false);
   const [inconsistencies, setInconsistencies] = useState(null);
   const [expandedConversation, setExpandedConversation] = useState(null);
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [categoryForm, setCategoryForm] = useState({ nome: '', ordine: 0 });
   
   const [formData, setFormData] = useState({
     categoria: 'Procedure Operative',
@@ -57,11 +60,21 @@ export default function GestioneAssistente() {
     queryFn: () => base44.entities.Store.list(),
   });
 
+  const { data: categorieDB = [] } = useQuery({
+    queryKey: ['assistente-categorie'],
+    queryFn: () => base44.entities.AssistenteCategoria.list('ordine'),
+  });
+
   const { data: conversations = [] } = useQuery({
     queryKey: ['assistente-conversations'],
     queryFn: () => base44.agents.listConversations({ agent_name: 'assistente_dipendenti' }),
     enabled: activeTab === 'conversazioni'
   });
+
+  // Merge categorie dal DB con quelle di default
+  const CATEGORIE = categorieDB.length > 0 
+    ? categorieDB.filter(c => c.attivo !== false).map(c => c.nome)
+    : DEFAULT_CATEGORIE;
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.AssistenteKnowledge.create(data),
@@ -85,6 +98,57 @@ export default function GestioneAssistente() {
       queryClient.invalidateQueries({ queryKey: ['assistente-knowledge'] });
     },
   });
+
+  // Categorie mutations
+  const createCategoryMutation = useMutation({
+    mutationFn: (data) => base44.entities.AssistenteCategoria.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assistente-categorie'] });
+      resetCategoryForm();
+    },
+  });
+
+  const updateCategoryMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.AssistenteCategoria.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assistente-categorie'] });
+      resetCategoryForm();
+    },
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: (id) => base44.entities.AssistenteCategoria.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assistente-categorie'] });
+    },
+  });
+
+  const resetCategoryForm = () => {
+    setCategoryForm({ nome: '', ordine: 0 });
+    setEditingCategory(null);
+    setShowCategoryForm(false);
+  };
+
+  const handleSaveCategory = () => {
+    if (editingCategory) {
+      updateCategoryMutation.mutate({ id: editingCategory.id, data: categoryForm });
+    } else {
+      createCategoryMutation.mutate({ ...categoryForm, attivo: true });
+    }
+  };
+
+  const handleEditCategory = (cat) => {
+    setEditingCategory(cat);
+    setCategoryForm({ nome: cat.nome, ordine: cat.ordine || 0 });
+    setShowCategoryForm(true);
+  };
+
+  const initDefaultCategories = async () => {
+    for (const cat of DEFAULT_CATEGORIE) {
+      await base44.entities.AssistenteCategoria.create({ nome: cat, ordine: DEFAULT_CATEGORIE.indexOf(cat), attivo: true });
+    }
+    queryClient.invalidateQueries({ queryKey: ['assistente-categorie'] });
+  };
 
   const resetForm = () => {
     setFormData({
@@ -213,6 +277,17 @@ export default function GestioneAssistente() {
           >
             <Book className="w-4 h-4" />
             Knowledge Base ({knowledge.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('categorie')}
+            className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
+              activeTab === 'categorie'
+                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                : 'neumorphic-flat text-slate-700'
+            }`}
+          >
+            <Folder className="w-4 h-4" />
+            Categorie ({CATEGORIE.length})
           </button>
           <button
             onClick={() => setActiveTab('conversazioni')}
@@ -473,6 +548,113 @@ export default function GestioneAssistente() {
               })}
             </div>
           </>
+        )}
+
+        {/* Categorie Tab */}
+        {activeTab === 'categorie' && (
+          <NeumorphicCard className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-slate-800">Gestione Categorie</h2>
+              <div className="flex gap-2">
+                {categorieDB.length === 0 && (
+                  <NeumorphicButton onClick={initDefaultCategories} className="flex items-center gap-2">
+                    Inizializza Default
+                  </NeumorphicButton>
+                )}
+                <NeumorphicButton
+                  onClick={() => setShowCategoryForm(true)}
+                  variant="primary"
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Nuova Categoria
+                </NeumorphicButton>
+              </div>
+            </div>
+
+            {showCategoryForm && (
+              <div className="neumorphic-pressed p-4 rounded-xl mb-4">
+                <h3 className="font-bold text-slate-700 mb-3">
+                  {editingCategory ? 'Modifica Categoria' : 'Nuova Categoria'}
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Nome</label>
+                    <input
+                      type="text"
+                      value={categoryForm.nome}
+                      onChange={(e) => setCategoryForm({ ...categoryForm, nome: e.target.value })}
+                      className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
+                      placeholder="Nome categoria"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Ordine</label>
+                    <input
+                      type="number"
+                      value={categoryForm.ordine}
+                      onChange={(e) => setCategoryForm({ ...categoryForm, ordine: parseInt(e.target.value) || 0 })}
+                      className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <NeumorphicButton onClick={resetCategoryForm}>Annulla</NeumorphicButton>
+                  <NeumorphicButton 
+                    onClick={handleSaveCategory} 
+                    variant="primary"
+                    disabled={!categoryForm.nome}
+                  >
+                    <Save className="w-4 h-4 inline mr-1" /> Salva
+                  </NeumorphicButton>
+                </div>
+              </div>
+            )}
+
+            {categorieDB.length === 0 ? (
+              <p className="text-slate-500 text-center py-8">
+                Nessuna categoria configurata. Clicca "Inizializza Default" per creare le categorie predefinite.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {categorieDB.map(cat => (
+                  <div 
+                    key={cat.id} 
+                    className={`neumorphic-pressed p-4 rounded-xl flex items-center justify-between ${cat.attivo === false ? 'opacity-50' : ''}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Folder className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <p className="font-medium text-slate-800">{cat.nome}</p>
+                        <p className="text-xs text-slate-500">
+                          Ordine: {cat.ordine || 0} • 
+                          {knowledge.filter(k => k.categoria === cat.nome).length} elementi
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => handleEditCategory(cat)}
+                        className="nav-button p-2 rounded-lg hover:bg-blue-50"
+                      >
+                        <Edit className="w-4 h-4 text-blue-600" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm('Eliminare questa categoria? Le informazioni associate rimarranno ma senza categoria.')) {
+                            deleteCategoryMutation.mutate(cat.id);
+                          }
+                        }}
+                        className="nav-button p-2 rounded-lg hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </NeumorphicCard>
         )}
 
         {/* Conversazioni Tab */}
