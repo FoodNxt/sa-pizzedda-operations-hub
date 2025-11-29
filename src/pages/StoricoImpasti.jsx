@@ -181,9 +181,178 @@ export default function StoricoImpasti() {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
             Storico Impasti
           </h1>
-          <p className="text-slate-500 mt-1">Visualizza lo storico dei calcoli impasto</p>
+          <p className="text-slate-500 mt-1">Visualizza lo storico dei calcoli impasto e gestisci la ricetta</p>
         </div>
 
+        {/* Tabs */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setActiveTab('storico')}
+            className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
+              activeTab === 'storico'
+                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                : 'neumorphic-flat text-slate-700'
+            }`}
+          >
+            <BarChart3 className="w-4 h-4" />
+            Storico
+          </button>
+          <button
+            onClick={() => setActiveTab('ricetta')}
+            className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
+              activeTab === 'ricetta'
+                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                : 'neumorphic-flat text-slate-700'
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            Ricetta Impasto
+          </button>
+        </div>
+
+        {/* Tab Ricetta */}
+        {activeTab === 'ricetta' && (
+          <NeumorphicCard className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">Ricetta per 1 Pallina</h2>
+                <p className="text-sm text-slate-500 mt-1">Definisci gli ingredienti e le quantità per ogni pallina di impasto</p>
+              </div>
+              <NeumorphicButton
+                onClick={() => setShowIngredientForm(true)}
+                variant="primary"
+                className="flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Aggiungi Ingrediente
+              </NeumorphicButton>
+            </div>
+
+            {showIngredientForm && (
+              <div className="neumorphic-pressed p-4 rounded-xl mb-4">
+                <h3 className="font-bold text-slate-700 mb-3">
+                  {editingIngredient ? 'Modifica Ingrediente' : 'Nuovo Ingrediente'}
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Nome Ingrediente</label>
+                    <input
+                      type="text"
+                      value={ingredientForm.nome_ingrediente}
+                      onChange={(e) => setIngredientForm({ ...ingredientForm, nome_ingrediente: e.target.value })}
+                      className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
+                      placeholder="es. Farina 00"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Quantità per Pallina</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={ingredientForm.quantita_per_pallina}
+                      onChange={(e) => setIngredientForm({ ...ingredientForm, quantita_per_pallina: e.target.value })}
+                      className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
+                      placeholder="es. 150"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Unità di Misura</label>
+                    <select
+                      value={ingredientForm.unita_misura}
+                      onChange={(e) => setIngredientForm({ ...ingredientForm, unita_misura: e.target.value })}
+                      className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
+                    >
+                      <option value="g">grammi (g)</option>
+                      <option value="kg">kg</option>
+                      <option value="ml">ml</option>
+                      <option value="litri">litri</option>
+                      <option value="unità">unità</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Ordine</label>
+                    <input
+                      type="number"
+                      value={ingredientForm.ordine}
+                      onChange={(e) => setIngredientForm({ ...ingredientForm, ordine: e.target.value })}
+                      className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-4">
+                  <NeumorphicButton onClick={resetIngredientForm}>Annulla</NeumorphicButton>
+                  <NeumorphicButton 
+                    onClick={handleSaveIngredient} 
+                    variant="primary"
+                    disabled={!ingredientForm.nome_ingrediente || !ingredientForm.quantita_per_pallina}
+                  >
+                    <Save className="w-4 h-4 inline mr-1" /> Salva
+                  </NeumorphicButton>
+                </div>
+              </div>
+            )}
+
+            {sortedIngredienti.length === 0 ? (
+              <div className="text-center py-12">
+                <ChefHat className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <p className="text-slate-500">Nessun ingrediente configurato</p>
+                <p className="text-sm text-slate-400 mt-1">Clicca "Aggiungi Ingrediente" per iniziare</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-medium text-slate-500 border-b border-slate-200">
+                  <div className="col-span-1">#</div>
+                  <div className="col-span-5">Ingrediente</div>
+                  <div className="col-span-3 text-right">Quantità</div>
+                  <div className="col-span-3 text-right">Azioni</div>
+                </div>
+                {sortedIngredienti.map((ing, idx) => (
+                  <div key={ing.id} className="neumorphic-pressed p-3 rounded-xl grid grid-cols-12 gap-2 items-center">
+                    <div className="col-span-1 text-slate-400 text-sm">{idx + 1}</div>
+                    <div className="col-span-5">
+                      <p className="font-medium text-slate-800">{ing.nome_ingrediente}</p>
+                    </div>
+                    <div className="col-span-3 text-right">
+                      <span className="text-lg font-bold text-blue-600">{ing.quantita_per_pallina}</span>
+                      <span className="text-sm text-slate-500 ml-1">{ing.unita_misura}</span>
+                    </div>
+                    <div className="col-span-3 flex gap-1 justify-end">
+                      <button
+                        onClick={() => handleEditIngredient(ing)}
+                        className="nav-button p-2 rounded-lg hover:bg-blue-50"
+                      >
+                        <Edit className="w-4 h-4 text-blue-600" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm('Eliminare questo ingrediente?')) {
+                            deleteIngredientMutation.mutate(ing.id);
+                          }
+                        }}
+                        className="nav-button p-2 rounded-lg hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-6 p-4 bg-blue-50 rounded-xl">
+              <p className="text-sm text-blue-800">
+                <strong>ℹ️ Come funziona:</strong> Quando un pizzaiolo compila il form Impasto e conferma il calcolo, 
+                il sistema mostrerà automaticamente le quantità totali di ogni ingrediente da utilizzare, 
+                calcolate in base al numero di palline da preparare.
+              </p>
+            </div>
+          </NeumorphicCard>
+        )}
+
+        {/* Tab Storico */}
+        {activeTab === 'storico' && (
+          <>
         {/* Filtri */}
         <NeumorphicCard className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
