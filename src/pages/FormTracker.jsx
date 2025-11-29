@@ -316,6 +316,51 @@ export default function FormTracker() {
         });
       });
 
+      // Group shifts by role (employee_group_name) to determine morning/evening
+      const shiftsByRole = {};
+      storeShifts.forEach(shift => {
+        const role = shift.employee_group_name?.trim() || 'Unknown';
+        if (!shiftsByRole[role]) {
+          shiftsByRole[role] = [];
+        }
+        shiftsByRole[role].push(shift);
+      });
+      
+      // Sort each role's shifts by start time and determine which are morning vs evening
+      Object.keys(shiftsByRole).forEach(role => {
+        shiftsByRole[role].sort((a, b) => {
+          const aStart = new Date(a.scheduled_start);
+          const bStart = new Date(b.scheduled_start);
+          return aStart - bStart;
+        });
+      });
+
+      // Helper function to determine if a shift is morning or evening based on role comparison
+      const getShiftSequence = (shift) => {
+        const role = shift.employee_group_name?.trim() || 'Unknown';
+        const roleShifts = shiftsByRole[role] || [];
+        
+        if (roleShifts.length <= 1) {
+          // Only one shift for this role - it's the "first" (morning)
+          return 'first';
+        }
+        
+        // Find distinct time slots for this role
+        const uniqueStartTimes = [...new Set(roleShifts.map(s => new Date(s.scheduled_start).getTime()))].sort((a, b) => a - b);
+        
+        if (uniqueStartTimes.length <= 1) {
+          // All shifts start at the same time - all are "first"
+          return 'first';
+        }
+        
+        // Get the start time of this shift
+        const shiftStartTime = new Date(shift.scheduled_start).getTime();
+        
+        // If this shift starts at the earliest time, it's morning (first)
+        // Otherwise it's evening (second)
+        return shiftStartTime === uniqueStartTimes[0] ? 'first' : 'second';
+      };
+
       // For each config
       activeConfigs.forEach(config => {
         const configRoles = config.assigned_roles || [];
