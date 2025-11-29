@@ -1,15 +1,26 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
+import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
-import { ChefHat, Calendar, Store, User, TrendingUp, BarChart3 } from "lucide-react";
+import { ChefHat, Calendar, Store, User, TrendingUp, BarChart3, BookOpen, Plus, Edit, Save, Trash2 } from "lucide-react";
 import moment from "moment";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 export default function StoricoImpasti() {
+  const [activeTab, setActiveTab] = useState('storico');
   const [selectedStore, setSelectedStore] = useState('');
   const [dateRange, setDateRange] = useState('week');
+  const [showIngredientForm, setShowIngredientForm] = useState(false);
+  const [editingIngredient, setEditingIngredient] = useState(null);
+  const [ingredientForm, setIngredientForm] = useState({
+    nome_ingrediente: '',
+    quantita_per_pallina: '',
+    unita_misura: 'g',
+    ordine: 0
+  });
+  const queryClient = useQueryClient();
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
