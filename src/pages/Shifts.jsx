@@ -109,6 +109,7 @@ export default function Shifts() {
     
     stores.forEach(store => {
       const storeMissingDays = [];
+      const storeClosedDays = [];
       const currentDate = new Date(startDate);
       
       while (currentDate <= endDate) {
@@ -120,17 +121,22 @@ export default function Shifts() {
         
         const isClosed = closedDays[`${store.id}-${dateStr}`];
         
-        if (!hasShift && !isClosed) {
-          storeMissingDays.push(dateStr);
+        if (!hasShift) {
+          if (isClosed) {
+            storeClosedDays.push(dateStr);
+          } else {
+            storeMissingDays.push(dateStr);
+          }
         }
         
         currentDate.setDate(currentDate.getDate() + 1);
       }
       
-      if (storeMissingDays.length > 0) {
+      if (storeMissingDays.length > 0 || storeClosedDays.length > 0) {
         missingByStore[store.id] = {
           storeName: store.name,
-          days: storeMissingDays
+          days: storeMissingDays,
+          closedDays: storeClosedDays
         };
       }
     });
