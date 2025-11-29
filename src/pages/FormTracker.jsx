@@ -329,6 +329,39 @@ export default function FormTracker() {
           return; // Skip this config for this day
         }
 
+        // Check if config applies to this store
+        const configStores = config.assigned_stores || [];
+        const storeEntity = stores.find(s => s.name === storeName);
+        if (configStores.length > 0 && storeEntity && !configStores.includes(storeEntity.id)) {
+          return; // Skip this config for this store
+        }
+
+        // If no shifts for this store, still show expected forms for each role/sequence combo
+        if (Object.keys(shiftsByEmployee).length === 0) {
+          // Show expected form entries without specific employee
+          shiftSequences.forEach(shiftSequence => {
+            configRoles.forEach(role => {
+              totalExpected++;
+              
+              const formEntry = {
+                config,
+                employeeName: `(${role} - nessun turno)`,
+                user: null,
+                shift: null,
+                shiftTiming,
+                shiftSequence,
+                completed: false,
+                completionData: null,
+                noShift: true
+              };
+
+              byStore[storeName].forms.push(formEntry);
+              byStore[storeName].missing++;
+            });
+          });
+          return;
+        }
+
         // Find employees who should complete this form
         Object.entries(shiftsByEmployee).forEach(([employeeName, employeeShifts]) => {
           // Get the user to check their role
