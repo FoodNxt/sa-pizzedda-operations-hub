@@ -348,12 +348,13 @@ export default function FormTracker() {
         if (Object.keys(shiftsByEmployee).length === 0) {
           // Show expected form entries without specific employee
           shiftSequences.forEach(shiftSequence => {
-            configRoles.forEach(role => {
+            if (configRoles.length === 0) {
+              // No specific role required - show generic entry
               totalExpected++;
               
               const formEntry = {
                 config,
-                employeeName: `(${role} - nessun turno)`,
+                employeeName: `(Nessun turno assegnato)`,
                 user: null,
                 shift: null,
                 shiftTiming,
@@ -365,7 +366,26 @@ export default function FormTracker() {
 
               byStore[storeName].forms.push(formEntry);
               byStore[storeName].missing++;
-            });
+            } else {
+              configRoles.forEach(role => {
+                totalExpected++;
+                
+                const formEntry = {
+                  config,
+                  employeeName: `(${role} - nessun turno)`,
+                  user: null,
+                  shift: null,
+                  shiftTiming,
+                  shiftSequence,
+                  completed: false,
+                  completionData: null,
+                  noShift: true
+                };
+
+                byStore[storeName].forms.push(formEntry);
+                byStore[storeName].missing++;
+              });
+            }
           });
           return;
         }
@@ -412,6 +432,11 @@ export default function FormTracker() {
                 const startHour = new Date(s.scheduled_start).getHours();
                 return startHour >= 15;
               });
+            }
+
+            // If no matching shift for this sequence, use first available shift
+            if (!targetShift && employeeShifts.length > 0) {
+              targetShift = employeeShifts[0];
             }
 
             if (!targetShift) return;
