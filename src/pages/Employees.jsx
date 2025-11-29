@@ -280,25 +280,25 @@ export default function Employees() {
       // Calculate base score starting from 100
       let performanceScore = 100;
       
-      // Deduct points for negative metrics
-      if (wrongOrdersCount > 0) {
-        performanceScore -= (wrongOrdersCount * w_ordini);
-      }
-      if (numeroRitardi > 0) {
-        performanceScore -= (numeroRitardi * w_ritardi);
-      }
-      if (numeroTimbratureMancate > 0) {
-        performanceScore -= (numeroTimbratureMancate * w_timbrature);
+      // Deduct points for negative metrics (these ALWAYS reduce score)
+      performanceScore -= (wrongOrdersCount * w_ordini);
+      performanceScore -= (numeroRitardi * w_ritardi);
+      performanceScore -= (numeroTimbratureMancate * w_timbrature);
+      
+      // Reduce score if average review rating is below 5 (scale: 5=0 penalty, 4=-5, 3=-10, 2=-15, 1=-20)
+      if (googleReviews.length > 0 && avgGoogleRating < 5) {
+        const reviewPenalty = (5 - avgGoogleRating) * w_punteggio_recensioni;
+        performanceScore -= reviewPenalty;
       }
       
-      // Add points for positive metrics
-      if (assignedReviews.length > 0) {
-        performanceScore += (assignedReviews.length * w_num_recensioni);
-      }
-      if (avgGoogleRating > 0) {
-        performanceScore += ((avgGoogleRating - 3) * w_punteggio_recensioni * 5);
+      // Small bonus for having reviews (but max +5)
+      if (googleReviews.length > 0) {
+        const reviewBonus = Math.min(googleReviews.length * w_num_recensioni, 5);
+        performanceScore += reviewBonus;
       }
       
+      // Ensure score stays between 0 and 100
+      // Score of 100 is ONLY possible if: 0 wrong orders, 0 delays, 0 missing clockins, and avg review = 5
       performanceScore = Math.max(0, Math.min(100, performanceScore));
 
       const performanceLevel = performanceScore >= 80 ? 'excellent' :
@@ -835,14 +835,18 @@ export default function Employees() {
               </div>
 
               <div className="neumorphic-flat p-4 rounded-xl mb-4 bg-blue-50">
-                <h4 class="text-sm font-bold text-blue-800 mb-2">Dettaglio Calcolo Punteggio</h4>
-                <div class="text-xs text-blue-800 space-y-1">
+                <h4 className="text-sm font-bold text-blue-800 mb-2">Dettaglio Calcolo Punteggio</h4>
+                <div className="text-xs text-blue-800 space-y-1">
                   <p><strong>Base:</strong> 100 punti</p>
                   <p className="text-red-600"><strong>- Ordini Sbagliati:</strong> {selectedEmployee.wrongOrders} × {selectedEmployee.weights.w_ordini} = -{(selectedEmployee.wrongOrders * selectedEmployee.weights.w_ordini).toFixed(1)}</p>
                   <p className="text-red-600"><strong>- Ritardi:</strong> {selectedEmployee.numeroRitardi} × {selectedEmployee.weights.w_ritardi} = -{(selectedEmployee.numeroRitardi * selectedEmployee.weights.w_ritardi).toFixed(1)}</p>
                   <p className="text-red-600"><strong>- Timbrature Mancate:</strong> {selectedEmployee.numeroTimbratureMancate} × {selectedEmployee.weights.w_timbrature} = -{(selectedEmployee.numeroTimbratureMancate * selectedEmployee.weights.w_timbrature).toFixed(1)}</p>
-                  <p className="text-green-600"><strong>+ N. Recensioni:</strong> {selectedEmployee.googleReviewCount} × {selectedEmployee.weights.w_num_recensioni} = +{(selectedEmployee.googleReviewCount * selectedEmployee.weights.w_num_recensioni).toFixed(1)}</p>
-                  <p className="text-green-600"><strong>+ Media Recensioni:</strong> ({selectedEmployee.avgGoogleRating.toFixed(1)} - 3) × {selectedEmployee.weights.w_punteggio_recensioni} × 5 = +{((selectedEmployee.avgGoogleRating - 3) * selectedEmployee.weights.w_punteggio_recensioni * 5).toFixed(1)}</p>
+                  {selectedEmployee.googleReviewCount > 0 && selectedEmployee.avgGoogleRating < 5 && (
+                    <p className="text-red-600"><strong>- Media Recensioni &lt; 5:</strong> (5 - {selectedEmployee.avgGoogleRating.toFixed(1)}) × {selectedEmployee.weights.w_punteggio_recensioni} = -{((5 - selectedEmployee.avgGoogleRating) * selectedEmployee.weights.w_punteggio_recensioni).toFixed(1)}</p>
+                  )}
+                  {selectedEmployee.googleReviewCount > 0 && (
+                    <p className="text-green-600"><strong>+ Bonus Recensioni:</strong> min({selectedEmployee.googleReviewCount} × {selectedEmployee.weights.w_num_recensioni}, 5) = +{Math.min(selectedEmployee.googleReviewCount * selectedEmployee.weights.w_num_recensioni, 5).toFixed(1)}</p>
+                  )}
                   <p className="font-bold mt-2 pt-2 border-t border-blue-200"><strong>Punteggio Finale:</strong> {selectedEmployee.performanceScore}</p>
                 </div>
               </div>
