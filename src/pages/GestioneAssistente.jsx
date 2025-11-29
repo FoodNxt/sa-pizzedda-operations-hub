@@ -224,18 +224,14 @@ export default function GestioneAssistente() {
     if (!formData.notion_url) return;
     setLoadingNotion(true);
     try {
-      const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `Estrai il contenuto testuale completo dalla seguente pagina Notion pubblica: ${formData.notion_url}. Restituisci solo il testo del contenuto, formattato in modo leggibile.`,
-        add_context_from_internet: true,
-        response_json_schema: {
-          type: "object",
-          properties: {
-            contenuto: { type: "string", description: "Il contenuto estratto dalla pagina Notion" },
-            titolo: { type: "string", description: "Il titolo della pagina se disponibile" }
-          }
-        }
+      const response = await base44.functions.invoke('fetchNotionContent', { 
+        notion_url: formData.notion_url 
       });
-      if (result.contenuto) {
+      const result = response.data;
+      
+      if (result.error) {
+        alert(result.error);
+      } else if (result.contenuto) {
         setFormData(prev => ({
           ...prev,
           contenuto: result.contenuto,
@@ -244,7 +240,7 @@ export default function GestioneAssistente() {
       }
     } catch (error) {
       console.error('Errore caricamento Notion:', error);
-      alert('Errore nel caricamento del contenuto da Notion');
+      alert('Errore nel caricamento del contenuto da Notion. Assicurati che la pagina sia condivisa con l\'integrazione.');
     }
     setLoadingNotion(false);
   };
