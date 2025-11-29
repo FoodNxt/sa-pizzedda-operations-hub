@@ -462,6 +462,32 @@ export default function GestioneAssistente() {
                 </div>
 
                 <div className="mb-4">
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Link Notion (opzionale)</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      value={formData.notion_url}
+                      onChange={(e) => setFormData({ ...formData, notion_url: e.target.value })}
+                      className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      placeholder="https://notion.so/pagina-pubblica..."
+                    />
+                    <NeumorphicButton
+                      onClick={fetchNotionContent}
+                      disabled={!formData.notion_url || loadingNotion}
+                      className="flex items-center gap-2"
+                    >
+                      {loadingNotion ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4" />
+                      )}
+                      Importa
+                    </NeumorphicButton>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">Inserisci un link pubblico di Notion per importare automaticamente il contenuto</p>
+                </div>
+
+                <div className="mb-4">
                   <label className="text-sm font-medium text-slate-700 mb-1 block">Contenuto *</label>
                   <textarea
                     value={formData.contenuto}
