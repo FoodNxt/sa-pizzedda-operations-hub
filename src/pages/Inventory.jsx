@@ -13,7 +13,10 @@ import {
   ShoppingCart,
   History,
   Building2,
-  Truck
+  Truck,
+  Mail,
+  Loader2,
+  Send
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { format, subDays, parseISO } from 'date-fns';
