@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Calendar, Plus, Edit, Trash2, Save, X, Copy, Clock, Users, Store, FileText } from 'lucide-react';
+import { Calendar, Plus, Edit, Trash2, Save, X, Copy, Clock, Users, Store, FileText, GraduationCap, Sparkles } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
@@ -77,7 +77,9 @@ export default function StrutturaTurno() {
     attivita: '',
     colore: 'blue',
     richiede_form: false,
-    form_page: ''
+    form_page: '',
+    corso_id: '',
+    attrezzature_pulizia: []
   });
   const [editingSlotIndex, setEditingSlotIndex] = useState(null);
 
@@ -92,6 +94,23 @@ export default function StrutturaTurno() {
     queryKey: ['stores'],
     queryFn: () => base44.entities.Store.list(),
   });
+
+  const { data: corsi = [] } = useQuery({
+    queryKey: ['corsi'],
+    queryFn: () => base44.entities.Corso.list(),
+  });
+
+  const { data: domandePulizia = [] } = useQuery({
+    queryKey: ['domande-pulizia'],
+    queryFn: () => base44.entities.DomandaPulizia.filter({ attiva: true }),
+  });
+
+  // Get unique equipment names from cleaning questions
+  const attrezzatureDisponibili = [...new Set(
+    domandePulizia
+      .filter(d => d.tipo_controllo === 'foto' && d.attrezzatura)
+      .map(d => d.attrezzatura)
+  )].sort();
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.StrutturaTurno.create(data),
@@ -125,7 +144,7 @@ export default function StrutturaTurno() {
       slots: [],
       is_active: true
     });
-    setNewSlot({ ora_inizio: '09:00', ora_fine: '09:15', attivita: '', colore: 'blue', richiede_form: false, form_page: '' });
+    setNewSlot({ ora_inizio: '09:00', ora_fine: '09:15', attivita: '', colore: 'blue', richiede_form: false, form_page: '', corso_id: '', attrezzature_pulizia: [] });
     setEditingSchema(null);
     setShowForm(false);
   };
@@ -179,7 +198,7 @@ export default function StrutturaTurno() {
         slots: [...formData.slots, slotToAdd].sort((a, b) => a.ora_inizio.localeCompare(b.ora_inizio))
       });
     }
-    setNewSlot({ ora_inizio: newSlot.ora_fine, ora_fine: newSlot.ora_fine, attivita: '', colore: 'blue', richiede_form: false, form_page: '' });
+    setNewSlot({ ora_inizio: newSlot.ora_fine, ora_fine: newSlot.ora_fine, attivita: '', colore: 'blue', richiede_form: false, form_page: '', corso_id: '', attrezzature_pulizia: [] });
   };
 
   const startEditSlot = (index) => {
@@ -190,14 +209,29 @@ export default function StrutturaTurno() {
       attivita: slot.attivita,
       colore: slot.colore || 'blue',
       richiede_form: slot.richiede_form || false,
-      form_page: slot.form_page || ''
+      form_page: slot.form_page || '',
+      corso_id: slot.corso_id || '',
+      attrezzature_pulizia: slot.attrezzature_pulizia || []
     });
     setEditingSlotIndex(index);
   };
 
   const cancelEditSlot = () => {
     setEditingSlotIndex(null);
-    setNewSlot({ ora_inizio: '09:00', ora_fine: '09:15', attivita: '', colore: 'blue', richiede_form: false, form_page: '' });
+    setNewSlot({ ora_inizio: '09:00', ora_fine: '09:15', attivita: '', colore: 'blue', richiede_form: false, form_page: '', corso_id: '', attrezzature_pulizia: [] });
+  };
+
+  const getCorsoName = (corsoId) => {
+    return corsi.find(c => c.id === corsoId)?.titolo || '';
+  };
+
+  const toggleAttrezzatura = (attr) => {
+    const current = newSlot.attrezzature_pulizia || [];
+    if (current.includes(attr)) {
+      setNewSlot({ ...newSlot, attrezzature_pulizia: current.filter(a => a !== attr) });
+    } else {
+      setNewSlot({ ...newSlot, attrezzature_pulizia: [...current, attr] });
+    }
   };
 
   const getFormLabel = (formPage) => {
