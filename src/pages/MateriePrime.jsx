@@ -42,7 +42,7 @@ export default function MateriePrime() {
     quantita_ordine: '',
     prezzo_unitario: '',
     fornitore: '',
-    categoria: 'altro',
+    categoria: 'Ingredienti base',
     note: '',
     attivo: true,
     posizione: 'negozio',
@@ -109,7 +109,7 @@ export default function MateriePrime() {
       quantita_ordine: '',
       prezzo_unitario: '',
       fornitore: '',
-      categoria: 'altro',
+      categoria: 'Ingredienti base',
       note: '',
       attivo: true,
       posizione: 'negozio',
@@ -246,16 +246,17 @@ export default function MateriePrime() {
     p.categoria?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const categoriaLabels = {
-    ingredienti: 'Ingredienti Base',
-    condimenti: 'Condimenti',
-    verdure: 'Verdure e Salse',
-    latticini: 'Latticini',
-    dolci: 'Dolci',
-    bevande: 'Bevande',
-    pulizia: 'Pulizia',
-    altro: 'Altro'
-  };
+  const CATEGORIE = [
+    'Ingredienti base',
+    'Condimenti',
+    'Ortofrutta',
+    'Bevande',
+    'Consumabili',
+    'Pulizia',
+    'Packaging',
+    'Dolci',
+    'Angolo di Sardegna'
+  ];
 
   const productsByCategory = filteredProducts.reduce((acc, product) => {
     const cat = product.categoria || 'altro';
@@ -429,14 +430,9 @@ export default function MateriePrime() {
                           className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
                           required
                         >
-                          <option value="ingredienti">Ingredienti</option>
-                          <option value="condimenti">Condimenti</option>
-                          <option value="verdure">Verdure</option>
-                          <option value="latticini">Latticini</option>
-                          <option value="dolci">Dolci</option>
-                          <option value="bevande">Bevande</option>
-                          <option value="pulizia">Pulizia</option>
-                          <option value="altro">Altro</option>
+                          {CATEGORIE.map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                          ))}
                         </select>
                       </div>
                     </div>
@@ -907,7 +903,7 @@ export default function MateriePrime() {
           Object.entries(productsByCategory).map(([categoria, categoryProducts]) => (
             <NeumorphicCard key={categoria} className="p-4 lg:p-6">
               <h2 className="text-lg font-bold text-slate-800 mb-4">
-                {categoriaLabels[categoria] || categoria}
+                {categoria}
                 <span className="ml-2 text-sm font-normal text-slate-500">
                   ({categoryProducts.length})
                 </span>
