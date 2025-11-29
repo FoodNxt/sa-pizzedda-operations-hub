@@ -145,7 +145,7 @@ export default function StrutturaTurno() {
       slots: [],
       is_active: true
     });
-    setNewSlot({ ora_inizio: '09:00', ora_fine: '09:15', attivita: '', colore: 'blue', richiede_form: false, form_page: '', corso_id: '', attrezzature_pulizia: [] });
+    setNewSlot({ ora_inizio: '09:00', ora_fine: '09:15', attivita: '', colore: 'blue', richiede_form: false, form_page: '', corsi_ids: [], attrezzature_pulizia: [] });
     setEditingSchema(null);
     setShowForm(false);
   };
