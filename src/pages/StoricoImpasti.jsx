@@ -522,50 +522,50 @@ export default function StoricoImpasti() {
           </div>
         )}
 
-        {/* Lista */}
-        <NeumorphicCard className="p-6">
-          <h2 className="text-xl font-bold text-slate-800 mb-4">Storico Calcoli</h2>
-          
-          {filteredLogs.length === 0 ? (
-            <p className="text-slate-500 text-center py-8">Nessun calcolo trovato</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b-2 border-slate-200">
-                    <th className="text-left py-3 px-2 text-slate-700">Data/Ora</th>
-                    <th className="text-left py-3 px-2 text-slate-700">Negozio</th>
-                    <th className="text-left py-3 px-2 text-slate-700">Operatore</th>
-                    <th className="text-right py-3 px-2 text-slate-700">Barelle in Frigo</th>
-                    <th className="text-right py-3 px-2 text-slate-700">Palline Presenti</th>
-                    <th className="text-right py-3 px-2 text-slate-700">Fabbisogno 3gg</th>
-                    <th className="text-right py-3 px-2 text-slate-700 bg-green-50">Impasto Suggerito</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredLogs.map(log => (
-                    <tr key={log.id} className="border-b border-slate-100 hover:bg-slate-50">
-                      <td className="py-3 px-2 text-slate-700">
-                        {moment(log.data_calcolo).format('DD/MM/YYYY HH:mm')}
-                      </td>
-                      <td className="py-3 px-2 font-medium text-slate-800">{log.store_name}</td>
-                      <td className="py-3 px-2 text-slate-600">
-                        <User className="w-3 h-3 inline mr-1" />
-                        {log.operatore || '-'}
-                      </td>
-                      <td className="py-3 px-2 text-right text-slate-700">{log.barelle_in_frigo}</td>
-                      <td className="py-3 px-2 text-right text-slate-700">{log.palline_presenti}</td>
-                      <td className="py-3 px-2 text-right text-slate-700">{log.fabbisogno_3_giorni}</td>
-                      <td className="py-3 px-2 text-right font-bold text-green-700 bg-green-50">
-                        {log.impasto_suggerito}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </NeumorphicCard>
+            {/* Lista */}
+            <NeumorphicCard className="p-6">
+              <h2 className="text-xl font-bold text-slate-800 mb-4">Storico Calcoli</h2>
+              
+              {filteredLogs.length === 0 ? (
+                <p className="text-slate-500 text-center py-8">Nessun calcolo trovato</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b-2 border-slate-200">
+                        <th className="text-left py-3 px-2 text-slate-700">Data/Ora</th>
+                        <th className="text-left py-3 px-2 text-slate-700">Negozio</th>
+                        <th className="text-left py-3 px-2 text-slate-700">Operatore</th>
+                        <th className="text-right py-3 px-2 text-slate-700">Barelle in Frigo</th>
+                        <th className="text-right py-3 px-2 text-slate-700">Palline Presenti</th>
+                        <th className="text-right py-3 px-2 text-slate-700">Fabbisogno 3gg</th>
+                        <th className="text-right py-3 px-2 text-slate-700 bg-green-50">Impasto Suggerito</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredLogs.map(log => (
+                        <tr key={log.id} className="border-b border-slate-100 hover:bg-slate-50">
+                          <td className="py-3 px-2 text-slate-700">
+                            {moment(log.data_calcolo).format('DD/MM/YYYY HH:mm')}
+                          </td>
+                          <td className="py-3 px-2 font-medium text-slate-800">{log.store_name}</td>
+                          <td className="py-3 px-2 text-slate-600">
+                            <User className="w-3 h-3 inline mr-1" />
+                            {log.operatore || '-'}
+                          </td>
+                          <td className="py-3 px-2 text-right text-slate-700">{log.barelle_in_frigo}</td>
+                          <td className="py-3 px-2 text-right text-slate-700">{log.palline_presenti}</td>
+                          <td className="py-3 px-2 text-right text-slate-700">{log.fabbisogno_3_giorni}</td>
+                          <td className="py-3 px-2 text-right font-bold text-green-700 bg-green-50">
+                            {log.impasto_suggerito}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </NeumorphicCard>
           </>
         )}
       </div>
