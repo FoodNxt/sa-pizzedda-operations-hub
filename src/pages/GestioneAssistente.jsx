@@ -68,7 +68,11 @@ export default function GestioneAssistente() {
   const { data: conversations = [], isLoading: loadingConversations, error: conversationsError, refetch: refetchConversations } = useQuery({
     queryKey: ['assistente-conversations'],
     queryFn: async () => {
-      const convs = await base44.agents.listConversations({ agent_name: 'assistente_dipendenti' });
+      // Usa list_all per ottenere TUTTE le conversazioni (non solo quelle dell'utente corrente)
+      const convs = await base44.agents.listConversations({ 
+        agent_name: 'assistente_dipendenti',
+        list_all: true 
+      });
       if (!convs || convs.length === 0) return [];
       // Per ogni conversazione, carica i messaggi completi
       const convsWithMessages = await Promise.all(
