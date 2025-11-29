@@ -65,10 +65,13 @@ export default function GestioneAssistente() {
     queryFn: () => base44.entities.AssistenteCategoria.list('ordine'),
   });
 
-  const { data: conversations = [], isLoading: loadingConversations } = useQuery({
+  const { data: conversations = [], isLoading: loadingConversations, error: conversationsError } = useQuery({
     queryKey: ['assistente-conversations'],
     queryFn: async () => {
+      console.log('Fetching conversations for agent: assistente_dipendenti');
       const convs = await base44.agents.listConversations({ agent_name: 'assistente_dipendenti' });
+      console.log('Conversations received:', convs);
+      if (!convs || convs.length === 0) return [];
       // Per ogni conversazione, carica i messaggi completi
       const convsWithMessages = await Promise.all(
         convs.map(async (conv) => {
@@ -76,6 +79,7 @@ export default function GestioneAssistente() {
             const fullConv = await base44.agents.getConversation(conv.id);
             return fullConv;
           } catch (e) {
+            console.log('Error loading conversation:', conv.id, e);
             return conv;
           }
         })
