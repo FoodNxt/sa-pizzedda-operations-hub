@@ -695,48 +695,99 @@ Sa Pizzedda`;
                     </div>
 
                     <div className="space-y-4">
-                      {Object.entries(storeData.suppliers).map(([supplier, orders]) => (
-                        <div key={supplier} className="neumorphic-pressed p-4 rounded-xl">
-                          <div className="flex items-center gap-2 mb-3">
-                            <Truck className="w-5 h-5 text-slate-600" />
-                            <h3 className="font-bold text-slate-700">{supplier}</h3>
-                            <span className="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700">
-                              {orders.length} prodotti
-                            </span>
-                          </div>
+                      {Object.entries(storeData.suppliers).map(([supplier, orders]) => {
+                        const fornitore = getFornitoreByName(supplier);
+                        const emailKey = `${storeData.store.name}-${supplier}`;
+                        const isSending = sendingEmail[emailKey];
+                        const wasSent = emailSent[emailKey];
+                        
+                        return (
+                          <div key={supplier} className="neumorphic-pressed p-4 rounded-xl">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                <Truck className="w-5 h-5 text-slate-600" />
+                                <h3 className="font-bold text-slate-700">{supplier}</h3>
+                                <span className="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700">
+                                  {orders.length} prodotti
+                                </span>
+                                {fornitore?.contatto_email && (
+                                  <span className="px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-700 flex items-center gap-1">
+                                    <Mail className="w-3 h-3" />
+                                    {fornitore.contatto_email}
+                                  </span>
+                                )}
+                              </div>
+                              
+                              {fornitore?.contatto_email && (
+                                <button
+                                  onClick={() => sendOrderEmail(storeData.store.name, supplier, orders)}
+                                  disabled={isSending || wasSent}
+                                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                                    wasSent
+                                      ? 'bg-green-100 text-green-700'
+                                      : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700'
+                                  } disabled:opacity-50`}
+                                >
+                                  {isSending ? (
+                                    <>
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                      Invio...
+                                    </>
+                                  ) : wasSent ? (
+                                    <>
+                                      <CheckCircle className="w-4 h-4" />
+                                      Inviata!
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Send className="w-4 h-4" />
+                                      Invia Ordine
+                                    </>
+                                  )}
+                                </button>
+                              )}
+                              
+                              {!fornitore?.contatto_email && (
+                                <span className="text-xs text-orange-600 flex items-center gap-1">
+                                  <AlertTriangle className="w-3 h-3" />
+                                  Email non configurata
+                                </span>
+                              )}
+                            </div>
 
-                          <div className="overflow-x-auto">
-                            <table className="w-full min-w-[500px]">
-                              <thead>
-                                <tr className="border-b border-slate-300">
-                                  <th className="text-left p-2 text-slate-600 font-medium text-xs">Prodotto</th>
-                                  <th className="text-right p-2 text-slate-600 font-medium text-xs">Attuale</th>
-                                  <th className="text-right p-2 text-slate-600 font-medium text-xs">Critica</th>
-                                  <th className="text-right p-2 text-slate-600 font-medium text-xs">Da Ordinare</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {orders.map((order, idx) => (
-                                  <tr key={idx} className="border-b border-slate-200">
-                                    <td className="p-2 text-sm text-slate-700">
-                                      {order.nome_prodotto}
-                                    </td>
-                                    <td className="p-2 text-sm text-right text-red-600 font-bold">
-                                      {order.quantita_rilevata} {order.unita_misura}
-                                    </td>
-                                    <td className="p-2 text-sm text-right text-slate-500">
-                                      {order.quantita_critica} {order.unita_misura}
-                                    </td>
-                                    <td className="p-2 text-sm text-right font-bold text-green-600">
-                                      {order.quantita_ordine} {order.unita_misura}
-                                    </td>
+                            <div className="overflow-x-auto">
+                              <table className="w-full min-w-[500px]">
+                                <thead>
+                                  <tr className="border-b border-slate-300">
+                                    <th className="text-left p-2 text-slate-600 font-medium text-xs">Prodotto</th>
+                                    <th className="text-right p-2 text-slate-600 font-medium text-xs">Attuale</th>
+                                    <th className="text-right p-2 text-slate-600 font-medium text-xs">Critica</th>
+                                    <th className="text-right p-2 text-slate-600 font-medium text-xs">Da Ordinare</th>
                                   </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                                </thead>
+                                <tbody>
+                                  {orders.map((order, idx) => (
+                                    <tr key={idx} className="border-b border-slate-200">
+                                      <td className="p-2 text-sm text-slate-700">
+                                        {order.nome_prodotto}
+                                      </td>
+                                      <td className="p-2 text-sm text-right text-red-600 font-bold">
+                                        {order.quantita_rilevata} {order.unita_misura}
+                                      </td>
+                                      <td className="p-2 text-sm text-right text-slate-500">
+                                        {order.quantita_critica} {order.unita_misura}
+                                      </td>
+                                      <td className="p-2 text-sm text-right font-bold text-green-600">
+                                        {order.quantita_ordine} {order.unita_misura}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </NeumorphicCard>
                 ))
