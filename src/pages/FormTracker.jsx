@@ -285,6 +285,13 @@ export default function FormTracker() {
       shiftsByStore[shift.store_name].push(shift);
     });
 
+    // Also include all stores even if no shifts (to show expected forms based on config)
+    stores.forEach(store => {
+      if (!shiftsByStore[store.name]) {
+        shiftsByStore[store.name] = [];
+      }
+    });
+
     // For each store
     Object.entries(shiftsByStore).forEach(([storeName, storeShifts]) => {
       if (selectedStore && selectedStore !== storeName) return;
