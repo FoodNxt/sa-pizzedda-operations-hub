@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Calendar, Plus, Edit, Trash2, Save, X, Copy, Clock, Users, Store } from 'lucide-react';
+import { Calendar, Plus, Edit, Trash2, Save, X, Copy, Clock, Users, Store, FileText } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
@@ -17,6 +17,20 @@ const COLORI = [
   { value: 'orange', label: 'Arancione', class: 'bg-orange-200 border-orange-400' },
   { value: 'pink', label: 'Rosa', class: 'bg-pink-200 border-pink-400' },
   { value: 'gray', label: 'Grigio', class: 'bg-gray-200 border-gray-400' },
+];
+
+const AVAILABLE_FORMS = [
+  { value: '', label: 'Nessun form' },
+  { value: 'FormInventario', label: 'Inventario' },
+  { value: 'FormCantina', label: 'Cantina' },
+  { value: 'FormTeglieButtate', label: 'Teglie Buttate' },
+  { value: 'FormPreparazioni', label: 'Preparazioni' },
+  { value: 'ConteggioCassa', label: 'Conteggio Cassa' },
+  { value: 'ControlloPuliziaCassiere', label: 'Pulizia Cassiere' },
+  { value: 'ControlloPuliziaPizzaiolo', label: 'Pulizia Pizzaiolo' },
+  { value: 'ControlloPuliziaStoreManager', label: 'Pulizia Store Manager' },
+  { value: 'Impasto', label: 'Impasto' },
+  { value: 'Precotture', label: 'Precotture' },
 ];
 
 // Generate time slots from 06:00 to 02:00 (next day) in 15-minute increments
@@ -61,7 +75,9 @@ export default function StrutturaTurno() {
     ora_inizio: '09:00',
     ora_fine: '09:15',
     attivita: '',
-    colore: 'blue'
+    colore: 'blue',
+    richiede_form: false,
+    form_page: ''
   });
 
   const queryClient = useQueryClient();
@@ -108,7 +124,7 @@ export default function StrutturaTurno() {
       slots: [],
       is_active: true
     });
-    setNewSlot({ ora_inizio: '09:00', ora_fine: '09:15', attivita: '', colore: 'blue' });
+    setNewSlot({ ora_inizio: '09:00', ora_fine: '09:15', attivita: '', colore: 'blue', richiede_form: false, form_page: '' });
     setEditingSchema(null);
     setShowForm(false);
   };
@@ -140,11 +156,20 @@ export default function StrutturaTurno() {
       alert('Inserisci una descrizione per l\'attività');
       return;
     }
+    const slotToAdd = {
+      ...newSlot,
+      richiede_form: newSlot.richiede_form || false,
+      form_page: newSlot.richiede_form ? newSlot.form_page : ''
+    };
     setFormData({
       ...formData,
-      slots: [...formData.slots, { ...newSlot }].sort((a, b) => a.ora_inizio.localeCompare(b.ora_inizio))
+      slots: [...formData.slots, slotToAdd].sort((a, b) => a.ora_inizio.localeCompare(b.ora_inizio))
     });
-    setNewSlot({ ora_inizio: newSlot.ora_fine, ora_fine: newSlot.ora_fine, attivita: '', colore: 'blue' });
+    setNewSlot({ ora_inizio: newSlot.ora_fine, ora_fine: newSlot.ora_fine, attivita: '', colore: 'blue', richiede_form: false, form_page: '' });
+  };
+
+  const getFormLabel = (formPage) => {
+    return AVAILABLE_FORMS.find(f => f.value === formPage)?.label || formPage;
   };
 
   const removeSlot = (index) => {
@@ -360,6 +385,12 @@ export default function StrutturaTurno() {
                               </span>
                             </div>
                             <span className="text-slate-800 font-medium">{slot.attivita}</span>
+                            {slot.richiede_form && slot.form_page && (
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700 flex items-center gap-1">
+                                <FileText className="w-3 h-3" />
+                                {getFormLabel(slot.form_page)}
+                              </span>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -461,7 +492,7 @@ export default function StrutturaTurno() {
 
                     {/* Add Slot Form */}
                     <div className="neumorphic-pressed p-4 rounded-xl mb-4">
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 items-end">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end mb-3">
                         <div>
                           <label className="text-xs font-medium text-slate-600 mb-1 block">Inizio</label>
                           <select
@@ -508,6 +539,34 @@ export default function StrutturaTurno() {
                             ))}
                           </select>
                         </div>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 items-end">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="richiede-form"
+                            checked={newSlot.richiede_form}
+                            onChange={(e) => setNewSlot({ ...newSlot, richiede_form: e.target.checked, form_page: e.target.checked ? newSlot.form_page : '' })}
+                            className="w-4 h-4"
+                          />
+                          <label htmlFor="richiede-form" className="text-xs font-medium text-slate-600">
+                            Richiede Form
+                          </label>
+                        </div>
+                        {newSlot.richiede_form && (
+                          <div>
+                            <label className="text-xs font-medium text-slate-600 mb-1 block">Form</label>
+                            <select
+                              value={newSlot.form_page}
+                              onChange={(e) => setNewSlot({ ...newSlot, form_page: e.target.value })}
+                              className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                            >
+                              {AVAILABLE_FORMS.map(f => (
+                                <option key={f.value} value={f.value}>{f.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
                         <button
                           type="button"
                           onClick={addSlot}
@@ -528,11 +587,17 @@ export default function StrutturaTurno() {
                             key={idx}
                             className={`p-3 rounded-lg border-2 ${getColoreClass(slot.colore)} flex items-center justify-between`}
                           >
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-4 flex-wrap">
                               <span className="font-mono font-bold text-slate-700">
                                 {slot.ora_inizio} - {slot.ora_fine}
                               </span>
                               <span className="text-slate-800">{slot.attivita}</span>
+                              {slot.richiede_form && slot.form_page && (
+                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700 flex items-center gap-1">
+                                  <FileText className="w-3 h-3" />
+                                  {getFormLabel(slot.form_page)}
+                                </span>
+                              )}
                             </div>
                             <button
                               type="button"
