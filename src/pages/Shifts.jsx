@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Clock, Calendar, User, MapPin, CheckCircle, XCircle, AlertCircle, Edit, Save, X, Trash2 } from 'lucide-react';
+import { Clock, Calendar, User, MapPin, CheckCircle, XCircle, AlertCircle, Edit, Save, X, Trash2, Plus } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { format } from 'date-fns';
@@ -12,6 +12,16 @@ export default function Shifts() {
   const [dateFilter, setDateFilter] = useState('week');
   const [editingShift, setEditingShift] = useState(null);
   const [editFormData, setEditFormData] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newShift, setNewShift] = useState({
+    employee_name: '',
+    store_id: '',
+    shift_date: '',
+    scheduled_start: '',
+    scheduled_end: '',
+    employee_group_name: '',
+    shift_type: ''
+  });
 
   const queryClient = useQueryClient();
 
@@ -45,6 +55,44 @@ export default function Shifts() {
       queryClient.invalidateQueries({ queryKey: ['shifts'] });
     },
   });
+
+  const createShiftMutation = useMutation({
+    mutationFn: (data) => base44.entities.Shift.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shifts'] });
+      setShowCreateModal(false);
+      setNewShift({
+        employee_name: '',
+        store_id: '',
+        shift_date: '',
+        scheduled_start: '',
+        scheduled_end: '',
+        employee_group_name: '',
+        shift_type: ''
+      });
+    },
+  });
+
+  const handleCreateShift = () => {
+    if (!newShift.employee_name || !newShift.store_id || !newShift.shift_date || !newShift.scheduled_start || !newShift.scheduled_end) {
+      alert('Compila tutti i campi obbligatori');
+      return;
+    }
+
+    const selectedStoreObj = stores.find(s => s.id === newShift.store_id);
+    
+    createShiftMutation.mutate({
+      employee_name: newShift.employee_name,
+      store_id: newShift.store_id,
+      store_name: selectedStoreObj?.name || '',
+      shift_date: newShift.shift_date,
+      scheduled_start: `${newShift.shift_date}T${newShift.scheduled_start}:00`,
+      scheduled_end: `${newShift.shift_date}T${newShift.scheduled_end}:00`,
+      employee_group_name: newShift.employee_group_name,
+      shift_type: newShift.shift_type,
+      timbratura_mancata: false
+    });
+  };
 
   const handleEdit = (shift) => {
     setEditingShift(shift.id);
@@ -156,9 +204,19 @@ export default function Shifts() {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Turni Dipendenti</h1>
-        <p className="text-[#9b9b9b]">Gestione e monitoraggio turni</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Turni Dipendenti</h1>
+          <p className="text-[#9b9b9b]">Gestione e monitoraggio turni</p>
+        </div>
+        <NeumorphicButton
+          onClick={() => setShowCreateModal(true)}
+          variant="primary"
+          className="flex items-center gap-2"
+        >
+          <Plus className="w-5 h-5" />
+          Nuovo Turno
+        </NeumorphicButton>
       </div>
 
       {/* Filters */}
@@ -491,6 +549,134 @@ export default function Shifts() {
           </table>
         </div>
       </NeumorphicCard>
+
+      {/* Create Shift Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <NeumorphicCard className="max-w-lg w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-[#6b6b6b]">Nuovo Turno</h2>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="neumorphic-flat p-2 rounded-lg"
+              >
+                <X className="w-5 h-5 text-[#6b6b6b]" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Dipendente *</label>
+                <select
+                  value={newShift.employee_name}
+                  onChange={(e) => setNewShift({ ...newShift, employee_name: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                >
+                  <option value="">Seleziona dipendente...</option>
+                  {[...new Set(shifts.map(s => s.employee_name))].sort().map(name => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Locale *</label>
+                <select
+                  value={newShift.store_id}
+                  onChange={(e) => setNewShift({ ...newShift, store_id: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                >
+                  <option value="">Seleziona locale...</option>
+                  {stores.map(store => (
+                    <option key={store.id} value={store.id}>{store.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Data *</label>
+                <input
+                  type="date"
+                  value={newShift.shift_date}
+                  onChange={(e) => setNewShift({ ...newShift, shift_date: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Inizio *</label>
+                  <input
+                    type="time"
+                    value={newShift.scheduled_start}
+                    onChange={(e) => setNewShift({ ...newShift, scheduled_start: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Fine *</label>
+                  <input
+                    type="time"
+                    value={newShift.scheduled_end}
+                    onChange={(e) => setNewShift({ ...newShift, scheduled_end: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Ruolo</label>
+                <select
+                  value={newShift.employee_group_name}
+                  onChange={(e) => setNewShift({ ...newShift, employee_group_name: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                >
+                  <option value="">Seleziona ruolo...</option>
+                  <option value="Pizzaiolo">Pizzaiolo</option>
+                  <option value="Cassiere">Cassiere</option>
+                  <option value="Store Manager">Store Manager</option>
+                  <option value="FT">FT</option>
+                  <option value="PT">PT</option>
+                  <option value="CM">CM</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Tipo Turno</label>
+                <select
+                  value={newShift.shift_type}
+                  onChange={(e) => setNewShift({ ...newShift, shift_type: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                >
+                  <option value="">Turno normale</option>
+                  <option value="Affiancamento">Affiancamento</option>
+                  <option value="Straordinario">Straordinario</option>
+                  <option value="Ferie">Ferie</option>
+                  <option value="Malattia">Malattia</option>
+                  <option value="Permesso">Permesso</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <NeumorphicButton
+                onClick={() => setShowCreateModal(false)}
+                className="flex-1"
+              >
+                Annulla
+              </NeumorphicButton>
+              <NeumorphicButton
+                onClick={handleCreateShift}
+                variant="primary"
+                className="flex-1 flex items-center justify-center gap-2"
+              >
+                <Save className="w-5 h-5" />
+                Crea Turno
+              </NeumorphicButton>
+            </div>
+          </NeumorphicCard>
+        </div>
+      )}
     </div>
   );
 }
