@@ -566,6 +566,8 @@ export default function StoricoImpasti() {
             </div>
           )}
         </NeumorphicCard>
+          </>
+        )}
       </div>
     </ProtectedPage>
   );
