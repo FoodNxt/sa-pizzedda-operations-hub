@@ -745,7 +745,11 @@ export default function FormTracker() {
                                       <div>
                                         <p className="font-medium text-slate-800">{form.employeeName}</p>
                                         <p className="text-xs text-slate-500">
-                                          Turno {form.shiftSequence === 'first' ? 'mattina' : 'sera'}: {formatShiftTime(form.shift?.scheduled_start)} - {formatShiftTime(form.shift?.scheduled_end)}
+                                          {form.noShift ? (
+                                            `Turno ${form.shiftSequence === 'first' ? 'mattina' : 'sera'}: Nessun turno assegnato`
+                                          ) : (
+                                            `Turno ${form.shiftSequence === 'first' ? 'mattina' : 'sera'}: ${formatShiftTime(form.shift?.scheduled_start)} - ${formatShiftTime(form.shift?.scheduled_end)}`
+                                          )}
                                         </p>
                                         <p className="text-xs text-slate-500">
                                           Compilazione: {form.shiftTiming === 'start' ? 'Inizio turno' : 'Fine turno'}
