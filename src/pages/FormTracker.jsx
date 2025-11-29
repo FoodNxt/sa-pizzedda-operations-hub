@@ -10,8 +10,8 @@ export default function FormTracker() {
   const [activeTab, setActiveTab] = useState('tracking');
   const [selectedDate, setSelectedDate] = useState(() => {
     // Default: yesterday (since shifts are loaded at 1am the next day)
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
+    const now = new Date();
+    const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
     return yesterday.toISOString().split('T')[0];
   });
   const [selectedStore, setSelectedStore] = useState('');
@@ -19,6 +19,7 @@ export default function FormTracker() {
   const [editingConfig, setEditingConfig] = useState(null);
   const [viewingCompletion, setViewingCompletion] = useState(null);
   const [expandedForms, setExpandedForms] = useState({});
+  const [expandedStores, setExpandedStores] = useState({});
 
   const [configForm, setConfigForm] = useState({
     form_name: '',
@@ -290,20 +291,22 @@ export default function FormTracker() {
 
       byStore[storeName] = { forms: [], completed: 0, missing: 0 };
 
-      // Sort shifts by start time to determine first/second
-      const sortedShifts = [...storeShifts].sort((a, b) => {
-        const aStart = new Date(a.scheduled_start);
-        const bStart = new Date(b.scheduled_start);
-        return aStart - bStart;
-      });
-
-      // Group by employee to find their first/second shift
+      // Group by employee and sort their shifts by start time
       const shiftsByEmployee = {};
-      sortedShifts.forEach(shift => {
+      storeShifts.forEach(shift => {
         if (!shiftsByEmployee[shift.employee_name]) {
           shiftsByEmployee[shift.employee_name] = [];
         }
         shiftsByEmployee[shift.employee_name].push(shift);
+      });
+      
+      // Sort each employee's shifts by start time
+      Object.keys(shiftsByEmployee).forEach(emp => {
+        shiftsByEmployee[emp].sort((a, b) => {
+          const aStart = new Date(a.scheduled_start);
+          const bStart = new Date(b.scheduled_start);
+          return aStart - bStart;
+        });
       });
 
       // For each config
@@ -337,10 +340,22 @@ export default function FormTracker() {
 
           // Process each shift sequence
           shiftSequences.forEach(shiftSequence => {
-            // Get the appropriate shift based on sequence
-            const targetShift = shiftSequence === 'first' 
-              ? employeeShifts[0] 
-              : (employeeShifts[1] || null);
+            // Determine morning vs evening based on shift start time (before/after 15:00)
+            let targetShift = null;
+            
+            if (shiftSequence === 'first') {
+              // Morning shift = starts before 15:00
+              targetShift = employeeShifts.find(s => {
+                const startHour = new Date(s.scheduled_start).getHours();
+                return startHour < 15;
+              });
+            } else {
+              // Evening shift = starts at 15:00 or later
+              targetShift = employeeShifts.find(s => {
+                const startHour = new Date(s.scheduled_start).getHours();
+                return startHour >= 15;
+              });
+            }
 
             if (!targetShift) return;
 
