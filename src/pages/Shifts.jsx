@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Clock, Calendar, User, MapPin, CheckCircle, XCircle, AlertCircle, Edit, Save, X } from 'lucide-react';
+import { Clock, Calendar, User, MapPin, CheckCircle, XCircle, AlertCircle, Edit, Save, X, Trash2 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { format } from 'date-fns';
@@ -36,6 +36,13 @@ export default function Shifts() {
       queryClient.invalidateQueries({ queryKey: ['shifts'] });
       setEditingShift(null);
       setEditFormData(null);
+    },
+  });
+
+  const deleteShiftMutation = useMutation({
+    mutationFn: (id) => base44.entities.Shift.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shifts'] });
     },
   });
 
@@ -267,14 +274,7 @@ export default function Shifts() {
                         })()}
                       </td>
                       <td className="p-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full neumorphic-flat flex items-center justify-center">
-                            <span className="text-xs font-bold text-[#8b7355]">
-                              {shift.employee_name?.charAt(0) || 'E'}
-                            </span>
-                          </div>
-                          <span className="text-[#6b6b6b] font-medium">{shift.employee_name}</span>
-                        </div>
+                        <span className="text-[#6b6b6b] font-medium">{shift.employee_name}</span>
                       </td>
                       <td className="p-3">
                         {isEditing ? (
@@ -455,13 +455,24 @@ export default function Shifts() {
                             </button>
                           </div>
                         ) : (
-                          <div className="flex items-center justify-center">
+                          <div className="flex items-center justify-center gap-2">
                             <button
                               onClick={() => handleEdit(shift)}
                               className="neumorphic-flat p-2 rounded-lg hover:bg-blue-50 transition-colors"
                               title="Modifica"
                             >
                               <Edit className="w-4 h-4 text-blue-600" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (confirm('Sei sicuro di voler eliminare questo turno?')) {
+                                  deleteShiftMutation.mutate(shift.id);
+                                }
+                              }}
+                              className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+                              title="Elimina"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-600" />
                             </button>
                           </div>
                         )}
