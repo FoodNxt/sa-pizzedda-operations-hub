@@ -467,6 +467,7 @@ export default function GestioneImpastiPrecotture() {
           </NeumorphicCard>
           </>
         )}
+        )}
       </div>
     </ProtectedPage>
   );
