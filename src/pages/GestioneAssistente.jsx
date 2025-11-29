@@ -194,6 +194,7 @@ export default function GestioneAssistente() {
       categoria: 'Procedure Operative',
       titolo: '',
       contenuto: '',
+      notion_url: '',
       tags: [],
       store_specifico: '',
       priorita: 0,
