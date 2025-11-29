@@ -4,14 +4,23 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
-import { ChefHat, Calculator, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
+import { ChefHat, Calculator, AlertCircle, CheckCircle, Loader2, BookOpen, Plus, Edit, Save, X, Trash2 } from "lucide-react";
 
 const giorni = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
 
 export default function Impasto() {
+  const [activeTab, setActiveTab] = useState('calcolo');
   const [selectedStore, setSelectedStore] = useState('');
   const [barelleInFrigo, setBarelleInFrigo] = useState('');
   const [calcoloConfermato, setCalcoloConfermato] = useState(false);
+  const [showIngredientForm, setShowIngredientForm] = useState(false);
+  const [editingIngredient, setEditingIngredient] = useState(null);
+  const [ingredientForm, setIngredientForm] = useState({
+    nome_ingrediente: '',
+    quantita_per_pallina: '',
+    unita_misura: 'g',
+    ordine: 0
+  });
   const queryClient = useQueryClient();
 
   const { data: stores = [] } = useQuery({
@@ -35,6 +44,60 @@ export default function Impasto() {
   });
 
   const sortedIngredienti = [...ricettaIngredienti].filter(i => i.attivo !== false).sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
+
+  const createIngredientMutation = useMutation({
+    mutationFn: (data) => base44.entities.RicettaImpasto.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ricetta-impasto'] });
+      resetIngredientForm();
+    },
+  });
+
+  const updateIngredientMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.RicettaImpasto.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ricetta-impasto'] });
+      resetIngredientForm();
+    },
+  });
+
+  const deleteIngredientMutation = useMutation({
+    mutationFn: (id) => base44.entities.RicettaImpasto.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ricetta-impasto'] });
+    },
+  });
+
+  const resetIngredientForm = () => {
+    setIngredientForm({ nome_ingrediente: '', quantita_per_pallina: '', unita_misura: 'g', ordine: 0 });
+    setEditingIngredient(null);
+    setShowIngredientForm(false);
+  };
+
+  const handleSaveIngredient = () => {
+    const data = {
+      ...ingredientForm,
+      quantita_per_pallina: parseFloat(ingredientForm.quantita_per_pallina),
+      ordine: parseInt(ingredientForm.ordine) || 0,
+      attivo: true
+    };
+    if (editingIngredient) {
+      updateIngredientMutation.mutate({ id: editingIngredient.id, data });
+    } else {
+      createIngredientMutation.mutate(data);
+    }
+  };
+
+  const handleEditIngredient = (ing) => {
+    setEditingIngredient(ing);
+    setIngredientForm({
+      nome_ingrediente: ing.nome_ingrediente,
+      quantita_per_pallina: ing.quantita_per_pallina,
+      unita_misura: ing.unita_misura,
+      ordine: ing.ordine || 0
+    });
+    setShowIngredientForm(true);
+  };
 
   const logMutation = useMutation({
     mutationFn: (data) => base44.entities.CalcoloImpastoLog.create(data),
@@ -113,11 +176,149 @@ export default function Impasto() {
       <div className="max-w-2xl mx-auto space-y-6">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
-            Calcolo Impasto
+            Gestione Impasto
           </h1>
-          <p className="text-slate-500 mt-1">Calcola quanto impasto preparare</p>
+          <p className="text-slate-500 mt-1">Calcola impasto e gestisci ricetta</p>
         </div>
 
+        {/* Tabs */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setActiveTab('calcolo')}
+            className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
+              activeTab === 'calcolo'
+                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                : 'neumorphic-flat text-slate-700'
+            }`}
+          >
+            <Calculator className="w-4 h-4" />
+            Calcolo
+          </button>
+          <button
+            onClick={() => setActiveTab('ricetta')}
+            className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
+              activeTab === 'ricetta'
+                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                : 'neumorphic-flat text-slate-700'
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            Ricetta
+          </button>
+        </div>
+
+        {/* Tab Ricetta */}
+        {activeTab === 'ricetta' && (
+          <NeumorphicCard className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-slate-800">Ricetta per 1 Pallina</h2>
+              <NeumorphicButton
+                onClick={() => setShowIngredientForm(true)}
+                variant="primary"
+                className="flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Aggiungi
+              </NeumorphicButton>
+            </div>
+
+            {showIngredientForm && (
+              <div className="neumorphic-pressed p-4 rounded-xl mb-4">
+                <h3 className="font-bold text-slate-700 mb-3">
+                  {editingIngredient ? 'Modifica Ingrediente' : 'Nuovo Ingrediente'}
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Nome</label>
+                    <input
+                      type="text"
+                      value={ingredientForm.nome_ingrediente}
+                      onChange={(e) => setIngredientForm({ ...ingredientForm, nome_ingrediente: e.target.value })}
+                      className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
+                      placeholder="es. Farina"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Quantità</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={ingredientForm.quantita_per_pallina}
+                      onChange={(e) => setIngredientForm({ ...ingredientForm, quantita_per_pallina: e.target.value })}
+                      className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
+                      placeholder="es. 150"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Unità</label>
+                    <select
+                      value={ingredientForm.unita_misura}
+                      onChange={(e) => setIngredientForm({ ...ingredientForm, unita_misura: e.target.value })}
+                      className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
+                    >
+                      <option value="g">grammi (g)</option>
+                      <option value="kg">kg</option>
+                      <option value="ml">ml</option>
+                      <option value="litri">litri</option>
+                      <option value="unità">unità</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Ordine</label>
+                    <input
+                      type="number"
+                      value={ingredientForm.ordine}
+                      onChange={(e) => setIngredientForm({ ...ingredientForm, ordine: e.target.value })}
+                      className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <NeumorphicButton onClick={resetIngredientForm}>Annulla</NeumorphicButton>
+                  <NeumorphicButton onClick={handleSaveIngredient} variant="primary">
+                    <Save className="w-4 h-4 inline mr-1" /> Salva
+                  </NeumorphicButton>
+                </div>
+              </div>
+            )}
+
+            {sortedIngredienti.length === 0 ? (
+              <p className="text-slate-500 text-center py-8">Nessun ingrediente configurato</p>
+            ) : (
+              <div className="space-y-2">
+                {sortedIngredienti.map(ing => (
+                  <div key={ing.id} className="neumorphic-pressed p-3 rounded-xl flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-slate-800">{ing.nome_ingrediente}</p>
+                      <p className="text-sm text-slate-500">{ing.quantita_per_pallina} {ing.unita_misura}</p>
+                    </div>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => handleEditIngredient(ing)}
+                        className="nav-button p-2 rounded-lg hover:bg-blue-50"
+                      >
+                        <Edit className="w-4 h-4 text-blue-600" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm('Eliminare questo ingrediente?')) {
+                            deleteIngredientMutation.mutate(ing.id);
+                          }
+                        }}
+                        className="nav-button p-2 rounded-lg hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </NeumorphicCard>
+        )}
+
+        {/* Tab Calcolo */}
+        {activeTab === 'calcolo' && (
         <NeumorphicCard className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -275,6 +476,7 @@ export default function Impasto() {
             </div>
           </div>
         </NeumorphicCard>
+        )}
       </div>
     </ProtectedPage>
   );

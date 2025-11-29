@@ -78,6 +78,7 @@ import StrutturaTurno from './pages/StrutturaTurno';
 import StoricoImpasti from './pages/StoricoImpasti';
 import GestioneAssistente from './pages/GestioneAssistente';
 import AssistenteDipendente from './pages/AssistenteDipendente';
+import PrecottureAdmin from './pages/PrecottureAdmin';
 import __Layout from './Layout.jsx';
 
 
@@ -162,6 +163,7 @@ export const PAGES = {
     "StoricoImpasti": StoricoImpasti,
     "GestioneAssistente": GestioneAssistente,
     "AssistenteDipendente": AssistenteDipendente,
+    "PrecottureAdmin": PrecottureAdmin,
 }
 
 export const pagesConfig = {
