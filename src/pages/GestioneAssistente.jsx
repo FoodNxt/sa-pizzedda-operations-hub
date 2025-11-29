@@ -65,14 +65,42 @@ export default function GestioneAssistente() {
     queryFn: () => base44.entities.AssistenteCategoria.list('ordine'),
   });
 
-  const { data: conversations = [], isLoading: loadingConversations, error: conversationsError, refetch: refetchConversations } = useQuery({
-    queryKey: ['assistente-conversations'],
-    queryFn: async () => {
-      // Chiama la funzione backend per ottenere tutte le conversazioni
-      const response = await base44.functions.invoke('listAllConversations');
-      return response.data?.conversations || [];
-    },
+  // Recupera tracking conversazioni dal database
+  const { data: conversazioniTracking = [] } = useQuery({
+    queryKey: ['conversazioni-tracking'],
+    queryFn: () => base44.entities.ConversazioneAssistente.list('-last_message_date'),
     enabled: activeTab === 'conversazioni',
+    refetchInterval: activeTab === 'conversazioni' ? 5000 : false,
+  });
+
+  const { data: conversations = [], isLoading: loadingConversations, error: conversationsError, refetch: refetchConversations } = useQuery({
+    queryKey: ['assistente-conversations', conversazioniTracking],
+    queryFn: async () => {
+      // Carica i dettagli delle conversazioni dal tracking
+      const convsWithMessages = await Promise.all(
+        conversazioniTracking.map(async (track) => {
+          try {
+            const fullConv = await base44.agents.getConversation(track.conversation_id);
+            return {
+              ...fullConv,
+              user_name: track.user_name,
+              user_email: track.user_email,
+              tracking: track
+            };
+          } catch (e) {
+            return {
+              id: track.conversation_id,
+              user_name: track.user_name,
+              user_email: track.user_email,
+              messages: [],
+              tracking: track
+            };
+          }
+        })
+      );
+      return convsWithMessages;
+    },
+    enabled: activeTab === 'conversazioni' && conversazioniTracking.length > 0,
     refetchInterval: activeTab === 'conversazioni' ? 5000 : false,
   });
 
@@ -748,21 +776,22 @@ export default function GestioneAssistente() {
                         onClick={() => setExpandedConversation(expandedConversation === conv.id ? null : conv.id)}
                       >
                         <div className="flex items-center gap-3">
-                          {expandedConversation === conv.id ? (
-                            <ChevronDown className="w-4 h-4 text-slate-500" />
-                          ) : (
-                            <ChevronRight className="w-4 h-4 text-slate-500" />
-                          )}
-                          <div>
-                            <p className="font-medium text-slate-800">
-                              {conv.metadata?.name || 'Conversazione'}
-                            </p>
-                            <p className="text-xs text-slate-500">
-                              {moment(conv.created_date).format('DD/MM/YYYY HH:mm')} • 
-                              {conv.messages?.length || 0} messaggi
-                            </p>
-                          </div>
-                        </div>
+                                  {expandedConversation === conv.id ? (
+                                    <ChevronDown className="w-4 h-4 text-slate-500" />
+                                  ) : (
+                                    <ChevronRight className="w-4 h-4 text-slate-500" />
+                                  )}
+                                  <div>
+                                    <p className="font-medium text-slate-800">
+                                      {conv.user_name || conv.metadata?.name || 'Conversazione'}
+                                    </p>
+                                    <p className="text-xs text-slate-500">
+                                      {conv.user_email && <span className="mr-2">{conv.user_email}</span>}
+                                      {moment(conv.tracking?.last_message_date || conv.created_date).format('DD/MM/YYYY HH:mm')} • 
+                                      {conv.messages?.length || conv.tracking?.message_count || 0} messaggi
+                                    </p>
+                                  </div>
+                                </div>
                         <Eye className="w-4 h-4 text-slate-400" />
                       </div>
                       
