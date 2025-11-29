@@ -795,8 +795,9 @@ export default function GestioneAssistente() {
                           <div className="mt-4 space-y-3 max-h-[500px] overflow-y-auto border-t border-slate-200 pt-4">
                             {(conv.messages || []).length === 0 ? (
                               <div className="text-center py-6">
-                                <Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-500 mb-2" />
-                                <p className="text-sm text-slate-500">Caricamento messaggi...</p>
+                                <MessageSquare className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+                                <p className="text-sm text-slate-500">Nessun messaggio trovato per questa conversazione</p>
+                                <p className="text-xs text-slate-400 mt-1">ID: {conv.id}</p>
                               </div>
                             ) : (
                               (conv.messages || []).map((msg, idx) => (
