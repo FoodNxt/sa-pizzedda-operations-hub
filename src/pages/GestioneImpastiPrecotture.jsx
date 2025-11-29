@@ -337,7 +337,7 @@ export default function GestioneImpastiPrecotture() {
           </select>
         </NeumorphicCard>
 
-        {selectedStore && (
+        {activeTab === 'precotture' && selectedStore && (
           <>
             <NeumorphicCard className="p-6 bg-blue-50">
               <h3 className="text-lg font-bold text-blue-800 mb-3">ℹ️ Come funziona la colonna "Impasto 3 Giorni"</h3>
