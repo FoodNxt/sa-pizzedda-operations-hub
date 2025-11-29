@@ -556,103 +556,111 @@ export default function FormTracker() {
               </NeumorphicCard>
             ) : (
               Object.entries(formStatus.byStore).map(([storeName, storeData]) => (
-                <NeumorphicCard key={storeName} className="p-6">
-                  <div className="flex items-center justify-between mb-4">
+                <NeumorphicCard key={storeName} className="p-4">
+                  <button
+                    onClick={() => setExpandedStores(prev => ({ ...prev, [storeName]: !prev[storeName] }))}
+                    className="w-full flex items-center justify-between"
+                  >
                     <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                       <Store className="w-5 h-5 text-blue-600" />
                       {storeName}
                     </h2>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2">
                       <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
                         ✓ {storeData.completed}
                       </span>
                       <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">
                         ✗ {storeData.missing}
                       </span>
+                      {expandedStores[storeName] ? <ChevronUp className="w-5 h-5 text-slate-500" /> : <ChevronDown className="w-5 h-5 text-slate-500" />}
                     </div>
-                  </div>
+                  </button>
 
-                  {/* Group by form */}
-                  {(() => {
-                    const formsByName = {};
-                    storeData.forms.forEach(f => {
-                      if (!formsByName[f.config.form_name]) {
-                        formsByName[f.config.form_name] = [];
-                      }
-                      formsByName[f.config.form_name].push(f);
-                    });
+                  {/* Group by form - only show when expanded */}
+                  {expandedStores[storeName] && (
+                    <div className="mt-4">
+                      {(() => {
+                        const formsByName = {};
+                        storeData.forms.forEach(f => {
+                          if (!formsByName[f.config.form_name]) {
+                            formsByName[f.config.form_name] = [];
+                          }
+                          formsByName[f.config.form_name].push(f);
+                        });
 
-                    return Object.entries(formsByName).map(([formName, forms]) => {
-                      const completedCount = forms.filter(f => f.completed).length;
-                      const isExpanded = expandedForms[`${storeName}-${formName}`];
+                        return Object.entries(formsByName).map(([formName, forms]) => {
+                          const completedCount = forms.filter(f => f.completed).length;
+                          const isExpanded = expandedForms[`${storeName}-${formName}`];
 
-                      return (
-                        <div key={formName} className="mb-3">
-                          <button
-                            onClick={() => toggleFormExpand(`${storeName}-${formName}`)}
-                            className={`w-full neumorphic-pressed p-4 rounded-xl flex items-center justify-between ${
-                              completedCount === forms.length ? 'border-2 border-green-200' : 'border-2 border-orange-200'
-                            }`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <span className="font-medium text-slate-800">{formName}</span>
-                              <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                                completedCount === forms.length 
-                                  ? 'bg-green-100 text-green-700' 
-                                  : 'bg-orange-100 text-orange-700'
-                              }`}>
-                                {completedCount}/{forms.length}
-                              </span>
-                            </div>
-                            {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                          </button>
-
-                          {isExpanded && (
-                            <div className="mt-2 ml-4 space-y-2">
-                              {forms.map((form, idx) => (
-                                <div 
-                                  key={idx} 
-                                  className={`p-3 rounded-lg flex items-center justify-between ${
-                                    form.completed ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
-                                  }`}
-                                >
-                                  <div>
-                                    <p className="font-medium text-slate-800">{form.employeeName}</p>
-                                    <p className="text-xs text-slate-500">
-                                      Turno {form.shiftSequence === 'first' ? 'mattina' : 'sera'}: {formatShiftTime(form.shift?.scheduled_start)} - {formatShiftTime(form.shift?.scheduled_end)}
-                                    </p>
-                                    <p className="text-xs text-slate-500">
-                                      Compilazione: {form.shiftTiming === 'start' ? 'Inizio turno' : 'Fine turno'}
-                                    </p>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    {form.completed ? (
-                                      <>
-                                        <span className="px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 flex items-center gap-1">
-                                          <CheckCircle className="w-3 h-3" /> Completato
-                                        </span>
-                                        <button
-                                          onClick={() => setViewingCompletion({ form, storeName })}
-                                          className="nav-button p-2 rounded-lg"
-                                          title="Visualizza dettagli"
-                                        >
-                                          <Eye className="w-4 h-4 text-blue-600" />
-                                        </button>
-                                      </>
-                                    ) : (
-                                      <span className="px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 flex items-center gap-1">
-                                        <AlertTriangle className="w-3 h-3" /> Mancante
-                                      </span>
-                                    )}
-                                  </div>
+                          return (
+                            <div key={formName} className="mb-3">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); toggleFormExpand(`${storeName}-${formName}`); }}
+                                className={`w-full neumorphic-pressed p-4 rounded-xl flex items-center justify-between ${
+                                  completedCount === forms.length ? 'border-2 border-green-200' : 'border-2 border-orange-200'
+                                }`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <span className="font-medium text-slate-800">{formName}</span>
+                                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                                    completedCount === forms.length 
+                                      ? 'bg-green-100 text-green-700' 
+                                      : 'bg-orange-100 text-orange-700'
+                                  }`}>
+                                    {completedCount}/{forms.length}
+                                  </span>
                                 </div>
-                              ))}
+                                {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                              </button>
+
+                              {isExpanded && (
+                                <div className="mt-2 ml-4 space-y-2">
+                                  {forms.map((form, idx) => (
+                                    <div 
+                                      key={idx} 
+                                      className={`p-3 rounded-lg flex items-center justify-between ${
+                                        form.completed ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+                                      }`}
+                                    >
+                                      <div>
+                                        <p className="font-medium text-slate-800">{form.employeeName}</p>
+                                        <p className="text-xs text-slate-500">
+                                          Turno {form.shiftSequence === 'first' ? 'mattina' : 'sera'}: {formatShiftTime(form.shift?.scheduled_start)} - {formatShiftTime(form.shift?.scheduled_end)}
+                                        </p>
+                                        <p className="text-xs text-slate-500">
+                                          Compilazione: {form.shiftTiming === 'start' ? 'Inizio turno' : 'Fine turno'}
+                                        </p>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        {form.completed ? (
+                                          <>
+                                            <span className="px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 flex items-center gap-1">
+                                              <CheckCircle className="w-3 h-3" /> Completato
+                                            </span>
+                                            <button
+                                              onClick={(e) => { e.stopPropagation(); setViewingCompletion({ form, storeName }); }}
+                                              className="nav-button p-2 rounded-lg"
+                                              title="Visualizza dettagli"
+                                            >
+                                              <Eye className="w-4 h-4 text-blue-600" />
+                                            </button>
+                                          </>
+                                        ) : (
+                                          <span className="px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 flex items-center gap-1">
+                                            <AlertTriangle className="w-3 h-3" /> Mancante
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      );
-                    });
-                  })()}
+                          );
+                        });
+                      })()}
+                    </div>
+                  )}
                 </NeumorphicCard>
               ))
             )}
