@@ -442,7 +442,7 @@ export default function FormTracker() {
         missing: totalExpected - totalCompleted
       }
     };
-  }, [selectedDate, selectedStore, configs, shifts, users, cleaningInspections, inventarioRilevazioni, conteggiCassa, teglieButtate, preparazioni]);
+  }, [selectedDate, selectedStore, configs, shifts, users, stores, cleaningInspections, inventarioRilevazioni, conteggiCassa, teglieButtate, preparazioni]);
 
   const toggleFormExpand = (formName) => {
     setExpandedForms(prev => ({
