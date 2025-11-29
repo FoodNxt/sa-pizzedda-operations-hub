@@ -45,6 +45,14 @@ export default function Inventory() {
     queryFn: () => base44.entities.MateriePrime.list(),
   });
 
+  const { data: fornitori = [] } = useQuery({
+    queryKey: ['fornitori'],
+    queryFn: () => base44.entities.Fornitore.filter({ attivo: true }),
+  });
+
+  const [sendingEmail, setSendingEmail] = useState({});
+  const [emailSent, setEmailSent] = useState({});
+
   const { data: inventoryCantina = [] } = useQuery({
     queryKey: ['rilevazione-inventario-cantina'],
     queryFn: () => base44.entities.RilevazioneInventarioCantina.list('-data_rilevazione', 500),
