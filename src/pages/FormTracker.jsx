@@ -476,10 +476,10 @@ export default function FormTracker() {
                   />
                   <div className="flex gap-2 mt-2 flex-wrap">
                     {[
+                      { label: 'Oggi', days: 0 },
                       { label: 'Ieri', days: 1 },
                       { label: '2 giorni fa', days: 2 },
-                      { label: '3 giorni fa', days: 3 },
-                      { label: 'Settimana', days: 7 }
+                      { label: '3 giorni fa', days: 3 }
                     ].map(opt => (
                       <button
                         key={opt.days}
@@ -488,15 +488,23 @@ export default function FormTracker() {
                           d.setDate(d.getDate() - opt.days);
                           setSelectedDate(d.toISOString().split('T')[0]);
                         }}
-                        className="px-3 py-1 rounded-lg text-xs font-medium nav-button text-slate-600"
+                        className={`px-3 py-1 rounded-lg text-xs font-medium ${
+                          (() => {
+                            const d = new Date();
+                            d.setDate(d.getDate() - opt.days);
+                            return d.toISOString().split('T')[0] === selectedDate;
+                          })() ? 'bg-blue-500 text-white' : 'nav-button text-slate-600'
+                        }`}
                       >
                         {opt.label}
                       </button>
                     ))}
                   </div>
-                  <p className="text-xs text-orange-600 mt-2">
-                    ⚠️ I turni vengono caricati all'1:00 del giorno successivo
-                  </p>
+                  {selectedDate === new Date().toISOString().split('T')[0] && (
+                    <p className="text-xs text-orange-600 mt-2">
+                      ⚠️ Oggi: i turni vengono caricati all'1:00 del giorno successivo, quindi potresti non vedere tutti i turni
+                    </p>
+                  )}
                 </div>
 
                 <div>
