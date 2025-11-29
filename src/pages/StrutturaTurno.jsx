@@ -82,6 +82,7 @@ export default function StrutturaTurno() {
     attrezzature_pulizia: []
   });
   const [editingSlotIndex, setEditingSlotIndex] = useState(null);
+  const [newAttrezzatura, setNewAttrezzatura] = useState('');
 
   const queryClient = useQueryClient();
 
@@ -232,6 +233,15 @@ export default function StrutturaTurno() {
     } else {
       setNewSlot({ ...newSlot, attrezzature_pulizia: [...current, attr] });
     }
+  };
+
+  const addNewAttrezzatura = () => {
+    const trimmed = newAttrezzatura.trim();
+    if (!trimmed) return;
+    if (!(newSlot.attrezzature_pulizia || []).includes(trimmed)) {
+      setNewSlot({ ...newSlot, attrezzature_pulizia: [...(newSlot.attrezzature_pulizia || []), trimmed] });
+    }
+    setNewAttrezzatura('');
   };
 
   const getFormLabel = (formPage) => {
@@ -672,30 +682,56 @@ export default function StrutturaTurno() {
                       </div>
                       
                       {/* Attrezzature da pulire */}
-                      {attrezzatureDisponibili.length > 0 && (
-                        <div className="mt-3">
-                          <label className="text-xs font-medium text-slate-600 mb-2 block">
-                            <Sparkles className="w-3 h-3 inline mr-1" />
-                            Attrezzature da pulire
-                          </label>
-                          <div className="flex flex-wrap gap-2">
-                            {attrezzatureDisponibili.map(attr => (
-                              <button
-                                key={attr}
-                                type="button"
-                                onClick={() => toggleAttrezzatura(attr)}
-                                className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
-                                  (newSlot.attrezzature_pulizia || []).includes(attr)
-                                    ? 'bg-gradient-to-r from-green-500 to-green-600 text-white'
-                                    : 'nav-button text-slate-700'
-                                }`}
-                              >
-                                {attr}
-                              </button>
-                            ))}
-                          </div>
+                      <div className="mt-3">
+                        <label className="text-xs font-medium text-slate-600 mb-2 block">
+                          <Sparkles className="w-3 h-3 inline mr-1" />
+                          Attrezzature da pulire
+                        </label>
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {attrezzatureDisponibili.map(attr => (
+                            <button
+                              key={attr}
+                              type="button"
+                              onClick={() => toggleAttrezzatura(attr)}
+                              className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                                (newSlot.attrezzature_pulizia || []).includes(attr)
+                                  ? 'bg-gradient-to-r from-green-500 to-green-600 text-white'
+                                  : 'nav-button text-slate-700'
+                              }`}
+                            >
+                              {attr}
+                            </button>
+                          ))}
+                          {/* Show custom attrezzature not in disponibili list */}
+                          {(newSlot.attrezzature_pulizia || []).filter(a => !attrezzatureDisponibili.includes(a)).map(attr => (
+                            <button
+                              key={attr}
+                              type="button"
+                              onClick={() => toggleAttrezzatura(attr)}
+                              className="px-3 py-1 rounded-lg text-xs font-medium bg-gradient-to-r from-green-500 to-green-600 text-white"
+                            >
+                              {attr}
+                            </button>
+                          ))}
                         </div>
-                      )}
+                        <div className="flex gap-2 items-center">
+                          <input
+                            type="text"
+                            value={newAttrezzatura}
+                            onChange={(e) => setNewAttrezzatura(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addNewAttrezzatura(); } }}
+                            placeholder="Nuova attrezzatura..."
+                            className="neumorphic-flat px-3 py-1 rounded-lg text-xs outline-none flex-1"
+                          />
+                          <button
+                            type="button"
+                            onClick={addNewAttrezzatura}
+                            className="nav-button px-3 py-1 rounded-lg text-xs font-medium text-green-600"
+                          >
+                            <Plus className="w-3 h-3 inline" /> Aggiungi
+                          </button>
+                        </div>
+                      </div>
 
                       <div className="flex gap-2 mt-3">
                         {editingSlotIndex !== null ? (
