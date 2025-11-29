@@ -246,6 +246,44 @@ export default function GestioneAssistente() {
     setLoadingNotion(false);
   };
 
+  const refreshAllNotionPages = async () => {
+    const notionItems = knowledge.filter(k => k.notion_url);
+    if (notionItems.length === 0) {
+      alert('Nessuna pagina Notion collegata nella knowledge base');
+      return;
+    }
+    
+    setRefreshingAllNotion(true);
+    let updated = 0;
+    let errors = 0;
+    
+    for (const item of notionItems) {
+      try {
+        const response = await base44.functions.invoke('fetchNotionContent', { 
+          notion_url: item.notion_url 
+        });
+        const result = response.data;
+        
+        if (result.contenuto && !result.error) {
+          await base44.entities.AssistenteKnowledge.update(item.id, {
+            contenuto: result.contenuto,
+            titolo: result.titolo || item.titolo
+          });
+          updated++;
+        } else {
+          errors++;
+        }
+      } catch (error) {
+        console.error('Errore refresh:', item.titolo, error);
+        errors++;
+      }
+    }
+    
+    queryClient.invalidateQueries({ queryKey: ['assistente-knowledge'] });
+    setRefreshingAllNotion(false);
+    alert(`Aggiornamento completato: ${updated} pagine aggiornate, ${errors} errori`);
+  };
+
   const handleSave = () => {
     if (editingItem) {
       updateMutation.mutate({ id: editingItem.id, data: formData });
