@@ -462,28 +462,12 @@ export default function FormTracker() {
 
           // Process each shift sequence
           shiftSequences.forEach(shiftSequence => {
-            // Sort shifts by start time
-            const sortedShifts = [...employeeShifts].sort((a, b) => 
-              new Date(a.scheduled_start) - new Date(b.scheduled_start)
-            );
+            // Find the shift that matches this sequence based on role comparison
+            const matchingShifts = employeeShifts.filter(shift => {
+              return getShiftSequence(shift) === shiftSequence;
+            });
             
-            let targetShift = null;
-            
-            if (sortedShifts.length === 1) {
-              // Only one shift - use it for 'first' (morning), skip 'second' (evening)
-              if (shiftSequence === 'first') {
-                targetShift = sortedShifts[0];
-              } else {
-                return; // No second shift available
-              }
-            } else if (sortedShifts.length >= 2) {
-              // Multiple shifts - first one is morning, second is evening
-              if (shiftSequence === 'first') {
-                targetShift = sortedShifts[0];
-              } else {
-                targetShift = sortedShifts[1];
-              }
-            }
+            let targetShift = matchingShifts.length > 0 ? matchingShifts[0] : null;
 
             if (!targetShift) return;
 
