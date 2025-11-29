@@ -151,14 +151,30 @@ export default function Shifts() {
     setClosedDays(updated);
     localStorage.setItem('closedDays', JSON.stringify(updated));
     
-    // Update missing days
+    // Update missing days - move from days to closedDays
     setMissingDays(prev => {
       const newMissing = { ...prev };
       if (newMissing[storeId]) {
         newMissing[storeId].days = newMissing[storeId].days.filter(d => d !== date);
-        if (newMissing[storeId].days.length === 0) {
-          delete newMissing[storeId];
-        }
+        newMissing[storeId].closedDays = [...(newMissing[storeId].closedDays || []), date].sort();
+      }
+      return newMissing;
+    });
+  };
+
+  const unmarkAsClosed = (storeId, date) => {
+    const key = `${storeId}-${date}`;
+    const updated = { ...closedDays };
+    delete updated[key];
+    setClosedDays(updated);
+    localStorage.setItem('closedDays', JSON.stringify(updated));
+    
+    // Update missing days - move from closedDays to days
+    setMissingDays(prev => {
+      const newMissing = { ...prev };
+      if (newMissing[storeId]) {
+        newMissing[storeId].closedDays = (newMissing[storeId].closedDays || []).filter(d => d !== date);
+        newMissing[storeId].days = [...(newMissing[storeId].days || []), date].sort();
       }
       return newMissing;
     });
