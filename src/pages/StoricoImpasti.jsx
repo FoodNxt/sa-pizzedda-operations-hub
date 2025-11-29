@@ -192,6 +192,95 @@ export default function StoricoImpasti() {
           </NeumorphicCard>
         </div>
 
+        {/* Grafici */}
+        {filteredLogs.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Trend temporale */}
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <TrendingUp className="w-5 h-5 text-blue-600" />
+                <h2 className="text-lg font-bold text-slate-800">Trend Giornaliero</h2>
+              </div>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={trendData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="data" tick={{ fontSize: 11 }} stroke="#64748b" />
+                    <YAxis yAxisId="left" tick={{ fontSize: 11 }} stroke="#3b82f6" />
+                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} stroke="#22c55e" />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#f8fafc', 
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px'
+                      }}
+                    />
+                    <Legend />
+                    <Line 
+                      yAxisId="left"
+                      type="monotone" 
+                      dataKey="mediaBarelle" 
+                      name="Media Barelle"
+                      stroke="#3b82f6" 
+                      strokeWidth={2}
+                      dot={{ fill: '#3b82f6', r: 4 }}
+                    />
+                    <Line 
+                      yAxisId="right"
+                      type="monotone" 
+                      dataKey="mediaImpasto" 
+                      name="Media Impasto"
+                      stroke="#22c55e" 
+                      strokeWidth={2}
+                      dot={{ fill: '#22c55e', r: 4 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </NeumorphicCard>
+
+            {/* Per giorno della settimana */}
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <BarChart3 className="w-5 h-5 text-purple-600" />
+                <h2 className="text-lg font-bold text-slate-800">Media per Giorno Settimana</h2>
+              </div>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={dayOfWeekData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="giorno" tick={{ fontSize: 11 }} stroke="#64748b" />
+                    <YAxis yAxisId="left" tick={{ fontSize: 11 }} stroke="#3b82f6" />
+                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} stroke="#22c55e" />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#f8fafc', 
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px'
+                      }}
+                    />
+                    <Legend />
+                    <Bar 
+                      yAxisId="left"
+                      dataKey="mediaBarelle" 
+                      name="Media Barelle"
+                      fill="#3b82f6" 
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar 
+                      yAxisId="right"
+                      dataKey="mediaImpasto" 
+                      name="Media Impasto"
+                      fill="#22c55e" 
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </NeumorphicCard>
+          </div>
+        )}
+
         {/* Lista */}
         <NeumorphicCard className="p-6">
           <h2 className="text-xl font-bold text-slate-800 mb-4">Storico Calcoli</h2>
