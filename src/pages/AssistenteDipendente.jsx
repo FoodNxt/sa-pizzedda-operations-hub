@@ -111,12 +111,24 @@ export default function AssistenteDipendente() {
 
       await base44.agents.addMessage(conv, userMessage);
 
-      // Aggiorna tracking conversazione
+      // Aggiorna tracking conversazione con i messaggi
       const tracking = await base44.entities.ConversazioneAssistente.filter({ conversation_id: conv.id });
+
+      // Aspetta un attimo per la risposta dell'assistente
+      await new Promise(r => setTimeout(r, 3000));
+
+      // Recupera tutti i messaggi aggiornati
+      const fullConv = await base44.agents.getConversation(conv.id);
+
       if (tracking.length > 0) {
         await base44.entities.ConversazioneAssistente.update(tracking[0].id, {
           last_message_date: new Date().toISOString(),
-          message_count: (tracking[0].message_count || 0) + 1
+          message_count: fullConv.messages?.length || 0,
+          messages: (fullConv.messages || []).map(m => ({
+            role: m.role,
+            content: m.content,
+            timestamp: new Date().toISOString()
+          }))
         });
       }
       
