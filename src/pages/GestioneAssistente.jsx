@@ -715,7 +715,17 @@ export default function GestioneAssistente() {
             </NeumorphicCard>
 
             <NeumorphicCard className="p-6">
-              <h2 className="text-xl font-bold text-slate-800 mb-4">Conversazioni Dipendenti</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800">Conversazioni Dipendenti</h2>
+                <NeumorphicButton
+                  onClick={() => refetchConversations()}
+                  className="flex items-center gap-2"
+                  disabled={loadingConversations}
+                >
+                  <RefreshCw className={`w-4 h-4 ${loadingConversations ? 'animate-spin' : ''}`} />
+                  Aggiorna
+                </NeumorphicButton>
+              </div>
               
               {loadingConversations ? (
                 <div className="text-center py-8">
