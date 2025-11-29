@@ -36,7 +36,8 @@ import {
   Loader2,
   Home,
   Edit,
-  LogOut
+  LogOut,
+  Calendar
 } from "lucide-react";
 import CompleteProfileModal from "./components/auth/CompleteProfileModal";
 
@@ -209,6 +210,11 @@ const navigationStructure = [
         title: "Feedback P2P",
         url: createPageUrl("FeedbackP2P"),
         icon: Users,
+      },
+      {
+        title: "Struttura Turno",
+        url: createPageUrl("StrutturaTurno"),
+        icon: Calendar,
       },
       {
         title: "HR Admin",
