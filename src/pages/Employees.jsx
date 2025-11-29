@@ -1203,6 +1203,130 @@ export default function Employees() {
   );
 }
 
+function GaussianChart({ employees }) {
+  // Calculate mean and standard deviation
+  const scores = employees.map(e => e.performanceScore);
+  const mean = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+  const variance = scores.reduce((sum, s) => sum + Math.pow(s - mean, 2), 0) / scores.length;
+  const stdDev = Math.sqrt(variance) || 1;
+
+  // Generate gaussian curve data
+  const gaussianData = [];
+  for (let x = 0; x <= 100; x += 1) {
+    const y = (1 / (stdDev * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - mean) / stdDev, 2));
+    gaussianData.push({ score: x, density: y });
+  }
+
+  // Normalize density for visualization
+  const maxDensity = Math.max(...gaussianData.map(d => d.density));
+  gaussianData.forEach(d => d.density = (d.density / maxDensity) * 100);
+
+  // Get employee positions on the curve
+  const employeePositions = employees.map(e => {
+    const density = (1 / (stdDev * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((e.performanceScore - mean) / stdDev, 2));
+    return {
+      ...e,
+      normalizedDensity: (density / maxDensity) * 100
+    };
+  });
+
+  const getPerformanceColor = (score) => {
+    if (score >= 80) return '#16a34a';
+    if (score >= 60) return '#2563eb';
+    if (score >= 40) return '#ca8a04';
+    return '#dc2626';
+  };
+
+  return (
+    <div>
+      <ResponsiveContainer width="100%" height={200}>
+        <AreaChart data={gaussianData} margin={{ top: 20, right: 20, left: 20, bottom: 20 }}>
+          <defs>
+            <linearGradient id="gaussianGradient" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#dc2626" stopOpacity={0.8}/>
+              <stop offset="40%" stopColor="#ca8a04" stopOpacity={0.8}/>
+              <stop offset="60%" stopColor="#2563eb" stopOpacity={0.8}/>
+              <stop offset="100%" stopColor="#16a34a" stopOpacity={0.8}/>
+            </linearGradient>
+          </defs>
+          <XAxis 
+            dataKey="score" 
+            type="number" 
+            domain={[0, 100]} 
+            tickFormatter={(v) => v}
+            tick={{ fontSize: 10, fill: '#64748b' }}
+            axisLine={{ stroke: '#cbd5e1' }}
+          />
+          <YAxis hide domain={[0, 110]} />
+          <Tooltip 
+            content={({ active, payload }) => {
+              if (active && payload && payload.length) {
+                const score = payload[0].payload.score;
+                const empsAtScore = employees.filter(e => Math.round(e.performanceScore) === Math.round(score));
+                if (empsAtScore.length > 0) {
+                  return (
+                    <div className="bg-white p-2 rounded-lg shadow-lg border text-xs">
+                      {empsAtScore.map(emp => (
+                        <div key={emp.id}>{emp.full_name}: {emp.performanceScore}</div>
+                      ))}
+                    </div>
+                  );
+                }
+              }
+              return null;
+            }}
+          />
+          <Area 
+            type="monotone" 
+            dataKey="density" 
+            stroke="#3b82f6" 
+            strokeWidth={2}
+            fill="url(#gaussianGradient)" 
+          />
+          <ReferenceLine x={mean} stroke="#1e293b" strokeDasharray="5 5" strokeWidth={2} />
+          {employeePositions.map((emp, idx) => (
+            <ReferenceDot
+              key={emp.id}
+              x={emp.performanceScore}
+              y={emp.normalizedDensity}
+              r={6}
+              fill={getPerformanceColor(emp.performanceScore)}
+              stroke="#fff"
+              strokeWidth={2}
+            />
+          ))}
+        </AreaChart>
+      </ResponsiveContainer>
+      
+      {/* Legend */}
+      <div className="flex flex-wrap justify-center gap-3 mt-3 text-xs">
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 rounded-full bg-red-600"></div>
+          <span className="text-slate-600">Poor (&lt;40)</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 rounded-full bg-yellow-600"></div>
+          <span className="text-slate-600">Needs Improvement (40-60)</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 rounded-full bg-blue-600"></div>
+          <span className="text-slate-600">Good (60-80)</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 rounded-full bg-green-600"></div>
+          <span className="text-slate-600">Excellent (&gt;80)</span>
+        </div>
+      </div>
+      
+      {/* Stats */}
+      <div className="flex justify-center gap-6 mt-4 text-xs text-slate-600">
+        <div><strong>Media:</strong> {mean.toFixed(1)}</div>
+        <div><strong>Dev. Std:</strong> {stdDev.toFixed(1)}</div>
+      </div>
+    </div>
+  );
+}
+
 function MetricWeightsModal({ weights, onClose }) {
   const queryClient = useQueryClient();
   const [localWeights, setLocalWeights] = useState({
