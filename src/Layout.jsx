@@ -222,6 +222,11 @@ const navigationStructure = [
         icon: Calendar,
       },
       {
+        title: "Assistente AI",
+        url: createPageUrl("GestioneAssistente"),
+        icon: Users,
+      },
+      {
         title: "HR Admin",
         url: createPageUrl("HRAdmin"),
         icon: Settings,
