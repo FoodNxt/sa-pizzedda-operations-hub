@@ -14,19 +14,24 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Forbidden - Admin or Manager only' }, { status: 403 });
         }
 
-        // Usa asServiceRole per ottenere TUTTE le conversazioni di tutti gli utenti
-        const allConversations = await base44.asServiceRole.agents.listAllConversations({
-            agent_name: 'assistente_dipendenti'
-        });
+        // Leggi gli ID delle conversazioni dal body
+        let conversationIds = [];
+        try {
+            const body = await req.json();
+            conversationIds = body.conversation_ids || [];
+        } catch (e) {
+            // nessun body, prova a listare tutto
+        }
 
-        // Per ogni conversazione, carica i messaggi completi
+        // Per ogni conversazione, carica i messaggi completi usando asServiceRole
         const convsWithMessages = await Promise.all(
-            (allConversations || []).map(async (conv) => {
+            conversationIds.map(async (convId) => {
                 try {
-                    const fullConv = await base44.asServiceRole.agents.getConversation(conv.id);
+                    const fullConv = await base44.asServiceRole.agents.getConversation(convId);
                     return fullConv;
                 } catch (e) {
-                    return conv;
+                    console.error('Error loading conv:', convId, e.message);
+                    return { id: convId, messages: [] };
                 }
             })
         );
