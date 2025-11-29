@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Clock, Calendar, User, MapPin, CheckCircle, XCircle, AlertCircle, Edit, Save, X, Trash2, Plus } from 'lucide-react';
+import { Clock, Calendar, User, MapPin, CheckCircle, XCircle, AlertCircle, Edit, Save, X, Trash2, Plus, Search, AlertTriangle, CalendarOff } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { format } from 'date-fns';
@@ -13,6 +13,12 @@ export default function Shifts() {
   const [editingShift, setEditingShift] = useState(null);
   const [editFormData, setEditFormData] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showMissingDaysModal, setShowMissingDaysModal] = useState(false);
+  const [missingDays, setMissingDays] = useState([]);
+  const [closedDays, setClosedDays] = useState(() => {
+    const saved = localStorage.getItem('closedDays');
+    return saved ? JSON.parse(saved) : {};
+  });
   const [newShift, setNewShift] = useState({
     employee_name: '',
     store_id: '',
@@ -92,6 +98,74 @@ export default function Shifts() {
       shift_type: newShift.shift_type,
       timbratura_mancata: false
     });
+  };
+
+  const checkMissingDays = () => {
+    const startDate = new Date('2025-11-01');
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() - 1); // Ieri
+    
+    const missingByStore = {};
+    
+    stores.forEach(store => {
+      const storeMissingDays = [];
+      const currentDate = new Date(startDate);
+      
+      while (currentDate <= endDate) {
+        const dateStr = currentDate.toISOString().split('T')[0];
+        const hasShift = shifts.some(s => 
+          s.shift_date === dateStr && 
+          (s.store_id === store.id || s.store_name === store.name)
+        );
+        
+        const isClosed = closedDays[`${store.id}-${dateStr}`];
+        
+        if (!hasShift && !isClosed) {
+          storeMissingDays.push(dateStr);
+        }
+        
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      
+      if (storeMissingDays.length > 0) {
+        missingByStore[store.id] = {
+          storeName: store.name,
+          days: storeMissingDays
+        };
+      }
+    });
+    
+    setMissingDays(missingByStore);
+    setShowMissingDaysModal(true);
+  };
+
+  const markAsClosed = (storeId, date) => {
+    const key = `${storeId}-${date}`;
+    const updated = { ...closedDays, [key]: true };
+    setClosedDays(updated);
+    localStorage.setItem('closedDays', JSON.stringify(updated));
+    
+    // Update missing days
+    setMissingDays(prev => {
+      const newMissing = { ...prev };
+      if (newMissing[storeId]) {
+        newMissing[storeId].days = newMissing[storeId].days.filter(d => d !== date);
+        if (newMissing[storeId].days.length === 0) {
+          delete newMissing[storeId];
+        }
+      }
+      return newMissing;
+    });
+  };
+
+  const openCreateShiftWithDate = (storeId, date) => {
+    setNewShift({
+      ...newShift,
+      store_id: storeId,
+      shift_date: date
+    });
+    setShowMissingDaysModal(false);
+    setShowCreateModal(true);
   };
 
   const handleEdit = (shift) => {
@@ -209,14 +283,23 @@ export default function Shifts() {
           <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Turni Dipendenti</h1>
           <p className="text-[#9b9b9b]">Gestione e monitoraggio turni</p>
         </div>
-        <NeumorphicButton
-          onClick={() => setShowCreateModal(true)}
-          variant="primary"
-          className="flex items-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          Nuovo Turno
-        </NeumorphicButton>
+        <div className="flex gap-2">
+          <NeumorphicButton
+            onClick={checkMissingDays}
+            className="flex items-center gap-2"
+          >
+            <Search className="w-5 h-5" />
+            Verifica Giorni Mancanti
+          </NeumorphicButton>
+          <NeumorphicButton
+            onClick={() => setShowCreateModal(true)}
+            variant="primary"
+            className="flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            Nuovo Turno
+          </NeumorphicButton>
+        </div>
       </div>
 
       {/* Filters */}
@@ -549,6 +632,82 @@ export default function Shifts() {
           </table>
         </div>
       </NeumorphicCard>
+
+      {/* Missing Days Modal */}
+      {showMissingDaysModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <NeumorphicCard className="max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-[#6b6b6b] flex items-center gap-2">
+                <AlertTriangle className="w-6 h-6 text-orange-500" />
+                Giorni Senza Turni
+              </h2>
+              <button
+                onClick={() => setShowMissingDaysModal(false)}
+                className="neumorphic-flat p-2 rounded-lg"
+              >
+                <X className="w-5 h-5 text-[#6b6b6b]" />
+              </button>
+            </div>
+
+            <p className="text-sm text-[#9b9b9b] mb-4">
+              Controllo dal 1 Novembre 2025 ad oggi. I giorni elencati non hanno turni registrati.
+            </p>
+
+            {Object.keys(missingDays).length === 0 ? (
+              <div className="text-center py-8">
+                <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                <p className="text-[#6b6b6b] font-medium">Nessun giorno mancante!</p>
+                <p className="text-sm text-[#9b9b9b]">Tutti i giorni hanno almeno un turno registrato.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {Object.entries(missingDays).map(([storeId, data]) => (
+                  <div key={storeId} className="neumorphic-pressed p-4 rounded-xl">
+                    <h3 className="font-bold text-[#6b6b6b] mb-3 flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      {data.storeName}
+                      <span className="px-2 py-0.5 rounded-full text-xs bg-orange-100 text-orange-700">
+                        {data.days.length} giorni
+                      </span>
+                    </h3>
+                    <div className="space-y-2">
+                      {data.days.slice(0, 10).map(date => (
+                        <div key={date} className="flex items-center justify-between bg-white p-2 rounded-lg">
+                          <span className="text-sm text-[#6b6b6b]">
+                            {new Date(date).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                          </span>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => markAsClosed(storeId, date)}
+                              className="px-3 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-1"
+                            >
+                              <CalendarOff className="w-3 h-3" />
+                              Chiusura
+                            </button>
+                            <button
+                              onClick={() => openCreateShiftWithDate(storeId, date)}
+                              className="px-3 py-1 rounded-lg text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 flex items-center gap-1"
+                            >
+                              <Plus className="w-3 h-3" />
+                              Aggiungi Turno
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      {data.days.length > 10 && (
+                        <p className="text-xs text-[#9b9b9b] text-center">
+                          ... e altri {data.days.length - 10} giorni
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </NeumorphicCard>
+        </div>
+      )}
 
       {/* Create Shift Modal */}
       {showCreateModal && (

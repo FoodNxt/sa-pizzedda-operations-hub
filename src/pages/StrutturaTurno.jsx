@@ -79,6 +79,7 @@ export default function StrutturaTurno() {
     richiede_form: false,
     form_page: ''
   });
+  const [editingSlotIndex, setEditingSlotIndex] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -161,11 +162,42 @@ export default function StrutturaTurno() {
       richiede_form: newSlot.richiede_form || false,
       form_page: newSlot.richiede_form ? newSlot.form_page : ''
     };
-    setFormData({
-      ...formData,
-      slots: [...formData.slots, slotToAdd].sort((a, b) => a.ora_inizio.localeCompare(b.ora_inizio))
-    });
+    
+    if (editingSlotIndex !== null) {
+      // Update existing slot
+      const updatedSlots = [...formData.slots];
+      updatedSlots[editingSlotIndex] = slotToAdd;
+      setFormData({
+        ...formData,
+        slots: updatedSlots.sort((a, b) => a.ora_inizio.localeCompare(b.ora_inizio))
+      });
+      setEditingSlotIndex(null);
+    } else {
+      // Add new slot
+      setFormData({
+        ...formData,
+        slots: [...formData.slots, slotToAdd].sort((a, b) => a.ora_inizio.localeCompare(b.ora_inizio))
+      });
+    }
     setNewSlot({ ora_inizio: newSlot.ora_fine, ora_fine: newSlot.ora_fine, attivita: '', colore: 'blue', richiede_form: false, form_page: '' });
+  };
+
+  const startEditSlot = (index) => {
+    const slot = formData.slots[index];
+    setNewSlot({
+      ora_inizio: slot.ora_inizio,
+      ora_fine: slot.ora_fine,
+      attivita: slot.attivita,
+      colore: slot.colore || 'blue',
+      richiede_form: slot.richiede_form || false,
+      form_page: slot.form_page || ''
+    });
+    setEditingSlotIndex(index);
+  };
+
+  const cancelEditSlot = () => {
+    setEditingSlotIndex(null);
+    setNewSlot({ ora_inizio: '09:00', ora_fine: '09:15', attivita: '', colore: 'blue', richiede_form: false, form_page: '' });
   };
 
   const getFormLabel = (formPage) => {
@@ -488,7 +520,12 @@ export default function StrutturaTurno() {
 
                   {/* Slots Section */}
                   <div className="border-t pt-6">
-                    <h3 className="text-lg font-bold text-slate-800 mb-4">Slot Temporali</h3>
+                    <h3 className="text-lg font-bold text-slate-800 mb-4">
+                      Slot Temporali
+                      {editingSlotIndex !== null && (
+                        <span className="ml-2 text-sm font-normal text-blue-600">(Modifica slot #{editingSlotIndex + 1})</span>
+                      )}
+                    </h3>
 
                     {/* Add Slot Form */}
                     <div className="neumorphic-pressed p-4 rounded-xl mb-4">
@@ -567,13 +604,32 @@ export default function StrutturaTurno() {
                             </select>
                           </div>
                         )}
-                        <button
-                          type="button"
-                          onClick={addSlot}
-                          className="nav-button px-4 py-2 rounded-lg text-sm font-medium text-blue-600 flex items-center justify-center gap-1"
-                        >
-                          <Plus className="w-4 h-4" /> Aggiungi
-                        </button>
+                        {editingSlotIndex !== null ? (
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={cancelEditSlot}
+                              className="nav-button px-3 py-2 rounded-lg text-sm font-medium text-slate-600 flex items-center justify-center gap-1"
+                            >
+                              <X className="w-4 h-4" /> Annulla
+                            </button>
+                            <button
+                              type="button"
+                              onClick={addSlot}
+                              className="nav-button px-3 py-2 rounded-lg text-sm font-medium text-green-600 flex items-center justify-center gap-1"
+                            >
+                              <Save className="w-4 h-4" /> Salva
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={addSlot}
+                            className="nav-button px-4 py-2 rounded-lg text-sm font-medium text-blue-600 flex items-center justify-center gap-1"
+                          >
+                            <Plus className="w-4 h-4" /> Aggiungi
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -585,7 +641,7 @@ export default function StrutturaTurno() {
                         {formData.slots.map((slot, idx) => (
                           <div
                             key={idx}
-                            className={`p-3 rounded-lg border-2 ${getColoreClass(slot.colore)} flex items-center justify-between`}
+                            className={`p-3 rounded-lg border-2 ${getColoreClass(slot.colore)} flex items-center justify-between ${editingSlotIndex === idx ? 'ring-2 ring-blue-500' : ''}`}
                           >
                             <div className="flex items-center gap-4 flex-wrap">
                               <span className="font-mono font-bold text-slate-700">
@@ -599,13 +655,24 @@ export default function StrutturaTurno() {
                                 </span>
                               )}
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => removeSlot(idx)}
-                              className="text-red-600 hover:text-red-800"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => startEditSlot(idx)}
+                                className="text-blue-600 hover:text-blue-800"
+                                title="Modifica"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removeSlot(idx)}
+                                className="text-red-600 hover:text-red-800"
+                                title="Elimina"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
