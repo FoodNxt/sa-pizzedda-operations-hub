@@ -33,17 +33,17 @@ const AVAILABLE_FORMS = [
   { value: 'Precotture', label: 'Precotture' },
 ];
 
-// Generate time slots from 06:00 to 02:00 (next day) in 15-minute increments
+// Generate time slots from 06:00 to 02:00 (next day) in 5-minute increments
 const generateTimeSlots = () => {
   const slots = [];
   for (let h = 6; h < 24; h++) {
-    for (let m = 0; m < 60; m += 15) {
+    for (let m = 0; m < 60; m += 5) {
       slots.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
     }
   }
   // Add slots for 00:00 to 02:00
   for (let h = 0; h <= 2; h++) {
-    for (let m = 0; m < 60; m += 15) {
+    for (let m = 0; m < 60; m += 5) {
       slots.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
     }
   }
