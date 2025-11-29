@@ -65,12 +65,10 @@ export default function GestioneAssistente() {
     queryFn: () => base44.entities.AssistenteCategoria.list('ordine'),
   });
 
-  const { data: conversations = [], isLoading: loadingConversations, error: conversationsError } = useQuery({
+  const { data: conversations = [], isLoading: loadingConversations, error: conversationsError, refetch: refetchConversations } = useQuery({
     queryKey: ['assistente-conversations'],
     queryFn: async () => {
-      console.log('Fetching conversations for agent: assistente_dipendenti');
       const convs = await base44.agents.listConversations({ agent_name: 'assistente_dipendenti' });
-      console.log('Conversations received:', convs);
       if (!convs || convs.length === 0) return [];
       // Per ogni conversazione, carica i messaggi completi
       const convsWithMessages = await Promise.all(
@@ -79,15 +77,33 @@ export default function GestioneAssistente() {
             const fullConv = await base44.agents.getConversation(conv.id);
             return fullConv;
           } catch (e) {
-            console.log('Error loading conversation:', conv.id, e);
             return conv;
           }
         })
       );
       return convsWithMessages;
     },
-    enabled: activeTab === 'conversazioni'
+    enabled: activeTab === 'conversazioni',
+    refetchInterval: activeTab === 'conversazioni' ? 5000 : false, // Auto-refresh ogni 5 secondi
   });
+
+  // Sottoscrizione real-time per le conversazioni espanse
+  const [liveMessages, setLiveMessages] = useState({});
+
+  useEffect(() => {
+    if (!expandedConversation) return;
+    
+    const unsubscribe = base44.agents.subscribeToConversation(expandedConversation, (data) => {
+      setLiveMessages(prev => ({
+        ...prev,
+        [expandedConversation]: data.messages
+      }));
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [expandedConversation]);
 
   // Merge categorie dal DB con quelle di default
   const CATEGORIE = categorieDB.length > 0 
