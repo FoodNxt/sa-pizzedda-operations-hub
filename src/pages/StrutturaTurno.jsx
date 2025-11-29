@@ -641,23 +641,65 @@ export default function StrutturaTurno() {
                             </select>
                           </div>
                         )}
-                        {editingSlotIndex !== null ? (
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              onClick={cancelEditSlot}
-                              className="nav-button px-3 py-2 rounded-lg text-sm font-medium text-slate-600 flex items-center justify-center gap-1"
-                            >
-                              <X className="w-4 h-4" /> Annulla
-                            </button>
-                            <button
-                              type="button"
-                              onClick={addSlot}
-                              className="nav-button px-3 py-2 rounded-lg text-sm font-medium text-green-600 flex items-center justify-center gap-1"
-                            >
-                              <Save className="w-4 h-4" /> Salva
-                            </button>
+                        <div>
+                          <label className="text-xs font-medium text-slate-600 mb-1 block">
+                            <GraduationCap className="w-3 h-3 inline mr-1" />
+                            Corso
+                          </label>
+                          <select
+                            value={newSlot.corso_id}
+                            onChange={(e) => setNewSlot({ ...newSlot, corso_id: e.target.value })}
+                            className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                          >
+                            <option value="">Nessun corso</option>
+                            {corsi.map(c => (
+                              <option key={c.id} value={c.id}>{c.titolo}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      
+                      {/* Attrezzature da pulire */}
+                      {attrezzatureDisponibili.length > 0 && (
+                        <div className="mt-3">
+                          <label className="text-xs font-medium text-slate-600 mb-2 block">
+                            <Sparkles className="w-3 h-3 inline mr-1" />
+                            Attrezzature da pulire
+                          </label>
+                          <div className="flex flex-wrap gap-2">
+                            {attrezzatureDisponibili.map(attr => (
+                              <button
+                                key={attr}
+                                type="button"
+                                onClick={() => toggleAttrezzatura(attr)}
+                                className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                                  (newSlot.attrezzature_pulizia || []).includes(attr)
+                                    ? 'bg-gradient-to-r from-green-500 to-green-600 text-white'
+                                    : 'nav-button text-slate-700'
+                                }`}
+                              >
+                                {attr}
+                              </button>
+                            ))}
                           </div>
+                        </div>
+                      )}
+
+                      <div className="flex gap-2 mt-3">
+                          <button
+                            type="button"
+                            onClick={cancelEditSlot}
+                            className="nav-button px-3 py-2 rounded-lg text-sm font-medium text-slate-600 flex items-center justify-center gap-1"
+                          >
+                            <X className="w-4 h-4" /> Annulla
+                          </button>
+                          <button
+                            type="button"
+                            onClick={addSlot}
+                            className="nav-button px-3 py-2 rounded-lg text-sm font-medium text-green-600 flex items-center justify-center gap-1"
+                          >
+                            <Save className="w-4 h-4" /> Salva
+                          </button>
                         ) : (
                           <button
                             type="button"
