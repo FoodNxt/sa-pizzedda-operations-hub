@@ -194,17 +194,19 @@ export default function Impasto() {
             <Calculator className="w-4 h-4" />
             Calcolo
           </button>
-          <button
-            onClick={() => setActiveTab('ricetta')}
-            className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
-              activeTab === 'ricetta'
-                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                : 'neumorphic-flat text-slate-700'
-            }`}
-          >
-            <BookOpen className="w-4 h-4" />
-            Ricetta
-          </button>
+          {(user?.user_type === 'admin' || user?.user_type === 'manager') && (
+            <button
+              onClick={() => setActiveTab('ricetta')}
+              className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
+                activeTab === 'ricetta'
+                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                  : 'neumorphic-flat text-slate-700'
+              }`}
+            >
+              <BookOpen className="w-4 h-4" />
+              Ricetta
+            </button>
+          )}
         </div>
 
         {/* Tab Ricetta */}
