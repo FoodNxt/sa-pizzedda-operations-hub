@@ -222,7 +222,7 @@ export default function StrutturaTurno() {
   };
 
   const getCorsoName = (corsoId) => {
-    return corsi.find(c => c.id === corsoId)?.titolo || '';
+    return corsi.find(c => c.id === corsoId)?.nome_corso || '';
   };
 
   const toggleAttrezzatura = (attr) => {
@@ -463,7 +463,7 @@ export default function StrutturaTurno() {
                             {slot.corso_id && (
                               <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 flex items-center gap-1">
                                 <GraduationCap className="w-3 h-3" />
-                                {corsi.find(c => c.id === slot.corso_id)?.titolo || ''}
+                                {corsi.find(c => c.id === slot.corso_id)?.nome_corso || ''}
                               </span>
                             )}
                             {(slot.attrezzature_pulizia || []).length > 0 && (
@@ -664,8 +664,8 @@ export default function StrutturaTurno() {
                             className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
                           >
                             <option value="">Nessun corso</option>
-                            {corsi.map(c => (
-                              <option key={c.id} value={c.id}>{c.titolo}</option>
+                            {corsi.filter(c => c.attivo !== false).map(c => (
+                              <option key={c.id} value={c.id}>{c.nome_corso}</option>
                             ))}
                           </select>
                         </div>
@@ -698,20 +698,23 @@ export default function StrutturaTurno() {
                       )}
 
                       <div className="flex gap-2 mt-3">
-                          <button
-                            type="button"
-                            onClick={cancelEditSlot}
-                            className="nav-button px-3 py-2 rounded-lg text-sm font-medium text-slate-600 flex items-center justify-center gap-1"
-                          >
-                            <X className="w-4 h-4" /> Annulla
-                          </button>
-                          <button
-                            type="button"
-                            onClick={addSlot}
-                            className="nav-button px-3 py-2 rounded-lg text-sm font-medium text-green-600 flex items-center justify-center gap-1"
-                          >
-                            <Save className="w-4 h-4" /> Salva
-                          </button>
+                        {editingSlotIndex !== null ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={cancelEditSlot}
+                              className="nav-button px-3 py-2 rounded-lg text-sm font-medium text-slate-600 flex items-center justify-center gap-1"
+                            >
+                              <X className="w-4 h-4" /> Annulla
+                            </button>
+                            <button
+                              type="button"
+                              onClick={addSlot}
+                              className="nav-button px-3 py-2 rounded-lg text-sm font-medium text-green-600 flex items-center justify-center gap-1"
+                            >
+                              <Save className="w-4 h-4" /> Salva
+                            </button>
+                          </>
                         ) : (
                           <button
                             type="button"
