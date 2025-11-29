@@ -210,12 +210,42 @@ export default function GestioneAssistente() {
       categoria: item.categoria,
       titolo: item.titolo,
       contenuto: item.contenuto,
+      notion_url: item.notion_url || '',
       tags: item.tags || [],
       store_specifico: item.store_specifico || '',
       priorita: item.priorita || 0,
       attivo: item.attivo !== false
     });
     setShowForm(true);
+  };
+
+  const fetchNotionContent = async () => {
+    if (!formData.notion_url) return;
+    setLoadingNotion(true);
+    try {
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: `Estrai il contenuto testuale completo dalla seguente pagina Notion pubblica: ${formData.notion_url}. Restituisci solo il testo del contenuto, formattato in modo leggibile.`,
+        add_context_from_internet: true,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            contenuto: { type: "string", description: "Il contenuto estratto dalla pagina Notion" },
+            titolo: { type: "string", description: "Il titolo della pagina se disponibile" }
+          }
+        }
+      });
+      if (result.contenuto) {
+        setFormData(prev => ({
+          ...prev,
+          contenuto: result.contenuto,
+          titolo: prev.titolo || result.titolo || ''
+        }));
+      }
+    } catch (error) {
+      console.error('Errore caricamento Notion:', error);
+      alert('Errore nel caricamento del contenuto da Notion');
+    }
+    setLoadingNotion(false);
   };
 
   const handleSave = () => {
