@@ -450,13 +450,25 @@ export default function GestioneAssistente() {
                   </select>
                 </div>
                 <NeumorphicButton
-                  onClick={() => setShowForm(true)}
-                  variant="primary"
-                  className="flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Aggiungi
-                </NeumorphicButton>
+                                    onClick={refreshAllNotionPages}
+                                    disabled={refreshingAllNotion}
+                                    className="flex items-center gap-2"
+                                  >
+                                    {refreshingAllNotion ? (
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                      <RefreshCw className="w-4 h-4" />
+                                    )}
+                                    Aggiorna Notion
+                                  </NeumorphicButton>
+                                  <NeumorphicButton
+                                    onClick={() => setShowForm(true)}
+                                    variant="primary"
+                                    className="flex items-center gap-2"
+                                  >
+                                    <Plus className="w-4 h-4" />
+                                    Aggiungi
+                                  </NeumorphicButton>
               </div>
             </NeumorphicCard>
 
