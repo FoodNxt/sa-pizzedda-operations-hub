@@ -1,15 +1,18 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
+import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
-import { ChefHat, Calculator, AlertCircle } from "lucide-react";
+import { ChefHat, Calculator, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
 
 const giorni = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
 
 export default function Impasto() {
   const [selectedStore, setSelectedStore] = useState('');
   const [barelleInFrigo, setBarelleInFrigo] = useState('');
+  const [calcoloConfermato, setCalcoloConfermato] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -24,6 +27,20 @@ export default function Impasto() {
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
+  });
+
+  const { data: ricettaIngredienti = [] } = useQuery({
+    queryKey: ['ricetta-impasto'],
+    queryFn: () => base44.entities.RicettaImpasto.list(),
+  });
+
+  const sortedIngredienti = [...ricettaIngredienti].filter(i => i.attivo !== false).sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
+
+  const logMutation = useMutation({
+    mutationFn: (data) => base44.entities.CalcoloImpastoLog.create(data),
+    onSuccess: () => {
+      setCalcoloConfermato(true);
+    },
   });
 
   const risultato = useMemo(() => {
@@ -48,13 +65,48 @@ export default function Impasto() {
 
     const pallinePresenti = parseInt(barelleInFrigo) * 6;
     const impastoNecessario = totaleProssimi3Giorni - pallinePresenti;
+    
+    // Calcola ingredienti necessari
+    const ingredientiNecessari = sortedIngredienti.map(ing => ({
+      ...ing,
+      quantita_totale: ing.quantita_per_pallina * Math.max(0, impastoNecessario)
+    }));
+
     return {
       totaleProssimi3Giorni,
       barelleInFrigo: parseInt(barelleInFrigo),
       pallinePresenti,
-      impastoNecessario: Math.max(0, impastoNecessario)
+      impastoNecessario: Math.max(0, impastoNecessario),
+      ingredientiNecessari
     };
-  }, [selectedStore, barelleInFrigo, impasti]);
+  }, [selectedStore, barelleInFrigo, impasti, sortedIngredienti]);
+
+  const handleCalcolaImpasto = async () => {
+    if (!risultato) return;
+    
+    const store = stores.find(s => s.id === selectedStore);
+    await logMutation.mutateAsync({
+      store_id: selectedStore,
+      store_name: store?.name || '',
+      data_calcolo: new Date().toISOString(),
+      operatore: user?.full_name || user?.email || '',
+      barelle_in_frigo: risultato.barelleInFrigo,
+      palline_presenti: risultato.pallinePresenti,
+      fabbisogno_3_giorni: risultato.totaleProssimi3Giorni,
+      impasto_suggerito: risultato.impastoNecessario
+    });
+  };
+
+  // Reset conferma quando cambiano i dati
+  const handleStoreChange = (storeId) => {
+    setSelectedStore(storeId);
+    setCalcoloConfermato(false);
+  };
+
+  const handleBarelleChange = (value) => {
+    setBarelleInFrigo(value);
+    setCalcoloConfermato(false);
+  };
 
   return (
     <ProtectedPage pageName="Impasto">
