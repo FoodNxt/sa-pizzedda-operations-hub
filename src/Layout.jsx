@@ -158,6 +158,11 @@ const navigationStructure = [
         icon: ChefHat,
       },
       {
+        title: "Precotture",
+        url: createPageUrl("PrecottureAdmin"),
+        icon: Pizza,
+      },
+      {
         title: "Inventario Store Manager",
         url: createPageUrl("InventarioStoreManager"),
         icon: Settings,
