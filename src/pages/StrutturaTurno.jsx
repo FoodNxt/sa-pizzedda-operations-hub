@@ -911,11 +911,11 @@ export default function StrutturaTurno() {
                 </button>
               </div>
 
-              <p className="text-sm text-slate-600 mb-4">
+              <p className="text-sm text-slate-600 mb-2">
                 Copia "{schemaToCopy.nome_schema}" su altri giorni:
               </p>
 
-              <div className="flex flex-wrap gap-2 mb-6">
+              <div className="flex flex-wrap gap-2 mb-4">
                 {GIORNI.map((giorno, idx) => (
                   <button
                     key={idx}
@@ -941,6 +941,52 @@ export default function StrutturaTurno() {
                 ))}
               </div>
 
+              {/* Copia su altri store (stesso giorno) */}
+              {(schemaToCopy.assigned_stores || []).length > 0 && (
+                <>
+                  <p className="text-sm text-slate-600 mb-2 mt-4 pt-4 border-t">
+                    Oppure copia su altri store (stesso giorno, {GIORNI[schemaToCopy.giorno_settimana]}):
+                  </p>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {stores
+                      .filter(s => !(schemaToCopy.assigned_stores || []).includes(s.id))
+                      .map(store => {
+                        // Controlla se esiste già uno schema per questo store/giorno/ruolo
+                        const exists = schemi.some(s => 
+                          s.giorno_settimana === schemaToCopy.giorno_settimana &&
+                          s.ruolo === schemaToCopy.ruolo &&
+                          (s.assigned_stores || []).includes(store.id)
+                        );
+                        return (
+                          <button
+                            key={store.id}
+                            onClick={() => {
+                              if (exists) return;
+                              if (copyTargetStores.includes(store.id)) {
+                                setCopyTargetStores(copyTargetStores.filter(id => id !== store.id));
+                              } else {
+                                setCopyTargetStores([...copyTargetStores, store.id]);
+                              }
+                            }}
+                            disabled={exists}
+                            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                              exists
+                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                : copyTargetStores.includes(store.id)
+                                ? 'bg-gradient-to-r from-green-500 to-green-600 text-white'
+                                : 'nav-button text-slate-700'
+                            }`}
+                            title={exists ? 'Schema già esistente per questo store/giorno/ruolo' : ''}
+                          >
+                            {store.name}
+                            {exists && ' ✓'}
+                          </button>
+                        );
+                      })}
+                  </div>
+                </>
+              )}
+
               <div className="flex gap-3">
                 <NeumorphicButton onClick={() => setShowCopyModal(false)} className="flex-1">
                   Annulla
@@ -949,10 +995,10 @@ export default function StrutturaTurno() {
                   onClick={handleCopy}
                   variant="primary"
                   className="flex-1 flex items-center justify-center gap-2"
-                  disabled={copyTargetDays.length === 0}
+                  disabled={copyTargetDays.length === 0 && copyTargetStores.length === 0}
                 >
                   <Copy className="w-5 h-5" />
-                  Copia ({copyTargetDays.length})
+                  Copia ({copyTargetDays.length + copyTargetStores.length})
                 </NeumorphicButton>
               </div>
             </NeumorphicCard>
