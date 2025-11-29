@@ -736,12 +736,19 @@ export default function GestioneAssistente() {
                 <div className="text-center py-8">
                   <AlertTriangle className="w-8 h-8 mx-auto text-red-500 mb-2" />
                   <p className="text-red-600">Errore nel caricamento: {conversationsError.message}</p>
+                  <p className="text-xs text-slate-400 mt-2">Dettagli: {JSON.stringify(conversationsError)}</p>
                 </div>
               ) : conversations.length === 0 ? (
                 <div className="text-center py-8">
                   <MessageSquare className="w-16 h-16 mx-auto text-slate-300 mb-4" />
                   <p className="text-slate-500">Nessuna conversazione trovata</p>
-                  <p className="text-xs text-slate-400 mt-2">Le conversazioni appariranno qui quando i dipendenti useranno l'assistente</p>
+                  <p className="text-xs text-slate-400 mt-2">Le conversazioni appariranno qui quando i dipendenti useranno l'assistente via WhatsApp o chat</p>
+                  <div className="mt-4 p-4 bg-blue-50 rounded-xl max-w-md mx-auto">
+                    <p className="text-sm text-blue-700 font-medium mb-2">💡 Come far usare l'assistente ai dipendenti:</p>
+                    <p className="text-xs text-blue-600">
+                      I dipendenti possono chattare con l'assistente collegandosi via WhatsApp dalla pagina "Assistente Dipendente" oppure dalla loro area personale.
+                    </p>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-3">
