@@ -697,7 +697,12 @@ export default function GestioneAssistente() {
             <NeumorphicCard className="p-6">
               <h2 className="text-xl font-bold text-slate-800 mb-4">Conversazioni Dipendenti</h2>
               
-              {conversations.length === 0 ? (
+              {loadingConversations ? (
+                <div className="text-center py-8">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-500 mb-2" />
+                  <p className="text-slate-500">Caricamento conversazioni...</p>
+                </div>
+              ) : conversations.length === 0 ? (
                 <p className="text-slate-500 text-center py-8">Nessuna conversazione trovata</p>
               ) : (
                 <div className="space-y-3">
