@@ -171,10 +171,156 @@ export default function GestioneImpastiPrecotture() {
             <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
               Gestione Impasti/Precotture
             </h1>
-            <p className="text-slate-500 mt-1">Configura precotture per negozio e turno</p>
+            <p className="text-slate-500 mt-1">Configura precotture e ricetta impasto</p>
           </div>
         </div>
 
+        {/* Tabs */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setActiveTab('precotture')}
+            className={`px-6 py-3 rounded-xl font-medium transition-all ${
+              activeTab === 'precotture'
+                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                : 'neumorphic-flat text-slate-700'
+            }`}
+          >
+            <ChefHat className="w-4 h-4 inline mr-2" />
+            Precotture
+          </button>
+          <button
+            onClick={() => setActiveTab('ricetta')}
+            className={`px-6 py-3 rounded-xl font-medium transition-all ${
+              activeTab === 'ricetta'
+                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                : 'neumorphic-flat text-slate-700'
+            }`}
+          >
+            <BookOpen className="w-4 h-4 inline mr-2" />
+            Ricetta Impasto
+          </button>
+        </div>
+
+        {activeTab === 'ricetta' && (
+          <NeumorphicCard className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-slate-800">Ricetta per 1 Pallina</h2>
+              <NeumorphicButton
+                onClick={() => setShowIngredientForm(true)}
+                variant="primary"
+                className="flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Aggiungi Ingrediente
+              </NeumorphicButton>
+            </div>
+
+            {showIngredientForm && (
+              <div className="neumorphic-pressed p-4 rounded-xl mb-4">
+                <h3 className="font-bold text-slate-700 mb-3">
+                  {editingIngredient ? 'Modifica Ingrediente' : 'Nuovo Ingrediente'}
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Nome</label>
+                    <input
+                      type="text"
+                      value={ingredientForm.nome_ingrediente}
+                      onChange={(e) => setIngredientForm({ ...ingredientForm, nome_ingrediente: e.target.value })}
+                      className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
+                      placeholder="es. Farina"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Quantità</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={ingredientForm.quantita_per_pallina}
+                      onChange={(e) => setIngredientForm({ ...ingredientForm, quantita_per_pallina: e.target.value })}
+                      className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
+                      placeholder="es. 150"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Unità</label>
+                    <select
+                      value={ingredientForm.unita_misura}
+                      onChange={(e) => setIngredientForm({ ...ingredientForm, unita_misura: e.target.value })}
+                      className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
+                    >
+                      <option value="g">grammi (g)</option>
+                      <option value="kg">kg</option>
+                      <option value="ml">ml</option>
+                      <option value="litri">litri</option>
+                      <option value="unità">unità</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Ordine</label>
+                    <input
+                      type="number"
+                      value={ingredientForm.ordine}
+                      onChange={(e) => setIngredientForm({ ...ingredientForm, ordine: e.target.value })}
+                      className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <NeumorphicButton onClick={resetIngredientForm}>Annulla</NeumorphicButton>
+                  <NeumorphicButton onClick={handleSaveIngredient} variant="primary">
+                    <Save className="w-4 h-4 inline mr-1" /> Salva
+                  </NeumorphicButton>
+                </div>
+              </div>
+            )}
+
+            {sortedIngredienti.length === 0 ? (
+              <p className="text-slate-500 text-center py-8">Nessun ingrediente configurato</p>
+            ) : (
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b-2 border-slate-200">
+                    <th className="text-left py-3 px-2 text-slate-700">Ingrediente</th>
+                    <th className="text-right py-3 px-2 text-slate-700">Quantità per Pallina</th>
+                    <th className="text-center py-3 px-2 text-slate-700">Azioni</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedIngredienti.filter(i => i.attivo !== false).map(ing => (
+                    <tr key={ing.id} className="border-b border-slate-100">
+                      <td className="py-3 px-2 font-medium text-slate-800">{ing.nome_ingrediente}</td>
+                      <td className="py-3 px-2 text-right text-slate-700">
+                        {ing.quantita_per_pallina} {ing.unita_misura}
+                      </td>
+                      <td className="py-3 px-2 text-center">
+                        <button
+                          onClick={() => handleEditIngredient(ing)}
+                          className="nav-button p-2 rounded-lg hover:bg-blue-50 mr-1"
+                        >
+                          <Edit className="w-4 h-4 text-blue-600" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm('Eliminare questo ingrediente?')) {
+                              deleteIngredientMutation.mutate(ing.id);
+                            }
+                          }}
+                          className="nav-button p-2 rounded-lg hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </NeumorphicCard>
+        )}
+
+        {activeTab === 'precotture' && (
         <NeumorphicCard className="p-6">
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Seleziona Negozio
