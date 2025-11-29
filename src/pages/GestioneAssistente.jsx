@@ -795,9 +795,11 @@ export default function GestioneAssistente() {
                         <Eye className="w-4 h-4 text-slate-400" />
                       </div>
                       
-                      {expandedConversation === conv.id && (liveMessages[conv.id] || conv.messages) && (
-                        <div className="mt-4 space-y-2 max-h-96 overflow-y-auto">
-                          {(liveMessages[conv.id] || conv.messages || []).map((msg, idx) => (
+                      {expandedConversation === conv.id && (
+                          <div className="mt-4 space-y-2 max-h-96 overflow-y-auto">
+                            {(liveMessages[conv.id] || conv.messages || []).length === 0 ? (
+                              <p className="text-sm text-slate-500 italic text-center py-4">Nessun messaggio in questa conversazione</p>
+                            ) : (liveMessages[conv.id] || conv.messages || []).map((msg, idx) => (
                             <div 
                               key={idx}
                               className={`p-3 rounded-lg ${
@@ -849,10 +851,10 @@ export default function GestioneAssistente() {
                                   </p>
                                 </div>
                               )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                              </div>
+                              ))}
+                              </div>
+                              )}
                     </div>
                   ))}
                 </div>
