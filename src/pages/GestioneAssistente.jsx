@@ -49,6 +49,7 @@ export default function GestioneAssistente() {
   });
   const [newTag, setNewTag] = useState('');
   const [loadingNotion, setLoadingNotion] = useState(false);
+  const [refreshingAllNotion, setRefreshingAllNotion] = useState(false);
 
   const queryClient = useQueryClient();
 
