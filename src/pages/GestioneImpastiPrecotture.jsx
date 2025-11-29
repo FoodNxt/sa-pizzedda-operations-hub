@@ -2,15 +2,25 @@ import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
+import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
-import { ChefHat, Plus, Edit, Save, X, Calendar } from "lucide-react";
+import { ChefHat, Plus, Edit, Save, X, Calendar, Trash2, BookOpen } from "lucide-react";
 
 const giorni = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"];
 
 export default function GestioneImpastiPrecotture() {
+  const [activeTab, setActiveTab] = useState('precotture');
   const [selectedStore, setSelectedStore] = useState('');
   const [editingRow, setEditingRow] = useState(null);
   const [editData, setEditData] = useState({});
+  const [showIngredientForm, setShowIngredientForm] = useState(false);
+  const [editingIngredient, setEditingIngredient] = useState(null);
+  const [ingredientForm, setIngredientForm] = useState({
+    nome_ingrediente: '',
+    quantita_per_pallina: '',
+    unita_misura: 'g',
+    ordine: 0
+  });
   const queryClient = useQueryClient();
 
   const { data: stores = [] } = useQuery({
