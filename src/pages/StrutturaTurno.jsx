@@ -178,9 +178,14 @@ export default function StrutturaTurno() {
       return;
     }
     const slotToAdd = {
-      ...newSlot,
+      ora_inizio: newSlot.ora_inizio,
+      ora_fine: newSlot.ora_fine,
+      attivita: newSlot.attivita,
+      colore: newSlot.colore,
       richiede_form: newSlot.richiede_form || false,
-      form_page: newSlot.richiede_form ? newSlot.form_page : ''
+      form_page: newSlot.richiede_form ? newSlot.form_page : '',
+      corsi_ids: newSlot.corsi_ids || [],
+      attrezzature_pulizia: newSlot.attrezzature_pulizia || []
     };
     
     if (editingSlotIndex !== null) {
