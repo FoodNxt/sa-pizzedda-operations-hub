@@ -76,24 +76,14 @@ export default function GestioneAssistente() {
   const { data: conversations = [], isLoading: loadingConversations, error: conversationsError, refetch: refetchConversations } = useQuery({
     queryKey: ['assistente-conversations', conversazioniTracking],
     queryFn: async () => {
-      // Carica i dettagli delle conversazioni dal tracking usando la funzione backend
-      const response = await base44.functions.invoke('listAllConversations', {
-        conversation_ids: conversazioniTracking.map(t => t.conversation_id)
-      });
-      
-      const convMap = {};
-      (response.data?.conversations || []).forEach(conv => {
-        convMap[conv.id] = conv;
-      });
-
+      // Usa direttamente i messaggi salvati nel tracking entity
       return conversazioniTracking.map(track => ({
         id: track.conversation_id,
         user_name: track.user_name,
         user_email: track.user_email,
         tracking: track,
-        messages: convMap[track.conversation_id]?.messages || [],
-        metadata: convMap[track.conversation_id]?.metadata || {},
-        created_date: convMap[track.conversation_id]?.created_date || track.created_date
+        messages: track.messages || [],
+        created_date: track.created_date
       }));
     },
     enabled: activeTab === 'conversazioni' && conversazioniTracking.length > 0,
