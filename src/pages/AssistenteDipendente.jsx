@@ -48,6 +48,16 @@ export default function AssistenteDipendente() {
       setCurrentConversation(conv);
       setMessages([]);
       loadConversations();
+
+      // Salva riferimento nella entity per tracking admin
+      await base44.entities.ConversazioneAssistente.create({
+        conversation_id: conv.id,
+        user_id: user?.id,
+        user_name: user?.full_name || user?.nome_cognome || user?.email,
+        user_email: user?.email,
+        last_message_date: new Date().toISOString(),
+        message_count: 0
+      });
     } catch (error) {
       console.error('Error creating conversation:', error);
     }
@@ -77,6 +87,16 @@ export default function AssistenteDipendente() {
       });
       setCurrentConversation(conv);
       loadConversations();
+
+      // Salva riferimento nella entity per tracking admin
+      await base44.entities.ConversazioneAssistente.create({
+        conversation_id: conv.id,
+        user_id: user?.id,
+        user_name: user?.full_name || user?.nome_cognome || user?.email,
+        user_email: user?.email,
+        last_message_date: new Date().toISOString(),
+        message_count: 0
+      });
     }
 
     const userMessage = { role: 'user', content: input };
@@ -90,6 +110,15 @@ export default function AssistenteDipendente() {
       });
 
       await base44.agents.addMessage(conv, userMessage);
+
+      // Aggiorna tracking conversazione
+      const tracking = await base44.entities.ConversazioneAssistente.filter({ conversation_id: conv.id });
+      if (tracking.length > 0) {
+        await base44.entities.ConversazioneAssistente.update(tracking[0].id, {
+          last_message_date: new Date().toISOString(),
+          message_count: (tracking[0].message_count || 0) + 1
+        });
+      }
       
       setTimeout(() => {
         unsubscribe();
