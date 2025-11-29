@@ -321,25 +321,26 @@ export default function GestioneImpastiPrecotture() {
         )}
 
         {activeTab === 'precotture' && (
-        <NeumorphicCard className="p-6">
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Seleziona Negozio
-          </label>
-          <select
-            value={selectedStore}
-            onChange={(e) => setSelectedStore(e.target.value)}
-            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-          >
-            <option value="">-- Seleziona Negozio --</option>
-            {stores.map(store => (
-              <option key={store.id} value={store.id}>{store.name}</option>
-            ))}
-          </select>
-        </NeumorphicCard>
-
-        {activeTab === 'precotture' && selectedStore && (
           <>
-            <NeumorphicCard className="p-6 bg-blue-50">
+            <NeumorphicCard className="p-6">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Seleziona Negozio
+              </label>
+              <select
+                value={selectedStore}
+                onChange={(e) => setSelectedStore(e.target.value)}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+              >
+                <option value="">-- Seleziona Negozio --</option>
+                {stores.map(store => (
+                  <option key={store.id} value={store.id}>{store.name}</option>
+                ))}
+              </select>
+            </NeumorphicCard>
+
+            {selectedStore && (
+              <>
+                <NeumorphicCard className="p-6 bg-blue-50">
               <h3 className="text-lg font-bold text-blue-800 mb-3">ℹ️ Come funziona la colonna "Impasto 3 Giorni"</h3>
               <div className="space-y-2 text-sm text-blue-900">
                 <p>
