@@ -1,0 +1,626 @@
+import React, { useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Calendar, Plus, Edit, Trash2, Save, X, Copy, Clock, Users, Store } from 'lucide-react';
+import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
+import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
+import ProtectedPage from "../components/ProtectedPage";
+
+const GIORNI = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+const RUOLI = ['Pizzaiolo', 'Cassiere', 'Store Manager'];
+const COLORI = [
+  { value: 'blue', label: 'Blu', class: 'bg-blue-200 border-blue-400' },
+  { value: 'green', label: 'Verde', class: 'bg-green-200 border-green-400' },
+  { value: 'yellow', label: 'Giallo', class: 'bg-yellow-200 border-yellow-400' },
+  { value: 'red', label: 'Rosso', class: 'bg-red-200 border-red-400' },
+  { value: 'purple', label: 'Viola', class: 'bg-purple-200 border-purple-400' },
+  { value: 'orange', label: 'Arancione', class: 'bg-orange-200 border-orange-400' },
+  { value: 'pink', label: 'Rosa', class: 'bg-pink-200 border-pink-400' },
+  { value: 'gray', label: 'Grigio', class: 'bg-gray-200 border-gray-400' },
+];
+
+// Generate time slots from 06:00 to 02:00 (next day) in 15-minute increments
+const generateTimeSlots = () => {
+  const slots = [];
+  for (let h = 6; h < 24; h++) {
+    for (let m = 0; m < 60; m += 15) {
+      slots.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
+    }
+  }
+  // Add slots for 00:00 to 02:00
+  for (let h = 0; h <= 2; h++) {
+    for (let m = 0; m < 60; m += 15) {
+      slots.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
+    }
+  }
+  return slots;
+};
+
+const TIME_SLOTS = generateTimeSlots();
+
+export default function StrutturaTurno() {
+  const [selectedGiorno, setSelectedGiorno] = useState(1); // Default: Lunedì
+  const [selectedRuolo, setSelectedRuolo] = useState('');
+  const [selectedStoreFilter, setSelectedStoreFilter] = useState('');
+  const [showForm, setShowForm] = useState(false);
+  const [editingSchema, setEditingSchema] = useState(null);
+  const [showCopyModal, setShowCopyModal] = useState(false);
+  const [schemaToCopy, setSchemaToCopy] = useState(null);
+  const [copyTargetDays, setCopyTargetDays] = useState([]);
+
+  const [formData, setFormData] = useState({
+    nome_schema: '',
+    giorno_settimana: 1,
+    ruolo: 'Pizzaiolo',
+    assigned_stores: [],
+    slots: [],
+    is_active: true
+  });
+
+  const [newSlot, setNewSlot] = useState({
+    ora_inizio: '09:00',
+    ora_fine: '09:15',
+    attivita: '',
+    colore: 'blue'
+  });
+
+  const queryClient = useQueryClient();
+
+  const { data: schemi = [] } = useQuery({
+    queryKey: ['struttura-turno'],
+    queryFn: () => base44.entities.StrutturaTurno.list(),
+  });
+
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores'],
+    queryFn: () => base44.entities.Store.list(),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (data) => base44.entities.StrutturaTurno.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['struttura-turno'] });
+      resetForm();
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.StrutturaTurno.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['struttura-turno'] });
+      resetForm();
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.StrutturaTurno.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['struttura-turno'] });
+    },
+  });
+
+  const resetForm = () => {
+    setFormData({
+      nome_schema: '',
+      giorno_settimana: selectedGiorno,
+      ruolo: 'Pizzaiolo',
+      assigned_stores: [],
+      slots: [],
+      is_active: true
+    });
+    setNewSlot({ ora_inizio: '09:00', ora_fine: '09:15', attivita: '', colore: 'blue' });
+    setEditingSchema(null);
+    setShowForm(false);
+  };
+
+  const handleEdit = (schema) => {
+    setEditingSchema(schema);
+    setFormData({
+      nome_schema: schema.nome_schema,
+      giorno_settimana: schema.giorno_settimana,
+      ruolo: schema.ruolo,
+      assigned_stores: schema.assigned_stores || [],
+      slots: schema.slots || [],
+      is_active: schema.is_active !== false
+    });
+    setShowForm(true);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (editingSchema) {
+      updateMutation.mutate({ id: editingSchema.id, data: formData });
+    } else {
+      createMutation.mutate(formData);
+    }
+  };
+
+  const addSlot = () => {
+    if (!newSlot.attivita.trim()) {
+      alert('Inserisci una descrizione per l\'attività');
+      return;
+    }
+    setFormData({
+      ...formData,
+      slots: [...formData.slots, { ...newSlot }].sort((a, b) => a.ora_inizio.localeCompare(b.ora_inizio))
+    });
+    setNewSlot({ ora_inizio: newSlot.ora_fine, ora_fine: newSlot.ora_fine, attivita: '', colore: 'blue' });
+  };
+
+  const removeSlot = (index) => {
+    setFormData({
+      ...formData,
+      slots: formData.slots.filter((_, i) => i !== index)
+    });
+  };
+
+  const toggleStore = (storeId) => {
+    const current = formData.assigned_stores || [];
+    if (current.includes(storeId)) {
+      setFormData({ ...formData, assigned_stores: current.filter(id => id !== storeId) });
+    } else {
+      setFormData({ ...formData, assigned_stores: [...current, storeId] });
+    }
+  };
+
+  const openCopyModal = (schema) => {
+    setSchemaToCopy(schema);
+    setCopyTargetDays([]);
+    setShowCopyModal(true);
+  };
+
+  const handleCopy = async () => {
+    if (copyTargetDays.length === 0) {
+      alert('Seleziona almeno un giorno');
+      return;
+    }
+
+    for (const giorno of copyTargetDays) {
+      await createMutation.mutateAsync({
+        nome_schema: `${schemaToCopy.nome_schema} (${GIORNI[giorno]})`,
+        giorno_settimana: giorno,
+        ruolo: schemaToCopy.ruolo,
+        assigned_stores: schemaToCopy.assigned_stores || [],
+        slots: schemaToCopy.slots || [],
+        is_active: true
+      });
+    }
+
+    setShowCopyModal(false);
+    setSchemaToCopy(null);
+    setCopyTargetDays([]);
+  };
+
+  const getColoreClass = (colore) => {
+    return COLORI.find(c => c.value === colore)?.class || 'bg-gray-200 border-gray-400';
+  };
+
+  const getStoreName = (storeId) => {
+    return stores.find(s => s.id === storeId)?.name || storeId;
+  };
+
+  // Filter schemas
+  const filteredSchemi = schemi.filter(s => {
+    if (s.giorno_settimana !== selectedGiorno) return false;
+    if (selectedRuolo && s.ruolo !== selectedRuolo) return false;
+    if (selectedStoreFilter && !(s.assigned_stores || []).includes(selectedStoreFilter)) return false;
+    return true;
+  });
+
+  return (
+    <ProtectedPage pageName="StrutturaTurno">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
+              Struttura Turno
+            </h1>
+            <p className="text-sm text-slate-500">Gestisci gli schemi dei turni per giorno e ruolo</p>
+          </div>
+          <NeumorphicButton
+            onClick={() => {
+              setFormData({ ...formData, giorno_settimana: selectedGiorno });
+              setShowForm(true);
+            }}
+            variant="primary"
+            className="flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            Nuovo Schema
+          </NeumorphicButton>
+        </div>
+
+        {/* Filters */}
+        <NeumorphicCard className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">
+                <Calendar className="w-4 h-4 inline mr-1" />
+                Giorno
+              </label>
+              <div className="flex flex-wrap gap-1">
+                {GIORNI.map((giorno, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedGiorno(idx)}
+                    className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                      selectedGiorno === idx
+                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                        : 'nav-button text-slate-700'
+                    }`}
+                  >
+                    {giorno.slice(0, 3)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">
+                <Users className="w-4 h-4 inline mr-1" />
+                Ruolo
+              </label>
+              <select
+                value={selectedRuolo}
+                onChange={(e) => setSelectedRuolo(e.target.value)}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+              >
+                <option value="">Tutti i ruoli</option>
+                {RUOLI.map(ruolo => (
+                  <option key={ruolo} value={ruolo}>{ruolo}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">
+                <Store className="w-4 h-4 inline mr-1" />
+                Locale
+              </label>
+              <select
+                value={selectedStoreFilter}
+                onChange={(e) => setSelectedStoreFilter(e.target.value)}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+              >
+                <option value="">Tutti i locali</option>
+                {stores.map(store => (
+                  <option key={store.id} value={store.id}>{store.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </NeumorphicCard>
+
+        {/* Schema List */}
+        {filteredSchemi.length === 0 ? (
+          <NeumorphicCard className="p-12 text-center">
+            <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+            <p className="text-slate-500">Nessuno schema per {GIORNI[selectedGiorno]}</p>
+            <p className="text-xs text-slate-400 mt-2">Crea un nuovo schema per iniziare</p>
+          </NeumorphicCard>
+        ) : (
+          <div className="space-y-4">
+            {filteredSchemi.map(schema => (
+              <NeumorphicCard key={schema.id} className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="font-bold text-slate-800 text-lg">{schema.nome_schema}</h3>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                        {schema.ruolo}
+                      </span>
+                      {(schema.assigned_stores || []).map(storeId => (
+                        <span key={storeId} className="px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                          {getStoreName(storeId)}
+                        </span>
+                      ))}
+                      {(!schema.assigned_stores || schema.assigned_stores.length === 0) && (
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                          Tutti i locali
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => openCopyModal(schema)} className="nav-button p-2 rounded-lg" title="Copia su altri giorni">
+                      <Copy className="w-4 h-4 text-purple-600" />
+                    </button>
+                    <button onClick={() => handleEdit(schema)} className="nav-button p-2 rounded-lg">
+                      <Edit className="w-4 h-4 text-blue-600" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm('Eliminare questo schema?')) {
+                          deleteMutation.mutate(schema.id);
+                        }
+                      }}
+                      className="nav-button p-2 rounded-lg"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-600" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Timeline View */}
+                <div className="mt-4 overflow-x-auto">
+                  <div className="min-w-[600px]">
+                    {(schema.slots || []).length === 0 ? (
+                      <p className="text-sm text-slate-500 italic">Nessuno slot configurato</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {(schema.slots || []).map((slot, idx) => (
+                          <div
+                            key={idx}
+                            className={`p-3 rounded-lg border-2 ${getColoreClass(slot.colore)} flex items-center gap-4`}
+                          >
+                            <div className="flex items-center gap-2 min-w-[120px]">
+                              <Clock className="w-4 h-4 text-slate-600" />
+                              <span className="font-mono font-bold text-slate-700">
+                                {slot.ora_inizio} - {slot.ora_fine}
+                              </span>
+                            </div>
+                            <span className="text-slate-800 font-medium">{slot.attivita}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </NeumorphicCard>
+            ))}
+          </div>
+        )}
+
+        {/* Create/Edit Form Modal */}
+        {showForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+              <NeumorphicCard className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold text-slate-800">
+                    {editingSchema ? 'Modifica Schema' : 'Nuovo Schema'}
+                  </h2>
+                  <button onClick={resetForm} className="nav-button p-2 rounded-lg">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-2 block">Nome Schema</label>
+                      <input
+                        type="text"
+                        value={formData.nome_schema}
+                        onChange={(e) => setFormData({ ...formData, nome_schema: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                        placeholder="es. Turno Mattina Pizzaiolo"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-2 block">Giorno</label>
+                      <select
+                        value={formData.giorno_settimana}
+                        onChange={(e) => setFormData({ ...formData, giorno_settimana: parseInt(e.target.value) })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      >
+                        {GIORNI.map((giorno, idx) => (
+                          <option key={idx} value={idx}>{giorno}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">Ruolo</label>
+                    <div className="flex flex-wrap gap-2">
+                      {RUOLI.map(ruolo => (
+                        <button
+                          key={ruolo}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, ruolo })}
+                          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                            formData.ruolo === ruolo
+                              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                              : 'nav-button text-slate-700'
+                          }`}
+                        >
+                          {ruolo}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">
+                      Locali (vuoto = tutti)
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {stores.map(store => (
+                        <button
+                          key={store.id}
+                          type="button"
+                          onClick={() => toggleStore(store.id)}
+                          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                            (formData.assigned_stores || []).includes(store.id)
+                              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                              : 'nav-button text-slate-700'
+                          }`}
+                        >
+                          {store.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Slots Section */}
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-bold text-slate-800 mb-4">Slot Temporali</h3>
+
+                    {/* Add Slot Form */}
+                    <div className="neumorphic-pressed p-4 rounded-xl mb-4">
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 items-end">
+                        <div>
+                          <label className="text-xs font-medium text-slate-600 mb-1 block">Inizio</label>
+                          <select
+                            value={newSlot.ora_inizio}
+                            onChange={(e) => setNewSlot({ ...newSlot, ora_inizio: e.target.value })}
+                            className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                          >
+                            {TIME_SLOTS.map(time => (
+                              <option key={time} value={time}>{time}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-slate-600 mb-1 block">Fine</label>
+                          <select
+                            value={newSlot.ora_fine}
+                            onChange={(e) => setNewSlot({ ...newSlot, ora_fine: e.target.value })}
+                            className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                          >
+                            {TIME_SLOTS.map(time => (
+                              <option key={time} value={time}>{time}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-slate-600 mb-1 block">Attività</label>
+                          <input
+                            type="text"
+                            value={newSlot.attivita}
+                            onChange={(e) => setNewSlot({ ...newSlot, attivita: e.target.value })}
+                            className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                            placeholder="Descrizione..."
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-slate-600 mb-1 block">Colore</label>
+                          <select
+                            value={newSlot.colore}
+                            onChange={(e) => setNewSlot({ ...newSlot, colore: e.target.value })}
+                            className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                          >
+                            {COLORI.map(c => (
+                              <option key={c.value} value={c.value}>{c.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={addSlot}
+                          className="nav-button px-4 py-2 rounded-lg text-sm font-medium text-blue-600 flex items-center justify-center gap-1"
+                        >
+                          <Plus className="w-4 h-4" /> Aggiungi
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Slots List */}
+                    {formData.slots.length === 0 ? (
+                      <p className="text-sm text-slate-500 text-center py-4">Nessuno slot aggiunto</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {formData.slots.map((slot, idx) => (
+                          <div
+                            key={idx}
+                            className={`p-3 rounded-lg border-2 ${getColoreClass(slot.colore)} flex items-center justify-between`}
+                          >
+                            <div className="flex items-center gap-4">
+                              <span className="font-mono font-bold text-slate-700">
+                                {slot.ora_inizio} - {slot.ora_fine}
+                              </span>
+                              <span className="text-slate-800">{slot.attivita}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeSlot(idx)}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <NeumorphicButton type="button" onClick={resetForm} className="flex-1">
+                      Annulla
+                    </NeumorphicButton>
+                    <NeumorphicButton type="submit" variant="primary" className="flex-1 flex items-center justify-center gap-2">
+                      <Save className="w-5 h-5" />
+                      {editingSchema ? 'Aggiorna' : 'Crea'}
+                    </NeumorphicButton>
+                  </div>
+                </form>
+              </NeumorphicCard>
+            </div>
+          </div>
+        )}
+
+        {/* Copy Modal */}
+        {showCopyModal && schemaToCopy && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="max-w-md w-full p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-slate-800">Copia Schema</h2>
+                <button onClick={() => setShowCopyModal(false)} className="nav-button p-2 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <p className="text-sm text-slate-600 mb-4">
+                Copia "{schemaToCopy.nome_schema}" su altri giorni:
+              </p>
+
+              <div className="flex flex-wrap gap-2 mb-6">
+                {GIORNI.map((giorno, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      if (idx === schemaToCopy.giorno_settimana) return;
+                      if (copyTargetDays.includes(idx)) {
+                        setCopyTargetDays(copyTargetDays.filter(d => d !== idx));
+                      } else {
+                        setCopyTargetDays([...copyTargetDays, idx]);
+                      }
+                    }}
+                    disabled={idx === schemaToCopy.giorno_settimana}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                      idx === schemaToCopy.giorno_settimana
+                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                        : copyTargetDays.includes(idx)
+                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                        : 'nav-button text-slate-700'
+                    }`}
+                  >
+                    {giorno}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex gap-3">
+                <NeumorphicButton onClick={() => setShowCopyModal(false)} className="flex-1">
+                  Annulla
+                </NeumorphicButton>
+                <NeumorphicButton
+                  onClick={handleCopy}
+                  variant="primary"
+                  className="flex-1 flex items-center justify-center gap-2"
+                  disabled={copyTargetDays.length === 0}
+                >
+                  <Copy className="w-5 h-5" />
+                  Copia ({copyTargetDays.length})
+                </NeumorphicButton>
+              </div>
+            </NeumorphicCard>
+          </div>
+        )}
+      </div>
+    </ProtectedPage>
+  );
+}

@@ -74,6 +74,7 @@ import PulizieMatch from './pages/PulizieMatch';
 import OreLavorate from './pages/OreLavorate';
 import Alerts from './pages/Alerts';
 import ControlloStoreManager from './pages/ControlloStoreManager';
+import StrutturaTurno from './pages/StrutturaTurno';
 import __Layout from './Layout.jsx';
 
 
@@ -154,6 +155,7 @@ export const PAGES = {
     "OreLavorate": OreLavorate,
     "Alerts": Alerts,
     "ControlloStoreManager": ControlloStoreManager,
+    "StrutturaTurno": StrutturaTurno,
 }
 
 export const pagesConfig = {
