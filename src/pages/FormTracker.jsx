@@ -113,6 +113,7 @@ export default function FormTracker() {
       form_page: '',
       assigned_roles: [],
       shift_timing: 'end',
+      shift_based_timing: ['end'],
       shift_sequences: ['first'],
       days_of_week: [],
       is_active: true
@@ -132,11 +133,14 @@ export default function FormTracker() {
       sequences = ['first'];
     }
     
+    const timings = config.shift_based_timing || [config.shift_timing || 'end'];
+    
     setConfigForm({
       form_name: config.form_name,
       form_page: config.form_page,
       assigned_roles: config.assigned_roles || [],
-      shift_timing: config.shift_based_timing?.[0] || config.shift_timing || 'end',
+      shift_timing: timings[0] || 'end',
+      shift_based_timing: timings,
       shift_sequences: sequences,
       days_of_week: config.days_of_week || [],
       is_active: config.is_active !== false
@@ -158,11 +162,11 @@ export default function FormTracker() {
       form_page: configForm.form_page,
       assigned_roles: configForm.assigned_roles,
       shift_timing: configForm.shift_timing,
+      shift_based_timing: configForm.shift_based_timing || [configForm.shift_timing],
       shift_sequences: configForm.shift_sequences,
       days_of_week: configForm.days_of_week,
       is_active: configForm.is_active,
       frequency_type: 'shift_based',
-      shift_based_timing: [configForm.shift_timing],
       shift_sequence: configForm.shift_sequences[0] // backward compatibility
     };
     
@@ -973,14 +977,31 @@ export default function FormTracker() {
 
                   <div>
                     <label className="text-sm font-medium text-slate-700 mb-2 block">
-                      Momento del turno
+                      Momento del turno (puoi selezionare entrambi)
                     </label>
                     <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={() => setConfigForm({ ...configForm, shift_timing: 'start' })}
+                        onClick={() => {
+                          const timings = configForm.shift_based_timing || [configForm.shift_timing];
+                          if (timings.includes('start')) {
+                            const newTimings = timings.filter(t => t !== 'start');
+                            setConfigForm({ 
+                              ...configForm, 
+                              shift_timing: newTimings[0] || 'end',
+                              shift_based_timing: newTimings.length > 0 ? newTimings : ['end']
+                            });
+                          } else {
+                            const newTimings = [...timings, 'start'];
+                            setConfigForm({ 
+                              ...configForm, 
+                              shift_timing: 'start',
+                              shift_based_timing: newTimings
+                            });
+                          }
+                        }}
                         className={`flex-1 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                          configForm.shift_timing === 'start'
+                          (configForm.shift_based_timing || [configForm.shift_timing]).includes('start')
                             ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
                             : 'nav-button text-slate-700'
                         }`}
@@ -989,9 +1010,26 @@ export default function FormTracker() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setConfigForm({ ...configForm, shift_timing: 'end' })}
+                        onClick={() => {
+                          const timings = configForm.shift_based_timing || [configForm.shift_timing];
+                          if (timings.includes('end')) {
+                            const newTimings = timings.filter(t => t !== 'end');
+                            setConfigForm({ 
+                              ...configForm, 
+                              shift_timing: newTimings[0] || 'start',
+                              shift_based_timing: newTimings.length > 0 ? newTimings : ['start']
+                            });
+                          } else {
+                            const newTimings = [...timings, 'end'];
+                            setConfigForm({ 
+                              ...configForm, 
+                              shift_timing: 'end',
+                              shift_based_timing: newTimings
+                            });
+                          }
+                        }}
                         className={`flex-1 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                          configForm.shift_timing === 'end'
+                          (configForm.shift_based_timing || [configForm.shift_timing]).includes('end')
                             ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
                             : 'nav-button text-slate-700'
                         }`}

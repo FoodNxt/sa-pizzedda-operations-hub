@@ -778,13 +778,25 @@ export default function Planday() {
     });
   };
 
-  // Filtra dipendenti per ruolo
+  // Filtra dipendenti per store e ruolo
   const filteredDipendenti = useMemo(() => {
     return users.filter(u => {
+      // Filtra per ruolo (deve avere il ruolo richiesto dal turno)
       const ruoli = u.ruoli_dipendente || [];
-      return ruoli.includes(turnoForm.ruolo);
+      if (!ruoli.includes(turnoForm.ruolo)) return false;
+      
+      // Filtra per store (se un store è selezionato, mostra solo dipendenti assegnati a quel store)
+      if (turnoForm.store_id) {
+        const assignedStores = u.assigned_stores || [];
+        // Se il dipendente non ha store assegnati, mostralo comunque (per retrocompatibilità)
+        if (assignedStores.length === 0) return true;
+        // Altrimenti verifica che sia assegnato allo store del turno
+        return assignedStores.includes(turnoForm.store_id);
+      }
+      
+      return true;
     });
-  }, [users, turnoForm.ruolo]);
+  }, [users, turnoForm.ruolo, turnoForm.store_id]);
 
   // Genera giorni della settimana
   const weekDays = useMemo(() => {
@@ -848,6 +860,19 @@ export default function Planday() {
   const getTurnoTipo = (turno) => {
     const [h] = turno.ora_inizio.split(':').map(Number);
     return h < 14 ? 'Mattina' : 'Sera';
+  };
+
+  const calcolaOreEffettive = (turno) => {
+    if (!turno.timbrata_entrata || !turno.timbrata_uscita) return null;
+    
+    const entrata = moment(turno.timbrata_entrata);
+    const uscita = moment(turno.timbrata_uscita);
+    const minutiEffettivi = uscita.diff(entrata, 'minutes');
+    
+    const ore = Math.floor(minutiEffettivi / 60);
+    const minuti = minutiEffettivi % 60;
+    
+    return `${ore}h ${minuti}m`;
   };
 
   const getTimbraturaTipo = (turno) => {
@@ -931,11 +956,8 @@ export default function Planday() {
   const getFormCompilati = (turno) => {
     if (!turno.dipendente_nome) return { dovuti: [], compilati: [] };
     
-    const user = users.find(u => 
-      (u.nome_cognome || u.full_name) === turno.dipendente_nome
-    );
-    const userRoles = user?.ruoli_dipendente || [];
     const storeName = getStoreName(turno.store_id);
+    const turnoRuolo = turno.ruolo; // Usa il ruolo del turno specifico, non i ruoli generali del dipendente
     
     // Usa la logica di FormTracker
     const dateStart = new Date(turno.data);
@@ -951,10 +973,9 @@ export default function Planday() {
     activeConfigs.forEach(config => {
       const configRoles = config.assigned_roles || [];
       
-      // Check if this config applies to this user's roles
-      if (configRoles.length > 0) {
-        const hasMatchingRole = configRoles.some(r => userRoles.includes(r));
-        if (!hasMatchingRole) return;
+      // Check if this config applies to this specific shift's role
+      if (configRoles.length > 0 && !configRoles.includes(turnoRuolo)) {
+        return;
       }
       
       // Check if config applies to this store
@@ -2063,6 +2084,7 @@ export default function Planday() {
                         <th className="text-left p-2 text-xs font-medium text-slate-600">Turno</th>
                         <th className="text-left p-2 text-xs font-medium text-slate-600">Entrata</th>
                         <th className="text-left p-2 text-xs font-medium text-slate-600">Uscita</th>
+                        <th className="text-center p-2 text-xs font-medium text-slate-600">Ore Eff.</th>
                         <th className="text-center p-2 text-xs font-medium text-slate-600">Rit. Reale</th>
                         <th className="text-center p-2 text-xs font-medium text-slate-600">Rit. Cont.</th>
                         <th className="text-center p-2 text-xs font-medium text-slate-600">Form</th>
@@ -2139,6 +2161,9 @@ export default function Planday() {
                               ) : (
                                 <span className="text-slate-400">-</span>
                               )}
+                            </td>
+                            <td className="p-2 text-center text-xs whitespace-nowrap font-medium text-blue-700">
+                              {calcolaOreEffettive(turno) || '-'}
                             </td>
                             <td className="p-2 text-center text-xs whitespace-nowrap">
                               {stato.ritardoReale > 0 ? (
