@@ -829,6 +829,9 @@ function ContrattiSection() {
       dataFineContratto = dataFine.toLocaleDateString('it-IT');
     }
     
+    const sedeNome = data.sede_lavoro ? (stores.find(s => s.id === data.sede_lavoro)?.name || data.sede_lavoro) : '';
+    const tipoContratto = data.employee_group === 'FT' ? 'Full Time' : data.employee_group === 'PT' ? 'Part Time' : data.employee_group === 'CM' ? 'Contratto Misto' : data.employee_group || '';
+    
     const variables = {
       '{{nome_cognome}}': data.nome_cognome || '', '{{phone}}': data.phone || '',
       '{{data_nascita}}': data.data_nascita ? new Date(data.data_nascita).toLocaleDateString('it-IT') : '',
@@ -836,6 +839,8 @@ function ContrattiSection() {
       '{{indirizzo_residenza}}': data.indirizzo_residenza || '', '{{iban}}': data.iban || '',
       '{{employee_group}}': data.employee_group || '', '{{function_name}}': data.function_name || '',
       '{{ore_settimanali}}': data.ore_settimanali?.toString() || '',
+      '{{tipo_contratto}}': tipoContratto,
+      '{{sede_lavoro}}': sedeNome,
       '{{data_inizio_contratto}}': data.data_inizio_contratto ? new Date(data.data_inizio_contratto).toLocaleDateString('it-IT') : '',
       '{{durata_contratto_mesi}}': data.durata_contratto_mesi?.toString() || '',
       '{{data_oggi}}': oggi, '{{data_fine_contratto}}': dataFineContratto,
