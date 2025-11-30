@@ -805,7 +805,7 @@ function ContrattiSection() {
       phone: '', data_nascita: '', citta_nascita: '', codice_fiscale: '', indirizzo_residenza: '',
       iban: '', taglia_maglietta: '', user_type: 'dipendente', ruoli_dipendente: [],
       assigned_stores: [], employee_group: '', function_name: '', ore_settimanali: 0,
-      data_inizio_contratto: '', durata_contratto_mesi: 0, status: 'bozza', note: ''
+      sede_lavoro: '', data_inizio_contratto: '', durata_contratto_mesi: 0, status: 'bozza', note: ''
     });
     setSelectedTemplate('');
     setEditingContratto(null);
