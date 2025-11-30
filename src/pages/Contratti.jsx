@@ -51,7 +51,7 @@ export default function Contratti() {
     nome_cognome: '',
     phone: '',
     data_nascita: '',
-    citta_nascita: '', // Added citta_nascita
+    citta_nascita: '',
     codice_fiscale: '',
     indirizzo_residenza: '',
     iban: '',
@@ -59,6 +59,8 @@ export default function Contratti() {
     user_type: 'dipendente',
     ruoli_dipendente: [],
     assigned_stores: [],
+    tipo_contratto: '',
+    sede_lavoro: '',
     employee_group: '',
     function_name: '',
     ore_settimanali: 0,
@@ -67,6 +69,17 @@ export default function Contratti() {
     status: 'bozza',
     note: ''
   });
+
+  // Email personalizzata
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailContratto, setEmailContratto] = useState(null);
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+  const [emailPrompt, setEmailPrompt] = useState('');
+  const [generatingEmail, setGeneratingEmail] = useState(false);
+
+  // Warning contratti sovrapposti
+  const [overlappingWarning, setOverlappingWarning] = useState(null);
 
   const [templateData, setTemplateData] = useState({
     nome_template: '',
