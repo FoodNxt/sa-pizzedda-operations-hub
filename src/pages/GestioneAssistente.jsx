@@ -72,10 +72,12 @@ export default function GestioneAssistente() {
     domanda: '',
     risposta: '',
     categoria: 'Generale',
+    store_id: '',
     ordine: 0,
     attivo: true
   });
   const [filterFAQCategoria, setFilterFAQCategoria] = useState('');
+  const [filterFAQStore, setFilterFAQStore] = useState('');
   
   const [formData, setFormData] = useState({
     categoria: 'Procedure Operative',
@@ -421,6 +423,7 @@ export default function GestioneAssistente() {
       domanda: '',
       risposta: '',
       categoria: 'Generale',
+      store_id: '',
       ordine: 0,
       attivo: true
     });
@@ -434,6 +437,7 @@ export default function GestioneAssistente() {
       domanda: faq.domanda,
       risposta: faq.risposta,
       categoria: faq.categoria,
+      store_id: faq.store_id || '',
       ordine: faq.ordine || 0,
       attivo: faq.attivo !== false
     });
@@ -459,9 +463,11 @@ export default function GestioneAssistente() {
     "Altro"
   ];
 
-  const filteredFAQs = filterFAQCategoria 
-    ? faqs.filter(f => f.categoria === filterFAQCategoria)
-    : faqs;
+  const filteredFAQs = faqs.filter(f => {
+    if (filterFAQCategoria && f.categoria !== filterFAQCategoria) return false;
+    if (filterFAQStore && f.store_id !== filterFAQStore) return false;
+    return true;
+  });
 
   const handleSaveCategory = () => {
     if (editingCategory) {
@@ -1736,7 +1742,7 @@ export default function GestioneAssistente() {
           <>
             <NeumorphicCard className="p-6">
               <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 flex-wrap">
                   <h2 className="text-xl font-bold text-slate-800">FAQ Dipendenti</h2>
                   <select
                     value={filterFAQCategoria}
@@ -1746,6 +1752,16 @@ export default function GestioneAssistente() {
                     <option value="">Tutte le categorie</option>
                     {FAQ_CATEGORIE.map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={filterFAQStore}
+                    onChange={(e) => setFilterFAQStore(e.target.value)}
+                    className="neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
+                  >
+                    <option value="">Tutti i locali</option>
+                    {stores.map(store => (
+                      <option key={store.id} value={store.id}>{store.name}</option>
                     ))}
                   </select>
                 </div>
@@ -1771,7 +1787,7 @@ export default function GestioneAssistente() {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div>
                     <label className="text-sm font-medium text-slate-700 mb-1 block">Categoria *</label>
                     <select
@@ -1781,6 +1797,19 @@ export default function GestioneAssistente() {
                     >
                       {FAQ_CATEGORIE.map(cat => (
                         <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Locale Specifico</label>
+                    <select
+                      value={faqForm.store_id}
+                      onChange={(e) => setFAQForm({ ...faqForm, store_id: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    >
+                      <option value="">Tutti i locali</option>
+                      {stores.map(store => (
+                        <option key={store.id} value={store.id}>{store.name}</option>
                       ))}
                     </select>
                   </div>
@@ -1871,6 +1900,14 @@ export default function GestioneAssistente() {
                               <p className="text-sm text-slate-600 mt-2 pl-6">
                                 <span className="text-green-600 font-medium">R:</span> {faq.risposta}
                               </p>
+                              {faq.store_id && (
+                                <div className="mt-2 pl-6">
+                                  <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-xs flex items-center gap-1 inline-flex">
+                                    <Store className="w-3 h-3" />
+                                    {getStoreName(faq.store_id)}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                             <div className="flex gap-1">
                               <button
