@@ -478,10 +478,10 @@ export default function TurniDipendente() {
 
         {/* Prossimo Turno - Timbra */}
         {prossimoTurno && (
-          <NeumorphicCard className="p-6 bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200">
-            <h2 className="text-xl font-bold text-indigo-800 mb-4 flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              Prossimo Turno
+          <NeumorphicCard className={`p-6 border ${prossimoTurnoStatus.inCorso ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-200' : 'bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200'}`}>
+            <h2 className={`text-xl font-bold mb-4 flex items-center gap-2 ${prossimoTurnoStatus.inCorso ? 'text-green-800' : 'text-indigo-800'}`}>
+              {prossimoTurnoStatus.inCorso ? <Timer className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
+              {prossimoTurnoStatus.inCorso ? 'Turno in Corso' : 'Prossimo Turno'}
             </h2>
             <div className="bg-white rounded-xl p-4 shadow-sm">
               <div className="flex items-center justify-between mb-3">
@@ -499,13 +499,39 @@ export default function TurniDipendente() {
                     <span>•</span>
                     <span>{prossimoTurno.ruolo}</span>
                   </div>
+                  {prossimoTurno.tipo_turno && prossimoTurno.tipo_turno !== 'Normale' && (
+                    <div className="mt-2">
+                      <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                        {prossimoTurno.tipo_turno}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {prossimoTurno.timbrata_entrata && !prossimoTurno.timbrata_uscita && (
-                <div className="flex items-center gap-2 text-sm text-green-600 mb-3">
-                  <LogIn className="w-4 h-4" />
-                  Entrata: {moment(prossimoTurno.timbrata_entrata).format('HH:mm')}
+              {/* Timer turno in corso */}
+              {prossimoTurnoStatus.inCorso && prossimoTurnoStatus.durataLavorata && (
+                <div className="mb-4 p-4 bg-green-50 rounded-xl border border-green-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-green-700 font-medium">Durata turno</span>
+                    <span className="text-2xl font-bold text-green-800 font-mono">
+                      {String(Math.floor(prossimoTurnoStatus.durataLavorata.asHours())).padStart(2, '0')}:
+                      {String(prossimoTurnoStatus.durataLavorata.minutes()).padStart(2, '0')}:
+                      {String(prossimoTurnoStatus.durataLavorata.seconds()).padStart(2, '0')}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-green-700">Entrata: {moment(prossimoTurno.timbrata_entrata).format('HH:mm')}</span>
+                    {prossimoTurnoStatus.minutesToEnd > 0 ? (
+                      <span className="text-sm text-orange-600 font-medium">
+                        ⏱️ Mancano {prossimoTurnoStatus.minutesToEnd} min alla fine
+                      </span>
+                    ) : (
+                      <span className="text-sm text-green-600 font-medium">
+                        ✅ Puoi timbrare l'uscita
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -514,7 +540,7 @@ export default function TurniDipendente() {
                 variant="primary"
                 className={`w-full flex items-center justify-center gap-2 ${
                   !prossimoTurnoStatus.canTimbra ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
+                } ${prossimoTurnoStatus.tipo === 'uscita' && prossimoTurnoStatus.canTimbra ? 'bg-gradient-to-r from-green-500 to-green-600' : ''}`}
                 disabled={!prossimoTurnoStatus.canTimbra || loadingGPS || timbraMutation.isPending}
               >
                 {loadingGPS ? (
@@ -544,136 +570,6 @@ export default function TurniDipendente() {
             </div>
           </NeumorphicCard>
         )}
-
-        {/* Turni di oggi - Timbratura */}
-        {turnoOggi.length > 0 && (
-          <NeumorphicCard className="p-6 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
-            <h2 className="text-xl font-bold text-blue-800 mb-4 flex items-center gap-2">
-              <Calendar className="w-5 h-5" />
-              Turni di Oggi - Timbratura
-            </h2>
-            <div className="space-y-4">
-              {turnoOggi.map(turno => {
-                const status = getTurnoStatus(turno);
-                const canTimbraEntrata = status === 'attivo' && !turno.timbrata_entrata;
-                const canTimbraUscita = status === 'in_corso' || (turno.timbrata_entrata && !turno.timbrata_uscita);
-
-                return (
-                  <div key={turno.id} className="bg-white rounded-xl p-4 shadow-sm">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <Clock className="w-5 h-5 text-blue-600" />
-                        <span className="font-bold text-lg text-slate-800">
-                          {turno.ora_inizio} - {turno.ora_fine}
-                        </span>
-                      </div>
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        status === 'completato' ? 'bg-green-100 text-green-800' :
-                        status === 'in_corso' ? 'bg-blue-100 text-blue-800' :
-                        status === 'attivo' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-slate-100 text-slate-800'
-                      }`}>
-                        {status === 'completato' ? 'Completato' :
-                         status === 'in_corso' ? 'In Corso' :
-                         status === 'attivo' ? 'Puoi Timbrare' :
-                         'Programmato'}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-slate-600 mb-3">
-                      <MapPin className="w-4 h-4" />
-                      <span>{getStoreName(turno.store_id)}</span>
-                      <span className="mx-2">•</span>
-                      <span>{turno.ruolo}</span>
-                    </div>
-
-                    {(turno.timbrata_entrata || turno.timbrata_uscita) && (
-                      <div className="flex flex-wrap gap-4 text-sm text-slate-600 mb-3">
-                        {turno.timbrata_entrata && (
-                          <div className="flex items-center gap-1">
-                            <LogIn className="w-4 h-4 text-green-600" />
-                            Entrata: {moment(turno.timbrata_entrata).format('HH:mm')}
-                          </div>
-                        )}
-                        {turno.timbrata_uscita && (
-                          <div className="flex items-center gap-1">
-                            <LogOut className="w-4 h-4 text-blue-600" />
-                            Uscita: {moment(turno.timbrata_uscita).format('HH:mm')}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="flex gap-3">
-                      {canTimbraEntrata && (
-                        <NeumorphicButton
-                          onClick={() => handleTimbra(turno, 'entrata')}
-                          variant="primary"
-                          className="flex-1 flex items-center justify-center gap-2"
-                          disabled={loadingGPS || timbraMutation.isPending}
-                        >
-                          {loadingGPS ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
-                          Timbra Entrata
-                        </NeumorphicButton>
-                      )}
-                      {canTimbraUscita && (
-                        <NeumorphicButton
-                          onClick={() => handleTimbra(turno, 'uscita')}
-                          className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-green-600 text-white"
-                          disabled={loadingGPS || timbraMutation.isPending}
-                        >
-                          {loadingGPS ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
-                          Timbra Uscita
-                        </NeumorphicButton>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </NeumorphicCard>
-        )}
-
-        {/* Turni Futuri con possibilità di scambio */}
-        <NeumorphicCard className="p-6">
-          <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <RefreshCw className="w-5 h-5" />
-            Prossimi Turni
-          </h2>
-          
-          {turniFuturi.length === 0 ? (
-            <p className="text-slate-500 text-center py-4">Nessun turno futuro programmato</p>
-          ) : (
-            <div className="space-y-3">
-              {turniFuturi.slice(0, 10).map(turno => (
-                <div key={turno.id} className={`p-4 rounded-xl border ${COLORI_RUOLO[turno.ruolo]}`}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-bold">{moment(turno.data).format('dddd DD MMMM')}</div>
-                      <div className="text-sm">{turno.ora_inizio} - {turno.ora_fine}</div>
-                      <div className="text-sm opacity-80">{getStoreName(turno.store_id)} • {turno.ruolo}</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {turno.richiesta_scambio?.stato === 'pending' ? (
-                        <span className="px-3 py-1 bg-yellow-200 text-yellow-800 rounded-full text-xs">
-                          Scambio richiesto
-                        </span>
-                      ) : (
-                        <NeumorphicButton
-                          onClick={() => openScambioModal(turno)}
-                          className="text-sm px-3 py-1 flex items-center gap-1"
-                        >
-                          <Users className="w-4 h-4" />
-                          Scambia
-                        </NeumorphicButton>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </NeumorphicCard>
 
         {/* Navigazione settimana */}
         <NeumorphicCard className="p-4">
