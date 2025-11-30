@@ -1027,9 +1027,17 @@ function ContrattiSection() {
 
   const availableVariables = [
     'nome_cognome', 'phone', 'data_nascita', 'citta_nascita', 'codice_fiscale', 'indirizzo_residenza', 'iban',
-    'employee_group', 'function_name', 'ore_settimanali', 'data_inizio_contratto', 
+    'employee_group', 'tipo_contratto', 'function_name', 'ore_settimanali', 'sede_lavoro', 'data_inizio_contratto', 
     'durata_contratto_mesi', 'data_oggi', 'data_fine_contratto', 'ruoli', 'locali'
   ];
+
+  // Load email config on mount
+  React.useEffect(() => {
+    const config = emailConfigs.find(c => c.tipo_documento === 'contratto');
+    if (config) {
+      setEmailConfig({ oggetto: config.oggetto_email, corpo: config.corpo_email });
+    }
+  }, [emailConfigs]);
 
   return (
     <>
