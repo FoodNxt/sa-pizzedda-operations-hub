@@ -78,6 +78,8 @@ import StoricoImpasti from './pages/StoricoImpasti';
 import GestioneAssistente from './pages/GestioneAssistente';
 import AssistenteDipendente from './pages/AssistenteDipendente';
 import PrecottureAdmin from './pages/PrecottureAdmin';
+import Planday from './pages/Planday';
+import TurniDipendente from './pages/TurniDipendente';
 import __Layout from './Layout.jsx';
 
 
@@ -162,6 +164,8 @@ export const PAGES = {
     "GestioneAssistente": GestioneAssistente,
     "AssistenteDipendente": AssistenteDipendente,
     "PrecottureAdmin": PrecottureAdmin,
+    "Planday": Planday,
+    "TurniDipendente": TurniDipendente,
 }
 
 export const pagesConfig = {
