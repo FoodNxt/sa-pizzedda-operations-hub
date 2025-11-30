@@ -854,12 +854,12 @@ export default function Layout({ children, currentPageName }) {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          padding: 8px 4px;
+          padding: 10px 6px;
           background: linear-gradient(145deg, #f0f4f8, #e1e8ed);
           border-radius: 12px;
           transition: all 0.2s ease;
-          min-height: 60px;
-          min-width: 0;
+          min-height: 54px;
+          box-shadow: 2px 2px 6px rgba(136, 165, 191, 0.3), -2px -2px 6px #ffffff;
         }
 
         .bottom-nav-item:active {
@@ -868,25 +868,22 @@ export default function Layout({ children, currentPageName }) {
 
         .bottom-nav-item.active {
           background: linear-gradient(145deg, #3b82f6, #2563eb);
-          box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.1);
+          box-shadow: inset 2px 2px 6px rgba(0, 0, 0, 0.15);
         }
 
         .bottom-nav-item svg {
-          width: 20px !important;
-          height: 20px !important;
-          margin-bottom: 2px;
+          width: 22px !important;
+          height: 22px !important;
+          margin-bottom: 4px;
           flex-shrink: 0;
         }
 
         .bottom-nav-item span {
-          font-size: 10px !important;
+          font-size: 11px !important;
           font-weight: 600 !important;
           text-align: center;
           line-height: 1.2;
-          overflow: hidden;
-          text-overflow: ellipsis;
           white-space: nowrap;
-          max-width: 100%;
         }
 
         @media (max-width: 1024px) {
@@ -1120,7 +1117,7 @@ export default function Layout({ children, currentPageName }) {
         {/* Main Content */}
         <main className={`
           flex-1 min-h-screen 
-          ${normalizedUserType === 'dipendente' ? 'pt-20 pb-20 lg:pt-8 lg:pb-8 lg:ml-0' : normalizedUserType !== 'admin' ? 'pt-32 lg:pt-16' : 'pt-20 lg:pt-0'} 
+          ${normalizedUserType === 'dipendente' ? 'pt-20 pb-36 lg:pt-8 lg:pb-8 lg:ml-0' : normalizedUserType !== 'admin' ? 'pt-32 lg:pt-16' : 'pt-20 lg:pt-0'} 
           px-3 py-4 lg:p-8
         `}>
           {children}
@@ -1129,33 +1126,81 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Mobile Bottom Navigation (Dipendente only) */}
       {normalizedUserType === 'dipendente' && isFullyLoaded && bottomNavItems.length > 0 && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 px-1 pb-1 safe-area-bottom">
-          <div className="neumorphic-card p-1.5">
-            <div className="flex items-stretch justify-between gap-1">
-              {bottomNavItems.map((item) => {
-                const isActive = isActiveLink(item.url);
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.url}
-                    to={item.url}
-                    className={`bottom-nav-item ${isActive ? 'active' : ''}`}
-                  >
-                    <Icon className={`${isActive ? 'text-white' : 'text-slate-600'}`} />
-                    <span className={`${isActive ? 'text-white' : 'text-slate-600'}`}>
-                      {item.title}
-                    </span>
-                  </Link>
-                );
-              })}
-              <button
-                onClick={() => base44.auth.logout()}
-                className="bottom-nav-item"
-              >
-                <LogOut className="text-slate-600" />
-                <span className="text-slate-600">Logout</span>
-              </button>
-            </div>
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 px-2 pb-2 safe-area-bottom">
+          <div className="neumorphic-card p-2">
+            {(() => {
+              const allItems = [...bottomNavItems, { title: 'Logout', icon: LogOut, isLogout: true }];
+              const itemsPerRow = Math.ceil(allItems.length / 2);
+              const firstRow = allItems.slice(0, itemsPerRow);
+              const secondRow = allItems.slice(itemsPerRow);
+
+              return (
+                <div className="space-y-1.5">
+                  <div className="flex items-stretch justify-between gap-1.5">
+                    {firstRow.map((item) => {
+                      const isActive = !item.isLogout && isActiveLink(item.url);
+                      const Icon = item.icon;
+                      if (item.isLogout) {
+                        return (
+                          <button
+                            key="logout"
+                            onClick={() => base44.auth.logout()}
+                            className="bottom-nav-item"
+                          >
+                            <Icon className="text-slate-600" />
+                            <span className="text-slate-600">{item.title}</span>
+                          </button>
+                        );
+                      }
+                      return (
+                        <Link
+                          key={item.url}
+                          to={item.url}
+                          className={`bottom-nav-item ${isActive ? 'active' : ''}`}
+                        >
+                          <Icon className={`${isActive ? 'text-white' : 'text-slate-600'}`} />
+                          <span className={`${isActive ? 'text-white' : 'text-slate-600'}`}>
+                            {item.title}
+                          </span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                  {secondRow.length > 0 && (
+                    <div className="flex items-stretch justify-between gap-1.5">
+                      {secondRow.map((item) => {
+                        const isActive = !item.isLogout && isActiveLink(item.url);
+                        const Icon = item.icon;
+                        if (item.isLogout) {
+                          return (
+                            <button
+                              key="logout"
+                              onClick={() => base44.auth.logout()}
+                              className="bottom-nav-item"
+                            >
+                              <Icon className="text-slate-600" />
+                              <span className="text-slate-600">{item.title}</span>
+                            </button>
+                          );
+                        }
+                        return (
+                          <Link
+                            key={item.url}
+                            to={item.url}
+                            className={`bottom-nav-item ${isActive ? 'active' : ''}`}
+                          >
+                            <Icon className={`${isActive ? 'text-white' : 'text-slate-600'}`} />
+                            <span className={`${isActive ? 'text-white' : 'text-slate-600'}`}>
+                              {item.title}
+                            </span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
