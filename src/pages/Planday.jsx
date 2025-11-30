@@ -136,6 +136,12 @@ export default function Planday() {
     enabled: mainView === 'timbrature',
   });
 
+  const { data: allInspections = [] } = useQuery({
+    queryKey: ['all-cleaning-inspections'],
+    queryFn: () => base44.entities.CleaningInspection.list('-inspection_date'),
+    enabled: mainView === 'timbrature',
+  });
+
   const [configForm, setConfigForm] = useState({
     distanza_massima_metri: 100,
     tolleranza_ritardo_minuti: 0,
@@ -143,7 +149,8 @@ export default function Planday() {
     arrotonda_ritardo: false,
     arrotondamento_tipo: 'eccesso',
     arrotondamento_minuti: 15,
-    penalita_timbratura_mancata: 0
+    penalita_timbratura_mancata: 0,
+    ore_mancata_uscita: 2
   });
 
   const [editingTimbratura, setEditingTimbratura] = useState(null);
@@ -229,7 +236,8 @@ export default function Planday() {
         arrotonda_ritardo: config.arrotonda_ritardo || false,
         arrotondamento_tipo: config.arrotondamento_tipo || 'eccesso',
         arrotondamento_minuti: config.arrotondamento_minuti || 15,
-        penalita_timbratura_mancata: config.penalita_timbratura_mancata || 0
+        penalita_timbratura_mancata: config.penalita_timbratura_mancata || 0,
+        ore_mancata_uscita: config.ore_mancata_uscita || 2
       });
     }
   }, [config]);
@@ -797,14 +805,18 @@ export default function Planday() {
 
   const getTimbraturaTipo = (turno) => {
     const now = moment();
-    const turnoDateTime = moment(`${turno.data} ${turno.ora_fine}`);
+    const turnoEnd = moment(`${turno.data} ${turno.ora_fine}`);
     const turnoStart = moment(`${turno.data} ${turno.ora_inizio}`);
+    const oreMancataUscita = config?.ore_mancata_uscita || 2;
+    const limiteUscitaMancata = turnoEnd.clone().add(oreMancataUscita, 'hours');
     
+    // Turno futuro
     if (turnoStart.isAfter(now)) {
       return { tipo: 'programmato', color: 'text-slate-500', bg: 'bg-slate-100', label: 'Programmato', ritardoReale: 0, ritardoConteggiato: 0 };
     }
     
-    if (!turno.timbrata_entrata && turnoDateTime.isBefore(now)) {
+    // Mancata timbratura entrata (se il turno è finito)
+    if (!turno.timbrata_entrata && turnoEnd.isBefore(now)) {
       const penalita = calcolaPenalitaMancata();
       return { 
         tipo: 'mancata', 
@@ -817,6 +829,21 @@ export default function Planday() {
       };
     }
     
+    // Mancata timbratura uscita (se sono passate X ore dalla fine turno)
+    if (turno.timbrata_entrata && !turno.timbrata_uscita && now.isAfter(limiteUscitaMancata)) {
+      const penalita = calcolaPenalitaMancata();
+      return {
+        tipo: 'mancata_uscita',
+        color: 'text-red-600',
+        bg: 'bg-red-100',
+        label: penalita > 0 ? `Mancata Uscita (-${penalita}min)` : 'Uscita Non Timbrata',
+        ritardoReale: 0,
+        ritardoConteggiato: penalita,
+        penalita
+      };
+    }
+    
+    // Turno in corso
     if (!turno.timbrata_entrata) {
       return { tipo: 'in_corso', color: 'text-yellow-600', bg: 'bg-yellow-100', label: 'In attesa', ritardoReale: 0, ritardoConteggiato: 0 };
     }
@@ -853,9 +880,42 @@ export default function Planday() {
     });
   }, [turniTimbrature, selectedStore, selectedDipendenteTimbr, selectedRuolo]);
 
+  // Verifica form compilati
+  const getFormCompilati = (turno) => {
+    if (!turno.dipendente_nome) return { dovuti: [], compilati: [] };
+    
+    const turnoDate = moment(turno.data);
+    const nextDay = turnoDate.clone().add(1, 'day');
+    const nextDayStr = nextDay.format('YYYY-MM-DD');
+    
+    // Trova le inspection del giorno dopo per questo store e dipendente
+    const inspections = allInspections.filter(i => {
+      const inspDate = moment(i.inspection_date).format('YYYY-MM-DD');
+      return inspDate === nextDayStr && 
+             i.store_id === turno.store_id && 
+             i.inspector_name === turno.dipendente_nome;
+    });
+    
+    const userRoles = users.find(u => 
+      (u.nome_cognome || u.full_name) === turno.dipendente_nome
+    )?.ruoli_dipendente || [];
+    
+    const dovuti = [];
+    if (userRoles.includes('Cassiere')) dovuti.push('Cassiere');
+    if (userRoles.includes('Pizzaiolo')) dovuti.push('Pizzaiolo');
+    if (userRoles.includes('Store Manager')) dovuti.push('Store Manager');
+    
+    const compilati = inspections.map(i => i.inspector_role).filter(Boolean);
+    
+    return { dovuti, compilati };
+  };
+
   const timbratureStats = useMemo(() => {
     const turniConTimbratura = filteredTurniTimbrature.filter(t => t.timbrata_entrata);
-    const turniSenzaTimbratura = filteredTurniTimbrature.filter(t => !t.timbrata_entrata && t.stato !== 'programmato');
+    const turniSenzaTimbratura = filteredTurniTimbrature.filter(t => {
+      const stato = getTimbraturaTipo(t);
+      return stato.tipo === 'mancata' || stato.tipo === 'mancata_uscita';
+    });
     const turniInRitardo = turniConTimbratura.filter(t => {
       if (!t.timbrata_entrata) return false;
       const oraInizio = moment(`${t.data} ${t.ora_inizio}`);
@@ -876,7 +936,7 @@ export default function Planday() {
       inRitardo: turniInRitardo.length,
       totaleMinutiRitardo
     };
-  }, [filteredTurniTimbrature]);
+  }, [filteredTurniTimbrature, config]);
 
   return (
     <ProtectedPage pageName="Planday">
@@ -1409,8 +1469,8 @@ export default function Planday() {
           </div>
         )}
 
-        {/* Modal Impostazioni */}
-        {showConfigModal && mainView === 'timbrature' && (
+        {/* Modal Impostazioni Timbratura */}
+        {showConfigModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
               <NeumorphicCard className="p-6 my-8">
@@ -1540,22 +1600,41 @@ export default function Planday() {
                     <XCircle className="w-5 h-5 text-red-600" />
                     Penalità Timbratura Mancata
                   </h3>
-                  <p className="text-xs text-slate-500 mb-3">
-                    Minuti scalati quando un dipendente non timbra affatto per un turno
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="number"
-                      min="0"
-                      value={configForm.penalita_timbratura_mancata}
-                      onChange={(e) => setConfigForm({ ...configForm, penalita_timbratura_mancata: parseInt(e.target.value) || 0 })}
-                      className="w-32 neumorphic-flat px-4 py-3 rounded-xl text-slate-700 outline-none"
-                    />
-                    <span className="text-sm text-slate-600">minuti</span>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-1 block">
+                        Penalità mancata timbratura entrata (minuti)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={configForm.penalita_timbratura_mancata}
+                        onChange={(e) => setConfigForm({ ...configForm, penalita_timbratura_mancata: parseInt(e.target.value) || 0 })}
+                        className="w-full neumorphic-flat px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      />
+                      <p className="text-xs text-slate-500 mt-1">
+                        Applicata se non c'è timbratura entrata entro la fine del turno
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-1 block">
+                        Ore dopo fine turno per considerare uscita mancata
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        value={configForm.ore_mancata_uscita}
+                        onChange={(e) => setConfigForm({ ...configForm, ore_mancata_uscita: parseFloat(e.target.value) || 2 })}
+                        className="w-full neumorphic-flat px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      />
+                      <p className="text-xs text-slate-500 mt-1">
+                        Se non c'è timbratura uscita entro X ore dalla fine turno, viene applicata la penalità
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-xs text-slate-500 mt-2">
-                    0 = nessuna penalità (viene solo segnalata la mancata timbratura)
-                  </p>
                 </div>
 
                 {/* GPS Locali */}
@@ -2139,6 +2218,7 @@ export default function Planday() {
                         <th className="text-left p-3 text-sm font-medium text-slate-600">Uscita</th>
                         <th className="text-center p-3 text-sm font-medium text-slate-600">Ritardo Reale</th>
                         <th className="text-center p-3 text-sm font-medium text-slate-600">Ritardo Conteggiato</th>
+                        <th className="text-center p-3 text-sm font-medium text-slate-600">Form Pulizia</th>
                         <th className="text-center p-3 text-sm font-medium text-slate-600">Stato</th>
                         <th className="text-center p-3 text-sm font-medium text-slate-600">Azioni</th>
                       </tr>
@@ -2147,8 +2227,9 @@ export default function Planday() {
                       {filteredTurniTimbrature.slice(0, 100).map(turno => {
                         const stato = getTimbraturaTipo(turno);
                         const turnoTipo = getTurnoTipo(turno);
+                        const formStatus = getFormCompilati(turno);
                         return (
-                          <tr key={turno.id} className={`border-b border-slate-100 hover:bg-slate-50 ${stato.tipo === 'mancata' ? 'bg-red-50' : ''}`}>
+                          <tr key={turno.id} className={`border-b border-slate-100 hover:bg-slate-50 ${stato.tipo === 'mancata' || stato.tipo === 'mancata_uscita' ? 'bg-red-50' : ''}`}>
                             <td className="p-3">
                               <div className="font-medium text-slate-800">
                                 {moment(turno.data).format('DD/MM/YYYY')}
@@ -2223,7 +2304,7 @@ export default function Planday() {
                             </td>
                             <td className="p-3 text-center">
                               {stato.ritardoConteggiato > 0 ? (
-                                <span className={`font-bold ${stato.tipo === 'mancata' ? 'text-red-600' : 'text-orange-600'}`}>
+                                <span className={`font-bold ${stato.tipo === 'mancata' || stato.tipo === 'mancata_uscita' ? 'text-red-600' : 'text-orange-600'}`}>
                                   {stato.ritardoConteggiato} min
                                 </span>
                               ) : stato.tipo === 'ritardo' ? (
@@ -2233,8 +2314,24 @@ export default function Planday() {
                               )}
                             </td>
                             <td className="p-3 text-center">
+                              {formStatus.dovuti.length > 0 ? (
+                                <div className="text-xs">
+                                  {formStatus.dovuti.map(role => {
+                                    const compilato = formStatus.compilati.includes(role);
+                                    return (
+                                      <div key={role} className={`px-2 py-1 rounded mb-1 ${compilato ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                                        {role.charAt(0)} {compilato ? '✓' : '✗'}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <span className="text-xs text-slate-400">-</span>
+                              )}
+                            </td>
+                            <td className="p-3 text-center">
                               <span className={`text-xs px-3 py-1 rounded-full font-medium ${stato.bg} ${stato.color}`}>
-                                {stato.tipo === 'mancata' ? '⚠️ Mancata' : stato.label}
+                                {stato.tipo === 'mancata' ? '⚠️ Mancata' : stato.tipo === 'mancata_uscita' ? '⚠️ Uscita Mancata' : stato.label}
                               </span>
                             </td>
                             <td className="p-3 text-center">
@@ -2246,9 +2343,9 @@ export default function Planday() {
                                     timbrata_uscita: turno.timbrata_uscita ? moment(turno.timbrata_uscita).format('YYYY-MM-DDTHH:mm') : ''
                                   });
                                 }}
-                                className="text-blue-600 hover:text-blue-800"
+                                className="nav-button p-2 rounded-lg hover:bg-blue-50"
                               >
-                                <Edit className="w-4 h-4" />
+                                <Edit className="w-4 h-4 text-blue-600" />
                               </button>
                             </td>
                           </tr>
