@@ -1550,6 +1550,53 @@ function LettereSection() {
     },
   });
 
+  const { data: emailConfigs = [] } = useQuery({
+    queryKey: ['email-notifica-config-lettere'],
+    queryFn: () => base44.entities.EmailNotificaConfig.list(),
+  });
+
+  const saveEmailConfigMutation = useMutation({
+    mutationFn: async (data) => {
+      const existing = emailConfigs.find(c => c.tipo_documento === data.tipo_documento);
+      if (existing) {
+        return base44.entities.EmailNotificaConfig.update(existing.id, data);
+      }
+      return base44.entities.EmailNotificaConfig.create(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['email-notifica-config-lettere'] });
+      setShowEmailConfig(false);
+    },
+  });
+
+  const generateEmailWithAI = async (tipoDoc) => {
+    setGeneratingEmail(true);
+    try {
+      const tipoLabel = tipoDoc === 'lettera_richiamo' ? 'lettera di richiamo' : 'chiusura procedura disciplinare';
+      const prompt = emailPrompt 
+        ? `Genera un'email professionale per notificare a un dipendente che ha ricevuto una ${tipoLabel}. ${emailPrompt}. L'email deve essere in italiano, formale e rispettosa. Includi che deve visualizzare e firmare il documento sulla piattaforma.`
+        : `Genera un'email professionale per notificare a un dipendente che ha ricevuto una ${tipoLabel}. L'email deve essere in italiano, formale e rispettosa. Includi che deve visualizzare e firmare il documento sulla piattaforma.`;
+      
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            oggetto: { type: "string", description: "Oggetto dell'email" },
+            corpo: { type: "string", description: "Corpo dell'email, usa {{nome}} come placeholder per il nome del dipendente" }
+          },
+          required: ["oggetto", "corpo"]
+        }
+      });
+      setEmailConfig({ oggetto: result.oggetto, corpo: result.corpo });
+    } catch (error) {
+      console.error('Error generating email:', error);
+      alert('Errore nella generazione dell\'email');
+    } finally {
+      setGeneratingEmail(false);
+    }
+  };
+
   const createTemplateMutation = useMutation({
     mutationFn: (data) => base44.entities.LetteraRichiamoTemplate.create(data),
     onSuccess: () => {
