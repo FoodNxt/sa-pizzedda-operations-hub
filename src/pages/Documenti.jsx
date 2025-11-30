@@ -1379,6 +1379,95 @@ function ContrattiSection() {
           </NeumorphicCard>
         </div>
       )}
+
+      {/* Modal configurazione email */}
+      {showEmailConfig && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <NeumorphicCard className="max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between mb-4">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Mail className="w-5 h-5 text-blue-600" />
+                Configura Email Notifica Contratto
+              </h2>
+              <button onClick={() => setShowEmailConfig(false)}><X className="w-5 h-5" /></button>
+            </div>
+            
+            <div className="space-y-4">
+              {/* AI Generation */}
+              <div className="neumorphic-flat p-4 rounded-xl bg-gradient-to-r from-purple-50 to-blue-50">
+                <h3 className="font-medium text-slate-800 mb-2 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-purple-600" />
+                  Genera con AI
+                </h3>
+                <textarea
+                  value={emailPrompt}
+                  onChange={(e) => setEmailPrompt(e.target.value)}
+                  placeholder="Descrivi come vuoi l'email (es: 'tono formale', 'includi info sulla sede', 'menziona il periodo di prova')..."
+                  className="w-full neumorphic-pressed px-3 py-2 rounded-lg outline-none h-20 resize-none text-sm mb-2"
+                />
+                <NeumorphicButton 
+                  onClick={generateEmailWithAI} 
+                  disabled={generatingEmail}
+                  className="w-full flex items-center justify-center gap-2"
+                >
+                  {generatingEmail ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Generazione...</>
+                  ) : (
+                    <><Sparkles className="w-4 h-4" /> Genera Email con AI</>
+                  )}
+                </NeumorphicButton>
+              </div>
+
+              <div className="neumorphic-pressed p-3 rounded-lg">
+                <p className="text-xs text-slate-600 mb-1">Variabili disponibili:</p>
+                <div className="flex flex-wrap gap-1">
+                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">{'{{nome}}'}</span>
+                  <span className="text-xs text-slate-500">= Nome del dipendente</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-1 block">Oggetto Email</label>
+                <input
+                  type="text"
+                  value={emailConfig.oggetto}
+                  onChange={(e) => setEmailConfig({ ...emailConfig, oggetto: e.target.value })}
+                  placeholder="Contratto di Lavoro - Sa Pizzedda"
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-1 block">Corpo Email</label>
+                <textarea
+                  value={emailConfig.corpo}
+                  onChange={(e) => setEmailConfig({ ...emailConfig, corpo: e.target.value })}
+                  placeholder="Gentile {{nome}},\n\nÈ stato generato il tuo contratto..."
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none h-48 resize-none"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button onClick={() => setShowEmailConfig(false)} className="flex-1 nav-button px-4 py-3 rounded-xl font-medium">
+                  Annulla
+                </button>
+                <NeumorphicButton 
+                  onClick={() => saveEmailConfigMutation.mutate({
+                    tipo_documento: 'contratto',
+                    oggetto_email: emailConfig.oggetto,
+                    corpo_email: emailConfig.corpo,
+                    attivo: true
+                  })}
+                  variant="primary" 
+                  className="flex-1"
+                >
+                  Salva Configurazione
+                </NeumorphicButton>
+              </div>
+            </div>
+          </NeumorphicCard>
+        </div>
+      )}
     </>
   );
 }
