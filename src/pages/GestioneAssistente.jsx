@@ -7,7 +7,7 @@ import ProtectedPage from "../components/ProtectedPage";
 import { 
   Bot, Plus, Edit, Trash2, Save, X, Search, AlertTriangle, 
   MessageSquare, Book, Tag, Store, CheckCircle, XCircle, Loader2,
-  ChevronDown, ChevronRight, Eye, Folder, RefreshCw, ListChecks, GripVertical
+  ChevronDown, ChevronRight, Eye, Folder, RefreshCw, ListChecks, GripVertical, Key, EyeOff
 } from "lucide-react";
 import moment from "moment";
 
@@ -51,6 +51,20 @@ export default function GestioneAssistente() {
   });
   const [newChecklistItem, setNewChecklistItem] = useState('');
   
+  // Accessi Store state
+  const [showAccessoForm, setShowAccessoForm] = useState(false);
+  const [editingAccesso, setEditingAccesso] = useState(null);
+  const [accessoForm, setAccessoForm] = useState({
+    store_id: '',
+    nome_accesso: '',
+    username: '',
+    password: '',
+    note: '',
+    attivo: true
+  });
+  const [showPasswords, setShowPasswords] = useState({});
+  const [filterAccessoStore, setFilterAccessoStore] = useState('');
+  
   const [formData, setFormData] = useState({
     categoria: 'Procedure Operative',
     titolo: '',
@@ -85,6 +99,11 @@ export default function GestioneAssistente() {
   const { data: checklists = [] } = useQuery({
     queryKey: ['assistente-checklists'],
     queryFn: () => base44.entities.AssistenteChecklist.list(),
+  });
+
+  const { data: accessi = [] } = useQuery({
+    queryKey: ['accessi-store'],
+    queryFn: () => base44.entities.AccessoStore.list(),
   });
 
   // Recupera tracking conversazioni dal database
@@ -206,6 +225,30 @@ export default function GestioneAssistente() {
     },
   });
 
+  // Accessi mutations
+  const createAccessoMutation = useMutation({
+    mutationFn: (data) => base44.entities.AccessoStore.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['accessi-store'] });
+      resetAccessoForm();
+    },
+  });
+
+  const updateAccessoMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.AccessoStore.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['accessi-store'] });
+      resetAccessoForm();
+    },
+  });
+
+  const deleteAccessoMutation = useMutation({
+    mutationFn: (id) => base44.entities.AccessoStore.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['accessi-store'] });
+    },
+  });
+
   const resetCategoryForm = () => {
     setCategoryForm({ nome: '', ordine: 0 });
     setEditingCategory(null);
@@ -289,6 +332,48 @@ export default function GestioneAssistente() {
   ];
 
   const RUOLI = ["Pizzaiolo", "Cassiere", "Store Manager"];
+
+  const resetAccessoForm = () => {
+    setAccessoForm({
+      store_id: '',
+      nome_accesso: '',
+      username: '',
+      password: '',
+      note: '',
+      attivo: true
+    });
+    setEditingAccesso(null);
+    setShowAccessoForm(false);
+  };
+
+  const handleEditAccesso = (accesso) => {
+    setEditingAccesso(accesso);
+    setAccessoForm({
+      store_id: accesso.store_id,
+      nome_accesso: accesso.nome_accesso,
+      username: accesso.username || '',
+      password: accesso.password,
+      note: accesso.note || '',
+      attivo: accesso.attivo !== false
+    });
+    setShowAccessoForm(true);
+  };
+
+  const handleSaveAccesso = () => {
+    if (editingAccesso) {
+      updateAccessoMutation.mutate({ id: editingAccesso.id, data: accessoForm });
+    } else {
+      createAccessoMutation.mutate(accessoForm);
+    }
+  };
+
+  const togglePasswordVisibility = (id) => {
+    setShowPasswords(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const filteredAccessi = filterAccessoStore 
+    ? accessi.filter(a => a.store_id === filterAccessoStore)
+    : accessi;
 
   const handleSaveCategory = () => {
     if (editingCategory) {
@@ -536,6 +621,17 @@ export default function GestioneAssistente() {
           >
             <ListChecks className="w-4 h-4" />
             Checklist ({checklists.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('accessi')}
+            className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
+              activeTab === 'accessi'
+                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                : 'neumorphic-flat text-slate-700'
+            }`}
+          >
+            <Key className="w-4 h-4" />
+            Accessi ({accessi.length})
           </button>
           <button
             onClick={() => setActiveTab('verifica')}
@@ -1314,6 +1410,221 @@ export default function GestioneAssistente() {
                   <p className="text-slate-500">Nessuna checklist creata</p>
                   <p className="text-xs text-slate-400 mt-2">
                     Crea checklist per guidare i dipendenti nelle attività quotidiane
+                  </p>
+                </NeumorphicCard>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* Accessi Store Tab */}
+        {activeTab === 'accessi' && (
+          <>
+            <NeumorphicCard className="p-6">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-xl font-bold text-slate-800">Accessi per Negozio</h2>
+                  <select
+                    value={filterAccessoStore}
+                    onChange={(e) => setFilterAccessoStore(e.target.value)}
+                    className="neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
+                  >
+                    <option value="">Tutti i negozi</option>
+                    {stores.map(store => (
+                      <option key={store.id} value={store.id}>{store.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <NeumorphicButton
+                  onClick={() => setShowAccessoForm(true)}
+                  variant="primary"
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Nuovo Accesso
+                </NeumorphicButton>
+              </div>
+            </NeumorphicCard>
+
+            {showAccessoForm && (
+              <NeumorphicCard className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-slate-800">
+                    {editingAccesso ? 'Modifica Accesso' : 'Nuovo Accesso'}
+                  </h2>
+                  <button onClick={resetAccessoForm} className="nav-button p-2 rounded-lg">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Negozio *</label>
+                    <select
+                      value={accessoForm.store_id}
+                      onChange={(e) => setAccessoForm({ ...accessoForm, store_id: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    >
+                      <option value="">Seleziona negozio</option>
+                      {stores.map(store => (
+                        <option key={store.id} value={store.id}>{store.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">A cosa dà accesso *</label>
+                    <input
+                      type="text"
+                      value={accessoForm.nome_accesso}
+                      onChange={(e) => setAccessoForm({ ...accessoForm, nome_accesso: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      placeholder="Es: WiFi, Allarme, Cassa, Cassaforte..."
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Nome Utente (opzionale)</label>
+                    <input
+                      type="text"
+                      value={accessoForm.username}
+                      onChange={(e) => setAccessoForm({ ...accessoForm, username: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      placeholder="Username"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Password / Codice *</label>
+                    <input
+                      type="text"
+                      value={accessoForm.password}
+                      onChange={(e) => setAccessoForm({ ...accessoForm, password: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      placeholder="Password o codice"
+                    />
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Note (opzionale)</label>
+                  <textarea
+                    value={accessoForm.note}
+                    onChange={(e) => setAccessoForm({ ...accessoForm, note: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none min-h-[60px]"
+                    placeholder="Note aggiuntive..."
+                  />
+                </div>
+
+                <div className="flex items-center mb-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={accessoForm.attivo}
+                      onChange={(e) => setAccessoForm({ ...accessoForm, attivo: e.target.checked })}
+                      className="w-5 h-5"
+                    />
+                    <span className="text-sm font-medium text-slate-700">Attivo</span>
+                  </label>
+                </div>
+
+                <div className="flex gap-3">
+                  <NeumorphicButton onClick={resetAccessoForm} className="flex-1">Annulla</NeumorphicButton>
+                  <NeumorphicButton 
+                    onClick={handleSaveAccesso} 
+                    variant="primary" 
+                    className="flex-1 flex items-center justify-center gap-2"
+                    disabled={!accessoForm.store_id || !accessoForm.nome_accesso || !accessoForm.password}
+                  >
+                    <Save className="w-4 h-4" />
+                    Salva
+                  </NeumorphicButton>
+                </div>
+              </NeumorphicCard>
+            )}
+
+            {/* Lista Accessi per Store */}
+            <div className="space-y-4">
+              {stores.map(store => {
+                const storeAccessi = filteredAccessi.filter(a => a.store_id === store.id);
+                if (storeAccessi.length === 0 && filterAccessoStore) return null;
+                if (storeAccessi.length === 0 && !filterAccessoStore) return null;
+                
+                return (
+                  <NeumorphicCard key={store.id} className="p-4">
+                    <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
+                      <Store className="w-4 h-4 text-purple-600" />
+                      {store.name}
+                      <span className="text-sm font-normal text-slate-500">({storeAccessi.length} accessi)</span>
+                    </h3>
+                    <div className="space-y-2">
+                      {storeAccessi.map(accesso => (
+                        <div 
+                          key={accesso.id} 
+                          className={`neumorphic-pressed p-4 rounded-xl ${!accesso.attivo ? 'opacity-50' : ''}`}
+                        >
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <Key className="w-4 h-4 text-amber-600" />
+                                <h4 className="font-medium text-slate-800">{accesso.nome_accesso}</h4>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                {accesso.username && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-slate-500">Utente:</span>
+                                    <span className="font-mono text-slate-700">{accesso.username}</span>
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-2">
+                                  <span className="text-slate-500">Password:</span>
+                                  <span className="font-mono text-slate-700">
+                                    {showPasswords[accesso.id] ? accesso.password : '••••••••'}
+                                  </span>
+                                  <button
+                                    onClick={() => togglePasswordVisibility(accesso.id)}
+                                    className="text-slate-400 hover:text-slate-600"
+                                  >
+                                    {showPasswords[accesso.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                  </button>
+                                </div>
+                              </div>
+                              {accesso.note && (
+                                <p className="text-xs text-slate-500 mt-2">{accesso.note}</p>
+                              )}
+                            </div>
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => handleEditAccesso(accesso)}
+                                className="nav-button p-2 rounded-lg hover:bg-blue-50"
+                              >
+                                <Edit className="w-4 h-4 text-blue-600" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (confirm('Eliminare questo accesso?')) {
+                                    deleteAccessoMutation.mutate(accesso.id);
+                                  }
+                                }}
+                                className="nav-button p-2 rounded-lg hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4 text-red-600" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </NeumorphicCard>
+                );
+              })}
+
+              {filteredAccessi.length === 0 && (
+                <NeumorphicCard className="p-8 text-center">
+                  <Key className="w-16 h-16 mx-auto text-slate-300 mb-4" />
+                  <p className="text-slate-500">Nessun accesso configurato</p>
+                  <p className="text-xs text-slate-400 mt-2">
+                    Aggiungi credenziali di accesso per WiFi, allarmi, casseforti, ecc.
                   </p>
                 </NeumorphicCard>
               )}
