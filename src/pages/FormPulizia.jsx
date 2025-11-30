@@ -202,51 +202,59 @@ export default function FormPulizia() {
             </NeumorphicButton>
           </div>
 
-          {/* Lista domande raggruppate per ruolo */}
-          {['Pizzaiolo', 'Cassiere', 'Store Manager'].map(ruolo => {
-            const domandeRuolo = domande.filter(d => d.ruoli_assegnati?.includes(ruolo) && d.attiva);
-            if (domandeRuolo.length === 0) return null;
-
-            return (
-              <NeumorphicCard key={ruolo} className="p-6">
-                <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">{ruolo}</h3>
-                <div className="space-y-3">
-                  {domandeRuolo.map((domanda, index) => (
-                    <div key={domanda.id} className="neumorphic-pressed p-4 rounded-xl">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-sm font-bold text-slate-500">#{domanda.ordine || index + 1}</span>
-                            <span className={`text-xs px-2 py-1 rounded-full ${
-                              domanda.tipo_controllo === 'foto' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
-                            }`}>
-                              {domanda.tipo_controllo === 'foto' ? 'Foto' : 'Multipla'}
+          {/* Lista tutte le domande */}
+          <NeumorphicCard className="p-6">
+            <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Tutte le Domande</h3>
+            {domande.filter(d => d.attiva).length === 0 ? (
+              <p className="text-center text-slate-500 py-4">Nessuna domanda attiva</p>
+            ) : (
+              <div className="space-y-3">
+                {domande.filter(d => d.attiva).map((domanda, index) => (
+                  <div key={domanda.id} className="neumorphic-pressed p-4 rounded-xl">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <span className="text-sm font-bold text-slate-500">#{domanda.ordine || index + 1}</span>
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            domanda.tipo_controllo === 'foto' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {domanda.tipo_controllo === 'foto' ? 'Foto' : 'Multipla'}
+                          </span>
+                          {!domanda.obbligatoria && (
+                            <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">
+                              Opzionale
                             </span>
-                            {!domanda.obbligatoria && (
-                              <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">
-                                Opzionale
-                              </span>
-                            )}
-                          </div>
-                          <p className="font-medium text-[#6b6b6b] mb-1">{domanda.testo_domanda}</p>
-                          {domanda.tipo_controllo === 'foto' && domanda.attrezzatura && (
-                            <p className="text-sm text-[#9b9b9b]">Attrezzatura: {domanda.attrezzatura}</p>
                           )}
-                          {domanda.tipo_controllo === 'multipla' && domanda.opzioni_risposta && (
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {domanda.opzioni_risposta.map((opz, idx) => (
-                                <span key={idx} className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">
-                                  {opz}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                          {domanda.store_ids?.length > 0 && (
-                            <p className="text-xs text-[#9b9b9b] mt-1">
-                              Store: {domanda.store_ids.map(sid => stores.find(s => s.id === sid)?.name).filter(Boolean).join(', ')}
-                            </p>
-                          )}
+                          {/* Ruoli assegnati */}
+                          {domanda.ruoli_assegnati?.map(ruolo => (
+                            <span key={ruolo} className={`text-xs px-2 py-1 rounded-full ${
+                              ruolo === 'Pizzaiolo' ? 'bg-orange-100 text-orange-700' :
+                              ruolo === 'Cassiere' ? 'bg-blue-100 text-blue-700' :
+                              'bg-purple-100 text-purple-700'
+                            }`}>
+                              {ruolo}
+                            </span>
+                          ))}
                         </div>
+                        <p className="font-medium text-[#6b6b6b] mb-1">{domanda.testo_domanda}</p>
+                        {domanda.tipo_controllo === 'foto' && domanda.attrezzatura && (
+                          <p className="text-sm text-[#9b9b9b]">Attrezzatura: {domanda.attrezzatura}</p>
+                        )}
+                        {domanda.tipo_controllo === 'multipla' && domanda.opzioni_risposta && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {domanda.opzioni_risposta.map((opz, idx) => (
+                              <span key={idx} className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">
+                                {opz}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {domanda.store_ids?.length > 0 && (
+                          <p className="text-xs text-[#9b9b9b] mt-1">
+                            Store: {domanda.store_ids.map(sid => stores.find(s => s.id === sid)?.name).filter(Boolean).join(', ')}
+                          </p>
+                        )}
+                      </div>
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleEdit(domanda)}
@@ -265,13 +273,12 @@ export default function FormPulizia() {
                             <Trash2 className="w-4 h-4 text-red-600" />
                           </button>
                         </div>
-                      </div>
                     </div>
-                  ))}
-                </div>
-              </NeumorphicCard>
-            );
-          })}
+                  </div>
+                ))}
+              </div>
+            )}
+          </NeumorphicCard>
 
           {domande.length === 0 && (
             <NeumorphicCard className="p-12 text-center">
