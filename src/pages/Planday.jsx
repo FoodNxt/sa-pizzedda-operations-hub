@@ -15,6 +15,11 @@ moment.locale('it');
 
 const RUOLI = ["Pizzaiolo", "Cassiere", "Store Manager"];
 const COLORI_RUOLO = {
+  "Pizzaiolo": "bg-orange-500 border-orange-600 text-white",
+  "Cassiere": "bg-blue-500 border-blue-600 text-white",
+  "Store Manager": "bg-purple-500 border-purple-600 text-white"
+};
+const COLORI_RUOLO_LIGHT = {
   "Pizzaiolo": "bg-orange-100 border-orange-300 text-orange-800",
   "Cassiere": "bg-blue-100 border-blue-300 text-blue-800",
   "Store Manager": "bg-purple-100 border-purple-300 text-purple-800"
@@ -86,6 +91,21 @@ export default function Planday() {
   const [quickTurnoPopup, setQuickTurnoPopup] = useState(null);
   const [editingStore, setEditingStore] = useState(null);
   const [storeCoords, setStoreCoords] = useState({ latitude: '', longitude: '', address: '' });
+  
+  // Turni modello
+  const [showModelliModal, setShowModelliModal] = useState(false);
+  const [modelloForm, setModelloForm] = useState({
+    nome: '',
+    ruolo: 'Pizzaiolo',
+    ora_inizio: '09:00',
+    ora_fine: '17:00',
+    tipo_turno: 'Normale'
+  });
+  const [turniModello, setTurniModello] = useState(() => {
+    const saved = localStorage.getItem('turni_modello');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [selectedModello, setSelectedModello] = useState('');
 
   React.useEffect(() => {
     if (config) {
@@ -198,36 +218,44 @@ export default function Planday() {
     setShowForm(true);
   };
 
-  // Gestione drag & drop
-  const handleMouseDown = (day, hour) => {
-    setDragStart({ day: day.format('YYYY-MM-DD'), hour });
-    setDragEnd({ day: day.format('YYYY-MM-DD'), hour });
+  // Gestione drag & drop con slot da 30 min
+  const handleMouseDown = (day, slot) => {
+    const slotValue = slot.hour + slot.minute / 60;
+    setDragStart({ day: day.format('YYYY-MM-DD'), slot: slotValue });
+    setDragEnd({ day: day.format('YYYY-MM-DD'), slot: slotValue });
     setIsDragging(true);
   };
 
-  const handleMouseEnter = (day, hour) => {
+  const handleMouseEnter = (day, slot) => {
     if (isDragging && dragStart && day.format('YYYY-MM-DD') === dragStart.day) {
-      setDragEnd({ day: day.format('YYYY-MM-DD'), hour });
+      const slotValue = slot.hour + slot.minute / 60;
+      setDragEnd({ day: day.format('YYYY-MM-DD'), slot: slotValue });
     }
   };
 
-  const handleMouseUp = (day, hour) => {
+  const handleMouseUp = (day, slot) => {
     if (isDragging && dragStart) {
-      const startHour = Math.min(dragStart.hour, dragEnd?.hour || hour);
-      const endHour = Math.max(dragStart.hour, dragEnd?.hour || hour) + 1;
+      const slotValue = slot.hour + slot.minute / 60;
+      const startSlot = Math.min(dragStart.slot, dragEnd?.slot || slotValue);
+      const endSlot = Math.max(dragStart.slot, dragEnd?.slot || slotValue) + 0.5;
+      
+      const startHour = Math.floor(startSlot);
+      const startMin = (startSlot % 1) * 60;
+      const endHour = Math.floor(endSlot);
+      const endMin = (endSlot % 1) * 60;
       
       // Mostra popup per completare il turno
       setQuickTurnoPopup({
         day: dragStart.day,
-        startHour,
-        endHour
+        startSlot,
+        endSlot
       });
       
       setTurnoForm({
         store_id: selectedStore || (stores[0]?.id || ''),
         data: dragStart.day,
-        ora_inizio: `${startHour.toString().padStart(2, '0')}:00`,
-        ora_fine: `${endHour.toString().padStart(2, '0')}:00`,
+        ora_inizio: `${startHour.toString().padStart(2, '0')}:${startMin.toString().padStart(2, '0')}`,
+        ora_fine: `${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}`,
         ruolo: 'Pizzaiolo',
         dipendente_id: '',
         note: ''
@@ -238,12 +266,58 @@ export default function Planday() {
     setDragEnd(null);
   };
 
-  const isInDragRange = (day, hour) => {
+  const isInDragRange = (day, slot) => {
     if (!isDragging || !dragStart || !dragEnd) return false;
     if (day.format('YYYY-MM-DD') !== dragStart.day) return false;
-    const minHour = Math.min(dragStart.hour, dragEnd.hour);
-    const maxHour = Math.max(dragStart.hour, dragEnd.hour);
-    return hour >= minHour && hour <= maxHour;
+    const slotValue = slot.hour + slot.minute / 60;
+    const minSlot = Math.min(dragStart.slot, dragEnd.slot);
+    const maxSlot = Math.max(dragStart.slot, dragEnd.slot);
+    return slotValue >= minSlot && slotValue <= maxSlot;
+  };
+
+  // Calcola posizione e altezza del turno nel calendario
+  const getTurnoStyle = (turno) => {
+    const [startH, startM] = turno.ora_inizio.split(':').map(Number);
+    const [endH, endM] = turno.ora_fine.split(':').map(Number);
+    
+    const startSlot = (startH - 8) * 2 + (startM >= 30 ? 1 : 0);
+    const endSlot = (endH - 8) * 2 + (endM >= 30 ? 1 : 0);
+    const duration = endSlot - startSlot;
+    
+    return {
+      top: `${startSlot * 25}px`,
+      height: `${Math.max(duration * 25, 25)}px`,
+      minHeight: '25px'
+    };
+  };
+
+  // Turni modello
+  const saveModello = () => {
+    if (!modelloForm.nome) return;
+    const newModelli = [...turniModello, { ...modelloForm, id: Date.now().toString() }];
+    setTurniModello(newModelli);
+    localStorage.setItem('turni_modello', JSON.stringify(newModelli));
+    setModelloForm({ nome: '', ruolo: 'Pizzaiolo', ora_inizio: '09:00', ora_fine: '17:00', tipo_turno: 'Normale' });
+  };
+
+  const deleteModello = (id) => {
+    const newModelli = turniModello.filter(m => m.id !== id);
+    setTurniModello(newModelli);
+    localStorage.setItem('turni_modello', JSON.stringify(newModelli));
+  };
+
+  const applyModello = (modelloId) => {
+    const modello = turniModello.find(m => m.id === modelloId);
+    if (modello) {
+      setTurnoForm(prev => ({
+        ...prev,
+        ruolo: modello.ruolo,
+        ora_inizio: modello.ora_inizio,
+        ora_fine: modello.ora_fine,
+        note: modello.tipo_turno !== 'Normale' ? modello.tipo_turno : prev.note
+      }));
+    }
+    setSelectedModello(modelloId);
   };
 
   const handleQuickSave = () => {
@@ -293,8 +367,15 @@ export default function Planday() {
     return days;
   }, [weekStart]);
 
-  // Ore della giornata
-  const hours = Array.from({ length: 16 }, (_, i) => i + 8); // 8:00 - 23:00
+  // Ore della giornata (intervalli di 30 minuti)
+  const timeSlots = useMemo(() => {
+    const slots = [];
+    for (let h = 8; h <= 23; h++) {
+      slots.push({ hour: h, minute: 0, label: `${h}:00` });
+      slots.push({ hour: h, minute: 30, label: `${h}:30` });
+    }
+    return slots;
+  }, []);
 
   // Raggruppa turni per giorno e ora
   const turniByDayHour = useMemo(() => {
@@ -321,6 +402,10 @@ export default function Planday() {
             <p className="text-slate-500 mt-1">Pianifica i turni settimanali</p>
           </div>
           <div className="flex gap-2">
+            <NeumorphicButton onClick={() => setShowModelliModal(true)} className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              Turni Modello
+            </NeumorphicButton>
             <NeumorphicButton onClick={() => setShowConfigModal(true)} className="flex items-center gap-2">
               <Settings className="w-4 h-4" />
               Impostazioni
@@ -506,41 +591,53 @@ export default function Planday() {
                 ))}
               </div>
 
-              {/* Griglia oraria */}
-              <div className="space-y-1">
-                {hours.map(hour => (
-                  <div key={hour} className="grid grid-cols-8 gap-1">
-                    <div className="p-2 text-center text-sm text-slate-500 font-medium">
-                      {hour}:00
+              {/* Griglia oraria con slot 30 min */}
+              <div className="relative">
+                {/* Linee orizzontali e label ore */}
+                {timeSlots.map((slot, idx) => (
+                  <div key={`${slot.hour}-${slot.minute}`} className="grid grid-cols-8 gap-1" style={{ height: '25px' }}>
+                    <div className="text-center text-xs text-slate-500 font-medium flex items-center justify-center">
+                      {slot.minute === 0 ? slot.label : ''}
                     </div>
                     {weekDays.map(day => {
                       const dayKey = day.format('YYYY-MM-DD');
-                      const dayTurni = turniByDayHour[dayKey] || [];
-                      const hourTurni = dayTurni.filter(t => {
-                        const startHour = parseInt(t.ora_inizio.split(':')[0]);
-                        return startHour === hour;
-                      });
-                      const inDragRange = isInDragRange(day, hour);
+                      const inDragRange = isInDragRange(day, slot);
 
                       return (
                         <div 
-                          key={`${dayKey}-${hour}`}
-                          className={`min-h-[50px] neumorphic-pressed rounded-lg p-1 cursor-pointer select-none transition-colors ${
-                            inDragRange ? 'bg-blue-100 border-2 border-blue-400' : 'hover:bg-slate-50'
-                          }`}
-                          onMouseDown={() => hourTurni.length === 0 && handleMouseDown(day, hour)}
-                          onMouseEnter={() => handleMouseEnter(day, hour)}
-                          onMouseUp={() => handleMouseUp(day, hour)}
-                        >
-                          {hourTurni.map(turno => (
+                          key={`${dayKey}-${slot.hour}-${slot.minute}`}
+                          className={`border-t border-slate-100 cursor-pointer select-none transition-colors ${
+                            inDragRange ? 'bg-blue-200' : 'hover:bg-slate-50'
+                          } ${slot.minute === 0 ? 'border-slate-200' : 'border-slate-100'}`}
+                          onMouseDown={() => handleMouseDown(day, slot)}
+                          onMouseEnter={() => handleMouseEnter(day, slot)}
+                          onMouseUp={() => handleMouseUp(day, slot)}
+                        />
+                      );
+                    })}
+                  </div>
+                ))}
+
+                {/* Turni posizionati in overlay */}
+                <div className="absolute top-0 left-0 right-0 grid grid-cols-8 gap-1 pointer-events-none" style={{ height: `${timeSlots.length * 25}px` }}>
+                  <div /> {/* Colonna ore */}
+                  {weekDays.map(day => {
+                    const dayKey = day.format('YYYY-MM-DD');
+                    const dayTurni = turniByDayHour[dayKey] || [];
+
+                    return (
+                      <div key={dayKey} className="relative">
+                        {dayTurni.map(turno => {
+                          const style = getTurnoStyle(turno);
+                          return (
                             <div 
                               key={turno.id}
-                              className={`p-1.5 rounded-lg border text-xs mb-1 cursor-pointer ${COLORI_RUOLO[turno.ruolo]}`}
+                              className={`absolute left-0 right-0 mx-0.5 p-1 rounded-lg border-2 text-xs cursor-pointer pointer-events-auto overflow-hidden shadow-md ${COLORI_RUOLO[turno.ruolo]}`}
+                              style={style}
                               onClick={(e) => { e.stopPropagation(); handleEditTurno(turno); }}
-                              onMouseDown={(e) => e.stopPropagation()}
                             >
                               <div className="flex items-center justify-between">
-                                <span className="font-medium">{turno.ora_inizio}-{turno.ora_fine}</span>
+                                <span className="font-bold text-[10px]">{turno.ora_inizio}-{turno.ora_fine}</span>
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -548,25 +645,25 @@ export default function Planday() {
                                       deleteMutation.mutate(turno.id);
                                     }
                                   }}
-                                  className="hover:text-red-600"
+                                  className="hover:text-red-200"
                                 >
                                   <Trash2 className="w-3 h-3" />
                                 </button>
                               </div>
-                              <div className="truncate">{turno.ruolo}</div>
+                              <div className="truncate text-[10px] font-medium">{turno.ruolo}</div>
                               {turno.dipendente_nome && (
-                                <div className="truncate font-medium">{turno.dipendente_nome}</div>
+                                <div className="truncate text-[10px] font-bold">{turno.dipendente_nome}</div>
                               )}
                               {!selectedStore && (
-                                <div className="truncate text-[10px] opacity-70">{getStoreName(turno.store_id)}</div>
+                                <div className="truncate text-[9px] opacity-80">{getStoreName(turno.store_id)}</div>
                               )}
                             </div>
-                          ))}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}
@@ -577,10 +674,11 @@ export default function Planday() {
           <div className="flex flex-wrap items-center gap-4">
             <span className="text-sm font-medium text-slate-700">Legenda:</span>
             {RUOLI.map(ruolo => (
-              <div key={ruolo} className={`px-3 py-1 rounded-lg border text-sm ${COLORI_RUOLO[ruolo]}`}>
+              <div key={ruolo} className={`px-3 py-1 rounded-lg border-2 text-sm font-medium ${COLORI_RUOLO[ruolo]}`}>
                 {ruolo}
               </div>
             ))}
+            <span className="text-xs text-slate-500 ml-4">💡 Trascina sul calendario per creare un turno</span>
           </div>
         </NeumorphicCard>
 
@@ -750,6 +848,123 @@ export default function Planday() {
           </div>
         )}
 
+        {/* Modal Turni Modello */}
+        {showModelliModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800">Turni Modello</h2>
+                <button onClick={() => setShowModelliModal(false)} className="nav-button p-2 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Form nuovo modello */}
+              <div className="neumorphic-pressed p-4 rounded-xl mb-4">
+                <h3 className="font-medium text-slate-700 mb-3">Crea Nuovo Modello</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Nome Modello *</label>
+                    <input
+                      type="text"
+                      value={modelloForm.nome}
+                      onChange={(e) => setModelloForm({ ...modelloForm, nome: e.target.value })}
+                      className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                      placeholder="Es: Turno Mattina Pizzaiolo"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-1 block">Ruolo</label>
+                      <select
+                        value={modelloForm.ruolo}
+                        onChange={(e) => setModelloForm({ ...modelloForm, ruolo: e.target.value })}
+                        className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                      >
+                        {RUOLI.map(ruolo => (
+                          <option key={ruolo} value={ruolo}>{ruolo}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-1 block">Tipo Turno</label>
+                      <select
+                        value={modelloForm.tipo_turno}
+                        onChange={(e) => setModelloForm({ ...modelloForm, tipo_turno: e.target.value })}
+                        className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                      >
+                        <option value="Normale">Normale</option>
+                        <option value="Straordinario">Straordinario</option>
+                        <option value="Formazione">Formazione</option>
+                        <option value="Affiancamento">Affiancamento</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-1 block">Ora Inizio</label>
+                      <input
+                        type="time"
+                        value={modelloForm.ora_inizio}
+                        onChange={(e) => setModelloForm({ ...modelloForm, ora_inizio: e.target.value })}
+                        className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-1 block">Ora Fine</label>
+                      <input
+                        type="time"
+                        value={modelloForm.ora_fine}
+                        onChange={(e) => setModelloForm({ ...modelloForm, ora_fine: e.target.value })}
+                        className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                      />
+                    </div>
+                  </div>
+                  <NeumorphicButton 
+                    onClick={saveModello} 
+                    variant="primary" 
+                    className="w-full"
+                    disabled={!modelloForm.nome}
+                  >
+                    <Plus className="w-4 h-4 inline mr-1" /> Salva Modello
+                  </NeumorphicButton>
+                </div>
+              </div>
+
+              {/* Lista modelli esistenti */}
+              {turniModello.length > 0 && (
+                <div>
+                  <h3 className="font-medium text-slate-700 mb-2">Modelli Salvati</h3>
+                  <div className="space-y-2">
+                    {turniModello.map(m => (
+                      <div key={m.id} className="neumorphic-pressed p-3 rounded-xl flex items-center justify-between">
+                        <div>
+                          <div className="font-medium text-slate-800">{m.nome}</div>
+                          <div className="text-xs text-slate-500">
+                            {m.ruolo} • {m.ora_inizio}-{m.ora_fine} • {m.tipo_turno}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => deleteModello(m.id)}
+                          className="text-red-500 hover:text-red-700 p-1"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {turniModello.length === 0 && (
+                <p className="text-center text-slate-500 py-4">
+                  Nessun modello salvato. Crea il tuo primo turno modello sopra.
+                </p>
+              )}
+            </NeumorphicCard>
+          </div>
+        )}
+
         {/* Quick Turno Popup */}
         {quickTurnoPopup && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -771,6 +986,23 @@ export default function Planday() {
               </div>
 
               <div className="space-y-3">
+                {/* Turni Modello */}
+                {turniModello.length > 0 && (
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Usa Turno Modello</label>
+                    <select
+                      value={selectedModello}
+                      onChange={(e) => applyModello(e.target.value)}
+                      className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
+                    >
+                      <option value="">-- Seleziona modello --</option>
+                      {turniModello.map(m => (
+                        <option key={m.id} value={m.id}>{m.nome} ({m.ruolo}, {m.ora_inizio}-{m.ora_fine})</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <div>
                   <label className="text-sm font-medium text-slate-700 mb-1 block">Locale *</label>
                   <select
