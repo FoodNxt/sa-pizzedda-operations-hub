@@ -139,7 +139,9 @@ export default function Planday() {
   const [configForm, setConfigForm] = useState({
     distanza_massima_metri: 100,
     tolleranza_ritardo_minuti: 0,
-    abilita_timbratura_gps: true
+    abilita_timbratura_gps: true,
+    scaglioni_ritardo: [],
+    penalita_timbratura_mancata: 0
   });
 
   // Stato per drag and drop (creazione nuovi turni)
@@ -218,7 +220,9 @@ export default function Planday() {
       setConfigForm({
         distanza_massima_metri: config.distanza_massima_metri || 100,
         tolleranza_ritardo_minuti: config.tolleranza_ritardo_minuti ?? 0,
-        abilita_timbratura_gps: config.abilita_timbratura_gps !== false
+        abilita_timbratura_gps: config.abilita_timbratura_gps !== false,
+        scaglioni_ritardo: config.scaglioni_ritardo || [],
+        penalita_timbratura_mancata: config.penalita_timbratura_mancata || 0
       });
     }
   }, [config]);
@@ -748,21 +752,76 @@ export default function Planday() {
     return user?.nome_cognome || user?.full_name || '';
   };
 
-  const getTimbraturaTipo = (turno) => {
-    if (!turno.timbrata_entrata && turno.stato === 'programmato') {
-      return { tipo: 'programmato', color: 'text-slate-500', bg: 'bg-slate-100', label: 'Programmato' };
+  // Calcola ritardo effettivo con scaglioni
+  const calcolaRitardoEffettivo = (minutiRitardo) => {
+    if (!config?.scaglioni_ritardo || config.scaglioni_ritardo.length === 0) {
+      return minutiRitardo; // Nessuno scaglione, ritardo reale
     }
-    if (!turno.timbrata_entrata) {
-      return { tipo: 'mancata', color: 'text-red-600', bg: 'bg-red-100', label: 'Non Timbrato' };
-    }
-    const oraInizio = moment(`${turno.data} ${turno.ora_inizio}`);
-    const timbrataEntrata = moment(turno.timbrata_entrata);
-    const ritardo = timbrataEntrata.diff(oraInizio, 'minutes');
     
-    if (ritardo > 0) {
-      return { tipo: 'ritardo', color: 'text-orange-600', bg: 'bg-orange-100', label: `+${ritardo} min`, ritardo };
+    // Ordina scaglioni per minutiDa
+    const scaglioni = [...config.scaglioni_ritardo].sort((a, b) => a.minutiDa - b.minutiDa);
+    
+    // Trova lo scaglione applicabile
+    for (let i = scaglioni.length - 1; i >= 0; i--) {
+      if (minutiRitardo >= scaglioni[i].minutiDa) {
+        return scaglioni[i].minutiConteggiati;
+      }
     }
-    return { tipo: 'puntuale', color: 'text-green-600', bg: 'bg-green-100', label: 'Puntuale' };
+    
+    return 0; // Entro tolleranza
+  };
+
+  // Calcola penalità timbratura mancata
+  const calcolaPenalitaMancata = () => {
+    return config?.penalita_timbratura_mancata || 0;
+  };
+
+  const getTimbraturaTipo = (turno) => {
+    const now = moment();
+    const turnoDateTime = moment(`${turno.data} ${turno.ora_fine}`);
+    const turnoStart = moment(`${turno.data} ${turno.ora_inizio}`);
+    
+    // Se il turno è nel futuro
+    if (turnoStart.isAfter(now)) {
+      return { tipo: 'programmato', color: 'text-slate-500', bg: 'bg-slate-100', label: 'Programmato', ritardoReale: 0, ritardoConteggiato: 0 };
+    }
+    
+    // Se non c'è timbratura e il turno è finito
+    if (!turno.timbrata_entrata && turnoDateTime.isBefore(now)) {
+      const penalita = calcolaPenalitaMancata();
+      return { 
+        tipo: 'mancata', 
+        color: 'text-red-600', 
+        bg: 'bg-red-100', 
+        label: penalita > 0 ? `Mancata (-${penalita}min)` : 'Non Timbrato',
+        ritardoReale: 0,
+        ritardoConteggiato: penalita,
+        penalita
+      };
+    }
+    
+    // Se non c'è timbratura ma il turno è in corso
+    if (!turno.timbrata_entrata) {
+      return { tipo: 'in_corso', color: 'text-yellow-600', bg: 'bg-yellow-100', label: 'In attesa', ritardoReale: 0, ritardoConteggiato: 0 };
+    }
+    
+    const timbrataEntrata = moment(turno.timbrata_entrata);
+    const ritardoReale = timbrataEntrata.diff(turnoStart, 'minutes');
+    
+    if (ritardoReale <= 0) {
+      return { tipo: 'puntuale', color: 'text-green-600', bg: 'bg-green-100', label: 'Puntuale', ritardoReale: 0, ritardoConteggiato: 0 };
+    }
+    
+    const ritardoConteggiato = calcolaRitardoEffettivo(ritardoReale);
+    
+    return { 
+      tipo: 'ritardo', 
+      color: 'text-orange-600', 
+      bg: 'bg-orange-100', 
+      label: ritardoConteggiato > 0 ? `+${ritardoConteggiato} min` : 'Tollerato',
+      ritardoReale,
+      ritardoConteggiato
+    };
   };
 
   const filteredTurniTimbrature = useMemo(() => {
@@ -869,19 +928,42 @@ export default function Planday() {
           </NeumorphicCard>
         </div>
 
-        {/* Week Navigation */}
+        {/* Controls and Navigation */}
         <NeumorphicCard className="p-4">
-          <div className="flex items-center justify-between">
-            <select
-              value={selectedStore}
-              onChange={(e) => setSelectedStore(e.target.value)}
-              className="neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
-            >
-              <option value="">Tutti i locali</option>
-              {stores.map(store => (
-                <option key={store.id} value={store.id}>{store.name}</option>
-              ))}
-            </select>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <select
+                value={selectedStore}
+                onChange={(e) => setSelectedStore(e.target.value)}
+                className="neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
+              >
+                <option value="">Tutti i locali</option>
+                {stores.map(store => (
+                  <option key={store.id} value={store.id}>{store.name}</option>
+                ))}
+              </select>
+              
+              <div className="flex rounded-xl overflow-hidden neumorphic-pressed">
+                <button
+                  onClick={() => setViewMode('calendario')}
+                  className={`px-3 py-2 text-sm font-medium flex items-center gap-1 ${viewMode === 'calendario' ? 'bg-blue-500 text-white' : 'text-slate-700'}`}
+                >
+                  <LayoutGrid className="w-4 h-4" /> Calendario
+                </button>
+                <button
+                  onClick={() => setViewMode('dipendenti')}
+                  className={`px-3 py-2 text-sm font-medium flex items-center gap-1 ${viewMode === 'dipendenti' ? 'bg-blue-500 text-white' : 'text-slate-700'}`}
+                >
+                  <StoreIcon className="w-4 h-4" /> Store
+                </button>
+                <button
+                  onClick={() => setViewMode('singolo')}
+                  className={`px-3 py-2 text-sm font-medium flex items-center gap-1 ${viewMode === 'singolo' ? 'bg-blue-500 text-white' : 'text-slate-700'}`}
+                >
+                  <User className="w-4 h-4" /> Singolo
+                </button>
+              </div>
+            </div>
 
             <div className="flex items-center gap-2">
               <NeumorphicButton onClick={() => setWeekStart(weekStart.clone().subtract(1, 'week'))}>
@@ -897,6 +979,328 @@ export default function Planday() {
                 Oggi
               </NeumorphicButton>
             </div>
+
+            <div className="flex items-center gap-2">
+              <NeumorphicButton onClick={() => setShowModelliModal(true)} className="flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                Modelli
+              </NeumorphicButton>
+              <NeumorphicButton onClick={() => setShowSettimanaModelloModal(true)} className="flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                Replica Settimana
+              </NeumorphicButton>
+              <NeumorphicButton 
+                onClick={() => {
+                  setTurnoForm({ 
+                    store_id: selectedStore || (stores[0]?.id || ''),
+                    data: moment().format('YYYY-MM-DD'),
+                    ora_inizio: '09:00',
+                    ora_fine: '17:00',
+                    ruolo: 'Pizzaiolo',
+                    dipendente_id: '',
+                    tipo_turno: 'Normale',
+                    note: ''
+                  });
+                  setShowForm(true);
+                }} 
+                variant="primary" 
+                className="flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Nuovo Turno
+              </NeumorphicButton>
+            </div>
+          </div>
+        </NeumorphicCard>
+
+        {/* Form Turno */}
+        {showForm && (
+          <NeumorphicCard className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-slate-800">
+                {editingTurno ? 'Modifica Turno' : 'Nuovo Turno'}
+              </h2>
+              <button onClick={resetForm} className="nav-button p-2 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-1 block">Locale *</label>
+                <select
+                  value={turnoForm.store_id}
+                  onChange={(e) => setTurnoForm({ ...turnoForm, store_id: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                >
+                  <option value="">Seleziona locale</option>
+                  {stores.map(store => (
+                    <option key={store.id} value={store.id}>{store.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-1 block">Data *</label>
+                <input
+                  type="date"
+                  value={turnoForm.data}
+                  onChange={(e) => setTurnoForm({ ...turnoForm, data: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-1 block">Ruolo *</label>
+                <select
+                  value={turnoForm.ruolo}
+                  onChange={(e) => setTurnoForm({ ...turnoForm, ruolo: e.target.value, dipendente_id: '' })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                >
+                  {RUOLI.map(ruolo => (
+                    <option key={ruolo} value={ruolo}>{ruolo}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-1 block">Ora Inizio *</label>
+                <input
+                  type="time"
+                  value={turnoForm.ora_inizio}
+                  onChange={(e) => setTurnoForm({ ...turnoForm, ora_inizio: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-1 block">Ora Fine *</label>
+                <input
+                  type="time"
+                  value={turnoForm.ora_fine}
+                  onChange={(e) => setTurnoForm({ ...turnoForm, ora_fine: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-1 block">Tipo Turno</label>
+                <select
+                  value={turnoForm.tipo_turno}
+                  onChange={(e) => setTurnoForm({ ...turnoForm, tipo_turno: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                >
+                  {tipiTurno.map(tipo => (
+                    <option key={tipo} value={tipo}>{tipo}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-1 block">Dipendente</label>
+                <select
+                  value={turnoForm.dipendente_id}
+                  onChange={(e) => setTurnoForm({ ...turnoForm, dipendente_id: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                >
+                  <option value="">Non assegnato</option>
+                  {filteredDipendenti.map(u => (
+                    <option key={u.id} value={u.id}>{u.nome_cognome || u.full_name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <NeumorphicButton onClick={resetForm} className="flex-1">Annulla</NeumorphicButton>
+              <NeumorphicButton 
+                onClick={handleSaveTurno} 
+                variant="primary" 
+                className="flex-1 flex items-center justify-center gap-2"
+                disabled={!turnoForm.store_id || !turnoForm.data || !turnoForm.ora_inizio || !turnoForm.ora_fine}
+              >
+                <Save className="w-4 h-4" />
+                Salva
+              </NeumorphicButton>
+            </div>
+          </NeumorphicCard>
+        )}
+
+        {/* Vista Calendario */}
+        {viewMode === 'calendario' && (
+          <NeumorphicCard className="p-4 overflow-x-auto">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+              </div>
+            ) : (
+              <div className="min-w-[900px]">
+                {/* Header giorni */}
+                <div className="grid grid-cols-8 gap-1 mb-2">
+                  <div className="p-2 text-center font-medium text-slate-500 text-sm">Ora</div>
+                  {weekDays.map(day => (
+                    <div 
+                      key={day.format('YYYY-MM-DD')} 
+                      className={`p-2 text-center rounded-lg ${
+                        day.isSame(moment(), 'day') ? 'bg-blue-100' : ''
+                      }`}
+                    >
+                      <div className="font-medium text-slate-700">{day.format('ddd')}</div>
+                      <div className="text-lg font-bold text-slate-800">{day.format('DD')}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Griglia oraria con slot 30 min */}
+                <div className="relative">
+                  {timeSlots.map((slot, idx) => (
+                    <div key={`${slot.hour}-${slot.minute}`} className="grid grid-cols-8 gap-1" style={{ height: '25px' }}>
+                      <div className="text-center text-xs text-slate-500 font-medium flex items-center justify-center">
+                        {slot.minute === 0 ? slot.label : ''}
+                      </div>
+                      {weekDays.map(day => {
+                        const dayKey = day.format('YYYY-MM-DD');
+                        const inDragRange = isInDragRange(day, slot);
+                        return (
+                          <div 
+                            key={`${dayKey}-${slot.hour}-${slot.minute}`}
+                            className={`border-t border-slate-100 cursor-pointer select-none transition-colors ${
+                              inDragRange ? 'bg-blue-200' : 'hover:bg-slate-50'
+                            } ${slot.minute === 0 ? 'border-slate-200' : 'border-slate-100'}`}
+                            onMouseDown={(e) => { e.preventDefault(); handleMouseDown(day, slot); }}
+                            onMouseEnter={() => handleMouseEnter(day, slot)}
+                            onMouseUp={() => handleMouseUp(day, slot)}
+                          />
+                        );
+                      })}
+                    </div>
+                  ))}
+
+                  {/* Turni posizionati in overlay */}
+                  <div className="absolute top-0 left-0 right-0 grid grid-cols-8 gap-1 pointer-events-none" style={{ height: `${timeSlots.length * 25}px` }}>
+                    <div />
+                    {weekDays.map(day => {
+                      const dayKey = day.format('YYYY-MM-DD');
+                      const dayTurni = turniByDayHour[dayKey] || [];
+                      const overlappingGroups = getOverlappingTurni(dayTurni);
+                      const isDropTargetDay = dropTarget === dayKey;
+
+                      return (
+                        <div 
+                          key={dayKey} 
+                          className={`relative pointer-events-auto ${isDropTargetDay ? 'bg-blue-100 bg-opacity-50' : ''}`}
+                          onDragOver={(e) => handleDayDragOver(e, day)}
+                          onDrop={(e) => handleDayDrop(e, day)}
+                        >
+                          {overlappingGroups.map((group, groupIdx) => 
+                            group.map((turno, idx) => {
+                              const style = getTurnoStyle(turno, idx, group.length);
+                              return (
+                                <div 
+                                  key={turno.id}
+                                  draggable
+                                  onDragStart={(e) => handleTurnoDragStart(e, turno)}
+                                  onDragEnd={handleTurnoDragEnd}
+                                  className={`absolute p-1 rounded-lg border-2 text-xs cursor-grab pointer-events-auto overflow-hidden shadow-md text-white ${draggingTurno?.id === turno.id ? 'opacity-50' : ''}`}
+                                  style={{
+                                    ...style,
+                                    marginLeft: '1px',
+                                    marginRight: '1px',
+                                    ...getRuoloStyle(turno.ruolo)
+                                  }}
+                                  onClick={(e) => { e.stopPropagation(); handleEditTurno(turno); }}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-bold text-[10px]">{turno.ora_inizio}-{turno.ora_fine}</span>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (confirm('Eliminare questo turno?')) {
+                                          deleteMutation.mutate(turno.id);
+                                        }
+                                      }}
+                                      className="hover:text-red-200"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                  {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
+                                    <div 
+                                      className="absolute top-0 right-0 w-0 h-0 border-t-[12px] border-l-[12px] border-l-transparent"
+                                      style={{ borderTopColor: coloriTipoTurno[turno.tipo_turno] || '#94a3b8' }}
+                                    />
+                                  )}
+                                  <div className="truncate text-[10px] font-medium">{turno.ruolo}</div>
+                                  {turno.dipendente_nome && (
+                                    <div className="truncate text-[10px] font-bold">{turno.dipendente_nome}</div>
+                                  )}
+                                  {!selectedStore && (
+                                    <div className="truncate text-[9px] opacity-80">{getStoreName(turno.store_id)}</div>
+                                  )}
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+          </NeumorphicCard>
+        )}
+
+        {/* Vista Store */}
+        {viewMode === 'dipendenti' && (
+          <PlandayStoreView
+            turni={turni}
+            users={users}
+            stores={stores}
+            selectedStore={selectedStore}
+            setSelectedStore={setSelectedStore}
+            weekStart={weekStart}
+            setWeekStart={setWeekStart}
+            onEditTurno={handleEditTurno}
+            onAddTurno={handleAddTurnoFromStoreView}
+            onSaveTurno={handleSaveTurnoFromChild}
+            onDeleteTurno={(id) => deleteMutation.mutate(id)}
+            getStoreName={getStoreName}
+            tipiTurno={tipiTurno}
+            coloriTipoTurno={coloriTipoTurno}
+            coloriRuolo={coloriRuolo}
+          />
+        )}
+
+        {/* Vista Singolo Dipendente */}
+        {viewMode === 'singolo' && (
+          <PlandayEmployeeView
+            selectedDipendente={selectedDipendente}
+            setSelectedDipendente={setSelectedDipendente}
+            turniDipendente={turniDipendente}
+            users={users}
+            stores={stores}
+            isLoading={isLoading}
+            onEditTurno={handleEditTurno}
+            onSaveTurno={handleSaveTurnoFromChild}
+            onDeleteTurno={(id) => deleteMutation.mutate(id)}
+            getStoreName={getStoreName}
+            coloriTipoTurno={coloriTipoTurno}
+            coloriRuolo={coloriRuolo}
+          />
+        )}
+
+        {/* Legenda */}
+        <NeumorphicCard className="p-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <span className="text-sm font-medium text-slate-700">Ruoli:</span>
+            {RUOLI.map(ruolo => (
+              <div 
+                key={ruolo} 
+                className="px-3 py-1 rounded-lg border-2 text-sm font-medium text-white"
+                style={{ backgroundColor: coloriRuolo[ruolo], borderColor: coloriRuolo[ruolo] }}
+              >
+                {ruolo}
+              </div>
+            ))}
+            <span className="text-xs text-slate-500 ml-4">💡 Trascina per spostare • Clicca per modificare</span>
           </div>
         </NeumorphicCard>
 
@@ -905,7 +1309,7 @@ export default function Planday() {
         {/* Modal Impostazioni */}
         {showConfigModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <NeumorphicCard className="p-6 max-w-2xl w-full my-8">
+            <NeumorphicCard className="p-6 max-w-3xl w-full my-8">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-slate-800">Impostazioni Timbratura</h2>
                 <button onClick={() => setShowConfigModal(false)} className="nav-button p-2 rounded-lg">
@@ -913,136 +1317,179 @@ export default function Planday() {
                 </button>
               </div>
 
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-slate-700 mb-1 block">
-                    Distanza massima per timbratura (metri)
-                  </label>
-                  <input
-                    type="number"
-                    value={configForm.distanza_massima_metri}
-                    onChange={(e) => setConfigForm({ ...configForm, distanza_massima_metri: parseInt(e.target.value) || 100 })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                  />
-                  <p className="text-xs text-slate-500 mt-1">
-                    Il dipendente deve trovarsi entro questa distanza dal locale per timbrare
-                  </p>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium text-slate-700 mb-1 block">
-                    Tolleranza ritardo (minuti)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={configForm.tolleranza_ritardo_minuti}
-                    onChange={(e) => setConfigForm({ ...configForm, tolleranza_ritardo_minuti: parseInt(e.target.value) ?? 0 })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                  />
-                  <p className="text-xs text-slate-500 mt-1">
-                    0 = nessuna tolleranza, il ritardo viene conteggiato da subito
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="gps-check"
-                    checked={configForm.abilita_timbratura_gps}
-                    onChange={(e) => setConfigForm({ ...configForm, abilita_timbratura_gps: e.target.checked })}
-                    className="w-5 h-5"
-                  />
-                  <label htmlFor="gps-check" className="text-sm font-medium text-slate-700">
-                    Abilita verifica GPS per timbratura
-                  </label>
-                </div>
-
-                {/* Sezione Coordinate GPS Locali */}
-                <div className="border-t border-slate-200 pt-4 mt-4">
+              <div className="space-y-6">
+                {/* GPS Settings */}
+                <div className="neumorphic-pressed p-4 rounded-xl">
                   <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
                     <MapPin className="w-5 h-5 text-blue-600" />
-                    Posizione GPS Locali
+                    Impostazioni GPS
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-1 block">
+                        Distanza massima per timbratura (metri)
+                      </label>
+                      <input
+                        type="number"
+                        value={configForm.distanza_massima_metri}
+                        onChange={(e) => setConfigForm({ ...configForm, distanza_massima_metri: parseInt(e.target.value) || 100 })}
+                        className="w-full neumorphic-flat px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="gps-check"
+                        checked={configForm.abilita_timbratura_gps}
+                        onChange={(e) => setConfigForm({ ...configForm, abilita_timbratura_gps: e.target.checked })}
+                        className="w-5 h-5"
+                      />
+                      <label htmlFor="gps-check" className="text-sm font-medium text-slate-700">
+                        Abilita verifica GPS per timbratura
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Scaglioni Ritardo */}
+                <div className="neumorphic-pressed p-4 rounded-xl">
+                  <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-orange-600" />
+                    Scaglioni Ritardo
                   </h3>
                   <p className="text-xs text-slate-500 mb-3">
-                    Le coordinate GPS sono usate per verificare la posizione del dipendente durante la timbratura
+                    Definisci come vengono conteggiati i ritardi. Es: se uno arriva con 4 min di ritardo, puoi decidere di conteggiare 0, 5 o 15 minuti.
                   </p>
                   
-                  <div className="space-y-3">
+                  <div className="space-y-2 mb-4">
+                    {configForm.scaglioni_ritardo.map((scaglione, idx) => (
+                      <div key={idx} className="flex items-center gap-2 neumorphic-flat p-3 rounded-lg">
+                        <span className="text-sm text-slate-600">Da</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={scaglione.minutiDa}
+                          onChange={(e) => {
+                            const newScaglioni = [...configForm.scaglioni_ritardo];
+                            newScaglioni[idx].minutiDa = parseInt(e.target.value) || 0;
+                            setConfigForm({ ...configForm, scaglioni_ritardo: newScaglioni });
+                          }}
+                          className="w-20 neumorphic-pressed px-2 py-1 rounded-lg text-sm outline-none text-center"
+                        />
+                        <span className="text-sm text-slate-600">min → conteggia</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={scaglione.minutiConteggiati}
+                          onChange={(e) => {
+                            const newScaglioni = [...configForm.scaglioni_ritardo];
+                            newScaglioni[idx].minutiConteggiati = parseInt(e.target.value) || 0;
+                            setConfigForm({ ...configForm, scaglioni_ritardo: newScaglioni });
+                          }}
+                          className="w-20 neumorphic-pressed px-2 py-1 rounded-lg text-sm outline-none text-center"
+                        />
+                        <span className="text-sm text-slate-600">min</span>
+                        <button
+                          onClick={() => {
+                            const newScaglioni = configForm.scaglioni_ritardo.filter((_, i) => i !== idx);
+                            setConfigForm({ ...configForm, scaglioni_ritardo: newScaglioni });
+                          }}
+                          className="ml-auto text-red-500 hover:text-red-700"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <NeumorphicButton
+                    onClick={() => {
+                      const lastScaglione = configForm.scaglioni_ritardo[configForm.scaglioni_ritardo.length - 1];
+                      const newMinutiDa = lastScaglione ? lastScaglione.minutiDa + 5 : 1;
+                      setConfigForm({
+                        ...configForm,
+                        scaglioni_ritardo: [...configForm.scaglioni_ritardo, { minutiDa: newMinutiDa, minutiConteggiati: newMinutiDa }]
+                      });
+                    }}
+                    className="text-sm flex items-center gap-1"
+                  >
+                    <Plus className="w-4 h-4" /> Aggiungi Scaglione
+                  </NeumorphicButton>
+                  
+                  <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                    <p className="text-xs text-blue-700">
+                      <strong>Esempio:</strong> Se imposti "Da 1 min → conteggia 0 min" e "Da 5 min → conteggia 15 min", 
+                      chi arriva con 4 min di ritardo avrà 0 min conteggiati, chi arriva con 6 min avrà 15 min conteggiati.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Penalità Timbratura Mancata */}
+                <div className="neumorphic-pressed p-4 rounded-xl">
+                  <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    <XCircle className="w-5 h-5 text-red-600" />
+                    Penalità Timbratura Mancata
+                  </h3>
+                  <p className="text-xs text-slate-500 mb-3">
+                    Minuti scalati quando un dipendente non timbra affatto per un turno
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      min="0"
+                      value={configForm.penalita_timbratura_mancata}
+                      onChange={(e) => setConfigForm({ ...configForm, penalita_timbratura_mancata: parseInt(e.target.value) || 0 })}
+                      className="w-32 neumorphic-flat px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    />
+                    <span className="text-sm text-slate-600">minuti</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    0 = nessuna penalità (viene solo segnalata la mancata timbratura)
+                  </p>
+                </div>
+
+                {/* GPS Locali */}
+                <div className="neumorphic-pressed p-4 rounded-xl">
+                  <h3 className="text-lg font-bold text-slate-800 mb-3">Posizione GPS Locali</h3>
+                  <div className="space-y-3 max-h-60 overflow-y-auto">
                     {stores.map(store => (
-                      <div key={store.id} className="neumorphic-pressed p-3 rounded-xl">
+                      <div key={store.id} className="neumorphic-flat p-3 rounded-xl">
                         {editingStore?.id === store.id ? (
                           <div className="space-y-2">
                             <div className="font-medium text-slate-800">{store.name}</div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                              <div>
-                                <label className="text-xs text-slate-500">Latitudine</label>
-                                <input
-                                  type="number"
-                                  step="any"
-                                  value={storeCoords.latitude}
-                                  onChange={(e) => setStoreCoords({ ...storeCoords, latitude: e.target.value })}
-                                  className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
-                                  placeholder="45.4642"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-xs text-slate-500">Longitudine</label>
-                                <input
-                                  type="number"
-                                  step="any"
-                                  value={storeCoords.longitude}
-                                  onChange={(e) => setStoreCoords({ ...storeCoords, longitude: e.target.value })}
-                                  className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
-                                  placeholder="9.1900"
-                                />
-                              </div>
-                            </div>
-                            <div>
-                              <label className="text-xs text-slate-500">Indirizzo</label>
+                            <div className="grid grid-cols-2 gap-2">
                               <input
-                                type="text"
-                                value={storeCoords.address}
-                                onChange={(e) => setStoreCoords({ ...storeCoords, address: e.target.value })}
-                                className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
-                                placeholder="Via Roma 1, Milano"
+                                type="number"
+                                step="any"
+                                value={storeCoords.latitude}
+                                onChange={(e) => setStoreCoords({ ...storeCoords, latitude: e.target.value })}
+                                className="neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none"
+                                placeholder="Latitudine"
+                              />
+                              <input
+                                type="number"
+                                step="any"
+                                value={storeCoords.longitude}
+                                onChange={(e) => setStoreCoords({ ...storeCoords, longitude: e.target.value })}
+                                className="neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none"
+                                placeholder="Longitudine"
                               />
                             </div>
-                            <div className="flex gap-2 mt-2">
-                              <button
-                                onClick={() => setEditingStore(null)}
-                                className="px-3 py-1 text-sm text-slate-600 hover:text-slate-800"
-                              >
-                                Annulla
-                              </button>
-                              <button
-                                onClick={handleSaveStoreCoords}
-                                disabled={updateStoreMutation.isPending}
-                                className="px-3 py-1 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center gap-1"
-                              >
-                                {updateStoreMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-                                Salva
-                              </button>
+                            <div className="flex gap-2">
+                              <button onClick={() => setEditingStore(null)} className="text-sm text-slate-600">Annulla</button>
+                              <button onClick={handleSaveStoreCoords} className="text-sm bg-blue-500 text-white px-3 py-1 rounded-lg">Salva</button>
                             </div>
                           </div>
                         ) : (
                           <div className="flex items-center justify-between">
                             <div>
                               <div className="font-medium text-slate-800">{store.name}</div>
-                              <div className="text-xs text-slate-500">
-                                {store.address || 'Indirizzo non impostato'}
-                              </div>
                               <div className="text-xs text-slate-400">
-                                {store.latitude && store.longitude 
-                                  ? `📍 ${store.latitude}, ${store.longitude}`
-                                  : '⚠️ Coordinate GPS non impostate'}
+                                {store.latitude && store.longitude ? `📍 ${store.latitude}, ${store.longitude}` : '⚠️ GPS non impostato'}
                               </div>
                             </div>
-                            <button
-                              onClick={() => handleEditStore(store)}
-                              className="nav-button p-2 rounded-lg hover:bg-blue-50"
-                            >
-                              <Edit className="w-4 h-4 text-blue-600" />
+                            <button onClick={() => handleEditStore(store)} className="text-blue-600">
+                              <Edit className="w-4 h-4" />
                             </button>
                           </div>
                         )}
@@ -1448,13 +1895,20 @@ export default function Planday() {
         {/* Main Content - Timbrature */}
         {mainView === 'timbrature' && (
           <>
-            {/* Alert Settings Button */}
-            <div className="flex justify-end">
+            {/* Settings Buttons */}
+            <div className="flex justify-end gap-2">
+              <NeumorphicButton 
+                onClick={() => setShowConfigModal(true)}
+                className="flex items-center gap-2"
+              >
+                <Settings className="w-4 h-4" />
+                Impostazioni Timbratura
+              </NeumorphicButton>
               <NeumorphicButton 
                 onClick={() => setShowAlertSettings(true)}
                 className="flex items-center gap-2"
               >
-                <Settings className="w-4 h-4" />
+                <AlertTriangle className="w-4 h-4" />
                 Alert WhatsApp
               </NeumorphicButton>
             </div>
@@ -1576,6 +2030,8 @@ export default function Planday() {
                         <th className="text-left p-3 text-sm font-medium text-slate-600">Turno</th>
                         <th className="text-left p-3 text-sm font-medium text-slate-600">Entrata</th>
                         <th className="text-left p-3 text-sm font-medium text-slate-600">Uscita</th>
+                        <th className="text-center p-3 text-sm font-medium text-slate-600">Ritardo Reale</th>
+                        <th className="text-center p-3 text-sm font-medium text-slate-600">Ritardo Conteggiato</th>
                         <th className="text-center p-3 text-sm font-medium text-slate-600">Stato</th>
                       </tr>
                     </thead>
@@ -1583,7 +2039,7 @@ export default function Planday() {
                       {filteredTurniTimbrature.slice(0, 100).map(turno => {
                         const stato = getTimbraturaTipo(turno);
                         return (
-                          <tr key={turno.id} className="border-b border-slate-100 hover:bg-slate-50">
+                          <tr key={turno.id} className={`border-b border-slate-100 hover:bg-slate-50 ${stato.tipo === 'mancata' ? 'bg-red-50' : ''}`}>
                             <td className="p-3">
                               <div className="font-medium text-slate-800">
                                 {moment(turno.data).format('DD/MM/YYYY')}
@@ -1626,7 +2082,9 @@ export default function Planday() {
                                   )}
                                 </div>
                               ) : (
-                                <span className="text-slate-400">-</span>
+                                <span className={stato.tipo === 'mancata' ? 'text-red-500 font-medium' : 'text-slate-400'}>
+                                  {stato.tipo === 'mancata' ? 'MANCATA' : '-'}
+                                </span>
                               )}
                             </td>
                             <td className="p-3 text-sm">
@@ -1639,8 +2097,28 @@ export default function Planday() {
                               )}
                             </td>
                             <td className="p-3 text-center">
+                              {stato.ritardoReale > 0 ? (
+                                <span className="text-orange-600 font-medium">{stato.ritardoReale} min</span>
+                              ) : stato.tipo === 'mancata' ? (
+                                <span className="text-red-600 font-medium">-</span>
+                              ) : (
+                                <span className="text-green-600">0</span>
+                              )}
+                            </td>
+                            <td className="p-3 text-center">
+                              {stato.ritardoConteggiato > 0 ? (
+                                <span className={`font-bold ${stato.tipo === 'mancata' ? 'text-red-600' : 'text-orange-600'}`}>
+                                  {stato.ritardoConteggiato} min
+                                </span>
+                              ) : stato.tipo === 'ritardo' ? (
+                                <span className="text-green-600 text-xs">Tollerato</span>
+                              ) : (
+                                <span className="text-green-600">0</span>
+                              )}
+                            </td>
+                            <td className="p-3 text-center">
                               <span className={`text-xs px-3 py-1 rounded-full font-medium ${stato.bg} ${stato.color}`}>
-                                {stato.label}
+                                {stato.tipo === 'mancata' ? '⚠️ Mancata' : stato.label}
                               </span>
                             </td>
                           </tr>
@@ -1757,362 +2235,7 @@ export default function Planday() {
           </div>
         )}
 
-        {/* Resto dei modal rimane invariato */}
-        {showConfigModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <NeumorphicCard className="p-6 max-w-2xl w-full my-8">
 
-              {/* View Mode Selector */}
-              <div className="flex gap-2 mb-4 flex-wrap">
-                <NeumorphicButton onClick={() => setShowSettimanaModelloModal(true)} className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  Usa come Modello
-                </NeumorphicButton>
-                <div className="flex rounded-xl overflow-hidden neumorphic-pressed">
-                  <button
-                    onClick={() => setViewMode('calendario')}
-                    className={`px-3 py-2 text-sm font-medium flex items-center gap-1 ${viewMode === 'calendario' ? 'bg-blue-500 text-white' : 'text-slate-700'}`}
-                  >
-                    <LayoutGrid className="w-4 h-4" /> Calendario
-                  </button>
-                  <button
-                    onClick={() => setViewMode('dipendenti')}
-                    className={`px-3 py-2 text-sm font-medium flex items-center gap-1 ${viewMode === 'dipendenti' ? 'bg-blue-500 text-white' : 'text-slate-700'}`}
-                  >
-                    <StoreIcon className="w-4 h-4" /> Store
-                  </button>
-                  <button
-                    onClick={() => setViewMode('singolo')}
-                    className={`px-3 py-2 text-sm font-medium flex items-center gap-1 ${viewMode === 'singolo' ? 'bg-blue-500 text-white' : 'text-slate-700'}`}
-                  >
-                    <User className="w-4 h-4" /> Singolo
-                  </button>
-                </div>
-                <NeumorphicButton onClick={() => setShowModelliModal(true)} className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  Turni Modello
-                </NeumorphicButton>
-                <NeumorphicButton onClick={() => setShowConfigModal(true)} className="flex items-center gap-2">
-                  <Settings className="w-4 h-4" />
-                  Impostazioni
-                </NeumorphicButton>
-                <NeumorphicButton 
-                  onClick={() => {
-                    setTurnoForm({ 
-                      store_id: selectedStore || (stores[0]?.id || ''),
-                      data: moment().format('YYYY-MM-DD'),
-                      ora_inizio: '09:00',
-                      ora_fine: '17:00',
-                      ruolo: 'Pizzaiolo',
-                      dipendente_id: '',
-                      tipo_turno: 'Normale',
-                      note: ''
-                    });
-                    setShowForm(true);
-                  }} 
-                  variant="primary" 
-                  className="flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Nuovo Turno
-                </NeumorphicButton>
-              </div>
-
-              {/* Form Turno (inside modal) */}
-              {showForm && (
-                <div className="neumorphic-pressed p-6 rounded-xl mb-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-slate-800">
-                      {editingTurno ? 'Modifica Turno' : 'Nuovo Turno'}
-                    </h3>
-                    <button onClick={resetForm} className="nav-button p-2 rounded-lg">
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div>
-                      <label className="text-sm font-medium text-slate-700 mb-1 block">Locale *</label>
-                      <select
-                        value={turnoForm.store_id}
-                        onChange={(e) => setTurnoForm({ ...turnoForm, store_id: e.target.value })}
-                        className="w-full neumorphic-flat px-3 py-2 rounded-xl text-slate-700 outline-none"
-                      >
-                        <option value="">Seleziona locale</option>
-                        {stores.map(store => (
-                          <option key={store.id} value={store.id}>{store.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-slate-700 mb-1 block">Data *</label>
-                      <input
-                        type="date"
-                        value={turnoForm.data}
-                        onChange={(e) => setTurnoForm({ ...turnoForm, data: e.target.value })}
-                        className="w-full neumorphic-flat px-3 py-2 rounded-xl text-slate-700 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-slate-700 mb-1 block">Ruolo *</label>
-                      <select
-                        value={turnoForm.ruolo}
-                        onChange={(e) => setTurnoForm({ ...turnoForm, ruolo: e.target.value, dipendente_id: '' })}
-                        className="w-full neumorphic-flat px-3 py-2 rounded-xl text-slate-700 outline-none"
-                      >
-                        {RUOLI.map(ruolo => (
-                          <option key={ruolo} value={ruolo}>{ruolo}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                    <div>
-                      <label className="text-sm font-medium text-slate-700 mb-1 block">Ora Inizio</label>
-                      <input
-                        type="time"
-                        value={turnoForm.ora_inizio}
-                        onChange={(e) => setTurnoForm({ ...turnoForm, ora_inizio: e.target.value })}
-                        className="w-full neumorphic-flat px-3 py-2 rounded-xl text-slate-700 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-slate-700 mb-1 block">Ora Fine</label>
-                      <input
-                        type="time"
-                        value={turnoForm.ora_fine}
-                        onChange={(e) => setTurnoForm({ ...turnoForm, ora_fine: e.target.value })}
-                        className="w-full neumorphic-flat px-3 py-2 rounded-xl text-slate-700 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-slate-700 mb-1 block">Tipo Turno</label>
-                      <select
-                        value={turnoForm.tipo_turno}
-                        onChange={(e) => setTurnoForm({ ...turnoForm, tipo_turno: e.target.value })}
-                        className="w-full neumorphic-flat px-3 py-2 rounded-xl text-slate-700 outline-none"
-                      >
-                        {tipiTurno.map(tipo => (
-                          <option key={tipo} value={tipo}>{tipo}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-slate-700 mb-1 block">Dipendente</label>
-                      <select
-                        value={turnoForm.dipendente_id}
-                        onChange={(e) => setTurnoForm({ ...turnoForm, dipendente_id: e.target.value })}
-                        className="w-full neumorphic-flat px-3 py-2 rounded-xl text-slate-700 outline-none"
-                      >
-                        <option value="">Non assegnato</option>
-                        {filteredDipendenti.map(u => (
-                          <option key={u.id} value={u.id}>{u.nome_cognome || u.full_name}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <NeumorphicButton onClick={resetForm} className="flex-1">Annulla</NeumorphicButton>
-                    <NeumorphicButton 
-                      onClick={handleSaveTurno} 
-                      variant="primary" 
-                      className="flex-1 flex items-center justify-center gap-2"
-                      disabled={!turnoForm.store_id || !turnoForm.data || !turnoForm.ora_inizio || !turnoForm.ora_fine}
-                    >
-                      <Save className="w-4 h-4" />
-                      Salva
-                    </NeumorphicButton>
-                  </div>
-                </div>
-              )}
-
-              {/* Vista Calendario */}
-              {viewMode === 'calendario' && (
-                <div className="overflow-x-auto">
-                  {isLoading ? (
-                    <div className="flex items-center justify-center py-12">
-                      <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-                    </div>
-                  ) : (
-                    <div className="min-w-[900px]">
-                      {/* Header giorni */}
-                      <div className="grid grid-cols-8 gap-1 mb-2">
-                        <div className="p-2 text-center font-medium text-slate-500 text-sm">Ora</div>
-                        {weekDays.map(day => (
-                          <div 
-                            key={day.format('YYYY-MM-DD')} 
-                            className={`p-2 text-center rounded-lg ${
-                              day.isSame(moment(), 'day') ? 'bg-blue-100' : ''
-                            }`}
-                          >
-                            <div className="font-medium text-slate-700">{day.format('ddd')}</div>
-                            <div className="text-lg font-bold text-slate-800">{day.format('DD')}</div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Griglia oraria con slot 30 min */}
-                      <div className="relative">
-                        {/* Linee orizzontali e label ore */}
-                        {timeSlots.map((slot, idx) => (
-                          <div key={`${slot.hour}-${slot.minute}`} className="grid grid-cols-8 gap-1" style={{ height: '25px' }}>
-                            <div className="text-center text-xs text-slate-500 font-medium flex items-center justify-center">
-                              {slot.minute === 0 ? slot.label : ''}
-                            </div>
-                            {weekDays.map(day => {
-                            const dayKey = day.format('YYYY-MM-DD');
-                            const inDragRange = isInDragRange(day, slot);
-
-                            return (
-                              <div 
-                                key={`${dayKey}-${slot.hour}-${slot.minute}`}
-                                className={`border-t border-slate-100 cursor-pointer select-none transition-colors ${
-                                  inDragRange ? 'bg-blue-200' : 'hover:bg-slate-50'
-                                } ${slot.minute === 0 ? 'border-slate-200' : 'border-slate-100'}`}
-                                onMouseDown={(e) => { e.preventDefault(); handleMouseDown(day, slot); }}
-                                onMouseEnter={() => handleMouseEnter(day, slot)}
-                                onMouseUp={() => handleMouseUp(day, slot)}
-                              />
-                            );
-                            })}
-                          </div>
-                        ))}
-
-                        {/* Turni posizionati in overlay con gestione sovrapposizioni e drag&drop */}
-                        <div className="absolute top-0 left-0 right-0 grid grid-cols-8 gap-1 pointer-events-none" style={{ height: `${timeSlots.length * 25}px` }}>
-                          <div /> {/* Colonna ore */}
-                          {weekDays.map(day => {
-                            const dayKey = day.format('YYYY-MM-DD');
-                            const dayTurni = turniByDayHour[dayKey] || [];
-                            const overlappingGroups = getOverlappingTurni(dayTurni);
-                            const isDropTarget = dropTarget === dayKey;
-
-                            return (
-                              <div 
-                                key={dayKey} 
-                                className={`relative pointer-events-auto ${isDropTarget ? 'bg-blue-100 bg-opacity-50' : ''}`}
-                                onDragOver={(e) => handleDayDragOver(e, day)}
-                                onDrop={(e) => handleDayDrop(e, day)}
-                              >
-                                {overlappingGroups.map((group, groupIdx) => 
-                                  group.map((turno, idx) => {
-                                    const style = getTurnoStyle(turno, idx, group.length);
-                                    return (
-                                      <div 
-                                        key={turno.id}
-                                        draggable
-                                        onDragStart={(e) => handleTurnoDragStart(e, turno)}
-                                        onDragEnd={handleTurnoDragEnd}
-                                        className={`absolute p-1 rounded-lg border-2 text-xs cursor-grab pointer-events-auto overflow-hidden shadow-md text-white ${draggingTurno?.id === turno.id ? 'opacity-50' : ''}`}
-                                        style={{
-                                          ...style,
-                                          marginLeft: '1px',
-                                          marginRight: '1px',
-                                          ...getRuoloStyle(turno.ruolo)
-                                        }}
-                                        onClick={(e) => { e.stopPropagation(); handleEditTurno(turno); }}
-                                      >
-                                        <div className="flex items-center justify-between">
-                                          <span className="font-bold text-[10px]">{turno.ora_inizio}-{turno.ora_fine}</span>
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              if (confirm('Eliminare questo turno?')) {
-                                                deleteMutation.mutate(turno.id);
-                                              }
-                                            }}
-                                            className="hover:text-red-200"
-                                          >
-                                            <Trash2 className="w-3 h-3" />
-                                          </button>
-                                        </div>
-                                        {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
-                                          <div 
-                                            className="absolute top-0 right-0 w-0 h-0 border-t-[12px] border-l-[12px] border-l-transparent"
-                                            style={{ borderTopColor: coloriTipoTurno[turno.tipo_turno] || '#94a3b8' }}
-                                          />
-                                        )}
-                                        <div className="truncate text-[10px] font-medium">{turno.ruolo}</div>
-                                        {turno.dipendente_nome && (
-                                          <div className="truncate text-[10px] font-bold">{turno.dipendente_nome}</div>
-                                        )}
-                                        {!selectedStore && (
-                                          <div className="truncate text-[9px] opacity-80">{getStoreName(turno.store_id)}</div>
-                                        )}
-                                      </div>
-                                    );
-                                  })
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Vista Store (dipendenti) */}
-              {viewMode === 'dipendenti' && (
-                <PlandayStoreView
-                  turni={turni}
-                  users={users}
-                  stores={stores}
-                  selectedStore={selectedStore}
-                  setSelectedStore={setSelectedStore}
-                  weekStart={weekStart}
-                  setWeekStart={setWeekStart}
-                  onEditTurno={handleEditTurno}
-                  onAddTurno={handleAddTurnoFromStoreView}
-                  onSaveTurno={handleSaveTurnoFromChild}
-                  onDeleteTurno={(id) => deleteMutation.mutate(id)}
-                  getStoreName={getStoreName}
-                  tipiTurno={tipiTurno}
-                  coloriTipoTurno={coloriTipoTurno}
-                  coloriRuolo={coloriRuolo}
-                />
-              )}
-
-              {/* Vista Singolo Dipendente */}
-              {viewMode === 'singolo' && (
-                <PlandayEmployeeView
-                  selectedDipendente={selectedDipendente}
-                  setSelectedDipendente={setSelectedDipendente}
-                  turniDipendente={turniDipendente}
-                  users={users}
-                  stores={stores}
-                  isLoading={isLoading}
-                  onEditTurno={handleEditTurno}
-                  onSaveTurno={handleSaveTurnoFromChild}
-                  onDeleteTurno={(id) => deleteMutation.mutate(id)}
-                  getStoreName={getStoreName}
-                  coloriTipoTurno={coloriTipoTurno}
-                  coloriRuolo={coloriRuolo}
-                />
-              )}
-
-              {/* Legenda */}
-              <div className="mt-4 p-4 neumorphic-pressed rounded-xl">
-                <div className="flex flex-wrap items-center gap-4 mb-3">
-                  <span className="text-sm font-medium text-slate-700">Ruoli:</span>
-                  {RUOLI.map(ruolo => (
-                    <div 
-                      key={ruolo} 
-                      className="px-3 py-1 rounded-lg border-2 text-sm font-medium text-white"
-                      style={{ backgroundColor: coloriRuolo[ruolo], borderColor: coloriRuolo[ruolo] }}
-                    >
-                      {ruolo}
-                    </div>
-                  ))}
-                </div>
-                <div className="text-xs text-slate-500">💡 Trascina i turni per spostarli</div>
-              </div>
-            </NeumorphicCard>
-          </div>
-        )}
       </div>
     </ProtectedPage>
   );
