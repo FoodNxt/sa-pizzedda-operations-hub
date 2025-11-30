@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
@@ -7,7 +7,7 @@ import ProtectedPage from "../components/ProtectedPage";
 import { 
   Calendar, Clock, MapPin, CheckCircle, AlertCircle, 
   Loader2, LogIn, LogOut, ChevronLeft, ChevronRight,
-  RefreshCw, X, AlertTriangle, Users, Store as StoreIcon
+  RefreshCw, X, AlertTriangle, Users, Store as StoreIcon, Navigation
 } from "lucide-react";
 import moment from "moment";
 import "moment/locale/it";
@@ -28,8 +28,27 @@ export default function TurniDipendente() {
   const [timbraturaMessage, setTimbraturaMessage] = useState(null);
   const [showScambioModal, setShowScambioModal] = useState(false);
   const [selectedTurnoScambio, setSelectedTurnoScambio] = useState(null);
+  const [gpsPermissionStatus, setGpsPermissionStatus] = useState('unknown');
 
   const queryClient = useQueryClient();
+
+  // Richiedi permesso GPS all'avvio
+  useEffect(() => {
+    if (navigator.permissions) {
+      navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+        setGpsPermissionStatus(result.state);
+        result.onchange = () => setGpsPermissionStatus(result.state);
+      });
+    }
+  }, []);
+
+  const requestGPSPermission = () => {
+    navigator.geolocation.getCurrentPosition(
+      () => setGpsPermissionStatus('granted'),
+      () => setGpsPermissionStatus('denied'),
+      { enableHighAccuracy: true }
+    );
+  };
 
   const { data: currentUser } = useQuery({
     queryKey: ['current-user'],
@@ -315,6 +334,30 @@ export default function TurniDipendente() {
             <div className="flex items-center gap-3">
               <AlertCircle className="w-5 h-5 text-red-600" />
               <span className="text-red-800">{gpsError}</span>
+            </div>
+          </NeumorphicCard>
+        )}
+
+        {/* Richiesta permesso GPS */}
+        {gpsPermissionStatus === 'prompt' && config?.abilita_timbratura_gps && (
+          <NeumorphicCard className="p-4 bg-yellow-50 border border-yellow-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Navigation className="w-5 h-5 text-yellow-600" />
+                <span className="text-yellow-800">Per timbrare è necessario l'accesso alla posizione GPS</span>
+              </div>
+              <NeumorphicButton onClick={requestGPSPermission} className="text-sm">
+                Attiva GPS
+              </NeumorphicButton>
+            </div>
+          </NeumorphicCard>
+        )}
+
+        {gpsPermissionStatus === 'denied' && config?.abilita_timbratura_gps && (
+          <NeumorphicCard className="p-4 bg-red-50 border border-red-200">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600" />
+              <span className="text-red-800">Accesso GPS negato. Abilita la geolocalizzazione nelle impostazioni del browser per poter timbrare.</span>
             </div>
           </NeumorphicCard>
         )}

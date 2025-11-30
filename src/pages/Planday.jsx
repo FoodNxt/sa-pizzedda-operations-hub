@@ -156,6 +156,17 @@ export default function Planday() {
   });
   const [showColoriSection, setShowColoriSection] = useState(false);
   
+  // Colori per ruolo
+  const [coloriRuolo, setColoriRuolo] = useState(() => {
+    const saved = localStorage.getItem('colori_ruolo');
+    return saved ? JSON.parse(saved) : {
+      'Pizzaiolo': '#f97316',
+      'Cassiere': '#3b82f6',
+      'Store Manager': '#a855f7'
+    };
+  });
+  const [showColoriRuoloSection, setShowColoriRuoloSection] = useState(false);
+  
   // Settimana modello
   const [showSettimanaModelloModal, setShowSettimanaModelloModal] = useState(false);
   const [settimanaModelloRange, setSettimanaModelloRange] = useState({
@@ -495,6 +506,21 @@ export default function Planday() {
     const updated = { ...coloriTipoTurno, [tipo]: colore };
     setColoriTipoTurno(updated);
     localStorage.setItem('colori_tipo_turno', JSON.stringify(updated));
+  };
+
+  const updateColoreRuolo = (ruolo, colore) => {
+    const updated = { ...coloriRuolo, [ruolo]: colore };
+    setColoriRuolo(updated);
+    localStorage.setItem('colori_ruolo', JSON.stringify(updated));
+  };
+
+  const getRuoloStyle = (ruolo) => {
+    const color = coloriRuolo[ruolo] || '#94a3b8';
+    return {
+      backgroundColor: color,
+      borderColor: color,
+      color: '#fff'
+    };
   };
 
   // Funzione per salvare turno da componenti figli
@@ -990,11 +1016,12 @@ export default function Planday() {
                                   draggable
                                   onDragStart={(e) => handleTurnoDragStart(e, turno)}
                                   onDragEnd={handleTurnoDragEnd}
-                                  className={`absolute p-1 rounded-lg border-2 text-xs cursor-grab pointer-events-auto overflow-hidden shadow-md ${COLORI_RUOLO[turno.ruolo]} ${draggingTurno?.id === turno.id ? 'opacity-50' : ''}`}
+                                  className={`absolute p-1 rounded-lg border-2 text-xs cursor-grab pointer-events-auto overflow-hidden shadow-md text-white ${draggingTurno?.id === turno.id ? 'opacity-50' : ''}`}
                                   style={{
                                     ...style,
                                     marginLeft: '1px',
-                                    marginRight: '1px'
+                                    marginRight: '1px',
+                                    ...getRuoloStyle(turno.ruolo)
                                   }}
                                   onClick={(e) => { e.stopPropagation(); handleEditTurno(turno); }}
                                 >
@@ -1052,9 +1079,11 @@ export default function Planday() {
             onEditTurno={handleEditTurno}
             onAddTurno={handleAddTurnoFromStoreView}
             onSaveTurno={handleSaveTurnoFromChild}
+            onDeleteTurno={(id) => deleteMutation.mutate(id)}
             getStoreName={getStoreName}
             tipiTurno={tipiTurno}
             coloriTipoTurno={coloriTipoTurno}
+            coloriRuolo={coloriRuolo}
           />
         )}
 
@@ -1069,8 +1098,10 @@ export default function Planday() {
             isLoading={isLoading}
             onEditTurno={handleEditTurno}
             onSaveTurno={handleSaveTurnoFromChild}
+            onDeleteTurno={(id) => deleteMutation.mutate(id)}
             getStoreName={getStoreName}
             coloriTipoTurno={coloriTipoTurno}
+            coloriRuolo={coloriRuolo}
           />
         )}
 
@@ -1079,11 +1110,38 @@ export default function Planday() {
           <div className="flex flex-wrap items-center gap-4 mb-3">
             <span className="text-sm font-medium text-slate-700">Ruoli:</span>
             {RUOLI.map(ruolo => (
-              <div key={ruolo} className={`px-3 py-1 rounded-lg border-2 text-sm font-medium ${COLORI_RUOLO[ruolo]}`}>
+              <div 
+                key={ruolo} 
+                className="px-3 py-1 rounded-lg border-2 text-sm font-medium text-white"
+                style={{ backgroundColor: coloriRuolo[ruolo], borderColor: coloriRuolo[ruolo] }}
+              >
                 {ruolo}
               </div>
             ))}
+            <button
+              onClick={() => setShowColoriRuoloSection(!showColoriRuoloSection)}
+              className="text-xs text-blue-600 hover:underline"
+            >
+              Modifica
+            </button>
           </div>
+          {showColoriRuoloSection && (
+            <div className="mb-3 p-3 bg-slate-50 rounded-xl">
+              <div className="grid grid-cols-3 gap-2">
+                {RUOLI.map(ruolo => (
+                  <div key={ruolo} className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={coloriRuolo[ruolo] || '#94a3b8'}
+                      onChange={(e) => updateColoreRuolo(ruolo, e.target.value)}
+                      className="w-8 h-8 rounded cursor-pointer"
+                    />
+                    <span className="text-sm text-slate-700">{ruolo}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-sm font-medium text-slate-700">Tipi Turno:</span>
             {tipiTurno.map(tipo => (
@@ -1099,7 +1157,7 @@ export default function Planday() {
               onClick={() => setShowColoriSection(!showColoriSection)}
               className="text-xs text-blue-600 hover:underline ml-2"
             >
-              Modifica colori
+              Modifica
             </button>
           </div>
           {showColoriSection && (
