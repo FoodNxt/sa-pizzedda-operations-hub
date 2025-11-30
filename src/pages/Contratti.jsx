@@ -1501,41 +1501,118 @@ Genera sia l'oggetto che il corpo dell'email. L'email deve essere in italiano, p
         </div>
       )}
 
-      {/* Preview Modal */}
-      {previewContratto && (
+      {/* Email Personalizzata Modal */}
+      {showEmailModal && emailContratto && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <NeumorphicCard className="p-6 my-8">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-[#6b6b6b]">
-                  Anteprima Contratto
+                <h2 className="text-2xl font-bold text-[#6b6b6b] flex items-center gap-2">
+                  <Mail className="w-6 h-6 text-[#8b7355]" />
+                  Invia Contratto via Email
                 </h2>
                 <button
-                  onClick={() => setPreviewContratto(null)}
+                  onClick={() => {
+                    setShowEmailModal(false);
+                    setEmailContratto(null);
+                  }}
                   className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
                 >
                   <X className="w-5 h-5 text-[#9b9b9b]" />
                 </button>
               </div>
 
-              <div className="neumorphic-pressed p-6 rounded-xl bg-white">
-                <div 
-                  className="prose prose-sm max-w-none text-[#6b6b6b]"
-                  style={{ whiteSpace: 'pre-wrap' }}
-                >
-                  {typeof previewContratto === 'string' ? previewContratto : previewContratto.contenuto_contratto}
+              <div className="space-y-4">
+                {/* Destinatario */}
+                <div className="neumorphic-pressed p-4 rounded-xl">
+                  <p className="text-sm text-[#9b9b9b]">Destinatario:</p>
+                  <p className="font-bold text-[#6b6b6b]">{emailContratto.nome_cognome} ({emailContratto.user_email})</p>
                 </div>
-              </div>
 
-              {typeof previewContratto !== 'string' && previewContratto.status === 'firmato' && previewContratto.firma_dipendente && (
-                <div className="neumorphic-flat p-5 rounded-xl bg-green-50 mt-4">
-                  <h3 className="font-bold text-green-800 mb-2">Firma Digitale</h3>
-                  <p className="text-sm text-green-700">
-                    Firmato da: <strong>{previewContratto.firma_dipendente}</strong><br />
-                    Data firma: {new Date(previewContratto.data_firma).toLocaleDateString('it-IT')} alle {new Date(previewContratto.data_firma).toLocaleTimeString('it-IT')}
+                {/* Genera con AI */}
+                <div className="neumorphic-flat p-4 rounded-xl bg-purple-50">
+                  <h3 className="font-bold text-purple-800 mb-3 flex items-center gap-2">
+                    <Sparkles className="w-5 h-5" />
+                    Genera Email con AI
+                  </h3>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={emailPrompt}
+                      onChange={(e) => setEmailPrompt(e.target.value)}
+                      placeholder="Es: Tono amichevole, menziona che siamo felici di averlo nel team..."
+                      className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none text-sm"
+                    />
+                    <NeumorphicButton
+                      type="button"
+                      onClick={handleGenerateEmailWithAI}
+                      disabled={generatingEmail}
+                      className="flex items-center gap-2"
+                    >
+                      {generatingEmail ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-4 h-4" />
+                      )}
+                      Genera
+                    </NeumorphicButton>
+                  </div>
+                </div>
+
+                {/* Oggetto */}
+                <div>
+                  <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                    Oggetto Email
+                  </label>
+                  <input
+                    type="text"
+                    value={emailSubject}
+                    onChange={(e) => setEmailSubject(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                  />
+                </div>
+
+                {/* Corpo */}
+                <div>
+                  <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                    Corpo Email
+                  </label>
+                  <textarea
+                    value={emailBody}
+                    onChange={(e) => setEmailBody(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none h-64 resize-none"
+                  />
+                </div>
+
+                {/* Info aggiornamento utente */}
+                <div className="neumorphic-pressed p-4 rounded-xl bg-blue-50">
+                  <p className="text-sm text-blue-800">
+                    <strong>ℹ️ Nota:</strong> All'invio del contratto, i dati del dipendente (tipo contratto, ore settimanali, sede, date) verranno automaticamente aggiornati in "Gestione Utenti".
                   </p>
                 </div>
-              )}
+
+                {/* Actions */}
+                <div className="flex justify-end gap-3 pt-4">
+                  <NeumorphicButton
+                    type="button"
+                    onClick={() => {
+                      setShowEmailModal(false);
+                      setEmailContratto(null);
+                    }}
+                  >
+                    Annulla
+                  </NeumorphicButton>
+                  <NeumorphicButton
+                    type="button"
+                    variant="primary"
+                    onClick={handleConfirmSendEmail}
+                    className="flex items-center gap-2"
+                  >
+                    <Send className="w-4 h-4" />
+                    Invia Email
+                  </NeumorphicButton>
+                </div>
+              </div>
             </NeumorphicCard>
           </div>
         </div>
