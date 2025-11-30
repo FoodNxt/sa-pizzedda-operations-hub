@@ -1026,6 +1026,9 @@ export default function Planday() {
     nextDayEnd.setDate(nextDayEnd.getDate() + 1);
     nextDayEnd.setHours(6, 0, 0, 0);
     
+    // Determina il giorno della settimana del turno
+    const turnoDayOfWeek = new Date(turno.data).getDay();
+    
     const activeConfigs = formTrackerConfigs.filter(c => c.is_active);
     const dovuti = [];
     const compilati = [];
@@ -1040,8 +1043,13 @@ export default function Planday() {
       
       // Check if config applies to this store
       const configStores = config.assigned_stores || [];
-      const storeEntity = stores.find(s => s.name === storeName);
-      if (configStores.length > 0 && storeEntity && !configStores.includes(storeEntity.id)) {
+      if (configStores.length > 0 && !configStores.includes(turno.store_id)) {
+        return;
+      }
+      
+      // Check if config applies to this day of week
+      const daysOfWeek = config.days_of_week || [];
+      if (daysOfWeek.length > 0 && !daysOfWeek.includes(turnoDayOfWeek)) {
         return;
       }
       
