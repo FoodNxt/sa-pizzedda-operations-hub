@@ -73,6 +73,73 @@ export default function AssistenteDipendente() {
     }
   };
 
+  // Carica knowledge base per costruire contesto
+  const { data: knowledgeBase = [] } = useQuery({
+    queryKey: ['assistente-knowledge'],
+    queryFn: () => base44.entities.AssistenteKnowledge.filter({ attivo: true }),
+  });
+
+  const { data: faqs = [] } = useQuery({
+    queryKey: ['assistente-faq'],
+    queryFn: () => base44.entities.AssistenteFAQ.filter({ attivo: true }),
+  });
+
+  const { data: checklists = [] } = useQuery({
+    queryKey: ['assistente-checklist'],
+    queryFn: () => base44.entities.AssistenteChecklist.list(),
+  });
+
+  const { data: accessiStore = [] } = useQuery({
+    queryKey: ['accesso-store'],
+    queryFn: () => base44.entities.AccessoStore.list(),
+  });
+
+  const buildKnowledgeContext = () => {
+    let context = "KNOWLEDGE BASE DISPONIBILE:\n\n";
+    
+    if (knowledgeBase.length > 0) {
+      context += "=== GUIDE E PROCEDURE ===\n";
+      knowledgeBase.forEach(kb => {
+        context += `\n[${kb.categoria}] ${kb.titolo}:\n${kb.contenuto}\n`;
+        if (kb.tags?.length > 0) {
+          context += `Tags: ${kb.tags.join(', ')}\n`;
+        }
+      });
+    }
+    
+    if (faqs.length > 0) {
+      context += "\n=== FAQ ===\n";
+      faqs.forEach(faq => {
+        context += `\nD: ${faq.domanda}\nR: ${faq.risposta}\n`;
+      });
+    }
+    
+    if (checklists.length > 0) {
+      context += "\n=== CHECKLIST ===\n";
+      checklists.forEach(cl => {
+        context += `\n${cl.nome}: ${cl.descrizione || ''}\n`;
+        if (cl.items?.length > 0) {
+          cl.items.forEach((item, i) => {
+            context += `  ${i+1}. ${item}\n`;
+          });
+        }
+      });
+    }
+    
+    if (accessiStore.length > 0) {
+      context += "\n=== ACCESSI E CREDENZIALI ===\n";
+      accessiStore.forEach(acc => {
+        context += `\n${acc.sistema} (${acc.store_name || 'Tutti i locali'}):\n`;
+        if (acc.url) context += `  URL: ${acc.url}\n`;
+        if (acc.username) context += `  Username: ${acc.username}\n`;
+        if (acc.password) context += `  Password: ${acc.password}\n`;
+        if (acc.note) context += `  Note: ${acc.note}\n`;
+      });
+    }
+    
+    return context;
+  };
+
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
@@ -99,17 +166,31 @@ export default function AssistenteDipendente() {
       });
     }
 
+    // Costruisci messaggio con contesto knowledge base
+    const knowledgeContext = buildKnowledgeContext();
+    const enrichedMessage = `${knowledgeContext}\n\n---\nDOMANDA DELL'UTENTE: ${input}`;
+
     const userMessage = { role: 'user', content: input };
+    const systemMessage = { role: 'user', content: enrichedMessage };
+    
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
 
     try {
       const unsubscribe = base44.agents.subscribeToConversation(conv.id, (data) => {
-        setMessages(data.messages || []);
+        // Filtra i messaggi per non mostrare il contesto
+        const filteredMessages = (data.messages || []).map(m => {
+          if (m.role === 'user' && m.content?.includes('KNOWLEDGE BASE DISPONIBILE')) {
+            const parts = m.content.split('DOMANDA DELL\'UTENTE:');
+            return { ...m, content: parts[1]?.trim() || m.content };
+          }
+          return m;
+        });
+        setMessages(filteredMessages);
       });
 
-      await base44.agents.addMessage(conv, userMessage);
+      await base44.agents.addMessage(conv, systemMessage);
 
       // Aggiorna tracking conversazione con i messaggi
       const tracking = await base44.entities.ConversazioneAssistente.filter({ conversation_id: conv.id });
