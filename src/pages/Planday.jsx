@@ -1405,7 +1405,7 @@ export default function Planday() {
 
 
         {/* Modal Edit Timbratura */}
-        {editingTimbratura && (
+        {editingTimbratura && mainView === 'timbrature' && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="p-6 max-w-md w-full">
               <div className="flex items-center justify-between mb-4">
@@ -1451,18 +1451,27 @@ export default function Planday() {
                 </NeumorphicButton>
                 <NeumorphicButton 
                   onClick={() => {
+                    const updateData = {};
+                    if (timbrForm.timbrata_entrata) {
+                      updateData.timbrata_entrata = new Date(timbrForm.timbrata_entrata).toISOString();
+                    } else {
+                      updateData.timbrata_entrata = null;
+                    }
+                    if (timbrForm.timbrata_uscita) {
+                      updateData.timbrata_uscita = new Date(timbrForm.timbrata_uscita).toISOString();
+                    } else {
+                      updateData.timbrata_uscita = null;
+                    }
                     updateTimbraturaMutation.mutate({
                       id: editingTimbratura.id,
-                      data: {
-                        timbrata_entrata: timbrForm.timbrata_entrata ? new Date(timbrForm.timbrata_entrata).toISOString() : null,
-                        timbrata_uscita: timbrForm.timbrata_uscita ? new Date(timbrForm.timbrata_uscita).toISOString() : null
-                      }
+                      data: updateData
                     });
                   }}
                   variant="primary"
                   className="flex-1"
+                  disabled={updateTimbraturaMutation.isPending}
                 >
-                  Salva
+                  {updateTimbraturaMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salva'}
                 </NeumorphicButton>
               </div>
             </NeumorphicCard>
