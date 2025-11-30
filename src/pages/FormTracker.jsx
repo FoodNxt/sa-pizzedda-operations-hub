@@ -842,7 +842,16 @@ export default function FormTracker() {
                     <NeumorphicCard key={config.id} className={`p-4 ${!config.is_active ? 'opacity-50' : ''}`}>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h3 className="font-bold text-slate-800 mb-2">{config.form_name}</h3>
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="font-bold text-slate-800">{config.form_name}</h3>
+                            <Link 
+                              to={createPageUrl(config.form_page)}
+                              className="nav-button p-1 rounded-lg hover:bg-blue-50"
+                              title="Vai alla configurazione del form"
+                            >
+                              <Settings className="w-3.5 h-3.5 text-blue-600" />
+                            </Link>
+                          </div>
                           <div className="grid grid-cols-2 md:grid-cols-6 gap-2 text-xs">
                             <div className="neumorphic-pressed p-2 rounded-lg">
                               <p className="text-slate-500">Ruoli</p>

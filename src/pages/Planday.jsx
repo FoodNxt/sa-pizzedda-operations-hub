@@ -1012,12 +1012,42 @@ export default function Planday() {
     });
   }, [turniTimbrature, selectedStore, selectedDipendenteTimbr, selectedRuolo]);
 
+  // Helper per determinare se il turno è mattina o sera
+  const getTurnoSequence = (turno, allTurniDay) => {
+    const turnoRuolo = turno.ruolo;
+    
+    // Filtra solo i turni con lo stesso ruolo
+    const turniStessoRuolo = allTurniDay.filter(t => t.ruolo === turnoRuolo);
+    
+    if (turniStessoRuolo.length <= 1) {
+      return 'first'; // Solo un turno per questo ruolo → è il primo
+    }
+    
+    // Ordina per ora di inizio
+    const sorted = [...turniStessoRuolo].sort((a, b) => a.ora_inizio.localeCompare(b.ora_inizio));
+    
+    // Trova l'indice del turno corrente
+    const index = sorted.findIndex(t => t.id === turno.id);
+    
+    // Il primo turno è 'first', tutti gli altri sono 'second'
+    return index === 0 ? 'first' : 'second';
+  };
+
   // Verifica form compilati usando logica FormTracker
   const getFormCompilati = (turno) => {
     if (!turno.dipendente_nome) return { dovuti: [], compilati: [] };
     
     const storeName = getStoreName(turno.store_id);
     const turnoRuolo = turno.ruolo; // Usa il ruolo del turno specifico, non i ruoli generali del dipendente
+    
+    // Determina tutti i turni dello stesso giorno e stesso store
+    const turniStessoGiorno = turniTimbrature.filter(t => 
+      t.data === turno.data && 
+      t.store_id === turno.store_id
+    );
+    
+    // Determina se questo turno è mattina o sera
+    const turnoSequence = getTurnoSequence(turno, turniStessoGiorno);
     
     // Usa la logica di FormTracker
     const dateStart = new Date(turno.data);
@@ -1050,6 +1080,12 @@ export default function Planday() {
       // Check if config applies to this day of week
       const daysOfWeek = config.days_of_week || [];
       if (daysOfWeek.length > 0 && !daysOfWeek.includes(turnoDayOfWeek)) {
+        return;
+      }
+      
+      // Check if config applies to this shift sequence (mattina/sera)
+      const configSequences = config.shift_sequences || [config.shift_sequence || 'first'];
+      if (!configSequences.includes(turnoSequence)) {
         return;
       }
       
