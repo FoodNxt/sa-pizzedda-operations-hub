@@ -271,7 +271,8 @@ export default function Planday() {
   const [applicaModelloRange, setApplicaModelloRange] = useState({
     dataInizio: '',
     dataFine: '',
-    applicaSenzaFine: false
+    applicaSenzaFine: false,
+    includiDipendenti: true
   });
   
   // Modal per gestione turni
@@ -2175,6 +2176,34 @@ export default function Planday() {
                   />
                 </div>
 
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Dipendenti</label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setApplicaModelloRange({ ...applicaModelloRange, includiDipendenti: true })}
+                      className={`flex-1 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                        applicaModelloRange.includiDipendenti !== false
+                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                          : 'nav-button text-slate-700'
+                      }`}
+                    >
+                      Con dipendenti assegnati
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setApplicaModelloRange({ ...applicaModelloRange, includiDipendenti: false })}
+                      className={`flex-1 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                        applicaModelloRange.includiDipendenti === false
+                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                          : 'nav-button text-slate-700'
+                      }`}
+                    >
+                      Solo turni liberi
+                    </button>
+                  </div>
+                </div>
+
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -2234,14 +2263,16 @@ export default function Planday() {
                         
                         if (newDate.isSameOrAfter(startApply) && newDate.isSameOrBefore(endApply)) {
                           const dipendente = users.find(u => u.id === turnoModello.dipendente_id);
+                          const includiDipendente = applicaModelloRange.includiDipendenti !== false;
+                          
                           turniDaCreare.push({
                             store_id: turnoModello.store_id,
                             data: newDate.format('YYYY-MM-DD'),
                             ora_inizio: turnoModello.ora_inizio,
                             ora_fine: turnoModello.ora_fine,
                             ruolo: turnoModello.ruolo,
-                            dipendente_id: turnoModello.dipendente_id || '',
-                            dipendente_nome: dipendente?.nome_cognome || dipendente?.full_name || '',
+                            dipendente_id: includiDipendente ? (turnoModello.dipendente_id || '') : '',
+                            dipendente_nome: includiDipendente ? (dipendente?.nome_cognome || dipendente?.full_name || '') : '',
                             tipo_turno: turnoModello.tipo_turno || 'Normale',
                             note: turnoModello.note || '',
                             stato: 'programmato'
@@ -2707,7 +2738,7 @@ export default function Planday() {
                                   })}
                                 </div>
                               ) : (
-                                <span className="text-xs text-slate-400">-</span>
+                                <span className="text-xs text-slate-400">Nessuno</span>
                               )}
                             </td>
                             <td className="p-2 text-center">
