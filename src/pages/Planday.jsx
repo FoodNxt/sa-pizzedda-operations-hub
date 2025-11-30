@@ -181,6 +181,11 @@ export default function Planday() {
     queryFn: () => base44.entities.TurnoModello.list(),
   });
 
+  const { data: settimaneModello = [] } = useQuery({
+    queryKey: ['settimane-modello'],
+    queryFn: () => base44.entities.SettimanaModello.list(),
+  });
+
   const [configForm, setConfigForm] = useState({
     distanza_massima_metri: 100,
     tolleranza_ritardo_minuti: 0,
@@ -254,6 +259,16 @@ export default function Planday() {
   // Settimana modello
   const [showSettimanaModelloModal, setShowSettimanaModelloModal] = useState(false);
   const [settimanaModelloRange, setSettimanaModelloRange] = useState({
+    dataInizio: '',
+    dataFine: '',
+    applicaSenzaFine: false
+  });
+  const [showSalvaSettimanaModelloModal, setShowSalvaSettimanaModelloModal] = useState(false);
+  const [nomeSettimanaModello, setNomeSettimanaModello] = useState('');
+  const [descrizioneSettimanaModello, setDescrizioneSettimanaModello] = useState('');
+  const [showApplicaModelloModal, setShowApplicaModelloModal] = useState(false);
+  const [selectedSettimanaModello, setSelectedSettimanaModello] = useState('');
+  const [applicaModelloRange, setApplicaModelloRange] = useState({
     dataInizio: '',
     dataFine: '',
     applicaSenzaFine: false
@@ -589,6 +604,23 @@ export default function Planday() {
     mutationFn: (id) => base44.entities.TurnoModello.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['turni-modello'] });
+    },
+  });
+
+  const createSettimanaModelloMutation = useMutation({
+    mutationFn: (data) => base44.entities.SettimanaModello.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settimane-modello'] });
+      setShowSalvaSettimanaModelloModal(false);
+      setNomeSettimanaModello('');
+      setDescrizioneSettimanaModello('');
+    },
+  });
+
+  const deleteSettimanaModelloMutation = useMutation({
+    mutationFn: (id) => base44.entities.SettimanaModello.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settimane-modello'] });
     },
   });
 
@@ -1038,16 +1070,17 @@ export default function Planday() {
     if (!turno.dipendente_nome) return { dovuti: [], compilati: [] };
     
     const storeName = getStoreName(turno.store_id);
-    const turnoRuolo = turno.ruolo; // Usa il ruolo del turno specifico, non i ruoli generali del dipendente
+    const turnoRuolo = turno.ruolo; // Usa il ruolo del turno specifico
     
-    // Determina tutti i turni dello stesso giorno e stesso store
-    const turniStessoGiorno = turniTimbrature.filter(t => 
+    // Determina tutti i turni dello stesso giorno, stesso store, stesso ruolo
+    const turniStessoGiornoRuolo = turniTimbrature.filter(t => 
       t.data === turno.data && 
-      t.store_id === turno.store_id
+      t.store_id === turno.store_id &&
+      t.ruolo === turnoRuolo
     );
     
     // Determina se questo turno è mattina o sera
-    const turnoSequence = getTurnoSequence(turno, turniStessoGiorno);
+    const turnoSequence = getTurnoSequence(turno, turniStessoGiornoRuolo);
     
     // Usa la logica di FormTracker
     const dateStart = new Date(turno.data);
@@ -1089,6 +1122,8 @@ export default function Planday() {
         return;
       }
       
+      // IMPORTANTE: il form è dovuto indipendentemente dalle timbrature
+      // L'assegnazione è basata solo su: ruolo, store, giorno settimana, sequenza turno
       dovuti.push(config.form_name);
       
       // Check if form was completed
@@ -1257,11 +1292,15 @@ export default function Planday() {
             <div className="flex items-center gap-2">
               <NeumorphicButton onClick={() => setShowModelliModal(true)} className="flex items-center gap-2">
                 <Clock className="w-4 h-4" />
-                Modelli
+                Modelli Turno
               </NeumorphicButton>
-              <NeumorphicButton onClick={() => setShowSettimanaModelloModal(true)} className="flex items-center gap-2">
+              <NeumorphicButton onClick={() => setShowSalvaSettimanaModelloModal(true)} className="flex items-center gap-2">
+                <Save className="w-4 h-4" />
+                Salva Settimana
+              </NeumorphicButton>
+              <NeumorphicButton onClick={() => setShowApplicaModelloModal(true)} className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
-                Replica Settimana
+                Applica Modello
               </NeumorphicButton>
               <NeumorphicButton 
                 onClick={() => {
@@ -1659,11 +1698,59 @@ export default function Planday() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-slate-800">Turni Modello</h2>
+                <h2 className="text-xl font-bold text-slate-800">Gestione Modelli</h2>
                 <button onClick={() => setShowModelliModal(false)} className="nav-button p-2 rounded-lg">
                   <X className="w-5 h-5" />
                 </button>
               </div>
+
+              {/* Modelli Settimana */}
+              <div className="mb-6">
+                <h3 className="font-medium text-slate-700 mb-3 flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Modelli Settimana
+                </h3>
+                {settimaneModello.length > 0 ? (
+                  <div className="space-y-2 mb-4">
+                    {settimaneModello.map(m => (
+                      <div key={m.id} className="neumorphic-pressed p-3 rounded-xl">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="font-medium text-slate-800">{m.nome}</div>
+                            {m.descrizione && (
+                              <div className="text-xs text-slate-500 mt-0.5">{m.descrizione}</div>
+                            )}
+                            <div className="text-xs text-slate-500 mt-1">
+                              {m.turni_modello?.length || 0} turni
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              if (confirm('Eliminare questo modello settimana?')) {
+                                deleteSettimanaModelloMutation.mutate(m.id);
+                              }
+                            }}
+                            className="text-red-500 hover:text-red-700 p-1"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500 mb-4">Nessun modello settimana salvato</p>
+                )}
+              </div>
+
+              <div className="border-t border-slate-200 pt-4 mb-4" />
+
+              {/* Turni Modello Singoli */}
+              <div className="mb-4">
+                <h3 className="font-medium text-slate-700 mb-3 flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Modelli Turno Singolo
+                </h3>
 
               {/* Sezione Tipi Turno */}
               <div className="mb-4">
@@ -1702,9 +1789,8 @@ export default function Planday() {
                 )}
               </div>
 
-              {/* Lista modelli esistenti */}
+              {/* Lista modelli turno singoli esistenti */}
               <div>
-                <h3 className="font-medium text-slate-700 mb-3">Turni Modello</h3>
                 
                 {turniModello.length > 0 ? (
                   <div className="space-y-2 mb-4">
@@ -1725,11 +1811,13 @@ export default function Planday() {
                       </div>
                     ))}
                   </div>
-                ) : null}
+                ) : (
+                  <p className="text-sm text-slate-500 mb-4">Nessun modello turno singolo</p>
+                )}
 
                 {/* Form nuovo modello */}
                 <div className="neumorphic-flat p-4 rounded-xl">
-                  <h4 className="font-medium text-slate-700 mb-3 text-sm">Crea Nuovo Modello</h4>
+                  <h4 className="font-medium text-slate-700 mb-3 text-sm">Crea Nuovo Modello Turno</h4>
                   <div className="space-y-3">
                     <input
                       type="text"
@@ -1782,6 +1870,7 @@ export default function Planday() {
                     </NeumorphicButton>
                   </div>
                 </div>
+              </div>
               </div>
             </NeumorphicCard>
           </div>
@@ -1955,7 +2044,242 @@ export default function Planday() {
           </div>
         )}
 
-        {/* Modal Settimana Modello */}
+        {/* Modal Salva Settimana Modello */}
+        {showSalvaSettimanaModelloModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="p-6 max-w-md w-full">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800">Salva Settimana come Modello</h2>
+                <button onClick={() => setShowSalvaSettimanaModelloModal(false)} className="nav-button p-2 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="mb-4 p-3 bg-blue-50 rounded-xl">
+                <p className="text-sm text-blue-800">
+                  <strong>Settimana Corrente:</strong><br/>
+                  {weekStart.format('DD MMM')} - {weekStart.clone().add(6, 'days').format('DD MMM YYYY')}
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  {turni.length} turni in questa settimana
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Nome Modello *</label>
+                  <input
+                    type="text"
+                    value={nomeSettimanaModello}
+                    onChange={(e) => setNomeSettimanaModello(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                    placeholder="Es: Settimana Standard Gennaio"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Descrizione</label>
+                  <textarea
+                    value={descrizioneSettimanaModello}
+                    onChange={(e) => setDescrizioneSettimanaModello(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none h-20 resize-none"
+                    placeholder="Descrizione opzionale..."
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <NeumorphicButton onClick={() => setShowSalvaSettimanaModelloModal(false)} className="flex-1">
+                  Annulla
+                </NeumorphicButton>
+                <NeumorphicButton 
+                  onClick={() => {
+                    if (!nomeSettimanaModello.trim()) {
+                      alert('Inserisci un nome per il modello');
+                      return;
+                    }
+                    if (turni.length === 0) {
+                      alert('Nessun turno da salvare nella settimana corrente');
+                      return;
+                    }
+
+                    const turniModello = turni.map(t => ({
+                      giorno_settimana: moment(t.data).isoWeekday(),
+                      store_id: t.store_id,
+                      ora_inizio: t.ora_inizio,
+                      ora_fine: t.ora_fine,
+                      ruolo: t.ruolo,
+                      dipendente_id: t.dipendente_id || '',
+                      tipo_turno: t.tipo_turno || 'Normale',
+                      note: t.note || ''
+                    }));
+
+                    createSettimanaModelloMutation.mutate({
+                      nome: nomeSettimanaModello.trim(),
+                      descrizione: descrizioneSettimanaModello.trim(),
+                      turni_modello: turniModello
+                    });
+                  }} 
+                  variant="primary" 
+                  className="flex-1"
+                  disabled={turni.length === 0 || createSettimanaModelloMutation.isPending}
+                >
+                  {createSettimanaModelloMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salva Modello'}
+                </NeumorphicButton>
+              </div>
+            </NeumorphicCard>
+          </div>
+        )}
+
+        {/* Modal Applica Settimana Modello */}
+        {showApplicaModelloModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="p-6 max-w-md w-full">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800">Applica Modello Settimana</h2>
+                <button onClick={() => setShowApplicaModelloModal(false)} className="nav-button p-2 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Seleziona Modello *</label>
+                  <select
+                    value={selectedSettimanaModello}
+                    onChange={(e) => setSelectedSettimanaModello(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  >
+                    <option value="">-- Seleziona modello --</option>
+                    {settimaneModello.map(m => (
+                      <option key={m.id} value={m.id}>
+                        {m.nome} ({m.turni_modello?.length || 0} turni)
+                      </option>
+                    ))}
+                  </select>
+                  {selectedSettimanaModello && (() => {
+                    const modello = settimaneModello.find(m => m.id === selectedSettimanaModello);
+                    if (modello?.descrizione) {
+                      return <p className="text-xs text-slate-500 mt-1">{modello.descrizione}</p>;
+                    }
+                    return null;
+                  })()}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Applica da *</label>
+                  <input
+                    type="date"
+                    value={applicaModelloRange.dataInizio}
+                    onChange={(e) => setApplicaModelloRange({ ...applicaModelloRange, dataInizio: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="applica-senza-fine"
+                    checked={applicaModelloRange.applicaSenzaFine}
+                    onChange={(e) => setApplicaModelloRange({ ...applicaModelloRange, applicaSenzaFine: e.target.checked })}
+                    className="w-5 h-5"
+                  />
+                  <label htmlFor="applica-senza-fine" className="text-sm font-medium text-slate-700">
+                    Applica indefinitamente (max 1 anno)
+                  </label>
+                </div>
+
+                {!applicaModelloRange.applicaSenzaFine && (
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Fino a *</label>
+                    <input
+                      type="date"
+                      value={applicaModelloRange.dataFine}
+                      onChange={(e) => setApplicaModelloRange({ ...applicaModelloRange, dataFine: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <NeumorphicButton onClick={() => setShowApplicaModelloModal(false)} className="flex-1">
+                  Annulla
+                </NeumorphicButton>
+                <NeumorphicButton 
+                  onClick={async () => {
+                    if (!selectedSettimanaModello || !applicaModelloRange.dataInizio) {
+                      alert('Seleziona un modello e una data di inizio');
+                      return;
+                    }
+
+                    if (!applicaModelloRange.applicaSenzaFine && !applicaModelloRange.dataFine) {
+                      alert('Seleziona una data di fine o attiva "Applica senza fine"');
+                      return;
+                    }
+
+                    const modello = settimaneModello.find(m => m.id === selectedSettimanaModello);
+                    if (!modello) return;
+
+                    const startApply = moment(applicaModelloRange.dataInizio);
+                    const endApply = applicaModelloRange.applicaSenzaFine 
+                      ? moment(applicaModelloRange.dataInizio).add(52, 'weeks')
+                      : moment(applicaModelloRange.dataFine);
+
+                    const turniDaCreare = [];
+                    let currentWeekStart = startApply.clone().startOf('isoWeek');
+
+                    while (currentWeekStart.isSameOrBefore(endApply)) {
+                      for (const turnoModello of modello.turni_modello) {
+                        const newDate = currentWeekStart.clone().isoWeekday(turnoModello.giorno_settimana);
+                        
+                        if (newDate.isSameOrAfter(startApply) && newDate.isSameOrBefore(endApply)) {
+                          const dipendente = users.find(u => u.id === turnoModello.dipendente_id);
+                          turniDaCreare.push({
+                            store_id: turnoModello.store_id,
+                            data: newDate.format('YYYY-MM-DD'),
+                            ora_inizio: turnoModello.ora_inizio,
+                            ora_fine: turnoModello.ora_fine,
+                            ruolo: turnoModello.ruolo,
+                            dipendente_id: turnoModello.dipendente_id || '',
+                            dipendente_nome: dipendente?.nome_cognome || dipendente?.full_name || '',
+                            tipo_turno: turnoModello.tipo_turno || 'Normale',
+                            note: turnoModello.note || '',
+                            stato: 'programmato'
+                          });
+                        }
+                      }
+                      currentWeekStart.add(1, 'week');
+                    }
+
+                    if (turniDaCreare.length === 0) {
+                      alert('Nessun turno da creare nel range selezionato');
+                      return;
+                    }
+
+                    if (!confirm(`Verranno creati ${turniDaCreare.length} turni. Continuare?`)) {
+                      return;
+                    }
+
+                    for (const turno of turniDaCreare) {
+                      await base44.entities.TurnoPlanday.create(turno);
+                    }
+
+                    queryClient.invalidateQueries({ queryKey: ['turni-planday'] });
+                    setShowApplicaModelloModal(false);
+                    alert(`Creati ${turniDaCreare.length} turni con successo!`);
+                  }} 
+                  variant="primary" 
+                  className="flex-1"
+                  disabled={!selectedSettimanaModello}
+                >
+                  Applica Modello
+                </NeumorphicButton>
+              </div>
+            </NeumorphicCard>
+          </div>
+        )}
+
+        {/* Modal Settimana Modello (backward compatibility - legacy) */}
         {showSettimanaModelloModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="p-6 max-w-md w-full">
@@ -2260,6 +2584,7 @@ export default function Planday() {
                         <th className="text-left p-2 text-xs font-medium text-slate-600">Store</th>
                         <th className="text-left p-2 text-xs font-medium text-slate-600">Ruolo</th>
                         <th className="text-left p-2 text-xs font-medium text-slate-600">Tipo</th>
+                        <th className="text-left p-2 text-xs font-medium text-slate-600">Momento</th>
                         <th className="text-left p-2 text-xs font-medium text-slate-600">Turno</th>
                         <th className="text-left p-2 text-xs font-medium text-slate-600">Entrata</th>
                         <th className="text-left p-2 text-xs font-medium text-slate-600">Uscita</th>
@@ -2301,6 +2626,11 @@ export default function Planday() {
                                 'bg-purple-100 text-purple-700'
                               }`}>
                                 {turno.ruolo}
+                              </span>
+                            </td>
+                            <td className="p-2">
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-700 whitespace-nowrap">
+                                {turno.tipo_turno || 'Normale'}
                               </span>
                             </td>
                             <td className="p-2">
