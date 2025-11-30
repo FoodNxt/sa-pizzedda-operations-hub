@@ -914,6 +914,7 @@ function ContrattiSection() {
         employee_group: user.employee_group || '',
         function_name: user.function_name || '',
         ore_settimanali: user.ore_settimanali || 0,
+        sede_lavoro: user.assigned_stores?.[0] || '',
         data_inizio_contratto: user.data_inizio_contratto || '',
         durata_contratto_mesi: user.durata_contratto_mesi || 0
       });
