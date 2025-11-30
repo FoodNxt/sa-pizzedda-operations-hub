@@ -854,11 +854,12 @@ export default function Layout({ children, currentPageName }) {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          padding: 14px 10px;
+          padding: 8px 4px;
           background: linear-gradient(145deg, #f0f4f8, #e1e8ed);
-          border-radius: 18px;
-          transition: all 0.3s ease;
-          min-height: 80px;
+          border-radius: 12px;
+          transition: all 0.2s ease;
+          min-height: 60px;
+          min-width: 0;
         }
 
         .bottom-nav-item:active {
@@ -868,82 +869,29 @@ export default function Layout({ children, currentPageName }) {
         .bottom-nav-item.active {
           background: linear-gradient(145deg, #3b82f6, #2563eb);
           box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.1);
-          color: #1e293b;
         }
 
-        body.dipendente-mobile .bottom-nav-item {
-          padding: 28px 16px;
-          min-height: 160px;
-          border-radius: 32px;
+        .bottom-nav-item svg {
+          width: 20px !important;
+          height: 20px !important;
+          margin-bottom: 2px;
+          flex-shrink: 0;
         }
 
-        body.dipendente-mobile .bottom-nav-item svg {
-          width: 3.5rem !important;
-          height: 3.5rem !important;
-          margin-bottom: 0.75rem;
-        }
-
-        body.dipendente-mobile .bottom-nav-item span {
-          font-size: 1.25rem !important;
-          font-weight: 700 !important;
+        .bottom-nav-item span {
+          font-size: 10px !important;
+          font-weight: 600 !important;
+          text-align: center;
+          line-height: 1.2;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          max-width: 100%;
         }
 
         @media (max-width: 1024px) {
           .hide-on-mobile {
             display: none !important;
-          }
-
-          /* Increase font sizes for dipendente mobile view */
-          body.dipendente-mobile h1 {
-            font-size: 2.5rem !important;
-          }
-          body.dipendente-mobile h2 {
-            font-size: 2rem !important;
-          }
-          body.dipendente-mobile h3 {
-            font-size: 1.75rem !important;
-          }
-          body.dipendente-mobile p, 
-          body.dipendente-mobile span,
-          body.dipendente-mobile label,
-          body.dipendente-mobile div {
-            font-size: 1.5rem !important;
-            line-height: 1.7 !important;
-          }
-          body.dipendente-mobile .text-xs {
-            font-size: 1.25rem !important;
-          }
-          body.dipendente-mobile .text-sm {
-            font-size: 1.375rem !important;
-          }
-          body.dipendente-mobile .text-base {
-            font-size: 1.5rem !important;
-          }
-          /* Bottom nav buttons - maximize font while fitting on one row */
-          body.dipendente-mobile .bottom-nav-item,
-          body.dipendente-mobile .bottom-nav-item span,
-          body.dipendente-mobile .bottom-nav-item div {
-            font-size: inherit !important;
-          }
-          body.dipendente-mobile .bottom-nav-item span {
-            font-size: 1.1rem !important;
-            font-weight: 700 !important;
-          }
-          body.dipendente-mobile .bottom-nav-item svg {
-            width: 1.75rem !important;
-            height: 1.75rem !important;
-          }
-          body.dipendente-mobile button:not(.bottom-nav-item) {
-            font-size: 1.5rem !important;
-            padding: 1.25rem 1.5rem !important;
-            min-height: 4rem !important;
-          }
-          body.dipendente-mobile input,
-          body.dipendente-mobile select,
-          body.dipendente-mobile textarea {
-            font-size: 1.5rem !important;
-            padding: 1.25rem !important;
-            min-height: 4rem !important;
           }
         }
       `}</style>
@@ -1172,7 +1120,7 @@ export default function Layout({ children, currentPageName }) {
         {/* Main Content */}
         <main className={`
           flex-1 min-h-screen 
-          ${normalizedUserType === 'dipendente' ? 'pt-28 pb-32 lg:pt-8 lg:pb-8 lg:ml-0' : normalizedUserType !== 'admin' ? 'pt-32 lg:pt-16' : 'pt-20 lg:pt-0'} 
+          ${normalizedUserType === 'dipendente' ? 'pt-20 pb-20 lg:pt-8 lg:pb-8 lg:ml-0' : normalizedUserType !== 'admin' ? 'pt-32 lg:pt-16' : 'pt-20 lg:pt-0'} 
           px-3 py-4 lg:p-8
         `}>
           {children}
@@ -1181,9 +1129,9 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Mobile Bottom Navigation (Dipendente only) */}
       {normalizedUserType === 'dipendente' && isFullyLoaded && bottomNavItems.length > 0 && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 px-2 pb-2">
-          <div className="neumorphic-card p-2">
-            <div className="flex items-center justify-around gap-1">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 px-1 pb-1 safe-area-bottom">
+          <div className="neumorphic-card p-1.5">
+            <div className="flex items-stretch justify-between gap-1">
               {bottomNavItems.map((item) => {
                 const isActive = isActiveLink(item.url);
                 const Icon = item.icon;
@@ -1193,8 +1141,8 @@ export default function Layout({ children, currentPageName }) {
                     to={item.url}
                     className={`bottom-nav-item ${isActive ? 'active' : ''}`}
                   >
-                    <Icon className={`w-7 h-7 mb-1.5 ${isActive ? 'text-white' : 'text-slate-600'}`} />
-                    <span className={`text-xs font-semibold ${isActive ? 'text-white' : 'text-slate-600'}`}>
+                    <Icon className={`${isActive ? 'text-white' : 'text-slate-600'}`} />
+                    <span className={`${isActive ? 'text-white' : 'text-slate-600'}`}>
                       {item.title}
                     </span>
                   </Link>
@@ -1204,8 +1152,8 @@ export default function Layout({ children, currentPageName }) {
                 onClick={() => base44.auth.logout()}
                 className="bottom-nav-item"
               >
-                <LogOut className="w-7 h-7 mb-1.5 text-slate-600" />
-                <span className="text-xs font-semibold text-slate-600">Logout</span>
+                <LogOut className="text-slate-600" />
+                <span className="text-slate-600">Logout</span>
               </button>
             </div>
           </div>
