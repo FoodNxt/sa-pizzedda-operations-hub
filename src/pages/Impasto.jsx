@@ -129,11 +129,24 @@ export default function Impasto() {
     const pallinePresenti = parseInt(barelleInFrigo) * 6;
     const impastoNecessario = totaleProssimi3Giorni - pallinePresenti;
     
-    // Calcola ingredienti necessari
-    const ingredientiNecessari = sortedIngredienti.map(ing => ({
-      ...ing,
-      quantita_totale: ing.quantita_per_pallina * Math.max(0, impastoNecessario)
-    }));
+    // Calcola ingredienti necessari con arrotondamento
+    const ingredientiNecessari = sortedIngredienti.map(ing => {
+      let quantita = ing.quantita_per_pallina * Math.max(0, impastoNecessario);
+      
+      // Applica arrotondamento per eccesso
+      if (ing.arrotondamento === 'intero') {
+        quantita = Math.ceil(quantita);
+      } else if (ing.arrotondamento === 'decine') {
+        quantita = Math.ceil(quantita / 10) * 10;
+      } else if (ing.arrotondamento === 'centinaia') {
+        quantita = Math.ceil(quantita / 100) * 100;
+      }
+      
+      return {
+        ...ing,
+        quantita_totale: quantita
+      };
+    });
 
     return {
       totaleProssimi3Giorni,
@@ -373,7 +386,10 @@ export default function Impasto() {
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
                     <Calculator className="w-6 h-6 text-white" />
                   </div>
-                  <h2 className="text-xl font-bold text-slate-800">Anteprima Calcolo</h2>
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-800">Anteprima Calcolo</h2>
+                    <p className="text-sm text-blue-600 font-medium">👇 Clicca "Conferma Calcolo Impasto" per vedere gli ingredienti</p>
+                  </div>
                 </div>
 
                 <div className="space-y-3">

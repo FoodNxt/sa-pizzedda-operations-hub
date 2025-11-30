@@ -18,7 +18,8 @@ export default function StoricoImpasti() {
     nome_ingrediente: '',
     quantita_per_pallina: '',
     unita_misura: 'g',
-    ordine: 0
+    ordine: 0,
+    arrotondamento: 'nessuno'
   });
   const queryClient = useQueryClient();
 
@@ -63,7 +64,7 @@ export default function StoricoImpasti() {
   });
 
   const resetIngredientForm = () => {
-    setIngredientForm({ nome_ingrediente: '', quantita_per_pallina: '', unita_misura: 'g', ordine: 0 });
+    setIngredientForm({ nome_ingrediente: '', quantita_per_pallina: '', unita_misura: 'g', ordine: 0, arrotondamento: 'nessuno' });
     setEditingIngredient(null);
     setShowIngredientForm(false);
   };
@@ -73,6 +74,7 @@ export default function StoricoImpasti() {
       ...ingredientForm,
       quantita_per_pallina: parseFloat(ingredientForm.quantita_per_pallina),
       ordine: parseInt(ingredientForm.ordine) || 0,
+      arrotondamento: ingredientForm.arrotondamento || 'nessuno',
       attivo: true
     };
     if (editingIngredient) {
@@ -88,7 +90,8 @@ export default function StoricoImpasti() {
       nome_ingrediente: ing.nome_ingrediente,
       quantita_per_pallina: ing.quantita_per_pallina,
       unita_misura: ing.unita_misura,
-      ordine: ing.ordine || 0
+      ordine: ing.ordine || 0,
+      arrotondamento: ing.arrotondamento || 'nessuno'
     });
     setShowIngredientForm(true);
   };
@@ -233,7 +236,7 @@ export default function StoricoImpasti() {
                 <h3 className="font-bold text-slate-700 mb-3">
                   {editingIngredient ? 'Modifica Ingrediente' : 'Nuovo Ingrediente'}
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                   <div>
                     <label className="text-sm font-medium text-slate-700 mb-1 block">Nome Ingrediente</label>
                     <input
@@ -270,6 +273,19 @@ export default function StoricoImpasti() {
                     </select>
                   </div>
                   <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Arrotondamento</label>
+                    <select
+                      value={ingredientForm.arrotondamento}
+                      onChange={(e) => setIngredientForm({ ...ingredientForm, arrotondamento: e.target.value })}
+                      className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
+                    >
+                      <option value="nessuno">Nessuno</option>
+                      <option value="intero">Intero (↑)</option>
+                      <option value="decine">Decine (↑)</option>
+                      <option value="centinaia">Centinaia (↑)</option>
+                    </select>
+                  </div>
+                  <div>
                     <label className="text-sm font-medium text-slate-700 mb-1 block">Ordine</label>
                     <input
                       type="number"
@@ -303,21 +319,33 @@ export default function StoricoImpasti() {
               <div className="space-y-2">
                 <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-medium text-slate-500 border-b border-slate-200">
                   <div className="col-span-1">#</div>
-                  <div className="col-span-5">Ingrediente</div>
-                  <div className="col-span-3 text-right">Quantità</div>
-                  <div className="col-span-3 text-right">Azioni</div>
+                  <div className="col-span-4">Ingrediente</div>
+                  <div className="col-span-2 text-right">Quantità</div>
+                  <div className="col-span-3 text-center">Arrotondamento</div>
+                  <div className="col-span-2 text-right">Azioni</div>
                 </div>
                 {sortedIngredienti.map((ing, idx) => (
                   <div key={ing.id} className="neumorphic-pressed p-3 rounded-xl grid grid-cols-12 gap-2 items-center">
                     <div className="col-span-1 text-slate-400 text-sm">{idx + 1}</div>
-                    <div className="col-span-5">
+                    <div className="col-span-4">
                       <p className="font-medium text-slate-800">{ing.nome_ingrediente}</p>
                     </div>
-                    <div className="col-span-3 text-right">
+                    <div className="col-span-2 text-right">
                       <span className="text-lg font-bold text-blue-600">{ing.quantita_per_pallina}</span>
                       <span className="text-sm text-slate-500 ml-1">{ing.unita_misura}</span>
                     </div>
-                    <div className="col-span-3 flex gap-1 justify-end">
+                    <div className="col-span-3 text-center">
+                      <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                        ing.arrotondamento === 'nessuno' || !ing.arrotondamento
+                          ? 'bg-slate-100 text-slate-600'
+                          : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {ing.arrotondamento === 'intero' ? '↑ Intero' :
+                         ing.arrotondamento === 'decine' ? '↑ Decine' :
+                         ing.arrotondamento === 'centinaia' ? '↑ Centinaia' : 'Nessuno'}
+                      </span>
+                    </div>
+                    <div className="col-span-2 flex gap-1 justify-end">
                       <button
                         onClick={() => handleEditIngredient(ing)}
                         className="nav-button p-2 rounded-lg hover:bg-blue-50"
