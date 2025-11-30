@@ -734,7 +734,8 @@ export default function Layout({ children, currentPageName }) {
       'Preparazioni': 'Preparazioni',
       'FeedbackP2P': 'Feedback',
       'InventarioStoreManager': 'Inventario SM',
-      'TurniDipendente': 'Turni'
+      'TurniDipendente': 'Turni',
+      'AssistenteDipendente': 'Assistente'
     };
     return titles[pageName] || pageName;
   };
