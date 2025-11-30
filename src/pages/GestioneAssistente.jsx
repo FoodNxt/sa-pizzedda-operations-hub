@@ -362,7 +362,7 @@ export default function GestioneAssistente() {
       }
     } catch (error) {
       console.error('Errore caricamento Notion:', error);
-      alert('Errore nel caricamento del contenuto da Notion. Assicurati che la pagina sia condivisa con l\'integrazione.');
+      alert('Per importare da Notion: apri la pagina in Notion, clicca sui 3 puntini (...) in alto a destra, seleziona "Connessioni" e aggiungi "Base44". Poi riprova.');
     }
     setLoadingNotion(false);
   };

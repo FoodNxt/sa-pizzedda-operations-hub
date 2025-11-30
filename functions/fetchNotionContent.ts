@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
       const errorData = await blocksResponse.text();
       console.error('Notion API error:', errorData);
       return Response.json({ 
-        error: 'Errore nel recupero della pagina. Assicurati che la pagina sia stata condivisa con l\'integrazione Notion.' 
+        error: 'Per importare questa pagina, vai su Notion, apri la pagina, clicca sui 3 puntini in alto a destra, seleziona "Connessioni" e aggiungi "Base44". Poi riprova.' 
       }, { status: 400 });
     }
 
