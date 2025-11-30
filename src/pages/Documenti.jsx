@@ -3,8 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   FileText, Plus, Edit, Save, X, Trash2, Send, CheckCircle, Clock, Eye, Download,
-  AlertCircle, User, Briefcase, FileEdit, AlertTriangle, BookOpen, History, Settings, Loader2,
-  Mail, Sparkles, MapPin
+  AlertCircle, User, Briefcase, FileEdit, AlertTriangle, BookOpen, History, Settings, Loader2
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -677,16 +676,12 @@ function ContrattiSection() {
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [previewContratto, setPreviewContratto] = useState(null);
   const [templateTextareaRef, setTemplateTextareaRef] = useState(null);
-  const [showEmailConfig, setShowEmailConfig] = useState(false);
-  const [emailConfig, setEmailConfig] = useState({ oggetto: '', corpo: '' });
-  const [generatingEmail, setGeneratingEmail] = useState(false);
-  const [emailPrompt, setEmailPrompt] = useState('');
   const [formData, setFormData] = useState({
     user_id: '', user_email: '', user_nome_cognome: '', template_id: '', nome_cognome: '',
     phone: '', data_nascita: '', citta_nascita: '', codice_fiscale: '', indirizzo_residenza: '',
     iban: '', taglia_maglietta: '', user_type: 'dipendente', ruoli_dipendente: [],
     assigned_stores: [], employee_group: '', function_name: '', ore_settimanali: 0,
-    sede_lavoro: '', data_inizio_contratto: '', durata_contratto_mesi: 0, status: 'bozza', note: ''
+    data_inizio_contratto: '', durata_contratto_mesi: 0, status: 'bozza', note: ''
   });
   const [templateData, setTemplateData] = useState({
     nome_template: '', contenuto_template: '', descrizione: '', attivo: true
@@ -705,57 +700,6 @@ function ContrattiSection() {
     queryKey: ['users'],
     queryFn: () => base44.entities.User.list(),
   });
-
-  const { data: stores = [] } = useQuery({
-    queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list(),
-  });
-
-  const { data: emailConfigs = [] } = useQuery({
-    queryKey: ['email-notifica-config'],
-    queryFn: () => base44.entities.EmailNotificaConfig.list(),
-  });
-
-  const saveEmailConfigMutation = useMutation({
-    mutationFn: async (data) => {
-      const existing = emailConfigs.find(c => c.tipo_documento === 'contratto');
-      if (existing) {
-        return base44.entities.EmailNotificaConfig.update(existing.id, data);
-      }
-      return base44.entities.EmailNotificaConfig.create(data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['email-notifica-config'] });
-      setShowEmailConfig(false);
-    },
-  });
-
-  const generateEmailWithAI = async () => {
-    setGeneratingEmail(true);
-    try {
-      const prompt = emailPrompt 
-        ? `Genera un'email professionale per notificare a un dipendente che è stato generato il suo contratto di lavoro. ${emailPrompt}. L'email deve essere in italiano, cordiale ma professionale. Includi che può visualizzare e firmare il contratto sulla piattaforma.`
-        : "Genera un'email professionale per notificare a un dipendente che è stato generato il suo contratto di lavoro. L'email deve essere in italiano, cordiale ma professionale. Includi che può visualizzare e firmare il contratto sulla piattaforma.";
-      
-      const result = await base44.integrations.Core.InvokeLLM({
-        prompt,
-        response_json_schema: {
-          type: "object",
-          properties: {
-            oggetto: { type: "string", description: "Oggetto dell'email" },
-            corpo: { type: "string", description: "Corpo dell'email, usa {{nome}} come placeholder per il nome del dipendente" }
-          },
-          required: ["oggetto", "corpo"]
-        }
-      });
-      setEmailConfig({ oggetto: result.oggetto, corpo: result.corpo });
-    } catch (error) {
-      console.error('Error generating email:', error);
-      alert('Errore nella generazione dell\'email');
-    } finally {
-      setGeneratingEmail(false);
-    }
-  };
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Contratto.create(data),
@@ -805,7 +749,7 @@ function ContrattiSection() {
       phone: '', data_nascita: '', citta_nascita: '', codice_fiscale: '', indirizzo_residenza: '',
       iban: '', taglia_maglietta: '', user_type: 'dipendente', ruoli_dipendente: [],
       assigned_stores: [], employee_group: '', function_name: '', ore_settimanali: 0,
-      sede_lavoro: '', data_inizio_contratto: '', durata_contratto_mesi: 0, status: 'bozza', note: ''
+      data_inizio_contratto: '', durata_contratto_mesi: 0, status: 'bozza', note: ''
     });
     setSelectedTemplate('');
     setEditingContratto(null);
@@ -829,9 +773,6 @@ function ContrattiSection() {
       dataFineContratto = dataFine.toLocaleDateString('it-IT');
     }
     
-    const sedeNome = data.sede_lavoro ? (stores.find(s => s.id === data.sede_lavoro)?.name || data.sede_lavoro) : '';
-    const tipoContratto = data.employee_group === 'FT' ? 'Full Time' : data.employee_group === 'PT' ? 'Part Time' : data.employee_group === 'CM' ? 'Contratto Misto' : data.employee_group || '';
-    
     const variables = {
       '{{nome_cognome}}': data.nome_cognome || '', '{{phone}}': data.phone || '',
       '{{data_nascita}}': data.data_nascita ? new Date(data.data_nascita).toLocaleDateString('it-IT') : '',
@@ -839,8 +780,6 @@ function ContrattiSection() {
       '{{indirizzo_residenza}}': data.indirizzo_residenza || '', '{{iban}}': data.iban || '',
       '{{employee_group}}': data.employee_group || '', '{{function_name}}': data.function_name || '',
       '{{ore_settimanali}}': data.ore_settimanali?.toString() || '',
-      '{{tipo_contratto}}': tipoContratto,
-      '{{sede_lavoro}}': sedeNome,
       '{{data_inizio_contratto}}': data.data_inizio_contratto ? new Date(data.data_inizio_contratto).toLocaleDateString('it-IT') : '',
       '{{durata_contratto_mesi}}': data.durata_contratto_mesi?.toString() || '',
       '{{data_oggi}}': oggi, '{{data_fine_contratto}}': dataFineContratto,
@@ -914,7 +853,6 @@ function ContrattiSection() {
         employee_group: user.employee_group || '',
         function_name: user.function_name || '',
         ore_settimanali: user.ore_settimanali || 0,
-        sede_lavoro: user.assigned_stores?.[0] || '',
         data_inizio_contratto: user.data_inizio_contratto || '',
         durata_contratto_mesi: user.durata_contratto_mesi || 0
       });
@@ -958,16 +896,10 @@ function ContrattiSection() {
   const handleSendContract = async (contratto) => {
     if (!confirm('Vuoi inviare questo contratto via email?')) return;
 
-    // Get email config
-    const config = emailConfigs.find(c => c.tipo_documento === 'contratto');
-    const oggetto = config?.oggetto_email || 'Contratto di Lavoro - Sa Pizzedda';
-    let corpo = config?.corpo_email || `Gentile {{nome}},\n\nÈ stato generato il tuo contratto di lavoro.\nPuoi visualizzarlo e firmarlo accedendo alla piattaforma.\n\nCordiali saluti,\nSa Pizzedda`;
-    corpo = corpo.replace(/\{\{nome\}\}/g, contratto.nome_cognome);
-
     await base44.integrations.Core.SendEmail({
       to: contratto.user_email,
-      subject: oggetto,
-      body: corpo
+      subject: 'Contratto di Lavoro - Sa Pizzedda',
+      body: `Gentile ${contratto.nome_cognome},\n\nÈ stato generato il tuo contratto di lavoro.\nPuoi visualizzarlo e firmarlo accedendo alla piattaforma.\n\nCordiali saluti,\nSa Pizzedda`
     });
 
     await updateMutation.mutateAsync({
@@ -1027,21 +959,13 @@ function ContrattiSection() {
 
   const availableVariables = [
     'nome_cognome', 'phone', 'data_nascita', 'citta_nascita', 'codice_fiscale', 'indirizzo_residenza', 'iban',
-    'employee_group', 'tipo_contratto', 'function_name', 'ore_settimanali', 'sede_lavoro', 'data_inizio_contratto', 
+    'employee_group', 'function_name', 'ore_settimanali', 'data_inizio_contratto', 
     'durata_contratto_mesi', 'data_oggi', 'data_fine_contratto', 'ruoli', 'locali'
   ];
 
-  // Load email config on mount
-  React.useEffect(() => {
-    const config = emailConfigs.find(c => c.tipo_documento === 'contratto');
-    if (config) {
-      setEmailConfig({ oggetto: config.oggetto_email, corpo: config.corpo_email });
-    }
-  }, [emailConfigs]);
-
   return (
     <>
-      <div className="flex gap-3 mb-6 flex-wrap">
+      <div className="flex gap-3 mb-6">
         <NeumorphicButton onClick={() => setShowTemplateForm(true)} className="flex items-center gap-2">
           <FileEdit className="w-5 h-5" />
           Nuovo Template
@@ -1049,10 +973,6 @@ function ContrattiSection() {
         <NeumorphicButton onClick={() => setShowForm(true)} variant="primary" className="flex items-center gap-2">
           <Plus className="w-5 h-5" />
           Nuovo Contratto
-        </NeumorphicButton>
-        <NeumorphicButton onClick={() => setShowEmailConfig(true)} className="flex items-center gap-2">
-          <Mail className="w-5 h-5" />
-          Configura Email
         </NeumorphicButton>
       </div>
 
@@ -1309,55 +1229,9 @@ function ContrattiSection() {
               <input type="text" placeholder="Nome Cognome" value={formData.nome_cognome}
                 onChange={(e) => setFormData({ ...formData, nome_cognome: e.target.value })}
                 className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required />
-              
-              {/* Nuovi campi contratto */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-slate-600 mb-1 block">Tipo Contratto *</label>
-                  <select value={formData.employee_group} onChange={(e) => setFormData({ ...formData, employee_group: e.target.value })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required>
-                    <option value="">Seleziona...</option>
-                    <option value="FT">Full Time</option>
-                    <option value="PT">Part Time</option>
-                    <option value="CM">Contratto Misto</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-slate-600 mb-1 block">Ore Settimanali *</label>
-                  <input type="number" placeholder="40" value={formData.ore_settimanali || ''}
-                    onChange={(e) => setFormData({ ...formData, ore_settimanali: parseInt(e.target.value) || 0 })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required min="1" max="48" />
-                </div>
-              </div>
-              
-              <div>
-                <label className="text-xs text-slate-600 mb-1 block flex items-center gap-1">
-                  <MapPin className="w-3 h-3" /> Sede di Lavoro *
-                </label>
-                <select value={formData.sede_lavoro} onChange={(e) => setFormData({ ...formData, sede_lavoro: e.target.value })}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required>
-                  <option value="">Seleziona sede...</option>
-                  {stores.map(s => (
-                    <option key={s.id} value={s.id}>{s.name} - {s.address}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-slate-600 mb-1 block">Data Inizio *</label>
-                  <input type="date" value={formData.data_inizio_contratto}
-                    onChange={(e) => setFormData({ ...formData, data_inizio_contratto: e.target.value })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-600 mb-1 block">Durata (mesi) *</label>
-                  <input type="number" placeholder="12" value={formData.durata_contratto_mesi || ''}
-                    onChange={(e) => setFormData({ ...formData, durata_contratto_mesi: parseInt(e.target.value) || 0 })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required min="1" />
-                </div>
-              </div>
-              
+              <input type="date" value={formData.data_inizio_contratto}
+                onChange={(e) => setFormData({ ...formData, data_inizio_contratto: e.target.value })}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required />
               <NeumorphicButton type="submit" variant="primary" className="w-full">Crea Contratto</NeumorphicButton>
             </form>
           </NeumorphicCard>
@@ -1375,95 +1249,6 @@ function ContrattiSection() {
               <pre className="whitespace-pre-wrap text-sm">
                 {typeof previewContratto === 'string' ? previewContratto : previewContratto.contenuto_contratto}
               </pre>
-            </div>
-          </NeumorphicCard>
-        </div>
-      )}
-
-      {/* Modal configurazione email */}
-      {showEmailConfig && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <NeumorphicCard className="max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between mb-4">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <Mail className="w-5 h-5 text-blue-600" />
-                Configura Email Notifica Contratto
-              </h2>
-              <button onClick={() => setShowEmailConfig(false)}><X className="w-5 h-5" /></button>
-            </div>
-            
-            <div className="space-y-4">
-              {/* AI Generation */}
-              <div className="neumorphic-flat p-4 rounded-xl bg-gradient-to-r from-purple-50 to-blue-50">
-                <h3 className="font-medium text-slate-800 mb-2 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-purple-600" />
-                  Genera con AI
-                </h3>
-                <textarea
-                  value={emailPrompt}
-                  onChange={(e) => setEmailPrompt(e.target.value)}
-                  placeholder="Descrivi come vuoi l'email (es: 'tono formale', 'includi info sulla sede', 'menziona il periodo di prova')..."
-                  className="w-full neumorphic-pressed px-3 py-2 rounded-lg outline-none h-20 resize-none text-sm mb-2"
-                />
-                <NeumorphicButton 
-                  onClick={generateEmailWithAI} 
-                  disabled={generatingEmail}
-                  className="w-full flex items-center justify-center gap-2"
-                >
-                  {generatingEmail ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" /> Generazione...</>
-                  ) : (
-                    <><Sparkles className="w-4 h-4" /> Genera Email con AI</>
-                  )}
-                </NeumorphicButton>
-              </div>
-
-              <div className="neumorphic-pressed p-3 rounded-lg">
-                <p className="text-xs text-slate-600 mb-1">Variabili disponibili:</p>
-                <div className="flex flex-wrap gap-1">
-                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">{'{{nome}}'}</span>
-                  <span className="text-xs text-slate-500">= Nome del dipendente</span>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-1 block">Oggetto Email</label>
-                <input
-                  type="text"
-                  value={emailConfig.oggetto}
-                  onChange={(e) => setEmailConfig({ ...emailConfig, oggetto: e.target.value })}
-                  placeholder="Contratto di Lavoro - Sa Pizzedda"
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-1 block">Corpo Email</label>
-                <textarea
-                  value={emailConfig.corpo}
-                  onChange={(e) => setEmailConfig({ ...emailConfig, corpo: e.target.value })}
-                  placeholder="Gentile {{nome}},\n\nÈ stato generato il tuo contratto..."
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none h-48 resize-none"
-                />
-              </div>
-
-              <div className="flex gap-3">
-                <button onClick={() => setShowEmailConfig(false)} className="flex-1 nav-button px-4 py-3 rounded-xl font-medium">
-                  Annulla
-                </button>
-                <NeumorphicButton 
-                  onClick={() => saveEmailConfigMutation.mutate({
-                    tipo_documento: 'contratto',
-                    oggetto_email: emailConfig.oggetto,
-                    corpo_email: emailConfig.corpo,
-                    attivo: true
-                  })}
-                  variant="primary" 
-                  className="flex-1"
-                >
-                  Salva Configurazione
-                </NeumorphicButton>
-              </div>
             </div>
           </NeumorphicCard>
         </div>
@@ -1487,10 +1272,6 @@ function LettereSection() {
   const [viewingChiusura, setViewingChiusura] = useState(null);
   const [chiusuraPreviewContent, setChiusuraPreviewContent] = useState('');
   const [downloadingPdfAdmin, setDownloadingPdfAdmin] = useState(null);
-  const [showEmailConfig, setShowEmailConfig] = useState(false);
-  const [emailConfig, setEmailConfig] = useState({ oggetto: '', corpo: '' });
-  const [generatingEmail, setGeneratingEmail] = useState(false);
-  const [emailPrompt, setEmailPrompt] = useState('');
 
   const downloadLetteraPDFAdmin = async (lettera) => {
     setDownloadingPdfAdmin(lettera.id);
@@ -1549,53 +1330,6 @@ function LettereSection() {
       return allUsers.filter(u => u.user_type === 'dipendente' || u.user_type === 'user');
     },
   });
-
-  const { data: emailConfigs = [] } = useQuery({
-    queryKey: ['email-notifica-config-lettere'],
-    queryFn: () => base44.entities.EmailNotificaConfig.list(),
-  });
-
-  const saveEmailConfigMutation = useMutation({
-    mutationFn: async (data) => {
-      const existing = emailConfigs.find(c => c.tipo_documento === data.tipo_documento);
-      if (existing) {
-        return base44.entities.EmailNotificaConfig.update(existing.id, data);
-      }
-      return base44.entities.EmailNotificaConfig.create(data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['email-notifica-config-lettere'] });
-      setShowEmailConfig(false);
-    },
-  });
-
-  const generateEmailWithAI = async (tipoDoc) => {
-    setGeneratingEmail(true);
-    try {
-      const tipoLabel = tipoDoc === 'lettera_richiamo' ? 'lettera di richiamo' : 'chiusura procedura disciplinare';
-      const prompt = emailPrompt 
-        ? `Genera un'email professionale per notificare a un dipendente che ha ricevuto una ${tipoLabel}. ${emailPrompt}. L'email deve essere in italiano, formale e rispettosa. Includi che deve visualizzare e firmare il documento sulla piattaforma.`
-        : `Genera un'email professionale per notificare a un dipendente che ha ricevuto una ${tipoLabel}. L'email deve essere in italiano, formale e rispettosa. Includi che deve visualizzare e firmare il documento sulla piattaforma.`;
-      
-      const result = await base44.integrations.Core.InvokeLLM({
-        prompt,
-        response_json_schema: {
-          type: "object",
-          properties: {
-            oggetto: { type: "string", description: "Oggetto dell'email" },
-            corpo: { type: "string", description: "Corpo dell'email, usa {{nome}} come placeholder per il nome del dipendente" }
-          },
-          required: ["oggetto", "corpo"]
-        }
-      });
-      setEmailConfig({ oggetto: result.oggetto, corpo: result.corpo });
-    } catch (error) {
-      console.error('Error generating email:', error);
-      alert('Errore nella generazione dell\'email');
-    } finally {
-      setGeneratingEmail(false);
-    }
-  };
 
   const createTemplateMutation = useMutation({
     mutationFn: (data) => base44.entities.LetteraRichiamoTemplate.create(data),
@@ -1683,20 +1417,6 @@ function LettereSection() {
     mutationFn: async (data) => {
       const user = users.find(u => u.id === data.user_id);
       
-      // Send email notification
-      const config = emailConfigs.find(c => c.tipo_documento === data.tipo_lettera);
-      if (config && config.attivo) {
-        const oggetto = config.oggetto_email;
-        let corpo = config.corpo_email;
-        corpo = corpo.replace(/\{\{nome\}\}/g, user.nome_cognome || user.full_name || user.email);
-        
-        await base44.integrations.Core.SendEmail({
-          to: user.email,
-          subject: oggetto,
-          body: corpo
-        });
-      }
-      
       return base44.entities.LetteraRichiamo.create({
         user_id: user.id,
         user_email: user.email,
@@ -1770,10 +1490,6 @@ function LettereSection() {
         <NeumorphicButton onClick={() => setShowAutoConfig(true)} className="flex items-center gap-2">
           <Settings className="w-5 h-5" />
           Automazione
-        </NeumorphicButton>
-        <NeumorphicButton onClick={() => setShowEmailConfig(true)} className="flex items-center gap-2">
-          <Mail className="w-5 h-5" />
-          Configura Email
         </NeumorphicButton>
       </div>
 
