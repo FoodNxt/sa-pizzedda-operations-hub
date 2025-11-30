@@ -958,10 +958,16 @@ function ContrattiSection() {
   const handleSendContract = async (contratto) => {
     if (!confirm('Vuoi inviare questo contratto via email?')) return;
 
+    // Get email config
+    const config = emailConfigs.find(c => c.tipo_documento === 'contratto');
+    const oggetto = config?.oggetto_email || 'Contratto di Lavoro - Sa Pizzedda';
+    let corpo = config?.corpo_email || `Gentile {{nome}},\n\nÈ stato generato il tuo contratto di lavoro.\nPuoi visualizzarlo e firmarlo accedendo alla piattaforma.\n\nCordiali saluti,\nSa Pizzedda`;
+    corpo = corpo.replace(/\{\{nome\}\}/g, contratto.nome_cognome);
+
     await base44.integrations.Core.SendEmail({
       to: contratto.user_email,
-      subject: 'Contratto di Lavoro - Sa Pizzedda',
-      body: `Gentile ${contratto.nome_cognome},\n\nÈ stato generato il tuo contratto di lavoro.\nPuoi visualizzarlo e firmarlo accedendo alla piattaforma.\n\nCordiali saluti,\nSa Pizzedda`
+      subject: oggetto,
+      body: corpo
     });
 
     await updateMutation.mutateAsync({
