@@ -3,14 +3,14 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createPageUrl } from "@/utils";
 import { Link } from "react-router-dom";
-import { Sparkles, Camera, Calendar, Store, CheckCircle, AlertTriangle, XCircle, Plus, ChevronRight, X, Loader2, Edit, Save, TrendingUp, ClipboardCheck, Users, Clock, Settings, Eye } from 'lucide-react';
+import { Sparkles, Camera, Calendar, Store, CheckCircle, AlertTriangle, XCircle, Plus, ChevronRight, X, Loader2, Edit, Save, TrendingUp, ClipboardCheck, Users, Clock, Settings, Eye, ChevronDown, ChevronUp } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { format, parseISO, subDays } from 'date-fns';
 import { it } from 'date-fns/locale';
 
 export default function Pulizie() {
-  const [activeView, setActiveView] = useState('dipendenti'); // 'dipendenti' or 'store_manager'
+  const [activeView, setActiveView] = useState('dipendenti'); // 'dipendenti', 'store_manager', 'per_locale'
   const [selectedStore, setSelectedStore] = useState('all');
   const [dateFilter, setDateFilter] = useState('month');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -18,6 +18,7 @@ export default function Pulizie() {
   const [detailsModalInspection, setDetailsModalInspection] = useState(null);
   const [correctingEquipment, setCorrectingEquipment] = useState(null);
   const [correctionData, setCorrectionData] = useState({});
+  const [expandedLocale, setExpandedLocale] = useState({});
 
   const queryClient = useQueryClient();
 
@@ -178,6 +179,49 @@ export default function Pulizie() {
     return { total, passed, failed, avgScore };
   }, [filteredSMInspections, currentConfig]);
 
+  // Stats per locale
+  const statsPerLocale = useMemo(() => {
+    return stores.map(store => {
+      // Ispezioni dipendenti per questo store
+      const storeInspections = inspections.filter(i => 
+        i.store_id === store.id && 
+        i.analysis_status === 'completed' &&
+        i.inspector_role !== 'Store Manager'
+      );
+      
+      // Ispezioni SM per questo store
+      const storeSMInspections = inspections.filter(i => 
+        i.store_id === store.id && 
+        i.analysis_status === 'completed' &&
+        (i.inspector_role === 'Store Manager' || i.inspection_type === 'store_manager')
+      );
+
+      const avgScoreDipendenti = storeInspections.length > 0 
+        ? storeInspections.reduce((sum, i) => sum + (i.overall_score || 0), 0) / storeInspections.length 
+        : 0;
+
+      const avgScoreSM = storeSMInspections.length > 0 
+        ? storeSMInspections.reduce((sum, i) => sum + (i.overall_score || 0), 0) / storeSMInspections.length 
+        : 0;
+
+      const threshold = currentConfig?.percentuale_superamento || 70;
+      const smPassed = storeSMInspections.filter(i => (i.overall_score || 0) >= threshold).length;
+      const smFailed = storeSMInspections.length - smPassed;
+
+      return {
+        store,
+        inspectionsDipendenti: storeInspections,
+        inspectionsSM: storeSMInspections,
+        totalDipendenti: storeInspections.length,
+        totalSM: storeSMInspections.length,
+        avgScoreDipendenti: Math.round(avgScoreDipendenti),
+        avgScoreSM: Math.round(avgScoreSM),
+        smPassed,
+        smFailed
+      };
+    }).filter(s => s.totalDipendenti > 0 || s.totalSM > 0);
+  }, [stores, inspections, currentConfig]);
+
   const getStatusIcon = (status) => {
     switch(status) {
       case 'pulito': return <CheckCircle className="w-5 h-5 text-green-600" />;
@@ -316,7 +360,7 @@ export default function Pulizie() {
 
       {/* View Toggle */}
       <NeumorphicCard className="p-4">
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setActiveView('dipendenti')}
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-all ${
@@ -326,7 +370,7 @@ export default function Pulizie() {
             }`}
           >
             <Users className="w-5 h-5" />
-            Form Dipendenti (Cassieri/Pizzaioli)
+            Form Dipendenti
           </button>
           <button
             onClick={() => setActiveView('store_manager')}
@@ -337,7 +381,18 @@ export default function Pulizie() {
             }`}
           >
             <Settings className="w-5 h-5" />
-            Risultati SM Controlli
+            Controlli SM
+          </button>
+          <button
+            onClick={() => setActiveView('per_locale')}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-all ${
+              activeView === 'per_locale' 
+                ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg' 
+                : 'neumorphic-flat text-[#6b6b6b]'
+            }`}
+          >
+            <Store className="w-5 h-5" />
+            Per Locale
           </button>
         </div>
       </NeumorphicCard>
