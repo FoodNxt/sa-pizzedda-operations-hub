@@ -335,25 +335,95 @@ export default function Contratti() {
   };
 
   const handleSendContract = async (contratto) => {
-    if (!confirm('Vuoi inviare questo contratto via email?')) return;
+    // Apri modal per personalizzare email
+    setEmailContratto(contratto);
+    setEmailSubject('Contratto di Lavoro - Sa Pizzedda');
+    setEmailBody(`Gentile ${contratto.nome_cognome},\n\nÈ stato generato il tuo contratto di lavoro.\nPuoi visualizzarlo e firmarlo accedendo alla piattaforma nella sezione "I Miei Contratti".\n\nCordiali saluti,\nSa Pizzedda`);
+    setEmailPrompt('');
+    setShowEmailModal(true);
+  };
 
+  const handleGenerateEmailWithAI = async () => {
+    if (!emailPrompt.trim()) {
+      alert('Inserisci un prompt per generare l\'email');
+      return;
+    }
+
+    setGeneratingEmail(true);
     try {
-      await base44.integrations.Core.SendEmail({
-        to: contratto.user_email,
-        subject: 'Contratto di Lavoro - Sa Pizzedda',
-        body: `Gentile ${contratto.nome_cognome},\n\nÈ stato generato il tuo contratto di lavoro.\nPuoi visualizzarlo e firmarlo accedendo alla piattaforma nella sezione "I Miei Contratti".\n\nCordiali saluti,\nSa Pizzedda`
-      });
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: `Genera un'email professionale per inviare un contratto di lavoro a un dipendente.
 
-      await updateMutation.mutateAsync({
-        id: contratto.id,
-        data: {
-          ...contratto,
-          status: 'inviato',
-          data_invio: new Date().toISOString()
+Dati del dipendente:
+- Nome: ${emailContratto.nome_cognome}
+- Ruolo: ${emailContratto.function_name || 'non specificato'}
+- Tipo contratto: ${emailContratto.tipo_contratto === 'full_time' ? 'Full Time' : emailContratto.tipo_contratto === 'part_time' ? 'Part Time' : emailContratto.employee_group}
+- Ore settimanali: ${emailContratto.ore_settimanali}
+- Data inizio: ${emailContratto.data_inizio_contratto ? new Date(emailContratto.data_inizio_contratto).toLocaleDateString('it-IT') : 'da definire'}
+- Sede: ${emailContratto.sede_lavoro || 'Sa Pizzedda'}
+
+Indicazioni dell'utente: ${emailPrompt}
+
+Genera sia l'oggetto che il corpo dell'email. L'email deve essere in italiano, professionale ma cordiale. Il dipendente dovrà accedere alla piattaforma per visualizzare e firmare il contratto.`,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            subject: { type: "string", description: "Oggetto dell'email" },
+            body: { type: "string", description: "Corpo dell'email" }
+          },
+          required: ["subject", "body"]
         }
       });
 
+      setEmailSubject(response.subject);
+      setEmailBody(response.body);
+    } catch (error) {
+      console.error('Error generating email:', error);
+      alert('Errore nella generazione dell\'email');
+    } finally {
+      setGeneratingEmail(false);
+    }
+  };
+
+  const handleConfirmSendEmail = async () => {
+    if (!emailContratto) return;
+
+    try {
+      await base44.integrations.Core.SendEmail({
+        to: emailContratto.user_email,
+        subject: emailSubject,
+        body: emailBody
+      });
+
+      await updateMutation.mutateAsync({
+        id: emailContratto.id,
+        data: {
+          ...emailContratto,
+          status: 'inviato',
+          data_invio: new Date().toISOString(),
+          email_personalizzata: emailBody
+        }
+      });
+
+      // Aggiorna anche i dati dell'utente con le info del contratto
+      if (emailContratto.user_id) {
+        try {
+          await base44.entities.User.update(emailContratto.user_id, {
+            employee_group: emailContratto.employee_group,
+            ore_settimanali: emailContratto.ore_settimanali,
+            data_inizio_contratto: emailContratto.data_inizio_contratto,
+            durata_contratto_mesi: emailContratto.durata_contratto_mesi,
+            assigned_stores: emailContratto.sede_lavoro ? [emailContratto.sede_lavoro] : emailContratto.assigned_stores
+          });
+          queryClient.invalidateQueries({ queryKey: ['users'] });
+        } catch (userError) {
+          console.error('Error updating user:', userError);
+        }
+      }
+
       alert('Contratto inviato con successo!');
+      setShowEmailModal(false);
+      setEmailContratto(null);
     } catch (error) {
       console.error('Error sending contract:', error);
       alert('Errore durante l\'invio del contratto');
