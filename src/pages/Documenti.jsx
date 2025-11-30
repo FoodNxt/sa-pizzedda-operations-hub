@@ -1041,7 +1041,7 @@ function ContrattiSection() {
 
   return (
     <>
-      <div className="flex gap-3 mb-6">
+      <div className="flex gap-3 mb-6 flex-wrap">
         <NeumorphicButton onClick={() => setShowTemplateForm(true)} className="flex items-center gap-2">
           <FileEdit className="w-5 h-5" />
           Nuovo Template
@@ -1049,6 +1049,10 @@ function ContrattiSection() {
         <NeumorphicButton onClick={() => setShowForm(true)} variant="primary" className="flex items-center gap-2">
           <Plus className="w-5 h-5" />
           Nuovo Contratto
+        </NeumorphicButton>
+        <NeumorphicButton onClick={() => setShowEmailConfig(true)} className="flex items-center gap-2">
+          <Mail className="w-5 h-5" />
+          Configura Email
         </NeumorphicButton>
       </div>
 
