@@ -706,6 +706,57 @@ function ContrattiSection() {
     queryFn: () => base44.entities.User.list(),
   });
 
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores'],
+    queryFn: () => base44.entities.Store.list(),
+  });
+
+  const { data: emailConfigs = [] } = useQuery({
+    queryKey: ['email-notifica-config'],
+    queryFn: () => base44.entities.EmailNotificaConfig.list(),
+  });
+
+  const saveEmailConfigMutation = useMutation({
+    mutationFn: async (data) => {
+      const existing = emailConfigs.find(c => c.tipo_documento === 'contratto');
+      if (existing) {
+        return base44.entities.EmailNotificaConfig.update(existing.id, data);
+      }
+      return base44.entities.EmailNotificaConfig.create(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['email-notifica-config'] });
+      setShowEmailConfig(false);
+    },
+  });
+
+  const generateEmailWithAI = async () => {
+    setGeneratingEmail(true);
+    try {
+      const prompt = emailPrompt 
+        ? `Genera un'email professionale per notificare a un dipendente che è stato generato il suo contratto di lavoro. ${emailPrompt}. L'email deve essere in italiano, cordiale ma professionale. Includi che può visualizzare e firmare il contratto sulla piattaforma.`
+        : "Genera un'email professionale per notificare a un dipendente che è stato generato il suo contratto di lavoro. L'email deve essere in italiano, cordiale ma professionale. Includi che può visualizzare e firmare il contratto sulla piattaforma.";
+      
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            oggetto: { type: "string", description: "Oggetto dell'email" },
+            corpo: { type: "string", description: "Corpo dell'email, usa {{nome}} come placeholder per il nome del dipendente" }
+          },
+          required: ["oggetto", "corpo"]
+        }
+      });
+      setEmailConfig({ oggetto: result.oggetto, corpo: result.corpo });
+    } catch (error) {
+      console.error('Error generating email:', error);
+      alert('Errore nella generazione dell\'email');
+    } finally {
+      setGeneratingEmail(false);
+    }
+  };
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Contratto.create(data),
     onSuccess: () => {
