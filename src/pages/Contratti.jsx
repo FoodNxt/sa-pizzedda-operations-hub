@@ -1021,6 +1021,34 @@ Genera sia l'oggetto che il corpo dell'email. L'email deve essere in italiano, p
                   </div>
                 </div>
 
+                {/* Warning Contratti Sovrapposti */}
+                {overlappingWarning && (
+                  <div className={`p-4 rounded-xl border-2 ${overlappingWarning.type === 'overlap' ? 'bg-red-50 border-red-500' : 'bg-yellow-50 border-yellow-500'}`}>
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className={`w-6 h-6 flex-shrink-0 ${overlappingWarning.type === 'overlap' ? 'text-red-600' : 'text-yellow-600'}`} />
+                      <div>
+                        <p className={`font-bold ${overlappingWarning.type === 'overlap' ? 'text-red-800' : 'text-yellow-800'}`}>
+                          {overlappingWarning.message}
+                        </p>
+                        {overlappingWarning.contracts && overlappingWarning.contracts.length > 0 && (
+                          <ul className="mt-2 text-sm space-y-1">
+                            {overlappingWarning.contracts.map(c => (
+                              <li key={c.id} className={overlappingWarning.type === 'overlap' ? 'text-red-700' : 'text-yellow-700'}>
+                                • {c.template_nome || 'Contratto'}: {c.data_inizio_contratto ? new Date(c.data_inizio_contratto).toLocaleDateString('it-IT') : '?'} - 
+                                {c.data_inizio_contratto && c.durata_contratto_mesi ? (() => {
+                                  const end = new Date(c.data_inizio_contratto);
+                                  end.setMonth(end.getMonth() + parseInt(c.durata_contratto_mesi));
+                                  return end.toLocaleDateString('it-IT');
+                                })() : '?'} ({c.status})
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Dati Lavorativi */}
                 <div className="neumorphic-flat p-5 rounded-xl">
                   <h3 className="font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
@@ -1028,6 +1056,46 @@ Genera sia l'oggetto che il corpo dell'email. L'email deve essere in italiano, p
                     Dati Lavorativi
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                        Tipo Contratto <span className="text-red-600">*</span>
+                      </label>
+                      <select
+                        required
+                        value={formData.tipo_contratto}
+                        onChange={(e) => {
+                          const tipo = e.target.value;
+                          setFormData({ 
+                            ...formData, 
+                            tipo_contratto: tipo,
+                            employee_group: tipo === 'full_time' ? 'FT' : tipo === 'part_time' ? 'PT' : formData.employee_group
+                          });
+                        }}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                      >
+                        <option value="">-- Seleziona --</option>
+                        <option value="full_time">Full Time</option>
+                        <option value="part_time">Part Time</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                        Sede di Lavoro <span className="text-red-600">*</span>
+                      </label>
+                      <select
+                        required
+                        value={formData.sede_lavoro}
+                        onChange={(e) => setFormData({ ...formData, sede_lavoro: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                      >
+                        <option value="">-- Seleziona sede --</option>
+                        {stores.map(store => (
+                          <option key={store.id} value={store.name}>{store.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
                     <div>
                       <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
                         Gruppo Contrattuale <span className="text-red-600">*</span>
@@ -1047,19 +1115,6 @@ Genera sia l'oggetto che il corpo dell'email. L'email deve essere in italiano, p
 
                     <div>
                       <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                        Ruolo/Funzione <span className="text-red-600">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.function_name}
-                        onChange={(e) => setFormData({ ...formData, function_name: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
                         Ore Settimanali <span className="text-red-600">*</span>
                       </label>
                       <input
@@ -1075,13 +1130,29 @@ Genera sia l'oggetto che il corpo dell'email. L'email deve essere in italiano, p
 
                     <div>
                       <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                        Ruolo/Funzione <span className="text-red-600">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.function_name}
+                        onChange={(e) => setFormData({ ...formData, function_name: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
                         Data Inizio Contratto <span className="text-red-600">*</span>
                       </label>
                       <input
                         type="date"
                         required
                         value={formData.data_inizio_contratto}
-                        onChange={(e) => setFormData({ ...formData, data_inizio_contratto: e.target.value })}
+                        onChange={(e) => {
+                          setFormData({ ...formData, data_inizio_contratto: e.target.value });
+                          checkOverlappingContracts(formData.user_id, e.target.value, formData.durata_contratto_mesi);
+                        }}
                         className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                       />
                     </div>
@@ -1095,7 +1166,11 @@ Genera sia l'oggetto che il corpo dell'email. L'email deve essere in italiano, p
                         required
                         min="0"
                         value={formData.durata_contratto_mesi}
-                        onChange={(e) => setFormData({ ...formData, durata_contratto_mesi: parseInt(e.target.value) || 0 })}
+                        onChange={(e) => {
+                          const durata = parseInt(e.target.value) || 0;
+                          setFormData({ ...formData, durata_contratto_mesi: durata });
+                          checkOverlappingContracts(formData.user_id, formData.data_inizio_contratto, durata);
+                        }}
                         className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                       />
                     </div>
