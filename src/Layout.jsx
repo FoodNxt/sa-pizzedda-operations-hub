@@ -719,7 +719,7 @@ export default function Layout({ children, currentPageName }) {
     const titles = {
       'ProfiloDipendente': 'Profilo',
       'ContrattiDipendente': 'Documenti',
-        'OreLavorate': 'Ore Lavorate',
+      'OreLavorate': 'Ore Lavorate',
       'Academy': 'Academy',
       'Valutazione': 'Valutazione',
       'FormsDipendente': 'Forms',
@@ -733,7 +733,8 @@ export default function Layout({ children, currentPageName }) {
       'FormTeglieButtate': 'Teglie',
       'Preparazioni': 'Preparazioni',
       'FeedbackP2P': 'Feedback',
-      'InventarioStoreManager': 'Inventario SM'
+      'InventarioStoreManager': 'Inventario SM',
+      'TurniDipendente': 'Turni'
     };
     return titles[pageName] || pageName;
   };
@@ -742,7 +743,7 @@ export default function Layout({ children, currentPageName }) {
     const icons = {
       'ProfiloDipendente': User,
       'ContrattiDipendente': FileText,
-        'OreLavorate': Clock,
+      'OreLavorate': Clock,
       'Academy': GraduationCap,
       'Valutazione': ClipboardCheck,
       'FormsDipendente': Edit,
@@ -756,7 +757,8 @@ export default function Layout({ children, currentPageName }) {
       'FormTeglieButtate': AlertTriangle,
       'Preparazioni': ChefHat,
       'FeedbackP2P': Users,
-      'InventarioStoreManager': Package
+      'InventarioStoreManager': Package,
+      'TurniDipendente': Clock
     };
     return icons[pageName] || User;
   };
