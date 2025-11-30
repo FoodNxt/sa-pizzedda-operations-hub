@@ -140,9 +140,14 @@ export default function Planday() {
     distanza_massima_metri: 100,
     tolleranza_ritardo_minuti: 0,
     abilita_timbratura_gps: true,
-    scaglioni_ritardo: [],
+    arrotonda_ritardo: false,
+    arrotondamento_tipo: 'eccesso',
+    arrotondamento_minuti: 15,
     penalita_timbratura_mancata: 0
   });
+
+  const [editingTimbratura, setEditingTimbratura] = useState(null);
+  const [timbrForm, setTimbrForm] = useState({ timbrata_entrata: '', timbrata_uscita: '' });
 
   // Stato per drag and drop (creazione nuovi turni)
   const [dragStart, setDragStart] = useState(null);
@@ -221,7 +226,9 @@ export default function Planday() {
         distanza_massima_metri: config.distanza_massima_metri || 100,
         tolleranza_ritardo_minuti: config.tolleranza_ritardo_minuti ?? 0,
         abilita_timbratura_gps: config.abilita_timbratura_gps !== false,
-        scaglioni_ritardo: config.scaglioni_ritardo || [],
+        arrotonda_ritardo: config.arrotonda_ritardo || false,
+        arrotondamento_tipo: config.arrotondamento_tipo || 'eccesso',
+        arrotondamento_minuti: config.arrotondamento_minuti || 15,
         penalita_timbratura_mancata: config.penalita_timbratura_mancata || 0
       });
     }
@@ -291,6 +298,14 @@ export default function Planday() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stores'] });
       setEditingStore(null);
+    },
+  });
+
+  const updateTimbraturaMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.TurnoPlanday.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['turni-timbrature'] });
+      setEditingTimbratura(null);
     },
   });
 
@@ -752,23 +767,22 @@ export default function Planday() {
     return user?.nome_cognome || user?.full_name || '';
   };
 
-  // Calcola ritardo effettivo con scaglioni
+  // Calcola ritardo effettivo con arrotondamento
   const calcolaRitardoEffettivo = (minutiRitardo) => {
-    if (!config?.scaglioni_ritardo || config.scaglioni_ritardo.length === 0) {
-      return minutiRitardo; // Nessuno scaglione, ritardo reale
+    if (!config?.arrotonda_ritardo) {
+      return minutiRitardo; // Nessun arrotondamento
     }
     
-    // Ordina scaglioni per minutiDa
-    const scaglioni = [...config.scaglioni_ritardo].sort((a, b) => a.minutiDa - b.minutiDa);
+    const incremento = config.arrotondamento_minuti || 15;
+    const tipo = config.arrotondamento_tipo || 'eccesso';
     
-    // Trova lo scaglione applicabile
-    for (let i = scaglioni.length - 1; i >= 0; i--) {
-      if (minutiRitardo >= scaglioni[i].minutiDa) {
-        return scaglioni[i].minutiConteggiati;
-      }
+    if (tipo === 'eccesso') {
+      // Arrotonda per eccesso (es: 4 min → 15 min, 16 min → 30 min)
+      return Math.ceil(minutiRitardo / incremento) * incremento;
+    } else {
+      // Arrotonda per difetto (es: 14 min → 0 min, 16 min → 15 min)
+      return Math.floor(minutiRitardo / incremento) * incremento;
     }
-    
-    return 0; // Entro tolleranza
   };
 
   // Calcola penalità timbratura mancata
@@ -776,17 +790,20 @@ export default function Planday() {
     return config?.penalita_timbratura_mancata || 0;
   };
 
+  const getTurnoTipo = (turno) => {
+    const [h] = turno.ora_inizio.split(':').map(Number);
+    return h < 14 ? 'Mattina' : 'Sera';
+  };
+
   const getTimbraturaTipo = (turno) => {
     const now = moment();
     const turnoDateTime = moment(`${turno.data} ${turno.ora_fine}`);
     const turnoStart = moment(`${turno.data} ${turno.ora_inizio}`);
     
-    // Se il turno è nel futuro
     if (turnoStart.isAfter(now)) {
       return { tipo: 'programmato', color: 'text-slate-500', bg: 'bg-slate-100', label: 'Programmato', ritardoReale: 0, ritardoConteggiato: 0 };
     }
     
-    // Se non c'è timbratura e il turno è finito
     if (!turno.timbrata_entrata && turnoDateTime.isBefore(now)) {
       const penalita = calcolaPenalitaMancata();
       return { 
@@ -800,7 +817,6 @@ export default function Planday() {
       };
     }
     
-    // Se non c'è timbratura ma il turno è in corso
     if (!turno.timbrata_entrata) {
       return { tipo: 'in_corso', color: 'text-yellow-600', bg: 'bg-yellow-100', label: 'In attesa', ritardoReale: 0, ritardoConteggiato: 0 };
     }
@@ -1062,6 +1078,28 @@ export default function Planday() {
               </div>
             </div>
 
+            {/* Modello Turno Selector */}
+            {turniModello.length > 0 && (
+              <div className="mb-4">
+                <label className="text-sm font-medium text-slate-700 mb-1 block">Usa Turno Modello</label>
+                <select
+                  value={selectedModello}
+                  onChange={(e) => {
+                    applyModello(e.target.value);
+                    setSelectedModello(e.target.value);
+                  }}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                >
+                  <option value="">-- Seleziona modello --</option>
+                  {turniModello.map(m => (
+                    <option key={m.id} value={m.id}>
+                      {m.nome} ({m.ruolo}, {m.ora_inizio}-{m.ora_fine}, {m.tipo_turno})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
               <div>
                 <label className="text-sm font-medium text-slate-700 mb-1 block">Ora Inizio *</label>
@@ -1306,10 +1344,76 @@ export default function Planday() {
 
 
 
+        {/* Modal Edit Timbratura */}
+        {editingTimbratura && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="p-6 max-w-md w-full">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800">Modifica Timbratura</h2>
+                <button onClick={() => setEditingTimbratura(null)} className="nav-button p-2 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="mb-4 p-3 bg-blue-50 rounded-xl">
+                <p className="text-sm text-slate-700">
+                  <strong>{editingTimbratura.dipendente_nome}</strong>
+                </p>
+                <p className="text-xs text-slate-500">
+                  {moment(editingTimbratura.data).format('DD/MM/YYYY')} • {editingTimbratura.ora_inizio}-{editingTimbratura.ora_fine}
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Timbratura Entrata</label>
+                  <input
+                    type="datetime-local"
+                    value={timbrForm.timbrata_entrata}
+                    onChange={(e) => setTimbrForm({ ...timbrForm, timbrata_entrata: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Timbratura Uscita</label>
+                  <input
+                    type="datetime-local"
+                    value={timbrForm.timbrata_uscita}
+                    onChange={(e) => setTimbrForm({ ...timbrForm, timbrata_uscita: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <NeumorphicButton onClick={() => setEditingTimbratura(null)} className="flex-1">
+                  Annulla
+                </NeumorphicButton>
+                <NeumorphicButton 
+                  onClick={() => {
+                    updateTimbraturaMutation.mutate({
+                      id: editingTimbratura.id,
+                      data: {
+                        timbrata_entrata: timbrForm.timbrata_entrata ? new Date(timbrForm.timbrata_entrata).toISOString() : null,
+                        timbrata_uscita: timbrForm.timbrata_uscita ? new Date(timbrForm.timbrata_uscita).toISOString() : null
+                      }
+                    });
+                  }}
+                  variant="primary"
+                  className="flex-1"
+                >
+                  Salva
+                </NeumorphicButton>
+              </div>
+            </NeumorphicCard>
+          </div>
+        )}
+
         {/* Modal Impostazioni */}
-        {showConfigModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <NeumorphicCard className="p-6 max-w-3xl w-full my-8">
+        {showConfigModal && mainView === 'timbrature' && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+              <NeumorphicCard className="p-6 my-8">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-slate-800">Impostazioni Timbratura</h2>
                 <button onClick={() => setShowConfigModal(false)} className="nav-button p-2 rounded-lg">
@@ -1351,77 +1455,83 @@ export default function Planday() {
                   </div>
                 </div>
 
-                {/* Scaglioni Ritardo */}
+                {/* Arrotondamento Ritardo */}
                 <div className="neumorphic-pressed p-4 rounded-xl">
                   <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
                     <Clock className="w-5 h-5 text-orange-600" />
-                    Scaglioni Ritardo
+                    Arrotondamento Ritardi
                   </h3>
-                  <p className="text-xs text-slate-500 mb-3">
-                    Definisci come vengono conteggiati i ritardi. Es: se uno arriva con 4 min di ritardo, puoi decidere di conteggiare 0, 5 o 15 minuti.
-                  </p>
                   
-                  <div className="space-y-2 mb-4">
-                    {configForm.scaglioni_ritardo.map((scaglione, idx) => (
-                      <div key={idx} className="flex items-center gap-2 neumorphic-flat p-3 rounded-lg">
-                        <span className="text-sm text-slate-600">Da</span>
-                        <input
-                          type="number"
-                          min="0"
-                          value={scaglione.minutiDa}
-                          onChange={(e) => {
-                            const newScaglioni = [...configForm.scaglioni_ritardo];
-                            newScaglioni[idx].minutiDa = parseInt(e.target.value) || 0;
-                            setConfigForm({ ...configForm, scaglioni_ritardo: newScaglioni });
-                          }}
-                          className="w-20 neumorphic-pressed px-2 py-1 rounded-lg text-sm outline-none text-center"
-                        />
-                        <span className="text-sm text-slate-600">min → conteggia</span>
-                        <input
-                          type="number"
-                          min="0"
-                          value={scaglione.minutiConteggiati}
-                          onChange={(e) => {
-                            const newScaglioni = [...configForm.scaglioni_ritardo];
-                            newScaglioni[idx].minutiConteggiati = parseInt(e.target.value) || 0;
-                            setConfigForm({ ...configForm, scaglioni_ritardo: newScaglioni });
-                          }}
-                          className="w-20 neumorphic-pressed px-2 py-1 rounded-lg text-sm outline-none text-center"
-                        />
-                        <span className="text-sm text-slate-600">min</span>
-                        <button
-                          onClick={() => {
-                            const newScaglioni = configForm.scaglioni_ritardo.filter((_, i) => i !== idx);
-                            setConfigForm({ ...configForm, scaglioni_ritardo: newScaglioni });
-                          }}
-                          className="ml-auto text-red-500 hover:text-red-700"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                  <div className="flex items-center gap-2 mb-4">
+                    <input
+                      type="checkbox"
+                      id="arrotonda-check"
+                      checked={configForm.arrotonda_ritardo}
+                      onChange={(e) => setConfigForm({ ...configForm, arrotonda_ritardo: e.target.checked })}
+                      className="w-5 h-5"
+                    />
+                    <label htmlFor="arrotonda-check" className="text-sm font-medium text-slate-700">
+                      Abilita arrotondamento ritardi
+                    </label>
+                  </div>
+
+                  {configForm.arrotonda_ritardo && (
+                    <div className="space-y-3 ml-7">
+                      <div>
+                        <label className="text-sm font-medium text-slate-700 mb-2 block">Tipo di arrotondamento</label>
+                        <div className="space-y-2">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="arrotondamento_tipo"
+                              value="eccesso"
+                              checked={configForm.arrotondamento_tipo === 'eccesso'}
+                              onChange={(e) => setConfigForm({ ...configForm, arrotondamento_tipo: e.target.value })}
+                              className="w-4 h-4"
+                            />
+                            <span className="text-sm text-slate-700">Per eccesso (es: 4 min → 15 min)</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="arrotondamento_tipo"
+                              value="difetto"
+                              checked={configForm.arrotondamento_tipo === 'difetto'}
+                              onChange={(e) => setConfigForm({ ...configForm, arrotondamento_tipo: e.target.value })}
+                              className="w-4 h-4"
+                            />
+                            <span className="text-sm text-slate-700">Per difetto (es: 14 min → 0 min)</span>
+                          </label>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                  
-                  <NeumorphicButton
-                    onClick={() => {
-                      const lastScaglione = configForm.scaglioni_ritardo[configForm.scaglioni_ritardo.length - 1];
-                      const newMinutiDa = lastScaglione ? lastScaglione.minutiDa + 5 : 1;
-                      setConfigForm({
-                        ...configForm,
-                        scaglioni_ritardo: [...configForm.scaglioni_ritardo, { minutiDa: newMinutiDa, minutiConteggiati: newMinutiDa }]
-                      });
-                    }}
-                    className="text-sm flex items-center gap-1"
-                  >
-                    <Plus className="w-4 h-4" /> Aggiungi Scaglione
-                  </NeumorphicButton>
-                  
-                  <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                    <p className="text-xs text-blue-700">
-                      <strong>Esempio:</strong> Se imposti "Da 1 min → conteggia 0 min" e "Da 5 min → conteggia 15 min", 
-                      chi arriva con 4 min di ritardo avrà 0 min conteggiati, chi arriva con 6 min avrà 15 min conteggiati.
-                    </p>
-                  </div>
+
+                      <div>
+                        <label className="text-sm font-medium text-slate-700 mb-1 block">
+                          Arrotonda a multipli di (minuti)
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={configForm.arrotondamento_minuti}
+                          onChange={(e) => setConfigForm({ ...configForm, arrotondamento_minuti: parseInt(e.target.value) || 15 })}
+                          className="w-full neumorphic-flat px-4 py-3 rounded-xl outline-none"
+                        />
+                        <p className="text-xs text-slate-500 mt-1">
+                          Valori comuni: 5, 10, 15, 30 minuti
+                        </p>
+                      </div>
+
+                      <div className="p-3 bg-blue-50 rounded-lg">
+                        <p className="text-xs text-blue-700">
+                          <strong>Esempio con {configForm.arrotondamento_minuti} min per {configForm.arrotondamento_tipo}:</strong><br/>
+                          {configForm.arrotondamento_tipo === 'eccesso' 
+                            ? `1-${configForm.arrotondamento_minuti} min → ${configForm.arrotondamento_minuti} min | ${configForm.arrotondamento_minuti + 1}-${configForm.arrotondamento_minuti * 2} min → ${configForm.arrotondamento_minuti * 2} min`
+                            : `0-${configForm.arrotondamento_minuti - 1} min → 0 min | ${configForm.arrotondamento_minuti}-${configForm.arrotondamento_minuti * 2 - 1} min → ${configForm.arrotondamento_minuti} min`
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Penalità Timbratura Mancata */}
@@ -1451,7 +1561,7 @@ export default function Planday() {
                 {/* GPS Locali */}
                 <div className="neumorphic-pressed p-4 rounded-xl">
                   <h3 className="text-lg font-bold text-slate-800 mb-3">Posizione GPS Locali</h3>
-                  <div className="space-y-3 max-h-60 overflow-y-auto">
+                  <div className="space-y-3 max-h-48 overflow-y-auto">
                     {stores.map(store => (
                       <div key={store.id} className="neumorphic-flat p-3 rounded-xl">
                         {editingStore?.id === store.id ? (
@@ -1504,7 +1614,9 @@ export default function Planday() {
                   Annulla
                 </NeumorphicButton>
                 <NeumorphicButton 
-                  onClick={() => saveConfigMutation.mutate(configForm)} 
+                  onClick={() => {
+                    saveConfigMutation.mutate(configForm);
+                  }} 
                   variant="primary" 
                   className="flex-1"
                 >
@@ -1512,6 +1624,7 @@ export default function Planday() {
                 </NeumorphicButton>
               </div>
             </NeumorphicCard>
+            </div>
           </div>
         )}
 
@@ -1563,82 +1676,12 @@ export default function Planday() {
                 )}
               </div>
 
-              {/* Form nuovo modello */}
-              <div className="neumorphic-pressed p-4 rounded-xl mb-4">
-                <h3 className="font-medium text-slate-700 mb-3">Crea Nuovo Modello</h3>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 mb-1 block">Nome Modello *</label>
-                    <input
-                      type="text"
-                      value={modelloForm.nome}
-                      onChange={(e) => setModelloForm({ ...modelloForm, nome: e.target.value })}
-                      className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
-                      placeholder="Es: Turno Mattina Pizzaiolo"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-sm font-medium text-slate-700 mb-1 block">Ruolo</label>
-                      <select
-                        value={modelloForm.ruolo}
-                        onChange={(e) => setModelloForm({ ...modelloForm, ruolo: e.target.value })}
-                        className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
-                      >
-                        {RUOLI.map(ruolo => (
-                          <option key={ruolo} value={ruolo}>{ruolo}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-slate-700 mb-1 block">Tipo Turno</label>
-                      <select
-                        value={modelloForm.tipo_turno}
-                        onChange={(e) => setModelloForm({ ...modelloForm, tipo_turno: e.target.value })}
-                        className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
-                      >
-                        {tipiTurno.map(tipo => (
-                          <option key={tipo} value={tipo}>{tipo}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-sm font-medium text-slate-700 mb-1 block">Ora Inizio</label>
-                      <input
-                        type="time"
-                        value={modelloForm.ora_inizio}
-                        onChange={(e) => setModelloForm({ ...modelloForm, ora_inizio: e.target.value })}
-                        className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-slate-700 mb-1 block">Ora Fine</label>
-                      <input
-                        type="time"
-                        value={modelloForm.ora_fine}
-                        onChange={(e) => setModelloForm({ ...modelloForm, ora_fine: e.target.value })}
-                        className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
-                      />
-                    </div>
-                  </div>
-                  <NeumorphicButton 
-                    onClick={saveModello} 
-                    variant="primary" 
-                    className="w-full"
-                    disabled={!modelloForm.nome}
-                  >
-                    <Plus className="w-4 h-4 inline mr-1" /> Salva Modello
-                  </NeumorphicButton>
-                </div>
-              </div>
-
               {/* Lista modelli esistenti */}
-              {turniModello.length > 0 && (
-                <div>
-                  <h3 className="font-medium text-slate-700 mb-2">Modelli Salvati</h3>
-                  <div className="space-y-2">
+              <div>
+                <h3 className="font-medium text-slate-700 mb-3">Turni Modello</h3>
+                
+                {turniModello.length > 0 ? (
+                  <div className="space-y-2 mb-4">
                     {turniModello.map(m => (
                       <div key={m.id} className="neumorphic-pressed p-3 rounded-xl flex items-center justify-between">
                         <div>
@@ -1656,14 +1699,64 @@ export default function Planday() {
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                ) : null}
 
-              {turniModello.length === 0 && (
-                <p className="text-center text-slate-500 py-4">
-                  Nessun modello salvato. Crea il tuo primo turno modello sopra.
-                </p>
-              )}
+                {/* Form nuovo modello */}
+                <div className="neumorphic-flat p-4 rounded-xl">
+                  <h4 className="font-medium text-slate-700 mb-3 text-sm">Crea Nuovo Modello</h4>
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      value={modelloForm.nome}
+                      onChange={(e) => setModelloForm({ ...modelloForm, nome: e.target.value })}
+                      className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none"
+                      placeholder="Nome modello (es: Turno Mattina)"
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <select
+                        value={modelloForm.ruolo}
+                        onChange={(e) => setModelloForm({ ...modelloForm, ruolo: e.target.value })}
+                        className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none"
+                      >
+                        {RUOLI.map(ruolo => (
+                          <option key={ruolo} value={ruolo}>{ruolo}</option>
+                        ))}
+                      </select>
+                      <select
+                        value={modelloForm.tipo_turno}
+                        onChange={(e) => setModelloForm({ ...modelloForm, tipo_turno: e.target.value })}
+                        className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none"
+                      >
+                        {tipiTurno.map(tipo => (
+                          <option key={tipo} value={tipo}>{tipo}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="time"
+                        value={modelloForm.ora_inizio}
+                        onChange={(e) => setModelloForm({ ...modelloForm, ora_inizio: e.target.value })}
+                        className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none"
+                      />
+                      <input
+                        type="time"
+                        value={modelloForm.ora_fine}
+                        onChange={(e) => setModelloForm({ ...modelloForm, ora_fine: e.target.value })}
+                        className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none"
+                      />
+                    </div>
+                    <NeumorphicButton 
+                      onClick={saveModello} 
+                      variant="primary" 
+                      className="w-full text-sm"
+                      disabled={!modelloForm.nome}
+                    >
+                      <Plus className="w-4 h-4 inline mr-1" /> Salva Modello
+                    </NeumorphicButton>
+                  </div>
+                </div>
+              </div>
             </NeumorphicCard>
           </div>
         )}
@@ -1898,7 +1991,20 @@ export default function Planday() {
             {/* Settings Buttons */}
             <div className="flex justify-end gap-2">
               <NeumorphicButton 
-                onClick={() => setShowConfigModal(true)}
+                onClick={() => {
+                  if (config) {
+                    setConfigForm({
+                      distanza_massima_metri: config.distanza_massima_metri || 100,
+                      tolleranza_ritardo_minuti: config.tolleranza_ritardo_minuti ?? 0,
+                      abilita_timbratura_gps: config.abilita_timbratura_gps !== false,
+                      arrotonda_ritardo: config.arrotonda_ritardo || false,
+                      arrotondamento_tipo: config.arrotondamento_tipo || 'eccesso',
+                      arrotondamento_minuti: config.arrotondamento_minuti || 15,
+                      penalita_timbratura_mancata: config.penalita_timbratura_mancata || 0
+                    });
+                  }
+                  setShowConfigModal(true);
+                }}
                 className="flex items-center gap-2"
               >
                 <Settings className="w-4 h-4" />
@@ -2027,17 +2133,20 @@ export default function Planday() {
                         <th className="text-left p-3 text-sm font-medium text-slate-600">Dipendente</th>
                         <th className="text-left p-3 text-sm font-medium text-slate-600">Store</th>
                         <th className="text-left p-3 text-sm font-medium text-slate-600">Ruolo</th>
+                        <th className="text-left p-3 text-sm font-medium text-slate-600">Tipo</th>
                         <th className="text-left p-3 text-sm font-medium text-slate-600">Turno</th>
                         <th className="text-left p-3 text-sm font-medium text-slate-600">Entrata</th>
                         <th className="text-left p-3 text-sm font-medium text-slate-600">Uscita</th>
                         <th className="text-center p-3 text-sm font-medium text-slate-600">Ritardo Reale</th>
                         <th className="text-center p-3 text-sm font-medium text-slate-600">Ritardo Conteggiato</th>
                         <th className="text-center p-3 text-sm font-medium text-slate-600">Stato</th>
+                        <th className="text-center p-3 text-sm font-medium text-slate-600">Azioni</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredTurniTimbrature.slice(0, 100).map(turno => {
                         const stato = getTimbraturaTipo(turno);
+                        const turnoTipo = getTurnoTipo(turno);
                         return (
                           <tr key={turno.id} className={`border-b border-slate-100 hover:bg-slate-50 ${stato.tipo === 'mancata' ? 'bg-red-50' : ''}`}>
                             <td className="p-3">
@@ -2063,6 +2172,13 @@ export default function Planday() {
                                 'bg-purple-100 text-purple-700'
                               }`}>
                                 {turno.ruolo}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <span className={`text-xs px-2 py-1 rounded-full ${
+                                turnoTipo === 'Mattina' ? 'bg-yellow-100 text-yellow-700' : 'bg-indigo-100 text-indigo-700'
+                              }`}>
+                                {turnoTipo}
                               </span>
                             </td>
                             <td className="p-3 text-sm text-slate-600">
@@ -2120,6 +2236,20 @@ export default function Planday() {
                               <span className={`text-xs px-3 py-1 rounded-full font-medium ${stato.bg} ${stato.color}`}>
                                 {stato.tipo === 'mancata' ? '⚠️ Mancata' : stato.label}
                               </span>
+                            </td>
+                            <td className="p-3 text-center">
+                              <button
+                                onClick={() => {
+                                  setEditingTimbratura(turno);
+                                  setTimbrForm({
+                                    timbrata_entrata: turno.timbrata_entrata ? moment(turno.timbrata_entrata).format('YYYY-MM-DDTHH:mm') : '',
+                                    timbrata_uscita: turno.timbrata_uscita ? moment(turno.timbrata_uscita).format('YYYY-MM-DDTHH:mm') : ''
+                                  });
+                                }}
+                                className="text-blue-600 hover:text-blue-800"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
                             </td>
                           </tr>
                         );
