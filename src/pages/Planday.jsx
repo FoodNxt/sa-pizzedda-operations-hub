@@ -142,6 +142,11 @@ export default function Planday() {
     enabled: mainView === 'timbrature',
   });
 
+  const { data: turniModello = [] } = useQuery({
+    queryKey: ['turni-modello'],
+    queryFn: () => base44.entities.TurnoModello.list(),
+  });
+
   const [configForm, setConfigForm] = useState({
     distanza_massima_metri: 100,
     tolleranza_ritardo_minuti: 0,
@@ -176,10 +181,6 @@ export default function Planday() {
     ora_inizio: '09:00',
     ora_fine: '17:00',
     tipo_turno: 'Normale'
-  });
-  const [turniModello, setTurniModello] = useState(() => {
-    const saved = localStorage.getItem('turni_modello');
-    return saved ? JSON.parse(saved) : [];
   });
   const [selectedModello, setSelectedModello] = useState('');
   
@@ -541,19 +542,31 @@ export default function Planday() {
     setDropTarget(null);
   };
 
-  // Turni modello
+  // Turni modello mutations
+  const createModelloMutation = useMutation({
+    mutationFn: (data) => base44.entities.TurnoModello.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['turni-modello'] });
+      setModelloForm({ nome: '', ruolo: 'Pizzaiolo', ora_inizio: '09:00', ora_fine: '17:00', tipo_turno: 'Normale' });
+    },
+  });
+
+  const deleteModelloMutation = useMutation({
+    mutationFn: (id) => base44.entities.TurnoModello.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['turni-modello'] });
+    },
+  });
+
   const saveModello = () => {
     if (!modelloForm.nome) return;
-    const newModelli = [...turniModello, { ...modelloForm, id: Date.now().toString() }];
-    setTurniModello(newModelli);
-    localStorage.setItem('turni_modello', JSON.stringify(newModelli));
-    setModelloForm({ nome: '', ruolo: 'Pizzaiolo', ora_inizio: '09:00', ora_fine: '17:00', tipo_turno: 'Normale' });
+    createModelloMutation.mutate(modelloForm);
   };
 
   const deleteModello = (id) => {
-    const newModelli = turniModello.filter(m => m.id !== id);
-    setTurniModello(newModelli);
-    localStorage.setItem('turni_modello', JSON.stringify(newModelli));
+    if (confirm('Eliminare questo modello?')) {
+      deleteModelloMutation.mutate(id);
+    }
   };
 
   const applyModello = (modelloId) => {
@@ -1404,317 +1417,7 @@ export default function Planday() {
 
 
 
-        {/* Modal Edit Timbratura */}
-        {editingTimbratura && mainView === 'timbrature' && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <NeumorphicCard className="p-6 max-w-md w-full">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-slate-800">Modifica Timbratura</h2>
-                <button onClick={() => setEditingTimbratura(null)} className="nav-button p-2 rounded-lg">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
 
-              <div className="mb-4 p-3 bg-blue-50 rounded-xl">
-                <p className="text-sm text-slate-700">
-                  <strong>{editingTimbratura.dipendente_nome}</strong>
-                </p>
-                <p className="text-xs text-slate-500">
-                  {moment(editingTimbratura.data).format('DD/MM/YYYY')} • {editingTimbratura.ora_inizio}-{editingTimbratura.ora_fine}
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-slate-700 mb-1 block">Timbratura Entrata</label>
-                  <input
-                    type="datetime-local"
-                    value={timbrForm.timbrata_entrata}
-                    onChange={(e) => setTimbrForm({ ...timbrForm, timbrata_entrata: e.target.value })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-slate-700 mb-1 block">Timbratura Uscita</label>
-                  <input
-                    type="datetime-local"
-                    value={timbrForm.timbrata_uscita}
-                    onChange={(e) => setTimbrForm({ ...timbrForm, timbrata_uscita: e.target.value })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <NeumorphicButton onClick={() => setEditingTimbratura(null)} className="flex-1">
-                  Annulla
-                </NeumorphicButton>
-                <NeumorphicButton 
-                  onClick={() => {
-                    const updateData = {};
-                    if (timbrForm.timbrata_entrata) {
-                      updateData.timbrata_entrata = new Date(timbrForm.timbrata_entrata).toISOString();
-                    } else {
-                      updateData.timbrata_entrata = null;
-                    }
-                    if (timbrForm.timbrata_uscita) {
-                      updateData.timbrata_uscita = new Date(timbrForm.timbrata_uscita).toISOString();
-                    } else {
-                      updateData.timbrata_uscita = null;
-                    }
-                    updateTimbraturaMutation.mutate({
-                      id: editingTimbratura.id,
-                      data: updateData
-                    });
-                  }}
-                  variant="primary"
-                  className="flex-1"
-                  disabled={updateTimbraturaMutation.isPending}
-                >
-                  {updateTimbraturaMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salva'}
-                </NeumorphicButton>
-              </div>
-            </NeumorphicCard>
-          </div>
-        )}
-
-        {/* Modal Impostazioni Timbratura */}
-        {showConfigModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-              <NeumorphicCard className="p-6 my-8">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-slate-800">Impostazioni Timbratura</h2>
-                <button onClick={() => setShowConfigModal(false)} className="nav-button p-2 rounded-lg">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="space-y-6">
-                {/* GPS Settings */}
-                <div className="neumorphic-pressed p-4 rounded-xl">
-                  <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-blue-600" />
-                    Impostazioni GPS
-                  </h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-slate-700 mb-1 block">
-                        Distanza massima per timbratura (metri)
-                      </label>
-                      <input
-                        type="number"
-                        value={configForm.distanza_massima_metri}
-                        onChange={(e) => setConfigForm({ ...configForm, distanza_massima_metri: parseInt(e.target.value) || 100 })}
-                        className="w-full neumorphic-flat px-4 py-3 rounded-xl text-slate-700 outline-none"
-                      />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="gps-check"
-                        checked={configForm.abilita_timbratura_gps}
-                        onChange={(e) => setConfigForm({ ...configForm, abilita_timbratura_gps: e.target.checked })}
-                        className="w-5 h-5"
-                      />
-                      <label htmlFor="gps-check" className="text-sm font-medium text-slate-700">
-                        Abilita verifica GPS per timbratura
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Arrotondamento Ritardo */}
-                <div className="neumorphic-pressed p-4 rounded-xl">
-                  <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
-                    <Clock className="w-5 h-5 text-orange-600" />
-                    Arrotondamento Ritardi
-                  </h3>
-                  
-                  <div className="flex items-center gap-2 mb-4">
-                    <input
-                      type="checkbox"
-                      id="arrotonda-check"
-                      checked={configForm.arrotonda_ritardo}
-                      onChange={(e) => setConfigForm({ ...configForm, arrotonda_ritardo: e.target.checked })}
-                      className="w-5 h-5"
-                    />
-                    <label htmlFor="arrotonda-check" className="text-sm font-medium text-slate-700">
-                      Abilita arrotondamento ritardi
-                    </label>
-                  </div>
-
-                  {configForm.arrotonda_ritardo && (
-                    <div className="space-y-3 ml-7">
-                      <div>
-                        <label className="text-sm font-medium text-slate-700 mb-2 block">Tipo di arrotondamento</label>
-                        <div className="space-y-2">
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="radio"
-                              name="arrotondamento_tipo"
-                              value="eccesso"
-                              checked={configForm.arrotondamento_tipo === 'eccesso'}
-                              onChange={(e) => setConfigForm({ ...configForm, arrotondamento_tipo: e.target.value })}
-                              className="w-4 h-4"
-                            />
-                            <span className="text-sm text-slate-700">Per eccesso (es: 4 min → 15 min)</span>
-                          </label>
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="radio"
-                              name="arrotondamento_tipo"
-                              value="difetto"
-                              checked={configForm.arrotondamento_tipo === 'difetto'}
-                              onChange={(e) => setConfigForm({ ...configForm, arrotondamento_tipo: e.target.value })}
-                              className="w-4 h-4"
-                            />
-                            <span className="text-sm text-slate-700">Per difetto (es: 14 min → 0 min)</span>
-                          </label>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="text-sm font-medium text-slate-700 mb-1 block">
-                          Arrotonda a multipli di (minuti)
-                        </label>
-                        <input
-                          type="number"
-                          min="1"
-                          value={configForm.arrotondamento_minuti}
-                          onChange={(e) => setConfigForm({ ...configForm, arrotondamento_minuti: parseInt(e.target.value) || 15 })}
-                          className="w-full neumorphic-flat px-4 py-3 rounded-xl outline-none"
-                        />
-                        <p className="text-xs text-slate-500 mt-1">
-                          Valori comuni: 5, 10, 15, 30 minuti
-                        </p>
-                      </div>
-
-                      <div className="p-3 bg-blue-50 rounded-lg">
-                        <p className="text-xs text-blue-700">
-                          <strong>Esempio con {configForm.arrotondamento_minuti} min per {configForm.arrotondamento_tipo}:</strong><br/>
-                          {configForm.arrotondamento_tipo === 'eccesso' 
-                            ? `1-${configForm.arrotondamento_minuti} min → ${configForm.arrotondamento_minuti} min | ${configForm.arrotondamento_minuti + 1}-${configForm.arrotondamento_minuti * 2} min → ${configForm.arrotondamento_minuti * 2} min`
-                            : `0-${configForm.arrotondamento_minuti - 1} min → 0 min | ${configForm.arrotondamento_minuti}-${configForm.arrotondamento_minuti * 2 - 1} min → ${configForm.arrotondamento_minuti} min`
-                          }
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Penalità Timbratura Mancata */}
-                <div className="neumorphic-pressed p-4 rounded-xl">
-                  <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
-                    <XCircle className="w-5 h-5 text-red-600" />
-                    Penalità Timbratura Mancata
-                  </h3>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-slate-700 mb-1 block">
-                        Penalità mancata timbratura entrata (minuti)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={configForm.penalita_timbratura_mancata}
-                        onChange={(e) => setConfigForm({ ...configForm, penalita_timbratura_mancata: parseInt(e.target.value) || 0 })}
-                        className="w-full neumorphic-flat px-4 py-3 rounded-xl text-slate-700 outline-none"
-                      />
-                      <p className="text-xs text-slate-500 mt-1">
-                        Applicata se non c'è timbratura entrata entro la fine del turno
-                      </p>
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium text-slate-700 mb-1 block">
-                        Ore dopo fine turno per considerare uscita mancata
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.5"
-                        value={configForm.ore_mancata_uscita}
-                        onChange={(e) => setConfigForm({ ...configForm, ore_mancata_uscita: parseFloat(e.target.value) || 2 })}
-                        className="w-full neumorphic-flat px-4 py-3 rounded-xl text-slate-700 outline-none"
-                      />
-                      <p className="text-xs text-slate-500 mt-1">
-                        Se non c'è timbratura uscita entro X ore dalla fine turno, viene applicata la penalità
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* GPS Locali */}
-                <div className="neumorphic-pressed p-4 rounded-xl">
-                  <h3 className="text-lg font-bold text-slate-800 mb-3">Posizione GPS Locali</h3>
-                  <div className="space-y-3 max-h-48 overflow-y-auto">
-                    {stores.map(store => (
-                      <div key={store.id} className="neumorphic-flat p-3 rounded-xl">
-                        {editingStore?.id === store.id ? (
-                          <div className="space-y-2">
-                            <div className="font-medium text-slate-800">{store.name}</div>
-                            <div className="grid grid-cols-2 gap-2">
-                              <input
-                                type="number"
-                                step="any"
-                                value={storeCoords.latitude}
-                                onChange={(e) => setStoreCoords({ ...storeCoords, latitude: e.target.value })}
-                                className="neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none"
-                                placeholder="Latitudine"
-                              />
-                              <input
-                                type="number"
-                                step="any"
-                                value={storeCoords.longitude}
-                                onChange={(e) => setStoreCoords({ ...storeCoords, longitude: e.target.value })}
-                                className="neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none"
-                                placeholder="Longitudine"
-                              />
-                            </div>
-                            <div className="flex gap-2">
-                              <button onClick={() => setEditingStore(null)} className="text-sm text-slate-600">Annulla</button>
-                              <button onClick={handleSaveStoreCoords} className="text-sm bg-blue-500 text-white px-3 py-1 rounded-lg">Salva</button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="font-medium text-slate-800">{store.name}</div>
-                              <div className="text-xs text-slate-400">
-                                {store.latitude && store.longitude ? `📍 ${store.latitude}, ${store.longitude}` : '⚠️ GPS non impostato'}
-                              </div>
-                            </div>
-                            <button onClick={() => handleEditStore(store)} className="text-blue-600">
-                              <Edit className="w-4 h-4" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <NeumorphicButton onClick={() => setShowConfigModal(false)} className="flex-1">
-                  Annulla
-                </NeumorphicButton>
-                <NeumorphicButton 
-                  onClick={() => {
-                    saveConfigMutation.mutate(configForm);
-                  }} 
-                  variant="primary" 
-                  className="flex-1"
-                >
-                  Salva Impostazioni
-                </NeumorphicButton>
-              </div>
-            </NeumorphicCard>
-            </div>
-          </div>
-        )}
 
         {/* Modal Turni Modello */}
         {showModelliModal && (
@@ -2324,12 +2027,12 @@ export default function Planday() {
                             </td>
                             <td className="p-3 text-center">
                               {formStatus.dovuti.length > 0 ? (
-                                <div className="text-xs">
+                                <div className="text-xs space-y-1">
                                   {formStatus.dovuti.map(role => {
                                     const compilato = formStatus.compilati.includes(role);
                                     return (
-                                      <div key={role} className={`px-2 py-1 rounded mb-1 ${compilato ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
-                                        {role.charAt(0)} {compilato ? '✓' : '✗'}
+                                      <div key={role} className={`px-2 py-1 rounded ${compilato ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                                        {role} {compilato ? '✓' : '✗'}
                                       </div>
                                     );
                                   })}
@@ -2366,6 +2069,244 @@ export default function Planday() {
               )}
             </NeumorphicCard>
           </>
+        )}
+
+        {/* Modal Impostazioni Timbratura */}
+        {showConfigModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+              <NeumorphicCard className="p-6 my-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800">Impostazioni Timbratura</h2>
+                <button onClick={() => setShowConfigModal(false)} className="nav-button p-2 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* GPS Settings */}
+                <div className="neumorphic-pressed p-4 rounded-xl">
+                  <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-blue-600" />
+                    Impostazioni GPS
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-1 block">
+                        Distanza massima per timbratura (metri)
+                      </label>
+                      <input
+                        type="number"
+                        value={configForm.distanza_massima_metri}
+                        onChange={(e) => setConfigForm({ ...configForm, distanza_massima_metri: parseInt(e.target.value) || 100 })}
+                        className="w-full neumorphic-flat px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="gps-check"
+                        checked={configForm.abilita_timbratura_gps}
+                        onChange={(e) => setConfigForm({ ...configForm, abilita_timbratura_gps: e.target.checked })}
+                        className="w-5 h-5"
+                      />
+                      <label htmlFor="gps-check" className="text-sm font-medium text-slate-700">
+                        Abilita verifica GPS per timbratura
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Arrotondamento Ritardo */}
+                <div className="neumorphic-pressed p-4 rounded-xl">
+                  <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-orange-600" />
+                    Arrotondamento Ritardi
+                  </h3>
+                  
+                  <div className="flex items-center gap-2 mb-4">
+                    <input
+                      type="checkbox"
+                      id="arrotonda-check"
+                      checked={configForm.arrotonda_ritardo}
+                      onChange={(e) => setConfigForm({ ...configForm, arrotonda_ritardo: e.target.checked })}
+                      className="w-5 h-5"
+                    />
+                    <label htmlFor="arrotonda-check" className="text-sm font-medium text-slate-700">
+                      Abilita arrotondamento ritardi
+                    </label>
+                  </div>
+
+                  {configForm.arrotonda_ritardo && (
+                    <div className="space-y-3 ml-7">
+                      <div>
+                        <label className="text-sm font-medium text-slate-700 mb-2 block">Tipo di arrotondamento</label>
+                        <div className="space-y-2">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="arrotondamento_tipo"
+                              value="eccesso"
+                              checked={configForm.arrotondamento_tipo === 'eccesso'}
+                              onChange={(e) => setConfigForm({ ...configForm, arrotondamento_tipo: e.target.value })}
+                              className="w-4 h-4"
+                            />
+                            <span className="text-sm text-slate-700">Per eccesso (es: 4 min → 15 min)</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="arrotondamento_tipo"
+                              value="difetto"
+                              checked={configForm.arrotondamento_tipo === 'difetto'}
+                              onChange={(e) => setConfigForm({ ...configForm, arrotondamento_tipo: e.target.value })}
+                              className="w-4 h-4"
+                            />
+                            <span className="text-sm text-slate-700">Per difetto (es: 14 min → 0 min)</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium text-slate-700 mb-1 block">
+                          Arrotonda a multipli di (minuti)
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={configForm.arrotondamento_minuti}
+                          onChange={(e) => setConfigForm({ ...configForm, arrotondamento_minuti: parseInt(e.target.value) || 15 })}
+                          className="w-full neumorphic-flat px-4 py-3 rounded-xl outline-none"
+                        />
+                        <p className="text-xs text-slate-500 mt-1">
+                          Valori comuni: 5, 10, 15, 30 minuti
+                        </p>
+                      </div>
+
+                      <div className="p-3 bg-blue-50 rounded-lg">
+                        <p className="text-xs text-blue-700">
+                          <strong>Esempio con {configForm.arrotondamento_minuti} min per {configForm.arrotondamento_tipo}:</strong><br/>
+                          {configForm.arrotondamento_tipo === 'eccesso' 
+                            ? `1-${configForm.arrotondamento_minuti} min → ${configForm.arrotondamento_minuti} min | ${configForm.arrotondamento_minuti + 1}-${configForm.arrotondamento_minuti * 2} min → ${configForm.arrotondamento_minuti * 2} min`
+                            : `0-${configForm.arrotondamento_minuti - 1} min → 0 min | ${configForm.arrotondamento_minuti}-${configForm.arrotondamento_minuti * 2 - 1} min → ${configForm.arrotondamento_minuti} min`
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Penalità Timbratura Mancata */}
+                <div className="neumorphic-pressed p-4 rounded-xl">
+                  <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    <XCircle className="w-5 h-5 text-red-600" />
+                    Penalità Timbratura Mancata
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-1 block">
+                        Penalità mancata timbratura entrata (minuti)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={configForm.penalita_timbratura_mancata}
+                        onChange={(e) => setConfigForm({ ...configForm, penalita_timbratura_mancata: parseInt(e.target.value) || 0 })}
+                        className="w-full neumorphic-flat px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      />
+                      <p className="text-xs text-slate-500 mt-1">
+                        Applicata se non c'è timbratura entrata entro la fine del turno
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-1 block">
+                        Ore dopo fine turno per considerare uscita mancata
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        value={configForm.ore_mancata_uscita}
+                        onChange={(e) => setConfigForm({ ...configForm, ore_mancata_uscita: parseFloat(e.target.value) || 2 })}
+                        className="w-full neumorphic-flat px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      />
+                      <p className="text-xs text-slate-500 mt-1">
+                        Se non c'è timbratura uscita entro X ore dalla fine turno, viene applicata la penalità
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* GPS Locali */}
+                <div className="neumorphic-pressed p-4 rounded-xl">
+                  <h3 className="text-lg font-bold text-slate-800 mb-3">Posizione GPS Locali</h3>
+                  <div className="space-y-3 max-h-48 overflow-y-auto">
+                    {stores.map(store => (
+                      <div key={store.id} className="neumorphic-flat p-3 rounded-xl">
+                        {editingStore?.id === store.id ? (
+                          <div className="space-y-2">
+                            <div className="font-medium text-slate-800">{store.name}</div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <input
+                                type="number"
+                                step="any"
+                                value={storeCoords.latitude}
+                                onChange={(e) => setStoreCoords({ ...storeCoords, latitude: e.target.value })}
+                                className="neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none"
+                                placeholder="Latitudine"
+                              />
+                              <input
+                                type="number"
+                                step="any"
+                                value={storeCoords.longitude}
+                                onChange={(e) => setStoreCoords({ ...storeCoords, longitude: e.target.value })}
+                                className="neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none"
+                                placeholder="Longitudine"
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <button onClick={() => setEditingStore(null)} className="text-sm text-slate-600">Annulla</button>
+                              <button onClick={handleSaveStoreCoords} className="text-sm bg-blue-500 text-white px-3 py-1 rounded-lg">Salva</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="font-medium text-slate-800">{store.name}</div>
+                              <div className="text-xs text-slate-400">
+                                {store.latitude && store.longitude ? `📍 ${store.latitude}, ${store.longitude}` : '⚠️ GPS non impostato'}
+                              </div>
+                            </div>
+                            <button onClick={() => handleEditStore(store)} className="text-blue-600">
+                              <Edit className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <NeumorphicButton onClick={() => setShowConfigModal(false)} className="flex-1">
+                  Annulla
+                </NeumorphicButton>
+                <NeumorphicButton 
+                  onClick={() => {
+                    saveConfigMutation.mutate(configForm);
+                  }} 
+                  variant="primary" 
+                  className="flex-1"
+                >
+                  Salva Impostazioni
+                </NeumorphicButton>
+              </div>
+            </NeumorphicCard>
+            </div>
+          </div>
         )}
 
         {/* Modal Alert Settings */}
