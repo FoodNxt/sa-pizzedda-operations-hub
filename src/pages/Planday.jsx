@@ -1048,16 +1048,19 @@ export default function Planday() {
   // Helper per determinare se il turno è mattina o sera
   const getTurnoSequence = (turno, allTurniDay) => {
     const turnoRuolo = turno.ruolo;
+    const turnoStoreId = turno.store_id;
     
-    // Filtra solo i turni con lo stesso ruolo
-    const turniStessoRuolo = allTurniDay.filter(t => t.ruolo === turnoRuolo);
+    // Filtra solo i turni con lo stesso ruolo E stesso store
+    const turniStessoRuoloStore = allTurniDay.filter(t => 
+      t.ruolo === turnoRuolo && t.store_id === turnoStoreId
+    );
     
-    if (turniStessoRuolo.length <= 1) {
-      return 'first'; // Solo un turno per questo ruolo → è il primo
+    if (turniStessoRuoloStore.length <= 1) {
+      return 'first'; // Solo un turno per questo ruolo/store → è il primo
     }
     
     // Ordina per ora di inizio
-    const sorted = [...turniStessoRuolo].sort((a, b) => a.ora_inizio.localeCompare(b.ora_inizio));
+    const sorted = [...turniStessoRuoloStore].sort((a, b) => a.ora_inizio.localeCompare(b.ora_inizio));
     
     // Trova l'indice del turno corrente
     const index = sorted.findIndex(t => t.id === turno.id);
@@ -1066,22 +1069,71 @@ export default function Planday() {
     return index === 0 ? 'first' : 'second';
   };
 
+  // Helper per ottenere i form dovuti per un turno specifico (usato nella vista calendario)
+  const getFormDovutiPerTurno = (turno, allTurniDay) => {
+    if (!turno.dipendente_nome) return [];
+    
+    const turnoRuolo = turno.ruolo;
+    const turnoStoreId = turno.store_id;
+    
+    // Determina se questo turno è mattina o sera
+    const turnoSequence = getTurnoSequence(turno, allTurniDay);
+    
+    // Determina il giorno della settimana del turno
+    const turnoDayOfWeek = new Date(turno.data).getDay();
+    
+    const activeConfigs = formTrackerConfigs.filter(c => c.is_active);
+    const formDovuti = [];
+    
+    activeConfigs.forEach(config => {
+      const configRoles = config.assigned_roles || [];
+      
+      // Check if this config applies to this specific shift's role
+      if (configRoles.length > 0 && !configRoles.includes(turnoRuolo)) {
+        return;
+      }
+      
+      // Check if config applies to this store
+      const configStores = config.assigned_stores || [];
+      if (configStores.length > 0 && !configStores.includes(turnoStoreId)) {
+        return;
+      }
+      
+      // Check if config applies to this day of week
+      const daysOfWeek = config.days_of_week || [];
+      if (daysOfWeek.length > 0 && !daysOfWeek.includes(turnoDayOfWeek)) {
+        return;
+      }
+      
+      // Check if config applies to this shift sequence (mattina/sera)
+      const configSequences = config.shift_sequences || [config.shift_sequence || 'first'];
+      if (!configSequences.includes(turnoSequence)) {
+        return;
+      }
+      
+      formDovuti.push(config.form_name);
+    });
+    
+    return formDovuti;
+  };
+
   // Verifica form compilati usando logica FormTracker
   const getFormCompilati = (turno) => {
     if (!turno.dipendente_nome) return { dovuti: [], compilati: [] };
     
     const storeName = getStoreName(turno.store_id);
     const turnoRuolo = turno.ruolo; // Usa il ruolo del turno specifico
+    const turnoStoreId = turno.store_id;
     
     // Determina tutti i turni dello stesso giorno, stesso store, stesso ruolo
-    const turniStessoGiornoRuolo = turniTimbrature.filter(t => 
+    const turniStessoGiornoRuoloStore = turniTimbrature.filter(t => 
       t.data === turno.data && 
-      t.store_id === turno.store_id &&
+      t.store_id === turnoStoreId &&
       t.ruolo === turnoRuolo
     );
     
     // Determina se questo turno è mattina o sera
-    const turnoSequence = getTurnoSequence(turno, turniStessoGiornoRuolo);
+    const turnoSequence = getTurnoSequence(turno, turniStessoGiornoRuoloStore);
     
     // Usa la logica di FormTracker
     const dateStart = new Date(turno.data);
@@ -1107,7 +1159,7 @@ export default function Planday() {
       
       // Check if config applies to this store
       const configStores = config.assigned_stores || [];
-      if (configStores.length > 0 && !configStores.includes(turno.store_id)) {
+      if (configStores.length > 0 && !configStores.includes(turnoStoreId)) {
         return;
       }
       
@@ -1131,7 +1183,7 @@ export default function Planday() {
       const formData = allFormData[config.form_page] || [];
       const completed = formData.some(item => {
         const itemDate = new Date(item.inspection_date || item.data_rilevazione || item.data_conteggio || item.data_creazione || item.data_calcolo);
-        return (item.store_name === storeName || item.store_id === turno.store_id) &&
+        return (item.store_name === storeName || item.store_id === turnoStoreId) &&
                (item.inspector_name === turno.dipendente_nome || item.rilevato_da === turno.dipendente_nome) &&
                itemDate >= dateStart && itemDate <= nextDayEnd;
       });
@@ -1620,6 +1672,27 @@ export default function Planday() {
                                   {!selectedStore && (
                                     <div className="truncate text-[9px] opacity-80">{getStoreName(turno.store_id)}</div>
                                   )}
+                                  {/* Form dovuti per questo turno */}
+                                  {(() => {
+                                    const formDovuti = getFormDovutiPerTurno(turno, turniByDayHour[turno.data] || []);
+                                    if (formDovuti.length > 0) {
+                                      return (
+                                        <div className="mt-0.5 flex flex-wrap gap-0.5">
+                                          {formDovuti.slice(0, 3).map((form, idx) => (
+                                            <span key={idx} className="text-[8px] px-1 bg-white bg-opacity-30 rounded">
+                                              {form.slice(0, 3)}
+                                            </span>
+                                          ))}
+                                          {formDovuti.length > 3 && (
+                                            <span className="text-[8px] px-1 bg-white bg-opacity-30 rounded">
+                                              +{formDovuti.length - 3}
+                                            </span>
+                                          )}
+                                        </div>
+                                      );
+                                    }
+                                    return null;
+                                  })()}
                                 </div>
                               );
                             })
