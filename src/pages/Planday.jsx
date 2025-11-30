@@ -1906,6 +1906,80 @@ export default function Planday() {
               </NeumorphicCard>
             </div>
 
+            {/* Modal Edit Timbratura */}
+            {editingTimbratura && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <NeumorphicCard className="p-6 max-w-md w-full">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-bold text-slate-800">Modifica Timbratura</h2>
+                    <button onClick={() => setEditingTimbratura(null)} className="nav-button p-2 rounded-lg">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="mb-4 p-3 bg-blue-50 rounded-xl">
+                    <p className="text-sm text-slate-700">
+                      <strong>{editingTimbratura.dipendente_nome}</strong>
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {moment(editingTimbratura.data).format('DD/MM/YYYY')} • {editingTimbratura.ora_inizio}-{editingTimbratura.ora_fine}
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-1 block">Timbratura Entrata</label>
+                      <input
+                        type="datetime-local"
+                        value={timbrForm.timbrata_entrata}
+                        onChange={(e) => setTimbrForm({ ...timbrForm, timbrata_entrata: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-1 block">Timbratura Uscita</label>
+                      <input
+                        type="datetime-local"
+                        value={timbrForm.timbrata_uscita}
+                        onChange={(e) => setTimbrForm({ ...timbrForm, timbrata_uscita: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 mt-6">
+                    <NeumorphicButton onClick={() => setEditingTimbratura(null)} className="flex-1">
+                      Annulla
+                    </NeumorphicButton>
+                    <NeumorphicButton 
+                      onClick={() => {
+                        const updateData = {};
+                        if (timbrForm.timbrata_entrata) {
+                          updateData.timbrata_entrata = new Date(timbrForm.timbrata_entrata).toISOString();
+                        } else {
+                          updateData.timbrata_entrata = null;
+                        }
+                        if (timbrForm.timbrata_uscita) {
+                          updateData.timbrata_uscita = new Date(timbrForm.timbrata_uscita).toISOString();
+                        } else {
+                          updateData.timbrata_uscita = null;
+                        }
+                        updateTimbraturaMutation.mutate({
+                          id: editingTimbratura.id,
+                          data: updateData
+                        });
+                      }}
+                      variant="primary"
+                      className="flex-1"
+                      disabled={updateTimbraturaMutation.isPending}
+                    >
+                      {updateTimbraturaMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salva'}
+                    </NeumorphicButton>
+                  </div>
+                </NeumorphicCard>
+              </div>
+            )}
+
             {/* Lista Timbrature */}
             <NeumorphicCard className="p-6">
               <h2 className="text-xl font-bold text-slate-800 mb-4">Lista Timbrature</h2>
