@@ -79,7 +79,7 @@ export default function PlandayStoreView({
       ora_inizio: '09:00',
       ora_fine: '17:00',
       tipo_turno: 'Normale',
-      dipendente_id: dipendenteId
+      dipendente_id: dipendenteId || ''
     });
     setSelectedTurno(null);
   };

@@ -526,7 +526,7 @@ export default function TurniDipendente() {
     const momento = h < 14 ? 'Mattina' : 'Sera';
     const dayOfWeek = new Date(turno.data).getDay();
     
-    const attivita = struttureTurno.filter(st => {
+    const schemasApplicabili = struttureTurno.filter(st => {
       const stRoles = st.ruoli || [];
       if (stRoles.length > 0 && !stRoles.includes(turno.ruolo)) return false;
       
@@ -536,13 +536,28 @@ export default function TurniDipendente() {
       const stDays = st.giorni_settimana || [];
       if (stDays.length > 0 && !stDays.includes(dayOfWeek)) return false;
       
-      const stMomento = st.momento_turno || 'Mattina';
-      if (stMomento !== momento) return false;
+      const stMomento = st.momento_turno;
+      if (stMomento && stMomento !== momento) return false;
       
       return true;
     });
     
-    return attivita.flatMap(st => st.attivita || []);
+    // Estrai attività uniche
+    const attivitaSet = new Set();
+    schemasApplicabili.forEach(st => {
+      // Nuovo formato
+      if (st.attivita && Array.isArray(st.attivita)) {
+        st.attivita.forEach(a => attivitaSet.add(a));
+      }
+      // Vecchio formato slots
+      if (st.slots && Array.isArray(st.slots)) {
+        st.slots.forEach(slot => {
+          if (slot.attivita) attivitaSet.add(slot.attivita);
+        });
+      }
+    });
+    
+    return Array.from(attivitaSet);
   };
 
   return (

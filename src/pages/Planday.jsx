@@ -1133,7 +1133,7 @@ export default function Planday() {
     const momento = getTurnoTipo(turno);
     const dayOfWeek = new Date(turno.data).getDay();
     
-    const attivita = struttureTurno.filter(st => {
+    const schemasApplicabili = struttureTurno.filter(st => {
       const stRoles = st.ruoli || [];
       if (stRoles.length > 0 && !stRoles.includes(turno.ruolo)) return false;
       
@@ -1143,13 +1143,28 @@ export default function Planday() {
       const stDays = st.giorni_settimana || [];
       if (stDays.length > 0 && !stDays.includes(dayOfWeek)) return false;
       
-      const stMomento = st.momento_turno || 'Mattina';
-      if (stMomento !== momento) return false;
+      const stMomento = st.momento_turno;
+      if (stMomento && stMomento !== momento) return false;
       
       return true;
     });
     
-    return attivita.flatMap(st => st.attivita || []);
+    // Estrai attività uniche da tutti gli schemi applicabili
+    const attivitaSet = new Set();
+    schemasApplicabili.forEach(st => {
+      // Nuovo formato: attivita array diretto
+      if (st.attivita && Array.isArray(st.attivita)) {
+        st.attivita.forEach(a => attivitaSet.add(a));
+      }
+      // Vecchio formato: slots con attivita
+      if (st.slots && Array.isArray(st.slots)) {
+        st.slots.forEach(slot => {
+          if (slot.attivita) attivitaSet.add(slot.attivita);
+        });
+      }
+    });
+    
+    return Array.from(attivitaSet);
   };
 
   // Verifica form compilati usando logica FormTracker
@@ -1581,7 +1596,18 @@ export default function Planday() {
               </div>
             </div>
 
-            <div className="flex gap-3">
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-1 block">Note</label>
+              <input
+                type="text"
+                value={turnoForm.note}
+                onChange={(e) => setTurnoForm({ ...turnoForm, note: e.target.value })}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                placeholder="Note opzionali..."
+              />
+            </div>
+
+            <div className="flex gap-3 pt-2">
               <NeumorphicButton onClick={resetForm} className="flex-1">Annulla</NeumorphicButton>
               <NeumorphicButton 
                 onClick={handleSaveTurno} 
