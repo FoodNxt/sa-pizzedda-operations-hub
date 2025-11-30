@@ -1683,6 +1683,20 @@ function LettereSection() {
     mutationFn: async (data) => {
       const user = users.find(u => u.id === data.user_id);
       
+      // Send email notification
+      const config = emailConfigs.find(c => c.tipo_documento === data.tipo_lettera);
+      if (config && config.attivo) {
+        const oggetto = config.oggetto_email;
+        let corpo = config.corpo_email;
+        corpo = corpo.replace(/\{\{nome\}\}/g, user.nome_cognome || user.full_name || user.email);
+        
+        await base44.integrations.Core.SendEmail({
+          to: user.email,
+          subject: oggetto,
+          body: corpo
+        });
+      }
+      
       return base44.entities.LetteraRichiamo.create({
         user_id: user.id,
         user_email: user.email,
