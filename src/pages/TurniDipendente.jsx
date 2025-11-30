@@ -7,7 +7,7 @@ import ProtectedPage from "../components/ProtectedPage";
 import { 
   Calendar, Clock, MapPin, CheckCircle, AlertCircle, 
   Loader2, LogIn, LogOut, ChevronLeft, ChevronRight,
-  RefreshCw, X, AlertTriangle, Users, Store as StoreIcon, Navigation
+  RefreshCw, X, AlertTriangle, Users, Store as StoreIcon, Navigation, Timer
 } from "lucide-react";
 import moment from "moment";
 import "moment/locale/it";
@@ -31,8 +31,15 @@ export default function TurniDipendente() {
   const [gpsPermissionStatus, setGpsPermissionStatus] = useState('unknown');
   const [userPosition, setUserPosition] = useState(null);
   const [distanceToStore, setDistanceToStore] = useState(null);
+  const [now, setNow] = useState(moment());
 
   const queryClient = useQueryClient();
+
+  // Timer per aggiornare "now" ogni secondo
+  useEffect(() => {
+    const interval = setInterval(() => setNow(moment()), 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Richiedi permesso GPS all'avvio e traccia posizione
   useEffect(() => {
@@ -305,20 +312,53 @@ export default function TurniDipendente() {
     if (!prossimoTurno) return { canTimbra: false, reason: 'Nessun turno' };
     
     const turnoStart = moment(`${prossimoTurno.data} ${prossimoTurno.ora_inizio}`);
-    const minutesToStart = turnoStart.diff(moment(), 'minutes');
+    const turnoEnd = moment(`${prossimoTurno.data} ${prossimoTurno.ora_fine}`);
+    const minutesToStart = turnoStart.diff(now, 'minutes');
+    const minutesToEnd = turnoEnd.diff(now, 'minutes');
     const store = stores.find(s => s.id === prossimoTurno.store_id);
     
-    // Già timbrato entrata?
+    // Già timbrato entrata? Mostra timer e controllo uscita
     if (prossimoTurno.timbrata_entrata && !prossimoTurno.timbrata_uscita) {
-      return { canTimbra: true, tipo: 'uscita', reason: null };
+      const entrata = moment(prossimoTurno.timbrata_entrata);
+      const durataLavorata = moment.duration(now.diff(entrata));
+      const canUscita = now.isSameOrAfter(turnoEnd);
+      
+      // Controllo GPS anche per uscita
+      let gpsOk = true;
+      let gpsReason = null;
+      if (config?.abilita_timbratura_gps && store?.latitude && store?.longitude) {
+        if (!userPosition) {
+          gpsOk = false;
+          gpsReason = 'Attiva il GPS';
+        } else {
+          const distance = calculateDistance(userPosition.lat, userPosition.lng, store.latitude, store.longitude);
+          const maxDistance = config.distanza_massima_metri || 100;
+          if (distance > maxDistance) {
+            gpsOk = false;
+            gpsReason = `Sei a ${Math.round(distance)}m dal locale`;
+          }
+        }
+      }
+      
+      return { 
+        canTimbra: canUscita && gpsOk, 
+        tipo: 'uscita', 
+        reason: !canUscita ? `Mancano ${minutesToEnd}min alla fine del turno` : gpsReason,
+        inCorso: true,
+        durataLavorata,
+        minutesToEnd,
+        needsGPS: !gpsOk && !userPosition
+      };
     }
     if (prossimoTurno.timbrata_uscita) {
       return { canTimbra: false, reason: 'Turno completato' };
     }
     
-    // Controllo tempo
+    // Controllo tempo per entrata
     if (minutesToStart > 60) {
-      return { canTimbra: false, reason: `Mancano ${Math.floor(minutesToStart / 60)}h ${minutesToStart % 60}min al turno` };
+      const hours = Math.floor(minutesToStart / 60);
+      const mins = minutesToStart % 60;
+      return { canTimbra: false, reason: `Mancano ${hours}h ${mins}min al turno` };
     }
     
     // Controllo GPS
@@ -334,7 +374,7 @@ export default function TurniDipendente() {
     }
     
     return { canTimbra: true, tipo: 'entrata', reason: null };
-  }, [prossimoTurno, stores, config, userPosition]);
+  }, [prossimoTurno, stores, config, userPosition, now]);
 
   // Colleghi disponibili per scambio
   const colleghiPerScambio = useMemo(() => {
