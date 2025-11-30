@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -13,12 +13,18 @@ import {
   Trash2,
   Users,
   TrendingUp,
-  Award
+  Award,
+  Store,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 
 export default function AcademyAdmin() {
+  const [activeView, setActiveView] = useState('corsi'); // 'corsi', 'dipendenti', 'stores'
+  const [selectedStore, setSelectedStore] = useState('');
+  const [expandedStores, setExpandedStores] = useState({});
   const [showForm, setShowForm] = useState(false);
   const [editingCorso, setEditingCorso] = useState(null);
   const [formData, setFormData] = useState({
@@ -46,6 +52,11 @@ export default function AcademyAdmin() {
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
     queryFn: () => base44.entities.User.list(),
+  });
+
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores'],
+    queryFn: () => base44.entities.Store.list(),
   });
 
   const createMutation = useMutation({
@@ -206,6 +217,54 @@ export default function AcademyAdmin() {
       ? Math.round((progressi.filter(p => p.stato === 'completato').length / (users.length * corsi.length)) * 100)
       : 0
   };
+
+  // Progress by store
+  const progressiPerStore = useMemo(() => {
+    return stores.map(store => {
+      // Find employees assigned to this store
+      const storeEmployees = users.filter(u => {
+        const assignedStores = u.assigned_stores || [];
+        return assignedStores.includes(store.id) || assignedStores.includes(store.name);
+      });
+      
+      let totalCompletati = 0;
+      let totalCorsi = 0;
+      
+      const employeesWithProgress = storeEmployees.map(user => {
+        const userRuoli = user.ruoli_dipendente || [];
+        const userProgressi = progressi.filter(p => p.user_id === user.id);
+        
+        const corsiPerUtente = corsi.filter(c => {
+          if (!c.attivo) return false;
+          if (!c.ruoli || c.ruoli.length === 0) return true;
+          return c.ruoli.some(r => userRuoli.includes(r));
+        });
+        
+        const completati = userProgressi.filter(p => p.stato === 'completato').length;
+        const totale = corsiPerUtente.length;
+        
+        totalCompletati += completati;
+        totalCorsi += totale;
+        
+        return {
+          user,
+          ruoli: userRuoli,
+          completati,
+          totale,
+          percentuale: totale > 0 ? Math.round((completati / totale) * 100) : 0
+        };
+      });
+      
+      return {
+        store,
+        employees: employeesWithProgress,
+        totalEmployees: storeEmployees.length,
+        totalCompletati,
+        totalCorsi,
+        percentuale: totalCorsi > 0 ? Math.round((totalCompletati / totalCorsi) * 100) : 0
+      };
+    }).sort((a, b) => b.percentuale - a.percentuale);
+  }, [stores, users, corsi, progressi]);
 
   // Progress by employee
   const progressiPerDipendente = users.map(user => {
@@ -499,6 +558,7 @@ export default function AcademyAdmin() {
       )}
 
       {/* Courses List */}
+      {activeView === 'corsi' && (
       <NeumorphicCard className="p-6">
         <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">Corsi Creati</h2>
         
@@ -553,8 +613,119 @@ export default function AcademyAdmin() {
           </div>
         )}
       </NeumorphicCard>
+      )}
+
+      {/* View Toggle */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setActiveView('corsi')}
+          className={`px-4 py-2 rounded-xl font-medium transition-all ${
+            activeView === 'corsi' 
+              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' 
+              : 'nav-button text-slate-700'
+          }`}
+        >
+          📚 Corsi
+        </button>
+        <button
+          onClick={() => setActiveView('dipendenti')}
+          className={`px-4 py-2 rounded-xl font-medium transition-all ${
+            activeView === 'dipendenti' 
+              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' 
+              : 'nav-button text-slate-700'
+          }`}
+        >
+          <Users className="w-4 h-4 inline mr-1" /> Per Dipendente
+        </button>
+        <button
+          onClick={() => setActiveView('stores')}
+          className={`px-4 py-2 rounded-xl font-medium transition-all ${
+            activeView === 'stores' 
+              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' 
+              : 'nav-button text-slate-700'
+          }`}
+        >
+          <Store className="w-4 h-4 inline mr-1" /> Per Store
+        </button>
+      </div>
+
+      {/* Store Progress View */}
+      {activeView === 'stores' && (
+        <NeumorphicCard className="p-6">
+          <h2 className="text-xl font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
+            <Store className="w-6 h-6" />
+            Progressi per Store
+          </h2>
+          
+          <div className="space-y-4">
+            {progressiPerStore.map(({ store, employees, totalEmployees, totalCompletati, totalCorsi, percentuale }) => (
+              <div key={store.id} className="neumorphic-pressed rounded-xl overflow-hidden">
+                <button
+                  onClick={() => setExpandedStores(prev => ({ ...prev, [store.id]: !prev[store.id] }))}
+                  className="w-full p-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                      percentuale >= 80 ? 'bg-green-100' : percentuale >= 50 ? 'bg-yellow-100' : 'bg-red-100'
+                    }`}>
+                      <span className={`text-lg font-bold ${
+                        percentuale >= 80 ? 'text-green-600' : percentuale >= 50 ? 'text-yellow-600' : 'text-red-600'
+                      }`}>{percentuale}%</span>
+                    </div>
+                    <div className="text-left">
+                      <h3 className="font-bold text-[#6b6b6b]">{store.name}</h3>
+                      <p className="text-sm text-[#9b9b9b]">{totalEmployees} dipendenti • {totalCompletati}/{totalCorsi} corsi completati</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-32 bg-gray-200 rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full ${
+                          percentuale >= 80 ? 'bg-green-500' : percentuale >= 50 ? 'bg-yellow-500' : 'bg-red-500'
+                        }`}
+                        style={{ width: `${percentuale}%` }}
+                      />
+                    </div>
+                    {expandedStores[store.id] ? <ChevronUp className="w-5 h-5 text-slate-500" /> : <ChevronDown className="w-5 h-5 text-slate-500" />}
+                  </div>
+                </button>
+                
+                {expandedStores[store.id] && (
+                  <div className="border-t border-slate-200 p-4 bg-slate-50">
+                    {employees.length === 0 ? (
+                      <p className="text-sm text-slate-500 text-center py-4">Nessun dipendente assegnato a questo store</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {employees.map(({ user, ruoli, completati, totale, percentuale: empPerc }) => (
+                          <div key={user.id} className="neumorphic-flat p-3 rounded-lg flex items-center justify-between">
+                            <div>
+                              <p className="font-medium text-[#6b6b6b]">{user.nome_cognome || user.full_name || user.email}</p>
+                              <div className="flex gap-1 mt-1">
+                                {ruoli.map(r => (
+                                  <span key={r} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{r}</span>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <span className={`font-bold ${empPerc >= 80 ? 'text-green-600' : empPerc >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                {empPerc}%
+                              </span>
+                              <p className="text-xs text-slate-500">{completati}/{totale}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </NeumorphicCard>
+      )}
 
       {/* Employee Progress */}
+      {activeView === 'dipendenti' && (
       <NeumorphicCard className="p-6">
         <h2 className="text-xl font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
           <Users className="w-6 h-6" />
@@ -598,6 +769,7 @@ export default function AcademyAdmin() {
           ))}
         </div>
       </NeumorphicCard>
+      )}
     </div>
   );
 }

@@ -199,6 +199,7 @@ export default function Planday() {
 
   const [editingTimbratura, setEditingTimbratura] = useState(null);
   const [timbrForm, setTimbrForm] = useState({ timbrata_entrata: '', timbrata_uscita: '' });
+  const [showFormAssignmentDetails, setShowFormAssignmentDetails] = useState(null);
 
   // Stato per drag and drop (creazione nuovi turni)
   const [dragStart, setDragStart] = useState(null);
@@ -2804,9 +2805,13 @@ export default function Planday() {
                                   {formStatus.dovuti.map((formName, idx) => {
                                     const compilato = formStatus.compilati.includes(formName);
                                     return (
-                                      <div key={idx} className={`px-1.5 py-0.5 rounded whitespace-nowrap ${compilato ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                                      <button 
+                                        key={idx} 
+                                        onClick={() => setShowFormAssignmentDetails({ formName, turno, formStatus })}
+                                        className={`px-1.5 py-0.5 rounded whitespace-nowrap cursor-pointer hover:opacity-80 ${compilato ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}
+                                      >
                                         {formName} {compilato ? '✓' : '✗'}
-                                      </div>
+                                      </button>
                                     );
                                   })}
                                 </div>
@@ -3079,6 +3084,105 @@ export default function Planday() {
               </div>
             </NeumorphicCard>
             </div>
+          </div>
+        )}
+
+        {/* Modal Form Assignment Details */}
+        {showFormAssignmentDetails && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="p-6 max-w-lg w-full">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800">Dettaglio Assegnazione Form</h2>
+                <button onClick={() => setShowFormAssignmentDetails(null)} className="nav-button p-2 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {(() => {
+                const { formName, turno, formStatus } = showFormAssignmentDetails;
+                const config = formTrackerConfigs.find(c => c.form_name === formName && c.is_active);
+                
+                if (!config) {
+                  return <p className="text-slate-500">Configurazione non trovata</p>;
+                }
+
+                const turnoSequence = getTurnoSequence(turno, turniTimbrature.filter(t => 
+                  t.data === turno.data && t.store_id === turno.store_id && t.ruolo === turno.ruolo
+                ));
+                const turnoDayOfWeek = new Date(turno.data).getDay();
+                const dayNames = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+                const configSequences = config.shift_sequences || (config.shift_sequence ? [config.shift_sequence] : ['first']);
+                const configDays = config.days_of_week || [];
+                const configStores = config.assigned_stores || [];
+                const configRoles = config.assigned_roles || [];
+                const storeName = getStoreName(turno.store_id);
+                
+                const isCompilato = formStatus.compilati.includes(formName);
+
+                return (
+                  <div className="space-y-4">
+                    <div className="neumorphic-pressed p-4 rounded-xl">
+                      <h3 className="font-bold text-slate-700 mb-3">📋 Form: {formName}</h3>
+                      <div className={`px-3 py-2 rounded-lg text-sm font-medium ${isCompilato ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                        {isCompilato ? '✓ Completato' : '✗ Non completato'}
+                      </div>
+                    </div>
+
+                    <div className="neumorphic-pressed p-4 rounded-xl">
+                      <h3 className="font-bold text-slate-700 mb-3">👤 Turno Analizzato</h3>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div><span className="text-slate-500">Dipendente:</span> <strong>{turno.dipendente_nome}</strong></div>
+                        <div><span className="text-slate-500">Ruolo:</span> <strong>{turno.ruolo}</strong></div>
+                        <div><span className="text-slate-500">Store:</span> <strong>{storeName}</strong></div>
+                        <div><span className="text-slate-500">Data:</span> <strong>{moment(turno.data).format('DD/MM/YYYY')}</strong></div>
+                        <div><span className="text-slate-500">Orario:</span> <strong>{turno.ora_inizio}-{turno.ora_fine}</strong></div>
+                        <div><span className="text-slate-500">Giorno:</span> <strong>{dayNames[turnoDayOfWeek]}</strong></div>
+                        <div><span className="text-slate-500">Sequenza:</span> <strong className={turnoSequence === 'first' ? 'text-yellow-600' : 'text-indigo-600'}>{turnoSequence === 'first' ? '☀️ Mattina (1°)' : '🌙 Sera (2°)'}</strong></div>
+                      </div>
+                    </div>
+
+                    <div className="neumorphic-pressed p-4 rounded-xl">
+                      <h3 className="font-bold text-slate-700 mb-3">⚙️ Configurazione Form Tracker</h3>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                          <span className="text-slate-500">Ruoli richiesti:</span>
+                          <span className="font-medium">{configRoles.length > 0 ? configRoles.join(', ') : 'Tutti'}</span>
+                        </div>
+                        <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                          <span className="text-slate-500">Sequenza turno:</span>
+                          <span className="font-medium">
+                            {configSequences.includes('first') && configSequences.includes('second') 
+                              ? '☀️🌙 Entrambi' 
+                              : configSequences.includes('first') 
+                                ? '☀️ Solo Mattina (1°)' 
+                                : '🌙 Solo Sera (2°)'
+                            }
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                          <span className="text-slate-500">Giorni settimana:</span>
+                          <span className="font-medium">{configDays.length > 0 ? configDays.map(d => dayNames[d]).join(', ') : 'Tutti i giorni'}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-500">Locali:</span>
+                          <span className="font-medium">{configStores.length > 0 ? configStores.map(id => stores.find(s => s.id === id)?.name || id).join(', ') : 'Tutti'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="neumorphic-pressed p-4 rounded-xl bg-blue-50">
+                      <h3 className="font-bold text-blue-800 mb-2">🔍 Perché questo form è assegnato?</h3>
+                      <ul className="text-sm text-blue-700 space-y-1">
+                        <li>✓ Ruolo turno ({turno.ruolo}) {configRoles.length === 0 || configRoles.includes(turno.ruolo) ? 'corrisponde' : 'NON corrisponde'}</li>
+                        <li>✓ Sequenza ({turnoSequence === 'first' ? 'Mattina' : 'Sera'}) {configSequences.includes(turnoSequence) ? 'corrisponde' : 'NON corrisponde'}</li>
+                        <li>✓ Giorno ({dayNames[turnoDayOfWeek]}) {configDays.length === 0 || configDays.includes(turnoDayOfWeek) ? 'corrisponde' : 'NON corrisponde'}</li>
+                        <li>✓ Store ({storeName}) {configStores.length === 0 || configStores.includes(turno.store_id) ? 'corrisponde' : 'NON corrisponde'}</li>
+                      </ul>
+                    </div>
+                  </div>
+                );
+              })()}
+            </NeumorphicCard>
           </div>
         )}
 
