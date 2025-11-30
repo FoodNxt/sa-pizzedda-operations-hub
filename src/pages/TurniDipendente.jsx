@@ -101,6 +101,44 @@ export default function TurniDipendente() {
     },
   });
 
+  const { data: formTrackerConfigs = [] } = useQuery({
+    queryKey: ['form-tracker-configs'],
+    queryFn: () => base44.entities.FormTrackerConfig.list(),
+  });
+
+  const { data: struttureTurno = [] } = useQuery({
+    queryKey: ['strutture-turno'],
+    queryFn: () => base44.entities.StrutturaTurno.list(),
+  });
+
+  const { data: allFormData = {} } = useQuery({
+    queryKey: ['all-form-data-dipendente'],
+    queryFn: async () => {
+      const [inventario, cantina, cassa, teglie, prep, impasti, precotture, cleaningInspections] = await Promise.all([
+        base44.entities.RilevazioneInventario.list('-data_rilevazione'),
+        base44.entities.RilevazioneInventarioCantina.list('-data_rilevazione'),
+        base44.entities.ConteggioCassa.list('-data_conteggio'),
+        base44.entities.TeglieButtate.list('-data_rilevazione'),
+        base44.entities.Preparazioni.list('-data_rilevazione'),
+        base44.entities.GestioneImpasti.list('-data_creazione'),
+        base44.entities.CalcoloImpastoLog.list('-data_calcolo'),
+        base44.entities.CleaningInspection.list('-inspection_date')
+      ]);
+      return {
+        FormInventario: inventario,
+        FormCantina: cantina,
+        ConteggioCassa: cassa,
+        FormTeglieButtate: teglie,
+        FormPreparazioni: prep,
+        Impasto: impasti,
+        Precotture: precotture,
+        ControlloPuliziaCassiere: cleaningInspections.filter(i => i.inspector_role === 'Cassiere'),
+        ControlloPuliziaPizzaiolo: cleaningInspections.filter(i => i.inspector_role === 'Pizzaiolo'),
+        ControlloPuliziaStoreManager: cleaningInspections.filter(i => i.inspector_role === 'Store Manager')
+      };
+    },
+  });
+
   // Turni del dipendente corrente
   const { data: turni = [], isLoading } = useQuery({
     queryKey: ['turni-dipendente', currentUser?.id, weekStart.format('YYYY-MM-DD')],
@@ -415,6 +453,84 @@ export default function TurniDipendente() {
     setShowScambioModal(true);
   };
 
+  // Helper functions
+  const getTurnoSequenceFromMomento = (turno) => {
+    const [h] = turno.ora_inizio.split(':').map(Number);
+    return h < 14 ? 'first' : 'second';
+  };
+
+  const getFormDovutiPerTurno = (turno) => {
+    if (!turno) return [];
+    
+    const turnoRuolo = turno.ruolo;
+    const turnoStoreId = turno.store_id;
+    const turnoSequence = turno.turno_sequence || getTurnoSequenceFromMomento(turno);
+    const turnoDayOfWeek = new Date(turno.data).getDay();
+    const storeName = getStoreName(turnoStoreId);
+    
+    const activeConfigs = formTrackerConfigs.filter(c => c.is_active);
+    const formDovuti = [];
+    
+    activeConfigs.forEach(config => {
+      const configRoles = config.assigned_roles || [];
+      if (configRoles.length > 0 && !configRoles.includes(turnoRuolo)) return;
+      
+      const configStores = config.assigned_stores || [];
+      if (configStores.length > 0 && !configStores.includes(turnoStoreId)) return;
+      
+      const daysOfWeek = config.days_of_week || [];
+      if (daysOfWeek.length > 0 && !daysOfWeek.includes(turnoDayOfWeek)) return;
+      
+      const configSequences = config.shift_sequences || [config.shift_sequence || 'first'];
+      if (!configSequences.includes(turnoSequence)) return;
+      
+      // Check if completed
+      const formData = allFormData[config.form_page] || [];
+      const dateStart = new Date(turno.data);
+      dateStart.setHours(0, 0, 0, 0);
+      const nextDayEnd = new Date(turno.data);
+      nextDayEnd.setDate(nextDayEnd.getDate() + 1);
+      nextDayEnd.setHours(6, 0, 0, 0);
+      
+      const completed = formData.some(item => {
+        const itemDate = new Date(item.inspection_date || item.data_rilevazione || item.data_conteggio || item.data_creazione || item.data_calcolo);
+        return (item.store_name === storeName || item.store_id === turnoStoreId) &&
+               (item.inspector_name === turno.dipendente_nome || item.rilevato_da === turno.dipendente_nome) &&
+               itemDate >= dateStart && itemDate <= nextDayEnd;
+      });
+      
+      formDovuti.push({ nome: config.form_name, page: config.form_page, completato: completed });
+    });
+    
+    return formDovuti;
+  };
+
+  const getAttivitaTurno = (turno) => {
+    if (!turno.ruolo || !turno.store_id) return [];
+    
+    const [h] = turno.ora_inizio.split(':').map(Number);
+    const momento = h < 14 ? 'Mattina' : 'Sera';
+    const dayOfWeek = new Date(turno.data).getDay();
+    
+    const attivita = struttureTurno.filter(st => {
+      const stRoles = st.ruoli || [];
+      if (stRoles.length > 0 && !stRoles.includes(turno.ruolo)) return false;
+      
+      const stStores = st.stores || [];
+      if (stStores.length > 0 && !stStores.includes(turno.store_id)) return false;
+      
+      const stDays = st.giorni_settimana || [];
+      if (stDays.length > 0 && !stDays.includes(dayOfWeek)) return false;
+      
+      const stMomento = st.momento_turno || 'Mattina';
+      if (stMomento !== momento) return false;
+      
+      return true;
+    });
+    
+    return attivita.flatMap(st => st.attivita || []);
+  };
+
   return (
     <ProtectedPage pageName="TurniDipendente">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -552,6 +668,44 @@ export default function TurniDipendente() {
                 </div>
               )}
 
+              {/* Form e Attività da completare */}
+              {prossimoTurno.timbrata_entrata && (() => {
+                const formDovuti = getFormDovutiPerTurno(prossimoTurno);
+                const attivita = getAttivitaTurno(prossimoTurno);
+                
+                if (formDovuti.length === 0 && attivita.length === 0) return null;
+                
+                return (
+                  <div className="mb-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                    <h3 className="font-bold text-blue-800 mb-3 flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4" />
+                      Da completare per questo turno:
+                    </h3>
+                    <div className="space-y-2">
+                      {formDovuti.map((form, idx) => (
+                        <div key={idx} className={`p-3 rounded-lg ${form.completato ? 'bg-green-100 border border-green-300' : 'bg-white border border-blue-300'} flex items-center justify-between`}>
+                          <span className="text-sm font-medium text-slate-700">📋 {form.nome}</span>
+                          {form.completato ? (
+                            <span className="text-xs font-bold text-green-700 flex items-center gap-1">
+                              <CheckCircle className="w-3 h-3" /> Completato
+                            </span>
+                          ) : (
+                            <span className="text-xs font-bold text-orange-700 flex items-center gap-1">
+                              <AlertTriangle className="w-3 h-3" /> Da completare
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                      {attivita.map((att, idx) => (
+                        <div key={idx} className="p-3 rounded-lg bg-white border border-blue-300">
+                          <span className="text-sm text-slate-700">✓ {att}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
               <NeumorphicButton
                 onClick={() => handleTimbra(prossimoTurno, prossimoTurnoStatus.tipo || 'entrata')}
                 variant="primary"
@@ -633,7 +787,12 @@ export default function TurniDipendente() {
                     <p className="text-slate-500 text-sm italic ml-13">Nessun turno</p>
                   ) : (
                     <div className="space-y-2 ml-13">
-                      {dayTurni.map(turno => (
+                      {dayTurni.map(turno => {
+                        const hasTimbrato = turno.timbrata_entrata || turno.timbrata_uscita;
+                        const formDovuti = hasTimbrato ? getFormDovutiPerTurno(turno) : [];
+                        const attivita = hasTimbrato ? getAttivitaTurno(turno) : [];
+                        
+                        return (
                         <div key={turno.id} className={`p-3 rounded-lg border ${COLORI_RUOLO[turno.ruolo]}`}>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -646,8 +805,29 @@ export default function TurniDipendente() {
                             <MapPin className="w-3 h-3" />
                             {getStoreName(turno.store_id)}
                           </div>
+                          
+                          {/* Mostra form e attività dopo timbratura */}
+                          {hasTimbrato && (formDovuti.length > 0 || attivita.length > 0) && (
+                            <div className="mt-3 pt-3 border-t border-current border-opacity-30">
+                              <p className="text-xs font-bold mb-2 opacity-90">Da completare:</p>
+                              <div className="space-y-1">
+                                {formDovuti.map((form, idx) => (
+                                  <div key={idx} className={`text-xs px-2 py-1 rounded ${form.completato ? 'bg-green-600 bg-opacity-30' : 'bg-white bg-opacity-40'} flex items-center justify-between`}>
+                                    <span>📋 {form.nome}</span>
+                                    {form.completato ? <span className="font-bold">✓</span> : <span className="text-red-600 font-bold">✗</span>}
+                                  </div>
+                                ))}
+                                {attivita.map((att, idx) => (
+                                  <div key={idx} className="text-xs px-2 py-1 rounded bg-white bg-opacity-30">
+                                    ✓ {att}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      ))}
+                      );
+                      })}
                     </div>
                   )}
                 </NeumorphicCard>
