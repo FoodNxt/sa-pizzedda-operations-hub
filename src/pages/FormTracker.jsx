@@ -191,7 +191,9 @@ export default function FormTracker() {
     { name: 'Conteggio Cassa', page: 'ConteggioCassa' },
     { name: 'Controllo Pulizia Cassiere', page: 'ControlloPuliziaCassiere' },
     { name: 'Controllo Pulizia Pizzaiolo', page: 'ControlloPuliziaPizzaiolo' },
-    { name: 'Controllo Pulizia Store Manager', page: 'ControlloPuliziaStoreManager' }
+    { name: 'Controllo Pulizia Store Manager', page: 'ControlloPuliziaStoreManager' },
+    { name: 'Impasto', page: 'Impasto' },
+    { name: 'Precotture', page: 'Precotture' }
   ];
 
   // Check if a specific form was completed

@@ -142,6 +142,40 @@ export default function Planday() {
     enabled: mainView === 'timbrature',
   });
 
+  const { data: formTrackerConfigs = [] } = useQuery({
+    queryKey: ['form-tracker-configs'],
+    queryFn: () => base44.entities.FormTrackerConfig.list(),
+    enabled: mainView === 'timbrature',
+  });
+
+  const { data: allFormData = {} } = useQuery({
+    queryKey: ['all-form-data'],
+    queryFn: async () => {
+      const [inventario, cantina, cassa, teglie, prep, impasti, precotture] = await Promise.all([
+        base44.entities.RilevazioneInventario.list('-data_rilevazione'),
+        base44.entities.RilevazioneInventarioCantina.list('-data_rilevazione'),
+        base44.entities.ConteggioCassa.list('-data_conteggio'),
+        base44.entities.TeglieButtate.list('-data_rilevazione'),
+        base44.entities.Preparazioni.list('-data_rilevazione'),
+        base44.entities.GestioneImpasti.list('-data_creazione'),
+        base44.entities.CalcoloImpastoLog.list('-data_calcolo')
+      ]);
+      return {
+        FormInventario: inventario,
+        FormCantina: cantina,
+        ConteggioCassa: cassa,
+        FormTeglieButtate: teglie,
+        FormPreparazioni: prep,
+        Impasto: impasti,
+        Precotture: precotture,
+        ControlloPuliziaCassiere: allInspections.filter(i => i.inspector_role === 'Cassiere'),
+        ControlloPuliziaPizzaiolo: allInspections.filter(i => i.inspector_role === 'Pizzaiolo'),
+        ControlloPuliziaStoreManager: allInspections.filter(i => i.inspector_role === 'Store Manager')
+      };
+    },
+    enabled: mainView === 'timbrature',
+  });
+
   const { data: turniModello = [] } = useQuery({
     queryKey: ['turni-modello'],
     queryFn: () => base44.entities.TurnoModello.list(),
@@ -893,32 +927,58 @@ export default function Planday() {
     });
   }, [turniTimbrature, selectedStore, selectedDipendenteTimbr, selectedRuolo]);
 
-  // Verifica form compilati
+  // Verifica form compilati usando logica FormTracker
   const getFormCompilati = (turno) => {
     if (!turno.dipendente_nome) return { dovuti: [], compilati: [] };
     
-    const turnoDate = moment(turno.data);
-    const nextDay = turnoDate.clone().add(1, 'day');
-    const nextDayStr = nextDay.format('YYYY-MM-DD');
-    
-    // Trova le inspection del giorno dopo per questo store e dipendente
-    const inspections = allInspections.filter(i => {
-      const inspDate = moment(i.inspection_date).format('YYYY-MM-DD');
-      return inspDate === nextDayStr && 
-             i.store_id === turno.store_id && 
-             i.inspector_name === turno.dipendente_nome;
-    });
-    
-    const userRoles = users.find(u => 
+    const user = users.find(u => 
       (u.nome_cognome || u.full_name) === turno.dipendente_nome
-    )?.ruoli_dipendente || [];
+    );
+    const userRoles = user?.ruoli_dipendente || [];
+    const storeName = getStoreName(turno.store_id);
     
+    // Usa la logica di FormTracker
+    const dateStart = new Date(turno.data);
+    dateStart.setHours(0, 0, 0, 0);
+    const nextDayEnd = new Date(turno.data);
+    nextDayEnd.setDate(nextDayEnd.getDate() + 1);
+    nextDayEnd.setHours(6, 0, 0, 0);
+    
+    const activeConfigs = formTrackerConfigs.filter(c => c.is_active);
     const dovuti = [];
-    if (userRoles.includes('Cassiere')) dovuti.push('Cassiere');
-    if (userRoles.includes('Pizzaiolo')) dovuti.push('Pizzaiolo');
-    if (userRoles.includes('Store Manager')) dovuti.push('Store Manager');
+    const compilati = [];
     
-    const compilati = inspections.map(i => i.inspector_role).filter(Boolean);
+    activeConfigs.forEach(config => {
+      const configRoles = config.assigned_roles || [];
+      
+      // Check if this config applies to this user's roles
+      if (configRoles.length > 0) {
+        const hasMatchingRole = configRoles.some(r => userRoles.includes(r));
+        if (!hasMatchingRole) return;
+      }
+      
+      // Check if config applies to this store
+      const configStores = config.assigned_stores || [];
+      const storeEntity = stores.find(s => s.name === storeName);
+      if (configStores.length > 0 && storeEntity && !configStores.includes(storeEntity.id)) {
+        return;
+      }
+      
+      dovuti.push(config.form_name);
+      
+      // Check if form was completed
+      const formData = allFormData[config.form_page] || [];
+      const completed = formData.some(item => {
+        const itemDate = new Date(item.inspection_date || item.data_rilevazione || item.data_conteggio || item.data_creazione || item.data_calcolo);
+        return (item.store_name === storeName || item.store_id === turno.store_id) &&
+               (item.inspector_name === turno.dipendente_nome || item.rilevato_da === turno.dipendente_nome) &&
+               itemDate >= dateStart && itemDate <= nextDayEnd;
+      });
+      
+      if (completed) {
+        compilati.push(config.form_name);
+      }
+    });
     
     return { dovuti, compilati };
   };
@@ -1791,7 +1851,8 @@ export default function Planday() {
                       arrotonda_ritardo: config.arrotonda_ritardo || false,
                       arrotondamento_tipo: config.arrotondamento_tipo || 'eccesso',
                       arrotondamento_minuti: config.arrotondamento_minuti || 15,
-                      penalita_timbratura_mancata: config.penalita_timbratura_mancata || 0
+                      penalita_timbratura_mancata: config.penalita_timbratura_mancata || 0,
+                      ore_mancata_uscita: config.ore_mancata_uscita || 2
                     });
                   }
                   setShowConfigModal(true);
@@ -1994,19 +2055,19 @@ export default function Planday() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b-2 border-slate-200">
-                        <th className="text-left p-3 text-sm font-medium text-slate-600">Data</th>
-                        <th className="text-left p-3 text-sm font-medium text-slate-600">Dipendente</th>
-                        <th className="text-left p-3 text-sm font-medium text-slate-600">Store</th>
-                        <th className="text-left p-3 text-sm font-medium text-slate-600">Ruolo</th>
-                        <th className="text-left p-3 text-sm font-medium text-slate-600">Tipo</th>
-                        <th className="text-left p-3 text-sm font-medium text-slate-600">Turno</th>
-                        <th className="text-left p-3 text-sm font-medium text-slate-600">Entrata</th>
-                        <th className="text-left p-3 text-sm font-medium text-slate-600">Uscita</th>
-                        <th className="text-center p-3 text-sm font-medium text-slate-600">Ritardo Reale</th>
-                        <th className="text-center p-3 text-sm font-medium text-slate-600">Ritardo Conteggiato</th>
-                        <th className="text-center p-3 text-sm font-medium text-slate-600">Form Pulizia</th>
-                        <th className="text-center p-3 text-sm font-medium text-slate-600">Stato</th>
-                        <th className="text-center p-3 text-sm font-medium text-slate-600">Azioni</th>
+                        <th className="text-left p-2 text-xs font-medium text-slate-600">Data</th>
+                        <th className="text-left p-2 text-xs font-medium text-slate-600">Dipendente</th>
+                        <th className="text-left p-2 text-xs font-medium text-slate-600">Store</th>
+                        <th className="text-left p-2 text-xs font-medium text-slate-600">Ruolo</th>
+                        <th className="text-left p-2 text-xs font-medium text-slate-600">Tipo</th>
+                        <th className="text-left p-2 text-xs font-medium text-slate-600">Turno</th>
+                        <th className="text-left p-2 text-xs font-medium text-slate-600">Entrata</th>
+                        <th className="text-left p-2 text-xs font-medium text-slate-600">Uscita</th>
+                        <th className="text-center p-2 text-xs font-medium text-slate-600">Rit. Reale</th>
+                        <th className="text-center p-2 text-xs font-medium text-slate-600">Rit. Cont.</th>
+                        <th className="text-center p-2 text-xs font-medium text-slate-600">Form</th>
+                        <th className="text-center p-2 text-xs font-medium text-slate-600">Stato</th>
+                        <th className="text-center p-2 text-xs font-medium text-slate-600">Azioni</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2016,24 +2077,24 @@ export default function Planday() {
                         const formStatus = getFormCompilati(turno);
                         return (
                           <tr key={turno.id} className={`border-b border-slate-100 hover:bg-slate-50 ${stato.tipo === 'mancata' || stato.tipo === 'mancata_uscita' ? 'bg-red-50' : ''}`}>
-                            <td className="p-3">
-                              <div className="font-medium text-slate-800">
-                                {moment(turno.data).format('DD/MM/YYYY')}
+                            <td className="p-2">
+                              <div className="text-xs font-medium text-slate-800 whitespace-nowrap">
+                                {moment(turno.data).format('DD/MM/YY')}
                               </div>
-                              <div className="text-xs text-slate-500">
-                                {moment(turno.data).format('dddd')}
+                              <div className="text-[10px] text-slate-500">
+                                {moment(turno.data).format('ddd')}
                               </div>
                             </td>
-                            <td className="p-3">
-                              <div className="font-medium text-slate-800">
+                            <td className="p-2">
+                              <div className="text-xs font-medium text-slate-800">
                                 {turno.dipendente_nome || getDipendenteName(turno.dipendente_id) || '-'}
                               </div>
                             </td>
-                            <td className="p-3 text-sm text-slate-600">
+                            <td className="p-2 text-xs text-slate-600 whitespace-nowrap">
                               {getStoreName(turno.store_id)}
                             </td>
-                            <td className="p-3">
-                              <span className={`text-xs px-2 py-1 rounded-full ${
+                            <td className="p-2">
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap ${
                                 turno.ruolo === 'Pizzaiolo' ? 'bg-orange-100 text-orange-700' :
                                 turno.ruolo === 'Cassiere' ? 'bg-blue-100 text-blue-700' :
                                 'bg-purple-100 text-purple-700'
@@ -2041,36 +2102,36 @@ export default function Planday() {
                                 {turno.ruolo}
                               </span>
                             </td>
-                            <td className="p-3">
-                              <span className={`text-xs px-2 py-1 rounded-full ${
+                            <td className="p-2">
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap ${
                                 turnoTipo === 'Mattina' ? 'bg-yellow-100 text-yellow-700' : 'bg-indigo-100 text-indigo-700'
                               }`}>
                                 {turnoTipo}
                               </span>
                             </td>
-                            <td className="p-3 text-sm text-slate-600">
-                              {turno.ora_inizio} - {turno.ora_fine}
+                            <td className="p-2 text-xs text-slate-600 whitespace-nowrap">
+                              {turno.ora_inizio}-{turno.ora_fine}
                             </td>
-                            <td className="p-3 text-sm">
+                            <td className="p-2 text-xs">
                               {turno.timbrata_entrata ? (
-                                <div>
+                                <div className="whitespace-nowrap">
                                   <div className="font-medium text-slate-800">
                                     {moment(turno.timbrata_entrata).format('HH:mm')}
                                   </div>
                                   {turno.posizione_entrata && (
-                                    <div className="text-xs text-slate-400 flex items-center gap-1">
-                                      <MapPin className="w-3 h-3" />
+                                    <div className="text-[10px] text-slate-400 flex items-center gap-1">
+                                      <MapPin className="w-2 h-2" />
                                       GPS
                                     </div>
                                   )}
                                 </div>
                               ) : (
-                                <span className={stato.tipo === 'mancata' ? 'text-red-500 font-medium' : 'text-slate-400'}>
+                                <span className={`whitespace-nowrap ${stato.tipo === 'mancata' ? 'text-red-500 font-medium' : 'text-slate-400'}`}>
                                   {stato.tipo === 'mancata' ? 'MANCATA' : '-'}
                                 </span>
                               )}
                             </td>
-                            <td className="p-3 text-sm">
+                            <td className="p-2 text-xs whitespace-nowrap">
                               {turno.timbrata_uscita ? (
                                 <div className="font-medium text-slate-800">
                                   {moment(turno.timbrata_uscita).format('HH:mm')}
@@ -2079,34 +2140,34 @@ export default function Planday() {
                                 <span className="text-slate-400">-</span>
                               )}
                             </td>
-                            <td className="p-3 text-center">
+                            <td className="p-2 text-center text-xs whitespace-nowrap">
                               {stato.ritardoReale > 0 ? (
-                                <span className="text-orange-600 font-medium">{stato.ritardoReale} min</span>
+                                <span className="text-orange-600 font-medium">{stato.ritardoReale}m</span>
                               ) : stato.tipo === 'mancata' ? (
                                 <span className="text-red-600 font-medium">-</span>
                               ) : (
                                 <span className="text-green-600">0</span>
                               )}
                             </td>
-                            <td className="p-3 text-center">
+                            <td className="p-2 text-center text-xs whitespace-nowrap">
                               {stato.ritardoConteggiato > 0 ? (
                                 <span className={`font-bold ${stato.tipo === 'mancata' || stato.tipo === 'mancata_uscita' ? 'text-red-600' : 'text-orange-600'}`}>
-                                  {stato.ritardoConteggiato} min
+                                  {stato.ritardoConteggiato}m
                                 </span>
                               ) : stato.tipo === 'ritardo' ? (
-                                <span className="text-green-600 text-xs">Tollerato</span>
+                                <span className="text-green-600 text-[10px]">OK</span>
                               ) : (
                                 <span className="text-green-600">0</span>
                               )}
                             </td>
-                            <td className="p-3 text-center">
+                            <td className="p-2 text-center">
                               {formStatus.dovuti.length > 0 ? (
-                                <div className="text-xs space-y-1">
-                                  {formStatus.dovuti.map(role => {
-                                    const compilato = formStatus.compilati.includes(role);
+                                <div className="text-[10px] space-y-0.5">
+                                  {formStatus.dovuti.map((formName, idx) => {
+                                    const compilato = formStatus.compilati.includes(formName);
                                     return (
-                                      <div key={role} className={`px-2 py-1 rounded ${compilato ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
-                                        {role} {compilato ? '✓' : '✗'}
+                                      <div key={idx} className={`px-1.5 py-0.5 rounded whitespace-nowrap ${compilato ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                                        {formName} {compilato ? '✓' : '✗'}
                                       </div>
                                     );
                                   })}
@@ -2115,12 +2176,12 @@ export default function Planday() {
                                 <span className="text-xs text-slate-400">-</span>
                               )}
                             </td>
-                            <td className="p-3 text-center">
-                              <span className={`text-xs px-3 py-1 rounded-full font-medium ${stato.bg} ${stato.color}`}>
+                            <td className="p-2 text-center">
+                              <span className={`text-[10px] px-2 py-1 rounded-full font-medium whitespace-nowrap ${stato.bg} ${stato.color}`}>
                                 {stato.tipo === 'mancata' ? '⚠️ Mancata' : stato.tipo === 'mancata_uscita' ? '⚠️ Uscita Mancata' : stato.label}
                               </span>
                             </td>
-                            <td className="p-3 text-center">
+                            <td className="p-2 text-center">
                               <button
                                 onClick={() => {
                                   setEditingTimbratura(turno);
@@ -2129,9 +2190,9 @@ export default function Planday() {
                                     timbrata_uscita: turno.timbrata_uscita ? moment(turno.timbrata_uscita).format('YYYY-MM-DDTHH:mm') : ''
                                   });
                                 }}
-                                className="nav-button p-2 rounded-lg hover:bg-blue-50"
+                                className="nav-button p-1.5 rounded-lg hover:bg-blue-50"
                               >
-                                <Edit className="w-4 h-4 text-blue-600" />
+                                <Edit className="w-3.5 h-3.5 text-blue-600" />
                               </button>
                             </td>
                           </tr>
