@@ -1,18 +1,20 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createPageUrl } from "@/utils";
 import { Link } from "react-router-dom";
-import { Sparkles, Camera, Calendar, Store, CheckCircle, AlertTriangle, XCircle, Plus, ChevronRight, X, Loader2, Edit, Save, TrendingUp, ClipboardCheck } from 'lucide-react';
+import { Sparkles, Camera, Calendar, Store, CheckCircle, AlertTriangle, XCircle, Plus, ChevronRight, X, Loader2, Edit, Save, TrendingUp, ClipboardCheck, Users, Clock, Settings, Eye } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
-import { format } from 'date-fns';
+import { format, parseISO, subDays } from 'date-fns';
 import { it } from 'date-fns/locale';
 
 export default function Pulizie() {
+  const [activeView, setActiveView] = useState('dipendenti'); // 'dipendenti' or 'store_manager'
   const [selectedStore, setSelectedStore] = useState('all');
   const [dateFilter, setDateFilter] = useState('month');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [selectedEmployee, setSelectedEmployee] = useState('all');
   const [detailsModalInspection, setDetailsModalInspection] = useState(null);
   const [correctingEquipment, setCorrectingEquipment] = useState(null);
   const [correctionData, setCorrectionData] = useState({});
@@ -29,8 +31,31 @@ export default function Pulizie() {
     queryFn: () => base44.entities.CleaningInspection.list('-inspection_date'),
   });
 
-  // Filter inspections
+  const { data: shifts = [] } = useQuery({
+    queryKey: ['shifts'],
+    queryFn: () => base44.entities.Shift.list(),
+  });
+
+  const { data: users = [] } = useQuery({
+    queryKey: ['users-pulizie'],
+    queryFn: async () => {
+      const allUsers = await base44.entities.User.list();
+      return allUsers.filter(u => u.user_type === 'dipendente' || u.user_type === 'user');
+    },
+  });
+
+  const { data: smConfigs = [] } = useQuery({
+    queryKey: ['controllo-sm-config'],
+    queryFn: () => base44.entities.ControlloSMConfig.list(),
+  });
+
+  const currentConfig = smConfigs[0];
+
+  // Filter inspections for dipendenti (Cassiere/Pizzaiolo)
   const filteredInspections = inspections.filter(inspection => {
+    // Escludi controlli Store Manager dalla vista dipendenti
+    if (inspection.inspector_role === 'Store Manager') return false;
+    
     if (selectedStore !== 'all' && inspection.store_id !== selectedStore) return false;
 
     const inspectionDate = new Date(inspection.inspection_date);
@@ -45,6 +70,113 @@ export default function Pulizie() {
 
     return true;
   });
+
+  // Filter inspections for Store Manager
+  const smInspections = useMemo(() => {
+    return inspections.filter(inspection => {
+      const isStoreManagerForm = inspection.inspector_role === 'Store Manager' || inspection.inspection_type === 'store_manager';
+      if (!isStoreManagerForm) return false;
+      if (inspection.analysis_status !== 'completed') return false;
+      
+      if (selectedStore !== 'all' && inspection.store_id !== selectedStore) return false;
+
+      const inspectionDate = new Date(inspection.inspection_date);
+      const now = new Date();
+      const daysDiff = Math.floor((now - inspectionDate) / (1000 * 60 * 60 * 24));
+
+      if (dateFilter === 'week' && daysDiff > 7) return false;
+      if (dateFilter === 'month' && daysDiff > 30) return false;
+
+      return true;
+    });
+  }, [inspections, selectedStore, dateFilter]);
+
+  // Get employees who were on shift from 21:30 onwards the day before the inspection
+  const getAssignedEmployees = (inspection) => {
+    if (!inspection) return [];
+
+    const inspectionDate = parseISO(inspection.inspection_date);
+    const previousDay = subDays(inspectionDate, 1);
+    const previousDayStr = format(previousDay, 'yyyy-MM-dd');
+    const inspectionStoreId = inspection.store_id;
+
+    const eveningShifts = shifts.filter(shift => {
+      if (shift.store_id !== inspectionStoreId) return false;
+      if (!shift.shift_date || !shift.scheduled_start) return false;
+
+      const shiftDateStr = shift.shift_date.split('T')[0];
+      if (shiftDateStr !== previousDayStr) return false;
+
+      const startTime = shift.scheduled_start || shift.actual_start;
+      if (!startTime) return false;
+
+      const startDate = parseISO(startTime);
+      const hours = startDate.getHours();
+      const minutes = startDate.getMinutes();
+      const totalMinutes = hours * 60 + minutes;
+
+      return totalMinutes >= 1290;
+    });
+
+    const employeeMap = new Map();
+    eveningShifts.forEach(shift => {
+      if (!employeeMap.has(shift.employee_name)) {
+        const user = users.find(u => 
+          (u.nome_cognome || u.full_name || u.email) === shift.employee_name
+        );
+        employeeMap.set(shift.employee_name, {
+          employeeName: shift.employee_name,
+          userId: user?.id,
+          roles: user?.ruoli_dipendente || []
+        });
+      }
+    });
+
+    return Array.from(employeeMap.values());
+  };
+
+  // Filter SM inspections by selected employee
+  const filteredSMInspections = useMemo(() => {
+    if (selectedEmployee === 'all') return smInspections;
+    
+    return smInspections.filter(inspection => {
+      const employees = getAssignedEmployees(inspection);
+      return employees.some(emp => emp.employeeName === selectedEmployee);
+    });
+  }, [smInspections, selectedEmployee, shifts, users]);
+
+  // Get unique employees from all SM inspections for filter
+  const allAssignedEmployees = useMemo(() => {
+    const employeeSet = new Set();
+    smInspections.forEach(inspection => {
+      const employees = getAssignedEmployees(inspection);
+      employees.forEach(emp => employeeSet.add(emp.employeeName));
+    });
+    return Array.from(employeeSet).sort();
+  }, [smInspections, shifts, users]);
+
+  // Calculate if inspection passed based on percentage
+  const calculateInspectionResult = (inspection) => {
+    const threshold = currentConfig?.percentuale_superamento || 70;
+    const score = inspection.overall_score || 0;
+    return {
+      passed: score >= threshold,
+      score,
+      threshold
+    };
+  };
+
+  // SM Stats
+  const smStats = useMemo(() => {
+    const total = filteredSMInspections.length;
+    const passed = filteredSMInspections.filter(i => calculateInspectionResult(i).passed).length;
+    const failed = total - passed;
+    const avgScore = total > 0 
+      ? filteredSMInspections.reduce((sum, i) => sum + (i.overall_score || 0), 0) / total 
+      : 0;
+
+    return { total, passed, failed, avgScore };
+  }, [filteredSMInspections, currentConfig]);
 
   const getStatusIcon = (status) => {
     switch(status) {
@@ -171,7 +303,7 @@ export default function Pulizie() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Pulizie Locali</h1>
+          <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Storico Pulizie</h1>
           <p className="text-[#9b9b9b]">Sistema di ispezione con analisi AI</p>
         </div>
         <Link to={createPageUrl('FotoLocale')}>
@@ -182,7 +314,36 @@ export default function Pulizie() {
         </Link>
       </div>
 
+      {/* View Toggle */}
+      <NeumorphicCard className="p-4">
+        <div className="flex gap-2">
+          <button
+            onClick={() => setActiveView('dipendenti')}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-all ${
+              activeView === 'dipendenti' 
+                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' 
+                : 'neumorphic-flat text-[#6b6b6b]'
+            }`}
+          >
+            <Users className="w-5 h-5" />
+            Form Dipendenti (Cassieri/Pizzaioli)
+          </button>
+          <button
+            onClick={() => setActiveView('store_manager')}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-all ${
+              activeView === 'store_manager' 
+                ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg' 
+                : 'neumorphic-flat text-[#6b6b6b]'
+            }`}
+          >
+            <Settings className="w-5 h-5" />
+            Risultati SM Controlli
+          </button>
+        </div>
+      </NeumorphicCard>
+
       {/* Stats - UPDATED with accuracy */}
+      {activeView === 'dipendenti' && (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <NeumorphicCard className="p-6 text-center">
           <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -221,6 +382,7 @@ export default function Pulizie() {
           </p>
         </NeumorphicCard>
       </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
@@ -264,8 +426,9 @@ export default function Pulizie() {
       </div>
 
       {/* Inspections List */}
+      {activeView === 'dipendenti' && (
       <NeumorphicCard className="p-6">
-        <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Storico Ispezioni</h2>
+        <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Storico Ispezioni Dipendenti</h2>
 
         {isLoading ? (
           <div className="text-center py-12">
@@ -391,6 +554,7 @@ export default function Pulizie() {
           </div>
         )}
       </NeumorphicCard>
+      )}
 
       {/* Details Modal */}
       {detailsModalInspection && (
@@ -687,25 +851,163 @@ export default function Pulizie() {
       )}
 
       {/* Info Card - UPDATED */}
-      <NeumorphicCard className="p-6 bg-blue-50">
-        <div className="flex items-start gap-3">
-          <Sparkles className="w-6 h-6 text-blue-600" />
-          <div>
-            <h3 className="font-bold text-blue-800 mb-2">🎓 Sistema di Apprendimento AI</h3>
-            <p className="text-sm text-blue-700 mb-2">
-              Ogni foto viene analizzata da un'intelligenza artificiale che valuta automaticamente lo stato di pulizia.
-            </p>
-            <p className="text-sm text-blue-700 mb-2">
-              <strong>Nuovo:</strong> Puoi correggere le valutazioni dell'AI! L'AI imparerà dalle tue correzioni e diventerà sempre più accurata nel tempo.
-            </p>
-            <div className="neumorphic-pressed p-3 rounded-lg bg-white mt-3">
-              <p className="text-xs text-blue-800 font-medium">
-                📊 Accuratezza attuale: <strong>{accuracyStats.accuracyRate}%</strong> ({accuracyStats.correctedInspections} su {accuracyStats.totalInspections} ispezioni con correzioni)
+      {activeView === 'dipendenti' && (
+        <NeumorphicCard className="p-6 bg-blue-50">
+          <div className="flex items-start gap-3">
+            <Sparkles className="w-6 h-6 text-blue-600" />
+            <div>
+              <h3 className="font-bold text-blue-800 mb-2">🎓 Sistema di Apprendimento AI</h3>
+              <p className="text-sm text-blue-700 mb-2">
+                Ogni foto viene analizzata da un'intelligenza artificiale che valuta automaticamente lo stato di pulizia.
               </p>
+              <p className="text-sm text-blue-700 mb-2">
+                <strong>Nuovo:</strong> Puoi correggere le valutazioni dell'AI! L'AI imparerà dalle tue correzioni e diventerà sempre più accurata nel tempo.
+              </p>
+              <div className="neumorphic-pressed p-3 rounded-lg bg-white mt-3">
+                <p className="text-xs text-blue-800 font-medium">
+                  📊 Accuratezza attuale: <strong>{accuracyStats.accuracyRate}%</strong> ({accuracyStats.correctedInspections} su {accuracyStats.totalInspections} ispezioni con correzioni)
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      </NeumorphicCard>
+        </NeumorphicCard>
+      )}
+
+      {/* Store Manager Results View */}
+      {activeView === 'store_manager' && (
+        <>
+          {/* SM Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <NeumorphicCard className="p-4 text-center">
+              <p className="text-2xl font-bold text-slate-800">{smStats.total}</p>
+              <p className="text-xs text-slate-500">Controlli Totali</p>
+            </NeumorphicCard>
+            <NeumorphicCard className="p-4 text-center">
+              <p className="text-2xl font-bold text-green-600">{smStats.passed}</p>
+              <p className="text-xs text-slate-500">Superati</p>
+            </NeumorphicCard>
+            <NeumorphicCard className="p-4 text-center">
+              <p className="text-2xl font-bold text-red-600">{smStats.failed}</p>
+              <p className="text-xs text-slate-500">Non Superati</p>
+            </NeumorphicCard>
+            <NeumorphicCard className="p-4 text-center">
+              <p className="text-2xl font-bold text-blue-600">{smStats.avgScore.toFixed(1)}%</p>
+              <p className="text-xs text-slate-500">Media Punteggio</p>
+            </NeumorphicCard>
+          </div>
+
+          {/* SM Employee Filter */}
+          <NeumorphicCard className="p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <Users className="w-5 h-5 text-purple-600" />
+              <span className="font-medium text-slate-700">Filtra per Dipendente</span>
+            </div>
+            <select
+              value={selectedEmployee}
+              onChange={(e) => setSelectedEmployee(e.target.value)}
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+            >
+              <option value="all">Tutti i dipendenti</option>
+              {allAssignedEmployees.map(emp => (
+                <option key={emp} value={emp}>{emp}</option>
+              ))}
+            </select>
+          </NeumorphicCard>
+
+          {/* SM Inspections List */}
+          <NeumorphicCard className="p-6">
+            <h2 className="text-xl font-bold text-slate-800 mb-4">Controlli Store Manager</h2>
+            
+            {filteredSMInspections.length === 0 ? (
+              <div className="text-center py-12">
+                <CheckCircle className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <p className="text-slate-500">Nessun controllo trovato</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredSMInspections.slice(0, 50).map(inspection => {
+                  const result = calculateInspectionResult(inspection);
+                  const assignedEmployees = getAssignedEmployees(inspection);
+                  
+                  return (
+                    <div key={inspection.id} className={`neumorphic-pressed p-4 rounded-xl border-2 ${
+                      result.passed ? 'border-green-200' : 'border-red-200'
+                    }`}>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="font-bold text-slate-800">{inspection.store_name}</h3>
+                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                              result.passed 
+                                ? 'bg-green-100 text-green-700' 
+                                : 'bg-red-100 text-red-700'
+                            }`}>
+                              {result.score}% {result.passed ? '✓' : '✗'}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center gap-4 text-sm text-slate-600 mb-2">
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-4 h-4" />
+                              {format(parseISO(inspection.inspection_date), 'dd MMM yyyy HH:mm', { locale: it })}
+                            </span>
+                            {inspection.inspector_name && (
+                              <span>Compilato da: {inspection.inspector_name}</span>
+                            )}
+                          </div>
+
+                          {/* Assigned Employees */}
+                          <div className="mt-2">
+                            <p className="text-xs text-slate-500 mb-1">Dipendenti assegnati (turno sera precedente):</p>
+                            {assignedEmployees.length > 0 ? (
+                              <div className="flex flex-wrap gap-2">
+                                {assignedEmployees.map((emp, idx) => (
+                                  <span key={idx} className="text-xs bg-purple-50 text-purple-700 px-3 py-1 rounded-full border border-purple-200">
+                                    {emp.employeeName}
+                                    {emp.roles.length > 0 && ` (${emp.roles.join(', ')})`}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-orange-600">
+                                <AlertTriangle className="w-3 h-3 inline mr-1" />
+                                Nessun dipendente in turno dalle 21:30 il giorno precedente
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => setDetailsModalInspection(inspection)}
+                          className="nav-button p-2 rounded-lg ml-4"
+                        >
+                          <Eye className="w-4 h-4 text-slate-600" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </NeumorphicCard>
+
+          {/* Info Card SM */}
+          <NeumorphicCard className="p-6 bg-purple-50">
+            <div className="flex items-start gap-3">
+              <Clock className="w-6 h-6 text-purple-600" />
+              <div>
+                <h3 className="font-bold text-purple-800 mb-2">Come Funziona</h3>
+                <p className="text-sm text-purple-700 mb-2">
+                  I controlli dello Store Manager vengono assegnati ai dipendenti che erano in turno <strong>il giorno precedente dalle 21:30 in poi</strong>.
+                </p>
+                <p className="text-sm text-purple-700">
+                  Se il punteggio è inferiore alla soglia impostata ({currentConfig?.percentuale_superamento || 70}%), il controllo risulta non superato.
+                </p>
+              </div>
+            </div>
+          </NeumorphicCard>
+        </>
+      )}
     </div>
   );
 }
