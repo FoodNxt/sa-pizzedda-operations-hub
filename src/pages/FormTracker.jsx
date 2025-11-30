@@ -915,22 +915,41 @@ export default function FormTracker() {
                           </div>
                         </div>
                         <div className="flex gap-2 ml-4">
-                          <button
-                            onClick={() => handleEditConfig(config)}
-                            className="nav-button p-2 rounded-lg"
-                          >
-                            <Edit className="w-4 h-4 text-blue-600" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (confirm('Eliminare questa assegnazione?')) {
-                                deleteConfigMutation.mutate(config.id);
-                              }
-                            }}
-                            className="nav-button p-2 rounded-lg"
-                          >
-                            <Trash2 className="w-4 h-4 text-red-600" />
-                          </button>
+                        <button
+                        onClick={() => handleEditConfig(config)}
+                        className="nav-button p-2 rounded-lg"
+                        title="Modifica"
+                        >
+                        <Edit className="w-4 h-4 text-blue-600" />
+                        </button>
+                        <button
+                        onClick={() => {
+                        // Quick save toggle active
+                        updateConfigMutation.mutate({ 
+                        id: config.id, 
+                        data: { ...config, is_active: !config.is_active }
+                        });
+                        }}
+                        className={`nav-button p-2 rounded-lg ${config.is_active ? 'hover:bg-orange-50' : 'hover:bg-green-50'}`}
+                        title={config.is_active ? 'Disattiva' : 'Attiva'}
+                        >
+                        {config.is_active ? (
+                        <X className="w-4 h-4 text-orange-600" />
+                        ) : (
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        )}
+                        </button>
+                        <button
+                        onClick={() => {
+                        if (confirm('Eliminare questa assegnazione?')) {
+                        deleteConfigMutation.mutate(config.id);
+                        }
+                        }}
+                        className="nav-button p-2 rounded-lg"
+                        title="Elimina"
+                        >
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                        </button>
                         </div>
                       </div>
                     </NeumorphicCard>

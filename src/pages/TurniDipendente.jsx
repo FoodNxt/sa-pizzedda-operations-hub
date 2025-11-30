@@ -7,7 +7,7 @@ import ProtectedPage from "../components/ProtectedPage";
 import { 
   Calendar, Clock, MapPin, CheckCircle, AlertCircle, 
   Loader2, LogIn, LogOut, ChevronLeft, ChevronRight,
-  RefreshCw, X, AlertTriangle, Users, Store as StoreIcon, Navigation, Timer
+  RefreshCw, X, AlertTriangle, Users, Store as StoreIcon, Navigation, Timer, ClipboardList
 } from "lucide-react";
 import moment from "moment";
 import "moment/locale/it";
@@ -21,6 +21,7 @@ const COLORI_RUOLO = {
 };
 
 export default function TurniDipendente() {
+  const [activeView, setActiveView] = useState('prossimo'); // 'prossimo' or 'tutti'
   const [weekStart, setWeekStart] = useState(moment().startOf('isoWeek'));
   const [currentPosition, setCurrentPosition] = useState(null);
   const [gpsError, setGpsError] = useState(null);
@@ -180,6 +181,19 @@ export default function TurniDipendente() {
       });
     },
     enabled: !!selectedTurnoScambio,
+  });
+
+  // Colleghi che lavorano nello stesso turno del prossimo turno
+  const { data: colleghiProssimoTurno = [] } = useQuery({
+    queryKey: ['colleghi-prossimo-turno', prossimoTurno?.data, prossimoTurno?.store_id],
+    queryFn: async () => {
+      if (!prossimoTurno) return [];
+      return base44.entities.TurnoPlanday.filter({
+        data: prossimoTurno.data,
+        store_id: prossimoTurno.store_id
+      });
+    },
+    enabled: !!prossimoTurno,
   });
 
   const timbraMutation = useMutation({
@@ -535,11 +549,31 @@ export default function TurniDipendente() {
     <ProtectedPage pageName="TurniDipendente">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
-            I Miei Turni
-          </h1>
-          <p className="text-slate-500 mt-1">Timbra e gestisci i tuoi turni</p>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
+              I Miei Turni
+            </h1>
+            <p className="text-slate-500 mt-1">Timbra e gestisci i tuoi turni</p>
+          </div>
+          <div className="flex gap-2">
+            <NeumorphicButton 
+              onClick={() => setActiveView('prossimo')}
+              variant={activeView === 'prossimo' ? 'primary' : 'default'}
+              className="flex items-center gap-2"
+            >
+              <Timer className="w-4 h-4" />
+              Prossimo Turno
+            </NeumorphicButton>
+            <NeumorphicButton 
+              onClick={() => setActiveView('tutti')}
+              variant={activeView === 'tutti' ? 'primary' : 'default'}
+              className="flex items-center gap-2"
+            >
+              <Calendar className="w-4 h-4" />
+              Tutti i Turni
+            </NeumorphicButton>
+          </div>
         </div>
 
         {/* Messaggio */}
@@ -592,8 +626,8 @@ export default function TurniDipendente() {
           </NeumorphicCard>
         )}
 
-        {/* Prossimo Turno - Timbra */}
-        {prossimoTurno && (
+        {/* VISTA: PROSSIMO TURNO */}
+        {activeView === 'prossimo' && prossimoTurno && (
           <NeumorphicCard className={`p-6 border ${prossimoTurnoStatus.inCorso ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-200' : 'bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200'}`}>
             <h2 className={`text-xl font-bold mb-4 flex items-center gap-2 ${prossimoTurnoStatus.inCorso ? 'text-green-800' : 'text-indigo-800'}`}>
               {prossimoTurnoStatus.inCorso ? <Timer className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
@@ -668,8 +702,8 @@ export default function TurniDipendente() {
                 </div>
               )}
 
-              {/* Form e Attività da completare */}
-              {prossimoTurno.timbrata_entrata && (() => {
+              {/* Form e Attività da completare - SEMPRE VISIBILI */}
+              {(() => {
                 const formDovuti = getFormDovutiPerTurno(prossimoTurno);
                 const attivita = getAttivitaTurno(prossimoTurno);
                 
@@ -678,21 +712,25 @@ export default function TurniDipendente() {
                 return (
                   <div className="mb-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
                     <h3 className="font-bold text-blue-800 mb-3 flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4" />
-                      Da completare per questo turno:
+                      <ClipboardList className="w-4 h-4" />
+                      {prossimoTurno.timbrata_entrata ? 'Da completare per questo turno:' : 'Attività previste per questo turno:'}
                     </h3>
                     <div className="space-y-2">
                       {formDovuti.map((form, idx) => (
                         <div key={idx} className={`p-3 rounded-lg ${form.completato ? 'bg-green-100 border border-green-300' : 'bg-white border border-blue-300'} flex items-center justify-between`}>
                           <span className="text-sm font-medium text-slate-700">📋 {form.nome}</span>
-                          {form.completato ? (
-                            <span className="text-xs font-bold text-green-700 flex items-center gap-1">
-                              <CheckCircle className="w-3 h-3" /> Completato
-                            </span>
+                          {prossimoTurno.timbrata_entrata ? (
+                            form.completato ? (
+                              <span className="text-xs font-bold text-green-700 flex items-center gap-1">
+                                <CheckCircle className="w-3 h-3" /> Completato
+                              </span>
+                            ) : (
+                              <span className="text-xs font-bold text-orange-700 flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3" /> Da completare
+                              </span>
+                            )
                           ) : (
-                            <span className="text-xs font-bold text-orange-700 flex items-center gap-1">
-                              <AlertTriangle className="w-3 h-3" /> Da completare
-                            </span>
+                            <span className="text-xs text-slate-500">Da compilare</span>
                           )}
                         </div>
                       ))}
@@ -739,9 +777,49 @@ export default function TurniDipendente() {
                 </button>
               )}
             </div>
+
+            {/* Colleghi in turno */}
+            {colleghiProssimoTurno.filter(c => c.dipendente_id !== currentUser?.id).length > 0 && (
+              <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <h3 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  Colleghi in turno con te
+                </h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {colleghiProssimoTurno
+                    .filter(c => c.dipendente_id !== currentUser?.id)
+                    .map(collega => (
+                      <div key={collega.id} className="flex items-center gap-2 p-2 bg-white rounded-lg border border-slate-200">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold ${
+                          collega.ruolo === 'Pizzaiolo' ? 'bg-orange-500' :
+                          collega.ruolo === 'Cassiere' ? 'bg-blue-500' : 'bg-purple-500'
+                        }`}>
+                          {(collega.dipendente_nome || '?').substring(0, 2).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-800 truncate">{collega.dipendente_nome}</p>
+                          <p className="text-xs text-slate-500">{collega.ruolo} • {collega.ora_inizio}-{collega.ora_fine}</p>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
           </NeumorphicCard>
         )}
 
+        {/* Nessun prossimo turno */}
+        {activeView === 'prossimo' && !prossimoTurno && (
+          <NeumorphicCard className="p-8 text-center">
+            <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+            <p className="text-slate-500 text-lg">Nessun turno programmato</p>
+            <p className="text-slate-400 text-sm mt-2">Non hai turni futuri assegnati</p>
+          </NeumorphicCard>
+        )}
+
+        {/* VISTA: TUTTI I TURNI */}
+        {activeView === 'tutti' && (
+          <>
         {/* Navigazione settimana */}
         <NeumorphicCard className="p-4">
           <div className="flex items-center justify-between">
@@ -835,6 +913,8 @@ export default function TurniDipendente() {
             })
           )}
         </div>
+          </>
+        )}
 
         {/* Modal Scambio Turno */}
         {showScambioModal && selectedTurnoScambio && (

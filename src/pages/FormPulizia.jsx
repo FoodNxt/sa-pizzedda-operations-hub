@@ -243,8 +243,12 @@ export default function FormPulizia() {
                         {domanda.tipo_controllo === 'multipla' && domanda.opzioni_risposta && (
                           <div className="flex flex-wrap gap-1 mt-2">
                             {domanda.opzioni_risposta.map((opz, idx) => (
-                              <span key={idx} className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">
-                                {opz}
+                              <span key={idx} className={`text-xs px-2 py-1 rounded ${
+                                domanda.risposta_corretta === opz 
+                                  ? 'bg-green-200 text-green-800 font-bold' 
+                                  : 'bg-slate-100 text-slate-600'
+                              }`}>
+                                {opz} {domanda.risposta_corretta === opz && '✓'}
                               </span>
                             ))}
                           </div>
@@ -352,18 +356,40 @@ export default function FormPulizia() {
                         </label>
                         <div className="space-y-2">
                           {questionForm.opzioni_risposta.map((opzione, index) => (
-                            <div key={index} className="flex gap-2">
+                            <div key={index} className="flex gap-2 items-center">
+                              <input
+                                type="radio"
+                                name="risposta_corretta"
+                                checked={questionForm.risposta_corretta === opzione}
+                                onChange={() => setQuestionForm({ ...questionForm, risposta_corretta: opzione })}
+                                className="w-4 h-4 text-green-600"
+                                title="Imposta come risposta corretta"
+                              />
                               <input
                                 type="text"
                                 value={opzione}
-                                onChange={(e) => updateOpzioneRisposta(index, e.target.value)}
-                                className="flex-1 neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
+                                onChange={(e) => {
+                                  const newValue = e.target.value;
+                                  // Update risposta_corretta if this was the selected one
+                                  if (questionForm.risposta_corretta === opzione) {
+                                    setQuestionForm({ ...questionForm, risposta_corretta: newValue });
+                                  }
+                                  updateOpzioneRisposta(index, newValue);
+                                }}
+                                className={`flex-1 neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none ${
+                                  questionForm.risposta_corretta === opzione ? 'ring-2 ring-green-400' : ''
+                                }`}
                                 placeholder={`Opzione ${index + 1}`}
                               />
                               {questionForm.opzioni_risposta.length > 1 && (
                                 <button
                                   type="button"
-                                  onClick={() => removeOpzioneRisposta(index)}
+                                  onClick={() => {
+                                    if (questionForm.risposta_corretta === opzione) {
+                                      setQuestionForm({ ...questionForm, risposta_corretta: '' });
+                                    }
+                                    removeOpzioneRisposta(index);
+                                  }}
                                   className="neumorphic-flat p-2 rounded-lg text-red-600"
                                 >
                                   <X className="w-4 h-4" />
@@ -371,9 +397,14 @@ export default function FormPulizia() {
                               )}
                             </div>
                           ))}
-                          <NeumorphicButton type="button" onClick={addOpzioneRisposta} className="text-sm">
-                            <Plus className="w-4 h-4 inline mr-1" /> Aggiungi Opzione
-                          </NeumorphicButton>
+                          <div className="flex items-center justify-between">
+                            <NeumorphicButton type="button" onClick={addOpzioneRisposta} className="text-sm">
+                              <Plus className="w-4 h-4 inline mr-1" /> Aggiungi Opzione
+                            </NeumorphicButton>
+                            <span className="text-xs text-slate-500">
+                              {questionForm.risposta_corretta ? `✓ Risposta corretta: ${questionForm.risposta_corretta}` : '⚠️ Seleziona risposta corretta'}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     )}

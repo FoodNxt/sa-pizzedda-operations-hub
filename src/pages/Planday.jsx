@@ -1694,11 +1694,14 @@ export default function Planday() {
                                       <Trash2 className="w-3 h-3" />
                                     </button>
                                   </div>
+                                  {/* Tipo turno badge più visibile */}
                                   {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
                                     <div 
-                                      className="absolute top-0 right-0 w-0 h-0 border-t-[12px] border-l-[12px] border-l-transparent"
-                                      style={{ borderTopColor: coloriTipoTurno[turno.tipo_turno] || '#94a3b8' }}
-                                    />
+                                      className="absolute top-0 right-5 px-1 py-0.5 text-[8px] font-bold text-white rounded-b"
+                                      style={{ backgroundColor: coloriTipoTurno[turno.tipo_turno] || '#94a3b8' }}
+                                    >
+                                      {turno.tipo_turno.slice(0, 3).toUpperCase()}
+                                    </div>
                                   )}
                                   <div className="truncate text-[10px] font-medium">{turno.ruolo}</div>
                                   {turno.dipendente_nome && (
@@ -1799,17 +1802,45 @@ export default function Planday() {
           />
         )}
 
-        {/* Legenda */}
+        {/* Legenda con editor colori */}
         <NeumorphicCard className="p-4">
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4 mb-3">
             <span className="text-sm font-medium text-slate-700">Ruoli:</span>
             {RUOLI.map(ruolo => (
-              <div 
-                key={ruolo} 
-                className="px-3 py-1 rounded-lg border-2 text-sm font-medium text-white"
-                style={{ backgroundColor: coloriRuolo[ruolo], borderColor: coloriRuolo[ruolo] }}
-              >
-                {ruolo}
+              <div key={ruolo} className="flex items-center gap-1">
+                <div 
+                  className="px-3 py-1 rounded-lg border-2 text-sm font-medium text-white"
+                  style={{ backgroundColor: coloriRuolo[ruolo], borderColor: coloriRuolo[ruolo] }}
+                >
+                  {ruolo}
+                </div>
+                <input
+                  type="color"
+                  value={coloriRuolo[ruolo]}
+                  onChange={(e) => updateColoreRuolo(ruolo, e.target.value)}
+                  className="w-6 h-6 cursor-pointer rounded border-0"
+                  title={`Cambia colore ${ruolo}`}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-4">
+            <span className="text-sm font-medium text-slate-700">Tipi Turno:</span>
+            {tipiTurno.map(tipo => (
+              <div key={tipo} className="flex items-center gap-1">
+                <div 
+                  className="px-3 py-1 rounded-lg text-sm font-medium text-white"
+                  style={{ backgroundColor: coloriTipoTurno[tipo] || '#94a3b8' }}
+                >
+                  {tipo}
+                </div>
+                <input
+                  type="color"
+                  value={coloriTipoTurno[tipo] || '#94a3b8'}
+                  onChange={(e) => updateColoreTipoTurno(tipo, e.target.value)}
+                  className="w-6 h-6 cursor-pointer rounded border-0"
+                  title={`Cambia colore ${tipo}`}
+                />
               </div>
             ))}
             <span className="text-xs text-slate-500 ml-4">💡 Trascina per spostare • Clicca per modificare</span>
