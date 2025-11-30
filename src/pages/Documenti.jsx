@@ -1487,6 +1487,10 @@ function LettereSection() {
   const [viewingChiusura, setViewingChiusura] = useState(null);
   const [chiusuraPreviewContent, setChiusuraPreviewContent] = useState('');
   const [downloadingPdfAdmin, setDownloadingPdfAdmin] = useState(null);
+  const [showEmailConfig, setShowEmailConfig] = useState(false);
+  const [emailConfig, setEmailConfig] = useState({ oggetto: '', corpo: '' });
+  const [generatingEmail, setGeneratingEmail] = useState(false);
+  const [emailPrompt, setEmailPrompt] = useState('');
 
   const downloadLetteraPDFAdmin = async (lettera) => {
     setDownloadingPdfAdmin(lettera.id);
