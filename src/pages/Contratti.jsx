@@ -210,7 +210,7 @@ export default function Contratti() {
       nome_cognome: contratto.nome_cognome || '',
       phone: contratto.phone || '',
       data_nascita: contratto.data_nascita || '',
-      citta_nascita: contratto.citta_nascita || '', // Added citta_nascita
+      citta_nascita: contratto.citta_nascita || '',
       codice_fiscale: contratto.codice_fiscale || '',
       indirizzo_residenza: contratto.indirizzo_residenza || '',
       iban: contratto.iban || '',
@@ -218,6 +218,8 @@ export default function Contratti() {
       user_type: contratto.user_type || 'dipendente',
       ruoli_dipendente: contratto.ruoli_dipendente || [],
       assigned_stores: contratto.assigned_stores || [],
+      tipo_contratto: contratto.tipo_contratto || '',
+      sede_lavoro: contratto.sede_lavoro || '',
       employee_group: contratto.employee_group || '',
       function_name: contratto.function_name || '',
       ore_settimanali: contratto.ore_settimanali || 0,
