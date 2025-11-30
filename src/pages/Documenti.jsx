@@ -677,12 +677,16 @@ function ContrattiSection() {
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [previewContratto, setPreviewContratto] = useState(null);
   const [templateTextareaRef, setTemplateTextareaRef] = useState(null);
+  const [showEmailConfig, setShowEmailConfig] = useState(false);
+  const [emailConfig, setEmailConfig] = useState({ oggetto: '', corpo: '' });
+  const [generatingEmail, setGeneratingEmail] = useState(false);
+  const [emailPrompt, setEmailPrompt] = useState('');
   const [formData, setFormData] = useState({
     user_id: '', user_email: '', user_nome_cognome: '', template_id: '', nome_cognome: '',
     phone: '', data_nascita: '', citta_nascita: '', codice_fiscale: '', indirizzo_residenza: '',
     iban: '', taglia_maglietta: '', user_type: 'dipendente', ruoli_dipendente: [],
     assigned_stores: [], employee_group: '', function_name: '', ore_settimanali: 0,
-    data_inizio_contratto: '', durata_contratto_mesi: 0, status: 'bozza', note: ''
+    sede_lavoro: '', data_inizio_contratto: '', durata_contratto_mesi: 0, status: 'bozza', note: ''
   });
   const [templateData, setTemplateData] = useState({
     nome_template: '', contenuto_template: '', descrizione: '', attivo: true
