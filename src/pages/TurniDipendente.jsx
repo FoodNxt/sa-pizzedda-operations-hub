@@ -183,18 +183,7 @@ export default function TurniDipendente() {
     enabled: !!selectedTurnoScambio,
   });
 
-  // Colleghi che lavorano nello stesso turno del prossimo turno
-  const { data: colleghiProssimoTurno = [] } = useQuery({
-    queryKey: ['colleghi-prossimo-turno', prossimoTurno?.data, prossimoTurno?.store_id],
-    queryFn: async () => {
-      if (!prossimoTurno) return [];
-      return base44.entities.TurnoPlanday.filter({
-        data: prossimoTurno.data,
-        store_id: prossimoTurno.store_id
-      });
-    },
-    enabled: !!prossimoTurno,
-  });
+
 
   const timbraMutation = useMutation({
     mutationFn: async ({ turnoId, tipo, posizione }) => {
@@ -358,6 +347,19 @@ export default function TurniDipendente() {
       });
     return futuri[0] || null;
   }, [turni, turniFuturi]);
+
+  // Colleghi che lavorano nello stesso turno del prossimo turno
+  const { data: colleghiProssimoTurno = [] } = useQuery({
+    queryKey: ['colleghi-prossimo-turno', prossimoTurno?.data, prossimoTurno?.store_id],
+    queryFn: async () => {
+      if (!prossimoTurno) return [];
+      return base44.entities.TurnoPlanday.filter({
+        data: prossimoTurno.data,
+        store_id: prossimoTurno.store_id
+      });
+    },
+    enabled: !!prossimoTurno,
+  });
 
   // Calcola se utente è nel raggio del prossimo turno
   const prossimoTurnoStatus = useMemo(() => {
