@@ -78,7 +78,8 @@ export default function PlandayStoreView({
       ruolo: dipendente?.ruoli_dipendente?.[0] || 'Pizzaiolo',
       ora_inizio: '09:00',
       ora_fine: '17:00',
-      tipo_turno: 'Normale'
+      tipo_turno: 'Normale',
+      dipendente_id: dipendenteId
     });
     setSelectedTurno(null);
   };
@@ -91,17 +92,18 @@ export default function PlandayStoreView({
       ruolo: turno.ruolo,
       ora_inizio: turno.ora_inizio,
       ora_fine: turno.ora_fine,
-      tipo_turno: turno.tipo_turno || 'Normale'
+      tipo_turno: turno.tipo_turno || 'Normale',
+      dipendente_id: turno.dipendente_id || ''
     });
   };
 
   const handleQuickSave = () => {
     if (quickAddPopup && onSaveTurno) {
-      const dipendente = users.find(u => u.id === quickAddPopup.dipendenteId);
+      const dipendente = users.find(u => u.id === quickForm.dipendente_id);
       onSaveTurno({
         store_id: selectedStore || stores[0]?.id,
         data: quickAddPopup.day,
-        dipendente_id: quickAddPopup.dipendenteId,
+        dipendente_id: quickForm.dipendente_id || '',
         dipendente_nome: dipendente?.nome_cognome || dipendente?.full_name || '',
         ...quickForm
       }, selectedTurno?.id);
@@ -309,13 +311,24 @@ export default function PlandayStoreView({
               <input type="time" value={quickForm.ora_inizio} onChange={(e) => setQuickForm({ ...quickForm, ora_inizio: e.target.value })} className="neumorphic-pressed px-2 py-1 rounded-lg text-sm outline-none" />
               <input type="time" value={quickForm.ora_fine} onChange={(e) => setQuickForm({ ...quickForm, ora_fine: e.target.value })} className="neumorphic-pressed px-2 py-1 rounded-lg text-sm outline-none" />
             </div>
-            <select value={quickForm.ruolo} onChange={(e) => setQuickForm({ ...quickForm, ruolo: e.target.value })} className="w-full neumorphic-pressed px-2 py-1 rounded-lg text-sm outline-none">
+            <select value={quickForm.ruolo} onChange={(e) => setQuickForm({ ...quickForm, ruolo: e.target.value, dipendente_id: '' })} className="w-full neumorphic-pressed px-2 py-1 rounded-lg text-sm outline-none">
               <option value="Pizzaiolo">Pizzaiolo</option>
               <option value="Cassiere">Cassiere</option>
               <option value="Store Manager">Store Manager</option>
             </select>
             <select value={quickForm.tipo_turno} onChange={(e) => setQuickForm({ ...quickForm, tipo_turno: e.target.value })} className="w-full neumorphic-pressed px-2 py-1 rounded-lg text-sm outline-none">
               {(tipiTurno.length > 0 ? tipiTurno : ['Normale']).map(tipo => <option key={tipo} value={tipo}>{tipo}</option>)}
+            </select>
+            <select value={quickForm.dipendente_id || ''} onChange={(e) => setQuickForm({ ...quickForm, dipendente_id: e.target.value })} className="w-full neumorphic-pressed px-2 py-1 rounded-lg text-sm outline-none">
+              <option value="">Non assegnato</option>
+              {users.filter(u => {
+                const ruoli = u.ruoli_dipendente || [];
+                return ruoli.includes(quickForm.ruolo);
+              }).map(u => (
+                <option key={u.id} value={u.id}>
+                  {u.nome_cognome || u.full_name}
+                </option>
+              ))}
             </select>
             <div className="flex gap-2 mt-3">
               {selectedTurno && (

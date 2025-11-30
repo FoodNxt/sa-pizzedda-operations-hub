@@ -1485,7 +1485,7 @@ export default function Planday() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
               <div>
                 <label className="text-sm font-medium text-slate-700 mb-1 block">Ora Inizio *</label>
                 <input
@@ -1516,7 +1516,7 @@ export default function Planday() {
                   ))}
                 </select>
               </div>
-              <div>
+              <div className="md:col-span-2">
               <label className="text-sm font-medium text-slate-700 mb-1 block">Dipendente</label>
               <select
                 value={turnoForm.dipendente_id}
@@ -1678,7 +1678,21 @@ export default function Planday() {
                                     marginRight: '1px',
                                     ...getRuoloStyle(turno.ruolo)
                                   }}
-                                  onClick={(e) => { e.stopPropagation(); handleEditTurno(turno); }}
+                                  onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    setEditingTurno(turno);
+                                    setTurnoForm({
+                                      store_id: turno.store_id,
+                                      data: turno.data,
+                                      ora_inizio: turno.ora_inizio,
+                                      ora_fine: turno.ora_fine,
+                                      ruolo: turno.ruolo,
+                                      dipendente_id: turno.dipendente_id || '',
+                                      tipo_turno: turno.tipo_turno || 'Normale',
+                                      note: turno.note || ''
+                                    });
+                                    setShowForm(true);
+                                  }}
                                 >
                                   <div className="flex items-center justify-between">
                                     <span className="font-bold text-[10px]">{turno.ora_inizio}-{turno.ora_fine}</span>
