@@ -80,6 +80,8 @@ import AssistenteDipendente from './pages/AssistenteDipendente';
 import PrecottureAdmin from './pages/PrecottureAdmin';
 import Planday from './pages/Planday';
 import TurniDipendente from './pages/TurniDipendente';
+import FormPulizia from './pages/FormPulizia';
+import Timbrature from './pages/Timbrature';
 import __Layout from './Layout.jsx';
 
 
@@ -166,6 +168,8 @@ export const PAGES = {
     "PrecottureAdmin": PrecottureAdmin,
     "Planday": Planday,
     "TurniDipendente": TurniDipendente,
+    "FormPulizia": FormPulizia,
+    "Timbrature": Timbrature,
 }
 
 export const pagesConfig = {

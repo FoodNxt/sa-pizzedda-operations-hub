@@ -227,20 +227,25 @@ const navigationStructure = [
         icon: Calendar,
       },
       {
-                    title: "Assistente AI",
-                    url: createPageUrl("GestioneAssistente"),
-                    icon: Users,
-                  },
-                  {
-                    title: "Planday",
-                    url: createPageUrl("Planday"),
-                    icon: Calendar,
-                  },
-                  {
-                    title: "HR Admin",
-                    url: createPageUrl("HRAdmin"),
-                    icon: Settings,
-                  }
+        title: "Assistente AI",
+        url: createPageUrl("GestioneAssistente"),
+        icon: Users,
+      },
+      {
+        title: "Planday",
+        url: createPageUrl("Planday"),
+        icon: Calendar,
+      },
+      {
+        title: "Timbrature",
+        url: createPageUrl("Timbrature"),
+        icon: Clock,
+      },
+      {
+        title: "HR Admin",
+        url: createPageUrl("HRAdmin"),
+        icon: Settings,
+      }
     ]
   },
   {
@@ -260,35 +265,9 @@ const navigationStructure = [
         icon: Users,
       },
       {
-        title: "Controllo Store Manager",
-        url: createPageUrl("ControlloStoreManager"),
-        icon: CheckSquare,
-      },
-      {
-        title: "Controllo Pulizie Master",
-        url: createPageUrl("ControlloPulizieMaster"),
-        icon: CheckSquare,
-      },
-      {
-        title: "Form Pulizia Cassiere",
-        url: createPageUrl("ControlloPuliziaCassiere"),
+        title: "Form Pulizia",
+        url: createPageUrl("FormPulizia"),
         icon: Camera,
-        requiredUserType: ["admin", "manager"],
-        requiredRole: null
-      },
-      {
-        title: "Form Pulizia Pizzaiolo",
-        url: createPageUrl("ControlloPuliziaPizzaiolo"),
-        icon: Camera,
-        requiredUserType: ["admin", "manager"],
-        requiredRole: null
-      },
-      {
-        title: "Form Pulizia Store Manager",
-        url: createPageUrl("ControlloPuliziaStoreManager"),
-        icon: Camera,
-        requiredUserType: ["admin", "manager"],
-        requiredRole: null
       }
     ]
   },
