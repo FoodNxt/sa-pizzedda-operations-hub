@@ -371,7 +371,7 @@ export default function Contratti() {
         nome_cognome: user.nome_cognome || user.full_name || '',
         phone: user.phone || '',
         data_nascita: user.data_nascita || '',
-        citta_nascita: user.citta_nascita || '', // Added citta_nascita
+        citta_nascita: user.citta_nascita || '',
         codice_fiscale: user.codice_fiscale || '',
         indirizzo_residenza: user.indirizzo_residenza || '',
         iban: user.iban || '',
@@ -379,12 +379,72 @@ export default function Contratti() {
         user_type: user.user_type || 'dipendente',
         ruoli_dipendente: user.ruoli_dipendente || [],
         assigned_stores: user.assigned_stores || [],
+        tipo_contratto: user.employee_group === 'FT' ? 'full_time' : user.employee_group === 'PT' ? 'part_time' : '',
+        sede_lavoro: user.assigned_stores?.[0] || '',
         employee_group: user.employee_group || '',
         function_name: user.function_name || '',
         ore_settimanali: user.ore_settimanali || 0,
         data_inizio_contratto: user.data_inizio_contratto || '',
         durata_contratto_mesi: user.durata_contratto_mesi || 0
       });
+
+      // Verifica contratti esistenti per questo utente
+      checkOverlappingContracts(user.id);
+    }
+  };
+
+  // Verifica contratti sovrapposti
+  const checkOverlappingContracts = (userId, dataInizio, durataM) => {
+    if (!userId) return;
+    
+    const userContratti = contratti.filter(c => 
+      c.user_id === userId && 
+      (c.status === 'inviato' || c.status === 'firmato') &&
+      (!editingContratto || c.id !== editingContratto.id)
+    );
+
+    if (userContratti.length === 0) {
+      setOverlappingWarning(null);
+      return;
+    }
+
+    // Calcola date del nuovo contratto
+    const newStart = dataInizio || formData.data_inizio_contratto;
+    const newDurata = durataM || formData.durata_contratto_mesi;
+    
+    if (!newStart || !newDurata) {
+      // Mostra warning generico se ha già contratti attivi
+      setOverlappingWarning({
+        type: 'existing',
+        message: `Attenzione: ${formData.nome_cognome || 'Questo dipendente'} ha già ${userContratti.length} contratto/i attivo/i. Verifica le date per evitare sovrapposizioni.`,
+        contracts: userContratti
+      });
+      return;
+    }
+
+    const newStartDate = new Date(newStart);
+    const newEndDate = new Date(newStart);
+    newEndDate.setMonth(newEndDate.getMonth() + parseInt(newDurata));
+
+    // Verifica sovrapposizioni
+    const overlapping = userContratti.filter(c => {
+      if (!c.data_inizio_contratto || !c.durata_contratto_mesi) return false;
+      const existingStart = new Date(c.data_inizio_contratto);
+      const existingEnd = new Date(c.data_inizio_contratto);
+      existingEnd.setMonth(existingEnd.getMonth() + parseInt(c.durata_contratto_mesi));
+
+      // Controlla sovrapposizione
+      return (newStartDate <= existingEnd && newEndDate >= existingStart);
+    });
+
+    if (overlapping.length > 0) {
+      setOverlappingWarning({
+        type: 'overlap',
+        message: `⚠️ ATTENZIONE: Il nuovo contratto si sovrappone con ${overlapping.length} contratto/i esistente/i!`,
+        contracts: overlapping
+      });
+    } else {
+      setOverlappingWarning(null);
     }
   };
 
