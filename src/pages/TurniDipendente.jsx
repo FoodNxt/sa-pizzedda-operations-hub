@@ -29,10 +29,12 @@ export default function TurniDipendente() {
   const [showScambioModal, setShowScambioModal] = useState(false);
   const [selectedTurnoScambio, setSelectedTurnoScambio] = useState(null);
   const [gpsPermissionStatus, setGpsPermissionStatus] = useState('unknown');
+  const [userPosition, setUserPosition] = useState(null);
+  const [distanceToStore, setDistanceToStore] = useState(null);
 
   const queryClient = useQueryClient();
 
-  // Richiedi permesso GPS all'avvio
+  // Richiedi permesso GPS all'avvio e traccia posizione
   useEffect(() => {
     if (navigator.permissions) {
       navigator.permissions.query({ name: 'geolocation' }).then((result) => {
@@ -42,9 +44,28 @@ export default function TurniDipendente() {
     }
   }, []);
 
+  // Aggiorna posizione ogni 30 secondi
+  useEffect(() => {
+    const updatePosition = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => setUserPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          () => {},
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      }
+    };
+    updatePosition();
+    const interval = setInterval(updatePosition, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   const requestGPSPermission = () => {
     navigator.geolocation.getCurrentPosition(
-      () => setGpsPermissionStatus('granted'),
+      (pos) => {
+        setGpsPermissionStatus('granted');
+        setUserPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      },
       () => setGpsPermissionStatus('denied'),
       { enableHighAccuracy: true }
     );
@@ -262,6 +283,59 @@ export default function TurniDipendente() {
     return turni.filter(t => t.data === oggi);
   }, [turni]);
 
+  // Prossimo turno (oggi o futuro)
+  const prossimoTurno = useMemo(() => {
+    const now = moment();
+    const allTurni = [...turni, ...turniFuturi];
+    const futuri = allTurni
+      .filter(t => {
+        const turnoEnd = moment(`${t.data} ${t.ora_fine}`);
+        return turnoEnd.isAfter(now) && t.stato !== 'completato';
+      })
+      .sort((a, b) => {
+        const aStart = moment(`${a.data} ${a.ora_inizio}`);
+        const bStart = moment(`${b.data} ${b.ora_inizio}`);
+        return aStart.diff(bStart);
+      });
+    return futuri[0] || null;
+  }, [turni, turniFuturi]);
+
+  // Calcola se utente è nel raggio del prossimo turno
+  const prossimoTurnoStatus = useMemo(() => {
+    if (!prossimoTurno) return { canTimbra: false, reason: 'Nessun turno' };
+    
+    const turnoStart = moment(`${prossimoTurno.data} ${prossimoTurno.ora_inizio}`);
+    const minutesToStart = turnoStart.diff(moment(), 'minutes');
+    const store = stores.find(s => s.id === prossimoTurno.store_id);
+    
+    // Già timbrato entrata?
+    if (prossimoTurno.timbrata_entrata && !prossimoTurno.timbrata_uscita) {
+      return { canTimbra: true, tipo: 'uscita', reason: null };
+    }
+    if (prossimoTurno.timbrata_uscita) {
+      return { canTimbra: false, reason: 'Turno completato' };
+    }
+    
+    // Controllo tempo
+    if (minutesToStart > 60) {
+      return { canTimbra: false, reason: `Mancano ${Math.floor(minutesToStart / 60)}h ${minutesToStart % 60}min al turno` };
+    }
+    
+    // Controllo GPS
+    if (config?.abilita_timbratura_gps && store?.latitude && store?.longitude) {
+      if (!userPosition) {
+        return { canTimbra: false, reason: 'Attiva il GPS', needsGPS: true };
+      }
+      const distance = calculateDistance(userPosition.lat, userPosition.lng, store.latitude, store.longitude);
+      const maxDistance = config.distanza_massima_metri || 100;
+      if (distance > maxDistance) {
+        return { canTimbra: false, reason: `Sei a ${Math.round(distance)}m dal locale (max ${maxDistance}m)` };
+      }
+    }
+    
+    return { canTimbra: true, tipo: 'entrata', reason: null };
+  }, [prossimoTurno, stores, config, userPosition]);
+
   // Colleghi disponibili per scambio
   const colleghiPerScambio = useMemo(() => {
     if (!selectedTurnoScambio || !allUsers.length) return [];
@@ -358,6 +432,75 @@ export default function TurniDipendente() {
             <div className="flex items-center gap-3">
               <AlertCircle className="w-5 h-5 text-red-600" />
               <span className="text-red-800">Accesso GPS negato. Abilita la geolocalizzazione nelle impostazioni del browser per poter timbrare.</span>
+            </div>
+          </NeumorphicCard>
+        )}
+
+        {/* Prossimo Turno - Timbra */}
+        {prossimoTurno && (
+          <NeumorphicCard className="p-6 bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200">
+            <h2 className="text-xl font-bold text-indigo-800 mb-4 flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              Prossimo Turno
+            </h2>
+            <div className="bg-white rounded-xl p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <div className="font-bold text-lg text-slate-800">
+                    {moment(prossimoTurno.data).format('dddd DD MMMM')}
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-600">
+                    <Clock className="w-4 h-4" />
+                    <span>{prossimoTurno.ora_inizio} - {prossimoTurno.ora_fine}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-500 text-sm mt-1">
+                    <MapPin className="w-4 h-4" />
+                    <span>{getStoreName(prossimoTurno.store_id)}</span>
+                    <span>•</span>
+                    <span>{prossimoTurno.ruolo}</span>
+                  </div>
+                </div>
+              </div>
+
+              {prossimoTurno.timbrata_entrata && !prossimoTurno.timbrata_uscita && (
+                <div className="flex items-center gap-2 text-sm text-green-600 mb-3">
+                  <LogIn className="w-4 h-4" />
+                  Entrata: {moment(prossimoTurno.timbrata_entrata).format('HH:mm')}
+                </div>
+              )}
+
+              <NeumorphicButton
+                onClick={() => handleTimbra(prossimoTurno, prossimoTurnoStatus.tipo || 'entrata')}
+                variant="primary"
+                className={`w-full flex items-center justify-center gap-2 ${
+                  !prossimoTurnoStatus.canTimbra ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+                disabled={!prossimoTurnoStatus.canTimbra || loadingGPS || timbraMutation.isPending}
+              >
+                {loadingGPS ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : prossimoTurnoStatus.tipo === 'uscita' ? (
+                  <LogOut className="w-5 h-5" />
+                ) : (
+                  <LogIn className="w-5 h-5" />
+                )}
+                {prossimoTurnoStatus.tipo === 'uscita' ? 'Timbra Uscita' : 'Timbra Entrata'}
+              </NeumorphicButton>
+
+              {!prossimoTurnoStatus.canTimbra && prossimoTurnoStatus.reason && (
+                <p className="text-sm text-center mt-2 text-slate-500">
+                  ⚠️ {prossimoTurnoStatus.reason}
+                </p>
+              )}
+
+              {prossimoTurnoStatus.needsGPS && (
+                <button
+                  onClick={requestGPSPermission}
+                  className="w-full mt-2 text-sm text-blue-600 hover:underline"
+                >
+                  Clicca qui per attivare il GPS
+                </button>
+              )}
             </div>
           </NeumorphicCard>
         )}
