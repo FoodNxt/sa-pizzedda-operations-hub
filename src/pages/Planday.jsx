@@ -496,7 +496,7 @@ export default function Planday() {
   };
 
   const deleteTipoTurno = (tipo) => {
-    if (DEFAULT_TIPI_TURNO.includes(tipo)) return;
+    if (tipiTurno.length <= 1) return; // Almeno 1 tipo deve rimanere
     const updated = tipiTurno.filter(t => t !== tipo);
     setTipiTurno(updated);
     localStorage.setItem('tipi_turno', JSON.stringify(updated));
@@ -1384,11 +1384,9 @@ export default function Planday() {
                       {tipiTurno.map(tipo => (
                         <span key={tipo} className="px-2 py-1 bg-slate-100 rounded-lg text-xs flex items-center gap-1">
                           {tipo}
-                          {!DEFAULT_TIPI_TURNO.includes(tipo) && (
-                            <button onClick={() => deleteTipoTurno(tipo)} className="text-red-500 hover:text-red-700">
-                              <X className="w-3 h-3" />
-                            </button>
-                          )}
+                          <button onClick={() => deleteTipoTurno(tipo)} className="text-red-500 hover:text-red-700">
+                            <X className="w-3 h-3" />
+                          </button>
                         </span>
                       ))}
                     </div>
