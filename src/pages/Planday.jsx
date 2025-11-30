@@ -142,6 +142,20 @@ export default function Planday() {
   const [newTipoTurno, setNewTipoTurno] = useState('');
   const [showTipiTurnoSection, setShowTipiTurnoSection] = useState(false);
   
+  // Colori per tipo turno
+  const [coloriTipoTurno, setColoriTipoTurno] = useState(() => {
+    const saved = localStorage.getItem('colori_tipo_turno');
+    return saved ? JSON.parse(saved) : {
+      'Normale': '#94a3b8',
+      'Straordinario': '#ef4444',
+      'Formazione': '#22c55e',
+      'Affiancamento': '#f59e0b',
+      'Apertura': '#3b82f6',
+      'Chiusura': '#8b5cf6'
+    };
+  });
+  const [showColoriSection, setShowColoriSection] = useState(false);
+  
   // Settimana modello
   const [showSettimanaModelloModal, setShowSettimanaModelloModal] = useState(false);
   const [settimanaModelloRange, setSettimanaModelloRange] = useState({
@@ -471,10 +485,32 @@ export default function Planday() {
   };
 
   const deleteTipoTurno = (tipo) => {
-    if (DEFAULT_TIPI_TURNO.includes(tipo)) return; // Non eliminare i default
+    if (DEFAULT_TIPI_TURNO.includes(tipo)) return;
     const updated = tipiTurno.filter(t => t !== tipo);
     setTipiTurno(updated);
     localStorage.setItem('tipi_turno', JSON.stringify(updated));
+  };
+
+  const updateColoreTipoTurno = (tipo, colore) => {
+    const updated = { ...coloriTipoTurno, [tipo]: colore };
+    setColoriTipoTurno(updated);
+    localStorage.setItem('colori_tipo_turno', JSON.stringify(updated));
+  };
+
+  // Funzione per salvare turno da componenti figli
+  const handleSaveTurnoFromChild = (turnoData, existingId = null) => {
+    const dipendente = users.find(u => u.id === turnoData.dipendente_id);
+    const dataToSave = {
+      ...turnoData,
+      dipendente_nome: dipendente?.nome_cognome || dipendente?.full_name || '',
+      stato: 'programmato'
+    };
+    
+    if (existingId) {
+      updateMutation.mutate({ id: existingId, data: dataToSave });
+    } else {
+      createMutation.mutate(dataToSave);
+    }
   };
 
   // Applica settimana modello
@@ -650,7 +686,7 @@ export default function Planday() {
                 onClick={() => setViewMode('dipendenti')}
                 className={`px-3 py-2 text-sm font-medium flex items-center gap-1 ${viewMode === 'dipendenti' ? 'bg-blue-500 text-white' : 'text-slate-700'}`}
               >
-                <Users className="w-4 h-4" /> Dipendenti
+                <StoreIcon className="w-4 h-4" /> Store
               </button>
               <button
                 onClick={() => setViewMode('singolo')}
@@ -976,6 +1012,12 @@ export default function Planday() {
                                       <Trash2 className="w-3 h-3" />
                                     </button>
                                   </div>
+                                  {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
+                                    <div 
+                                      className="absolute top-0 right-0 w-0 h-0 border-t-[12px] border-l-[12px] border-l-transparent"
+                                      style={{ borderTopColor: coloriTipoTurno[turno.tipo_turno] || '#94a3b8' }}
+                                    />
+                                  )}
                                   <div className="truncate text-[10px] font-medium">{turno.ruolo}</div>
                                   {turno.dipendente_nome && (
                                     <div className="truncate text-[10px] font-bold">{turno.dipendente_nome}</div>
@@ -997,18 +1039,22 @@ export default function Planday() {
           </NeumorphicCard>
         )}
 
-        {/* Vista Dipendenti */}
+        {/* Vista Store (dipendenti) */}
         {viewMode === 'dipendenti' && (
           <PlandayStoreView
             turni={turni}
             users={users}
             stores={stores}
             selectedStore={selectedStore}
+            setSelectedStore={setSelectedStore}
             weekStart={weekStart}
             setWeekStart={setWeekStart}
             onEditTurno={handleEditTurno}
             onAddTurno={handleAddTurnoFromStoreView}
+            onSaveTurno={handleSaveTurnoFromChild}
             getStoreName={getStoreName}
+            tipiTurno={tipiTurno}
+            coloriTipoTurno={coloriTipoTurno}
           />
         )}
 
@@ -1022,21 +1068,58 @@ export default function Planday() {
             stores={stores}
             isLoading={isLoading}
             onEditTurno={handleEditTurno}
+            onSaveTurno={handleSaveTurnoFromChild}
             getStoreName={getStoreName}
+            coloriTipoTurno={coloriTipoTurno}
           />
         )}
 
         {/* Legenda */}
         <NeumorphicCard className="p-4">
-          <div className="flex flex-wrap items-center gap-4">
-            <span className="text-sm font-medium text-slate-700">Legenda:</span>
+          <div className="flex flex-wrap items-center gap-4 mb-3">
+            <span className="text-sm font-medium text-slate-700">Ruoli:</span>
             {RUOLI.map(ruolo => (
               <div key={ruolo} className={`px-3 py-1 rounded-lg border-2 text-sm font-medium ${COLORI_RUOLO[ruolo]}`}>
                 {ruolo}
               </div>
             ))}
-            <span className="text-xs text-slate-500 ml-4">💡 Trascina sul calendario per creare un turno</span>
           </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-sm font-medium text-slate-700">Tipi Turno:</span>
+            {tipiTurno.map(tipo => (
+              <div key={tipo} className="flex items-center gap-1 text-xs">
+                <div 
+                  className="w-0 h-0 border-t-[10px] border-l-[10px] border-l-transparent"
+                  style={{ borderTopColor: coloriTipoTurno[tipo] || '#94a3b8' }}
+                />
+                <span className="text-slate-600">{tipo}</span>
+              </div>
+            ))}
+            <button
+              onClick={() => setShowColoriSection(!showColoriSection)}
+              className="text-xs text-blue-600 hover:underline ml-2"
+            >
+              Modifica colori
+            </button>
+          </div>
+          {showColoriSection && (
+            <div className="mt-3 p-3 bg-slate-50 rounded-xl">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {tipiTurno.map(tipo => (
+                  <div key={tipo} className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={coloriTipoTurno[tipo] || '#94a3b8'}
+                      onChange={(e) => updateColoreTipoTurno(tipo, e.target.value)}
+                      className="w-8 h-8 rounded cursor-pointer"
+                    />
+                    <span className="text-sm text-slate-700">{tipo}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="text-xs text-slate-500 mt-2">💡 Trascina i turni per spostarli</div>
         </NeumorphicCard>
 
         {/* Modal Impostazioni */}

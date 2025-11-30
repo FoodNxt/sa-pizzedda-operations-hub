@@ -10,6 +10,15 @@ const COLORI_RUOLO = {
   "Store Manager": "bg-purple-500 border-purple-600 text-white"
 };
 
+const DEFAULT_COLORI_TIPO = {
+  'Normale': '#94a3b8',
+  'Straordinario': '#ef4444',
+  'Formazione': '#22c55e',
+  'Affiancamento': '#f59e0b',
+  'Apertura': '#3b82f6',
+  'Chiusura': '#8b5cf6'
+};
+
 export default function PlandayEmployeeView({ 
   selectedDipendente,
   setSelectedDipendente,
@@ -18,7 +27,9 @@ export default function PlandayEmployeeView({
   stores,
   isLoading,
   onEditTurno,
-  getStoreName
+  onSaveTurno,
+  getStoreName,
+  coloriTipoTurno = DEFAULT_COLORI_TIPO
 }) {
   const [viewMode, setViewMode] = useState('settimana'); // settimana o mese
   const [currentDate, setCurrentDate] = useState(moment());
@@ -86,6 +97,32 @@ export default function PlandayEmployeeView({
   };
 
   const selectedUser = users.find(u => u.id === selectedDipendente);
+
+  const getTipoTurnoColor = (tipoTurno) => {
+    return coloriTipoTurno[tipoTurno] || '#94a3b8';
+  };
+
+  // Drag and drop
+  const handleDragStart = (e, turno) => {
+    e.dataTransfer.setData('turno', JSON.stringify(turno));
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e, day) => {
+    e.preventDefault();
+    const turnoData = e.dataTransfer.getData('turno');
+    if (turnoData && onSaveTurno) {
+      const turno = JSON.parse(turnoData);
+      onSaveTurno({
+        ...turno,
+        data: day.format('YYYY-MM-DD')
+      }, turno.id);
+    }
+  };
 
   return (
     <NeumorphicCard className="p-4">
@@ -180,6 +217,8 @@ export default function PlandayEmployeeView({
                   <div 
                     key={dayKey} 
                     className={`neumorphic-pressed p-3 rounded-xl min-h-[150px] ${isToday ? 'ring-2 ring-blue-400' : ''}`}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, day)}
                   >
                     <div className={`text-center mb-2 ${isToday ? 'text-blue-600' : 'text-slate-700'}`}>
                       <div className="font-medium">{day.format('ddd')}</div>
@@ -189,9 +228,17 @@ export default function PlandayEmployeeView({
                       {dayTurni.map(turno => (
                         <div 
                           key={turno.id}
-                          className={`p-2 rounded-lg cursor-pointer text-xs ${COLORI_RUOLO[turno.ruolo]}`}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, turno)}
+                          className={`p-2 rounded-lg cursor-grab text-xs relative ${COLORI_RUOLO[turno.ruolo]}`}
                           onClick={() => onEditTurno(turno)}
                         >
+                          {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
+                            <div 
+                              className="absolute top-0 right-0 w-0 h-0 border-t-[10px] border-l-[10px] border-l-transparent"
+                              style={{ borderTopColor: getTipoTurnoColor(turno.tipo_turno) }}
+                            />
+                          )}
                           <div className="font-bold">{turno.ora_inizio} - {turno.ora_fine}</div>
                           <div className="opacity-80">{turno.ruolo}</div>
                           <div className="opacity-80 text-[10px]">{getStoreName(turno.store_id)}</div>
@@ -226,6 +273,8 @@ export default function PlandayEmployeeView({
                         isToday ? 'bg-blue-100 ring-2 ring-blue-400' : 
                         isCurrentMonth ? 'bg-slate-50' : 'bg-slate-100 opacity-50'
                       }`}
+                      onDragOver={handleDragOver}
+                      onDrop={(e) => handleDrop(e, day)}
                     >
                       <div className={`text-xs font-medium mb-1 ${isToday ? 'text-blue-600' : 'text-slate-600'}`}>
                         {day.format('DD')}
@@ -234,7 +283,9 @@ export default function PlandayEmployeeView({
                         {dayTurni.slice(0, 2).map(turno => (
                           <div 
                             key={turno.id}
-                            className={`px-1 py-0.5 rounded text-[9px] cursor-pointer truncate ${COLORI_RUOLO[turno.ruolo]}`}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, turno)}
+                            className={`px-1 py-0.5 rounded text-[9px] cursor-grab truncate relative ${COLORI_RUOLO[turno.ruolo]}`}
                             onClick={() => onEditTurno(turno)}
                           >
                             {turno.ora_inizio}-{turno.ora_fine}
