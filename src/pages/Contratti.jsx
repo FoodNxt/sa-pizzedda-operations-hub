@@ -165,7 +165,7 @@ export default function Contratti() {
       nome_cognome: '',
       phone: '',
       data_nascita: '',
-      citta_nascita: '', // Added citta_nascita
+      citta_nascita: '',
       codice_fiscale: '',
       indirizzo_residenza: '',
       iban: '',
@@ -173,6 +173,8 @@ export default function Contratti() {
       user_type: 'dipendente',
       ruoli_dipendente: [],
       assigned_stores: [],
+      tipo_contratto: '',
+      sede_lavoro: '',
       employee_group: '',
       function_name: '',
       ore_settimanali: 0,
@@ -184,6 +186,7 @@ export default function Contratti() {
     setSelectedTemplate('');
     setEditingContratto(null);
     setShowForm(false);
+    setOverlappingWarning(null);
   };
 
   const resetTemplateForm = () => {
