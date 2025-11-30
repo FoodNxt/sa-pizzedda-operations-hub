@@ -186,6 +186,11 @@ export default function Planday() {
     queryFn: () => base44.entities.SettimanaModello.list(),
   });
 
+  const { data: struttureTurno = [] } = useQuery({
+    queryKey: ['strutture-turno'],
+    queryFn: () => base44.entities.StrutturaTurno.list(),
+  });
+
   const [configForm, setConfigForm] = useState({
     distanza_massima_metri: 100,
     tolleranza_ritardo_minuti: 0,
@@ -402,10 +407,15 @@ export default function Planday() {
 
   const handleSaveTurno = () => {
     const dipendente = users.find(u => u.id === turnoForm.dipendente_id);
+    const momento = getTurnoTipo({ ora_inizio: turnoForm.ora_inizio });
+    const sequence = momento === 'Mattina' ? 'first' : 'second';
+    
     const dataToSave = {
       ...turnoForm,
       dipendente_nome: dipendente?.nome_cognome || dipendente?.full_name || '',
-      tipo_turno: turnoForm.tipo_turno || 'Normale'
+      tipo_turno: turnoForm.tipo_turno || 'Normale',
+      momento_turno: momento,
+      turno_sequence: sequence
     };
 
     if (editingTurno) {
@@ -693,10 +703,15 @@ export default function Planday() {
   // Funzione per salvare turno da componenti figli
   const handleSaveTurnoFromChild = (turnoData, existingId = null) => {
     const dipendente = users.find(u => u.id === turnoData.dipendente_id);
+    const momento = getTurnoTipo({ ora_inizio: turnoData.ora_inizio });
+    const sequence = momento === 'Mattina' ? 'first' : 'second';
+    
     const dataToSave = {
       ...turnoData,
       dipendente_nome: dipendente?.nome_cognome || dipendente?.full_name || '',
-      stato: 'programmato'
+      stato: 'programmato',
+      momento_turno: momento,
+      turno_sequence: sequence
     };
     
     if (existingId) {
@@ -784,9 +799,14 @@ export default function Planday() {
 
   const handleQuickSave = () => {
     const dipendente = users.find(u => u.id === turnoForm.dipendente_id);
+    const momento = getTurnoTipo({ ora_inizio: turnoForm.ora_inizio });
+    const sequence = momento === 'Mattina' ? 'first' : 'second';
+    
     const dataToSave = {
       ...turnoForm,
-      dipendente_nome: dipendente?.nome_cognome || dipendente?.full_name || ''
+      dipendente_nome: dipendente?.nome_cognome || dipendente?.full_name || '',
+      momento_turno: momento,
+      turno_sequence: sequence
     };
     createMutation.mutate(dataToSave);
     setQuickTurnoPopup(null);
@@ -933,6 +953,12 @@ export default function Planday() {
     return h < 14 ? 'Mattina' : 'Sera';
   };
 
+  // Determina se turno è primo o secondo basandosi su Mattina/Sera
+  const getTurnoSequenceFromMomento = (turno) => {
+    const momento = getTurnoTipo(turno);
+    return momento === 'Mattina' ? 'first' : 'second';
+  };
+
   const calcolaOreEffettive = (turno) => {
     // Se non c'è timbro entrata, non possiamo calcolare
     if (!turno.timbrata_entrata) return null;
@@ -1046,28 +1072,10 @@ export default function Planday() {
     });
   }, [turniTimbrature, selectedStore, selectedDipendenteTimbr, selectedRuolo]);
 
-  // Helper per determinare se il turno è mattina o sera
+  // Helper per determinare se il turno è mattina o sera BASANDOSI SUL MOMENTO
   const getTurnoSequence = (turno, allTurniDay) => {
-    const turnoRuolo = turno.ruolo;
-    const turnoStoreId = turno.store_id;
-    
-    // Filtra solo i turni con lo stesso ruolo E stesso store
-    const turniStessoRuoloStore = allTurniDay.filter(t => 
-      t.ruolo === turnoRuolo && t.store_id === turnoStoreId
-    );
-    
-    if (turniStessoRuoloStore.length <= 1) {
-      return 'first'; // Solo un turno per questo ruolo/store → è il primo
-    }
-    
-    // Ordina per ora di inizio
-    const sorted = [...turniStessoRuoloStore].sort((a, b) => a.ora_inizio.localeCompare(b.ora_inizio));
-    
-    // Trova l'indice del turno corrente
-    const index = sorted.findIndex(t => t.id === turno.id);
-    
-    // Il primo turno è 'first', tutti gli altri sono 'second'
-    return index === 0 ? 'first' : 'second';
+    // Usa il "Momento" del turno per determinare first/second
+    return getTurnoSequenceFromMomento(turno);
   };
 
   // Helper per ottenere i form dovuti per un turno specifico (usato nella vista calendario)
@@ -1077,8 +1085,8 @@ export default function Planday() {
     const turnoRuolo = turno.ruolo;
     const turnoStoreId = turno.store_id;
     
-    // Determina se questo turno è mattina o sera
-    const turnoSequence = getTurnoSequence(turno, allTurniDay);
+    // Determina se questo turno è mattina o sera BASANDOSI SUL MOMENTO
+    const turnoSequence = getTurnoSequenceFromMomento(turno);
     
     // Determina il giorno della settimana del turno
     const turnoDayOfWeek = new Date(turno.data).getDay();
@@ -1116,6 +1124,32 @@ export default function Planday() {
     });
     
     return formDovuti;
+  };
+
+  // Helper per ottenere attività da Struttura Turno
+  const getAttivitaTurno = (turno) => {
+    if (!turno.ruolo || !turno.store_id) return [];
+    
+    const momento = getTurnoTipo(turno);
+    const dayOfWeek = new Date(turno.data).getDay();
+    
+    const attivita = struttureTurno.filter(st => {
+      const stRoles = st.ruoli || [];
+      if (stRoles.length > 0 && !stRoles.includes(turno.ruolo)) return false;
+      
+      const stStores = st.stores || [];
+      if (stStores.length > 0 && !stStores.includes(turno.store_id)) return false;
+      
+      const stDays = st.giorni_settimana || [];
+      if (stDays.length > 0 && !stDays.includes(dayOfWeek)) return false;
+      
+      const stMomento = st.momento_turno || 'Mattina';
+      if (stMomento !== momento) return false;
+      
+      return true;
+    });
+    
+    return attivita.flatMap(st => st.attivita || []);
   };
 
   // Verifica form compilati usando logica FormTracker
@@ -1673,20 +1707,28 @@ export default function Planday() {
                                   {!selectedStore && (
                                     <div className="truncate text-[9px] opacity-80">{getStoreName(turno.store_id)}</div>
                                   )}
-                                  {/* Form dovuti per questo turno */}
+                                  {/* Form + Attività per questo turno */}
                                   {(() => {
                                     const formDovuti = getFormDovutiPerTurno(turno, turniByDayHour[turno.data] || []);
-                                    if (formDovuti.length > 0) {
+                                    const attivita = getAttivitaTurno(turno);
+                                    const totalItems = formDovuti.length + attivita.length;
+                                    
+                                    if (totalItems > 0) {
                                       return (
                                         <div className="mt-0.5 flex flex-wrap gap-0.5">
-                                          {formDovuti.slice(0, 3).map((form, idx) => (
-                                            <span key={idx} className="text-[8px] px-1 bg-white bg-opacity-30 rounded">
-                                              {form.slice(0, 3)}
+                                          {formDovuti.slice(0, 2).map((form, idx) => (
+                                            <span key={`f-${idx}`} className="text-[8px] px-1 bg-green-500 bg-opacity-40 rounded">
+                                              📋 {form.slice(0, 3)}
                                             </span>
                                           ))}
-                                          {formDovuti.length > 3 && (
+                                          {attivita.slice(0, 1).map((att, idx) => (
+                                            <span key={`a-${idx}`} className="text-[8px] px-1 bg-blue-500 bg-opacity-40 rounded">
+                                              ✓ {att.slice(0, 3)}
+                                            </span>
+                                          ))}
+                                          {totalItems > 3 && (
                                             <span className="text-[8px] px-1 bg-white bg-opacity-30 rounded">
-                                              +{formDovuti.length - 3}
+                                              +{totalItems - 3}
                                             </span>
                                           )}
                                         </div>
@@ -1726,6 +1768,11 @@ export default function Planday() {
             tipiTurno={tipiTurno}
             coloriTipoTurno={coloriTipoTurno}
             coloriRuolo={coloriRuolo}
+            formTrackerConfigs={formTrackerConfigs}
+            struttureTurno={struttureTurno}
+            getFormDovutiPerTurno={getFormDovutiPerTurno}
+            getAttivitaTurno={getAttivitaTurno}
+            getTurnoSequenceFromMomento={getTurnoSequenceFromMomento}
           />
         )}
 
@@ -1744,6 +1791,11 @@ export default function Planday() {
             getStoreName={getStoreName}
             coloriTipoTurno={coloriTipoTurno}
             coloriRuolo={coloriRuolo}
+            formTrackerConfigs={formTrackerConfigs}
+            struttureTurno={struttureTurno}
+            getFormDovutiPerTurno={getFormDovutiPerTurno}
+            getAttivitaTurno={getAttivitaTurno}
+            getTurnoSequenceFromMomento={getTurnoSequenceFromMomento}
           />
         )}
 
@@ -3106,9 +3158,8 @@ export default function Planday() {
                   return <p className="text-slate-500">Configurazione non trovata</p>;
                 }
 
-                const turnoSequence = getTurnoSequence(turno, turniTimbrature.filter(t => 
-                  t.data === turno.data && t.store_id === turno.store_id && t.ruolo === turno.ruolo
-                ));
+                // Usa il campo salvato nel turno se esiste, altrimenti calcola
+                const turnoSequence = turno.turno_sequence || getTurnoSequenceFromMomento(turno);
                 const turnoDayOfWeek = new Date(turno.data).getDay();
                 const dayNames = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
                 const configSequences = config.shift_sequences || (config.shift_sequence ? [config.shift_sequence] : ['first']);

@@ -25,7 +25,12 @@ export default function PlandayStoreView({
   getStoreName,
   tipiTurno = [],
   coloriTipoTurno = {},
-  coloriRuolo = DEFAULT_COLORI_RUOLO
+  coloriRuolo = DEFAULT_COLORI_RUOLO,
+  formTrackerConfigs = [],
+  struttureTurno = [],
+  getFormDovutiPerTurno = () => [],
+  getAttivitaTurno = () => [],
+  getTurnoSequenceFromMomento = () => 'first'
 }) {
   const [quickAddPopup, setQuickAddPopup] = useState(null);
   const [quickForm, setQuickForm] = useState({
@@ -261,6 +266,20 @@ export default function PlandayStoreView({
                         <div className="font-bold">{turno.ruolo}</div>
                         <div>{turno.ora_inizio} - {turno.ora_fine}</div>
                         {!selectedStore && turno.store_id && <div className="opacity-80 text-[10px]">{getStoreName(turno.store_id)}</div>}
+                        {/* Form + Attività */}
+                        {(() => {
+                          const formDovuti = getFormDovutiPerTurno(turno, turni.filter(t => t.data === turno.data));
+                          const attivita = getAttivitaTurno(turno);
+                          const total = formDovuti.length + attivita.length;
+                          if (total > 0) {
+                            return (
+                              <div className="text-[8px] mt-0.5 px-1 bg-white bg-opacity-30 rounded">
+                                📋 {formDovuti.length} • ✓ {attivita.length}
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
                       </div>
                     ))}
                     {dayTurni.length === 0 && (
