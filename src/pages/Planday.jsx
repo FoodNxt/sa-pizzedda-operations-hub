@@ -107,11 +107,15 @@ export default function Planday() {
     abilita_timbratura_gps: true
   });
 
-  // Stato per drag and drop
+  // Stato per drag and drop (creazione nuovi turni)
   const [dragStart, setDragStart] = useState(null);
   const [dragEnd, setDragEnd] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [quickTurnoPopup, setQuickTurnoPopup] = useState(null);
+  
+  // Stato per drag and drop turni esistenti
+  const [draggingTurno, setDraggingTurno] = useState(null);
+  const [dropTarget, setDropTarget] = useState(null);
   const [editingStore, setEditingStore] = useState(null);
   const [storeCoords, setStoreCoords] = useState({ latitude: '', longitude: '', address: '' });
   
@@ -391,6 +395,39 @@ export default function Planday() {
       note: ''
     });
     setShowForm(true);
+  };
+
+  // Drag and drop turni esistenti
+  const handleTurnoDragStart = (e, turno) => {
+    e.stopPropagation();
+    setDraggingTurno(turno);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', turno.id);
+  };
+
+  const handleTurnoDragEnd = () => {
+    setDraggingTurno(null);
+    setDropTarget(null);
+  };
+
+  const handleDayDragOver = (e, day) => {
+    e.preventDefault();
+    if (draggingTurno) {
+      setDropTarget(day.format('YYYY-MM-DD'));
+    }
+  };
+
+  const handleDayDrop = (e, day) => {
+    e.preventDefault();
+    if (draggingTurno && draggingTurno.data !== day.format('YYYY-MM-DD')) {
+      // Sposta il turno al nuovo giorno
+      updateMutation.mutate({
+        id: draggingTurno.id,
+        data: { ...draggingTurno, data: day.format('YYYY-MM-DD') }
+      });
+    }
+    setDraggingTurno(null);
+    setDropTarget(null);
   };
 
   // Turni modello
@@ -892,23 +929,32 @@ export default function Planday() {
                     </div>
                   ))}
 
-                  {/* Turni posizionati in overlay con gestione sovrapposizioni */}
+                  {/* Turni posizionati in overlay con gestione sovrapposizioni e drag&drop */}
                   <div className="absolute top-0 left-0 right-0 grid grid-cols-8 gap-1 pointer-events-none" style={{ height: `${timeSlots.length * 25}px` }}>
                     <div /> {/* Colonna ore */}
                     {weekDays.map(day => {
                       const dayKey = day.format('YYYY-MM-DD');
                       const dayTurni = turniByDayHour[dayKey] || [];
                       const overlappingGroups = getOverlappingTurni(dayTurni);
+                      const isDropTarget = dropTarget === dayKey;
 
                       return (
-                        <div key={dayKey} className="relative">
+                        <div 
+                          key={dayKey} 
+                          className={`relative pointer-events-auto ${isDropTarget ? 'bg-blue-100 bg-opacity-50' : ''}`}
+                          onDragOver={(e) => handleDayDragOver(e, day)}
+                          onDrop={(e) => handleDayDrop(e, day)}
+                        >
                           {overlappingGroups.map((group, groupIdx) => 
                             group.map((turno, idx) => {
                               const style = getTurnoStyle(turno, idx, group.length);
                               return (
                                 <div 
                                   key={turno.id}
-                                  className={`absolute p-1 rounded-lg border-2 text-xs cursor-pointer pointer-events-auto overflow-hidden shadow-md ${COLORI_RUOLO[turno.ruolo]}`}
+                                  draggable
+                                  onDragStart={(e) => handleTurnoDragStart(e, turno)}
+                                  onDragEnd={handleTurnoDragEnd}
+                                  className={`absolute p-1 rounded-lg border-2 text-xs cursor-grab pointer-events-auto overflow-hidden shadow-md ${COLORI_RUOLO[turno.ruolo]} ${draggingTurno?.id === turno.id ? 'opacity-50' : ''}`}
                                   style={{
                                     ...style,
                                     marginLeft: '1px',
