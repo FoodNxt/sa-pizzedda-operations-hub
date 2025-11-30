@@ -16,7 +16,12 @@ const DEFAULT_COLORI_RUOLO = {
 export default function PlandayEmployeeView({ 
   selectedDipendente, setSelectedDipendente, turniDipendente, users, stores, isLoading,
   onEditTurno, onSaveTurno, onDeleteTurno, getStoreName,
-  coloriTipoTurno = DEFAULT_COLORI_TIPO, coloriRuolo = DEFAULT_COLORI_RUOLO
+  coloriTipoTurno = DEFAULT_COLORI_TIPO, coloriRuolo = DEFAULT_COLORI_RUOLO,
+  formTrackerConfigs = [],
+  struttureTurno = [],
+  getFormDovutiPerTurno = () => [],
+  getAttivitaTurno = () => [],
+  getTurnoSequenceFromMomento = () => 'first'
 }) {
   const [viewMode, setViewMode] = useState('settimana');
   const [currentDate, setCurrentDate] = useState(moment());
@@ -157,14 +162,28 @@ export default function PlandayEmployeeView({
                       <div className="text-xl font-bold">{day.format('DD')}</div>
                     </div>
                     <div className="space-y-1">
-                      {dayTurni.map(turno => (
-                        <div key={turno.id} draggable onDragStart={(e) => handleDragStart(e, turno)} className="p-2 rounded-lg cursor-grab text-xs relative text-white" style={getRuoloStyle(turno.ruolo)} onClick={() => handleTurnoClick(turno)}>
-                          {turno.tipo_turno && turno.tipo_turno !== 'Normale' && <div className="absolute top-0 right-0 w-0 h-0 border-t-[10px] border-l-[10px] border-l-transparent" style={{ borderTopColor: getTipoColor(turno.tipo_turno) }} />}
-                          <div className="font-bold">{turno.ora_inizio} - {turno.ora_fine}</div>
-                          <div className="opacity-80">{turno.ruolo}</div>
-                          <div className="opacity-80 text-[10px]">{getStoreName(turno.store_id)}</div>
-                        </div>
-                      ))}
+                    {dayTurni.map(turno => (
+                      <div key={turno.id} draggable onDragStart={(e) => handleDragStart(e, turno)} className="p-2 rounded-lg cursor-grab text-xs relative text-white" style={getRuoloStyle(turno.ruolo)} onClick={() => handleTurnoClick(turno)}>
+                        {turno.tipo_turno && turno.tipo_turno !== 'Normale' && <div className="absolute top-0 right-0 w-0 h-0 border-t-[10px] border-l-[10px] border-l-transparent" style={{ borderTopColor: getTipoColor(turno.tipo_turno) }} />}
+                        <div className="font-bold">{turno.ora_inizio} - {turno.ora_fine}</div>
+                        <div className="opacity-80">{turno.ruolo}</div>
+                        <div className="opacity-80 text-[10px]">{getStoreName(turno.store_id)}</div>
+                        {/* Form + Attività */}
+                        {(() => {
+                          const formDovuti = getFormDovutiPerTurno(turno, turniDipendente || []);
+                          const attivita = getAttivitaTurno(turno);
+                          const total = formDovuti.length + attivita.length;
+                          if (total > 0) {
+                            return (
+                              <div className="text-[8px] mt-1 px-1 bg-white bg-opacity-30 rounded">
+                                📋 {formDovuti.length} • ✓ {attivita.length}
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                    ))}
                     </div>
                   </div>
                 );
