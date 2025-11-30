@@ -778,25 +778,62 @@ export default function Planday() {
     });
   };
 
-  // Filtra dipendenti per store e ruolo
-  const filteredDipendenti = useMemo(() => {
+  // Tutti i dipendenti assegnati allo store selezionato
+  const dipendentiPerStore = useMemo(() => {
+    if (!turnoForm.store_id) return users.filter(u => u.ruoli_dipendente?.length > 0);
+    
     return users.filter(u => {
-      // Filtra per ruolo (deve avere il ruolo richiesto dal turno)
-      const ruoli = u.ruoli_dipendente || [];
-      if (!ruoli.includes(turnoForm.ruolo)) return false;
-      
-      // Filtra per store (se un store è selezionato, mostra solo dipendenti assegnati a quel store)
-      if (turnoForm.store_id) {
-        const assignedStores = u.assigned_stores || [];
-        // Se il dipendente non ha store assegnati, mostralo comunque (per retrocompatibilità)
-        if (assignedStores.length === 0) return true;
-        // Altrimenti verifica che sia assegnato allo store del turno
-        return assignedStores.includes(turnoForm.store_id);
-      }
-      
-      return true;
+      const assignedStores = u.assigned_stores || [];
+      // Se il dipendente non ha store assegnati, mostralo comunque (per retrocompatibilità)
+      if (assignedStores.length === 0) return u.ruoli_dipendente?.length > 0;
+      // Altrimenti verifica che sia assegnato allo store del turno
+      return assignedStores.includes(turnoForm.store_id) && u.ruoli_dipendente?.length > 0;
     });
-  }, [users, turnoForm.ruolo, turnoForm.store_id]);
+  }, [users, turnoForm.store_id]);
+
+  // Verifica se un dipendente può essere assegnato al ruolo del turno
+  const canAssignToRole = (user, role) => {
+    const ruoli = user.ruoli_dipendente || [];
+    return ruoli.includes(role);
+  };
+
+  // Verifica disponibilità dipendente per il giorno/orario del turno
+  const getDipendenteDisponibilita = (dipendenteId) => {
+    if (!turnoForm.data || !dipendenteId) return { disponibile: true, turniGiorno: [], sovrapposizione: false };
+    
+    // Trova tutti i turni del dipendente in quel giorno
+    const turniGiorno = turni.filter(t => 
+      t.dipendente_id === dipendenteId && 
+      t.data === turnoForm.data &&
+      (editingTurno ? t.id !== editingTurno.id : true) // Escludi il turno che stiamo modificando
+    );
+    
+    if (turniGiorno.length === 0) {
+      return { disponibile: true, turniGiorno: [], sovrapposizione: false };
+    }
+    
+    // Verifica sovrapposizione oraria
+    const [newStartH, newStartM] = turnoForm.ora_inizio.split(':').map(Number);
+    const [newEndH, newEndM] = turnoForm.ora_fine.split(':').map(Number);
+    const newStart = newStartH * 60 + newStartM;
+    const newEnd = newEndH * 60 + newEndM;
+    
+    const sovrapposizione = turniGiorno.some(t => {
+      const [tStartH, tStartM] = t.ora_inizio.split(':').map(Number);
+      const [tEndH, tEndM] = t.ora_fine.split(':').map(Number);
+      const tStart = tStartH * 60 + tStartM;
+      const tEnd = tEndH * 60 + tEndM;
+      
+      // Verifica sovrapposizione
+      return (newStart < tEnd && newEnd > tStart);
+    });
+    
+    return { 
+      disponibile: !sovrapposizione, 
+      turniGiorno, 
+      sovrapposizione 
+    };
+  };
 
   // Genera giorni della settimana
   const weekDays = useMemo(() => {
@@ -863,11 +900,34 @@ export default function Planday() {
   };
 
   const calcolaOreEffettive = (turno) => {
-    if (!turno.timbrata_entrata || !turno.timbrata_uscita) return null;
+    // Se non c'è timbro entrata, non possiamo calcolare
+    if (!turno.timbrata_entrata) return null;
     
+    const stato = getTimbraturaTipo(turno);
     const entrata = moment(turno.timbrata_entrata);
-    const uscita = moment(turno.timbrata_uscita);
-    const minutiEffettivi = uscita.diff(entrata, 'minutes');
+    
+    let minutiEffettivi = 0;
+    
+    if (turno.timbrata_uscita) {
+      // Se c'è uscita, calcola normalmente
+      const uscita = moment(turno.timbrata_uscita);
+      minutiEffettivi = uscita.diff(entrata, 'minutes');
+    } else if (stato.tipo === 'mancata_uscita') {
+      // Se uscita mancata, usa l'ora fine turno prevista meno penalità
+      const fineturno = moment(`${turno.data} ${turno.ora_fine}`);
+      minutiEffettivi = fineturno.diff(entrata, 'minutes');
+      // Sottrai la penalità per mancata uscita
+      const penalita = config?.penalita_timbratura_mancata || 0;
+      minutiEffettivi = Math.max(0, minutiEffettivi - penalita);
+    } else {
+      // Turno ancora in corso, non mostrare nulla
+      return null;
+    }
+    
+    // Sottrai anche il ritardo conteggiato se presente
+    if (stato.ritardoConteggiato > 0) {
+      minutiEffettivi = Math.max(0, minutiEffettivi - stato.ritardoConteggiato);
+    }
     
     const ore = Math.floor(minutiEffettivi / 60);
     const minuti = minutiEffettivi % 60;
@@ -1286,17 +1346,67 @@ export default function Planday() {
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-700 mb-1 block">Dipendente</label>
-                <select
-                  value={turnoForm.dipendente_id}
-                  onChange={(e) => setTurnoForm({ ...turnoForm, dipendente_id: e.target.value })}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                >
-                  <option value="">Non assegnato</option>
-                  {filteredDipendenti.map(u => (
-                    <option key={u.id} value={u.id}>{u.nome_cognome || u.full_name}</option>
-                  ))}
-                </select>
+              <label className="text-sm font-medium text-slate-700 mb-1 block">Dipendente</label>
+              <select
+                value={turnoForm.dipendente_id}
+                onChange={(e) => setTurnoForm({ ...turnoForm, dipendente_id: e.target.value })}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+              >
+                <option value="">Non assegnato</option>
+                {dipendentiPerStore.map(u => {
+                  const canAssign = canAssignToRole(u, turnoForm.ruolo);
+                  const disponibilita = getDipendenteDisponibilita(u.id);
+                  const nome = u.nome_cognome || u.full_name;
+
+                  let label = nome;
+                  let statusEmoji = '';
+
+                  if (!canAssign) {
+                    statusEmoji = '🚫';
+                    label = `${nome} (non è ${turnoForm.ruolo})`;
+                  } else if (disponibilita.sovrapposizione) {
+                    statusEmoji = '⚠️';
+                    label = `${nome} (OCCUPATO - sovrapposizione orario)`;
+                  } else if (disponibilita.turniGiorno.length > 0) {
+                    statusEmoji = '📅';
+                    const turniInfo = disponibilita.turniGiorno.map(t => `${t.ora_inizio}-${t.ora_fine}`).join(', ');
+                    label = `${nome} (ha già turni: ${turniInfo})`;
+                  } else {
+                    statusEmoji = '✅';
+                    label = `${nome} (libero)`;
+                  }
+
+                  return (
+                    <option 
+                      key={u.id} 
+                      value={u.id}
+                      disabled={!canAssign}
+                      style={{ color: !canAssign ? '#999' : disponibilita.sovrapposizione ? '#dc2626' : 'inherit' }}
+                    >
+                      {statusEmoji} {label}
+                    </option>
+                  );
+                })}
+              </select>
+              {turnoForm.dipendente_id && (() => {
+                const disponibilita = getDipendenteDisponibilita(turnoForm.dipendente_id);
+                if (disponibilita.sovrapposizione) {
+                  return (
+                    <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      Attenzione: il dipendente ha già un turno che si sovrappone!
+                    </p>
+                  );
+                }
+                if (disponibilita.turniGiorno.length > 0) {
+                  return (
+                    <p className="text-xs text-orange-600 mt-1">
+                      ℹ️ Altri turni oggi: {disponibilita.turniGiorno.map(t => `${t.ora_inizio}-${t.ora_fine}`).join(', ')}
+                    </p>
+                  );
+                }
+                return null;
+              })()}
               </div>
             </div>
 
@@ -1740,9 +1850,34 @@ export default function Planday() {
                     className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
                   >
                     <option value="">Non assegnato</option>
-                    {filteredDipendenti.map(u => (
-                      <option key={u.id} value={u.id}>{u.nome_cognome || u.full_name}</option>
-                    ))}
+                    {dipendentiPerStore.map(u => {
+                      const canAssign = canAssignToRole(u, turnoForm.ruolo);
+                      const disponibilita = getDipendenteDisponibilita(u.id);
+                      const nome = u.nome_cognome || u.full_name;
+                      
+                      let statusEmoji = '';
+                      let label = nome;
+                      
+                      if (!canAssign) {
+                        statusEmoji = '🚫';
+                        label = `${nome} (non ${turnoForm.ruolo})`;
+                      } else if (disponibilita.sovrapposizione) {
+                        statusEmoji = '⚠️';
+                        label = `${nome} (OCCUPATO)`;
+                      } else if (disponibilita.turniGiorno.length > 0) {
+                        statusEmoji = '📅';
+                        label = `${nome} (altri turni)`;
+                      } else {
+                        statusEmoji = '✅';
+                        label = `${nome}`;
+                      }
+                      
+                      return (
+                        <option key={u.id} value={u.id} disabled={!canAssign}>
+                          {statusEmoji} {label}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
 

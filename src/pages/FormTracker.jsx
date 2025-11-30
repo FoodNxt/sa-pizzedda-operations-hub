@@ -112,6 +112,7 @@ export default function FormTracker() {
       form_name: '',
       form_page: '',
       assigned_roles: [],
+      assigned_stores: [],
       shift_timing: 'end',
       shift_based_timing: ['end'],
       shift_sequences: ['first'],
@@ -139,6 +140,7 @@ export default function FormTracker() {
       form_name: config.form_name,
       form_page: config.form_page,
       assigned_roles: config.assigned_roles || [],
+      assigned_stores: config.assigned_stores || [],
       shift_timing: timings[0] || 'end',
       shift_based_timing: timings,
       shift_sequences: sequences,
@@ -161,6 +163,7 @@ export default function FormTracker() {
       form_name: configForm.form_name,
       form_page: configForm.form_page,
       assigned_roles: configForm.assigned_roles,
+      assigned_stores: configForm.assigned_stores || [],
       shift_timing: configForm.shift_timing,
       shift_based_timing: configForm.shift_based_timing || [configForm.shift_timing],
       shift_sequences: configForm.shift_sequences,
@@ -840,7 +843,7 @@ export default function FormTracker() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <h3 className="font-bold text-slate-800 mb-2">{config.form_name}</h3>
-                          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
+                          <div className="grid grid-cols-2 md:grid-cols-6 gap-2 text-xs">
                             <div className="neumorphic-pressed p-2 rounded-lg">
                               <p className="text-slate-500">Ruoli</p>
                               <p className="font-medium text-slate-700">
@@ -852,9 +855,12 @@ export default function FormTracker() {
                             <div className="neumorphic-pressed p-2 rounded-lg">
                               <p className="text-slate-500">Momento</p>
                               <p className="font-medium text-slate-700">
-                                {(config.shift_based_timing?.[0] || config.shift_timing) === 'start' 
-                                  ? '🔵 Inizio turno' 
-                                  : '🟢 Fine turno'}
+                                {(() => {
+                                  const timings = config.shift_based_timing || [config.shift_timing || 'end'];
+                                  if (timings.includes('start') && timings.includes('end')) return '🔵🟢 Entrambi';
+                                  if (timings.includes('start')) return '🔵 Inizio turno';
+                                  return '🟢 Fine turno';
+                                })()}
                               </p>
                             </div>
                             <div className="neumorphic-pressed p-2 rounded-lg">
@@ -876,6 +882,16 @@ export default function FormTracker() {
                                   if (days.length === 0) return 'Tutti';
                                   const dayNames = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'];
                                   return days.map(d => dayNames[d]).join(', ');
+                                })()}
+                              </p>
+                            </div>
+                            <div className="neumorphic-pressed p-2 rounded-lg">
+                              <p className="text-slate-500">Locali</p>
+                              <p className="font-medium text-slate-700 text-xs">
+                                {(() => {
+                                  const storeIds = config.assigned_stores || [];
+                                  if (storeIds.length === 0) return 'Tutti';
+                                  return storeIds.map(id => stores.find(s => s.id === id)?.name || id).join(', ');
                                 })()}
                               </p>
                             </div>
@@ -1118,6 +1134,35 @@ export default function FormTracker() {
                           }`}
                         >
                           {day.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">
+                      Locali (vuoto = tutti i locali)
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {stores.map(store => (
+                        <button
+                          key={store.id}
+                          type="button"
+                          onClick={() => {
+                            const storeIds = configForm.assigned_stores || [];
+                            if (storeIds.includes(store.id)) {
+                              setConfigForm({ ...configForm, assigned_stores: storeIds.filter(s => s !== store.id) });
+                            } else {
+                              setConfigForm({ ...configForm, assigned_stores: [...storeIds, store.id] });
+                            }
+                          }}
+                          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                            configForm.assigned_stores?.includes(store.id)
+                              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                              : 'nav-button text-slate-700'
+                          }`}
+                        >
+                          {store.name}
                         </button>
                       ))}
                     </div>
