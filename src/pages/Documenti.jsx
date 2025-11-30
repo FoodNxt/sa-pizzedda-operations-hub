@@ -1771,6 +1771,10 @@ function LettereSection() {
           <Settings className="w-5 h-5" />
           Automazione
         </NeumorphicButton>
+        <NeumorphicButton onClick={() => setShowEmailConfig(true)} className="flex items-center gap-2">
+          <Mail className="w-5 h-5" />
+          Configura Email
+        </NeumorphicButton>
       </div>
 
       {/* Configurazione Automazione */}
