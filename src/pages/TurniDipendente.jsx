@@ -485,7 +485,7 @@ export default function TurniDipendente() {
             </h2>
             <div className="bg-white rounded-xl p-4 shadow-sm">
               <div className="flex items-center justify-between mb-3">
-                <div>
+                <div className="flex-1">
                   <div className="font-bold text-lg text-slate-800">
                     {moment(prossimoTurno.data).format('dddd DD MMMM')}
                   </div>
@@ -507,6 +507,23 @@ export default function TurniDipendente() {
                     </div>
                   )}
                 </div>
+                {!prossimoTurnoStatus.inCorso && !prossimoTurno.timbrata_entrata && (
+                  <div>
+                    {prossimoTurno.richiesta_scambio?.stato === 'pending' ? (
+                      <span className="px-3 py-1 bg-yellow-200 text-yellow-800 rounded-full text-xs font-medium">
+                        Scambio richiesto
+                      </span>
+                    ) : (
+                      <NeumorphicButton
+                        onClick={() => openScambioModal(prossimoTurno)}
+                        className="text-sm px-3 py-2 flex items-center gap-1"
+                      >
+                        <Users className="w-4 h-4" />
+                        Scambia
+                      </NeumorphicButton>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Timer turno in corso */}
