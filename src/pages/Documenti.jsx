@@ -1309,9 +1309,55 @@ function ContrattiSection() {
               <input type="text" placeholder="Nome Cognome" value={formData.nome_cognome}
                 onChange={(e) => setFormData({ ...formData, nome_cognome: e.target.value })}
                 className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required />
-              <input type="date" value={formData.data_inizio_contratto}
-                onChange={(e) => setFormData({ ...formData, data_inizio_contratto: e.target.value })}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required />
+              
+              {/* Nuovi campi contratto */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-600 mb-1 block">Tipo Contratto *</label>
+                  <select value={formData.employee_group} onChange={(e) => setFormData({ ...formData, employee_group: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required>
+                    <option value="">Seleziona...</option>
+                    <option value="FT">Full Time</option>
+                    <option value="PT">Part Time</option>
+                    <option value="CM">Contratto Misto</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-600 mb-1 block">Ore Settimanali *</label>
+                  <input type="number" placeholder="40" value={formData.ore_settimanali || ''}
+                    onChange={(e) => setFormData({ ...formData, ore_settimanali: parseInt(e.target.value) || 0 })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required min="1" max="48" />
+                </div>
+              </div>
+              
+              <div>
+                <label className="text-xs text-slate-600 mb-1 block flex items-center gap-1">
+                  <MapPin className="w-3 h-3" /> Sede di Lavoro *
+                </label>
+                <select value={formData.sede_lavoro} onChange={(e) => setFormData({ ...formData, sede_lavoro: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required>
+                  <option value="">Seleziona sede...</option>
+                  {stores.map(s => (
+                    <option key={s.id} value={s.id}>{s.name} - {s.address}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-600 mb-1 block">Data Inizio *</label>
+                  <input type="date" value={formData.data_inizio_contratto}
+                    onChange={(e) => setFormData({ ...formData, data_inizio_contratto: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-600 mb-1 block">Durata (mesi) *</label>
+                  <input type="number" placeholder="12" value={formData.durata_contratto_mesi || ''}
+                    onChange={(e) => setFormData({ ...formData, durata_contratto_mesi: parseInt(e.target.value) || 0 })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required min="1" />
+                </div>
+              </div>
+              
               <NeumorphicButton type="submit" variant="primary" className="w-full">Crea Contratto</NeumorphicButton>
             </form>
           </NeumorphicCard>
