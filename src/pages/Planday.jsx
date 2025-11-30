@@ -4,9 +4,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
+import PlandayStoreView from "../components/planday/PlandayStoreView";
+import PlandayEmployeeView from "../components/planday/PlandayEmployeeView";
 import { 
   Calendar, ChevronLeft, ChevronRight, Plus, X, Save, Clock, 
-  User, Store as StoreIcon, Trash2, Edit, Settings, Loader2, MapPin
+  User, Store as StoreIcon, Trash2, Edit, Settings, Loader2, MapPin, Users, LayoutGrid
 } from "lucide-react";
 import moment from "moment";
 import "moment/locale/it";
@@ -33,6 +35,8 @@ export default function Planday() {
   const [showForm, setShowForm] = useState(false);
   const [editingTurno, setEditingTurno] = useState(null);
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const [viewMode, setViewMode] = useState('calendario'); // calendario, dipendenti, singolo
+  const [selectedDipendente, setSelectedDipendente] = useState(null);
   const [turnoForm, setTurnoForm] = useState({
     store_id: '',
     data: '',
@@ -71,6 +75,22 @@ export default function Planday() {
       return base44.entities.TurnoPlanday.filter(filters);
     },
     enabled: true,
+  });
+
+  // Turni per dipendente specifico (per la vista singolo dipendente)
+  const { data: turniDipendente = [] } = useQuery({
+    queryKey: ['turni-dipendente', selectedDipendente],
+    queryFn: async () => {
+      if (!selectedDipendente) return [];
+      // Carica turni ultimi 3 mesi
+      const startDate = moment().subtract(1, 'month').startOf('month').format('YYYY-MM-DD');
+      const endDate = moment().add(2, 'months').endOf('month').format('YYYY-MM-DD');
+      return base44.entities.TurnoPlanday.filter({
+        dipendente_id: selectedDipendente,
+        data: { $gte: startDate, $lte: endDate }
+      });
+    },
+    enabled: !!selectedDipendente && viewMode === 'singolo',
   });
 
   const { data: config = null } = useQuery({
@@ -299,8 +319,8 @@ export default function Planday() {
     return slotValue >= minSlot && slotValue <= maxSlot;
   };
 
-  // Calcola posizione e altezza del turno nel calendario
-  const getTurnoStyle = (turno) => {
+  // Calcola posizione e altezza del turno nel calendario con gestione sovrapposizioni
+  const getTurnoStyle = (turno, index, total) => {
     const [startH, startM] = turno.ora_inizio.split(':').map(Number);
     const [endH, endM] = turno.ora_fine.split(':').map(Number);
     
@@ -308,11 +328,69 @@ export default function Planday() {
     const endSlot = (endH - 8) * 2 + (endM >= 30 ? 1 : 0);
     const duration = endSlot - startSlot;
     
+    // Calcola larghezza e posizione per turni sovrapposti
+    const width = total > 1 ? `${100 / total}%` : '100%';
+    const left = total > 1 ? `${(index * 100) / total}%` : '0';
+    
     return {
       top: `${startSlot * 25}px`,
       height: `${Math.max(duration * 25, 25)}px`,
-      minHeight: '25px'
+      minHeight: '25px',
+      width,
+      left
     };
+  };
+
+  // Raggruppa turni sovrapposti per lo stesso giorno
+  const getOverlappingTurni = (dayTurni) => {
+    // Ordina per ora inizio
+    const sorted = [...dayTurni].sort((a, b) => a.ora_inizio.localeCompare(b.ora_inizio));
+    const groups = [];
+    
+    sorted.forEach(turno => {
+      const [startH, startM] = turno.ora_inizio.split(':').map(Number);
+      const [endH, endM] = turno.ora_fine.split(':').map(Number);
+      const start = startH * 60 + startM;
+      const end = endH * 60 + endM;
+      
+      // Trova gruppo esistente che si sovrappone
+      let foundGroup = false;
+      for (const group of groups) {
+        const overlaps = group.some(t => {
+          const [tStartH, tStartM] = t.ora_inizio.split(':').map(Number);
+          const [tEndH, tEndM] = t.ora_fine.split(':').map(Number);
+          const tStart = tStartH * 60 + tStartM;
+          const tEnd = tEndH * 60 + tEndM;
+          return (start < tEnd && end > tStart);
+        });
+        if (overlaps) {
+          group.push(turno);
+          foundGroup = true;
+          break;
+        }
+      }
+      if (!foundGroup) {
+        groups.push([turno]);
+      }
+    });
+    
+    return groups;
+  };
+
+  // Funzione per aggiungere turno da vista dipendenti
+  const handleAddTurnoFromStoreView = (day, dipendenteId) => {
+    const dipendente = users.find(u => u.id === dipendenteId);
+    setTurnoForm({
+      store_id: selectedStore || (stores[0]?.id || ''),
+      data: day.format('YYYY-MM-DD'),
+      ora_inizio: '09:00',
+      ora_fine: '17:00',
+      ruolo: dipendente?.ruoli_dipendente?.[0] || 'Pizzaiolo',
+      dipendente_id: dipendenteId,
+      tipo_turno: 'Normale',
+      note: ''
+    });
+    setShowForm(true);
   };
 
   // Turni modello
@@ -524,6 +602,26 @@ export default function Planday() {
               <Calendar className="w-4 h-4" />
               Usa come Modello
             </NeumorphicButton>
+            <div className="flex rounded-xl overflow-hidden neumorphic-pressed">
+              <button
+                onClick={() => setViewMode('calendario')}
+                className={`px-3 py-2 text-sm font-medium flex items-center gap-1 ${viewMode === 'calendario' ? 'bg-blue-500 text-white' : 'text-slate-700'}`}
+              >
+                <LayoutGrid className="w-4 h-4" /> Calendario
+              </button>
+              <button
+                onClick={() => setViewMode('dipendenti')}
+                className={`px-3 py-2 text-sm font-medium flex items-center gap-1 ${viewMode === 'dipendenti' ? 'bg-blue-500 text-white' : 'text-slate-700'}`}
+              >
+                <Users className="w-4 h-4" /> Dipendenti
+              </button>
+              <button
+                onClick={() => setViewMode('singolo')}
+                className={`px-3 py-2 text-sm font-medium flex items-center gap-1 ${viewMode === 'singolo' ? 'bg-blue-500 text-white' : 'text-slate-700'}`}
+              >
+                <User className="w-4 h-4" /> Singolo
+              </button>
+            </div>
             <NeumorphicButton onClick={() => setShowModelliModal(true)} className="flex items-center gap-2">
               <Clock className="w-4 h-4" />
               Turni Modello
@@ -742,107 +840,145 @@ export default function Planday() {
           </NeumorphicCard>
         )}
 
-        {/* Calendario settimanale */}
-        <NeumorphicCard className="p-4 overflow-x-auto">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-            </div>
-          ) : (
-            <div className="min-w-[900px]">
-              {/* Header giorni */}
-              <div className="grid grid-cols-8 gap-1 mb-2">
-                <div className="p-2 text-center font-medium text-slate-500 text-sm">Ora</div>
-                {weekDays.map(day => (
-                  <div 
-                    key={day.format('YYYY-MM-DD')} 
-                    className={`p-2 text-center rounded-lg ${
-                      day.isSame(moment(), 'day') ? 'bg-blue-100' : ''
-                    }`}
-                  >
-                    <div className="font-medium text-slate-700">{day.format('ddd')}</div>
-                    <div className="text-lg font-bold text-slate-800">{day.format('DD')}</div>
-                  </div>
-                ))}
+        {/* Vista Calendario */}
+        {viewMode === 'calendario' && (
+          <NeumorphicCard className="p-4 overflow-x-auto">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
               </div>
-
-              {/* Griglia oraria con slot 30 min */}
-              <div className="relative">
-                {/* Linee orizzontali e label ore */}
-                {timeSlots.map((slot, idx) => (
-                  <div key={`${slot.hour}-${slot.minute}`} className="grid grid-cols-8 gap-1" style={{ height: '25px' }}>
-                    <div className="text-center text-xs text-slate-500 font-medium flex items-center justify-center">
-                      {slot.minute === 0 ? slot.label : ''}
+            ) : (
+              <div className="min-w-[900px]">
+                {/* Header giorni */}
+                <div className="grid grid-cols-8 gap-1 mb-2">
+                  <div className="p-2 text-center font-medium text-slate-500 text-sm">Ora</div>
+                  {weekDays.map(day => (
+                    <div 
+                      key={day.format('YYYY-MM-DD')} 
+                      className={`p-2 text-center rounded-lg ${
+                        day.isSame(moment(), 'day') ? 'bg-blue-100' : ''
+                      }`}
+                    >
+                      <div className="font-medium text-slate-700">{day.format('ddd')}</div>
+                      <div className="text-lg font-bold text-slate-800">{day.format('DD')}</div>
                     </div>
-                    {weekDays.map(day => {
-                    const dayKey = day.format('YYYY-MM-DD');
-                    const inDragRange = isInDragRange(day, slot);
+                  ))}
+                </div>
 
-                    return (
-                      <div 
-                        key={`${dayKey}-${slot.hour}-${slot.minute}`}
-                        className={`border-t border-slate-100 cursor-pointer select-none transition-colors ${
-                          inDragRange ? 'bg-blue-200' : 'hover:bg-slate-50'
-                        } ${slot.minute === 0 ? 'border-slate-200' : 'border-slate-100'}`}
-                        onMouseDown={(e) => { e.preventDefault(); handleMouseDown(day, slot); }}
-                        onMouseEnter={() => handleMouseEnter(day, slot)}
-                        onMouseUp={() => handleMouseUp(day, slot)}
-                      />
-                    );
+                {/* Griglia oraria con slot 30 min */}
+                <div className="relative">
+                  {/* Linee orizzontali e label ore */}
+                  {timeSlots.map((slot, idx) => (
+                    <div key={`${slot.hour}-${slot.minute}`} className="grid grid-cols-8 gap-1" style={{ height: '25px' }}>
+                      <div className="text-center text-xs text-slate-500 font-medium flex items-center justify-center">
+                        {slot.minute === 0 ? slot.label : ''}
+                      </div>
+                      {weekDays.map(day => {
+                      const dayKey = day.format('YYYY-MM-DD');
+                      const inDragRange = isInDragRange(day, slot);
+
+                      return (
+                        <div 
+                          key={`${dayKey}-${slot.hour}-${slot.minute}`}
+                          className={`border-t border-slate-100 cursor-pointer select-none transition-colors ${
+                            inDragRange ? 'bg-blue-200' : 'hover:bg-slate-50'
+                          } ${slot.minute === 0 ? 'border-slate-200' : 'border-slate-100'}`}
+                          onMouseDown={(e) => { e.preventDefault(); handleMouseDown(day, slot); }}
+                          onMouseEnter={() => handleMouseEnter(day, slot)}
+                          onMouseUp={() => handleMouseUp(day, slot)}
+                        />
+                      );
+                      })}
+                    </div>
+                  ))}
+
+                  {/* Turni posizionati in overlay con gestione sovrapposizioni */}
+                  <div className="absolute top-0 left-0 right-0 grid grid-cols-8 gap-1 pointer-events-none" style={{ height: `${timeSlots.length * 25}px` }}>
+                    <div /> {/* Colonna ore */}
+                    {weekDays.map(day => {
+                      const dayKey = day.format('YYYY-MM-DD');
+                      const dayTurni = turniByDayHour[dayKey] || [];
+                      const overlappingGroups = getOverlappingTurni(dayTurni);
+
+                      return (
+                        <div key={dayKey} className="relative">
+                          {overlappingGroups.map((group, groupIdx) => 
+                            group.map((turno, idx) => {
+                              const style = getTurnoStyle(turno, idx, group.length);
+                              return (
+                                <div 
+                                  key={turno.id}
+                                  className={`absolute p-1 rounded-lg border-2 text-xs cursor-pointer pointer-events-auto overflow-hidden shadow-md ${COLORI_RUOLO[turno.ruolo]}`}
+                                  style={{
+                                    ...style,
+                                    marginLeft: '1px',
+                                    marginRight: '1px'
+                                  }}
+                                  onClick={(e) => { e.stopPropagation(); handleEditTurno(turno); }}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-bold text-[10px]">{turno.ora_inizio}-{turno.ora_fine}</span>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (confirm('Eliminare questo turno?')) {
+                                          deleteMutation.mutate(turno.id);
+                                        }
+                                      }}
+                                      className="hover:text-red-200"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                  <div className="truncate text-[10px] font-medium">{turno.ruolo}</div>
+                                  {turno.dipendente_nome && (
+                                    <div className="truncate text-[10px] font-bold">{turno.dipendente_nome}</div>
+                                  )}
+                                  {!selectedStore && (
+                                    <div className="truncate text-[9px] opacity-80">{getStoreName(turno.store_id)}</div>
+                                  )}
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      );
                     })}
                   </div>
-                ))}
-
-                {/* Turni posizionati in overlay */}
-                <div className="absolute top-0 left-0 right-0 grid grid-cols-8 gap-1 pointer-events-none" style={{ height: `${timeSlots.length * 25}px` }}>
-                  <div /> {/* Colonna ore */}
-                  {weekDays.map(day => {
-                    const dayKey = day.format('YYYY-MM-DD');
-                    const dayTurni = turniByDayHour[dayKey] || [];
-
-                    return (
-                      <div key={dayKey} className="relative">
-                        {dayTurni.map(turno => {
-                          const style = getTurnoStyle(turno);
-                          return (
-                            <div 
-                              key={turno.id}
-                              className={`absolute left-0 right-0 mx-0.5 p-1 rounded-lg border-2 text-xs cursor-pointer pointer-events-auto overflow-hidden shadow-md ${COLORI_RUOLO[turno.ruolo]}`}
-                              style={style}
-                              onClick={(e) => { e.stopPropagation(); handleEditTurno(turno); }}
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className="font-bold text-[10px]">{turno.ora_inizio}-{turno.ora_fine}</span>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (confirm('Eliminare questo turno?')) {
-                                      deleteMutation.mutate(turno.id);
-                                    }
-                                  }}
-                                  className="hover:text-red-200"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </button>
-                              </div>
-                              <div className="truncate text-[10px] font-medium">{turno.ruolo}</div>
-                              {turno.dipendente_nome && (
-                                <div className="truncate text-[10px] font-bold">{turno.dipendente_nome}</div>
-                              )}
-                              {!selectedStore && (
-                                <div className="truncate text-[9px] opacity-80">{getStoreName(turno.store_id)}</div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })}
                 </div>
               </div>
-            </div>
-          )}
-        </NeumorphicCard>
+            )}
+          </NeumorphicCard>
+        )}
+
+        {/* Vista Dipendenti */}
+        {viewMode === 'dipendenti' && (
+          <PlandayStoreView
+            turni={turni}
+            users={users}
+            stores={stores}
+            selectedStore={selectedStore}
+            weekStart={weekStart}
+            setWeekStart={setWeekStart}
+            onEditTurno={handleEditTurno}
+            onAddTurno={handleAddTurnoFromStoreView}
+            getStoreName={getStoreName}
+          />
+        )}
+
+        {/* Vista Singolo Dipendente */}
+        {viewMode === 'singolo' && (
+          <PlandayEmployeeView
+            selectedDipendente={selectedDipendente}
+            setSelectedDipendente={setSelectedDipendente}
+            turniDipendente={turniDipendente}
+            users={users}
+            stores={stores}
+            isLoading={isLoading}
+            onEditTurno={handleEditTurno}
+            getStoreName={getStoreName}
+          />
+        )}
 
         {/* Legenda */}
         <NeumorphicCard className="p-4">
