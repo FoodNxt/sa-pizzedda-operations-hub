@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
@@ -174,6 +176,9 @@ export default function Planday() {
     dataFine: '',
     applicaSenzaFine: false
   });
+  
+  // Modal per gestione turni
+  const [showGestioneTurniModal, setShowGestioneTurniModal] = useState(false);
 
   React.useEffect(() => {
     if (config) {
@@ -692,61 +697,69 @@ export default function Planday() {
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
-              Planday - Gestione Turni
+              Planday
             </h1>
-            <p className="text-slate-500 mt-1">Pianifica i turni settimanali</p>
+            <p className="text-slate-500 mt-1">Gestione turni e timbrature</p>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <NeumorphicButton onClick={() => setShowSettimanaModelloModal(true)} className="flex items-center gap-2">
+            <Link to={createPageUrl('Timbrature')}>
+              <NeumorphicButton className="flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                Timbrature
+              </NeumorphicButton>
+            </Link>
+            <NeumorphicButton onClick={() => setShowGestioneTurniModal(true)} variant="primary" className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
-              Usa come Modello
-            </NeumorphicButton>
-            <div className="flex rounded-xl overflow-hidden neumorphic-pressed">
-              <button
-                onClick={() => setViewMode('calendario')}
-                className={`px-3 py-2 text-sm font-medium flex items-center gap-1 ${viewMode === 'calendario' ? 'bg-blue-500 text-white' : 'text-slate-700'}`}
-              >
-                <LayoutGrid className="w-4 h-4" /> Calendario
-              </button>
-              <button
-                onClick={() => setViewMode('dipendenti')}
-                className={`px-3 py-2 text-sm font-medium flex items-center gap-1 ${viewMode === 'dipendenti' ? 'bg-blue-500 text-white' : 'text-slate-700'}`}
-              >
-                <StoreIcon className="w-4 h-4" /> Store
-              </button>
-              <button
-                onClick={() => setViewMode('singolo')}
-                className={`px-3 py-2 text-sm font-medium flex items-center gap-1 ${viewMode === 'singolo' ? 'bg-blue-500 text-white' : 'text-slate-700'}`}
-              >
-                <User className="w-4 h-4" /> Singolo
-              </button>
-            </div>
-            <NeumorphicButton onClick={() => setShowModelliModal(true)} className="flex items-center gap-2">
-              <Clock className="w-4 h-4" />
-              Turni Modello
-            </NeumorphicButton>
-            <NeumorphicButton onClick={() => setShowConfigModal(true)} className="flex items-center gap-2">
-              <Settings className="w-4 h-4" />
-              Impostazioni
+              Gestione Turni
             </NeumorphicButton>
           </div>
         </div>
 
-        {/* Filtri e navigazione */}
+        {/* Quick Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <NeumorphicCard className="p-4 text-center">
+            <Calendar className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+            <p className="text-2xl font-bold text-slate-800">{turni.length}</p>
+            <p className="text-xs text-slate-500">Turni Settimana</p>
+          </NeumorphicCard>
+          <NeumorphicCard className="p-4 text-center">
+            <Users className="w-8 h-8 text-green-600 mx-auto mb-2" />
+            <p className="text-2xl font-bold text-green-600">
+              {new Set(turni.map(t => t.dipendente_id).filter(Boolean)).size}
+            </p>
+            <p className="text-xs text-slate-500">Dipendenti Attivi</p>
+          </NeumorphicCard>
+          <NeumorphicCard className="p-4 text-center">
+            <StoreIcon className="w-8 h-8 text-purple-600 mx-auto mb-2" />
+            <p className="text-2xl font-bold text-purple-600">{stores.length}</p>
+            <p className="text-xs text-slate-500">Locali</p>
+          </NeumorphicCard>
+          <NeumorphicCard className="p-4 text-center">
+            <Clock className="w-8 h-8 text-orange-600 mx-auto mb-2" />
+            <p className="text-2xl font-bold text-orange-600">
+              {Math.round(turni.reduce((sum, t) => {
+                const [sh, sm] = t.ora_inizio.split(':').map(Number);
+                const [eh, em] = t.ora_fine.split(':').map(Number);
+                return sum + (eh - sh) + (em - sm) / 60;
+              }, 0))}h
+            </p>
+            <p className="text-xs text-slate-500">Ore Totali</p>
+          </NeumorphicCard>
+        </div>
+
+        {/* Week Navigation */}
         <NeumorphicCard className="p-4">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <select
-                value={selectedStore}
-                onChange={(e) => setSelectedStore(e.target.value)}
-                className="neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
-              >
-                <option value="">Tutti i locali</option>
-                {stores.map(store => (
-                  <option key={store.id} value={store.id}>{store.name}</option>
-                ))}
-              </select>
-            </div>
+          <div className="flex items-center justify-between">
+            <select
+              value={selectedStore}
+              onChange={(e) => setSelectedStore(e.target.value)}
+              className="neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
+            >
+              <option value="">Tutti i locali</option>
+              {stores.map(store => (
+                <option key={store.id} value={store.id}>{store.name}</option>
+              ))}
+            </select>
 
             <div className="flex items-center gap-2">
               <NeumorphicButton onClick={() => setWeekStart(weekStart.clone().subtract(1, 'week'))}>
@@ -762,423 +775,10 @@ export default function Planday() {
                 Oggi
               </NeumorphicButton>
             </div>
-
-            <div className="flex items-center gap-2">
-              {turniModello.length > 0 && (
-                <select
-                  value=""
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      const modello = turniModello.find(m => m.id === e.target.value);
-                      if (modello) {
-                        setTurnoForm({
-                          store_id: selectedStore || (stores[0]?.id || ''),
-                          data: moment().format('YYYY-MM-DD'),
-                          ora_inizio: modello.ora_inizio,
-                          ora_fine: modello.ora_fine,
-                          ruolo: modello.ruolo,
-                          dipendente_id: '',
-                          tipo_turno: modello.tipo_turno || 'Normale',
-                          note: ''
-                        });
-                        setSelectedModello(e.target.value);
-                        setShowForm(true);
-                      }
-                    }
-                  }}
-                  className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
-                >
-                  <option value="">+ da Modello</option>
-                  {turniModello.map(m => (
-                    <option key={m.id} value={m.id}>{m.nome}</option>
-                  ))}
-                </select>
-              )}
-              <NeumorphicButton 
-                onClick={() => {
-                  setTurnoForm({ 
-                    store_id: selectedStore || (stores[0]?.id || ''),
-                    data: moment().format('YYYY-MM-DD'),
-                    ora_inizio: '09:00',
-                    ora_fine: '17:00',
-                    ruolo: 'Pizzaiolo',
-                    dipendente_id: '',
-                    tipo_turno: 'Normale',
-                    note: ''
-                  });
-                  setShowForm(true);
-                }} 
-                variant="primary" 
-                className="flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Nuovo Turno
-              </NeumorphicButton>
-            </div>
           </div>
         </NeumorphicCard>
 
-        {/* Form Turno */}
-        {showForm && (
-          <NeumorphicCard className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-slate-800">
-                {editingTurno ? 'Modifica Turno' : 'Nuovo Turno'}
-              </h2>
-              <button onClick={resetForm} className="nav-button p-2 rounded-lg">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-1 block">Locale *</label>
-                <select
-                  value={turnoForm.store_id}
-                  onChange={(e) => setTurnoForm({ ...turnoForm, store_id: e.target.value })}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                >
-                  <option value="">Seleziona locale</option>
-                  {stores.map(store => (
-                    <option key={store.id} value={store.id}>{store.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-1 block">Data *</label>
-                <input
-                  type="date"
-                  value={turnoForm.data}
-                  onChange={(e) => setTurnoForm({ ...turnoForm, data: e.target.value })}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-1 block">Ruolo *</label>
-                <select
-                  value={turnoForm.ruolo}
-                  onChange={(e) => setTurnoForm({ ...turnoForm, ruolo: e.target.value, dipendente_id: '' })}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                >
-                  {RUOLI.map(ruolo => (
-                    <option key={ruolo} value={ruolo}>{ruolo}</option>
-                  ))}
-                </select>
-              </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-              <div>
-              <label className="text-sm font-medium text-slate-700 mb-1 block">Ora Inizio *</label>
-              <input
-                type="time"
-                value={turnoForm.ora_inizio}
-                onChange={(e) => setTurnoForm({ ...turnoForm, ora_inizio: e.target.value })}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-              />
-              </div>
-              <div>
-              <label className="text-sm font-medium text-slate-700 mb-1 block">Ora Fine *</label>
-              <input
-                type="time"
-                value={turnoForm.ora_fine}
-                onChange={(e) => setTurnoForm({ ...turnoForm, ora_fine: e.target.value })}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-              />
-              </div>
-              <div>
-              <label className="text-sm font-medium text-slate-700 mb-1 block">Tipo Turno</label>
-              <select
-                value={turnoForm.tipo_turno}
-                onChange={(e) => setTurnoForm({ ...turnoForm, tipo_turno: e.target.value })}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-              >
-                {tipiTurno.map(tipo => (
-                  <option key={tipo} value={tipo}>{tipo}</option>
-                ))}
-              </select>
-              </div>
-              <div>
-              <label className="text-sm font-medium text-slate-700 mb-1 block">Dipendente</label>
-              <select
-                value={turnoForm.dipendente_id}
-                onChange={(e) => setTurnoForm({ ...turnoForm, dipendente_id: e.target.value })}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-              >
-                <option value="">Non assegnato</option>
-                {filteredDipendenti.map(u => (
-                  <option key={u.id} value={u.id}>{u.nome_cognome || u.full_name}</option>
-                ))}
-              </select>
-              </div>
-              </div>
-
-              <div className="mb-4">
-              <label className="text-sm font-medium text-slate-700 mb-1 block">Note</label>
-              <input
-              type="text"
-              value={turnoForm.note}
-              onChange={(e) => setTurnoForm({ ...turnoForm, note: e.target.value })}
-              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-              placeholder="Note opzionali..."
-              />
-              </div>
-
-            <div className="flex gap-3">
-              <NeumorphicButton onClick={resetForm} className="flex-1">Annulla</NeumorphicButton>
-              <NeumorphicButton 
-                onClick={handleSaveTurno} 
-                variant="primary" 
-                className="flex-1 flex items-center justify-center gap-2"
-                disabled={!turnoForm.store_id || !turnoForm.data || !turnoForm.ora_inizio || !turnoForm.ora_fine}
-              >
-                <Save className="w-4 h-4" />
-                Salva
-              </NeumorphicButton>
-            </div>
-          </NeumorphicCard>
-        )}
-
-        {/* Vista Calendario */}
-        {viewMode === 'calendario' && (
-          <NeumorphicCard className="p-4 overflow-x-auto">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-              </div>
-            ) : (
-              <div className="min-w-[900px]">
-                {/* Header giorni */}
-                <div className="grid grid-cols-8 gap-1 mb-2">
-                  <div className="p-2 text-center font-medium text-slate-500 text-sm">Ora</div>
-                  {weekDays.map(day => (
-                    <div 
-                      key={day.format('YYYY-MM-DD')} 
-                      className={`p-2 text-center rounded-lg ${
-                        day.isSame(moment(), 'day') ? 'bg-blue-100' : ''
-                      }`}
-                    >
-                      <div className="font-medium text-slate-700">{day.format('ddd')}</div>
-                      <div className="text-lg font-bold text-slate-800">{day.format('DD')}</div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Griglia oraria con slot 30 min */}
-                <div className="relative">
-                  {/* Linee orizzontali e label ore */}
-                  {timeSlots.map((slot, idx) => (
-                    <div key={`${slot.hour}-${slot.minute}`} className="grid grid-cols-8 gap-1" style={{ height: '25px' }}>
-                      <div className="text-center text-xs text-slate-500 font-medium flex items-center justify-center">
-                        {slot.minute === 0 ? slot.label : ''}
-                      </div>
-                      {weekDays.map(day => {
-                      const dayKey = day.format('YYYY-MM-DD');
-                      const inDragRange = isInDragRange(day, slot);
-
-                      return (
-                        <div 
-                          key={`${dayKey}-${slot.hour}-${slot.minute}`}
-                          className={`border-t border-slate-100 cursor-pointer select-none transition-colors ${
-                            inDragRange ? 'bg-blue-200' : 'hover:bg-slate-50'
-                          } ${slot.minute === 0 ? 'border-slate-200' : 'border-slate-100'}`}
-                          onMouseDown={(e) => { e.preventDefault(); handleMouseDown(day, slot); }}
-                          onMouseEnter={() => handleMouseEnter(day, slot)}
-                          onMouseUp={() => handleMouseUp(day, slot)}
-                        />
-                      );
-                      })}
-                    </div>
-                  ))}
-
-                  {/* Turni posizionati in overlay con gestione sovrapposizioni e drag&drop */}
-                  <div className="absolute top-0 left-0 right-0 grid grid-cols-8 gap-1 pointer-events-none" style={{ height: `${timeSlots.length * 25}px` }}>
-                    <div /> {/* Colonna ore */}
-                    {weekDays.map(day => {
-                      const dayKey = day.format('YYYY-MM-DD');
-                      const dayTurni = turniByDayHour[dayKey] || [];
-                      const overlappingGroups = getOverlappingTurni(dayTurni);
-                      const isDropTarget = dropTarget === dayKey;
-
-                      return (
-                        <div 
-                          key={dayKey} 
-                          className={`relative pointer-events-auto ${isDropTarget ? 'bg-blue-100 bg-opacity-50' : ''}`}
-                          onDragOver={(e) => handleDayDragOver(e, day)}
-                          onDrop={(e) => handleDayDrop(e, day)}
-                        >
-                          {overlappingGroups.map((group, groupIdx) => 
-                            group.map((turno, idx) => {
-                              const style = getTurnoStyle(turno, idx, group.length);
-                              return (
-                                <div 
-                                  key={turno.id}
-                                  draggable
-                                  onDragStart={(e) => handleTurnoDragStart(e, turno)}
-                                  onDragEnd={handleTurnoDragEnd}
-                                  className={`absolute p-1 rounded-lg border-2 text-xs cursor-grab pointer-events-auto overflow-hidden shadow-md text-white ${draggingTurno?.id === turno.id ? 'opacity-50' : ''}`}
-                                  style={{
-                                    ...style,
-                                    marginLeft: '1px',
-                                    marginRight: '1px',
-                                    ...getRuoloStyle(turno.ruolo)
-                                  }}
-                                  onClick={(e) => { e.stopPropagation(); handleEditTurno(turno); }}
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <span className="font-bold text-[10px]">{turno.ora_inizio}-{turno.ora_fine}</span>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (confirm('Eliminare questo turno?')) {
-                                          deleteMutation.mutate(turno.id);
-                                        }
-                                      }}
-                                      className="hover:text-red-200"
-                                    >
-                                      <Trash2 className="w-3 h-3" />
-                                    </button>
-                                  </div>
-                                  {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
-                                    <div 
-                                      className="absolute top-0 right-0 w-0 h-0 border-t-[12px] border-l-[12px] border-l-transparent"
-                                      style={{ borderTopColor: coloriTipoTurno[turno.tipo_turno] || '#94a3b8' }}
-                                    />
-                                  )}
-                                  <div className="truncate text-[10px] font-medium">{turno.ruolo}</div>
-                                  {turno.dipendente_nome && (
-                                    <div className="truncate text-[10px] font-bold">{turno.dipendente_nome}</div>
-                                  )}
-                                  {!selectedStore && (
-                                    <div className="truncate text-[9px] opacity-80">{getStoreName(turno.store_id)}</div>
-                                  )}
-                                </div>
-                              );
-                            })
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-          </NeumorphicCard>
-        )}
-
-        {/* Vista Store (dipendenti) */}
-        {viewMode === 'dipendenti' && (
-          <PlandayStoreView
-            turni={turni}
-            users={users}
-            stores={stores}
-            selectedStore={selectedStore}
-            setSelectedStore={setSelectedStore}
-            weekStart={weekStart}
-            setWeekStart={setWeekStart}
-            onEditTurno={handleEditTurno}
-            onAddTurno={handleAddTurnoFromStoreView}
-            onSaveTurno={handleSaveTurnoFromChild}
-            onDeleteTurno={(id) => deleteMutation.mutate(id)}
-            getStoreName={getStoreName}
-            tipiTurno={tipiTurno}
-            coloriTipoTurno={coloriTipoTurno}
-            coloriRuolo={coloriRuolo}
-          />
-        )}
-
-        {/* Vista Singolo Dipendente */}
-        {viewMode === 'singolo' && (
-          <PlandayEmployeeView
-            selectedDipendente={selectedDipendente}
-            setSelectedDipendente={setSelectedDipendente}
-            turniDipendente={turniDipendente}
-            users={users}
-            stores={stores}
-            isLoading={isLoading}
-            onEditTurno={handleEditTurno}
-            onSaveTurno={handleSaveTurnoFromChild}
-            onDeleteTurno={(id) => deleteMutation.mutate(id)}
-            getStoreName={getStoreName}
-            coloriTipoTurno={coloriTipoTurno}
-            coloriRuolo={coloriRuolo}
-          />
-        )}
-
-        {/* Legenda */}
-        <NeumorphicCard className="p-4">
-          <div className="flex flex-wrap items-center gap-4 mb-3">
-            <span className="text-sm font-medium text-slate-700">Ruoli:</span>
-            {RUOLI.map(ruolo => (
-              <div 
-                key={ruolo} 
-                className="px-3 py-1 rounded-lg border-2 text-sm font-medium text-white"
-                style={{ backgroundColor: coloriRuolo[ruolo], borderColor: coloriRuolo[ruolo] }}
-              >
-                {ruolo}
-              </div>
-            ))}
-            <button
-              onClick={() => setShowColoriRuoloSection(!showColoriRuoloSection)}
-              className="text-xs text-blue-600 hover:underline"
-            >
-              Modifica
-            </button>
-          </div>
-          {showColoriRuoloSection && (
-            <div className="mb-3 p-3 bg-slate-50 rounded-xl">
-              <div className="grid grid-cols-3 gap-2">
-                {RUOLI.map(ruolo => (
-                  <div key={ruolo} className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={coloriRuolo[ruolo] || '#94a3b8'}
-                      onChange={(e) => updateColoreRuolo(ruolo, e.target.value)}
-                      className="w-8 h-8 rounded cursor-pointer"
-                    />
-                    <span className="text-sm text-slate-700">{ruolo}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="text-sm font-medium text-slate-700">Tipi Turno:</span>
-            {tipiTurno.map(tipo => (
-              <div key={tipo} className="flex items-center gap-1 text-xs">
-                <div 
-                  className="w-0 h-0 border-t-[10px] border-l-[10px] border-l-transparent"
-                  style={{ borderTopColor: coloriTipoTurno[tipo] || '#94a3b8' }}
-                />
-                <span className="text-slate-600">{tipo}</span>
-              </div>
-            ))}
-            <button
-              onClick={() => setShowColoriSection(!showColoriSection)}
-              className="text-xs text-blue-600 hover:underline ml-2"
-            >
-              Modifica
-            </button>
-          </div>
-          {showColoriSection && (
-            <div className="mt-3 p-3 bg-slate-50 rounded-xl">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {tipiTurno.map(tipo => (
-                  <div key={tipo} className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={coloriTipoTurno[tipo] || '#94a3b8'}
-                      onChange={(e) => updateColoreTipoTurno(tipo, e.target.value)}
-                      className="w-8 h-8 rounded cursor-pointer"
-                    />
-                    <span className="text-sm text-slate-700">{tipo}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          <div className="text-xs text-slate-500 mt-2">💡 Trascina i turni per spostarli</div>
-        </NeumorphicCard>
 
         {/* Modal Impostazioni */}
         {showConfigModal && (
@@ -1716,6 +1316,368 @@ export default function Planday() {
                 >
                   Applica Modello
                 </NeumorphicButton>
+              </div>
+            </NeumorphicCard>
+          </div>
+        )}
+        {/* Modal Gestione Turni */}
+        {showGestioneTurniModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <NeumorphicCard className="p-6 max-w-6xl w-full my-8 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6 sticky top-0 bg-[#e0e5ec] z-10 pb-4">
+                <h2 className="text-2xl font-bold text-slate-800">Gestione Turni</h2>
+                <button onClick={() => setShowGestioneTurniModal(false)} className="nav-button p-2 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* View Mode Selector */}
+              <div className="flex gap-2 mb-4 flex-wrap">
+                <NeumorphicButton onClick={() => setShowSettimanaModelloModal(true)} className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Usa come Modello
+                </NeumorphicButton>
+                <div className="flex rounded-xl overflow-hidden neumorphic-pressed">
+                  <button
+                    onClick={() => setViewMode('calendario')}
+                    className={`px-3 py-2 text-sm font-medium flex items-center gap-1 ${viewMode === 'calendario' ? 'bg-blue-500 text-white' : 'text-slate-700'}`}
+                  >
+                    <LayoutGrid className="w-4 h-4" /> Calendario
+                  </button>
+                  <button
+                    onClick={() => setViewMode('dipendenti')}
+                    className={`px-3 py-2 text-sm font-medium flex items-center gap-1 ${viewMode === 'dipendenti' ? 'bg-blue-500 text-white' : 'text-slate-700'}`}
+                  >
+                    <StoreIcon className="w-4 h-4" /> Store
+                  </button>
+                  <button
+                    onClick={() => setViewMode('singolo')}
+                    className={`px-3 py-2 text-sm font-medium flex items-center gap-1 ${viewMode === 'singolo' ? 'bg-blue-500 text-white' : 'text-slate-700'}`}
+                  >
+                    <User className="w-4 h-4" /> Singolo
+                  </button>
+                </div>
+                <NeumorphicButton onClick={() => setShowModelliModal(true)} className="flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Turni Modello
+                </NeumorphicButton>
+                <NeumorphicButton onClick={() => setShowConfigModal(true)} className="flex items-center gap-2">
+                  <Settings className="w-4 h-4" />
+                  Impostazioni
+                </NeumorphicButton>
+                <NeumorphicButton 
+                  onClick={() => {
+                    setTurnoForm({ 
+                      store_id: selectedStore || (stores[0]?.id || ''),
+                      data: moment().format('YYYY-MM-DD'),
+                      ora_inizio: '09:00',
+                      ora_fine: '17:00',
+                      ruolo: 'Pizzaiolo',
+                      dipendente_id: '',
+                      tipo_turno: 'Normale',
+                      note: ''
+                    });
+                    setShowForm(true);
+                  }} 
+                  variant="primary" 
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Nuovo Turno
+                </NeumorphicButton>
+              </div>
+
+              {/* Form Turno (inside modal) */}
+              {showForm && (
+                <div className="neumorphic-pressed p-6 rounded-xl mb-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-slate-800">
+                      {editingTurno ? 'Modifica Turno' : 'Nuovo Turno'}
+                    </h3>
+                    <button onClick={resetForm} className="nav-button p-2 rounded-lg">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-1 block">Locale *</label>
+                      <select
+                        value={turnoForm.store_id}
+                        onChange={(e) => setTurnoForm({ ...turnoForm, store_id: e.target.value })}
+                        className="w-full neumorphic-flat px-3 py-2 rounded-xl text-slate-700 outline-none"
+                      >
+                        <option value="">Seleziona locale</option>
+                        {stores.map(store => (
+                          <option key={store.id} value={store.id}>{store.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-1 block">Data *</label>
+                      <input
+                        type="date"
+                        value={turnoForm.data}
+                        onChange={(e) => setTurnoForm({ ...turnoForm, data: e.target.value })}
+                        className="w-full neumorphic-flat px-3 py-2 rounded-xl text-slate-700 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-1 block">Ruolo *</label>
+                      <select
+                        value={turnoForm.ruolo}
+                        onChange={(e) => setTurnoForm({ ...turnoForm, ruolo: e.target.value, dipendente_id: '' })}
+                        className="w-full neumorphic-flat px-3 py-2 rounded-xl text-slate-700 outline-none"
+                      >
+                        {RUOLI.map(ruolo => (
+                          <option key={ruolo} value={ruolo}>{ruolo}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-1 block">Ora Inizio</label>
+                      <input
+                        type="time"
+                        value={turnoForm.ora_inizio}
+                        onChange={(e) => setTurnoForm({ ...turnoForm, ora_inizio: e.target.value })}
+                        className="w-full neumorphic-flat px-3 py-2 rounded-xl text-slate-700 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-1 block">Ora Fine</label>
+                      <input
+                        type="time"
+                        value={turnoForm.ora_fine}
+                        onChange={(e) => setTurnoForm({ ...turnoForm, ora_fine: e.target.value })}
+                        className="w-full neumorphic-flat px-3 py-2 rounded-xl text-slate-700 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-1 block">Tipo Turno</label>
+                      <select
+                        value={turnoForm.tipo_turno}
+                        onChange={(e) => setTurnoForm({ ...turnoForm, tipo_turno: e.target.value })}
+                        className="w-full neumorphic-flat px-3 py-2 rounded-xl text-slate-700 outline-none"
+                      >
+                        {tipiTurno.map(tipo => (
+                          <option key={tipo} value={tipo}>{tipo}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-1 block">Dipendente</label>
+                      <select
+                        value={turnoForm.dipendente_id}
+                        onChange={(e) => setTurnoForm({ ...turnoForm, dipendente_id: e.target.value })}
+                        className="w-full neumorphic-flat px-3 py-2 rounded-xl text-slate-700 outline-none"
+                      >
+                        <option value="">Non assegnato</option>
+                        {filteredDipendenti.map(u => (
+                          <option key={u.id} value={u.id}>{u.nome_cognome || u.full_name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <NeumorphicButton onClick={resetForm} className="flex-1">Annulla</NeumorphicButton>
+                    <NeumorphicButton 
+                      onClick={handleSaveTurno} 
+                      variant="primary" 
+                      className="flex-1 flex items-center justify-center gap-2"
+                      disabled={!turnoForm.store_id || !turnoForm.data || !turnoForm.ora_inizio || !turnoForm.ora_fine}
+                    >
+                      <Save className="w-4 h-4" />
+                      Salva
+                    </NeumorphicButton>
+                  </div>
+                </div>
+              )}
+
+              {/* Vista Calendario */}
+              {viewMode === 'calendario' && (
+                <div className="overflow-x-auto">
+                  {isLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                    </div>
+                  ) : (
+                    <div className="min-w-[900px]">
+                      {/* Header giorni */}
+                      <div className="grid grid-cols-8 gap-1 mb-2">
+                        <div className="p-2 text-center font-medium text-slate-500 text-sm">Ora</div>
+                        {weekDays.map(day => (
+                          <div 
+                            key={day.format('YYYY-MM-DD')} 
+                            className={`p-2 text-center rounded-lg ${
+                              day.isSame(moment(), 'day') ? 'bg-blue-100' : ''
+                            }`}
+                          >
+                            <div className="font-medium text-slate-700">{day.format('ddd')}</div>
+                            <div className="text-lg font-bold text-slate-800">{day.format('DD')}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Griglia oraria con slot 30 min */}
+                      <div className="relative">
+                        {/* Linee orizzontali e label ore */}
+                        {timeSlots.map((slot, idx) => (
+                          <div key={`${slot.hour}-${slot.minute}`} className="grid grid-cols-8 gap-1" style={{ height: '25px' }}>
+                            <div className="text-center text-xs text-slate-500 font-medium flex items-center justify-center">
+                              {slot.minute === 0 ? slot.label : ''}
+                            </div>
+                            {weekDays.map(day => {
+                            const dayKey = day.format('YYYY-MM-DD');
+                            const inDragRange = isInDragRange(day, slot);
+
+                            return (
+                              <div 
+                                key={`${dayKey}-${slot.hour}-${slot.minute}`}
+                                className={`border-t border-slate-100 cursor-pointer select-none transition-colors ${
+                                  inDragRange ? 'bg-blue-200' : 'hover:bg-slate-50'
+                                } ${slot.minute === 0 ? 'border-slate-200' : 'border-slate-100'}`}
+                                onMouseDown={(e) => { e.preventDefault(); handleMouseDown(day, slot); }}
+                                onMouseEnter={() => handleMouseEnter(day, slot)}
+                                onMouseUp={() => handleMouseUp(day, slot)}
+                              />
+                            );
+                            })}
+                          </div>
+                        ))}
+
+                        {/* Turni posizionati in overlay con gestione sovrapposizioni e drag&drop */}
+                        <div className="absolute top-0 left-0 right-0 grid grid-cols-8 gap-1 pointer-events-none" style={{ height: `${timeSlots.length * 25}px` }}>
+                          <div /> {/* Colonna ore */}
+                          {weekDays.map(day => {
+                            const dayKey = day.format('YYYY-MM-DD');
+                            const dayTurni = turniByDayHour[dayKey] || [];
+                            const overlappingGroups = getOverlappingTurni(dayTurni);
+                            const isDropTarget = dropTarget === dayKey;
+
+                            return (
+                              <div 
+                                key={dayKey} 
+                                className={`relative pointer-events-auto ${isDropTarget ? 'bg-blue-100 bg-opacity-50' : ''}`}
+                                onDragOver={(e) => handleDayDragOver(e, day)}
+                                onDrop={(e) => handleDayDrop(e, day)}
+                              >
+                                {overlappingGroups.map((group, groupIdx) => 
+                                  group.map((turno, idx) => {
+                                    const style = getTurnoStyle(turno, idx, group.length);
+                                    return (
+                                      <div 
+                                        key={turno.id}
+                                        draggable
+                                        onDragStart={(e) => handleTurnoDragStart(e, turno)}
+                                        onDragEnd={handleTurnoDragEnd}
+                                        className={`absolute p-1 rounded-lg border-2 text-xs cursor-grab pointer-events-auto overflow-hidden shadow-md text-white ${draggingTurno?.id === turno.id ? 'opacity-50' : ''}`}
+                                        style={{
+                                          ...style,
+                                          marginLeft: '1px',
+                                          marginRight: '1px',
+                                          ...getRuoloStyle(turno.ruolo)
+                                        }}
+                                        onClick={(e) => { e.stopPropagation(); handleEditTurno(turno); }}
+                                      >
+                                        <div className="flex items-center justify-between">
+                                          <span className="font-bold text-[10px]">{turno.ora_inizio}-{turno.ora_fine}</span>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              if (confirm('Eliminare questo turno?')) {
+                                                deleteMutation.mutate(turno.id);
+                                              }
+                                            }}
+                                            className="hover:text-red-200"
+                                          >
+                                            <Trash2 className="w-3 h-3" />
+                                          </button>
+                                        </div>
+                                        {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
+                                          <div 
+                                            className="absolute top-0 right-0 w-0 h-0 border-t-[12px] border-l-[12px] border-l-transparent"
+                                            style={{ borderTopColor: coloriTipoTurno[turno.tipo_turno] || '#94a3b8' }}
+                                          />
+                                        )}
+                                        <div className="truncate text-[10px] font-medium">{turno.ruolo}</div>
+                                        {turno.dipendente_nome && (
+                                          <div className="truncate text-[10px] font-bold">{turno.dipendente_nome}</div>
+                                        )}
+                                        {!selectedStore && (
+                                          <div className="truncate text-[9px] opacity-80">{getStoreName(turno.store_id)}</div>
+                                        )}
+                                      </div>
+                                    );
+                                  })
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Vista Store (dipendenti) */}
+              {viewMode === 'dipendenti' && (
+                <PlandayStoreView
+                  turni={turni}
+                  users={users}
+                  stores={stores}
+                  selectedStore={selectedStore}
+                  setSelectedStore={setSelectedStore}
+                  weekStart={weekStart}
+                  setWeekStart={setWeekStart}
+                  onEditTurno={handleEditTurno}
+                  onAddTurno={handleAddTurnoFromStoreView}
+                  onSaveTurno={handleSaveTurnoFromChild}
+                  onDeleteTurno={(id) => deleteMutation.mutate(id)}
+                  getStoreName={getStoreName}
+                  tipiTurno={tipiTurno}
+                  coloriTipoTurno={coloriTipoTurno}
+                  coloriRuolo={coloriRuolo}
+                />
+              )}
+
+              {/* Vista Singolo Dipendente */}
+              {viewMode === 'singolo' && (
+                <PlandayEmployeeView
+                  selectedDipendente={selectedDipendente}
+                  setSelectedDipendente={setSelectedDipendente}
+                  turniDipendente={turniDipendente}
+                  users={users}
+                  stores={stores}
+                  isLoading={isLoading}
+                  onEditTurno={handleEditTurno}
+                  onSaveTurno={handleSaveTurnoFromChild}
+                  onDeleteTurno={(id) => deleteMutation.mutate(id)}
+                  getStoreName={getStoreName}
+                  coloriTipoTurno={coloriTipoTurno}
+                  coloriRuolo={coloriRuolo}
+                />
+              )}
+
+              {/* Legenda */}
+              <div className="mt-4 p-4 neumorphic-pressed rounded-xl">
+                <div className="flex flex-wrap items-center gap-4 mb-3">
+                  <span className="text-sm font-medium text-slate-700">Ruoli:</span>
+                  {RUOLI.map(ruolo => (
+                    <div 
+                      key={ruolo} 
+                      className="px-3 py-1 rounded-lg border-2 text-sm font-medium text-white"
+                      style={{ backgroundColor: coloriRuolo[ruolo], borderColor: coloriRuolo[ruolo] }}
+                    >
+                      {ruolo}
+                    </div>
+                  ))}
+                </div>
+                <div className="text-xs text-slate-500">💡 Trascina i turni per spostarli</div>
               </div>
             </NeumorphicCard>
           </div>
