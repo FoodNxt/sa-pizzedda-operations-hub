@@ -7,7 +7,7 @@ import ProtectedPage from "../components/ProtectedPage";
 import { 
   Bot, Plus, Edit, Trash2, Save, X, Search, AlertTriangle, 
   MessageSquare, Book, Tag, Store, CheckCircle, XCircle, Loader2,
-  ChevronDown, ChevronRight, Eye, Folder, RefreshCw, ListChecks, GripVertical, Key, EyeOff
+  ChevronDown, ChevronRight, Eye, Folder, RefreshCw, ListChecks, GripVertical, Key, EyeOff, HelpCircle
 } from "lucide-react";
 import moment from "moment";
 
@@ -65,6 +65,18 @@ export default function GestioneAssistente() {
   const [showPasswords, setShowPasswords] = useState({});
   const [filterAccessoStore, setFilterAccessoStore] = useState('');
   
+  // FAQ state
+  const [showFAQForm, setShowFAQForm] = useState(false);
+  const [editingFAQ, setEditingFAQ] = useState(null);
+  const [faqForm, setFAQForm] = useState({
+    domanda: '',
+    risposta: '',
+    categoria: 'Generale',
+    ordine: 0,
+    attivo: true
+  });
+  const [filterFAQCategoria, setFilterFAQCategoria] = useState('');
+  
   const [formData, setFormData] = useState({
     categoria: 'Procedure Operative',
     titolo: '',
@@ -104,6 +116,11 @@ export default function GestioneAssistente() {
   const { data: accessi = [] } = useQuery({
     queryKey: ['accessi-store'],
     queryFn: () => base44.entities.AccessoStore.list(),
+  });
+
+  const { data: faqs = [] } = useQuery({
+    queryKey: ['assistente-faq'],
+    queryFn: () => base44.entities.AssistenteFAQ.list('ordine'),
   });
 
   // Recupera tracking conversazioni dal database
@@ -249,6 +266,30 @@ export default function GestioneAssistente() {
     },
   });
 
+  // FAQ mutations
+  const createFAQMutation = useMutation({
+    mutationFn: (data) => base44.entities.AssistenteFAQ.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assistente-faq'] });
+      resetFAQForm();
+    },
+  });
+
+  const updateFAQMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.AssistenteFAQ.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assistente-faq'] });
+      resetFAQForm();
+    },
+  });
+
+  const deleteFAQMutation = useMutation({
+    mutationFn: (id) => base44.entities.AssistenteFAQ.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assistente-faq'] });
+    },
+  });
+
   const resetCategoryForm = () => {
     setCategoryForm({ nome: '', ordine: 0 });
     setEditingCategory(null);
@@ -374,6 +415,53 @@ export default function GestioneAssistente() {
   const filteredAccessi = filterAccessoStore 
     ? accessi.filter(a => a.store_id === filterAccessoStore)
     : accessi;
+
+  const resetFAQForm = () => {
+    setFAQForm({
+      domanda: '',
+      risposta: '',
+      categoria: 'Generale',
+      ordine: 0,
+      attivo: true
+    });
+    setEditingFAQ(null);
+    setShowFAQForm(false);
+  };
+
+  const handleEditFAQ = (faq) => {
+    setEditingFAQ(faq);
+    setFAQForm({
+      domanda: faq.domanda,
+      risposta: faq.risposta,
+      categoria: faq.categoria,
+      ordine: faq.ordine || 0,
+      attivo: faq.attivo !== false
+    });
+    setShowFAQForm(true);
+  };
+
+  const handleSaveFAQ = () => {
+    if (editingFAQ) {
+      updateFAQMutation.mutate({ id: editingFAQ.id, data: faqForm });
+    } else {
+      createFAQMutation.mutate(faqForm);
+    }
+  };
+
+  const FAQ_CATEGORIE = [
+    "Generale",
+    "Turni e Orari",
+    "Permessi e Ferie",
+    "Pagamenti",
+    "Procedure",
+    "Attrezzature",
+    "Sicurezza",
+    "Altro"
+  ];
+
+  const filteredFAQs = filterFAQCategoria 
+    ? faqs.filter(f => f.categoria === filterFAQCategoria)
+    : faqs;
 
   const handleSaveCategory = () => {
     if (editingCategory) {
@@ -632,6 +720,17 @@ export default function GestioneAssistente() {
           >
             <Key className="w-4 h-4" />
             Accessi ({accessi.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('faq')}
+            className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
+              activeTab === 'faq'
+                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                : 'neumorphic-flat text-slate-700'
+            }`}
+          >
+            <HelpCircle className="w-4 h-4" />
+            FAQ ({faqs.length})
           </button>
           <button
             onClick={() => setActiveTab('verifica')}
@@ -1625,6 +1724,186 @@ export default function GestioneAssistente() {
                   <p className="text-slate-500">Nessun accesso configurato</p>
                   <p className="text-xs text-slate-400 mt-2">
                     Aggiungi credenziali di accesso per WiFi, allarmi, casseforti, ecc.
+                  </p>
+                </NeumorphicCard>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* FAQ Tab */}
+        {activeTab === 'faq' && (
+          <>
+            <NeumorphicCard className="p-6">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-xl font-bold text-slate-800">FAQ Dipendenti</h2>
+                  <select
+                    value={filterFAQCategoria}
+                    onChange={(e) => setFilterFAQCategoria(e.target.value)}
+                    className="neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
+                  >
+                    <option value="">Tutte le categorie</option>
+                    {FAQ_CATEGORIE.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+                <NeumorphicButton
+                  onClick={() => setShowFAQForm(true)}
+                  variant="primary"
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Nuova FAQ
+                </NeumorphicButton>
+              </div>
+            </NeumorphicCard>
+
+            {showFAQForm && (
+              <NeumorphicCard className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-slate-800">
+                    {editingFAQ ? 'Modifica FAQ' : 'Nuova FAQ'}
+                  </h2>
+                  <button onClick={resetFAQForm} className="nav-button p-2 rounded-lg">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Categoria *</label>
+                    <select
+                      value={faqForm.categoria}
+                      onChange={(e) => setFAQForm({ ...faqForm, categoria: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    >
+                      {FAQ_CATEGORIE.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Ordine</label>
+                    <input
+                      type="number"
+                      value={faqForm.ordine}
+                      onChange={(e) => setFAQForm({ ...faqForm, ordine: parseInt(e.target.value) || 0 })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Domanda *</label>
+                  <input
+                    type="text"
+                    value={faqForm.domanda}
+                    onChange={(e) => setFAQForm({ ...faqForm, domanda: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    placeholder="Es: Come posso richiedere un giorno di ferie?"
+                  />
+                </div>
+
+                <div className="mb-4">
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Risposta *</label>
+                  <textarea
+                    value={faqForm.risposta}
+                    onChange={(e) => setFAQForm({ ...faqForm, risposta: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none min-h-[120px]"
+                    placeholder="Scrivi la risposta dettagliata..."
+                  />
+                </div>
+
+                <div className="flex items-center mb-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={faqForm.attivo}
+                      onChange={(e) => setFAQForm({ ...faqForm, attivo: e.target.checked })}
+                      className="w-5 h-5"
+                    />
+                    <span className="text-sm font-medium text-slate-700">Attiva</span>
+                  </label>
+                </div>
+
+                <div className="flex gap-3">
+                  <NeumorphicButton onClick={resetFAQForm} className="flex-1">Annulla</NeumorphicButton>
+                  <NeumorphicButton 
+                    onClick={handleSaveFAQ} 
+                    variant="primary" 
+                    className="flex-1 flex items-center justify-center gap-2"
+                    disabled={!faqForm.domanda || !faqForm.risposta}
+                  >
+                    <Save className="w-4 h-4" />
+                    Salva
+                  </NeumorphicButton>
+                </div>
+              </NeumorphicCard>
+            )}
+
+            {/* Lista FAQ per Categoria */}
+            <div className="space-y-4">
+              {FAQ_CATEGORIE.map(categoria => {
+                const categoryFAQs = filteredFAQs.filter(f => f.categoria === categoria);
+                if (categoryFAQs.length === 0) return null;
+                
+                return (
+                  <NeumorphicCard key={categoria} className="p-4">
+                    <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
+                      <HelpCircle className="w-4 h-4 text-cyan-600" />
+                      {categoria}
+                      <span className="text-sm font-normal text-slate-500">({categoryFAQs.length})</span>
+                    </h3>
+                    <div className="space-y-2">
+                      {categoryFAQs.map(faq => (
+                        <div 
+                          key={faq.id} 
+                          className={`neumorphic-pressed p-4 rounded-xl ${!faq.attivo ? 'opacity-50' : ''}`}
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-slate-800 flex items-center gap-2">
+                                <span className="text-cyan-600">D:</span>
+                                {faq.domanda}
+                              </h4>
+                              <p className="text-sm text-slate-600 mt-2 pl-6">
+                                <span className="text-green-600 font-medium">R:</span> {faq.risposta}
+                              </p>
+                            </div>
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => handleEditFAQ(faq)}
+                                className="nav-button p-2 rounded-lg hover:bg-blue-50"
+                              >
+                                <Edit className="w-4 h-4 text-blue-600" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (confirm('Eliminare questa FAQ?')) {
+                                    deleteFAQMutation.mutate(faq.id);
+                                  }
+                                }}
+                                className="nav-button p-2 rounded-lg hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4 text-red-600" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </NeumorphicCard>
+                );
+              })}
+
+              {filteredFAQs.length === 0 && (
+                <NeumorphicCard className="p-8 text-center">
+                  <HelpCircle className="w-16 h-16 mx-auto text-slate-300 mb-4" />
+                  <p className="text-slate-500">Nessuna FAQ creata</p>
+                  <p className="text-xs text-slate-400 mt-2">
+                    Aggiungi domande frequenti per aiutare i dipendenti
                   </p>
                 </NeumorphicCard>
               )}
