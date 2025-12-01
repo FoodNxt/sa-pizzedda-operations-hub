@@ -478,8 +478,6 @@ export default function TurniDipendente() {
     }
   };
 
-  const getStoreName = (storeId) => stores.find(s => s.id === storeId)?.name || '';
-
   const getTurnoStatus = (turno) => {
     const now = moment();
     const turnoDate = moment(turno.data);
@@ -746,6 +744,9 @@ export default function TurniDipendente() {
     
     return Array.from(attivitaSet);
   };
+
+  // Alias per compatibilità
+  const getStoreName = getStoreNameHelper;
 
   return (
     <ProtectedPage pageName="TurniDipendente">
