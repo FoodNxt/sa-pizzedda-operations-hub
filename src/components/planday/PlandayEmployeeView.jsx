@@ -164,10 +164,13 @@ export default function PlandayEmployeeView({
                     <div className="space-y-1">
                     {dayTurni.map(turno => (
                       <div key={turno.id} draggable onDragStart={(e) => handleDragStart(e, turno)} className="p-2 rounded-lg cursor-grab text-xs relative text-white" style={getRuoloStyle(turno.ruolo)} onClick={() => handleTurnoClick(turno)}>
-                        {turno.tipo_turno && turno.tipo_turno !== 'Normale' && <div className="absolute top-0 right-0 w-0 h-0 border-t-[10px] border-l-[10px] border-l-transparent" style={{ borderTopColor: getTipoColor(turno.tipo_turno) }} />}
-                        <div className="font-bold">{turno.ora_inizio} - {turno.ora_fine}</div>
-                        <div className="opacity-80">{turno.ruolo}</div>
-                        <div className="opacity-80 text-[10px]">{getStoreName(turno.store_id)}</div>
+                       {turno.tipo_turno && turno.tipo_turno !== 'Normale' && <div className="absolute top-0 right-0 w-0 h-0 border-t-[10px] border-l-[10px] border-l-transparent" style={{ borderTopColor: getTipoColor(turno.tipo_turno) }} />}
+                       <div className="font-bold">{turno.ora_inizio} - {turno.ora_fine}</div>
+                       <div className="opacity-80">{turno.ruolo}</div>
+                       {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
+                         <div className="text-[9px] font-bold">{turno.tipo_turno}</div>
+                       )}
+                       <div className="opacity-80 text-[10px]">{getStoreName(turno.store_id)}</div>
                         {/* Form + Attività */}
                         {(() => {
                           const formDovuti = getFormDovutiPerTurno(turno, turniDipendente || []);
@@ -209,6 +212,9 @@ export default function PlandayEmployeeView({
                         {dayTurni.slice(0, 2).map(turno => (
                           <div key={turno.id} draggable onDragStart={(e) => handleDragStart(e, turno)} className="px-1 py-0.5 rounded text-[9px] cursor-grab truncate text-white" style={getRuoloStyle(turno.ruolo)} onClick={() => handleTurnoClick(turno)}>
                             {turno.ora_inizio}-{turno.ora_fine}
+                            {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
+                              <span className="text-[7px] ml-0.5">({turno.tipo_turno})</span>
+                            )}
                           </div>
                         ))}
                         {dayTurni.length > 2 && <div className="text-[9px] text-slate-500">+{dayTurni.length - 2}</div>}
