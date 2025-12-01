@@ -91,7 +91,7 @@ export default function TurniDipendente() {
     queryFn: () => base44.auth.me(),
   });
 
-  const { data: stores = [] } = useQuery({
+  const { data: storesData = [] } = useQuery({
     queryKey: ['stores'],
     queryFn: () => base44.entities.Store.list(),
   });
@@ -376,7 +376,7 @@ export default function TurniDipendente() {
   // Richiedi turno libero
   const richiediTurnoLiberoMutation = useMutation({
     mutationFn: async (turno) => {
-      const storeName = stores.find(s => s.id === turno.store_id)?.name || '';
+      const storeName = storesData.find(s => s.id === turno.store_id)?.name || '';
       return base44.entities.RichiestaTurnoLibero.create({
         turno_id: turno.id,
         dipendente_id: currentUser.id,
@@ -450,7 +450,7 @@ export default function TurniDipendente() {
   };
 
   const handleTimbra = async (turno, tipo) => {
-    const store = stores.find(s => s.id === turno.store_id);
+    const store = storesData.find(s => s.id === turno.store_id);
     
     if (config?.abilita_timbratura_gps && store?.latitude && store?.longitude) {
       setLoadingGPS(true);
@@ -619,7 +619,7 @@ export default function TurniDipendente() {
   const colleghiPerScambio = useMemo(() => {
     if (!selectedTurnoScambio || !allUsers.length) return [];
     
-    const store = stores.find(s => s.id === selectedTurnoScambio.store_id);
+    const store = storesData.find(s => s.id === selectedTurnoScambio.store_id);
     
     return allUsers
       .filter(u => {
@@ -667,7 +667,7 @@ export default function TurniDipendente() {
     const turnoStoreId = turno.store_id;
     const turnoSequence = turno.turno_sequence || getTurnoSequenceFromMomento(turno);
     const turnoDayOfWeek = new Date(turno.data).getDay();
-    const storeName = getStoreName(turnoStoreId);
+    const storeName = getStoreNameHelper(turnoStoreId);
     
     const activeConfigs = formTrackerConfigs.filter(c => c.is_active);
     const formDovuti = [];
@@ -889,10 +889,10 @@ export default function TurniDipendente() {
                   <div className="flex items-center gap-2 text-slate-600">
                     <Clock className="w-4 h-4" />
                     <span>{prossimoTurno.ora_inizio} - {prossimoTurno.ora_fine}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-slate-500 text-sm mt-1">
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-500 text-sm mt-1">
                     <MapPin className="w-4 h-4" />
-                    <span>{getStoreName(prossimoTurno.store_id)}</span>
+                    <span>{getStoreNameHelper(prossimoTurno.store_id)}</span>
                     <span>•</span>
                     <span>{prossimoTurno.ruolo}</span>
                   </div>
@@ -1418,7 +1418,7 @@ export default function TurniDipendente() {
                           </div>
                           <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
                             <MapPin className="w-3 h-3" />
-                            {getStoreName(turno.store_id)}
+                            {getStoreNameHelper(turno.store_id)}
                             {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
                               <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
                                 {turno.tipo_turno}
