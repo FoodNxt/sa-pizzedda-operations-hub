@@ -22,7 +22,7 @@ const COLORI_RUOLO = {
 };
 
 export default function TurniDipendente() {
-  const [activeView, setActiveView] = useState('prossimo'); // 'prossimo' or 'tutti'
+  const [activeView, setActiveView] = useState('prossimo'); // 'prossimo', 'tutti', 'ferie', 'malattia', 'liberi'
   const [weekStart, setWeekStart] = useState(moment().startOf('isoWeek'));
   const [currentPosition, setCurrentPosition] = useState(null);
   const [gpsError, setGpsError] = useState(null);
@@ -35,6 +35,7 @@ export default function TurniDipendente() {
   const [ferieForm, setFerieForm] = useState({ data_inizio: '', data_fine: '', motivo: '' });
   const [malattiaForm, setMalattiaForm] = useState({ data_inizio: '', descrizione: '', certificato: null });
   const [uploadingCertificato, setUploadingCertificato] = useState(false);
+  const [uploadingCertificatoForId, setUploadingCertificatoForId] = useState(null);
   const [gpsPermissionStatus, setGpsPermissionStatus] = useState('unknown');
   const [userPosition, setUserPosition] = useState(null);
   const [distanceToStore, setDistanceToStore] = useState(null);
@@ -106,6 +107,47 @@ export default function TurniDipendente() {
       const configs = await base44.entities.TimbraturaConfig.list();
       return configs[0] || { distanza_massima_metri: 100, tolleranza_ritardo_minuti: 5, abilita_timbratura_gps: true };
     },
+  });
+
+  // Richieste ferie e malattia del dipendente
+  const { data: mieFerie = [] } = useQuery({
+    queryKey: ['mie-ferie', currentUser?.id],
+    queryFn: () => base44.entities.RichiestaFerie.filter({ dipendente_id: currentUser.id }),
+    enabled: !!currentUser?.id,
+  });
+
+  const { data: mieMalattie = [] } = useQuery({
+    queryKey: ['mie-malattie', currentUser?.id],
+    queryFn: () => base44.entities.RichiestaMalattia.filter({ dipendente_id: currentUser.id }),
+    enabled: !!currentUser?.id,
+  });
+
+  // Turni liberi disponibili per il ruolo del dipendente
+  const { data: turniLiberi = [] } = useQuery({
+    queryKey: ['turni-liberi', currentUser?.ruoli_dipendente],
+    queryFn: async () => {
+      const oggi = moment().format('YYYY-MM-DD');
+      const allTurni = await base44.entities.TurnoPlanday.filter({
+        data: { $gte: oggi },
+        dipendente_id: ''
+      });
+      // Filtra per ruoli del dipendente
+      const ruoli = currentUser?.ruoli_dipendente || [];
+      return allTurni.filter(t => ruoli.includes(t.ruolo));
+    },
+    enabled: !!currentUser?.ruoli_dipendente?.length,
+  });
+
+  // Richieste turni liberi del dipendente
+  const { data: mieRichiesteTurni = [] } = useQuery({
+    queryKey: ['mie-richieste-turni', currentUser?.id],
+    queryFn: () => base44.entities.RichiestaTurnoLibero.filter({ dipendente_id: currentUser.id }),
+    enabled: !!currentUser?.id,
+  });
+
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores'],
+    queryFn: () => base44.entities.Store.list(),
   });
 
   const { data: formTrackerConfigs = [] } = useQuery({
@@ -314,6 +356,71 @@ export default function TurniDipendente() {
       console.error('Error uploading:', error);
     }
     setUploadingCertificato(false);
+  };
+
+  // Upload certificato per malattia esistente
+  const uploadCertificatoMutation = useMutation({
+    mutationFn: async ({ malattiaId, file }) => {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      return base44.entities.RichiestaMalattia.update(malattiaId, {
+        certificato_url: file_url,
+        stato: 'in_attesa_verifica'
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['mie-malattie'] });
+      setUploadingCertificatoForId(null);
+    }
+  });
+
+  // Richiedi turno libero
+  const richiediTurnoLiberoMutation = useMutation({
+    mutationFn: async (turno) => {
+      const storeName = stores.find(s => s.id === turno.store_id)?.name || '';
+      return base44.entities.RichiestaTurnoLibero.create({
+        turno_id: turno.id,
+        dipendente_id: currentUser.id,
+        dipendente_nome: currentUser.nome_cognome || currentUser.full_name,
+        dipendente_email: currentUser.email,
+        data_turno: turno.data,
+        ora_inizio: turno.ora_inizio,
+        ora_fine: turno.ora_fine,
+        ruolo: turno.ruolo,
+        store_id: turno.store_id,
+        store_name: storeName,
+        stato: 'in_attesa'
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['mie-richieste-turni'] });
+      setTimbraturaMessage({ type: 'success', text: 'Richiesta turno inviata!' });
+      setTimeout(() => setTimbraturaMessage(null), 3000);
+    }
+  });
+
+  const getStoreName = (storeId) => stores.find(s => s.id === storeId)?.name || '';
+
+  const getStatoColor = (stato) => {
+    switch (stato) {
+      case 'in_attesa': return 'bg-yellow-100 text-yellow-800';
+      case 'approvata': case 'certificata': return 'bg-green-100 text-green-800';
+      case 'rifiutata': return 'bg-red-100 text-red-800';
+      case 'non_certificata': return 'bg-orange-100 text-orange-800';
+      case 'in_attesa_verifica': return 'bg-blue-100 text-blue-800';
+      default: return 'bg-slate-100 text-slate-800';
+    }
+  };
+
+  const getStatoLabel = (stato) => {
+    switch (stato) {
+      case 'in_attesa': return 'In Attesa';
+      case 'approvata': return 'Approvata';
+      case 'rifiutata': return 'Rifiutata';
+      case 'non_certificata': return 'Non Certificata';
+      case 'in_attesa_verifica': return 'In Verifica';
+      case 'certificata': return 'Certificata';
+      default: return stato;
+    }
   };
 
   // Calcola distanza GPS
@@ -669,15 +776,28 @@ export default function TurniDipendente() {
               Tutti
             </NeumorphicButton>
             <NeumorphicButton 
-              onClick={() => setShowFerieModal(true)}
-              className="flex items-center gap-2 text-blue-600"
+              onClick={() => setActiveView('liberi')}
+              variant={activeView === 'liberi' ? 'primary' : 'default'}
+              className="flex items-center gap-2"
+            >
+              <Users className="w-4 h-4" />
+              Liberi
+              {turniLiberi.length > 0 && (
+                <span className="bg-green-500 text-white text-xs px-1.5 py-0.5 rounded-full">{turniLiberi.length}</span>
+              )}
+            </NeumorphicButton>
+            <NeumorphicButton 
+              onClick={() => setActiveView('ferie')}
+              variant={activeView === 'ferie' ? 'primary' : 'default'}
+              className="flex items-center gap-2"
             >
               <Palmtree className="w-4 h-4" />
               Ferie
             </NeumorphicButton>
             <NeumorphicButton 
-              onClick={() => setShowMalattiaModal(true)}
-              className="flex items-center gap-2 text-red-600"
+              onClick={() => setActiveView('malattia')}
+              variant={activeView === 'malattia' ? 'primary' : 'default'}
+              className="flex items-center gap-2"
             >
               <Thermometer className="w-4 h-4" />
               Malattia
@@ -1043,21 +1163,16 @@ export default function TurniDipendente() {
           </>
         )}
 
-        {/* Modal Richiesta Ferie */}
-        {showFerieModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <NeumorphicCard className="p-6 max-w-md w-full">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                  <Palmtree className="w-5 h-5 text-blue-500" />
-                  Richiedi Ferie
-                </h2>
-                <button onClick={() => setShowFerieModal(false)} className="nav-button p-2 rounded-lg">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="space-y-4">
+        {/* VISTA: FERIE */}
+        {activeView === 'ferie' && (
+          <div className="space-y-4">
+            {/* Form nuova richiesta */}
+            <NeumorphicCard className="p-6">
+              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <Palmtree className="w-5 h-5 text-blue-500" />
+                Richiedi Nuove Ferie
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Data Inizio</label>
                   <input
@@ -1079,58 +1194,72 @@ export default function TurniDipendente() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Motivo (opzionale)</label>
-                  <textarea
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Motivo (opz.)</label>
+                  <input
+                    type="text"
                     value={ferieForm.motivo}
                     onChange={(e) => setFerieForm({ ...ferieForm, motivo: e.target.value })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none resize-none h-20"
-                    placeholder="Es: Vacanza, motivi personali..."
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                    placeholder="Vacanza, motivi personali..."
                   />
                 </div>
-
-                {ferieForm.data_inizio && ferieForm.data_fine && (
-                  <div className="p-3 bg-blue-50 rounded-xl">
-                    <p className="text-sm text-blue-700">
-                      <strong>Turni coinvolti:</strong> {turniFuturi.filter(t => 
-                        t.data >= ferieForm.data_inizio && t.data <= ferieForm.data_fine
-                      ).length}
-                    </p>
-                  </div>
-                )}
-
-                <div className="flex gap-2">
-                  <NeumorphicButton onClick={() => setShowFerieModal(false)} className="flex-1">
-                    Annulla
-                  </NeumorphicButton>
-                  <NeumorphicButton
-                    onClick={() => richiestaFerieMutation.mutate(ferieForm)}
-                    variant="primary"
-                    className="flex-1"
-                    disabled={!ferieForm.data_inizio || !ferieForm.data_fine || richiestaFerieMutation.isPending}
-                  >
-                    {richiestaFerieMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Invia Richiesta'}
-                  </NeumorphicButton>
-                </div>
               </div>
+              {ferieForm.data_inizio && ferieForm.data_fine && (
+                <p className="text-sm text-blue-600 mt-2">
+                  Turni coinvolti: {turniFuturi.filter(t => t.data >= ferieForm.data_inizio && t.data <= ferieForm.data_fine).length}
+                </p>
+              )}
+              <NeumorphicButton
+                onClick={() => richiestaFerieMutation.mutate(ferieForm)}
+                variant="primary"
+                className="mt-4"
+                disabled={!ferieForm.data_inizio || !ferieForm.data_fine || richiestaFerieMutation.isPending}
+              >
+                {richiestaFerieMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Invia Richiesta Ferie'}
+              </NeumorphicButton>
+            </NeumorphicCard>
+
+            {/* Storico richieste */}
+            <NeumorphicCard className="p-6">
+              <h2 className="text-lg font-bold text-slate-800 mb-4">Le Mie Richieste Ferie</h2>
+              {mieFerie.length === 0 ? (
+                <p className="text-slate-500 text-center py-4">Nessuna richiesta di ferie</p>
+              ) : (
+                <div className="space-y-3">
+                  {mieFerie.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).map(ferie => (
+                    <div key={ferie.id} className="neumorphic-pressed p-4 rounded-xl">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-slate-800">
+                            {moment(ferie.data_inizio).format('DD/MM/YYYY')} - {moment(ferie.data_fine).format('DD/MM/YYYY')}
+                          </p>
+                          {ferie.motivo && <p className="text-sm text-slate-500">{ferie.motivo}</p>}
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatoColor(ferie.stato)}`}>
+                          {getStatoLabel(ferie.stato)}
+                        </span>
+                      </div>
+                      {ferie.note_admin && (
+                        <p className="text-xs text-slate-500 mt-2 italic">Note: {ferie.note_admin}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </NeumorphicCard>
           </div>
         )}
 
-        {/* Modal Richiesta Malattia */}
-        {showMalattiaModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <NeumorphicCard className="p-6 max-w-md w-full">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                  <Thermometer className="w-5 h-5 text-red-500" />
-                  Segnala Malattia
-                </h2>
-                <button onClick={() => setShowMalattiaModal(false)} className="nav-button p-2 rounded-lg">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="space-y-4">
+        {/* VISTA: MALATTIA */}
+        {activeView === 'malattia' && (
+          <div className="space-y-4">
+            {/* Form nuova richiesta */}
+            <NeumorphicCard className="p-6">
+              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <Thermometer className="w-5 h-5 text-red-500" />
+                Segnala Malattia
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Data</label>
                   <input
@@ -1141,71 +1270,199 @@ export default function TurniDipendente() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Descrizione (opzionale)</label>
-                  <textarea
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Descrizione (opz.)</label>
+                  <input
+                    type="text"
                     value={malattiaForm.descrizione}
                     onChange={(e) => setMalattiaForm({ ...malattiaForm, descrizione: e.target.value })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none resize-none h-20"
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
                     placeholder="Descrivi brevemente..."
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Certificato Medico (opzionale)</label>
-                  <div className="neumorphic-pressed p-4 rounded-xl">
-                    {malattiaForm.certificato_url ? (
-                      <div className="flex items-center gap-2 text-green-700">
-                        <FileText className="w-5 h-5" />
-                        <span className="text-sm">Certificato caricato</span>
-                        <button onClick={() => setMalattiaForm({ ...malattiaForm, certificato_url: null })} className="text-red-500 ml-auto">
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <label className="flex flex-col items-center cursor-pointer">
-                        {uploadingCertificato ? (
-                          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-                        ) : (
-                          <>
-                            <Upload className="w-8 h-8 text-slate-400 mb-2" />
-                            <span className="text-sm text-slate-500">Clicca per caricare</span>
-                          </>
-                        )}
-                        <input
-                          type="file"
-                          accept="image/*,.pdf"
-                          className="hidden"
-                          onChange={(e) => handleUploadCertificato(e.target.files[0])}
-                        />
-                      </label>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Puoi caricare il certificato ora o aggiungerlo in seguito
-                  </p>
-                </div>
-
-                <div className="p-3 bg-orange-50 rounded-xl">
-                  <p className="text-sm text-orange-700">
-                    ⚠️ I tuoi turni di oggi verranno segnati come "Malattia (Non Certificata)" fino all'approvazione del certificato.
-                  </p>
-                </div>
-
-                <div className="flex gap-2">
-                  <NeumorphicButton onClick={() => setShowMalattiaModal(false)} className="flex-1">
-                    Annulla
-                  </NeumorphicButton>
-                  <NeumorphicButton
-                    onClick={() => richiestaMalattiaMutation.mutate(malattiaForm)}
-                    variant="primary"
-                    className="flex-1"
-                    disabled={!malattiaForm.data_inizio || richiestaMalattiaMutation.isPending}
-                  >
-                    {richiestaMalattiaMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Invia'}
-                  </NeumorphicButton>
+              </div>
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-slate-700 mb-1">Certificato Medico (opzionale)</label>
+                <div className="neumorphic-pressed p-4 rounded-xl">
+                  {malattiaForm.certificato_url ? (
+                    <div className="flex items-center gap-2 text-green-700">
+                      <FileText className="w-5 h-5" />
+                      <span className="text-sm">Certificato caricato</span>
+                      <button onClick={() => setMalattiaForm({ ...malattiaForm, certificato_url: null })} className="text-red-500 ml-auto">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      {uploadingCertificato ? (
+                        <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                      ) : (
+                        <Upload className="w-6 h-6 text-slate-400" />
+                      )}
+                      <span className="text-sm text-slate-500">Clicca per caricare</span>
+                      <input
+                        type="file"
+                        accept="image/*,.pdf"
+                        className="hidden"
+                        onChange={(e) => handleUploadCertificato(e.target.files[0])}
+                      />
+                    </label>
+                  )}
                 </div>
               </div>
+              <div className="p-3 bg-orange-50 rounded-xl mt-4">
+                <p className="text-sm text-orange-700">
+                  ⚠️ I tuoi turni verranno segnati come "Malattia (Non Certificata)" fino all'approvazione del certificato.
+                </p>
+              </div>
+              <NeumorphicButton
+                onClick={() => richiestaMalattiaMutation.mutate(malattiaForm)}
+                variant="primary"
+                className="mt-4"
+                disabled={!malattiaForm.data_inizio || richiestaMalattiaMutation.isPending}
+              >
+                {richiestaMalattiaMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Invia Segnalazione'}
+              </NeumorphicButton>
+            </NeumorphicCard>
+
+            {/* Storico malattie */}
+            <NeumorphicCard className="p-6">
+              <h2 className="text-lg font-bold text-slate-800 mb-4">Le Mie Malattie</h2>
+              {mieMalattie.length === 0 ? (
+                <p className="text-slate-500 text-center py-4">Nessuna malattia registrata</p>
+              ) : (
+                <div className="space-y-3">
+                  {mieMalattie.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).map(malattia => (
+                    <div key={malattia.id} className="neumorphic-pressed p-4 rounded-xl">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="font-medium text-slate-800">
+                            {moment(malattia.data_inizio).format('DD/MM/YYYY')}
+                            {malattia.data_fine && ` - ${moment(malattia.data_fine).format('DD/MM/YYYY')}`}
+                          </p>
+                          {malattia.descrizione && <p className="text-sm text-slate-500">{malattia.descrizione}</p>}
+                          {malattia.certificato_url ? (
+                            <a href={malattia.certificato_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-xs flex items-center gap-1 mt-1">
+                              <FileText className="w-3 h-3" /> Vedi Certificato
+                            </a>
+                          ) : (malattia.stato === 'non_certificata' || malattia.stato === 'in_attesa_verifica') && (
+                            <div className="mt-2">
+                              {uploadingCertificatoForId === malattia.id ? (
+                                <div className="flex items-center gap-2 text-blue-600">
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  <span className="text-xs">Caricamento...</span>
+                                </div>
+                              ) : (
+                                <label className="flex items-center gap-2 cursor-pointer text-blue-600 text-xs">
+                                  <Upload className="w-4 h-4" />
+                                  <span>Carica certificato</span>
+                                  <input
+                                    type="file"
+                                    accept="image/*,.pdf"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                      if (e.target.files[0]) {
+                                        setUploadingCertificatoForId(malattia.id);
+                                        uploadCertificatoMutation.mutate({ malattiaId: malattia.id, file: e.target.files[0] });
+                                      }
+                                    }}
+                                  />
+                                </label>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatoColor(malattia.stato)}`}>
+                          {getStatoLabel(malattia.stato)}
+                        </span>
+                      </div>
+                      {malattia.note_admin && (
+                        <p className="text-xs text-slate-500 mt-2 italic">Note: {malattia.note_admin}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </NeumorphicCard>
           </div>
+        )}
+
+        {/* VISTA: TURNI LIBERI */}
+        {activeView === 'liberi' && (
+          <NeumorphicCard className="p-6">
+            <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <Users className="w-5 h-5 text-green-500" />
+              Turni Liberi Disponibili
+            </h2>
+            <p className="text-sm text-slate-500 mb-4">
+              Questi turni corrispondono ai tuoi ruoli ({currentUser?.ruoli_dipendente?.join(', ')}) e sono disponibili.
+            </p>
+            
+            {turniLiberi.length === 0 ? (
+              <p className="text-slate-500 text-center py-8">Nessun turno libero disponibile per i tuoi ruoli</p>
+            ) : (
+              <div className="space-y-3">
+                {turniLiberi.sort((a, b) => a.data.localeCompare(b.data)).map(turno => {
+                  const giaRichiesto = mieRichiesteTurni.some(r => r.turno_id === turno.id && r.stato === 'in_attesa');
+                  return (
+                    <div key={turno.id} className="neumorphic-pressed p-4 rounded-xl">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-bold text-slate-800">
+                            {moment(turno.data).format('dddd DD MMMM')}
+                          </p>
+                          <div className="flex items-center gap-2 text-sm text-slate-600">
+                            <Clock className="w-4 h-4" />
+                            <span>{turno.ora_inizio} - {turno.ora_fine}</span>
+                            <span>•</span>
+                            <span>{turno.ruolo}</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
+                            <MapPin className="w-3 h-3" />
+                            {getStoreName(turno.store_id)}
+                            {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
+                              <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
+                                {turno.tipo_turno}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {giaRichiesto ? (
+                          <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
+                            Richiesto
+                          </span>
+                        ) : (
+                          <NeumorphicButton
+                            onClick={() => richiediTurnoLiberoMutation.mutate(turno)}
+                            variant="primary"
+                            className="text-sm"
+                            disabled={richiediTurnoLiberoMutation.isPending}
+                          >
+                            Richiedi
+                          </NeumorphicButton>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Richieste in corso */}
+            {mieRichiesteTurni.filter(r => r.stato === 'in_attesa').length > 0 && (
+              <div className="mt-6 pt-6 border-t border-slate-200">
+                <h3 className="font-bold text-slate-700 mb-3">Le tue richieste in attesa</h3>
+                <div className="space-y-2">
+                  {mieRichiesteTurni.filter(r => r.stato === 'in_attesa').map(richiesta => (
+                    <div key={richiesta.id} className="p-3 bg-yellow-50 rounded-xl text-sm">
+                      <span className="font-medium">{moment(richiesta.data_turno).format('DD/MM/YYYY')}</span>
+                      <span className="text-slate-500"> • {richiesta.ora_inizio}-{richiesta.ora_fine}</span>
+                      <span className="text-slate-500"> • {richiesta.store_name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </NeumorphicCard>
         )}
 
         {/* Modal Scambio Turno */}
