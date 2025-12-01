@@ -176,6 +176,7 @@ export default function GestioneAccessoPagine() {
     { value: 'HRAdmin', label: 'HR Admin', category: 'HR' },
     { value: 'AcademyAdmin', label: 'Academy Admin', category: 'HR' },
     { value: 'Planday', label: 'Planday - Gestione Turni', category: 'HR' },
+    { value: 'Assenze', label: 'Assenze (Ferie/Malattia)', category: 'HR' },
     { value: 'RecalculateShifts', label: 'Ricalcola Ritardi Turni', category: 'HR' },
     { value: 'CleanupDuplicateShifts', label: 'Elimina Turni Duplicati', category: 'HR' },
     

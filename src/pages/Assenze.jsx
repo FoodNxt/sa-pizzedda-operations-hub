@@ -3,7 +3,6 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
-import ProtectedPage from "../components/ProtectedPage";
 import { Calendar, Thermometer, Check, X, Clock, FileText, User, AlertCircle, Copy, Loader2 } from "lucide-react";
 import moment from "moment";
 
@@ -159,8 +158,7 @@ export default function Assenze() {
   const malattiaInAttesa = richiesteMalattia.filter(r => r.stato === 'non_certificata' || r.stato === 'in_attesa_verifica').length;
 
   return (
-    <ProtectedPage pageName="Assenze">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
             Gestione Assenze
@@ -385,7 +383,6 @@ export default function Assenze() {
             </div>
           </>
         )}
-      </div>
-    </ProtectedPage>
+    </div>
   );
 }
