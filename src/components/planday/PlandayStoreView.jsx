@@ -219,6 +219,9 @@ export default function PlandayStoreView({
                       )}
                       <div className="font-bold">{turno.ruolo}</div>
                       <div>{turno.ora_inizio} - {turno.ora_fine}</div>
+                      {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
+                        <div className="text-[9px] font-bold mt-0.5">{turno.tipo_turno}</div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -267,6 +270,9 @@ export default function PlandayStoreView({
                         )}
                         <div className="font-bold">{turno.ruolo}</div>
                         <div>{turno.ora_inizio} - {turno.ora_fine}</div>
+                        {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
+                          <div className="text-[9px] font-bold mt-0.5">{turno.tipo_turno}</div>
+                        )}
                         {!selectedStore && turno.store_id && <div className="opacity-80 text-[10px]">{getStoreName(turno.store_id)}</div>}
                         {/* Form + Attività */}
                         {(() => {

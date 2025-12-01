@@ -33,7 +33,7 @@ const COLORI_RUOLO_LIGHT = {
 const DEFAULT_TIPI_TURNO = ["Normale", "Straordinario", "Formazione", "Affiancamento", "Apertura", "Chiusura"];
 
 export default function Planday() {
-  const [mainView, setMainView] = useState('turni'); // 'turni' or 'timbrature'
+  const [mainView, setMainView] = useState('turni'); // 'turni', 'timbrature', or 'approvazione'
   const [selectedStore, setSelectedStore] = useState('');
   const [weekStart, setWeekStart] = useState(moment().startOf('isoWeek'));
   const [showForm, setShowForm] = useState(false);
@@ -189,6 +189,44 @@ export default function Planday() {
   const { data: struttureTurno = [] } = useQuery({
     queryKey: ['strutture-turno'],
     queryFn: () => base44.entities.StrutturaTurno.list(),
+  });
+
+  // Richieste turni liberi
+  const { data: richiesteTurniLiberi = [] } = useQuery({
+    queryKey: ['richieste-turni-liberi'],
+    queryFn: () => base44.entities.RichiestaTurnoLibero.list('-created_date'),
+    enabled: mainView === 'approvazione',
+  });
+
+  const approvaRichiestaTurnoMutation = useMutation({
+    mutationFn: async ({ richiestaId, turnoId, dipendenteId, dipendenteNome }) => {
+      // Aggiorna turno
+      await base44.entities.TurnoPlanday.update(turnoId, {
+        dipendente_id: dipendenteId,
+        dipendente_nome: dipendenteNome
+      });
+      // Approva richiesta
+      return base44.entities.RichiestaTurnoLibero.update(richiestaId, {
+        stato: 'approvata',
+        data_approvazione: new Date().toISOString()
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['richieste-turni-liberi'] });
+      queryClient.invalidateQueries({ queryKey: ['turni-planday'] });
+    }
+  });
+
+  const rifiutaRichiestaTurnoMutation = useMutation({
+    mutationFn: ({ richiestaId }) => {
+      return base44.entities.RichiestaTurnoLibero.update(richiestaId, {
+        stato: 'rifiutata',
+        data_approvazione: new Date().toISOString()
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['richieste-turni-liberi'] });
+    }
   });
 
   const [configForm, setConfigForm] = useState({
@@ -1301,6 +1339,19 @@ export default function Planday() {
             >
               <Clock className="w-4 h-4" />
               Timbrature
+            </NeumorphicButton>
+            <NeumorphicButton 
+              onClick={() => setMainView('approvazione')}
+              variant={mainView === 'approvazione' ? 'primary' : 'default'}
+              className="flex items-center gap-2"
+            >
+              <CheckCircle className="w-4 h-4" />
+              Approvazione Turni
+              {richiesteTurniLiberi.filter(r => r.stato === 'in_attesa').length > 0 && (
+                <span className="bg-yellow-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                  {richiesteTurniLiberi.filter(r => r.stato === 'in_attesa').length}
+                </span>
+              )}
             </NeumorphicButton>
           </div>
         </div>
@@ -3306,6 +3357,75 @@ export default function Planday() {
               })()}
             </NeumorphicCard>
           </div>
+        )}
+
+        {/* Main Content - Approvazione Turni */}
+        {mainView === 'approvazione' && (
+          <NeumorphicCard className="p-6">
+            <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <CheckCircle className="w-6 h-6 text-green-600" />
+              Richieste Turni Liberi
+            </h2>
+            
+            {richiesteTurniLiberi.length === 0 ? (
+              <p className="text-slate-500 text-center py-8">Nessuna richiesta di turno</p>
+            ) : (
+              <div className="space-y-3">
+                {richiesteTurniLiberi.map(richiesta => (
+                  <div key={richiesta.id} className={`neumorphic-pressed p-4 rounded-xl ${
+                    richiesta.stato === 'in_attesa' ? 'border-2 border-yellow-300' : ''
+                  }`}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <User className="w-4 h-4 text-slate-500" />
+                          <span className="font-bold text-slate-800">{richiesta.dipendente_nome}</span>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                            richiesta.stato === 'in_attesa' ? 'bg-yellow-100 text-yellow-800' :
+                            richiesta.stato === 'approvata' ? 'bg-green-100 text-green-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {richiesta.stato === 'in_attesa' ? 'In Attesa' : richiesta.stato === 'approvata' ? 'Approvata' : 'Rifiutata'}
+                          </span>
+                        </div>
+                        <div className="text-sm text-slate-600 space-y-1">
+                          <p>📅 {moment(richiesta.data_turno).format('dddd DD MMMM YYYY')}</p>
+                          <p>🕐 {richiesta.ora_inizio} - {richiesta.ora_fine}</p>
+                          <p>👤 {richiesta.ruolo}</p>
+                          <p>📍 {richiesta.store_name}</p>
+                          {richiesta.note && <p className="text-xs italic">💬 {richiesta.note}</p>}
+                        </div>
+                      </div>
+                      
+                      {richiesta.stato === 'in_attesa' && (
+                        <div className="flex flex-col gap-2">
+                          <button
+                            onClick={() => approvaRichiestaTurnoMutation.mutate({
+                              richiestaId: richiesta.id,
+                              turnoId: richiesta.turno_id,
+                              dipendenteId: richiesta.dipendente_id,
+                              dipendenteNome: richiesta.dipendente_nome
+                            })}
+                            disabled={approvaRichiestaTurnoMutation.isPending}
+                            className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 flex items-center gap-1"
+                          >
+                            <CheckCircle className="w-3 h-3" /> Approva
+                          </button>
+                          <button
+                            onClick={() => rifiutaRichiestaTurnoMutation.mutate({ richiestaId: richiesta.id })}
+                            disabled={rifiutaRichiestaTurnoMutation.isPending}
+                            className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 flex items-center gap-1"
+                          >
+                            <X className="w-3 h-3" /> Rifiuta
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </NeumorphicCard>
         )}
 
         {/* Modal Alert Settings */}
