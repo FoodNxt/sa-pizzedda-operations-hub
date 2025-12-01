@@ -237,6 +237,11 @@ const navigationStructure = [
         icon: Calendar,
       },
       {
+        title: "Assenze",
+        url: createPageUrl("Assenze"),
+        icon: Calendar,
+      },
+      {
         title: "HR Admin",
         url: createPageUrl("HRAdmin"),
         icon: Settings,
