@@ -145,11 +145,6 @@ export default function TurniDipendente() {
     enabled: !!currentUser?.id,
   });
 
-  const { data: stores = [] } = useQuery({
-    queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list(),
-  });
-
   const { data: formTrackerConfigs = [] } = useQuery({
     queryKey: ['form-tracker-configs'],
     queryFn: () => base44.entities.FormTrackerConfig.list(),
@@ -398,7 +393,7 @@ export default function TurniDipendente() {
     }
   });
 
-  const getStoreName = (storeId) => stores.find(s => s.id === storeId)?.name || '';
+  const getStoreName = (storeId) => storesData.find(s => s.id === storeId)?.name || '';
 
   const getStatoColor = (stato) => {
     switch (stato) {
@@ -552,7 +547,7 @@ export default function TurniDipendente() {
     const turnoEnd = moment(`${prossimoTurno.data} ${prossimoTurno.ora_fine}`);
     const minutesToStart = turnoStart.diff(now, 'minutes');
     const minutesToEnd = turnoEnd.diff(now, 'minutes');
-    const store = stores.find(s => s.id === prossimoTurno.store_id);
+    const store = storesData.find(s => s.id === prossimoTurno.store_id);
     
     // Già timbrato entrata? Mostra timer e controllo uscita
     if (prossimoTurno.timbrata_entrata && !prossimoTurno.timbrata_uscita) {
@@ -890,7 +885,7 @@ export default function TurniDipendente() {
                     </div>
                     <div className="flex items-center gap-2 text-slate-500 text-sm mt-1">
                     <MapPin className="w-4 h-4" />
-                    <span>{getStoreNameHelper(prossimoTurno.store_id)}</span>
+                    <span>{getStoreName(prossimoTurno.store_id)}</span>
                     <span>•</span>
                     <span>{prossimoTurno.ruolo}</span>
                   </div>
@@ -1416,7 +1411,7 @@ export default function TurniDipendente() {
                           </div>
                           <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
                             <MapPin className="w-3 h-3" />
-                            {getStoreNameHelper(turno.store_id)}
+                            {getStoreName(turno.store_id)}
                             {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
                               <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
                                 {turno.tipo_turno}
