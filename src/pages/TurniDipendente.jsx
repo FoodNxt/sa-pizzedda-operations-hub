@@ -7,7 +7,8 @@ import ProtectedPage from "../components/ProtectedPage";
 import { 
   Calendar, Clock, MapPin, CheckCircle, AlertCircle, 
   Loader2, LogIn, LogOut, ChevronLeft, ChevronRight,
-  RefreshCw, X, AlertTriangle, Users, Store as StoreIcon, Navigation, Timer, ClipboardList
+  RefreshCw, X, AlertTriangle, Users, Store as StoreIcon, Navigation, Timer, ClipboardList,
+  Palmtree, Thermometer, Upload, FileText
 } from "lucide-react";
 import moment from "moment";
 import "moment/locale/it";
@@ -29,6 +30,11 @@ export default function TurniDipendente() {
   const [timbraturaMessage, setTimbraturaMessage] = useState(null);
   const [showScambioModal, setShowScambioModal] = useState(false);
   const [selectedTurnoScambio, setSelectedTurnoScambio] = useState(null);
+  const [showFerieModal, setShowFerieModal] = useState(false);
+  const [showMalattiaModal, setShowMalattiaModal] = useState(false);
+  const [ferieForm, setFerieForm] = useState({ data_inizio: '', data_fine: '', motivo: '' });
+  const [malattiaForm, setMalattiaForm] = useState({ data_inizio: '', descrizione: '', certificato: null });
+  const [uploadingCertificato, setUploadingCertificato] = useState(false);
   const [gpsPermissionStatus, setGpsPermissionStatus] = useState('unknown');
   const [userPosition, setUserPosition] = useState(null);
   const [distanceToStore, setDistanceToStore] = useState(null);
@@ -237,6 +243,78 @@ export default function TurniDipendente() {
       setTimeout(() => setTimbraturaMessage(null), 3000);
     }
   });
+
+  const richiestaFerieMutation = useMutation({
+    mutationFn: async (data) => {
+      // Trova turni nel range date
+      const turniCoinvolti = turniFuturi.filter(t => {
+        return t.data >= data.data_inizio && t.data <= data.data_fine;
+      }).map(t => t.id);
+
+      return base44.entities.RichiestaFerie.create({
+        dipendente_id: currentUser.id,
+        dipendente_nome: currentUser.nome_cognome || currentUser.full_name,
+        dipendente_email: currentUser.email,
+        data_inizio: data.data_inizio,
+        data_fine: data.data_fine,
+        motivo: data.motivo,
+        turni_coinvolti: turniCoinvolti,
+        stato: 'in_attesa'
+      });
+    },
+    onSuccess: () => {
+      setShowFerieModal(false);
+      setFerieForm({ data_inizio: '', data_fine: '', motivo: '' });
+      setTimbraturaMessage({ type: 'success', text: 'Richiesta ferie inviata!' });
+      setTimeout(() => setTimbraturaMessage(null), 3000);
+    }
+  });
+
+  const richiestaMalattiaMutation = useMutation({
+    mutationFn: async (data) => {
+      // Trova turni del giorno
+      const oggi = data.data_inizio;
+      const turniCoinvolti = turniFuturi.filter(t => t.data === oggi).map(t => t.id);
+
+      // Aggiorna turni come Malattia (Non Certificata)
+      for (const turnoId of turniCoinvolti) {
+        await base44.entities.TurnoPlanday.update(turnoId, {
+          tipo_turno: 'Malattia (Non Certificata)'
+        });
+      }
+
+      return base44.entities.RichiestaMalattia.create({
+        dipendente_id: currentUser.id,
+        dipendente_nome: currentUser.nome_cognome || currentUser.full_name,
+        dipendente_email: currentUser.email,
+        data_inizio: data.data_inizio,
+        descrizione: data.descrizione,
+        certificato_url: data.certificato_url,
+        turni_coinvolti: turniCoinvolti,
+        stato: data.certificato_url ? 'in_attesa_verifica' : 'non_certificata'
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['turni-dipendente'] });
+      queryClient.invalidateQueries({ queryKey: ['turni-futuri'] });
+      setShowMalattiaModal(false);
+      setMalattiaForm({ data_inizio: '', descrizione: '', certificato: null });
+      setTimbraturaMessage({ type: 'success', text: 'Malattia segnalata!' });
+      setTimeout(() => setTimbraturaMessage(null), 3000);
+    }
+  });
+
+  const handleUploadCertificato = async (file) => {
+    if (!file) return;
+    setUploadingCertificato(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setMalattiaForm(prev => ({ ...prev, certificato_url: file_url }));
+    } catch (error) {
+      console.error('Error uploading:', error);
+    }
+    setUploadingCertificato(false);
+  };
 
   // Calcola distanza GPS
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -573,14 +651,14 @@ export default function TurniDipendente() {
             </h1>
             <p className="text-slate-500 mt-1">Timbra e gestisci i tuoi turni</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <NeumorphicButton 
               onClick={() => setActiveView('prossimo')}
               variant={activeView === 'prossimo' ? 'primary' : 'default'}
               className="flex items-center gap-2"
             >
               <Timer className="w-4 h-4" />
-              Prossimo Turno
+              Prossimo
             </NeumorphicButton>
             <NeumorphicButton 
               onClick={() => setActiveView('tutti')}
@@ -588,7 +666,21 @@ export default function TurniDipendente() {
               className="flex items-center gap-2"
             >
               <Calendar className="w-4 h-4" />
-              Tutti i Turni
+              Tutti
+            </NeumorphicButton>
+            <NeumorphicButton 
+              onClick={() => setShowFerieModal(true)}
+              className="flex items-center gap-2 text-blue-600"
+            >
+              <Palmtree className="w-4 h-4" />
+              Ferie
+            </NeumorphicButton>
+            <NeumorphicButton 
+              onClick={() => setShowMalattiaModal(true)}
+              className="flex items-center gap-2 text-red-600"
+            >
+              <Thermometer className="w-4 h-4" />
+              Malattia
             </NeumorphicButton>
           </div>
         </div>
@@ -646,10 +738,28 @@ export default function TurniDipendente() {
         {/* VISTA: PROSSIMO TURNO */}
         {activeView === 'prossimo' && prossimoTurno && (
           <NeumorphicCard className={`p-6 border ${prossimoTurnoStatus.inCorso ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-200' : 'bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200'}`}>
-            <h2 className={`text-xl font-bold mb-4 flex items-center gap-2 ${prossimoTurnoStatus.inCorso ? 'text-green-800' : 'text-indigo-800'}`}>
-              {prossimoTurnoStatus.inCorso ? <Timer className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
-              {prossimoTurnoStatus.inCorso ? 'Turno in Corso' : 'Prossimo Turno'}
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className={`text-xl font-bold flex items-center gap-2 ${prossimoTurnoStatus.inCorso ? 'text-green-800' : 'text-indigo-800'}`}>
+                {prossimoTurnoStatus.inCorso ? <Timer className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
+                {prossimoTurnoStatus.inCorso ? 'Turno in Corso' : 'Prossimo Turno'}
+              </h2>
+              {/* Countdown */}
+              {!prossimoTurnoStatus.inCorso && (() => {
+                const turnoStart = moment(`${prossimoTurno.data} ${prossimoTurno.ora_inizio}`);
+                const diffMs = turnoStart.diff(now);
+                if (diffMs <= 0) return null;
+                const hours = Math.floor(diffMs / (1000 * 60 * 60));
+                const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                return (
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-indigo-700 font-mono">
+                      {hours < 2 ? `${hours}h ${minutes}m` : `${hours}h`}
+                    </div>
+                    <div className="text-xs text-indigo-500">al turno</div>
+                  </div>
+                );
+              })()}
+            </div>
             <div className="bg-white rounded-xl p-4 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex-1">
@@ -931,6 +1041,171 @@ export default function TurniDipendente() {
           )}
         </div>
           </>
+        )}
+
+        {/* Modal Richiesta Ferie */}
+        {showFerieModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="p-6 max-w-md w-full">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                  <Palmtree className="w-5 h-5 text-blue-500" />
+                  Richiedi Ferie
+                </h2>
+                <button onClick={() => setShowFerieModal(false)} className="nav-button p-2 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Data Inizio</label>
+                  <input
+                    type="date"
+                    value={ferieForm.data_inizio}
+                    onChange={(e) => setFerieForm({ ...ferieForm, data_inizio: e.target.value })}
+                    min={moment().format('YYYY-MM-DD')}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Data Fine</label>
+                  <input
+                    type="date"
+                    value={ferieForm.data_fine}
+                    onChange={(e) => setFerieForm({ ...ferieForm, data_fine: e.target.value })}
+                    min={ferieForm.data_inizio || moment().format('YYYY-MM-DD')}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Motivo (opzionale)</label>
+                  <textarea
+                    value={ferieForm.motivo}
+                    onChange={(e) => setFerieForm({ ...ferieForm, motivo: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none resize-none h-20"
+                    placeholder="Es: Vacanza, motivi personali..."
+                  />
+                </div>
+
+                {ferieForm.data_inizio && ferieForm.data_fine && (
+                  <div className="p-3 bg-blue-50 rounded-xl">
+                    <p className="text-sm text-blue-700">
+                      <strong>Turni coinvolti:</strong> {turniFuturi.filter(t => 
+                        t.data >= ferieForm.data_inizio && t.data <= ferieForm.data_fine
+                      ).length}
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <NeumorphicButton onClick={() => setShowFerieModal(false)} className="flex-1">
+                    Annulla
+                  </NeumorphicButton>
+                  <NeumorphicButton
+                    onClick={() => richiestaFerieMutation.mutate(ferieForm)}
+                    variant="primary"
+                    className="flex-1"
+                    disabled={!ferieForm.data_inizio || !ferieForm.data_fine || richiestaFerieMutation.isPending}
+                  >
+                    {richiestaFerieMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Invia Richiesta'}
+                  </NeumorphicButton>
+                </div>
+              </div>
+            </NeumorphicCard>
+          </div>
+        )}
+
+        {/* Modal Richiesta Malattia */}
+        {showMalattiaModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="p-6 max-w-md w-full">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                  <Thermometer className="w-5 h-5 text-red-500" />
+                  Segnala Malattia
+                </h2>
+                <button onClick={() => setShowMalattiaModal(false)} className="nav-button p-2 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Data</label>
+                  <input
+                    type="date"
+                    value={malattiaForm.data_inizio}
+                    onChange={(e) => setMalattiaForm({ ...malattiaForm, data_inizio: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Descrizione (opzionale)</label>
+                  <textarea
+                    value={malattiaForm.descrizione}
+                    onChange={(e) => setMalattiaForm({ ...malattiaForm, descrizione: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none resize-none h-20"
+                    placeholder="Descrivi brevemente..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Certificato Medico (opzionale)</label>
+                  <div className="neumorphic-pressed p-4 rounded-xl">
+                    {malattiaForm.certificato_url ? (
+                      <div className="flex items-center gap-2 text-green-700">
+                        <FileText className="w-5 h-5" />
+                        <span className="text-sm">Certificato caricato</span>
+                        <button onClick={() => setMalattiaForm({ ...malattiaForm, certificato_url: null })} className="text-red-500 ml-auto">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center cursor-pointer">
+                        {uploadingCertificato ? (
+                          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                        ) : (
+                          <>
+                            <Upload className="w-8 h-8 text-slate-400 mb-2" />
+                            <span className="text-sm text-slate-500">Clicca per caricare</span>
+                          </>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*,.pdf"
+                          className="hidden"
+                          onChange={(e) => handleUploadCertificato(e.target.files[0])}
+                        />
+                      </label>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Puoi caricare il certificato ora o aggiungerlo in seguito
+                  </p>
+                </div>
+
+                <div className="p-3 bg-orange-50 rounded-xl">
+                  <p className="text-sm text-orange-700">
+                    ⚠️ I tuoi turni di oggi verranno segnati come "Malattia (Non Certificata)" fino all'approvazione del certificato.
+                  </p>
+                </div>
+
+                <div className="flex gap-2">
+                  <NeumorphicButton onClick={() => setShowMalattiaModal(false)} className="flex-1">
+                    Annulla
+                  </NeumorphicButton>
+                  <NeumorphicButton
+                    onClick={() => richiestaMalattiaMutation.mutate(malattiaForm)}
+                    variant="primary"
+                    className="flex-1"
+                    disabled={!malattiaForm.data_inizio || richiestaMalattiaMutation.isPending}
+                  >
+                    {richiestaMalattiaMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Invia'}
+                  </NeumorphicButton>
+                </div>
+              </div>
+            </NeumorphicCard>
+          </div>
         )}
 
         {/* Modal Scambio Turno */}
