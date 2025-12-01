@@ -606,7 +606,7 @@ export default function TurniDipendente() {
     }
     
     return { canTimbra: true, tipo: 'entrata', reason: null };
-  }, [prossimoTurno, stores, config, userPosition, now]);
+  }, [prossimoTurno, storesData, config, userPosition, now]);
 
   // Colleghi disponibili per scambio
   const colleghiPerScambio = useMemo(() => {

@@ -111,8 +111,26 @@ export default function Assenze() {
   };
 
   const handleVerifyMalattia = async (request, approved) => {
-    // Aggiorna i turni coinvolti
+    // Aggiorna i turni coinvolti e crea turni liberi se approvato
     for (const turnoId of (request.turni_coinvolti || [])) {
+      const turno = turniPlanday.find(t => t.id === turnoId);
+      if (turno && approved) {
+        // Crea turno libero per sostituzione
+        await createTurnoMutation.mutateAsync({
+          store_id: turno.store_id,
+          data: turno.data,
+          ora_inizio: turno.ora_inizio,
+          ora_fine: turno.ora_fine,
+          ruolo: turno.ruolo,
+          dipendente_id: '',
+          dipendente_nome: '',
+          tipo_turno: 'Normale',
+          momento_turno: turno.momento_turno,
+          turno_sequence: turno.turno_sequence,
+          note: `Turno liberato per malattia di ${request.dipendente_nome}`
+        });
+      }
+      
       await updateTurnoMutation.mutateAsync({
         id: turnoId,
         data: { 
