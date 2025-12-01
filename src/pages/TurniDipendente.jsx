@@ -665,7 +665,7 @@ export default function TurniDipendente() {
     const turnoStoreId = turno.store_id;
     const turnoSequence = turno.turno_sequence || getTurnoSequenceFromMomento(turno);
     const turnoDayOfWeek = new Date(turno.data).getDay();
-    const storeName = getStoreNameHelper(turnoStoreId);
+    const storeName = getStoreName(turnoStoreId);
     
     const activeConfigs = formTrackerConfigs.filter(c => c.is_active);
     const formDovuti = [];
@@ -744,9 +744,6 @@ export default function TurniDipendente() {
     
     return Array.from(attivitaSet);
   };
-
-  // Alias per compatibilità
-  const getStoreName = getStoreNameHelper;
 
   return (
     <ProtectedPage pageName="TurniDipendente">
