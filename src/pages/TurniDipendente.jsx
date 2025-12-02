@@ -1098,15 +1098,41 @@ export default function TurniDipendente() {
                 const formDovuti = getFormDovutiPerTurno(prossimoTurno);
                 const attivita = getAttivitaTurno(prossimoTurno);
                 
+                // Calcola se tutte le attività sono completate
+                const allAttivitaComplete = attivita.every(att => {
+                  const isFormActivity = att.form_page || att.richiede_form;
+                  const isCorsoActivity = att.corsi_ids?.length > 0;
+                  if (isFormActivity) {
+                    return formDovuti.some(f => f.page === att.form_page && f.completato);
+                  }
+                  if (isCorsoActivity) return true; // Corsi sono opzionali
+                  return isAttivitaCompletata(prossimoTurno.id, att.nome);
+                });
+                const formNonAssociatiComplete = formDovuti
+                  .filter(form => !attivita.some(a => a.form_page === form.page))
+                  .every(f => f.completato);
+                const tuttoCompleto = allAttivitaComplete && formNonAssociatiComplete;
+                
                 if (formDovuti.length === 0 && attivita.length === 0) return null;
                 
                 return (
                   <div className="mb-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
-                    <h3 className="font-bold text-blue-800 mb-3 flex items-center gap-2">
-                      <ClipboardList className="w-4 h-4" />
-                      {prossimoTurno.timbrata_entrata ? 'Da completare per questo turno:' : 'Attività previste per questo turno:'}
-                    </h3>
-                    <div className="space-y-2">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-bold text-blue-800 flex items-center gap-2">
+                        <ClipboardList className="w-4 h-4" />
+                        {prossimoTurno.timbrata_entrata ? 'Da completare:' : 'Attività previste:'}
+                      </h3>
+                      {prossimoTurno.timbrata_entrata && (
+                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${tuttoCompleto ? 'bg-green-200 text-green-800' : 'bg-orange-200 text-orange-800'}`}>
+                          {tuttoCompleto ? '✓ Tutto completato' : `${attivita.filter(a => {
+                            const isFormActivity = a.form_page || a.richiede_form;
+                            if (isFormActivity) return formDovuti.some(f => f.page === a.form_page && f.completato);
+                            return isAttivitaCompletata(prossimoTurno.id, a.nome);
+                          }).length}/${attivita.length} completate`}
+                        </span>
+                      )}
+                    </div>
+                    <div className="space-y-3">
                       {/* Unifica form e attività - mostra solo attività con relativi bottoni */}
                       {attivita.map((att, idx) => {
                         const isFormActivity = att.form_page || att.richiede_form;
@@ -1116,46 +1142,61 @@ export default function TurniDipendente() {
                           : isAttivitaCompletata(prossimoTurno.id, att.nome);
                         
                         return (
-                          <div key={`att-${idx}-${att.nome}`} className={`p-3 rounded-lg ${isCompleted ? 'bg-green-100 border border-green-300' : 'bg-white border border-blue-300'}`}>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                {att.ora_inizio && (
-                                  <span className="text-xs font-mono text-slate-500">{att.ora_inizio}</span>
-                                )}
-                                <span className="text-sm text-slate-700">{att.nome}</span>
+                          <div key={`att-${idx}-${att.nome}`} className={`p-4 rounded-xl ${isCompleted ? 'bg-green-100 border-2 border-green-300' : 'bg-white border-2 border-blue-200'} shadow-sm`}>
+                            <div className="flex items-start justify-between gap-3">
+                              {/* Left side: checkbox + info */}
+                              <div className="flex items-start gap-3 flex-1 min-w-0">
+                                <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${isCompleted ? 'bg-green-500' : 'bg-slate-200'}`}>
+                                  {isCompleted ? (
+                                    <Check className="w-4 h-4 text-white" />
+                                  ) : (
+                                    <span className="w-3 h-3 rounded-full bg-slate-400" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className={`font-medium text-sm ${isCompleted ? 'text-green-800 line-through' : 'text-slate-800'}`}>
+                                    {att.nome}
+                                  </p>
+                                  {(att.ora_inizio || att.ora_fine) && (
+                                    <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                                      <Clock className="w-3 h-3" />
+                                      {att.ora_inizio}{att.ora_fine ? ` - ${att.ora_fine}` : ''}
+                                    </p>
+                                  )}
+                                </div>
                               </div>
-                              <div className="flex items-center gap-2">
-                                {isCorsoActivity && (
+                              
+                              {/* Right side: action buttons */}
+                              <div className="flex-shrink-0">
+                                {isCorsoActivity && !isCompleted && (
                                   <Link 
                                     to={createPageUrl('Academy')}
-                                    className="px-2 py-1 bg-purple-500 text-white text-xs rounded-lg flex items-center gap-1 hover:bg-purple-600"
+                                    className="px-4 py-2 bg-purple-500 text-white text-sm font-medium rounded-xl flex items-center gap-2 hover:bg-purple-600 shadow-sm"
                                   >
-                                    <GraduationCap className="w-3 h-3" /> Corso
+                                    <GraduationCap className="w-4 h-4" /> Corso
                                   </Link>
                                 )}
                                 {isFormActivity && !isCompleted && (
                                   <Link 
-                                    to={createPageUrl(att.form_page)}
-                                    className="px-2 py-1 bg-blue-500 text-white text-xs rounded-lg flex items-center gap-1 hover:bg-blue-600"
+                                    to={createPageUrl(att.form_page) + '?redirect=TurniDipendente'}
+                                    className="px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-xl flex items-center gap-2 hover:bg-blue-600 shadow-sm"
                                   >
-                                    <FileText className="w-3 h-3" /> Form
+                                    <FileText className="w-4 h-4" /> Compila
                                   </Link>
                                 )}
-                                {!isFormActivity && !isCorsoActivity && (
+                                {!isFormActivity && !isCorsoActivity && !isCompleted && (
                                   <button
-                                    onClick={() => {
-                                      if (!isCompleted) {
-                                        completaAttivitaMutation.mutate({ turno: prossimoTurno, attivitaNome: att.nome });
-                                      }
-                                    }}
-                                    disabled={isCompleted || completaAttivitaMutation.isPending}
-                                    className={`p-1.5 rounded-lg border ${isCompleted ? 'bg-green-100 border-green-300 text-green-600' : 'bg-white border-slate-300 text-slate-400 hover:text-green-600 hover:border-green-300'}`}
+                                    onClick={() => completaAttivitaMutation.mutate({ turno: prossimoTurno, attivitaNome: att.nome })}
+                                    disabled={completaAttivitaMutation.isPending}
+                                    className="px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-xl flex items-center gap-2 hover:bg-green-600 shadow-sm"
                                   >
-                                    {isCompleted ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
+                                    <Check className="w-4 h-4" /> Fatto
                                   </button>
                                 )}
                                 {isCompleted && (
-                                  <CheckCircle className="w-4 h-4 text-green-600" />
+                                  <span className="px-3 py-2 bg-green-100 text-green-700 text-sm font-medium rounded-xl flex items-center gap-1">
+                                    <CheckCircle className="w-4 h-4" /> Completato
+                                  </span>
                                 )}
                               </div>
                             </div>
@@ -1164,52 +1205,102 @@ export default function TurniDipendente() {
                       })}
                       {/* Form non associati a slot */}
                       {formDovuti.filter(form => !attivita.some(a => a.form_page === form.page)).map((form, idx) => (
-                        <div key={`form-extra-${idx}`} className={`p-3 rounded-lg ${form.completato ? 'bg-green-100 border border-green-300' : 'bg-white border border-blue-300'} flex items-center justify-between`}>
-                          <span className="text-sm font-medium text-slate-700">{form.nome}</span>
-                          <div className="flex items-center gap-2">
-                            {form.completato ? (
-                              <CheckCircle className="w-4 h-4 text-green-600" />
-                            ) : (
-                              <Link 
-                                to={createPageUrl(form.page)}
-                                className="px-2 py-1 bg-blue-500 text-white text-xs rounded-lg flex items-center gap-1 hover:bg-blue-600"
-                              >
-                                <FileText className="w-3 h-3" /> Form
-                              </Link>
-                            )}
+                        <div key={`form-extra-${idx}`} className={`p-4 rounded-xl ${form.completato ? 'bg-green-100 border-2 border-green-300' : 'bg-white border-2 border-blue-200'} shadow-sm`}>
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-3 flex-1 min-w-0">
+                              <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${form.completato ? 'bg-green-500' : 'bg-slate-200'}`}>
+                                {form.completato ? (
+                                  <Check className="w-4 h-4 text-white" />
+                                ) : (
+                                  <span className="w-3 h-3 rounded-full bg-slate-400" />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className={`font-medium text-sm ${form.completato ? 'text-green-800 line-through' : 'text-slate-800'}`}>
+                                  {form.nome}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex-shrink-0">
+                              {form.completato ? (
+                                <span className="px-3 py-2 bg-green-100 text-green-700 text-sm font-medium rounded-xl flex items-center gap-1">
+                                  <CheckCircle className="w-4 h-4" /> Completato
+                                </span>
+                              ) : (
+                                <Link 
+                                  to={createPageUrl(form.page) + '?redirect=TurniDipendente'}
+                                  className="px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-xl flex items-center gap-2 hover:bg-blue-600 shadow-sm"
+                                >
+                                  <FileText className="w-4 h-4" /> Compila
+                                </Link>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}
                     </div>
+                    
+                    {/* Warning se non tutto completato e turno in corso */}
+                    {prossimoTurno.timbrata_entrata && !tuttoCompleto && (
+                      <div className="mt-4 p-3 bg-orange-100 rounded-xl border border-orange-300">
+                        <p className="text-sm text-orange-800 flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4" />
+                          Completa tutte le attività prima di timbrare l'uscita
+                        </p>
+                      </div>
+                    )}
                   </div>
                 );
               })()}
 
               {/* Bottone Timbra Uscita - solo se turno in corso */}
-              {prossimoTurnoStatus.inCorso && (
-                <>
-                  <NeumorphicButton
-                    onClick={() => handleTimbra(prossimoTurno, 'uscita')}
-                    variant="primary"
-                    className={`w-full flex items-center justify-center gap-2 py-4 text-lg ${
-                      !prossimoTurnoStatus.canTimbra ? 'opacity-50 cursor-not-allowed' : 'bg-gradient-to-r from-green-500 to-green-600'
-                    }`}
-                    disabled={!prossimoTurnoStatus.canTimbra || loadingGPS || timbraMutation.isPending}
-                  >
-                    {loadingGPS ? (
-                      <Loader2 className="w-6 h-6 animate-spin" />
-                    ) : (
-                      <LogOut className="w-6 h-6" />
+              {prossimoTurnoStatus.inCorso && (() => {
+                // Verifica se tutte le attività sono completate
+                const formDovuti = getFormDovutiPerTurno(prossimoTurno);
+                const attivita = getAttivitaTurno(prossimoTurno);
+                
+                const allAttivitaComplete = attivita.every(att => {
+                  const isFormActivity = att.form_page || att.richiede_form;
+                  const isCorsoActivity = att.corsi_ids?.length > 0;
+                  if (isFormActivity) {
+                    return formDovuti.some(f => f.page === att.form_page && f.completato);
+                  }
+                  if (isCorsoActivity) return true;
+                  return isAttivitaCompletata(prossimoTurno.id, att.nome);
+                });
+                const formNonAssociatiComplete = formDovuti
+                  .filter(form => !attivita.some(a => a.form_page === form.page))
+                  .every(f => f.completato);
+                const tuttoCompleto = allAttivitaComplete && formNonAssociatiComplete;
+                const canTimbraUscita = prossimoTurnoStatus.canTimbra && tuttoCompleto;
+                
+                return (
+                  <>
+                    <NeumorphicButton
+                      onClick={() => handleTimbra(prossimoTurno, 'uscita')}
+                      variant="primary"
+                      className={`w-full flex items-center justify-center gap-2 py-4 text-lg ${
+                        !canTimbraUscita ? 'opacity-50 cursor-not-allowed' : 'bg-gradient-to-r from-green-500 to-green-600'
+                      }`}
+                      disabled={!canTimbraUscita || loadingGPS || timbraMutation.isPending}
+                    >
+                      {loadingGPS ? (
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                      ) : (
+                        <LogOut className="w-6 h-6" />
+                      )}
+                      Timbra Uscita
+                    </NeumorphicButton>
+                    {!canTimbraUscita && (
+                      <p className="text-sm text-center mt-2 text-orange-600 font-medium">
+                        {!tuttoCompleto 
+                          ? '⚠️ Completa tutte le attività prima di timbrare l\'uscita'
+                          : prossimoTurnoStatus.reason}
+                      </p>
                     )}
-                    Timbra Uscita
-                  </NeumorphicButton>
-                  {!prossimoTurnoStatus.canTimbra && prossimoTurnoStatus.reason && (
-                    <p className="text-sm text-center mt-2 text-slate-500">
-                      ⚠️ {prossimoTurnoStatus.reason}
-                    </p>
-                  )}
-                </>
-              )}
+                  </>
+                );
+              })()}
             </div>
 
             {/* Colleghi in turno */}
