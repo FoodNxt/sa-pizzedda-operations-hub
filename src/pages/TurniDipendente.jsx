@@ -8,8 +8,10 @@ import {
   Calendar, Clock, MapPin, CheckCircle, AlertCircle, 
   Loader2, LogIn, LogOut, ChevronLeft, ChevronRight,
   RefreshCw, X, AlertTriangle, Users, Store as StoreIcon, Navigation, Timer, ClipboardList,
-  Palmtree, Thermometer, Upload, FileText
+  Palmtree, Thermometer, Upload, FileText, ExternalLink, GraduationCap, Check, Square, CheckSquare
 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 import moment from "moment";
 import "moment/locale/it";
 
@@ -153,6 +155,17 @@ export default function TurniDipendente() {
   const { data: struttureTurno = [] } = useQuery({
     queryKey: ['strutture-turno'],
     queryFn: () => base44.entities.StrutturaTurno.list(),
+  });
+
+  const { data: corsi = [] } = useQuery({
+    queryKey: ['corsi'],
+    queryFn: () => base44.entities.Corso.list(),
+  });
+
+  const { data: attivitaCompletate = [] } = useQuery({
+    queryKey: ['attivita-completate', currentUser?.id],
+    queryFn: () => base44.entities.AttivitaCompletata.filter({ dipendente_id: currentUser.id }),
+    enabled: !!currentUser?.id,
   });
 
   const { data: allFormData = {} } = useQuery({
@@ -365,6 +378,24 @@ export default function TurniDipendente() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mie-malattie'] });
       setUploadingCertificatoForId(null);
+    }
+  });
+
+  // Completa attività
+  const completaAttivitaMutation = useMutation({
+    mutationFn: async ({ turno, attivitaNome }) => {
+      return base44.entities.AttivitaCompletata.create({
+        dipendente_id: currentUser.id,
+        dipendente_nome: currentUser.nome_cognome || currentUser.full_name,
+        turno_id: turno.id,
+        turno_data: turno.data,
+        store_id: turno.store_id,
+        attivita_nome: attivitaNome,
+        completato_at: new Date().toISOString()
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['attivita-completate'] });
     }
   });
 
@@ -705,6 +736,7 @@ export default function TurniDipendente() {
     const [h] = turno.ora_inizio.split(':').map(Number);
     const momento = h < 14 ? 'Mattina' : 'Sera';
     const dayOfWeek = new Date(turno.data).getDay();
+    const tipoTurno = turno.tipo_turno || 'Normale';
     
     const schemasApplicabili = struttureTurno.filter(st => {
       const stRoles = st.ruoli || [];
@@ -719,25 +751,47 @@ export default function TurniDipendente() {
       const stMomento = st.momento_turno;
       if (stMomento && stMomento !== momento) return false;
       
+      // Filtro per tipo turno
+      const stTipiTurno = st.tipi_turno || [];
+      if (stTipiTurno.length > 0 && !stTipiTurno.includes(tipoTurno)) return false;
+      
       return true;
     });
     
-    // Estrai attività uniche
-    const attivitaSet = new Set();
+    // Estrai attività con info complete, ordinate per ora
+    const attivitaList = [];
     schemasApplicabili.forEach(st => {
-      // Nuovo formato
-      if (st.attivita && Array.isArray(st.attivita)) {
-        st.attivita.forEach(a => attivitaSet.add(a));
-      }
-      // Vecchio formato slots
+      // Vecchio formato slots con orari
       if (st.slots && Array.isArray(st.slots)) {
         st.slots.forEach(slot => {
-          if (slot.attivita) attivitaSet.add(slot.attivita);
+          if (slot.attivita) {
+            attivitaList.push({
+              nome: slot.attivita,
+              ora_inizio: slot.ora_inizio,
+              ora_fine: slot.ora_fine,
+              form_page: slot.form_page,
+              corsi_ids: slot.corsi_ids || (slot.corso_id ? [slot.corso_id] : []),
+              richiede_form: slot.richiede_form
+            });
+          }
         });
       }
     });
     
-    return Array.from(attivitaSet);
+    // Ordina per ora inizio
+    attivitaList.sort((a, b) => (a.ora_inizio || '').localeCompare(b.ora_inizio || ''));
+    
+    return attivitaList;
+  };
+  
+  const isAttivitaCompletata = (turnoId, attivitaNome) => {
+    return attivitaCompletate.some(ac => 
+      ac.turno_id === turnoId && ac.attivita_nome === attivitaNome
+    );
+  };
+  
+  const getCorsoNome = (corsoId) => {
+    return corsi.find(c => c.id === corsoId)?.nome_corso || '';
   };
 
   return (
@@ -959,26 +1013,79 @@ export default function TurniDipendente() {
                       {formDovuti.map((form, idx) => (
                         <div key={idx} className={`p-3 rounded-lg ${form.completato ? 'bg-green-100 border border-green-300' : 'bg-white border border-blue-300'} flex items-center justify-between`}>
                           <span className="text-sm font-medium text-slate-700">📋 {form.nome}</span>
-                          {prossimoTurno.timbrata_entrata ? (
-                            form.completato ? (
+                          <div className="flex items-center gap-2">
+                            {form.completato ? (
                               <span className="text-xs font-bold text-green-700 flex items-center gap-1">
                                 <CheckCircle className="w-3 h-3" /> Completato
                               </span>
                             ) : (
-                              <span className="text-xs font-bold text-orange-700 flex items-center gap-1">
-                                <AlertTriangle className="w-3 h-3" /> Da completare
-                              </span>
-                            )
-                          ) : (
-                            <span className="text-xs text-slate-500">Da compilare</span>
-                          )}
+                              <>
+                                <span className="text-xs font-bold text-orange-700 flex items-center gap-1">
+                                  <AlertTriangle className="w-3 h-3" /> Da completare
+                                </span>
+                                <Link 
+                                  to={createPageUrl(form.page)}
+                                  className="px-2 py-1 bg-blue-500 text-white text-xs rounded-lg flex items-center gap-1 hover:bg-blue-600"
+                                >
+                                  <ExternalLink className="w-3 h-3" /> Apri
+                                </Link>
+                              </>
+                            )}
+                          </div>
                         </div>
                       ))}
-                      {attivita.map((att, idx) => (
-                        <div key={idx} className="p-3 rounded-lg bg-white border border-blue-300">
-                          <span className="text-sm text-slate-700">✓ {att}</span>
-                        </div>
-                      ))}
+                      {attivita.map((att, idx) => {
+                        const isCompleted = att.richiede_form 
+                          ? formDovuti.some(f => f.page === att.form_page && f.completato)
+                          : isAttivitaCompletata(prossimoTurno.id, att.nome);
+                        
+                        return (
+                          <div key={idx} className={`p-3 rounded-lg ${isCompleted ? 'bg-green-100 border border-green-300' : 'bg-white border border-blue-300'}`}>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                {att.ora_inizio && (
+                                  <span className="text-xs font-mono text-slate-500">{att.ora_inizio}</span>
+                                )}
+                                <span className="text-sm text-slate-700">{att.nome}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {att.corsi_ids?.length > 0 && (
+                                  <Link 
+                                    to={createPageUrl('Academy')}
+                                    className="px-2 py-1 bg-purple-500 text-white text-xs rounded-lg flex items-center gap-1 hover:bg-purple-600"
+                                  >
+                                    <GraduationCap className="w-3 h-3" /> Corso
+                                  </Link>
+                                )}
+                                {att.form_page && !isCompleted && (
+                                  <Link 
+                                    to={createPageUrl(att.form_page)}
+                                    className="px-2 py-1 bg-blue-500 text-white text-xs rounded-lg flex items-center gap-1 hover:bg-blue-600"
+                                  >
+                                    <FileText className="w-3 h-3" /> Form
+                                  </Link>
+                                )}
+                                {!att.richiede_form && !att.form_page && prossimoTurno.timbrata_entrata && (
+                                  <button
+                                    onClick={() => {
+                                      if (!isCompleted) {
+                                        completaAttivitaMutation.mutate({ turno: prossimoTurno, attivitaNome: att.nome });
+                                      }
+                                    }}
+                                    disabled={isCompleted || completaAttivitaMutation.isPending}
+                                    className={`p-1 rounded ${isCompleted ? 'text-green-600' : 'text-slate-400 hover:text-green-600'}`}
+                                  >
+                                    {isCompleted ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
+                                  </button>
+                                )}
+                                {isCompleted && (
+                                  <CheckCircle className="w-4 h-4 text-green-600" />
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 );
