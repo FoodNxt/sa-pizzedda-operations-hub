@@ -921,11 +921,15 @@ export default function Layout({ children, currentPageName }) {
                 <Pizza className="w-6 h-6 text-white" />
               </div>
               <div>
-                <span className="text-lg font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
-                  Sa Pizzedda
-                </span>
-                <p className="text-xs text-slate-500">{getUserTypeName()}</p>
-              </div>
+                    <span className="text-lg font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
+                      {normalizedUserType === 'dipendente' ? getUserDisplayName() : 'Sa Pizzedda'}
+                    </span>
+                    <p className="text-xs text-slate-500">
+                      {normalizedUserType === 'dipendente' 
+                        ? (currentUser?.ruoli_dipendente?.join(', ') || 'Dipendente')
+                        : getUserTypeName()}
+                    </p>
+                  </div>
             </div>
             {normalizedUserType !== 'dipendente' && (
               <button

@@ -8,6 +8,7 @@ import ProtectedPage from "../components/ProtectedPage";
 
 const GIORNI = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
 const RUOLI = ['Pizzaiolo', 'Cassiere', 'Store Manager'];
+const TIPI_TURNO = ['Normale', 'Straordinario', 'Formazione', 'Affiancamento', 'Apertura', 'Chiusura'];
 const COLORI = [
   { value: 'blue', label: 'Blu', class: 'bg-blue-200 border-blue-400' },
   { value: 'green', label: 'Verde', class: 'bg-green-200 border-green-400' },
@@ -67,6 +68,7 @@ export default function StrutturaTurno() {
     giorno_settimana: 1,
     ruolo: 'Pizzaiolo',
     assigned_stores: [],
+    tipi_turno: [],
     slots: [],
     is_active: true
   });
@@ -142,6 +144,7 @@ export default function StrutturaTurno() {
       giorno_settimana: selectedGiorno,
       ruolo: 'Pizzaiolo',
       assigned_stores: [],
+      tipi_turno: [],
       slots: [],
       is_active: true
     });
@@ -157,10 +160,20 @@ export default function StrutturaTurno() {
       giorno_settimana: schema.giorno_settimana,
       ruolo: schema.ruolo,
       assigned_stores: schema.assigned_stores || [],
+      tipi_turno: schema.tipi_turno || [],
       slots: schema.slots || [],
       is_active: schema.is_active !== false
     });
     setShowForm(true);
+  };
+  
+  const toggleTipoTurno = (tipo) => {
+    const current = formData.tipi_turno || [];
+    if (current.includes(tipo)) {
+      setFormData({ ...formData, tipi_turno: current.filter(t => t !== tipo) });
+    } else {
+      setFormData({ ...formData, tipi_turno: [...current, tipo] });
+    }
   };
 
   const handleSubmit = (e) => {
@@ -630,6 +643,29 @@ export default function StrutturaTurno() {
                         </button>
                       ))}
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">
+                      Tipi Turno (vuoto = tutti)
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {TIPI_TURNO.map(tipo => (
+                        <button
+                          key={tipo}
+                          type="button"
+                          onClick={() => toggleTipoTurno(tipo)}
+                          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                            (formData.tipi_turno || []).includes(tipo)
+                              ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
+                              : 'nav-button text-slate-700'
+                          }`}
+                        >
+                          {tipo}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">Le attività saranno mostrate solo per questi tipi di turno</p>
                   </div>
 
                   {/* Slots Section */}
