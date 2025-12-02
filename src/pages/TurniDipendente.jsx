@@ -1047,7 +1047,7 @@ export default function TurniDipendente() {
                 </div>
               )}
 
-              {/* Form e Attività da completare - SEMPRE VISIBILI */}
+              {/* Form e Attività da completare - SOLO PER PROSSIMO TURNO */}
               {(() => {
                 const formDovuti = getFormDovutiPerTurno(prossimoTurno);
                 const attivita = getAttivitaTurno(prossimoTurno);
@@ -1062,7 +1062,7 @@ export default function TurniDipendente() {
                     </h3>
                     <div className="space-y-2">
                       {formDovuti.map((form, idx) => (
-                        <div key={idx} className={`p-3 rounded-lg ${form.completato ? 'bg-green-100 border border-green-300' : 'bg-white border border-blue-300'} flex items-center justify-between`}>
+                        <div key={`form-${idx}`} className={`p-3 rounded-lg ${form.completato ? 'bg-green-100 border border-green-300' : 'bg-white border border-blue-300'} flex items-center justify-between`}>
                           <span className="text-sm font-medium text-slate-700">📋 {form.nome}</span>
                           <div className="flex items-center gap-2">
                             {form.completato ? (
@@ -1091,7 +1091,7 @@ export default function TurniDipendente() {
                           : isAttivitaCompletata(prossimoTurno.id, att.nome);
                         
                         return (
-                          <div key={idx} className={`p-3 rounded-lg ${isCompleted ? 'bg-green-100 border border-green-300' : 'bg-white border border-blue-300'}`}>
+                          <div key={`att-${idx}-${att.nome}`} className={`p-3 rounded-lg ${isCompleted ? 'bg-green-100 border border-green-300' : 'bg-white border border-blue-300'}`}>
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 {att.ora_inizio && (
@@ -1116,7 +1116,7 @@ export default function TurniDipendente() {
                                     <FileText className="w-3 h-3" /> Form
                                   </Link>
                                 )}
-                                {!att.richiede_form && !att.form_page && prossimoTurno.timbrata_entrata && (
+                                {!att.richiede_form && !att.form_page && (
                                   <button
                                     onClick={() => {
                                       if (!isCompleted) {
@@ -1124,12 +1124,12 @@ export default function TurniDipendente() {
                                       }
                                     }}
                                     disabled={isCompleted || completaAttivitaMutation.isPending}
-                                    className={`p-1 rounded ${isCompleted ? 'text-green-600' : 'text-slate-400 hover:text-green-600'}`}
+                                    className={`p-1.5 rounded-lg border ${isCompleted ? 'bg-green-100 border-green-300 text-green-600' : 'bg-white border-slate-300 text-slate-400 hover:text-green-600 hover:border-green-300'}`}
                                   >
                                     {isCompleted ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
                                   </button>
                                 )}
-                                {isCompleted && (
+                                {isCompleted && !att.form_page && att.richiede_form !== true && (
                                   <CheckCircle className="w-4 h-4 text-green-600" />
                                 )}
                               </div>
