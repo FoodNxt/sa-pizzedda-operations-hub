@@ -951,7 +951,7 @@ export default function TurniDipendente() {
                     </div>
                   )}
                 </div>
-                {!prossimoTurnoStatus.inCorso && !prossimoTurno.timbrata_entrata && (
+                {!prossimoTurnoStatus.inCorso && !prossimoTurno.timbrata_entrata && !prossimoTurno.timbrata_uscita && (
                   <div>
                     {prossimoTurno.richiesta_scambio?.stato === 'pending' ? (
                       <span className="px-3 py-1 bg-yellow-200 text-yellow-800 rounded-full text-xs font-medium">
@@ -1214,8 +1214,11 @@ export default function TurniDipendente() {
                     <div className="space-y-2 ml-13">
                       {dayTurni.map(turno => {
                         const hasTimbrato = turno.timbrata_entrata || turno.timbrata_uscita;
-                        const formDovuti = hasTimbrato ? getFormDovutiPerTurno(turno) : [];
-                        const attivita = hasTimbrato ? getAttivitaTurno(turno) : [];
+                        const formDovuti = getFormDovutiPerTurno(turno);
+                        const attivita = getAttivitaTurno(turno);
+                        const isFuturo = moment(turno.data).isAfter(moment(), 'day') || 
+                          (moment(turno.data).isSame(moment(), 'day') && !turno.timbrata_uscita);
+                        const canScambio = isFuturo && !turno.timbrata_entrata && turno.richiesta_scambio?.stato !== 'pending';
                         
                         return (
                         <div key={turno.id} className={`p-3 rounded-lg border ${COLORI_RUOLO[turno.ruolo]}`}>
@@ -1224,29 +1227,78 @@ export default function TurniDipendente() {
                               <Clock className="w-4 h-4" />
                               <span className="font-medium">{turno.ora_inizio} - {turno.ora_fine}</span>
                             </div>
-                            <span className="text-sm">{turno.ruolo}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm">{turno.ruolo}</span>
+                              {canScambio && (
+                                <button
+                                  onClick={() => openScambioModal(turno)}
+                                  className="p-1 bg-white bg-opacity-50 rounded hover:bg-opacity-80"
+                                  title="Richiedi scambio"
+                                >
+                                  <Users className="w-3 h-3" />
+                                </button>
+                              )}
+                              {turno.richiesta_scambio?.stato === 'pending' && (
+                                <span className="px-2 py-0.5 bg-yellow-200 text-yellow-800 rounded-full text-xs">
+                                  Scambio
+                                </span>
+                              )}
+                            </div>
                           </div>
                           <div className="text-sm opacity-80 mt-1 flex items-center gap-1">
                             <MapPin className="w-3 h-3" />
                             {getStoreName(turno.store_id)}
                           </div>
                           
-                          {/* Mostra form e attività dopo timbratura */}
-                          {hasTimbrato && (formDovuti.length > 0 || attivita.length > 0) && (
+                          {/* Mostra form e attività */}
+                          {(formDovuti.length > 0 || attivita.length > 0) && (
                             <div className="mt-3 pt-3 border-t border-current border-opacity-30">
-                              <p className="text-xs font-bold mb-2 opacity-90">Da completare:</p>
+                              <p className="text-xs font-bold mb-2 opacity-90">
+                                {hasTimbrato ? 'Da completare:' : 'Attività previste:'}
+                              </p>
                               <div className="space-y-1">
                                 {formDovuti.map((form, idx) => (
                                   <div key={idx} className={`text-xs px-2 py-1 rounded ${form.completato ? 'bg-green-600 bg-opacity-30' : 'bg-white bg-opacity-40'} flex items-center justify-between`}>
                                     <span>📋 {form.nome}</span>
-                                    {form.completato ? <span className="font-bold">✓</span> : <span className="text-red-600 font-bold">✗</span>}
+                                    <div className="flex items-center gap-1">
+                                      {form.completato ? (
+                                        <span className="font-bold">✓</span>
+                                      ) : hasTimbrato && (
+                                        <Link to={createPageUrl(form.page)} className="text-blue-700 underline">Apri</Link>
+                                      )}
+                                    </div>
                                   </div>
                                 ))}
-                                {attivita.map((att, idx) => (
-                                  <div key={idx} className="text-xs px-2 py-1 rounded bg-white bg-opacity-30">
-                                    ✓ {att}
-                                  </div>
-                                ))}
+                                {attivita.map((att, idx) => {
+                                  const isCompleted = att.richiede_form 
+                                    ? formDovuti.some(f => f.page === att.form_page && f.completato)
+                                    : isAttivitaCompletata(turno.id, att.nome);
+                                  return (
+                                    <div key={idx} className={`text-xs px-2 py-1 rounded ${isCompleted ? 'bg-green-600 bg-opacity-30' : 'bg-white bg-opacity-30'} flex items-center justify-between`}>
+                                      <span>{att.ora_inizio && `${att.ora_inizio} `}{att.nome}</span>
+                                      <div className="flex items-center gap-1">
+                                        {att.corsi_ids?.length > 0 && (
+                                          <Link to={createPageUrl('Academy')} className="text-purple-700">
+                                            <GraduationCap className="w-3 h-3" />
+                                          </Link>
+                                        )}
+                                        {att.form_page && !isCompleted && hasTimbrato && (
+                                          <Link to={createPageUrl(att.form_page)} className="text-blue-700 underline text-[10px]">Form</Link>
+                                        )}
+                                        {!att.richiede_form && !att.form_page && hasTimbrato && (
+                                          <button
+                                            onClick={() => !isCompleted && completaAttivitaMutation.mutate({ turno, attivitaNome: att.nome })}
+                                            disabled={isCompleted}
+                                            className={isCompleted ? 'text-green-700' : 'text-slate-600'}
+                                          >
+                                            {isCompleted ? <CheckSquare className="w-3 h-3" /> : <Square className="w-3 h-3" />}
+                                          </button>
+                                        )}
+                                        {isCompleted && <span className="font-bold">✓</span>}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
                           )}
