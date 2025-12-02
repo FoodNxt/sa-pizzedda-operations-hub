@@ -778,6 +778,10 @@ export default function TurniDipendente() {
     const dayOfWeek = new Date(turno.data).getDay();
     const tipoTurno = turno.tipo_turno || 'Normale';
     
+    // Orari del turno per filtro
+    const turnoInizio = turno.ora_inizio;
+    const turnoFine = turno.ora_fine;
+    
     const schemasApplicabili = struttureTurno.filter(st => {
       const stRoles = st.ruoli || [];
       if (stRoles.length > 0 && !stRoles.includes(turno.ruolo)) return false;
@@ -799,21 +803,29 @@ export default function TurniDipendente() {
     });
     
     // Estrai attività con info complete, ordinate per ora - evita duplicati
+    // Filtra solo attività dentro l'orario del turno
     const attivitaMap = new Map();
     schemasApplicabili.forEach(st => {
       if (st.slots && Array.isArray(st.slots)) {
         st.slots.forEach(slot => {
           if (slot.attivita) {
-            const key = `${slot.ora_inizio}-${slot.attivita}`;
-            if (!attivitaMap.has(key)) {
-              attivitaMap.set(key, {
-                nome: slot.attivita,
-                ora_inizio: slot.ora_inizio,
-                ora_fine: slot.ora_fine,
-                form_page: slot.form_page,
-                corsi_ids: slot.corsi_ids || (slot.corso_id ? [slot.corso_id] : []),
-                richiede_form: slot.richiede_form
-              });
+            // Verifica che lo slot sia dentro l'orario del turno
+            const slotInizio = slot.ora_inizio || '00:00';
+            const slotFine = slot.ora_fine || '23:59';
+            
+            // Lo slot è valido se inizia durante il turno
+            if (slotInizio >= turnoInizio && slotInizio < turnoFine) {
+              const key = `${slot.ora_inizio}-${slot.attivita}`;
+              if (!attivitaMap.has(key)) {
+                attivitaMap.set(key, {
+                  nome: slot.attivita,
+                  ora_inizio: slot.ora_inizio,
+                  ora_fine: slot.ora_fine,
+                  form_page: slot.form_page,
+                  corsi_ids: slot.corsi_ids || (slot.corso_id ? [slot.corso_id] : []),
+                  richiede_form: slot.richiede_form
+                });
+              }
             }
           }
         });
@@ -1047,6 +1059,40 @@ export default function TurniDipendente() {
                 </div>
               )}
 
+              {/* Bottone Timbra - SEMPRE VISIBILE IN ALTO */}
+              {!prossimoTurnoStatus.inCorso && (
+                <div className="mb-4">
+                  <NeumorphicButton
+                    onClick={() => handleTimbra(prossimoTurno, 'entrata')}
+                    variant="primary"
+                    className={`w-full flex items-center justify-center gap-2 py-4 text-lg ${
+                      !prossimoTurnoStatus.canTimbra ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                    disabled={!prossimoTurnoStatus.canTimbra || loadingGPS || timbraMutation.isPending}
+                  >
+                    {loadingGPS ? (
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                    ) : (
+                      <LogIn className="w-6 h-6" />
+                    )}
+                    Timbra Entrata
+                  </NeumorphicButton>
+                  {!prossimoTurnoStatus.canTimbra && prossimoTurnoStatus.reason && (
+                    <p className="text-sm text-center mt-2 text-slate-500">
+                      ⚠️ {prossimoTurnoStatus.reason}
+                    </p>
+                  )}
+                  {prossimoTurnoStatus.needsGPS && (
+                    <button
+                      onClick={requestGPSPermission}
+                      className="w-full mt-2 text-sm text-blue-600 hover:underline"
+                    >
+                      Clicca qui per attivare il GPS
+                    </button>
+                  )}
+                </div>
+              )}
+
               {/* Form e Attività da completare - SOLO PER PROSSIMO TURNO */}
               {(() => {
                 const formDovuti = getFormDovutiPerTurno(prossimoTurno);
@@ -1061,32 +1107,11 @@ export default function TurniDipendente() {
                       {prossimoTurno.timbrata_entrata ? 'Da completare per questo turno:' : 'Attività previste per questo turno:'}
                     </h3>
                     <div className="space-y-2">
-                      {formDovuti.map((form, idx) => (
-                        <div key={`form-${idx}`} className={`p-3 rounded-lg ${form.completato ? 'bg-green-100 border border-green-300' : 'bg-white border border-blue-300'} flex items-center justify-between`}>
-                          <span className="text-sm font-medium text-slate-700">📋 {form.nome}</span>
-                          <div className="flex items-center gap-2">
-                            {form.completato ? (
-                              <span className="text-xs font-bold text-green-700 flex items-center gap-1">
-                                <CheckCircle className="w-3 h-3" /> Completato
-                              </span>
-                            ) : (
-                              <>
-                                <span className="text-xs font-bold text-orange-700 flex items-center gap-1">
-                                  <AlertTriangle className="w-3 h-3" /> Da completare
-                                </span>
-                                <Link 
-                                  to={createPageUrl(form.page)}
-                                  className="px-2 py-1 bg-blue-500 text-white text-xs rounded-lg flex items-center gap-1 hover:bg-blue-600"
-                                >
-                                  <ExternalLink className="w-3 h-3" /> Apri
-                                </Link>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                      {/* Unifica form e attività - mostra solo attività con relativi bottoni */}
                       {attivita.map((att, idx) => {
-                        const isCompleted = att.richiede_form 
+                        const isFormActivity = att.form_page || att.richiede_form;
+                        const isCorsoActivity = att.corsi_ids?.length > 0;
+                        const isCompleted = isFormActivity 
                           ? formDovuti.some(f => f.page === att.form_page && f.completato)
                           : isAttivitaCompletata(prossimoTurno.id, att.nome);
                         
@@ -1100,7 +1125,7 @@ export default function TurniDipendente() {
                                 <span className="text-sm text-slate-700">{att.nome}</span>
                               </div>
                               <div className="flex items-center gap-2">
-                                {att.corsi_ids?.length > 0 && (
+                                {isCorsoActivity && (
                                   <Link 
                                     to={createPageUrl('Academy')}
                                     className="px-2 py-1 bg-purple-500 text-white text-xs rounded-lg flex items-center gap-1 hover:bg-purple-600"
@@ -1108,7 +1133,7 @@ export default function TurniDipendente() {
                                     <GraduationCap className="w-3 h-3" /> Corso
                                   </Link>
                                 )}
-                                {att.form_page && !isCompleted && (
+                                {isFormActivity && !isCompleted && (
                                   <Link 
                                     to={createPageUrl(att.form_page)}
                                     className="px-2 py-1 bg-blue-500 text-white text-xs rounded-lg flex items-center gap-1 hover:bg-blue-600"
@@ -1116,7 +1141,7 @@ export default function TurniDipendente() {
                                     <FileText className="w-3 h-3" /> Form
                                   </Link>
                                 )}
-                                {!att.richiede_form && !att.form_page && (
+                                {!isFormActivity && !isCorsoActivity && (
                                   <button
                                     onClick={() => {
                                       if (!isCompleted) {
@@ -1129,7 +1154,7 @@ export default function TurniDipendente() {
                                     {isCompleted ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
                                   </button>
                                 )}
-                                {isCompleted && !att.form_page && att.richiede_form !== true && (
+                                {isCompleted && (
                                   <CheckCircle className="w-4 h-4 text-green-600" />
                                 )}
                               </div>
@@ -1137,42 +1162,53 @@ export default function TurniDipendente() {
                           </div>
                         );
                       })}
+                      {/* Form non associati a slot */}
+                      {formDovuti.filter(form => !attivita.some(a => a.form_page === form.page)).map((form, idx) => (
+                        <div key={`form-extra-${idx}`} className={`p-3 rounded-lg ${form.completato ? 'bg-green-100 border border-green-300' : 'bg-white border border-blue-300'} flex items-center justify-between`}>
+                          <span className="text-sm font-medium text-slate-700">{form.nome}</span>
+                          <div className="flex items-center gap-2">
+                            {form.completato ? (
+                              <CheckCircle className="w-4 h-4 text-green-600" />
+                            ) : (
+                              <Link 
+                                to={createPageUrl(form.page)}
+                                className="px-2 py-1 bg-blue-500 text-white text-xs rounded-lg flex items-center gap-1 hover:bg-blue-600"
+                              >
+                                <FileText className="w-3 h-3" /> Form
+                              </Link>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 );
               })()}
 
-              <NeumorphicButton
-                onClick={() => handleTimbra(prossimoTurno, prossimoTurnoStatus.tipo || 'entrata')}
-                variant="primary"
-                className={`w-full flex items-center justify-center gap-2 ${
-                  !prossimoTurnoStatus.canTimbra ? 'opacity-50 cursor-not-allowed' : ''
-                } ${prossimoTurnoStatus.tipo === 'uscita' && prossimoTurnoStatus.canTimbra ? 'bg-gradient-to-r from-green-500 to-green-600' : ''}`}
-                disabled={!prossimoTurnoStatus.canTimbra || loadingGPS || timbraMutation.isPending}
-              >
-                {loadingGPS ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : prossimoTurnoStatus.tipo === 'uscita' ? (
-                  <LogOut className="w-5 h-5" />
-                ) : (
-                  <LogIn className="w-5 h-5" />
-                )}
-                {prossimoTurnoStatus.tipo === 'uscita' ? 'Timbra Uscita' : 'Timbra Entrata'}
-              </NeumorphicButton>
-
-              {!prossimoTurnoStatus.canTimbra && prossimoTurnoStatus.reason && (
-                <p className="text-sm text-center mt-2 text-slate-500">
-                  ⚠️ {prossimoTurnoStatus.reason}
-                </p>
-              )}
-
-              {prossimoTurnoStatus.needsGPS && (
-                <button
-                  onClick={requestGPSPermission}
-                  className="w-full mt-2 text-sm text-blue-600 hover:underline"
-                >
-                  Clicca qui per attivare il GPS
-                </button>
+              {/* Bottone Timbra Uscita - solo se turno in corso */}
+              {prossimoTurnoStatus.inCorso && (
+                <>
+                  <NeumorphicButton
+                    onClick={() => handleTimbra(prossimoTurno, 'uscita')}
+                    variant="primary"
+                    className={`w-full flex items-center justify-center gap-2 py-4 text-lg ${
+                      !prossimoTurnoStatus.canTimbra ? 'opacity-50 cursor-not-allowed' : 'bg-gradient-to-r from-green-500 to-green-600'
+                    }`}
+                    disabled={!prossimoTurnoStatus.canTimbra || loadingGPS || timbraMutation.isPending}
+                  >
+                    {loadingGPS ? (
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                    ) : (
+                      <LogOut className="w-6 h-6" />
+                    )}
+                    Timbra Uscita
+                  </NeumorphicButton>
+                  {!prossimoTurnoStatus.canTimbra && prossimoTurnoStatus.reason && (
+                    <p className="text-sm text-center mt-2 text-slate-500">
+                      ⚠️ {prossimoTurnoStatus.reason}
+                    </p>
+                  )}
+                </>
               )}
             </div>
 

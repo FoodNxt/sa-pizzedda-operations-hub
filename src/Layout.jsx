@@ -242,6 +242,11 @@ const navigationStructure = [
         icon: Calendar,
       },
       {
+        title: "Approvazione Turni",
+        url: createPageUrl("Planday") + "?view=approvazioni",
+        icon: CheckSquare,
+      },
+      {
         title: "HR Admin",
         url: createPageUrl("HRAdmin"),
         icon: Settings,
