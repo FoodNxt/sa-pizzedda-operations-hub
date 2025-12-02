@@ -3428,6 +3428,70 @@ export default function Planday() {
           </NeumorphicCard>
         )}
 
+        {/* Modal Gestione Turni (Tipi Turno) */}
+        {showGestioneTurniModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800">Gestione Turni</h2>
+                <button onClick={() => setShowGestioneTurniModal(false)} className="nav-button p-2 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Sezione Tipi Turno */}
+              <div className="mb-6">
+                <h3 className="font-medium text-slate-700 mb-3 flex items-center gap-2">
+                  <Settings className="w-4 h-4" />
+                  Tipi Turno
+                </h3>
+                <div className="neumorphic-pressed p-4 rounded-xl">
+                  <div className="flex gap-2 mb-3">
+                    <input
+                      type="text"
+                      value={newTipoTurno}
+                      onChange={(e) => setNewTipoTurno(e.target.value)}
+                      className="flex-1 neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                      placeholder="Nuovo tipo turno..."
+                      onKeyDown={(e) => e.key === 'Enter' && addTipoTurno()}
+                    />
+                    <NeumorphicButton onClick={addTipoTurno} className="text-sm px-3 py-1">
+                      <Plus className="w-4 h-4" />
+                    </NeumorphicButton>
+                  </div>
+                  <div className="space-y-2">
+                    {tipiTurno.map(tipo => (
+                      <div key={tipo} className="flex items-center justify-between bg-white p-2 rounded-lg">
+                        <span className="text-sm font-medium text-slate-800">{tipo}</span>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={coloriTipoTurno[tipo] || '#94a3b8'}
+                            onChange={(e) => updateColoreTipoTurno(tipo, e.target.value)}
+                            className="w-8 h-8 cursor-pointer rounded border-0"
+                            title={`Colore ${tipo}`}
+                          />
+                          <button 
+                            onClick={() => deleteTipoTurno(tipo)} 
+                            className="text-red-500 hover:text-red-700"
+                            disabled={tipiTurno.length <= 1}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <NeumorphicButton onClick={() => setShowGestioneTurniModal(false)} variant="primary" className="w-full">
+                Chiudi
+              </NeumorphicButton>
+            </NeumorphicCard>
+          </div>
+        )}
+
         {/* Modal Alert Settings */}
         {showAlertSettings && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
