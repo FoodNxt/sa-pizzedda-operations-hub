@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
-import { Calendar, Thermometer, Check, X, Clock, FileText, User, AlertCircle, Copy, Loader2 } from "lucide-react";
+import { Calendar, Thermometer, Check, X, Clock, FileText, User, AlertCircle, Copy, Loader2, Users, ArrowRightLeft } from "lucide-react";
 import moment from "moment";
 
 export default function Assenze() {
@@ -11,6 +11,32 @@ export default function Assenze() {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [approvalMode, setApprovalMode] = useState(null); // 'ferie_only' o 'ferie_liberi'
   const queryClient = useQueryClient();
+
+  // Scambi turno
+  const { data: turniConScambio = [], isLoading: loadingScambi } = useQuery({
+    queryKey: ['turni-con-scambio'],
+    queryFn: async () => {
+      const allTurni = await base44.entities.TurnoPlanday.list('-data', 500);
+      return allTurni.filter(t => t.richiesta_scambio && t.richiesta_scambio.stato);
+    },
+  });
+
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ['all-users'],
+    queryFn: () => base44.entities.User.list(),
+  });
+
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores'],
+    queryFn: () => base44.entities.Store.list(),
+  });
+
+  const getUserName = (userId) => {
+    const user = allUsers.find(u => u.id === userId);
+    return user?.nome_cognome || user?.full_name || 'Utente';
+  };
+
+  const getStoreName = (storeId) => stores.find(s => s.id === storeId)?.name || '';
 
   const { data: richiesteFerie = [], isLoading: loadingFerie } = useQuery({
     queryKey: ['richieste-ferie'],
@@ -174,14 +200,16 @@ export default function Assenze() {
 
   const ferieInAttesa = richiesteFerie.filter(r => r.stato === 'in_attesa').length;
   const malattiaInAttesa = richiesteMalattia.filter(r => r.stato === 'non_certificata' || r.stato === 'in_attesa_verifica').length;
+  const scambiInAttesa = turniConScambio.filter(t => t.richiesta_scambio?.stato === 'accepted').length;
+  const scambiPending = turniConScambio.filter(t => t.richiesta_scambio?.stato === 'pending').length;
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
-            Gestione Assenze
+            Richieste
           </h1>
-          <p className="text-slate-500 mt-1">Ferie e malattie dei dipendenti</p>
+          <p className="text-slate-500 mt-1">Ferie, malattie e scambi turno</p>
         </div>
 
         {/* Stats */}
@@ -205,6 +233,11 @@ export default function Assenze() {
             <AlertCircle className="w-8 h-8 text-orange-500 mx-auto mb-2" />
             <p className="text-2xl font-bold text-orange-600">{malattiaInAttesa}</p>
             <p className="text-xs text-slate-500">Malattie da Verificare</p>
+          </NeumorphicCard>
+          <NeumorphicCard className="p-4 text-center">
+            <ArrowRightLeft className="w-8 h-8 text-purple-500 mx-auto mb-2" />
+            <p className="text-2xl font-bold text-purple-600">{scambiInAttesa}</p>
+            <p className="text-xs text-slate-500">Scambi da Approvare</p>
           </NeumorphicCard>
         </div>
 
@@ -231,6 +264,17 @@ export default function Assenze() {
           >
             <Thermometer className="w-4 h-4" />
             Malattia {malattiaInAttesa > 0 && <span className="bg-orange-400 text-orange-900 text-xs px-2 py-0.5 rounded-full">{malattiaInAttesa}</span>}
+          </button>
+          <button
+            onClick={() => setActiveTab('scambi')}
+            className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
+              activeTab === 'scambi'
+                ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg'
+                : 'neumorphic-flat text-slate-700'
+            }`}
+          >
+            <ArrowRightLeft className="w-4 h-4" />
+            Scambi {scambiInAttesa > 0 && <span className="bg-purple-400 text-purple-900 text-xs px-2 py-0.5 rounded-full">{scambiInAttesa}</span>}
           </button>
         </div>
 
@@ -345,6 +389,90 @@ export default function Assenze() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </NeumorphicCard>
+        )}
+
+        {/* Tab Scambi */}
+        {activeTab === 'scambi' && (
+          <NeumorphicCard className="p-6">
+            <h2 className="text-xl font-bold text-slate-800 mb-4">Richieste Scambio Turno</h2>
+            
+            {loadingScambi ? (
+              <div className="text-center py-8">
+                <Loader2 className="w-8 h-8 animate-spin text-purple-500 mx-auto" />
+              </div>
+            ) : turniConScambio.length === 0 ? (
+              <p className="text-slate-500 text-center py-8">Nessuna richiesta di scambio</p>
+            ) : (
+              <div className="space-y-3">
+                {turniConScambio.sort((a, b) => new Date(b.richiesta_scambio?.data_richiesta) - new Date(a.richiesta_scambio?.data_richiesta)).map(turno => {
+                  const scambio = turno.richiesta_scambio;
+                  return (
+                    <div key={turno.id} className="neumorphic-pressed p-4 rounded-xl">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <ArrowRightLeft className="w-4 h-4 text-purple-500" />
+                            <span className="font-bold text-slate-800">{turno.dipendente_nome}</span>
+                            <span className="text-slate-500">→</span>
+                            <span className="font-bold text-slate-800">{getUserName(scambio.richiesto_a)}</span>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                              scambio.stato === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                              scambio.stato === 'accepted' ? 'bg-blue-100 text-blue-800' :
+                              scambio.stato === 'rejected' ? 'bg-red-100 text-red-800' :
+                              scambio.stato === 'approved' ? 'bg-green-100 text-green-800' :
+                              'bg-slate-100 text-slate-800'
+                            }`}>
+                              {scambio.stato === 'pending' ? 'In attesa collega' :
+                               scambio.stato === 'accepted' ? 'Da approvare' :
+                               scambio.stato === 'rejected' ? 'Rifiutato' :
+                               scambio.stato === 'approved' ? 'Approvato' : scambio.stato}
+                            </span>
+                          </div>
+                          <div className="text-sm text-slate-600 space-y-1">
+                            <p>📅 {moment(turno.data).format('dddd DD/MM/YYYY')}</p>
+                            <p>🕐 {turno.ora_inizio} - {turno.ora_fine} • {turno.ruolo}</p>
+                            <p>📍 {getStoreName(turno.store_id)}</p>
+                            <p className="text-xs text-slate-400">Richiesto il {moment(scambio.data_richiesta).format('DD/MM/YYYY HH:mm')}</p>
+                          </div>
+                        </div>
+                        
+                        {scambio.stato === 'accepted' && (
+                          <div className="flex flex-col gap-2">
+                            <button
+                              onClick={async () => {
+                                // Approva lo scambio: cambia dipendente
+                                const nuovoDipendente = allUsers.find(u => u.id === scambio.richiesto_a);
+                                await base44.entities.TurnoPlanday.update(turno.id, {
+                                  dipendente_id: scambio.richiesto_a,
+                                  dipendente_nome: nuovoDipendente?.nome_cognome || nuovoDipendente?.full_name || '',
+                                  richiesta_scambio: { ...scambio, stato: 'approved' }
+                                });
+                                queryClient.invalidateQueries({ queryKey: ['turni-con-scambio'] });
+                              }}
+                              className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 flex items-center gap-1"
+                            >
+                              <Check className="w-3 h-3" /> Approva
+                            </button>
+                            <button
+                              onClick={async () => {
+                                await base44.entities.TurnoPlanday.update(turno.id, {
+                                  richiesta_scambio: { ...scambio, stato: 'rejected' }
+                                });
+                                queryClient.invalidateQueries({ queryKey: ['turni-con-scambio'] });
+                              }}
+                              className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 flex items-center gap-1"
+                            >
+                              <X className="w-3 h-3" /> Rifiuta
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </NeumorphicCard>

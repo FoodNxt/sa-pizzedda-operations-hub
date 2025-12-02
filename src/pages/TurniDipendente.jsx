@@ -8,7 +8,7 @@ import {
   Calendar, Clock, MapPin, CheckCircle, AlertCircle, 
   Loader2, LogIn, LogOut, ChevronLeft, ChevronRight,
   RefreshCw, X, AlertTriangle, Users, Store as StoreIcon, Navigation, Timer, ClipboardList,
-  Palmtree, Thermometer, Upload, FileText, ExternalLink, GraduationCap, Check, Square, CheckSquare
+  Palmtree, Thermometer, Upload, FileText, ExternalLink, GraduationCap, Check, Square, CheckSquare, ArrowRightLeft
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -24,7 +24,7 @@ const COLORI_RUOLO = {
 };
 
 export default function TurniDipendente() {
-  const [activeView, setActiveView] = useState('prossimo'); // 'prossimo', 'tutti', 'ferie', 'malattia', 'liberi'
+  const [activeView, setActiveView] = useState('prossimo'); // 'prossimo', 'tutti', 'ferie', 'malattia', 'liberi', 'scambi'
   const [weekStart, setWeekStart] = useState(moment().startOf('isoWeek'));
   const [currentPosition, setCurrentPosition] = useState(null);
   const [gpsError, setGpsError] = useState(null);
@@ -144,6 +144,22 @@ export default function TurniDipendente() {
   const { data: mieRichiesteTurni = [] } = useQuery({
     queryKey: ['mie-richieste-turni', currentUser?.id],
     queryFn: () => base44.entities.RichiestaTurnoLibero.filter({ dipendente_id: currentUser.id }),
+    enabled: !!currentUser?.id,
+  });
+
+  // Scambi turno richiesti a me
+  const { data: scambiPerMe = [] } = useQuery({
+    queryKey: ['scambi-per-me', currentUser?.id],
+    queryFn: async () => {
+      const oggi = moment().format('YYYY-MM-DD');
+      const allTurni = await base44.entities.TurnoPlanday.filter({
+        data: { $gte: oggi }
+      });
+      return allTurni.filter(t => 
+        t.richiesta_scambio?.richiesto_a === currentUser.id && 
+        t.richiesta_scambio?.stato === 'pending'
+      );
+    },
     enabled: !!currentUser?.id,
   });
 
@@ -396,6 +412,30 @@ export default function TurniDipendente() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attivita-completate'] });
+    }
+  });
+
+  // Rispondi a scambio turno
+  const rispondiScambioMutation = useMutation({
+    mutationFn: async ({ turnoId, accetta }) => {
+      const turno = scambiPerMe.find(t => t.id === turnoId);
+      if (!turno) throw new Error('Turno non trovato');
+      
+      return base44.entities.TurnoPlanday.update(turnoId, {
+        richiesta_scambio: {
+          ...turno.richiesta_scambio,
+          stato: accetta ? 'accepted' : 'rejected',
+          data_risposta: new Date().toISOString()
+        }
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['scambi-per-me'] });
+      setTimbraturaMessage({ 
+        type: 'success', 
+        text: 'Risposta inviata!' 
+      });
+      setTimeout(() => setTimbraturaMessage(null), 3000);
     }
   });
 
@@ -758,30 +798,30 @@ export default function TurniDipendente() {
       return true;
     });
     
-    // Estrai attività con info complete, ordinate per ora
-    const attivitaList = [];
+    // Estrai attività con info complete, ordinate per ora - evita duplicati
+    const attivitaMap = new Map();
     schemasApplicabili.forEach(st => {
-      // Vecchio formato slots con orari
       if (st.slots && Array.isArray(st.slots)) {
         st.slots.forEach(slot => {
           if (slot.attivita) {
-            attivitaList.push({
-              nome: slot.attivita,
-              ora_inizio: slot.ora_inizio,
-              ora_fine: slot.ora_fine,
-              form_page: slot.form_page,
-              corsi_ids: slot.corsi_ids || (slot.corso_id ? [slot.corso_id] : []),
-              richiede_form: slot.richiede_form
-            });
+            const key = `${slot.ora_inizio}-${slot.attivita}`;
+            if (!attivitaMap.has(key)) {
+              attivitaMap.set(key, {
+                nome: slot.attivita,
+                ora_inizio: slot.ora_inizio,
+                ora_fine: slot.ora_fine,
+                form_page: slot.form_page,
+                corsi_ids: slot.corsi_ids || (slot.corso_id ? [slot.corso_id] : []),
+                richiede_form: slot.richiede_form
+              });
+            }
           }
         });
       }
     });
     
     // Ordina per ora inizio
-    attivitaList.sort((a, b) => (a.ora_inizio || '').localeCompare(b.ora_inizio || ''));
-    
-    return attivitaList;
+    return Array.from(attivitaMap.values()).sort((a, b) => (a.ora_inizio || '').localeCompare(b.ora_inizio || ''));
   };
   
   const isAttivitaCompletata = (turnoId, attivitaNome) => {
@@ -848,6 +888,17 @@ export default function TurniDipendente() {
             >
               <Thermometer className="w-4 h-4" />
               Malattia
+            </NeumorphicButton>
+            <NeumorphicButton 
+              onClick={() => setActiveView('scambi')}
+              variant={activeView === 'scambi' ? 'primary' : 'default'}
+              className="flex items-center gap-2"
+            >
+              <Users className="w-4 h-4" />
+              Scambi
+              {scambiPerMe.length > 0 && (
+                <span className="bg-purple-500 text-white text-xs px-1.5 py-0.5 rounded-full">{scambiPerMe.length}</span>
+              )}
             </NeumorphicButton>
           </div>
         </div>
@@ -1214,11 +1265,10 @@ export default function TurniDipendente() {
                     <div className="space-y-2 ml-13">
                       {dayTurni.map(turno => {
                         const hasTimbrato = turno.timbrata_entrata || turno.timbrata_uscita;
-                        const formDovuti = getFormDovutiPerTurno(turno);
-                        const attivita = getAttivitaTurno(turno);
                         const isFuturo = moment(turno.data).isAfter(moment(), 'day') || 
                           (moment(turno.data).isSame(moment(), 'day') && !turno.timbrata_uscita);
-                        const canScambio = isFuturo && !turno.timbrata_entrata && turno.richiesta_scambio?.stato !== 'pending';
+                        const canScambio = isFuturo && !turno.timbrata_entrata && 
+                          (!turno.richiesta_scambio || !['pending', 'accepted'].includes(turno.richiesta_scambio?.stato));
                         
                         return (
                         <div key={turno.id} className={`p-3 rounded-lg border ${COLORI_RUOLO[turno.ruolo]}`}>
@@ -1235,12 +1285,17 @@ export default function TurniDipendente() {
                                   className="p-1 bg-white bg-opacity-50 rounded hover:bg-opacity-80"
                                   title="Richiedi scambio"
                                 >
-                                  <Users className="w-3 h-3" />
+                                  <ArrowRightLeft className="w-3 h-3" />
                                 </button>
                               )}
                               {turno.richiesta_scambio?.stato === 'pending' && (
                                 <span className="px-2 py-0.5 bg-yellow-200 text-yellow-800 rounded-full text-xs">
-                                  Scambio
+                                  In attesa
+                                </span>
+                              )}
+                              {turno.richiesta_scambio?.stato === 'accepted' && (
+                                <span className="px-2 py-0.5 bg-blue-200 text-blue-800 rounded-full text-xs">
+                                  Da approvare
                                 </span>
                               )}
                             </div>
@@ -1249,59 +1304,6 @@ export default function TurniDipendente() {
                             <MapPin className="w-3 h-3" />
                             {getStoreName(turno.store_id)}
                           </div>
-                          
-                          {/* Mostra form e attività */}
-                          {(formDovuti.length > 0 || attivita.length > 0) && (
-                            <div className="mt-3 pt-3 border-t border-current border-opacity-30">
-                              <p className="text-xs font-bold mb-2 opacity-90">
-                                {hasTimbrato ? 'Da completare:' : 'Attività previste:'}
-                              </p>
-                              <div className="space-y-1">
-                                {formDovuti.map((form, idx) => (
-                                  <div key={idx} className={`text-xs px-2 py-1 rounded ${form.completato ? 'bg-green-600 bg-opacity-30' : 'bg-white bg-opacity-40'} flex items-center justify-between`}>
-                                    <span>📋 {form.nome}</span>
-                                    <div className="flex items-center gap-1">
-                                      {form.completato ? (
-                                        <span className="font-bold">✓</span>
-                                      ) : hasTimbrato && (
-                                        <Link to={createPageUrl(form.page)} className="text-blue-700 underline">Apri</Link>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))}
-                                {attivita.map((att, idx) => {
-                                  const isCompleted = att.richiede_form 
-                                    ? formDovuti.some(f => f.page === att.form_page && f.completato)
-                                    : isAttivitaCompletata(turno.id, att.nome);
-                                  return (
-                                    <div key={idx} className={`text-xs px-2 py-1 rounded ${isCompleted ? 'bg-green-600 bg-opacity-30' : 'bg-white bg-opacity-30'} flex items-center justify-between`}>
-                                      <span>{att.ora_inizio && `${att.ora_inizio} `}{att.nome}</span>
-                                      <div className="flex items-center gap-1">
-                                        {att.corsi_ids?.length > 0 && (
-                                          <Link to={createPageUrl('Academy')} className="text-purple-700">
-                                            <GraduationCap className="w-3 h-3" />
-                                          </Link>
-                                        )}
-                                        {att.form_page && !isCompleted && hasTimbrato && (
-                                          <Link to={createPageUrl(att.form_page)} className="text-blue-700 underline text-[10px]">Form</Link>
-                                        )}
-                                        {!att.richiede_form && !att.form_page && hasTimbrato && (
-                                          <button
-                                            onClick={() => !isCompleted && completaAttivitaMutation.mutate({ turno, attivitaNome: att.nome })}
-                                            disabled={isCompleted}
-                                            className={isCompleted ? 'text-green-700' : 'text-slate-600'}
-                                          >
-                                            {isCompleted ? <CheckSquare className="w-3 h-3" /> : <Square className="w-3 h-3" />}
-                                          </button>
-                                        )}
-                                        {isCompleted && <span className="font-bold">✓</span>}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
                         </div>
                       );
                       })}
@@ -1536,6 +1538,66 @@ export default function TurniDipendente() {
               )}
             </NeumorphicCard>
           </div>
+        )}
+
+        {/* VISTA: SCAMBI */}
+        {activeView === 'scambi' && (
+          <NeumorphicCard className="p-6">
+            <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <Users className="w-5 h-5 text-purple-500" />
+              Richieste di Scambio
+            </h2>
+            <p className="text-sm text-slate-500 mb-4">
+              Colleghi che vogliono scambiare il loro turno con te
+            </p>
+            
+            {scambiPerMe.length === 0 ? (
+              <p className="text-slate-500 text-center py-8">Nessuna richiesta di scambio</p>
+            ) : (
+              <div className="space-y-3">
+                {scambiPerMe.map(turno => (
+                  <div key={turno.id} className="neumorphic-pressed p-4 rounded-xl">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="font-bold text-slate-800 mb-1">
+                          {turno.dipendente_nome} vuole scambiare
+                        </p>
+                        <p className="font-medium text-slate-700">
+                          {moment(turno.data).format('dddd DD MMMM')}
+                        </p>
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <Clock className="w-4 h-4" />
+                          <span>{turno.ora_inizio} - {turno.ora_fine}</span>
+                          <span>•</span>
+                          <span>{turno.ruolo}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
+                          <MapPin className="w-3 h-3" />
+                          {getStoreName(turno.store_id)}
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <button
+                          onClick={() => rispondiScambioMutation.mutate({ turnoId: turno.id, accetta: true })}
+                          disabled={rispondiScambioMutation.isPending}
+                          className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 flex items-center gap-1"
+                        >
+                          <Check className="w-3 h-3" /> Accetta
+                        </button>
+                        <button
+                          onClick={() => rispondiScambioMutation.mutate({ turnoId: turno.id, accetta: false })}
+                          disabled={rispondiScambioMutation.isPending}
+                          className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 flex items-center gap-1"
+                        >
+                          <X className="w-3 h-3" /> Rifiuta
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </NeumorphicCard>
         )}
 
         {/* VISTA: TURNI LIBERI */}

@@ -237,7 +237,7 @@ const navigationStructure = [
         icon: Calendar,
       },
       {
-        title: "Assenze",
+        title: "Richieste",
         url: createPageUrl("Assenze"),
         icon: Calendar,
       },
