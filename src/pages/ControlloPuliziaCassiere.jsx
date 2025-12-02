@@ -1,13 +1,16 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Camera, Upload, CheckCircle, AlertCircle, Loader2, ClipboardCheck } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 
 export default function ControlloPuliziaCassiere() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const urlParams = new URLSearchParams(location.search);
+  const redirectTo = urlParams.get('redirect');
   
   const [selectedStore, setSelectedStore] = useState('');
   const [currentUser, setCurrentUser] = useState(null);
@@ -161,7 +164,7 @@ export default function ControlloPuliziaCassiere() {
         console.error('Error starting AI analysis:', error);
       });
 
-      navigate(createPageUrl('Pulizie'));
+      navigate(redirectTo ? createPageUrl(redirectTo) : createPageUrl('Pulizie'));
 
     } catch (error) {
       console.error('Error processing inspection:', error);
