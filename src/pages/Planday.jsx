@@ -1432,6 +1432,10 @@ export default function Planday() {
             </div>
 
             <div className="flex items-center gap-2">
+              <NeumorphicButton onClick={() => setShowGestioneTurniModal(true)} className="flex items-center gap-2">
+                <Settings className="w-4 h-4" />
+                Impostazioni
+              </NeumorphicButton>
               <NeumorphicButton onClick={() => setShowModelliModal(true)} className="flex items-center gap-2">
                 <Clock className="w-4 h-4" />
                 Modelli Turno

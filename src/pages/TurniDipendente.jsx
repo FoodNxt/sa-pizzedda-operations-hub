@@ -802,7 +802,7 @@ export default function TurniDipendente() {
       return true;
     });
     
-    // Estrai attività con info complete, ordinate per ora - evita duplicati
+    // Estrai attività con info complete, ordinate per ora - evita duplicati per NOME attività
     // Filtra solo attività dentro l'orario del turno
     const attivitaMap = new Map();
     schemasApplicabili.forEach(st => {
@@ -811,11 +811,11 @@ export default function TurniDipendente() {
           if (slot.attivita) {
             // Verifica che lo slot sia dentro l'orario del turno
             const slotInizio = slot.ora_inizio || '00:00';
-            const slotFine = slot.ora_fine || '23:59';
             
             // Lo slot è valido se inizia durante il turno
             if (slotInizio >= turnoInizio && slotInizio < turnoFine) {
-              const key = `${slot.ora_inizio}-${slot.attivita}`;
+              // Usa solo il nome dell'attività come chiave per evitare duplicati
+              const key = slot.attivita;
               if (!attivitaMap.has(key)) {
                 attivitaMap.set(key, {
                   nome: slot.attivita,
