@@ -181,6 +181,11 @@ export default function Planday() {
     queryFn: () => base44.entities.TurnoModello.list(),
   });
 
+  const { data: tipoTurnoConfigs = [] } = useQuery({
+    queryKey: ['tipo-turno-configs'],
+    queryFn: () => base44.entities.TipoTurnoConfig.list(),
+  });
+
   const { data: settimaneModello = [] } = useQuery({
     queryKey: ['settimane-modello'],
     queryFn: () => base44.entities.SettimanaModello.list(),
@@ -321,6 +326,14 @@ export default function Planday() {
   
   // Modal per gestione turni
   const [showGestioneTurniModal, setShowGestioneTurniModal] = useState(false);
+  
+  const [tipoConfigForm, setTipoConfigForm] = useState({ 
+    tipo_turno: '', 
+    mostra_attivita: true, 
+    richiede_timbratura: true, 
+    richiede_form: true 
+  });
+  const [editingTipoConfig, setEditingTipoConfig] = useState(null);
 
   React.useEffect(() => {
     if (config) {
@@ -671,6 +684,27 @@ export default function Planday() {
     mutationFn: (id) => base44.entities.SettimanaModello.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settimane-modello'] });
+    },
+  });
+
+  const saveTipoConfigMutation = useMutation({
+    mutationFn: async (data) => {
+      if (editingTipoConfig) {
+        return base44.entities.TipoTurnoConfig.update(editingTipoConfig.id, data);
+      }
+      return base44.entities.TipoTurnoConfig.create(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tipo-turno-configs'] });
+      setTipoConfigForm({ tipo_turno: '', mostra_attivita: true, richiede_timbratura: true, richiede_form: true });
+      setEditingTipoConfig(null);
+    },
+  });
+
+  const deleteTipoConfigMutation = useMutation({
+    mutationFn: (id) => base44.entities.TipoTurnoConfig.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tipo-turno-configs'] });
     },
   });
 
@@ -3407,6 +3441,127 @@ export default function Planday() {
                       </div>
                     ))}
                   </div>
+                </div>
+              </div>
+
+              {/* Sezione Configurazione Tipi Turno */}
+              <div className="mb-6">
+                <h3 className="font-medium text-slate-700 mb-3 flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4" />
+                  Configurazione Comportamento
+                </h3>
+                <div className="neumorphic-pressed p-4 rounded-xl">
+                  <p className="text-xs text-slate-500 mb-3">
+                    Configura cosa mostrare e richiedere per ogni tipo turno nella view dipendente
+                  </p>
+
+                  {/* Form nuova config */}
+                  <div className="neumorphic-flat p-3 rounded-xl mb-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
+                      <select
+                        value={tipoConfigForm.tipo_turno}
+                        onChange={(e) => setTipoConfigForm({ ...tipoConfigForm, tipo_turno: e.target.value })}
+                        className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none"
+                      >
+                        <option value="">Seleziona tipo turno...</option>
+                        {tipiTurno.map(tipo => (
+                          <option key={tipo} value={tipo}>{tipo}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-2 mb-3">
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={tipoConfigForm.mostra_attivita}
+                          onChange={(e) => setTipoConfigForm({ ...tipoConfigForm, mostra_attivita: e.target.checked })}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-slate-700">Mostra lista "Attività previste"</span>
+                      </label>
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={tipoConfigForm.richiede_timbratura}
+                          onChange={(e) => setTipoConfigForm({ ...tipoConfigForm, richiede_timbratura: e.target.checked })}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-slate-700">Richiede timbratura</span>
+                      </label>
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={tipoConfigForm.richiede_form}
+                          onChange={(e) => setTipoConfigForm({ ...tipoConfigForm, richiede_form: e.target.checked })}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-slate-700">Richiede compilazione form</span>
+                      </label>
+                    </div>
+                    <NeumorphicButton 
+                      onClick={() => {
+                        if (!tipoConfigForm.tipo_turno) return;
+                        saveTipoConfigMutation.mutate(tipoConfigForm);
+                      }}
+                      variant="primary" 
+                      className="w-full text-sm"
+                      disabled={!tipoConfigForm.tipo_turno}
+                    >
+                      {editingTipoConfig ? 'Aggiorna' : 'Aggiungi Configurazione'}
+                    </NeumorphicButton>
+                  </div>
+
+                  {/* Lista configurazioni esistenti */}
+                  {tipoTurnoConfigs.length > 0 && (
+                    <div className="space-y-2">
+                      {tipoTurnoConfigs.map(config => (
+                        <div key={config.id} className="bg-white p-3 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="font-medium text-slate-800 text-sm">{config.tipo_turno}</div>
+                              <div className="flex gap-2 mt-1">
+                                {config.mostra_attivita !== false && (
+                                  <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">📋 Attività</span>
+                                )}
+                                {config.richiede_timbratura !== false && (
+                                  <span className="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded">⏱️ Timbratura</span>
+                                )}
+                                {config.richiede_form !== false && (
+                                  <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded">📝 Form</span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => {
+                                  setEditingTipoConfig(config);
+                                  setTipoConfigForm({
+                                    tipo_turno: config.tipo_turno,
+                                    mostra_attivita: config.mostra_attivita !== false,
+                                    richiede_timbratura: config.richiede_timbratura !== false,
+                                    richiede_form: config.richiede_form !== false
+                                  });
+                                }}
+                                className="text-blue-500 hover:text-blue-700"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (confirm(`Eliminare configurazione per ${config.tipo_turno}?`)) {
+                                    deleteTipoConfigMutation.mutate(config.id);
+                                  }
+                                }}
+                                className="text-red-500 hover:text-red-700"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
