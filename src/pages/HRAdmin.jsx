@@ -24,6 +24,7 @@ export default function HRAdmin() {
   const [activeTab, setActiveTab] = useState('tools');
   const [editingUserId, setEditingUserId] = useState(null);
   const [selectedStores, setSelectedStores] = useState([]);
+  const [storePrincipale, setStorePrincipale] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(null);
 
   const queryClient = useQueryClient();
@@ -44,13 +45,17 @@ export default function HRAdmin() {
   });
 
   const updateUserMutation = useMutation({
-    mutationFn: async ({ userId, assignedStores }) => {
-      await base44.entities.User.update(userId, { assigned_stores: assignedStores });
+    mutationFn: async ({ userId, assignedStores, storePrincipaleId }) => {
+      await base44.entities.User.update(userId, { 
+        assigned_stores: assignedStores,
+        store_principale_id: storePrincipaleId 
+      });
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['users-dipendenti'] });
       setSaveSuccess(variables.userId);
       setEditingUserId(null);
+      setStorePrincipale('');
       setTimeout(() => setSaveSuccess(null), 2000);
     }
   });
@@ -58,6 +63,7 @@ export default function HRAdmin() {
   const handleEditUser = (user) => {
     setEditingUserId(user.id);
     setSelectedStores(user.assigned_stores || []);
+    setStorePrincipale(user.store_principale_id || '');
   };
 
   const handleToggleStore = (storeId) => {
@@ -69,12 +75,13 @@ export default function HRAdmin() {
   };
 
   const handleSave = (userId) => {
-    updateUserMutation.mutate({ userId, assignedStores: selectedStores });
+    updateUserMutation.mutate({ userId, assignedStores: selectedStores, storePrincipaleId: storePrincipale });
   };
 
   const handleCancel = () => {
     setEditingUserId(null);
     setSelectedStores([]);
+    setStorePrincipale('');
   };
 
   const adminTools = [
@@ -293,6 +300,24 @@ export default function HRAdmin() {
                               </button>
                             ))}
                           </div>
+                          <div className="mb-3">
+                            <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Locale Principale:</label>
+                            <select
+                              value={storePrincipale}
+                              onChange={(e) => setStorePrincipale(e.target.value)}
+                              className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-sm outline-none"
+                            >
+                              <option value="">Nessun locale principale</option>
+                              {stores
+                                .filter(s => selectedStores.includes(s.id))
+                                .map(store => (
+                                  <option key={store.id} value={store.id}>{store.name}</option>
+                                ))}
+                            </select>
+                            <p className="text-xs text-slate-500 mt-1">
+                              Il locale principale viene usato come default nei form e nella pianificazione
+                            </p>
+                          </div>
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleSave(user.id)}
@@ -317,21 +342,34 @@ export default function HRAdmin() {
                         </div>
                       ) : (
                         <div className="flex items-center gap-3">
-                          <div className="flex flex-wrap gap-1">
-                            {user.assigned_stores && user.assigned_stores.length > 0 ? (
-                              user.assigned_stores.map(storeId => {
-                                const store = stores.find(s => s.id === storeId);
-                                return store ? (
-                                  <span key={storeId} className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full flex items-center gap-1">
-                                    <Store className="w-3 h-3" />
-                                    {store.name}
-                                  </span>
-                                ) : null;
-                              })
-                            ) : (
-                              <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
-                                ⚠️ Nessun locale assegnato
-                              </span>
+                          <div className="flex flex-col gap-2">
+                            <div className="flex flex-wrap gap-1">
+                              {user.assigned_stores && user.assigned_stores.length > 0 ? (
+                                user.assigned_stores.map(storeId => {
+                                  const store = stores.find(s => s.id === storeId);
+                                  const isPrincipale = user.store_principale_id === storeId;
+                                  return store ? (
+                                    <span key={storeId} className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${
+                                      isPrincipale 
+                                        ? 'bg-blue-200 text-blue-800 font-bold border-2 border-blue-400'
+                                        : 'bg-green-100 text-green-700'
+                                    }`}>
+                                      <Store className="w-3 h-3" />
+                                      {store.name}
+                                      {isPrincipale && ' ⭐'}
+                                    </span>
+                                  ) : null;
+                                })
+                              ) : (
+                                <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
+                                  ⚠️ Nessun locale assegnato
+                                </span>
+                              )}
+                            </div>
+                            {user.store_principale_id && (
+                              <p className="text-xs text-slate-500">
+                                Principale: {stores.find(s => s.id === user.store_principale_id)?.name}
+                              </p>
                             )}
                           </div>
                           
