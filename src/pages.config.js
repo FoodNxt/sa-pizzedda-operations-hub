@@ -5,7 +5,6 @@ import Employees from './pages/Employees';
 import ImportReviews from './pages/ImportReviews';
 import ZapierSetup from './pages/ZapierSetup';
 import ShiftsSetup from './pages/ShiftsSetup';
-import Shifts from './pages/Shifts';
 import AssignReviews from './pages/AssignReviews';
 import EmployeeReviewsPerformance from './pages/EmployeeReviewsPerformance';
 import OrderItemsSetup from './pages/OrderItemsSetup';
@@ -93,7 +92,6 @@ export const PAGES = {
     "ImportReviews": ImportReviews,
     "ZapierSetup": ZapierSetup,
     "ShiftsSetup": ShiftsSetup,
-    "Shifts": Shifts,
     "AssignReviews": AssignReviews,
     "EmployeeReviewsPerformance": EmployeeReviewsPerformance,
     "OrderItemsSetup": OrderItemsSetup,

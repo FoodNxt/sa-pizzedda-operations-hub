@@ -192,11 +192,6 @@ const navigationStructure = [
         icon: Users,
       },
       {
-        title: "Shifts",
-        url: createPageUrl("Shifts"),
-        icon: Clock,
-      },
-      {
         title: "Payroll",
         url: createPageUrl("Payroll"),
         icon: DollarSign,
