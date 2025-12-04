@@ -217,9 +217,12 @@ export default function HRAdmin() {
               <MapPin className="w-6 h-6 text-green-600 flex-shrink-0 mt-1" />
               <div>
                 <h3 className="font-bold text-green-800 mb-2">📍 Assegnazione Locali ai Dipendenti</h3>
-                <p className="text-sm text-green-700">
+                <p className="text-sm text-green-700 mb-2">
                   Assegna i locali a ciascun dipendente. I dipendenti vedranno solo i locali assegnati nei form di compilazione.
-                  Se non assegni nessun locale, il dipendente non potrà compilare i form.
+                </p>
+                <p className="text-sm text-green-700">
+                  <strong>Locale Principale (⭐):</strong> Il locale principale viene usato come default nei form e nella pianificazione.
+                  Un dipendente può essere assegnato a più locali ma avere un solo locale principale.
                 </p>
               </div>
             </div>

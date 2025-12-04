@@ -21,9 +21,9 @@ export default function Payroll() {
     queryFn: () => base44.entities.Store.list(),
   });
 
-  const { data: rawShifts = [], isLoading } = useQuery({
-    queryKey: ['shifts'],
-    queryFn: () => base44.entities.Shift.list('-shift_date', 10000),
+  const { data: turniPlanday = [], isLoading } = useQuery({
+    queryKey: ['turni-planday-payroll'],
+    queryFn: () => base44.entities.TurnoPlanday.list('-data', 10000),
   });
 
   const { data: employees = [] } = useQuery({
@@ -34,7 +34,6 @@ export default function Payroll() {
   // ✅ HELPER: Normalize employee name for consistent grouping
   const normalizeEmployeeName = (name) => {
     if (!name) return 'unknown';
-    // Trim, replace multiple spaces with a single space, then convert to lowercase
     return name.trim().replace(/\s+/g, ' ').toLowerCase();
   };
 
@@ -45,132 +44,57 @@ export default function Payroll() {
     const type = shiftType.trim();
     
     if (type === 'Affiancamento') return 'Turno normale';
-    if (type === 'Malattia (No Certificato)') return 'Assenza non retribuita';
-    if (type === 'Ritardo') return 'Assenza non retribuita';
+    if (type === 'Malattia (Non Certificata)') return 'Assenza non retribuita';
+    if (type === 'Normale') return 'Turno normale';
     
     return type;
   };
 
-  // ✅ ULTRA MEGA AGGRESSIVE DEDUPLICATION
-  const deduplicateShifts = (shiftsArray) => {
-    const uniqueShiftsMap = new Map();
-    const duplicatesDetailed = [];
-    let duplicatesFound = 0;
+  // Convert TurnoPlanday to Shift-like format
+  const shifts = useMemo(() => {
+    return turniPlanday.map(turno => {
+      const scheduledStart = turno.data && turno.ora_inizio 
+        ? `${turno.data}T${turno.ora_inizio}:00` 
+        : null;
+      const scheduledEnd = turno.data && turno.ora_fine 
+        ? `${turno.data}T${turno.ora_fine}:00` 
+        : null;
+      
+      let scheduledMinutes = 0;
+      if (turno.ora_inizio && turno.ora_fine) {
+        const [startH, startM] = turno.ora_inizio.split(':').map(Number);
+        const [endH, endM] = turno.ora_fine.split(':').map(Number);
+        scheduledMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+      }
 
-    shiftsArray.forEach(shift => {
-      // Helper to normalize and extract date/time components
-      const normalizeEmployeeName = (name) => {
-        if (!name) return 'unknown';
-        return name.toLowerCase().replace(/\s+/g, '').trim();
-      };
-
-      const extractDate = (dateStr) => {
-        if (!dateStr) return 'no-date';
-        try {
-          const date = new Date(dateStr);
-          if (isNaN(date.getTime())) return 'no-date';
-          // Return only YYYY-MM-DD
-          return date.toISOString().split('T')[0];
-        } catch {
-          return 'no-date';
-        }
-      };
-
-      const extractTime = (dateTimeStr) => {
-        if (!dateTimeStr) return 'no-time';
-        try {
-          const date = new Date(dateTimeStr);
-          if (isNaN(date.getTime())) return 'no-time';
-          // Return only HH:MM
-          const hours = String(date.getHours()).padStart(2, '0');
-          const minutes = String(date.getMinutes()).padStart(2, '0');
-          return `${hours}:${minutes}`;
-        } catch {
-          return 'no-time';
-        }
-      };
-
-      // Create normalized values
-      const normalizedEmployee = normalizeEmployeeName(shift.employee_name);
-      const normalizedDate = extractDate(shift.shift_date);
-      const normalizedStart = extractTime(shift.scheduled_start);
-      const normalizedEnd = extractTime(shift.scheduled_end);
-      const normalizedStore = (shift.store_id || shift.store_name || 'no-store').toString().toLowerCase().replace(/\s+/g, '');
-
-      // Create comprehensive unique key
-      const key = `${normalizedEmployee}|${normalizedStore}|${normalizedDate}|${normalizedStart}|${normalizedEnd}`;
-
-      if (!uniqueShiftsMap.has(key)) {
-        uniqueShiftsMap.set(key, shift);
-      } else {
-        duplicatesFound++;
-        const existing = uniqueShiftsMap.get(key);
-        
-        // Log duplicates for debugging
-        duplicatesDetailed.push({
-          key,
-          employee_name: shift.employee_name,
-          shift_date: shift.shift_date,
-          existing_id: existing.id,
-          duplicate_id: shift.id,
-          existing_created: existing.created_date,
-          duplicate_created: shift.created_date
-        });
-
-        // Keep the one with the LOWEST ID (assuming lower ID = older/original)
-        if (shift.id < existing.id) {
-          uniqueShiftsMap.set(key, shift);
-        } else if (shift.id === existing.id) {
-          // Same ID?! Check created_date
-          if (shift.created_date && existing.created_date) {
-            const shiftDate = new Date(shift.created_date);
-            const existingDate = new Date(existing.created_date);
-            if (shiftDate < existingDate) {
-              uniqueShiftsMap.set(key, shift);
-            }
-          }
+      // Calcola ritardo se presente timbratura
+      let minutiDiRitardo = 0;
+      if (turno.timbrata_entrata && scheduledStart) {
+        const entrata = new Date(turno.timbrata_entrata);
+        const previsto = new Date(scheduledStart);
+        const diffMs = entrata - previsto;
+        if (diffMs > 0) {
+          minutiDiRitardo = Math.floor(diffMs / 60000);
         }
       }
+
+      return {
+        id: turno.id,
+        employee_name: turno.dipendente_nome,
+        store_id: turno.store_id,
+        store_name: turno.store_id,
+        shift_date: turno.data,
+        scheduled_start: scheduledStart,
+        scheduled_end: scheduledEnd,
+        actual_start: turno.timbrata_entrata,
+        actual_end: turno.timbrata_uscita,
+        scheduled_minutes: scheduledMinutes,
+        shift_type: turno.tipo_turno,
+        minuti_di_ritardo: minutiDiRitardo,
+        created_date: turno.created_date
+      };
     });
-
-    if (duplicatesFound > 0) {
-      console.group('🔍 DEDUPLICA PAYROLL - DETTAGLI');
-      console.log(`📊 Totale duplicati rimossi: ${duplicatesFound}`);
-      console.log(`📋 Turni originali: ${shiftsArray.length}`);
-      console.log(`✅ Turni unici: ${uniqueShiftsMap.size}`);
-      
-      // Group duplicates by employee
-      const duplicatesByEmployee = {};
-      duplicatesDetailed.forEach(dup => {
-        if (!duplicatesByEmployee[dup.employee_name]) {
-          duplicatesByEmployee[dup.employee_name] = [];
-        }
-        duplicatesByEmployee[dup.employee_name].push(dup);
-      });
-      
-      console.log('👥 Duplicati per dipendente:');
-      Object.entries(duplicatesByEmployee).forEach(([name, dups]) => {
-        console.log(`  ${name}: ${dups.length} duplicati`);
-        dups.slice(0, 3).forEach(dup => {
-          console.log(`    → ${dup.shift_date} | IDs: ${dup.existing_id} vs ${dup.duplicate_id}`);
-        });
-      });
-      
-      console.groupEnd();
-    } else {
-      console.log('✅ Payroll: Nessun duplicato trovato');
-    }
-
-    return Array.from(uniqueShiftsMap.values());
-  };
-
-  // ✅ MEMO: Deduplicate shifts once
-  const shifts = useMemo(() => {
-    console.log('🔄 Inizio deduplica turni per Payroll...');
-    const deduplicated = deduplicateShifts(rawShifts);
-    console.log(`✅ Deduplica completata: ${rawShifts.length} → ${deduplicated.length} turni`);
-    return deduplicated;
-  }, [rawShifts]);
+  }, [turniPlanday]);
 
   // ✅ IMPROVED: Process payroll data with NORMALIZED employee names AND total hours excluding overtime
   const payrollData = useMemo(() => {
