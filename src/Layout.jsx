@@ -240,6 +240,11 @@ const navigationStructure = [
         title: "Assegnazione Locali",
         url: createPageUrl("HRAdmin"),
         icon: MapPin,
+      },
+      {
+        title: "Store Manager",
+        url: createPageUrl("StoreManagerAdmin"),
+        icon: Users,
       }
     ]
   },

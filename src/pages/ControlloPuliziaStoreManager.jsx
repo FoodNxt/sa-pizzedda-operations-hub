@@ -11,8 +11,10 @@ export default function ControlloPuliziaStoreManager() {
   const location = useLocation();
   const urlParams = new URLSearchParams(location.search);
   const redirectTo = urlParams.get('redirect');
+  const storeIdFromUrl = urlParams.get('storeId');
   
-  const [selectedStore, setSelectedStore] = useState('');
+  const [selectedStore, setSelectedStore] = useState(storeIdFromUrl || '');
+  const [storeLockedFromShift, setStoreLockedFromShift] = useState(!!storeIdFromUrl);
   const [currentUser, setCurrentUser] = useState(null);
   const [photos, setPhotos] = useState({});
   const [previews, setPreviews] = useState({});
@@ -263,29 +265,36 @@ export default function ControlloPuliziaStoreManager() {
                 <label className="text-sm text-[#9b9b9b] mb-2 block">
                   Locale <span className="text-red-600">*</span>
                 </label>
-                <div className="flex flex-wrap gap-2">
-                  {stores
-                    .filter(store => {
-                      if (currentUser?.user_type === 'admin' || currentUser?.user_type === 'manager') return true;
-                      if (!currentUser?.assigned_stores || currentUser.assigned_stores.length === 0) return true;
-                      return currentUser.assigned_stores.includes(store.id);
-                    })
-                    .map(store => (
-                      <button
-                        key={store.id}
-                        type="button"
-                        onClick={() => setSelectedStore(store.id)}
-                        disabled={uploading}
-                        className={`px-4 py-3 rounded-xl font-medium transition-all ${
-                          selectedStore === store.id
-                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                            : 'neumorphic-flat text-[#6b6b6b] hover:shadow-md'
-                        }`}
-                      >
-                        {store.name}
-                      </button>
-                    ))}
-                </div>
+                {storeLockedFromShift ? (
+                  <div className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] bg-gray-50">
+                    {stores.find(s => s.id === selectedStore)?.name || 'Caricamento...'}
+                    <span className="text-xs text-slate-500 ml-2">(dal turno)</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {stores
+                      .filter(store => {
+                        if (currentUser?.user_type === 'admin' || currentUser?.user_type === 'manager') return true;
+                        if (!currentUser?.assigned_stores || currentUser.assigned_stores.length === 0) return true;
+                        return currentUser.assigned_stores.includes(store.id);
+                      })
+                      .map(store => (
+                        <button
+                          key={store.id}
+                          type="button"
+                          onClick={() => setSelectedStore(store.id)}
+                          disabled={uploading}
+                          className={`px-4 py-3 rounded-xl font-medium transition-all ${
+                            selectedStore === store.id
+                              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                              : 'neumorphic-flat text-[#6b6b6b] hover:shadow-md'
+                          }`}
+                        >
+                          {store.name}
+                        </button>
+                      ))}
+                  </div>
+                )}
               </div>
 
               <div>
