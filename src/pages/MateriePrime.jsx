@@ -1023,6 +1023,7 @@ export default function MateriePrime() {
                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Qtà Critica</th>
                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Qtà Ordine</th>
                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Prezzo</th>
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">€/Unità</th>
                       <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Stato</th>
                       <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">In Uso</th>
                       <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Azioni</th>
@@ -1061,6 +1062,22 @@ export default function MateriePrime() {
                           </td>
                           <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
                             {product.prezzo_unitario ? `€${parseFloat(product.prezzo_unitario).toFixed(2)}` : '-'}
+                          </td>
+                          <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
+                            {(() => {
+                              if (!product.prezzo_unitario) return '-';
+                              // Per casse/confezioni: prezzo / unità per confezione
+                              if (['casse', 'confezioni'].includes(product.unita_misura) && product.unita_per_confezione > 0) {
+                                const prezzoPerUnita = product.prezzo_unitario / product.unita_per_confezione;
+                                return `€${prezzoPerUnita.toFixed(2)}`;
+                              }
+                              // Per kg/litri/sacchi con peso: prezzo / peso
+                              if (product.peso_dimensione_unita > 0) {
+                                const prezzoPerUnita = product.prezzo_unitario / product.peso_dimensione_unita;
+                                return `€${prezzoPerUnita.toFixed(2)}/${product.unita_misura_peso || 'kg'}`;
+                              }
+                              return `€${parseFloat(product.prezzo_unitario).toFixed(2)}`;
+                            })()}
                           </td>
                           <td className="p-2 lg:p-3">
                             <div className="flex justify-center">
