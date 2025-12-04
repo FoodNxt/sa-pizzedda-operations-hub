@@ -297,11 +297,6 @@ const navigationStructure = [
         icon: Zap,
       },
       {
-        title: "Zapier Shifts",
-        url: createPageUrl("ShiftsSetup"),
-        icon: Zap,
-      },
-      {
         title: "Zapier Orders",
         url: createPageUrl("OrderItemsSetup"),
         icon: Zap,
