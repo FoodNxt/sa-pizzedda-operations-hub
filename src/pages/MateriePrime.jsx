@@ -621,111 +621,113 @@ export default function MateriePrime() {
                     </div>
 
                     {['kg', 'grammi', 'litri', 'ml'].includes(formData.unita_misura) && (
-                      <div>
-                        <label className="text-sm font-medium text-slate-700 mb-2 block">
-                          Peso/Dimensione per Unità (es. 25 per 25kg)
-                        </label>
-                        <div className="grid grid-cols-2 gap-3">
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={formData.peso_dimensione_unita}
-                            onChange={(e) => setFormData({ ...formData, peso_dimensione_unita: e.target.value })}
-                            placeholder="25"
-                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                          />
-                          <select
-                            value={formData.unita_misura_peso}
-                            onChange={(e) => setFormData({ ...formData, unita_misura_peso: e.target.value })}
-                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                          >
-                            <option value="kg">kg</option>
-                            <option value="g">g</option>
-                            <option value="litri">litri</option>
-                            <option value="ml">ml</option>
-                          </select>
-                        </div>
-                      </div>
-                    )}
-
-                    {['casse', 'confezioni'].includes(formData.unita_misura) ? (
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-sm font-medium text-slate-700 mb-2 block">
-                            Quante unità per {formData.unita_misura === 'casse' ? 'cassa' : 'confezione'}?
-                          </label>
-                          <input
-                            type="number"
-                            step="1"
-                            value={formData.unita_per_confezione}
-                            onChange={(e) => setFormData({ ...formData, unita_per_confezione: e.target.value })}
-                            placeholder="es. 24 (bottiglie)"
-                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                          />
-                          <p className="text-xs text-slate-500 mt-1">
-                            💡 Es: Se hai una cassa di 24 bottiglie, inserisci 24
-                          </p>
-                        </div>
-
-                        <div>
-                          <label className="text-sm font-medium text-slate-700 mb-2 block">
-                            Peso/Dimensione per ogni unità interna
-                          </label>
-                          <div className="grid grid-cols-2 gap-3">
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={formData.peso_unita_interna}
-                              onChange={(e) => setFormData({ ...formData, peso_unita_interna: e.target.value })}
-                              placeholder="es. 1.5"
-                              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                            />
-                            <select
-                              value={formData.unita_misura_interna}
-                              onChange={(e) => setFormData({ ...formData, unita_misura_interna: e.target.value })}
-                              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                            >
-                              <option value="kg">kg</option>
-                              <option value="g">g</option>
-                              <option value="litri">litri</option>
-                              <option value="ml">ml</option>
-                            </select>
+                          <div>
+                            <label className="text-sm font-medium text-slate-700 mb-2 block">
+                              Peso/Dimensione per Unità (es. 25 per 25kg)
+                            </label>
+                            <div className="grid grid-cols-2 gap-3">
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={formData.peso_dimensione_unita}
+                                onChange={(e) => setFormData({ ...formData, peso_dimensione_unita: e.target.value })}
+                                placeholder="25"
+                                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                              />
+                              <select
+                                value={formData.unita_misura_peso}
+                                onChange={(e) => setFormData({ ...formData, unita_misura_peso: e.target.value })}
+                                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                              >
+                                <option value="kg">kg</option>
+                                <option value="g">g</option>
+                                <option value="litri">litri</option>
+                                <option value="ml">ml</option>
+                              </select>
+                            </div>
                           </div>
-                          <p className="text-xs text-slate-500 mt-1">
-                            💡 Es: Se ogni bottiglia pesa 1.5 litri, inserisci 1.5 litri
-                          </p>
-                        </div>
-                      </div>
-                    ) : !['kg', 'grammi', 'litri', 'ml'].includes(formData.unita_misura) && (
-                      <div>
-                        <label className="text-sm font-medium text-slate-700 mb-2 block">
-                          Peso per {formData.unita_misura === 'sacchi' ? 'Sacco' : 'Unità'}
-                        </label>
-                        <div className="grid grid-cols-2 gap-3">
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={formData.peso_dimensione_unita}
-                            onChange={(e) => setFormData({ ...formData, peso_dimensione_unita: e.target.value })}
-                            placeholder="es. 25"
-                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                          />
-                          <select
-                            value={formData.unita_misura_peso}
-                            onChange={(e) => setFormData({ ...formData, unita_misura_peso: e.target.value })}
-                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                          >
-                            <option value="kg">kg</option>
-                            <option value="g">g</option>
-                            <option value="litri">litri</option>
-                            <option value="ml">ml</option>
-                          </select>
-                        </div>
-                        <p className="text-xs text-slate-500 mt-1">
-                          💡 Es: {formData.unita_misura} da 25kg → inserisci 25 kg
-                        </p>
-                      </div>
-                    )}
+                        )}
+
+                        {['casse', 'confezioni'].includes(formData.unita_misura) && (
+                          <div className="space-y-3">
+                            <div>
+                              <label className="text-sm font-medium text-slate-700 mb-2 block">
+                                Quante unità per {formData.unita_misura === 'casse' ? 'cassa' : 'confezione'}?
+                              </label>
+                              <input
+                                type="number"
+                                step="1"
+                                value={formData.unita_per_confezione}
+                                onChange={(e) => setFormData({ ...formData, unita_per_confezione: e.target.value })}
+                                placeholder="es. 24 (bottiglie) o 8 (rotoli)"
+                                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                              />
+                              <p className="text-xs text-slate-500 mt-1">
+                                💡 Es: Cassa di 24 bottiglie = 24, Confezione di 8 rotoli = 8
+                              </p>
+                            </div>
+
+                            <div>
+                              <label className="text-sm font-medium text-slate-700 mb-2 block">
+                                Peso/Dimensione per ogni unità interna (opzionale)
+                              </label>
+                              <div className="grid grid-cols-2 gap-3">
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={formData.peso_unita_interna}
+                                  onChange={(e) => setFormData({ ...formData, peso_unita_interna: e.target.value })}
+                                  placeholder="Lascia vuoto se non applicabile"
+                                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                                />
+                                <select
+                                  value={formData.unita_misura_interna}
+                                  onChange={(e) => setFormData({ ...formData, unita_misura_interna: e.target.value })}
+                                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                                >
+                                  <option value="kg">kg</option>
+                                  <option value="g">g</option>
+                                  <option value="litri">litri</option>
+                                  <option value="ml">ml</option>
+                                </select>
+                              </div>
+                              <p className="text-xs text-slate-500 mt-1">
+                                💡 Lascia vuoto per prodotti senza peso (es. Scottex, tovaglioli)
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {!['kg', 'grammi', 'litri', 'ml', 'casse', 'confezioni'].includes(formData.unita_misura) && (
+                          <div>
+                            <label className="text-sm font-medium text-slate-700 mb-2 block">
+                              Peso per {formData.unita_misura === 'sacchi' ? 'Sacco' : 'Unità'} (opzionale)
+                            </label>
+                            <div className="grid grid-cols-2 gap-3">
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={formData.peso_dimensione_unita}
+                                onChange={(e) => setFormData({ ...formData, peso_dimensione_unita: e.target.value })}
+                                placeholder="Lascia vuoto se non applicabile"
+                                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                              />
+                              <select
+                                value={formData.unita_misura_peso}
+                                onChange={(e) => setFormData({ ...formData, unita_misura_peso: e.target.value })}
+                                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                              >
+                                <option value="kg">kg</option>
+                                <option value="g">g</option>
+                                <option value="litri">litri</option>
+                                <option value="ml">ml</option>
+                              </select>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-1">
+                              💡 Lascia vuoto per prodotti venduti a pezzo senza peso
+                            </p>
+                          </div>
+                        )}
                   </div>
                 </div>
 
