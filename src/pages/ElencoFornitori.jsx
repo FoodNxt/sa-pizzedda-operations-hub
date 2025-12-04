@@ -26,7 +26,7 @@ export default function ElencoFornitori() {
     ragione_sociale: '',
     partita_iva: '',
     sede_legale: '',
-    tipo_fornitore: 'food',
+    categorie_fornitore: [],
     giorni_consegna: [],
     tempo_consegna_giorni: '',
     metodologia_ricezione_ordine: 'Email',
@@ -72,7 +72,7 @@ export default function ElencoFornitori() {
       ragione_sociale: '',
       partita_iva: '',
       sede_legale: '',
-      tipo_fornitore: 'food',
+      categorie_fornitore: [],
       giorni_consegna: [],
       tempo_consegna_giorni: '',
       metodologia_ricezione_ordine: 'Email',
@@ -88,11 +88,13 @@ export default function ElencoFornitori() {
 
   const handleEdit = (supplier) => {
     setEditingSupplier(supplier);
+    // Retrocompatibilità: se ha tipo_fornitore singolo, convertilo in array
+    const categorie = supplier.categorie_fornitore || (supplier.tipo_fornitore ? [supplier.tipo_fornitore] : []);
     setFormData({
       ragione_sociale: supplier.ragione_sociale,
       partita_iva: supplier.partita_iva || '',
       sede_legale: supplier.sede_legale || '',
-      tipo_fornitore: supplier.tipo_fornitore,
+      categorie_fornitore: categorie,
       giorni_consegna: supplier.giorni_consegna || [],
       tempo_consegna_giorni: supplier.tempo_consegna_giorni || '',
       metodologia_ricezione_ordine: supplier.metodologia_ricezione_ordine || 'Email',
@@ -110,7 +112,9 @@ export default function ElencoFornitori() {
     
     const data = {
       ...formData,
-      tempo_consegna_giorni: formData.tempo_consegna_giorni ? parseInt(formData.tempo_consegna_giorni) : null
+      tempo_consegna_giorni: formData.tempo_consegna_giorni ? parseInt(formData.tempo_consegna_giorni) : null,
+      // Mantieni retrocompatibilità: salva anche tipo_fornitore con la prima categoria
+      tipo_fornitore: formData.categorie_fornitore.length > 0 ? formData.categorie_fornitore[0] : 'altro'
     };
 
     if (editingSupplier) {
@@ -132,6 +136,15 @@ export default function ElencoFornitori() {
       giorni_consegna: prev.giorni_consegna.includes(day)
         ? prev.giorni_consegna.filter(d => d !== day)
         : [...prev.giorni_consegna, day]
+    }));
+  };
+
+  const handleCategoriaToggle = (categoria) => {
+    setFormData(prev => ({
+      ...prev,
+      categorie_fornitore: prev.categorie_fornitore.includes(categoria)
+        ? prev.categorie_fornitore.filter(c => c !== categoria)
+        : [...prev.categorie_fornitore, categoria]
     }));
   };
 
@@ -158,9 +171,18 @@ export default function ElencoFornitori() {
   };
 
   const suppliersByType = suppliers.reduce((acc, supplier) => {
-    const type = supplier.tipo_fornitore || 'altro';
-    if (!acc[type]) acc[type] = [];
-    acc[type].push(supplier);
+    // Usa categorie_fornitore se presente, altrimenti tipo_fornitore per retrocompatibilità
+    const categorie = supplier.categorie_fornitore && supplier.categorie_fornitore.length > 0 
+      ? supplier.categorie_fornitore 
+      : [supplier.tipo_fornitore || 'altro'];
+    
+    categorie.forEach(type => {
+      if (!acc[type]) acc[type] = [];
+      // Evita duplicati se il fornitore è già in questa categoria
+      if (!acc[type].find(s => s.id === supplier.id)) {
+        acc[type].push(supplier);
+      }
+    });
     return acc;
   }, {});
 
@@ -284,20 +306,27 @@ export default function ElencoFornitori() {
                         />
                       </div>
 
-                      <div>
+                      <div className="md:col-span-2">
                         <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                          Tipo Fornitore <span className="text-red-600">*</span>
+                          Categorie Fornitore <span className="text-red-600">*</span>
                         </label>
-                        <select
-                          value={formData.tipo_fornitore}
-                          onChange={(e) => setFormData({ ...formData, tipo_fornitore: e.target.value })}
-                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                          required
-                        >
+                        <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
                           {Object.entries(tipoFornitoreLabels).map(([key, label]) => (
-                            <option key={key} value={key}>{label}</option>
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => handleCategoriaToggle(key)}
+                              className={`px-3 py-2 rounded-lg font-medium text-sm transition-all ${
+                                formData.categorie_fornitore.includes(key)
+                                  ? 'neumorphic-pressed text-[#8b7355]'
+                                  : 'neumorphic-flat text-[#9b9b9b]'
+                              }`}
+                            >
+                              {label}
+                            </button>
                           ))}
-                        </select>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-2">Seleziona una o più categorie</p>
                       </div>
                     </div>
 
