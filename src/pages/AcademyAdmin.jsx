@@ -20,7 +20,10 @@ import {
   ChevronDown,
   ChevronUp,
   FileVideo,
-  PlayCircle
+  PlayCircle,
+  Settings,
+  Tag,
+  Upload
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -50,6 +53,14 @@ export default function AcademyAdmin() {
     ruoli_target: [],
     stores_target: []
   });
+  
+  // Stati per impostazioni categorie
+  const [showSettings, setShowSettings] = useState(false);
+  const [newCategoria, setNewCategoria] = useState({ nome: '', colore: 'blue' });
+  const [editingCategoria, setEditingCategoria] = useState(null);
+  
+  // Stati per upload video in template
+  const [uploadingTemplateVideo, setUploadingTemplateVideo] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -99,6 +110,57 @@ export default function AcademyAdmin() {
       queryClient.invalidateQueries({ queryKey: ['corsi-templates'] });
     },
   });
+
+  // Query e mutations per categorie
+  const { data: categorie = [] } = useQuery({
+    queryKey: ['categorie-corsi'],
+    queryFn: () => base44.entities.CategoriaCorso.list('ordine'),
+  });
+
+  const createCategoriaMutation = useMutation({
+    mutationFn: (data) => base44.entities.CategoriaCorso.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categorie-corsi'] });
+      setNewCategoria({ nome: '', colore: 'blue' });
+    },
+  });
+
+  const updateCategoriaMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.CategoriaCorso.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categorie-corsi'] });
+      setEditingCategoria(null);
+    },
+  });
+
+  const deleteCategoriaMutation = useMutation({
+    mutationFn: (id) => base44.entities.CategoriaCorso.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categorie-corsi'] });
+    },
+  });
+
+  const handleTemplateVideoUpload = async (file) => {
+    if (!file) return;
+    setUploadingTemplateVideo(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setTemplateFormData(prev => ({
+        ...prev,
+        sessioni: [...(prev.sessioni || []), {
+          titolo: file.name.replace(/\.[^/.]+$/, ''),
+          video_url: file_url,
+          durata_minuti: 5,
+          ordine: (prev.sessioni?.length || 0) + 1
+        }]
+      }));
+    } catch (error) {
+      console.error('Errore upload:', error);
+      alert('Errore durante il caricamento del video');
+    } finally {
+      setUploadingTemplateVideo(false);
+    }
+  };
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Corso.create(data),
@@ -344,15 +406,145 @@ export default function AcademyAdmin() {
           </div>
           <p className="text-[#9b9b9b]">Gestisci corsi di formazione e monitora i progressi dei dipendenti</p>
         </div>
-        <NeumorphicButton
-          onClick={() => setShowForm(!showForm)}
-          variant="primary"
-          className="flex items-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          Nuovo Corso
-        </NeumorphicButton>
+        <div className="flex gap-2">
+          <NeumorphicButton
+            onClick={() => setShowSettings(true)}
+            className="flex items-center gap-2"
+          >
+            <Settings className="w-5 h-5" />
+            <span className="hidden sm:inline">Impostazioni</span>
+          </NeumorphicButton>
+          <NeumorphicButton
+            onClick={() => setShowForm(!showForm)}
+            variant="primary"
+            className="flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            Nuovo Corso
+          </NeumorphicButton>
+        </div>
       </div>
+
+      {/* Modal Impostazioni Categorie */}
+      {showSettings && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <NeumorphicCard className="w-full max-w-lg max-h-[80vh] overflow-y-auto p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <Tag className="w-6 h-6 text-purple-600" />
+                Gestione Categorie
+              </h2>
+              <button onClick={() => setShowSettings(false)} className="text-slate-500">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Form nuova categoria */}
+            <div className="neumorphic-pressed p-4 rounded-xl mb-4">
+              <h3 className="font-medium text-slate-700 mb-3">Nuova Categoria</h3>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newCategoria.nome}
+                  onChange={(e) => setNewCategoria({ ...newCategoria, nome: e.target.value })}
+                  placeholder="Nome categoria"
+                  className="flex-1 neumorphic-flat px-3 py-2 rounded-lg text-slate-700 outline-none"
+                />
+                <select
+                  value={newCategoria.colore}
+                  onChange={(e) => setNewCategoria({ ...newCategoria, colore: e.target.value })}
+                  className="neumorphic-flat px-3 py-2 rounded-lg text-slate-700 outline-none"
+                >
+                  <option value="blue">Blu</option>
+                  <option value="green">Verde</option>
+                  <option value="purple">Viola</option>
+                  <option value="orange">Arancione</option>
+                  <option value="red">Rosso</option>
+                  <option value="yellow">Giallo</option>
+                </select>
+                <NeumorphicButton
+                  onClick={() => {
+                    if (newCategoria.nome) {
+                      createCategoriaMutation.mutate(newCategoria);
+                    }
+                  }}
+                  disabled={!newCategoria.nome}
+                >
+                  <Plus className="w-4 h-4" />
+                </NeumorphicButton>
+              </div>
+            </div>
+
+            {/* Lista categorie */}
+            <div className="space-y-2">
+              {categorie.length === 0 ? (
+                <p className="text-center text-slate-500 py-4">Nessuna categoria</p>
+              ) : (
+                categorie.map(cat => (
+                  <div key={cat.id} className="neumorphic-flat p-3 rounded-lg flex items-center justify-between">
+                    {editingCategoria?.id === cat.id ? (
+                      <div className="flex-1 flex gap-2">
+                        <input
+                          type="text"
+                          value={editingCategoria.nome}
+                          onChange={(e) => setEditingCategoria({ ...editingCategoria, nome: e.target.value })}
+                          className="flex-1 neumorphic-pressed px-3 py-1 rounded-lg text-slate-700 outline-none"
+                        />
+                        <select
+                          value={editingCategoria.colore || 'blue'}
+                          onChange={(e) => setEditingCategoria({ ...editingCategoria, colore: e.target.value })}
+                          className="neumorphic-pressed px-2 py-1 rounded-lg text-slate-700 outline-none"
+                        >
+                          <option value="blue">Blu</option>
+                          <option value="green">Verde</option>
+                          <option value="purple">Viola</option>
+                          <option value="orange">Arancione</option>
+                          <option value="red">Rosso</option>
+                          <option value="yellow">Giallo</option>
+                        </select>
+                        <button
+                          onClick={() => updateCategoriaMutation.mutate({ id: cat.id, data: editingCategoria })}
+                          className="text-green-600"
+                        >
+                          <CheckCircle className="w-5 h-5" />
+                        </button>
+                        <button onClick={() => setEditingCategoria(null)} className="text-slate-500">
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <span className={`w-3 h-3 rounded-full bg-${cat.colore || 'blue'}-500`}></span>
+                          <span className="font-medium text-slate-700">{cat.nome}</span>
+                        </div>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => setEditingCategoria(cat)}
+                            className="p-1 hover:bg-blue-50 rounded"
+                          >
+                            <Edit className="w-4 h-4 text-blue-600" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm('Eliminare questa categoria?')) {
+                                deleteCategoriaMutation.mutate(cat.id);
+                              }
+                            }}
+                            className="p-1 hover:bg-red-50 rounded"
+                          >
+                            <Trash2 className="w-4 h-4 text-red-600" />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </NeumorphicCard>
+        </div>
+      )}
 
       {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -470,6 +662,22 @@ export default function AcademyAdmin() {
                 <p className="text-xs text-[#9b9b9b] mt-1">
                   {formatDuration(formData.durata_lezione || 0)}
                 </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#6b6b6b] mb-2">
+                  Categoria
+                </label>
+                <select
+                  value={formData.categoria || ''}
+                  onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                >
+                  <option value="">-- Nessuna --</option>
+                  {categorie.map(cat => (
+                    <option key={cat.id} value={cat.nome}>{cat.nome}</option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -621,6 +829,12 @@ export default function AcademyAdmin() {
                     )}
                   </div>
                   <div className="flex items-center gap-4 text-sm text-[#9b9b9b]">
+                    {corso.categoria && (
+                      <span className="flex items-center gap-1">
+                        <Tag className="w-4 h-4" />
+                        {corso.categoria}
+                      </span>
+                    )}
                     <span className="flex items-center gap-1">
                       <Users className="w-4 h-4" />
                       {(corso.ruoli || []).join(', ') || 'Nessun ruolo'}
@@ -766,12 +980,9 @@ export default function AcademyAdmin() {
                       className="w-full neumorphic-flat px-4 py-3 rounded-xl text-slate-700 outline-none"
                     >
                       <option value="">-- Seleziona --</option>
-                      <option value="onboarding">Onboarding</option>
-                      <option value="sicurezza">Sicurezza</option>
-                      <option value="prodotto">Prodotto</option>
-                      <option value="servizio">Servizio</option>
-                      <option value="gestione">Gestione</option>
-                      <option value="altro">Altro</option>
+                      {categorie.map(cat => (
+                        <option key={cat.id} value={cat.nome}>{cat.nome}</option>
+                      ))}
                     </select>
                   </div>
 
@@ -836,8 +1047,68 @@ export default function AcademyAdmin() {
                   </div>
                 </div>
 
+                {/* Upload video diretto */}
+                <div className="border-t pt-4 mt-4">
+                  <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
+                    <Video className="w-4 h-4" />
+                    Carica Video (opzionale)
+                  </label>
+                  <p className="text-xs text-slate-500 mb-2">Puoi caricare video direttamente qui o farlo dopo nella pagina di creazione corso</p>
+                  
+                  <label className="flex items-center justify-center gap-2 neumorphic-flat px-4 py-3 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
+                    {uploadingTemplateVideo ? (
+                      <span className="text-sm text-slate-500">Caricamento...</span>
+                    ) : (
+                      <>
+                        <Upload className="w-5 h-5 text-slate-500" />
+                        <span className="text-sm text-slate-500">Carica video sessione</span>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept="video/*"
+                      className="hidden"
+                      onChange={(e) => handleTemplateVideoUpload(e.target.files[0])}
+                      disabled={uploadingTemplateVideo}
+                    />
+                  </label>
+
+                  {templateFormData.sessioni?.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {templateFormData.sessioni.map((s, idx) => (
+                        <div key={idx} className="neumorphic-pressed p-2 rounded-lg flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="w-4 h-4 text-green-600" />
+                            <span className="text-sm text-slate-700">{s.titolo}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setTemplateFormData(prev => ({
+                              ...prev,
+                              sessioni: prev.sessioni.filter((_, i) => i !== idx)
+                            }))}
+                            className="text-red-600"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex justify-end gap-3 pt-4">
-                  <NeumorphicButton onClick={() => setShowTemplateForm(false)}>
+                  <NeumorphicButton onClick={() => {
+                    setShowTemplateForm(false);
+                    setTemplateFormData({
+                      titolo: '',
+                      descrizione: '',
+                      categoria: '',
+                      ruoli_target: [],
+                      stores_target: [],
+                      sessioni: []
+                    });
+                  }}>
                     Annulla
                   </NeumorphicButton>
                   <NeumorphicButton
@@ -849,7 +1120,7 @@ export default function AcademyAdmin() {
                       }
                       createTemplateMutation.mutate({
                         ...templateFormData,
-                        status: 'da_creare'
+                        status: templateFormData.sessioni?.length > 0 ? 'in_lavorazione' : 'da_creare'
                       });
                     }}
                     disabled={createTemplateMutation.isPending}
