@@ -1611,9 +1611,12 @@ export default function TurniDipendente() {
                   )}
                 </div>
               </div>
-              <div className="p-3 bg-orange-50 rounded-xl mt-4">
+              <div className="p-3 bg-orange-50 rounded-xl mt-4 space-y-2">
                 <p className="text-sm text-orange-700">
                   ⚠️ I tuoi turni verranno segnati come "Malattia (Non Certificata)" fino all'approvazione del certificato.
+                </p>
+                <p className="text-sm text-red-600 font-medium">
+                  📋 Hai 5 giorni dall'ultimo giorno di malattia per caricare il certificato medico. Dopo tale data l'assenza verrà considerata non giustificata.
                 </p>
               </div>
               <NeumorphicButton
@@ -1633,8 +1636,16 @@ export default function TurniDipendente() {
                 <p className="text-slate-500 text-center py-4">Nessuna malattia registrata</p>
               ) : (
                 <div className="space-y-3">
-                  {mieMalattie.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).map(malattia => (
-                    <div key={malattia.id} className="neumorphic-pressed p-4 rounded-xl">
+                  {mieMalattie.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).map(malattia => {
+                    // Calcola scadenza certificato (5 giorni dall'ultimo giorno di malattia)
+                    const dataFine = malattia.data_fine || malattia.data_inizio;
+                    const scadenzaCertificato = moment(dataFine).add(5, 'days');
+                    const giorniRimanenti = scadenzaCertificato.diff(moment(), 'days');
+                    const isScaduto = giorniRimanenti < 0;
+                    const needsCertificato = !malattia.certificato_url && (malattia.stato === 'non_certificata' || malattia.stato === 'in_attesa_verifica');
+                    
+                    return (
+                    <div key={malattia.id} className={`neumorphic-pressed p-4 rounded-xl ${isScaduto && needsCertificato ? 'border-2 border-red-300 bg-red-50' : ''}`}>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <p className="font-medium text-slate-800">
@@ -1646,15 +1657,37 @@ export default function TurniDipendente() {
                             <a href={malattia.certificato_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-xs flex items-center gap-1 mt-1">
                               <FileText className="w-3 h-3" /> Vedi Certificato
                             </a>
-                          ) : (malattia.stato === 'non_certificata' || malattia.stato === 'in_attesa_verifica') && (
+                          ) : needsCertificato && (
                             <div className="mt-2">
+                              {/* Scadenza certificato */}
+                              {isScaduto ? (
+                                <div className="p-2 bg-red-100 rounded-lg mb-2">
+                                  <p className="text-xs text-red-700 font-medium flex items-center gap-1">
+                                    <AlertTriangle className="w-3 h-3" />
+                                    Scadenza superata - Assenza non giustificata
+                                  </p>
+                                </div>
+                              ) : giorniRimanenti <= 5 && (
+                                <div className="p-2 bg-orange-100 rounded-lg mb-2">
+                                  <p className="text-xs text-orange-700 font-medium flex items-center gap-1">
+                                    <AlertTriangle className="w-3 h-3" />
+                                    {giorniRimanenti === 0 
+                                      ? 'Scade oggi!' 
+                                      : `Scade tra ${giorniRimanenti} giorn${giorniRimanenti === 1 ? 'o' : 'i'}`}
+                                  </p>
+                                  <p className="text-xs text-orange-600 mt-1">
+                                    Carica il certificato entro il {scadenzaCertificato.format('DD/MM/YYYY')}
+                                  </p>
+                                </div>
+                              )}
+                              
                               {uploadingCertificatoForId === malattia.id ? (
                                 <div className="flex items-center gap-2 text-blue-600">
                                   <Loader2 className="w-4 h-4 animate-spin" />
                                   <span className="text-xs">Caricamento...</span>
                                 </div>
                               ) : (
-                                <label className="flex items-center gap-2 cursor-pointer text-blue-600 text-xs">
+                                <label className={`flex items-center gap-2 cursor-pointer text-xs px-3 py-2 rounded-lg ${isScaduto ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}>
                                   <Upload className="w-4 h-4" />
                                   <span>Carica certificato</span>
                                   <input
@@ -1673,15 +1706,16 @@ export default function TurniDipendente() {
                             </div>
                           )}
                         </div>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatoColor(malattia.stato)}`}>
-                          {getStatoLabel(malattia.stato)}
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${isScaduto && needsCertificato ? 'bg-red-200 text-red-800' : getStatoColor(malattia.stato)}`}>
+                          {isScaduto && needsCertificato ? 'Non Giustificata' : getStatoLabel(malattia.stato)}
                         </span>
                       </div>
                       {malattia.note_admin && (
                         <p className="text-xs text-slate-500 mt-2 italic">Note: {malattia.note_admin}</p>
                       )}
                     </div>
-                  ))}
+                  );
+                  })}
                 </div>
               )}
             </NeumorphicCard>
