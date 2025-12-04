@@ -16,7 +16,7 @@ import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 export default function HRAdmin() {
   const [editingUserId, setEditingUserId] = useState(null);
   const [selectedStores, setSelectedStores] = useState([]);
-  const [storePrincipale, setStorePrincipale] = useState('');
+  const [primaryStores, setPrimaryStores] = useState([]);
   const [saveSuccess, setSaveSuccess] = useState(null);
   
   // Store Manager per locale
@@ -49,17 +49,17 @@ export default function HRAdmin() {
   }, [stores]);
 
   const updateUserMutation = useMutation({
-    mutationFn: async ({ userId, assignedStores, storePrincipaleId }) => {
+    mutationFn: async ({ userId, assignedStores, primaryStoresIds }) => {
       await base44.entities.User.update(userId, { 
         assigned_stores: assignedStores,
-        store_principale_id: storePrincipaleId 
+        primary_stores: primaryStoresIds 
       });
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['users-dipendenti'] });
       setSaveSuccess(variables.userId);
       setEditingUserId(null);
-      setStorePrincipale('');
+      setPrimaryStores([]);
       setTimeout(() => setSaveSuccess(null), 2000);
     }
   });
@@ -78,7 +78,7 @@ export default function HRAdmin() {
   const handleEditUser = (user) => {
     setEditingUserId(user.id);
     setSelectedStores(user.assigned_stores || []);
-    setStorePrincipale(user.store_principale_id || '');
+    setPrimaryStores(user.primary_stores || []);
   };
 
   const handleToggleStore = (storeId) => {
@@ -90,13 +90,21 @@ export default function HRAdmin() {
   };
 
   const handleSave = (userId) => {
-    updateUserMutation.mutate({ userId, assignedStores: selectedStores, storePrincipaleId: storePrincipale });
+    updateUserMutation.mutate({ userId, assignedStores: selectedStores, primaryStoresIds: primaryStores });
   };
 
   const handleCancel = () => {
     setEditingUserId(null);
     setSelectedStores([]);
-    setStorePrincipale('');
+    setPrimaryStores([]);
+  };
+
+  const handleTogglePrimaryStore = (storeId) => {
+    setPrimaryStores(prev => 
+      prev.includes(storeId) 
+        ? prev.filter(id => id !== storeId)
+        : [...prev, storeId]
+    );
   };
 
   const handleStoreManagerChange = (storeId, userId) => {
@@ -172,7 +180,7 @@ export default function HRAdmin() {
               Assegna i locali a ciascun dipendente. I dipendenti vedranno solo i locali assegnati nei form di compilazione.
             </p>
             <p className="text-sm text-green-700">
-              <strong>Locale Principale (⭐):</strong> Il locale principale viene usato come default nei form e nella pianificazione.
+            <strong>Locali Principali (⭐):</strong> I locali principali vengono usati come default nei form e nella pianificazione. Un dipendente può avere più locali principali.
             </p>
           </div>
         </div>
@@ -236,41 +244,52 @@ export default function HRAdmin() {
                   {editingUserId === user.id ? (
                     <div className="flex-1 lg:max-w-xl">
                       <p className="text-sm font-medium text-[#6b6b6b] mb-2">Seleziona locali:</p>
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {stores.map(store => (
-                          <button
-                            key={store.id}
-                            type="button"
-                            onClick={() => handleToggleStore(store.id)}
-                            className={`px-3 py-2 rounded-lg font-medium transition-all text-sm flex items-center gap-1 ${
-                              selectedStores.includes(store.id)
-                                ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md'
-                                : 'neumorphic-pressed text-[#6b6b6b] hover:shadow-md'
-                            }`}
-                          >
-                            {selectedStores.includes(store.id) && <Check className="w-3 h-3" />}
-                            {store.name}
-                          </button>
-                        ))}
-                      </div>
                       <div className="mb-3">
-                        <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Locale Principale:</label>
-                        <select
-                          value={storePrincipale}
-                          onChange={(e) => setStorePrincipale(e.target.value)}
-                          className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-sm outline-none"
-                        >
-                          <option value="">Nessun locale principale</option>
-                          {stores
-                            .filter(s => selectedStores.includes(s.id))
-                            .map(store => (
-                              <option key={store.id} value={store.id}>{store.name}</option>
-                            ))}
-                        </select>
-                        <p className="text-xs text-slate-500 mt-1">
-                          Il locale principale viene usato come default nei form e nella pianificazione
-                        </p>
-                      </div>
+                            <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Locali Principali (⭐):</label>
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              {stores.map(store => (
+                                <button
+                                  key={store.id}
+                                  type="button"
+                                  onClick={() => handleTogglePrimaryStore(store.id)}
+                                  className={`px-3 py-2 rounded-lg font-medium transition-all text-sm flex items-center gap-1 ${
+                                    primaryStores.includes(store.id)
+                                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md'
+                                      : 'neumorphic-pressed text-[#6b6b6b] hover:shadow-md'
+                                  }`}
+                                >
+                                  {primaryStores.includes(store.id) && <span>⭐</span>}
+                                  {store.name}
+                                </button>
+                              ))}
+                            </div>
+                            <p className="text-xs text-slate-500">
+                              I locali principali vengono usati come default nei form
+                            </p>
+                          </div>
+                          <div className="mb-3">
+                            <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Locali Abilitati:</label>
+                            <div className="flex flex-wrap gap-2">
+                              {stores.map(store => (
+                                <button
+                                  key={store.id}
+                                  type="button"
+                                  onClick={() => handleToggleStore(store.id)}
+                                  className={`px-3 py-2 rounded-lg font-medium transition-all text-sm flex items-center gap-1 ${
+                                    selectedStores.includes(store.id)
+                                      ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md'
+                                      : 'neumorphic-pressed text-[#6b6b6b] hover:shadow-md'
+                                  }`}
+                                >
+                                  {selectedStores.includes(store.id) && <Check className="w-3 h-3" />}
+                                  {store.name}
+                                </button>
+                              ))}
+                            </div>
+                            <p className="text-xs text-slate-500 mt-1">
+                              Locali in cui il dipendente può lavorare
+                            </p>
+                          </div>
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleSave(user.id)}
@@ -300,7 +319,7 @@ export default function HRAdmin() {
                           {user.assigned_stores && user.assigned_stores.length > 0 ? (
                             user.assigned_stores.map(storeId => {
                               const store = stores.find(s => s.id === storeId);
-                              const isPrincipale = user.store_principale_id === storeId;
+                              const isPrincipale = (user.primary_stores || []).includes(storeId);
                               return store ? (
                                 <span key={storeId} className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${
                                   isPrincipale 
@@ -319,9 +338,9 @@ export default function HRAdmin() {
                             </span>
                           )}
                         </div>
-                        {user.store_principale_id && (
+                        {user.primary_stores && user.primary_stores.length > 0 && (
                           <p className="text-xs text-slate-500">
-                            Principale: {stores.find(s => s.id === user.store_principale_id)?.name}
+                            Principali: {user.primary_stores.map(id => stores.find(s => s.id === id)?.name).filter(Boolean).join(', ')}
                           </p>
                         )}
                       </div>

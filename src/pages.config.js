@@ -81,6 +81,8 @@ import TurniDipendente from './pages/TurniDipendente';
 import FormPulizia from './pages/FormPulizia';
 import Assenze from './pages/Assenze';
 import CreaCorso from './pages/CreaCorso';
+import DashboardStoreManager from './pages/DashboardStoreManager';
+import StoreManagerAdmin from './pages/StoreManagerAdmin';
 import __Layout from './Layout.jsx';
 
 
@@ -168,6 +170,8 @@ export const PAGES = {
     "FormPulizia": FormPulizia,
     "Assenze": Assenze,
     "CreaCorso": CreaCorso,
+    "DashboardStoreManager": DashboardStoreManager,
+    "StoreManagerAdmin": StoreManagerAdmin,
 }
 
 export const pagesConfig = {
