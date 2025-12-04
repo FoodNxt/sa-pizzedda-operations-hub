@@ -12,16 +12,15 @@ export default function FormPulizia() {
   const [showQuestionForm, setShowQuestionForm] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [questionForm, setQuestionForm] = useState({
-    testo_domanda: '',
+    domanda_testo: '',
     tipo_controllo: 'multipla',
     attrezzatura: '',
     opzioni_risposta: [''],
-    risposta_corretta: '',
     ruoli_assegnati: [],
-    store_ids: [],
+    stores_assegnati: [],
     ordine: 0,
-    obbligatoria: true,
-    attiva: true,
+    richiesto: true,
+    attivo: true,
     tipo_controllo_ai: 'pulizia',
     prompt_ai: '',
     ordine_bibite: ''
@@ -64,16 +63,15 @@ export default function FormPulizia() {
 
   const resetForm = () => {
     setQuestionForm({
-      testo_domanda: '',
+      domanda_testo: '',
       tipo_controllo: 'multipla',
       attrezzatura: '',
       opzioni_risposta: [''],
-      risposta_corretta: '',
       ruoli_assegnati: [],
-      store_ids: [],
+      stores_assegnati: [],
       ordine: 0,
-      obbligatoria: true,
-      attiva: true,
+      richiesto: true,
+      attivo: true,
       tipo_controllo_ai: 'pulizia',
       prompt_ai: '',
       ordine_bibite: ''
@@ -85,16 +83,15 @@ export default function FormPulizia() {
   const handleEdit = (domanda) => {
     setEditingQuestion(domanda);
     setQuestionForm({
-      testo_domanda: domanda.testo_domanda || '',
+      domanda_testo: domanda.domanda_testo || '',
       tipo_controllo: domanda.tipo_controllo || 'multipla',
       attrezzatura: domanda.attrezzatura || '',
       opzioni_risposta: domanda.opzioni_risposta || [''],
-      risposta_corretta: domanda.risposta_corretta || '',
       ruoli_assegnati: domanda.ruoli_assegnati || [],
-      store_ids: domanda.store_ids || [],
+      stores_assegnati: domanda.stores_assegnati || [],
       ordine: domanda.ordine || 0,
-      obbligatoria: domanda.obbligatoria !== false,
-      attiva: domanda.attiva !== false,
+      richiesto: domanda.richiesto !== false,
+      attivo: domanda.attivo !== false,
       tipo_controllo_ai: domanda.tipo_controllo_ai || 'pulizia',
       prompt_ai: domanda.prompt_ai || '',
       ordine_bibite: domanda.ordine_bibite || ''
@@ -133,9 +130,9 @@ export default function FormPulizia() {
   const handleStoreToggle = (storeId) => {
     setQuestionForm(prev => ({
       ...prev,
-      store_ids: prev.store_ids.includes(storeId)
-        ? prev.store_ids.filter(s => s !== storeId)
-        : [...prev.store_ids, storeId]
+      stores_assegnati: prev.stores_assegnati.includes(storeId)
+        ? prev.stores_assegnati.filter(s => s !== storeId)
+        : [...prev.stores_assegnati, storeId]
     }));
   };
 
@@ -220,11 +217,11 @@ export default function FormPulizia() {
           {/* Lista tutte le domande */}
           <NeumorphicCard className="p-6">
             <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Tutte le Domande</h3>
-            {domande.filter(d => d.attiva).length === 0 ? (
+            {domande.filter(d => d.attivo !== false).length === 0 ? (
               <p className="text-center text-slate-500 py-4">Nessuna domanda attiva</p>
             ) : (
               <div className="space-y-3">
-                {domande.filter(d => d.attiva).map((domanda, index) => (
+                {domande.filter(d => d.attivo !== false).map((domanda, index) => (
                   <div key={domanda.id} className="neumorphic-pressed p-4 rounded-xl">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -235,7 +232,7 @@ export default function FormPulizia() {
                           }`}>
                             {domanda.tipo_controllo === 'foto' ? 'Foto' : 'Multipla'}
                           </span>
-                          {!domanda.obbligatoria && (
+                          {!domanda.richiesto && (
                             <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">
                               Opzionale
                             </span>
@@ -251,26 +248,22 @@ export default function FormPulizia() {
                             </span>
                           ))}
                         </div>
-                        <p className="font-medium text-[#6b6b6b] mb-1">{domanda.testo_domanda}</p>
+                        <p className="font-medium text-[#6b6b6b] mb-1">{domanda.domanda_testo}</p>
                         {domanda.tipo_controllo === 'foto' && domanda.attrezzatura && (
                           <p className="text-sm text-[#9b9b9b]">Attrezzatura: {domanda.attrezzatura}</p>
                         )}
                         {domanda.tipo_controllo === 'multipla' && domanda.opzioni_risposta && (
                           <div className="flex flex-wrap gap-1 mt-2">
                             {domanda.opzioni_risposta.map((opz, idx) => (
-                              <span key={idx} className={`text-xs px-2 py-1 rounded ${
-                                domanda.risposta_corretta === opz 
-                                  ? 'bg-green-200 text-green-800 font-bold' 
-                                  : 'bg-slate-100 text-slate-600'
-                              }`}>
-                                {opz} {domanda.risposta_corretta === opz && '✓'}
+                              <span key={idx} className="text-xs px-2 py-1 rounded bg-slate-100 text-slate-600">
+                                {opz}
                               </span>
                             ))}
                           </div>
                         )}
-                        {domanda.store_ids?.length > 0 && (
+                        {domanda.stores_assegnati?.length > 0 && (
                           <p className="text-xs text-[#9b9b9b] mt-1">
-                            Store: {domanda.store_ids.map(sid => stores.find(s => s.id === sid)?.name).filter(Boolean).join(', ')}
+                            Store: {domanda.stores_assegnati.map(sid => stores.find(s => s.id === sid)?.name).filter(Boolean).join(', ')}
                           </p>
                         )}
                       </div>
@@ -328,8 +321,8 @@ export default function FormPulizia() {
                       <input
                         type="text"
                         required
-                        value={questionForm.testo_domanda}
-                        onChange={(e) => setQuestionForm({ ...questionForm, testo_domanda: e.target.value })}
+                        value={questionForm.domanda_testo}
+                        onChange={(e) => setQuestionForm({ ...questionForm, domanda_testo: e.target.value })}
                         className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                         placeholder="Es: Il forno è pulito?"
                       />
@@ -442,38 +435,16 @@ export default function FormPulizia() {
                           {questionForm.opzioni_risposta.map((opzione, index) => (
                             <div key={index} className="flex gap-2 items-center">
                               <input
-                                type="radio"
-                                name="risposta_corretta"
-                                checked={questionForm.risposta_corretta === opzione}
-                                onChange={() => setQuestionForm({ ...questionForm, risposta_corretta: opzione })}
-                                className="w-4 h-4 text-green-600"
-                                title="Imposta come risposta corretta"
-                              />
-                              <input
                                 type="text"
                                 value={opzione}
-                                onChange={(e) => {
-                                  const newValue = e.target.value;
-                                  // Update risposta_corretta if this was the selected one
-                                  if (questionForm.risposta_corretta === opzione) {
-                                    setQuestionForm({ ...questionForm, risposta_corretta: newValue });
-                                  }
-                                  updateOpzioneRisposta(index, newValue);
-                                }}
-                                className={`flex-1 neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none ${
-                                  questionForm.risposta_corretta === opzione ? 'ring-2 ring-green-400' : ''
-                                }`}
+                                onChange={(e) => updateOpzioneRisposta(index, e.target.value)}
+                                className="flex-1 neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
                                 placeholder={`Opzione ${index + 1}`}
                               />
                               {questionForm.opzioni_risposta.length > 1 && (
                                 <button
                                   type="button"
-                                  onClick={() => {
-                                    if (questionForm.risposta_corretta === opzione) {
-                                      setQuestionForm({ ...questionForm, risposta_corretta: '' });
-                                    }
-                                    removeOpzioneRisposta(index);
-                                  }}
+                                  onClick={() => removeOpzioneRisposta(index)}
                                   className="neumorphic-flat p-2 rounded-lg text-red-600"
                                 >
                                   <X className="w-4 h-4" />
@@ -481,14 +452,9 @@ export default function FormPulizia() {
                               )}
                             </div>
                           ))}
-                          <div className="flex items-center justify-between">
-                            <NeumorphicButton type="button" onClick={addOpzioneRisposta} className="text-sm">
-                              <Plus className="w-4 h-4 inline mr-1" /> Aggiungi Opzione
-                            </NeumorphicButton>
-                            <span className="text-xs text-slate-500">
-                              {questionForm.risposta_corretta ? `✓ Risposta corretta: ${questionForm.risposta_corretta}` : '⚠️ Seleziona risposta corretta'}
-                            </span>
-                          </div>
+                          <NeumorphicButton type="button" onClick={addOpzioneRisposta} className="text-sm">
+                            <Plus className="w-4 h-4 inline mr-1" /> Aggiungi Opzione
+                          </NeumorphicButton>
                         </div>
                       </div>
                     )}
@@ -526,7 +492,7 @@ export default function FormPulizia() {
                             type="button"
                             onClick={() => handleStoreToggle(store.id)}
                             className={`px-3 py-2 rounded-xl text-sm transition-all ${
-                              questionForm.store_ids.includes(store.id)
+                              questionForm.stores_assegnati.includes(store.id)
                                 ? 'bg-purple-500 text-white'
                                 : 'neumorphic-flat text-[#6b6b6b]'
                             }`}
@@ -552,12 +518,12 @@ export default function FormPulizia() {
                       <div className="flex items-center gap-3">
                         <input
                           type="checkbox"
-                          id="obbligatoria"
-                          checked={questionForm.obbligatoria}
-                          onChange={(e) => setQuestionForm({ ...questionForm, obbligatoria: e.target.checked })}
+                          id="richiesto"
+                          checked={questionForm.richiesto}
+                          onChange={(e) => setQuestionForm({ ...questionForm, richiesto: e.target.checked })}
                           className="w-5 h-5"
                         />
-                        <label htmlFor="obbligatoria" className="text-sm font-medium text-[#6b6b6b]">
+                        <label htmlFor="richiesto" className="text-sm font-medium text-[#6b6b6b]">
                           Domanda Obbligatoria
                         </label>
                       </div>
@@ -570,7 +536,7 @@ export default function FormPulizia() {
                       <NeumorphicButton 
                         type="submit" 
                         variant="primary"
-                        disabled={!questionForm.testo_domanda || questionForm.ruoli_assegnati.length === 0}
+                        disabled={!questionForm.domanda_testo || questionForm.ruoli_assegnati.length === 0}
                       >
                         {editingQuestion ? 'Aggiorna' : 'Crea'} Domanda
                       </NeumorphicButton>
