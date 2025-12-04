@@ -1079,36 +1079,36 @@ export default function MateriePrime() {
                 <table className="w-full min-w-[700px]">
                   <thead>
                     <tr className="border-b-2 border-blue-600">
-                      <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">
-                        <button onClick={() => handleSort('nome_prodotto')} className="flex items-center gap-1 hover:text-blue-600">
+                      <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm cursor-pointer hover:bg-slate-100 rounded" onClick={() => handleSort('nome_prodotto')}>
+                        <div className="flex items-center gap-1">
                           Prodotto {getSortIcon('nome_prodotto')}
-                        </button>
+                        </div>
                       </th>
-                      <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">
-                        <button onClick={() => handleSort('fornitore')} className="flex items-center gap-1 hover:text-blue-600">
+                      <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm cursor-pointer hover:bg-slate-100 rounded" onClick={() => handleSort('fornitore')}>
+                        <div className="flex items-center gap-1">
                           Fornitore {getSortIcon('fornitore')}
-                        </button>
+                        </div>
                       </th>
-                      <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">
-                        <button onClick={() => handleSort('unita_misura')} className="flex items-center gap-1 hover:text-blue-600">
+                      <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm cursor-pointer hover:bg-slate-100 rounded" onClick={() => handleSort('unita_misura')}>
+                        <div className="flex items-center gap-1">
                           Unità {getSortIcon('unita_misura')}
-                        </button>
+                        </div>
                       </th>
                       <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Posizione</th>
-                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">
-                        <button onClick={() => handleSort('quantita_critica')} className="flex items-center gap-1 hover:text-blue-600 ml-auto">
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm cursor-pointer hover:bg-slate-100 rounded" onClick={() => handleSort('quantita_critica')}>
+                        <div className="flex items-center gap-1 justify-end">
                           Qtà Critica {getSortIcon('quantita_critica')}
-                        </button>
+                        </div>
                       </th>
-                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">
-                        <button onClick={() => handleSort('quantita_ordine')} className="flex items-center gap-1 hover:text-blue-600 ml-auto">
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm cursor-pointer hover:bg-slate-100 rounded" onClick={() => handleSort('quantita_ordine')}>
+                        <div className="flex items-center gap-1 justify-end">
                           Qtà Ordine {getSortIcon('quantita_ordine')}
-                        </button>
+                        </div>
                       </th>
-                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">
-                        <button onClick={() => handleSort('prezzo_unitario')} className="flex items-center gap-1 hover:text-blue-600 ml-auto">
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm cursor-pointer hover:bg-slate-100 rounded" onClick={() => handleSort('prezzo_unitario')}>
+                        <div className="flex items-center gap-1 justify-end">
                           Prezzo {getSortIcon('prezzo_unitario')}
-                        </button>
+                        </div>
                       </th>
                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">€/Unità</th>
                       <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Stato</th>
