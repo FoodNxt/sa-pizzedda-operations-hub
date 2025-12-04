@@ -26,9 +26,12 @@ export default function Payroll() {
     queryFn: () => base44.entities.TurnoPlanday.list('-data', 10000),
   });
 
-  const { data: employees = [] } = useQuery({
-    queryKey: ['employees'],
-    queryFn: () => base44.entities.Employee.list(),
+  const { data: config = null } = useQuery({
+    queryKey: ['timbratura-config'],
+    queryFn: async () => {
+      const configs = await base44.entities.TimbraturaConfig.list();
+      return configs[0] || {};
+    },
   });
 
   // ✅ HELPER: Normalize employee name for consistent grouping
@@ -48,6 +51,20 @@ export default function Payroll() {
     if (type === 'Normale') return 'Turno normale';
     
     return type;
+  };
+
+  // Calcola ritardo effettivo con arrotondamento
+  const calcolaRitardoEffettivo = (minutiRitardo) => {
+    if (!config?.arrotonda_ritardo) return minutiRitardo;
+    
+    const incremento = config.arrotondamento_minuti || 15;
+    const tipo = config.arrotondamento_tipo || 'eccesso';
+    
+    if (tipo === 'eccesso') {
+      return Math.ceil(minutiRitardo / incremento) * incremento;
+    } else {
+      return Math.floor(minutiRitardo / incremento) * incremento;
+    }
   };
 
   // Convert TurnoPlanday to Shift-like format
@@ -74,15 +91,29 @@ export default function Payroll() {
         const previsto = new Date(scheduledStart);
         const diffMs = entrata - previsto;
         if (diffMs > 0) {
-          minutiDiRitardo = Math.floor(diffMs / 60000);
+          const ritardoReale = Math.floor(diffMs / 60000);
+          minutiDiRitardo = calcolaRitardoEffettivo(ritardoReale);
         }
       }
+
+      // Se non c'è timbrata_entrata e il turno è passato, applica penalità
+      if (!turno.timbrata_entrata) {
+        const turnoEnd = turno.data && turno.ora_fine 
+          ? new Date(`${turno.data}T${turno.ora_fine}:00`)
+          : null;
+        if (turnoEnd && turnoEnd < new Date()) {
+          minutiDiRitardo = config?.penalita_timbratura_mancata || 0;
+        }
+      }
+
+      // Store name lookup
+      const store = stores.find(s => s.id === turno.store_id);
 
       return {
         id: turno.id,
         employee_name: turno.dipendente_nome,
         store_id: turno.store_id,
-        store_name: turno.store_id,
+        store_name: store?.name || turno.store_id,
         shift_date: turno.data,
         scheduled_start: scheduledStart,
         scheduled_end: scheduledEnd,
@@ -94,7 +125,7 @@ export default function Payroll() {
         created_date: turno.created_date
       };
     });
-  }, [turniPlanday]);
+  }, [turniPlanday, config, stores]);
 
   // ✅ IMPROVED: Process payroll data with NORMALIZED employee names AND total hours excluding overtime
   const payrollData = useMemo(() => {
