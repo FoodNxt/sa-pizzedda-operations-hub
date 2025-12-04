@@ -80,6 +80,7 @@ import Planday from './pages/Planday';
 import TurniDipendente from './pages/TurniDipendente';
 import FormPulizia from './pages/FormPulizia';
 import Assenze from './pages/Assenze';
+import CreaCorso from './pages/CreaCorso';
 import __Layout from './Layout.jsx';
 
 
@@ -166,6 +167,7 @@ export const PAGES = {
     "TurniDipendente": TurniDipendente,
     "FormPulizia": FormPulizia,
     "Assenze": Assenze,
+    "CreaCorso": CreaCorso,
 }
 
 export const pagesConfig = {

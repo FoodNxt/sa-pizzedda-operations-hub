@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 import {
   GraduationCap,
   Plus,
@@ -16,13 +18,15 @@ import {
   Award,
   Store,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  FileVideo,
+  PlayCircle
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 
 export default function AcademyAdmin() {
-  const [activeView, setActiveView] = useState('corsi'); // 'corsi', 'dipendenti', 'stores'
+  const [activeView, setActiveView] = useState('corsi'); // 'corsi', 'dipendenti', 'stores', 'da_creare'
   const [selectedStore, setSelectedStore] = useState('');
   const [expandedStores, setExpandedStores] = useState({});
   const [showForm, setShowForm] = useState(false);
@@ -35,6 +39,16 @@ export default function AcademyAdmin() {
     domande: [],
     attivo: true,
     ordine: 0
+  });
+  
+  // Stati per "Corsi da creare"
+  const [showTemplateForm, setShowTemplateForm] = useState(false);
+  const [templateFormData, setTemplateFormData] = useState({
+    titolo: '',
+    descrizione: '',
+    categoria: '',
+    ruoli_target: [],
+    stores_target: []
   });
 
   const queryClient = useQueryClient();
@@ -57,6 +71,33 @@ export default function AcademyAdmin() {
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
     queryFn: () => base44.entities.Store.list(),
+  });
+
+  const { data: corsiTemplates = [] } = useQuery({
+    queryKey: ['corsi-templates'],
+    queryFn: () => base44.entities.CorsoTemplate.list('-created_date'),
+  });
+
+  const createTemplateMutation = useMutation({
+    mutationFn: (data) => base44.entities.CorsoTemplate.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['corsi-templates'] });
+      setShowTemplateForm(false);
+      setTemplateFormData({
+        titolo: '',
+        descrizione: '',
+        categoria: '',
+        ruoli_target: [],
+        stores_target: []
+      });
+    },
+  });
+
+  const deleteTemplateMutation = useMutation({
+    mutationFn: (id) => base44.entities.CorsoTemplate.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['corsi-templates'] });
+    },
   });
 
   const createMutation = useMutation({
@@ -616,7 +657,17 @@ export default function AcademyAdmin() {
       )}
 
       {/* View Toggle */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => setActiveView('da_creare')}
+          className={`px-4 py-2 rounded-xl font-medium transition-all ${
+            activeView === 'da_creare' 
+              ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white' 
+              : 'nav-button text-slate-700'
+          }`}
+        >
+          <FileVideo className="w-4 h-4 inline mr-1" /> Corsi da Creare
+        </button>
         <button
           onClick={() => setActiveView('corsi')}
           className={`px-4 py-2 rounded-xl font-medium transition-all ${
@@ -625,7 +676,7 @@ export default function AcademyAdmin() {
               : 'nav-button text-slate-700'
           }`}
         >
-          📚 Corsi
+          📚 Corsi Pubblicati
         </button>
         <button
           onClick={() => setActiveView('dipendenti')}
@@ -648,6 +699,254 @@ export default function AcademyAdmin() {
           <Store className="w-4 h-4 inline mr-1" /> Per Store
         </button>
       </div>
+
+      {/* Corsi da Creare */}
+      {activeView === 'da_creare' && (
+        <NeumorphicCard className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-[#6b6b6b] flex items-center gap-2">
+              <FileVideo className="w-6 h-6 text-orange-600" />
+              Corsi da Creare
+            </h2>
+            <NeumorphicButton
+              onClick={() => setShowTemplateForm(true)}
+              variant="primary"
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              Nuovo Corso
+            </NeumorphicButton>
+          </div>
+
+          {/* Form nuovo template */}
+          {showTemplateForm && (
+            <div className="neumorphic-pressed p-4 rounded-xl mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-slate-700">Nuovo Corso da Creare</h3>
+                <button onClick={() => setShowTemplateForm(false)} className="text-slate-500">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                    Titolo del Corso <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={templateFormData.titolo}
+                    onChange={(e) => setTemplateFormData({ ...templateFormData, titolo: e.target.value })}
+                    placeholder="es. Tecniche di Impasto Avanzate"
+                    className="w-full neumorphic-flat px-4 py-3 rounded-xl text-slate-700 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                    Descrizione
+                  </label>
+                  <textarea
+                    value={templateFormData.descrizione}
+                    onChange={(e) => setTemplateFormData({ ...templateFormData, descrizione: e.target.value })}
+                    placeholder="Descrizione del corso..."
+                    rows={2}
+                    className="w-full neumorphic-flat px-4 py-3 rounded-xl text-slate-700 outline-none resize-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">
+                      Categoria
+                    </label>
+                    <select
+                      value={templateFormData.categoria}
+                      onChange={(e) => setTemplateFormData({ ...templateFormData, categoria: e.target.value })}
+                      className="w-full neumorphic-flat px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    >
+                      <option value="">-- Seleziona --</option>
+                      <option value="onboarding">Onboarding</option>
+                      <option value="sicurezza">Sicurezza</option>
+                      <option value="prodotto">Prodotto</option>
+                      <option value="servizio">Servizio</option>
+                      <option value="gestione">Gestione</option>
+                      <option value="altro">Altro</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">
+                      Ruoli Target
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {['Pizzaiolo', 'Cassiere', 'Store Manager'].map(ruolo => (
+                        <button
+                          key={ruolo}
+                          type="button"
+                          onClick={() => {
+                            const current = templateFormData.ruoli_target || [];
+                            setTemplateFormData({
+                              ...templateFormData,
+                              ruoli_target: current.includes(ruolo)
+                                ? current.filter(r => r !== ruolo)
+                                : [...current, ruolo]
+                            });
+                          }}
+                          className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                            (templateFormData.ruoli_target || []).includes(ruolo)
+                              ? 'bg-blue-600 text-white'
+                              : 'neumorphic-flat text-slate-600'
+                          }`}
+                        >
+                          {ruolo}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">
+                      Negozi Target
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {stores.map(store => (
+                        <button
+                          key={store.id}
+                          type="button"
+                          onClick={() => {
+                            const current = templateFormData.stores_target || [];
+                            setTemplateFormData({
+                              ...templateFormData,
+                              stores_target: current.includes(store.id)
+                                ? current.filter(s => s !== store.id)
+                                : [...current, store.id]
+                            });
+                          }}
+                          className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                            (templateFormData.stores_target || []).includes(store.id)
+                              ? 'bg-green-600 text-white'
+                              : 'neumorphic-flat text-slate-600'
+                          }`}
+                        >
+                          {store.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4">
+                  <NeumorphicButton onClick={() => setShowTemplateForm(false)}>
+                    Annulla
+                  </NeumorphicButton>
+                  <NeumorphicButton
+                    variant="primary"
+                    onClick={() => {
+                      if (!templateFormData.titolo) {
+                        alert('Inserisci il titolo del corso');
+                        return;
+                      }
+                      createTemplateMutation.mutate({
+                        ...templateFormData,
+                        status: 'da_creare'
+                      });
+                    }}
+                    disabled={createTemplateMutation.isPending}
+                  >
+                    Crea
+                  </NeumorphicButton>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Lista corsi da creare */}
+          {corsiTemplates.length === 0 ? (
+            <div className="text-center py-8">
+              <FileVideo className="w-16 h-16 text-slate-300 mx-auto mb-3" />
+              <p className="text-slate-500">Nessun corso da creare</p>
+              <p className="text-sm text-slate-400 mt-1">Clicca "Nuovo Corso" per aggiungerne uno</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {corsiTemplates.map((template) => {
+                const storeNames = template.stores_target?.map(storeId => {
+                  const store = stores.find(s => s.id === storeId);
+                  return store?.name || storeId;
+                }).join(', ');
+
+                return (
+                  <div key={template.id} className="neumorphic-pressed p-4 rounded-xl">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="font-bold text-slate-800">{template.titolo}</h3>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            template.status === 'completato' 
+                              ? 'bg-green-100 text-green-700'
+                              : template.status === 'in_lavorazione'
+                              ? 'bg-yellow-100 text-yellow-700'
+                              : 'bg-orange-100 text-orange-700'
+                          }`}>
+                            {template.status === 'completato' ? 'Completato' 
+                              : template.status === 'in_lavorazione' ? 'In lavorazione' 
+                              : 'Da creare'}
+                          </span>
+                        </div>
+                        
+                        {template.descrizione && (
+                          <p className="text-sm text-slate-600 mb-2">{template.descrizione}</p>
+                        )}
+                        
+                        <div className="flex flex-wrap gap-2">
+                          {template.categoria && (
+                            <span className="px-2 py-0.5 rounded-full text-xs bg-purple-100 text-purple-700">
+                              {template.categoria}
+                            </span>
+                          )}
+                          {template.ruoli_target?.map(ruolo => (
+                            <span key={ruolo} className="px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-700">
+                              {ruolo}
+                            </span>
+                          ))}
+                          {storeNames && (
+                            <span className="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700">
+                              {storeNames}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        {template.status !== 'completato' && (
+                          <Link
+                            to={createPageUrl('CreaCorso') + `?templateId=${template.id}`}
+                            className="nav-button px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-50 transition-colors"
+                          >
+                            <PlayCircle className="w-4 h-4 text-blue-600" />
+                            <span className="text-sm font-medium text-blue-600">Crea Corso</span>
+                          </Link>
+                        )}
+                        <button
+                          onClick={() => {
+                            if (confirm('Eliminare questo corso da creare?')) {
+                              deleteTemplateMutation.mutate(template.id);
+                            }
+                          }}
+                          className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </NeumorphicCard>
+      )}
 
       {/* Store Progress View */}
       {activeView === 'stores' && (
