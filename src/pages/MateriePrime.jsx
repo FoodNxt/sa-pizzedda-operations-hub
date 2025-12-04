@@ -15,7 +15,10 @@ import {
   ChevronDown,
   ChevronUp,
   Euro,
-  Copy
+  Copy,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -55,6 +58,7 @@ export default function MateriePrime() {
   const [inUsoPerStore, setInUsoPerStore] = useState({});
   const [storeQuantitaCritica, setStoreQuantitaCritica] = useState({});
   const [storeQuantitaOrdine, setStoreQuantitaOrdine] = useState({});
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
   const queryClient = useQueryClient();
 
@@ -312,6 +316,65 @@ export default function MateriePrime() {
 
   // Ordina le categorie alfabeticamente
   const sortedCategories = Object.keys(productsByCategory).sort((a, b) => a.localeCompare(b, 'it'));
+
+  // Funzione per ordinare i prodotti
+  const handleSort = (key) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  const getSortIcon = (key) => {
+    if (sortConfig.key !== key) return <ArrowUpDown className="w-3 h-3 text-slate-400" />;
+    return sortConfig.direction === 'asc' 
+      ? <ArrowUp className="w-3 h-3 text-blue-600" /> 
+      : <ArrowDown className="w-3 h-3 text-blue-600" />;
+  };
+
+  const sortProducts = (products) => {
+    if (!sortConfig.key) return products;
+    
+    return [...products].sort((a, b) => {
+      let aVal, bVal;
+      
+      switch (sortConfig.key) {
+        case 'nome_prodotto':
+          aVal = (a.nome_prodotto || '').toLowerCase();
+          bVal = (b.nome_prodotto || '').toLowerCase();
+          break;
+        case 'fornitore':
+          aVal = (a.fornitore || '').toLowerCase();
+          bVal = (b.fornitore || '').toLowerCase();
+          break;
+        case 'unita_misura':
+          aVal = (a.unita_misura || '').toLowerCase();
+          bVal = (b.unita_misura || '').toLowerCase();
+          break;
+        case 'quantita_critica':
+          aVal = a.quantita_critica || 0;
+          bVal = b.quantita_critica || 0;
+          break;
+        case 'quantita_ordine':
+          aVal = a.quantita_ordine || 0;
+          bVal = b.quantita_ordine || 0;
+          break;
+        case 'prezzo_unitario':
+          aVal = a.prezzo_unitario || 0;
+          bVal = b.prezzo_unitario || 0;
+          break;
+        default:
+          return 0;
+      }
+      
+      if (typeof aVal === 'string') {
+        const cmp = aVal.localeCompare(bVal, 'it');
+        return sortConfig.direction === 'asc' ? cmp : -cmp;
+      }
+      
+      return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
+    });
+  };
 
   return (
     <ProtectedPage pageName="MateriePrime">
@@ -1016,13 +1079,37 @@ export default function MateriePrime() {
                 <table className="w-full min-w-[700px]">
                   <thead>
                     <tr className="border-b-2 border-blue-600">
-                      <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Prodotto</th>
-                      <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Fornitore</th>
-                      <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Unità</th>
+                      <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">
+                        <button onClick={() => handleSort('nome_prodotto')} className="flex items-center gap-1 hover:text-blue-600">
+                          Prodotto {getSortIcon('nome_prodotto')}
+                        </button>
+                      </th>
+                      <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">
+                        <button onClick={() => handleSort('fornitore')} className="flex items-center gap-1 hover:text-blue-600">
+                          Fornitore {getSortIcon('fornitore')}
+                        </button>
+                      </th>
+                      <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">
+                        <button onClick={() => handleSort('unita_misura')} className="flex items-center gap-1 hover:text-blue-600">
+                          Unità {getSortIcon('unita_misura')}
+                        </button>
+                      </th>
                       <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Posizione</th>
-                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Qtà Critica</th>
-                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Qtà Ordine</th>
-                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Prezzo</th>
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">
+                        <button onClick={() => handleSort('quantita_critica')} className="flex items-center gap-1 hover:text-blue-600 ml-auto">
+                          Qtà Critica {getSortIcon('quantita_critica')}
+                        </button>
+                      </th>
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">
+                        <button onClick={() => handleSort('quantita_ordine')} className="flex items-center gap-1 hover:text-blue-600 ml-auto">
+                          Qtà Ordine {getSortIcon('quantita_ordine')}
+                        </button>
+                      </th>
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">
+                        <button onClick={() => handleSort('prezzo_unitario')} className="flex items-center gap-1 hover:text-blue-600 ml-auto">
+                          Prezzo {getSortIcon('prezzo_unitario')}
+                        </button>
+                      </th>
                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">€/Unità</th>
                       <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Stato</th>
                       <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">In Uso</th>
@@ -1030,7 +1117,7 @@ export default function MateriePrime() {
                     </tr>
                   </thead>
                   <tbody>
-                    {categoryProducts.map((product) => {
+                    {sortProducts(categoryProducts).map((product) => {
                       const assignedStoresCount = !product.assigned_stores || product.assigned_stores.length === 0 
                         ? stores.length 
                         : product.assigned_stores.length;
