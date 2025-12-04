@@ -519,17 +519,21 @@ export default function ElencoFornitori() {
             <p className="text-slate-500 mb-4">Inizia aggiungendo il primo fornitore</p>
           </NeumorphicCard>
         ) : (
-          Object.entries(suppliersByType).map(([type, typeSuppliers]) => (
-            <NeumorphicCard key={type} className="p-4 lg:p-6">
-              <h2 className="text-lg font-bold text-slate-800 mb-4 lg:mb-6">
-                {tipoFornitoreLabels[type] || type}
-                <span className="ml-2 text-sm font-normal text-slate-500">
-                  ({typeSuppliers.length})
-                </span>
-              </h2>
+          <NeumorphicCard className="p-4 lg:p-6">
+            <h2 className="text-lg font-bold text-slate-800 mb-4 lg:mb-6">
+              Tutti i Fornitori
+              <span className="ml-2 text-sm font-normal text-slate-500">
+                ({suppliers.length})
+              </span>
+            </h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4">
-                {typeSuppliers.map((supplier) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4">
+              {suppliers.map((supplier) => {
+                const categorie = supplier.categorie_fornitore && supplier.categorie_fornitore.length > 0 
+                  ? supplier.categorie_fornitore 
+                  : (supplier.tipo_fornitore ? [supplier.tipo_fornitore] : []);
+                
+                return (
                   <div key={supplier.id} className="neumorphic-pressed p-3 lg:p-4 rounded-xl">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1 min-w-0">
@@ -548,6 +552,16 @@ export default function ElencoFornitori() {
                         </span>
                       )}
                     </div>
+
+                    {categorie.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {categorie.map(cat => (
+                          <span key={cat} className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                            {tipoFornitoreLabels[cat] || cat}
+                          </span>
+                        ))}
+                      </div>
+                    )}
 
                     {supplier.sede_legale && (
                       <div className="flex items-start gap-2 mb-2">
@@ -608,10 +622,10 @@ export default function ElencoFornitori() {
                       </button>
                     </div>
                   </div>
-                ))}
-              </div>
-            </NeumorphicCard>
-          ))
+                );
+              })}
+            </div>
+          </NeumorphicCard>
         )}
       </div>
     </ProtectedPage>
