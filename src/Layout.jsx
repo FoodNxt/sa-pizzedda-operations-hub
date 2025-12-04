@@ -710,7 +710,8 @@ export default function Layout({ children, currentPageName }) {
       'FeedbackP2P': 'Feedback',
       'InventarioStoreManager': 'Inventario SM',
       'TurniDipendente': 'Turni',
-      'AssistenteDipendente': 'Assistente'
+      'AssistenteDipendente': 'Assistente',
+      'DashboardStoreManager': 'Dashboard'
     };
     return titles[pageName] || pageName;
   };
@@ -734,7 +735,8 @@ export default function Layout({ children, currentPageName }) {
       'Preparazioni': ChefHat,
       'FeedbackP2P': Users,
       'InventarioStoreManager': Package,
-      'TurniDipendente': Clock
+      'TurniDipendente': Clock,
+      'DashboardStoreManager': LayoutDashboard
     };
     return icons[pageName] || User;
   };
