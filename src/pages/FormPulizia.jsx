@@ -21,7 +21,10 @@ export default function FormPulizia() {
     store_ids: [],
     ordine: 0,
     obbligatoria: true,
-    attiva: true
+    attiva: true,
+    tipo_controllo_ai: 'pulizia',
+    prompt_ai: '',
+    ordine_bibite: ''
   });
 
   const queryClient = useQueryClient();
@@ -70,7 +73,10 @@ export default function FormPulizia() {
       store_ids: [],
       ordine: 0,
       obbligatoria: true,
-      attiva: true
+      attiva: true,
+      tipo_controllo_ai: 'pulizia',
+      prompt_ai: '',
+      ordine_bibite: ''
     });
     setEditingQuestion(null);
     setShowQuestionForm(false);
@@ -88,7 +94,10 @@ export default function FormPulizia() {
       store_ids: domanda.store_ids || [],
       ordine: domanda.ordine || 0,
       obbligatoria: domanda.obbligatoria !== false,
-      attiva: domanda.attiva !== false
+      attiva: domanda.attiva !== false,
+      tipo_controllo_ai: domanda.tipo_controllo_ai || 'pulizia',
+      prompt_ai: domanda.prompt_ai || '',
+      ordine_bibite: domanda.ordine_bibite || ''
     });
     setShowQuestionForm(true);
   };
@@ -99,6 +108,12 @@ export default function FormPulizia() {
       ...questionForm,
       opzioni_risposta: questionForm.tipo_controllo === 'multipla' ? questionForm.opzioni_risposta.filter(o => o.trim()) : []
     };
+    // Rimuovi campi non necessari per tipo multipla
+    if (questionForm.tipo_controllo === 'multipla') {
+      delete data.tipo_controllo_ai;
+      delete data.prompt_ai;
+      delete data.ordine_bibite;
+    }
     if (editingQuestion) {
       updateMutation.mutate({ id: editingQuestion.id, data });
     } else {
@@ -335,18 +350,87 @@ export default function FormPulizia() {
                     </div>
 
                     {questionForm.tipo_controllo === 'foto' && (
-                      <div>
-                        <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                          Nome Attrezzatura
-                        </label>
-                        <input
-                          type="text"
-                          value={questionForm.attrezzatura}
-                          onChange={(e) => setQuestionForm({ ...questionForm, attrezzatura: e.target.value })}
-                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                          placeholder="Es: Forno, Impastatrice..."
-                        />
-                      </div>
+                      <>
+                        <div>
+                          <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                            Nome Attrezzatura
+                          </label>
+                          <input
+                            type="text"
+                            value={questionForm.attrezzatura}
+                            onChange={(e) => setQuestionForm({ ...questionForm, attrezzatura: e.target.value })}
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                            placeholder="Es: Forno, Impastatrice..."
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                            Tipo di Controllo AI
+                          </label>
+                          <select
+                            value={questionForm.tipo_controllo_ai || 'pulizia'}
+                            onChange={(e) => {
+                              const tipo = e.target.value;
+                              let prompt = '';
+                              if (tipo === 'pulizia') {
+                                prompt = 'Analizza la foto e valuta lo stato di pulizia. Rispondi con: pulito, medio, sporco. Descrivi eventuali problemi riscontrati.';
+                              } else if (tipo === 'divisa') {
+                                prompt = 'Analizza la foto del dipendente e verifica se indossa la divisa corretta: cappellino e maglietta aziendale. Rispondi con: conforme, non conforme. Specifica cosa manca se non conforme.';
+                              } else if (tipo === 'frigo_bibite') {
+                                prompt = questionForm.ordine_bibite 
+                                  ? `Analizza la foto del frigo bibite. Verifica che sia pieno e che le bibite siano nell'ordine corretto: ${questionForm.ordine_bibite}. Rispondi con: conforme, non conforme. Specifica eventuali problemi.`
+                                  : 'Analizza la foto del frigo bibite. Verifica che sia pieno e ordinato. Rispondi con: conforme, non conforme.';
+                              } else if (tipo === 'personalizzato') {
+                                prompt = questionForm.prompt_ai || '';
+                              }
+                              setQuestionForm({ ...questionForm, tipo_controllo_ai: tipo, prompt_ai: prompt });
+                            }}
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                          >
+                            <option value="pulizia">🧹 Pulizia (Pulito/Sporco)</option>
+                            <option value="divisa">👕 Divisa Corretta (Cappellino + Maglietta)</option>
+                            <option value="frigo_bibite">🥤 Frigo Bibite (Pieno + Ordine)</option>
+                            <option value="personalizzato">✏️ Personalizzato</option>
+                          </select>
+                        </div>
+
+                        {questionForm.tipo_controllo_ai === 'frigo_bibite' && (
+                          <div>
+                            <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                              Ordine Bibite nel Frigo (dall'alto verso il basso)
+                            </label>
+                            <textarea
+                              value={questionForm.ordine_bibite || ''}
+                              onChange={(e) => {
+                                const ordine = e.target.value;
+                                setQuestionForm({ 
+                                  ...questionForm, 
+                                  ordine_bibite: ordine,
+                                  prompt_ai: `Analizza la foto del frigo bibite. Verifica che sia pieno e che le bibite siano nell'ordine corretto: ${ordine}. Rispondi con: conforme, non conforme. Specifica eventuali problemi.`
+                                });
+                              }}
+                              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none h-24"
+                              placeholder="Es: Ripiano 1: Coca Cola, Fanta&#10;Ripiano 2: Acqua naturale, Acqua frizzante&#10;Ripiano 3: Birra, Energy drink"
+                            />
+                          </div>
+                        )}
+
+                        <div>
+                          <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                            Prompt per l'AI
+                          </label>
+                          <textarea
+                            value={questionForm.prompt_ai || ''}
+                            onChange={(e) => setQuestionForm({ ...questionForm, prompt_ai: e.target.value, tipo_controllo_ai: 'personalizzato' })}
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none h-32"
+                            placeholder="Descrivi cosa l'AI deve controllare nella foto..."
+                          />
+                          <p className="text-xs text-slate-500 mt-1">
+                            Istruzioni dettagliate su cosa l'AI deve verificare nella foto
+                          </p>
+                        </div>
+                      </>
                     )}
 
                     {questionForm.tipo_controllo === 'multipla' && (
