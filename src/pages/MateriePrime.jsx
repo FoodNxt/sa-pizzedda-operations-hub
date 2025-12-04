@@ -14,7 +14,8 @@ import {
   Store,
   ChevronDown,
   ChevronUp,
-  Euro
+  Euro,
+  Copy
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -32,6 +33,7 @@ export default function MateriePrime() {
     nome_prodotto: '',
     nome_interno: '',
     marca: '',
+    codice_fornitore: '',
     unita_misura: 'pezzi',
     peso_dimensione_unita: '',
     unita_misura_peso: 'kg',
@@ -99,6 +101,7 @@ export default function MateriePrime() {
       nome_prodotto: '',
       nome_interno: '',
       marca: '',
+      codice_fornitore: '',
       unita_misura: 'pezzi',
       peso_dimensione_unita: '',
       unita_misura_peso: 'kg',
@@ -128,12 +131,46 @@ export default function MateriePrime() {
     setShowForm(false);
   };
 
+  const handleCopyTemplate = (product) => {
+    setFormData({
+      nome_prodotto: '',
+      nome_interno: product.nome_interno || '',
+      marca: product.marca || '',
+      codice_fornitore: '',
+      unita_misura: product.unita_misura,
+      peso_dimensione_unita: product.peso_dimensione_unita || '',
+      unita_misura_peso: product.unita_misura_peso || 'kg',
+      unita_per_confezione: product.unita_per_confezione || '',
+      peso_unita_interna: product.peso_unita_interna || '',
+      unita_misura_interna: product.unita_misura_interna || 'kg',
+      quantita_critica: product.quantita_critica || '',
+      quantita_ordine: product.quantita_ordine || '',
+      prezzo_unitario: '',
+      fornitore: '',
+      categoria: product.categoria || 'Ingredienti base',
+      note: '',
+      attivo: true,
+      posizione: product.posizione || 'negozio',
+      assigned_stores: product.assigned_stores || [],
+      in_uso: false,
+      in_uso_per_store: {}
+    });
+    setStoreQuantities(product.store_specific_min_quantities || {});
+    setStorePositions(product.store_specific_positions || {});
+    setInUsoPerStore({});
+    setStoreQuantitaCritica(product.store_specific_quantita_critica || {});
+    setStoreQuantitaOrdine(product.store_specific_quantita_ordine || {});
+    setEditingProduct(null);
+    setShowForm(true);
+  };
+
   const handleEdit = (product) => {
     setEditingProduct(product);
     setFormData({
       nome_prodotto: product.nome_prodotto,
       nome_interno: product.nome_interno || '',
       marca: product.marca || '',
+      codice_fornitore: product.codice_fornitore || '',
       unita_misura: product.unita_misura,
       peso_dimensione_unita: product.peso_dimensione_unita || '',
       unita_misura_peso: product.unita_misura_peso || 'kg',
@@ -144,7 +181,7 @@ export default function MateriePrime() {
       quantita_ordine: product.quantita_ordine || '',
       prezzo_unitario: product.prezzo_unitario || '',
       fornitore: product.fornitore || '',
-      categoria: product.categoria || 'altro',
+      categoria: product.categoria === 'Condimenti' ? 'Ingredienti pronti' : (product.categoria || 'Ingredienti base'),
       note: product.note || '',
       attivo: product.attivo !== false,
       posizione: product.posizione || 'negozio',
@@ -195,13 +232,13 @@ export default function MateriePrime() {
 
     const data = {
       ...formData,
-      quantita_critica: Math.round(parseFloat(formData.quantita_critica)),
-      quantita_ordine: Math.round(parseFloat(formData.quantita_ordine)),
-      prezzo_unitario: formData.prezzo_unitario ? Math.round(parseFloat(formData.prezzo_unitario)) : null,
-      peso_dimensione_unita: formData.peso_dimensione_unita ? Math.round(parseFloat(formData.peso_dimensione_unita)) : null,
+      quantita_critica: parseFloat(parseFloat(formData.quantita_critica).toFixed(2)),
+      quantita_ordine: parseFloat(parseFloat(formData.quantita_ordine).toFixed(2)),
+      prezzo_unitario: formData.prezzo_unitario ? parseFloat(parseFloat(formData.prezzo_unitario).toFixed(2)) : null,
+      peso_dimensione_unita: formData.peso_dimensione_unita ? parseFloat(parseFloat(formData.peso_dimensione_unita).toFixed(2)) : null,
       unita_misura_peso: formData.peso_dimensione_unita ? formData.unita_misura_peso : null,
-      unita_per_confezione: formData.unita_per_confezione ? Math.round(parseFloat(formData.unita_per_confezione)) : null,
-      peso_unita_interna: formData.peso_unita_interna ? Math.round(parseFloat(formData.peso_unita_interna)) : null,
+      unita_per_confezione: formData.unita_per_confezione ? parseFloat(parseFloat(formData.unita_per_confezione).toFixed(2)) : null,
+      peso_unita_interna: formData.peso_unita_interna ? parseFloat(parseFloat(formData.peso_unita_interna).toFixed(2)) : null,
       unita_misura_interna: formData.peso_unita_interna ? formData.unita_misura_interna : null,
       store_specific_min_quantities: cleanedStoreQuantities,
       store_specific_positions: cleanedStorePositions,
@@ -247,23 +284,34 @@ export default function MateriePrime() {
   );
 
   const CATEGORIE = [
-    'Ingredienti base',
-    'Condimenti',
-    'Ortofrutta',
+    'Angolo di Sardegna',
     'Bevande',
     'Consumabili',
-    'Pulizia',
-    'Packaging',
     'Dolci',
-    'Angolo di Sardegna'
+    'Ingredienti base',
+    'Ingredienti pronti',
+    'Ortofrutta',
+    'Packaging',
+    'Pulizia'
   ];
 
+  // Nomi interni unici e ordinati
+  const nomiInterniUnici = [...new Set(products.map(p => p.nome_interno).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'it'));
+
+  // Fornitori ordinati alfabeticamente
+  const suppliersOrdered = [...suppliers].sort((a, b) => (a.ragione_sociale || '').localeCompare(b.ragione_sociale || '', 'it'));
+
   const productsByCategory = filteredProducts.reduce((acc, product) => {
-    const cat = product.categoria || 'altro';
+    // Map old "Condimenti" to "Ingredienti pronti"
+    let cat = product.categoria || 'altro';
+    if (cat === 'Condimenti') cat = 'Ingredienti pronti';
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(product);
     return acc;
   }, {});
+
+  // Ordina le categorie alfabeticamente
+  const sortedCategories = Object.keys(productsByCategory).sort((a, b) => a.localeCompare(b, 'it'));
 
   return (
     <ProtectedPage pageName="MateriePrime">
@@ -387,22 +435,30 @@ export default function MateriePrime() {
                       <label className="text-sm font-medium text-slate-700 mb-2 block">
                         Nome Interno <span className="text-red-600">*</span>
                       </label>
+                      <select
+                        value={nomiInterniUnici.includes(formData.nome_interno) ? formData.nome_interno : '__custom__'}
+                        onChange={(e) => {
+                          if (e.target.value !== '__custom__') {
+                            setFormData({ ...formData, nome_interno: e.target.value });
+                          }
+                        }}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm mb-2"
+                      >
+                        <option value="__custom__">-- Nuovo nome interno --</option>
+                        {nomiInterniUnici.map(nome => (
+                          <option key={nome} value={nome}>{nome}</option>
+                        ))}
+                      </select>
                       <input
                         type="text"
-                        list="nomi-interni"
                         value={formData.nome_interno}
                         onChange={(e) => setFormData({ ...formData, nome_interno: e.target.value })}
                         className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
                         placeholder="es. Farina Tipo 00"
                         required
                       />
-                      <datalist id="nomi-interni">
-                        {[...new Set(products.map(p => p.nome_interno).filter(Boolean))].map(nome => (
-                          <option key={nome} value={nome} />
-                        ))}
-                      </datalist>
                       <p className="text-xs text-slate-500 mt-1">
-                        💡 Usa lo stesso nome interno per prodotti equivalenti di fornitori diversi
+                        💡 Seleziona un nome esistente o inseriscine uno nuovo
                       </p>
                     </div>
 
@@ -437,22 +493,36 @@ export default function MateriePrime() {
                       </div>
                     </div>
 
-                    <div>
-                      <label className="text-sm font-medium text-slate-700 mb-2 block">
-                        Fornitore
-                      </label>
-                      <select
-                        value={formData.fornitore}
-                        onChange={(e) => setFormData({ ...formData, fornitore: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                      >
-                        <option value="">-- Seleziona fornitore --</option>
-                        {suppliers.map(supplier => (
-                          <option key={supplier.id} value={supplier.ragione_sociale}>
-                            {supplier.ragione_sociale}
-                          </option>
-                        ))}
-                      </select>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-sm font-medium text-slate-700 mb-2 block">
+                          Fornitore
+                        </label>
+                        <select
+                          value={formData.fornitore}
+                          onChange={(e) => setFormData({ ...formData, fornitore: e.target.value })}
+                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                        >
+                          <option value="">-- Seleziona fornitore --</option>
+                          {suppliersOrdered.map(supplier => (
+                            <option key={supplier.id} value={supplier.ragione_sociale}>
+                              {supplier.ragione_sociale}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-slate-700 mb-2 block">
+                          Codice Fornitore
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.codice_fornitore}
+                          onChange={(e) => setFormData({ ...formData, codice_fornitore: e.target.value })}
+                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                          placeholder="es. SKU-12345"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -644,10 +714,10 @@ export default function MateriePrime() {
                       </label>
                       <input
                         type="number"
-                        step="1"
+                        step="0.01"
                         value={formData.prezzo_unitario}
                         onChange={(e) => setFormData({ ...formData, prezzo_unitario: e.target.value })}
-                        placeholder="15"
+                        placeholder="15.50"
                         className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
                       />
                       <p className="text-xs text-slate-500 mt-1">
@@ -823,6 +893,37 @@ export default function MateriePrime() {
                     Seleziona i locali in cui questo prodotto è attualmente in uso. Solo un prodotto con lo stesso nome interno può essere "in uso" per locale.
                   </p>
                   
+                  {/* Seleziona/Deseleziona Tutti */}
+                  <div className="flex gap-2 mb-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const allStoreIds = {};
+                        stores.forEach(store => {
+                          const otherProductInUse = products.find(p => 
+                            p.id !== editingProduct?.id && 
+                            p.nome_interno === formData.nome_interno && 
+                            p.in_uso_per_store?.[store.id] === true
+                          );
+                          if (!otherProductInUse) {
+                            allStoreIds[store.id] = true;
+                          }
+                        });
+                        setInUsoPerStore(allStoreIds);
+                      }}
+                      className="px-3 py-2 text-xs font-medium rounded-lg bg-green-100 text-green-700 hover:bg-green-200"
+                    >
+                      ✓ Seleziona Tutti
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setInUsoPerStore({})}
+                      className="px-3 py-2 text-xs font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    >
+                      ✗ Deseleziona Tutti
+                    </button>
+                  </div>
+                  
                   <div className="space-y-2">
                     {stores.map(store => {
                       // Check if another product with same nome_interno is already in use for this store
@@ -900,7 +1001,9 @@ export default function MateriePrime() {
             </h3>
           </NeumorphicCard>
         ) : (
-          Object.entries(productsByCategory).map(([categoria, categoryProducts]) => (
+          sortedCategories.map(categoria => {
+            const categoryProducts = productsByCategory[categoria];
+            return (
             <NeumorphicCard key={categoria} className="p-4 lg:p-6">
               <h2 className="text-lg font-bold text-slate-800 mb-4">
                 {categoria}
@@ -957,7 +1060,7 @@ export default function MateriePrime() {
                             {product.quantita_ordine || '-'}
                           </td>
                           <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
-                            {product.prezzo_unitario ? `€${Math.round(product.prezzo_unitario)}` : '-'}
+                            {product.prezzo_unitario ? `€${parseFloat(product.prezzo_unitario).toFixed(2)}` : '-'}
                           </td>
                           <td className="p-2 lg:p-3">
                             <div className="flex justify-center">
@@ -980,7 +1083,14 @@ export default function MateriePrime() {
                             </div>
                           </td>
                           <td className="p-2 lg:p-3">
-                            <div className="flex items-center justify-center gap-2">
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                onClick={() => handleCopyTemplate(product)}
+                                className="nav-button p-2 rounded-lg hover:bg-green-50 transition-colors"
+                                title="Copia come template"
+                              >
+                                <Copy className="w-4 h-4 text-green-600" />
+                              </button>
                               <button
                                 onClick={() => handleEdit(product)}
                                 className="nav-button p-2 rounded-lg hover:bg-blue-50 transition-colors"
@@ -1004,7 +1114,8 @@ export default function MateriePrime() {
                 </table>
               </div>
             </NeumorphicCard>
-          ))
+          );
+          })
         )}
       </div>
     </ProtectedPage>
