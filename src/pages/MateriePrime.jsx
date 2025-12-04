@@ -1158,14 +1158,15 @@ export default function MateriePrime() {
                               // Per casse/confezioni: prezzo / unità per confezione
                               if (['casse', 'confezioni'].includes(product.unita_misura) && product.unita_per_confezione > 0) {
                                 const prezzoPerUnita = product.prezzo_unitario / product.unita_per_confezione;
-                                return `€${prezzoPerUnita.toFixed(2)}`;
+                                return `€${prezzoPerUnita.toFixed(2)}/pz`;
                               }
                               // Per kg/litri/sacchi con peso: prezzo / peso
                               if (product.peso_dimensione_unita > 0) {
                                 const prezzoPerUnita = product.prezzo_unitario / product.peso_dimensione_unita;
                                 return `€${prezzoPerUnita.toFixed(2)}/${product.unita_misura_peso || 'kg'}`;
                               }
-                              return `€${parseFloat(product.prezzo_unitario).toFixed(2)}`;
+                              // Per prodotti venduti a pezzo senza peso
+                              return '-';
                             })()}
                           </td>
                           <td className="p-2 lg:p-3">
