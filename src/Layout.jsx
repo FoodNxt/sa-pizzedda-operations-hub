@@ -237,9 +237,9 @@ const navigationStructure = [
         icon: Calendar,
       },
       {
-        title: "HR Admin",
+        title: "Assegnazione Locali",
         url: createPageUrl("HRAdmin"),
-        icon: Settings,
+        icon: MapPin,
       }
     ]
   },
