@@ -866,40 +866,79 @@ export default function Pulizie() {
               
               {detailsModalInspection.domande_risposte && detailsModalInspection.domande_risposte.length > 0 ? (
                 <div className="space-y-3">
-                  {detailsModalInspection.domande_risposte.map((risposta, idx) => (
-                    <div key={idx} className="neumorphic-flat p-4 rounded-xl">
-                      <div className="flex items-start gap-3">
-                        {risposta.tipo_controllo === 'foto' ? (
-                          <Camera className="w-5 h-5 text-[#8b7355] flex-shrink-0 mt-0.5" />
-                        ) : (
-                          <ClipboardCheck className="w-5 h-5 text-[#8b7355] flex-shrink-0 mt-0.5" />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-[#6b6b6b] mb-2">
-                            {risposta.domanda_testo}
-                          </p>
-                          {risposta.tipo_controllo === 'foto' ? (
-                            risposta.risposta ? (
-                              <img 
-                                src={risposta.risposta} 
-                                alt={risposta.attrezzatura} 
-                                className="w-full max-w-sm h-auto rounded-lg border-2 border-slate-200"
-                              />
-                            ) : (
-                              <p className="text-sm text-slate-500 italic">Nessuna foto caricata</p>
-                            )
+                  {detailsModalInspection.domande_risposte.map((risposta, idx) => {
+                    const isFoto = risposta.tipo_controllo === 'foto' || (risposta.risposta && typeof risposta.risposta === 'string' && risposta.risposta.startsWith('http'));
+                    return (
+                      <div key={idx} className="neumorphic-flat p-4 rounded-xl">
+                        <div className="flex items-start gap-3">
+                          {isFoto ? (
+                            <Camera className="w-5 h-5 text-[#8b7355] flex-shrink-0 mt-0.5" />
                           ) : (
-                            <span className="inline-block px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-100 text-blue-700">
-                              {risposta.risposta}
-                            </span>
+                            <ClipboardCheck className="w-5 h-5 text-[#8b7355] flex-shrink-0 mt-0.5" />
                           )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-[#6b6b6b] mb-2">
+                              {risposta.domanda_testo || `Domanda ${idx + 1}`}
+                            </p>
+                            {isFoto ? (
+                              risposta.risposta ? (
+                                <img 
+                                  src={risposta.risposta} 
+                                  alt={risposta.attrezzatura || `Foto ${idx + 1}`} 
+                                  className="w-full max-w-sm h-auto rounded-lg border-2 border-slate-200"
+                                />
+                              ) : (
+                                <p className="text-sm text-slate-500 italic">Nessuna foto caricata</p>
+                              )
+                            ) : (
+                              <span className="inline-block px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-100 text-blue-700">
+                                {risposta.risposta || 'Nessuna risposta'}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
-                <p className="text-center text-slate-500 py-4">Nessuna risposta disponibile</p>
+                /* Fallback per vecchi form senza domande_risposte - mostra le foto delle attrezzature */
+                <div className="space-y-3">
+                  {equipment.map((eq) => {
+                    const photoUrl = detailsModalInspection[`${eq.key}_foto_url`];
+                    const aiStatus = detailsModalInspection[`${eq.key}_pulizia_status`];
+                    const isCorrected = detailsModalInspection[`${eq.key}_corrected`];
+                    const correctedStatus = detailsModalInspection[`${eq.key}_corrected_status`];
+                    const displayStatus = isCorrected ? correctedStatus : aiStatus;
+                    
+                    if (!photoUrl) return null;
+                    
+                    return (
+                      <div key={eq.key} className="neumorphic-flat p-4 rounded-xl">
+                        <div className="flex items-start gap-3">
+                          <Camera className="w-5 h-5 text-[#8b7355] flex-shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-2">
+                              <p className="text-sm font-bold text-[#6b6b6b]">
+                                {eq.icon} Foto: {eq.name}
+                              </p>
+                              {displayStatus && (
+                                <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(displayStatus)}`}>
+                                  {displayStatus}
+                                </span>
+                              )}
+                            </div>
+                            <img 
+                              src={photoUrl} 
+                              alt={eq.name} 
+                              className="w-full max-w-sm h-auto rounded-lg border-2 border-slate-200"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
             </NeumorphicCard>
