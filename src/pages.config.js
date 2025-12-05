@@ -85,6 +85,7 @@ import DashboardStoreManager from './pages/DashboardStoreManager';
 import StoreManagerAdmin from './pages/StoreManagerAdmin';
 import ATS from './pages/ATS';
 import ValutazioneProvaForm from './pages/ValutazioneProvaForm';
+import Compliance from './pages/Compliance';
 import __Layout from './Layout.jsx';
 
 
@@ -176,6 +177,7 @@ export const PAGES = {
     "StoreManagerAdmin": StoreManagerAdmin,
     "ATS": ATS,
     "ValutazioneProvaForm": ValutazioneProvaForm,
+    "Compliance": Compliance,
 }
 
 export const pagesConfig = {
