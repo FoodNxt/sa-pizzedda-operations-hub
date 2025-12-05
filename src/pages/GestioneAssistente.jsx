@@ -272,6 +272,16 @@ export default function GestioneAssistente() {
     },
   });
 
+  const deleteConversationMutation = useMutation({
+    mutationFn: async (convId) => {
+      // Use the agents SDK to delete conversation
+      await base44.agents.deleteConversation(convId);
+    },
+    onSuccess: () => {
+      refetchConversations();
+    },
+  });
+
   const resetCategoryForm = () => {
     setCategoryForm({ nome: '', ordine: 0 });
     setEditingCategory(null);
@@ -1352,7 +1362,21 @@ ${allUserMessages.slice(0, 100).join('\n---\n')}`,
                               </div>
                             </div>
                           </div>
-                          <Eye className="w-4 h-4 text-slate-400" />
+                          <div className="flex items-center gap-2">
+                            <Eye className="w-4 h-4 text-slate-400" />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm('Eliminare questa conversazione?')) {
+                                  deleteConversationMutation.mutate(conv.id);
+                                }
+                              }}
+                              className="p-1 rounded hover:bg-red-100 text-red-500"
+                              title="Elimina conversazione"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                         
                         {expandedConversation === conv.id && (
