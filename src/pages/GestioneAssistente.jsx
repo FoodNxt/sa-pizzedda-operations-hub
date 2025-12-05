@@ -693,6 +693,17 @@ ${allMessages.slice(0, 100).join('\n---\n')}`,
         {/* Tabs */}
         <div className="flex gap-2 flex-wrap">
           <button
+            onClick={() => setActiveTab('conversazioni')}
+            className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
+              activeTab === 'conversazioni'
+                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                : 'neumorphic-flat text-slate-700'
+            }`}
+          >
+            <MessageSquare className="w-4 h-4" />
+            Conversazioni
+          </button>
+          <button
             onClick={() => setActiveTab('knowledge')}
             className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
               activeTab === 'knowledge'
@@ -713,28 +724,6 @@ ${allMessages.slice(0, 100).join('\n---\n')}`,
           >
             <Folder className="w-4 h-4" />
             Categorie ({CATEGORIE.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('conversazioni')}
-            className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
-              activeTab === 'conversazioni'
-                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                : 'neumorphic-flat text-slate-700'
-            }`}
-          >
-            <MessageSquare className="w-4 h-4" />
-            Conversazioni
-          </button>
-          <button
-            onClick={() => setActiveTab('checklist')}
-            className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
-              activeTab === 'checklist'
-                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                : 'neumorphic-flat text-slate-700'
-            }`}
-          >
-            <ListChecks className="w-4 h-4" />
-            Checklist ({checklists.length})
           </button>
           <button
             onClick={() => setActiveTab('accessi')}
@@ -1162,29 +1151,138 @@ ${allMessages.slice(0, 100).join('\n---\n')}`,
         {/* Conversazioni Tab */}
         {activeTab === 'conversazioni' && (
           <>
-            {/* Suggerimenti informazioni mancanti */}
-            <NeumorphicCard className="p-6 bg-yellow-50 border border-yellow-200">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
+            {/* Filters */}
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <Search className="w-5 h-5 text-slate-500" />
+                <h2 className="text-lg font-bold text-slate-800">Filtri</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
-                  <h3 className="font-bold text-yellow-800 mb-2">💡 Suggerimenti per migliorare la Knowledge Base</h3>
-                  <p className="text-sm text-yellow-700 mb-3">
-                    Analizzando le conversazioni, potrebbero essere utili informazioni su:
-                  </p>
-                  <ul className="text-sm text-yellow-700 space-y-1 list-disc ml-4">
-                    <li>Procedure specifiche per la gestione degli imprevisti</li>
-                    <li>FAQ sulle domande più frequenti dei dipendenti</li>
-                    <li>Orari e contatti di emergenza aggiornati</li>
-                    <li>Procedure per apertura/chiusura locale</li>
-                    <li>Istruzioni per l'utilizzo delle attrezzature</li>
-                  </ul>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Dipendente</label>
+                  <select
+                    value={filterEmployee}
+                    onChange={(e) => setFilterEmployee(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  >
+                    <option value="">Tutti i dipendenti</option>
+                    {conversationEmployees.map(emp => (
+                      <option key={emp.email} value={emp.email}>{emp.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Negozio</label>
+                  <select
+                    value={filterStore}
+                    onChange={(e) => setFilterStore(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  >
+                    <option value="">Tutti i negozi</option>
+                    {stores.map(store => (
+                      <option key={store.id} value={store.id}>{store.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Data Inizio</label>
+                  <input
+                    type="date"
+                    value={dateRangeStart}
+                    onChange={(e) => setDateRangeStart(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Data Fine</label>
+                  <input
+                    type="date"
+                    value={dateRangeEnd}
+                    onChange={(e) => setDateRangeEnd(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  />
                 </div>
               </div>
+              {(filterEmployee || filterStore || dateRangeStart || dateRangeEnd) && (
+                <button
+                  onClick={() => {
+                    setFilterEmployee('');
+                    setFilterStore('');
+                    setDateRangeStart('');
+                    setDateRangeEnd('');
+                  }}
+                  className="mt-3 text-sm text-blue-600 hover:underline"
+                >
+                  Rimuovi filtri
+                </button>
+              )}
+            </NeumorphicCard>
+
+            {/* AI Analysis */}
+            <NeumorphicCard className="p-6 bg-purple-50 border border-purple-200">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <Sparkles className="w-5 h-5 text-purple-600" />
+                  <h3 className="font-bold text-purple-800">Analisi Domande Frequenti (AI)</h3>
+                </div>
+                <NeumorphicButton
+                  onClick={analyzeCommonQuestions}
+                  disabled={analyzingQuestions || filteredConversations.length === 0}
+                  className="flex items-center gap-2"
+                >
+                  {analyzingQuestions ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <BarChart3 className="w-4 h-4" />
+                  )}
+                  Analizza
+                </NeumorphicButton>
+              </div>
+              
+              {commonQuestions && (
+                <div className="space-y-4">
+                  <p className="text-sm text-purple-700">{commonQuestions.summary}</p>
+                  {commonQuestions.topics?.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {commonQuestions.topics.map((topic, idx) => (
+                        <div key={idx} className="neumorphic-flat p-4 rounded-xl bg-white">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-bold text-slate-800">{topic.categoria}</span>
+                            <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">
+                              ~{topic.count} domande
+                            </span>
+                          </div>
+                          {topic.esempi?.length > 0 && (
+                            <ul className="text-xs text-slate-600 space-y-1 mb-2">
+                              {topic.esempi.slice(0, 2).map((es, i) => (
+                                <li key={i}>• {es}</li>
+                              ))}
+                            </ul>
+                          )}
+                          {topic.suggerimento_kb && (
+                            <p className="text-xs text-green-600 mt-2">
+                              💡 {topic.suggerimento_kb}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {!commonQuestions && !analyzingQuestions && (
+                <p className="text-sm text-purple-600">
+                  Clicca "Analizza" per estrarre gli argomenti più comuni dalle conversazioni filtrate.
+                </p>
+              )}
             </NeumorphicCard>
 
             <NeumorphicCard className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-slate-800">Conversazioni Dipendenti</h2>
+                <h2 className="text-xl font-bold text-slate-800">
+                  Conversazioni ({filteredConversations.length})
+                </h2>
                 <NeumorphicButton
                   onClick={() => refetchConversations()}
                   className="flex items-center gap-2"
@@ -1204,55 +1302,63 @@ ${allMessages.slice(0, 100).join('\n---\n')}`,
                 <div className="text-center py-8">
                   <AlertTriangle className="w-8 h-8 mx-auto text-red-500 mb-2" />
                   <p className="text-red-600">Errore nel caricamento: {conversationsError.message}</p>
-                  <p className="text-xs text-slate-400 mt-2">Dettagli: {JSON.stringify(conversationsError)}</p>
                 </div>
-              ) : conversations.length === 0 ? (
+              ) : filteredConversations.length === 0 ? (
                 <div className="text-center py-8">
                   <MessageSquare className="w-16 h-16 mx-auto text-slate-300 mb-4" />
-                  <p className="text-slate-500">Nessuna conversazione trovata</p>
-                  <p className="text-xs text-slate-400 mt-2">Le conversazioni appariranno qui quando i dipendenti useranno l'assistente via WhatsApp o chat</p>
-                  <div className="mt-4 p-4 bg-blue-50 rounded-xl max-w-md mx-auto">
-                    <p className="text-sm text-blue-700 font-medium mb-2">💡 Come far usare l'assistente ai dipendenti:</p>
-                    <p className="text-xs text-blue-600">
-                      I dipendenti possono chattare con l'assistente collegandosi via WhatsApp dalla pagina "Assistente Dipendente" oppure dalla loro area personale.
-                    </p>
-                  </div>
+                  <p className="text-slate-500">
+                    {conversations.length === 0 
+                      ? 'Nessuna conversazione trovata' 
+                      : 'Nessuna conversazione corrisponde ai filtri'}
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {conversations.map(conv => (
-                    <div key={conv.id} className="neumorphic-pressed p-4 rounded-xl">
-                      <div 
-                        className="flex items-center justify-between cursor-pointer"
-                        onClick={() => setExpandedConversation(expandedConversation === conv.id ? null : conv.id)}
-                      >
-                        <div className="flex items-center gap-3">
-                                  {expandedConversation === conv.id ? (
-                                    <ChevronDown className="w-4 h-4 text-slate-500" />
-                                  ) : (
-                                    <ChevronRight className="w-4 h-4 text-slate-500" />
-                                  )}
-                                  <div>
-                                    <p className="font-medium text-slate-800">
-                                      {conv.user_name || conv.metadata?.name || 'Conversazione'}
-                                    </p>
-                                    <p className="text-xs text-slate-500">
-                                      {conv.user_email && <span className="mr-2">{conv.user_email}</span>}
-                                      {moment(conv.tracking?.last_message_date || conv.created_date).format('DD/MM/YYYY HH:mm')} • 
-                                      {conv.messages?.length || conv.tracking?.message_count || 0} messaggi
-                                    </p>
-                                  </div>
-                                </div>
-                        <Eye className="w-4 h-4 text-slate-400" />
-                      </div>
-                      
-                      {expandedConversation === conv.id && (
+                  {filteredConversations.map(conv => {
+                    const storeInfo = getStoreForConversation(conv);
+                    return (
+                      <div key={conv.id} className="neumorphic-pressed p-4 rounded-xl">
+                        <div 
+                          className="flex items-center justify-between cursor-pointer"
+                          onClick={() => setExpandedConversation(expandedConversation === conv.id ? null : conv.id)}
+                        >
+                          <div className="flex items-center gap-3">
+                            {expandedConversation === conv.id ? (
+                              <ChevronDown className="w-4 h-4 text-slate-500" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-slate-500" />
+                            )}
+                            <div>
+                              <p className="font-medium text-slate-800">
+                                {conv.user_name || conv.metadata?.name || 'Conversazione'}
+                              </p>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="text-xs text-slate-500">
+                                  {moment(conv.tracking?.last_message_date || conv.created_date).format('DD/MM/YYYY HH:mm')} • 
+                                  {conv.messages?.length || 0} messaggi
+                                </p>
+                                {storeInfo?.store ? (
+                                  <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full flex items-center gap-1">
+                                    <Store className="w-3 h-3" />
+                                    {storeInfo.store.name}
+                                  </span>
+                                ) : storeInfo?.noShift ? (
+                                  <span className="text-xs px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full">
+                                    Non in turno
+                                  </span>
+                                ) : null}
+                              </div>
+                            </div>
+                          </div>
+                          <Eye className="w-4 h-4 text-slate-400" />
+                        </div>
+                        
+                        {expandedConversation === conv.id && (
                           <div className="mt-4 space-y-3 max-h-[500px] overflow-y-auto border-t border-slate-200 pt-4">
                             {(conv.messages || []).length === 0 ? (
                               <div className="text-center py-6">
                                 <MessageSquare className="w-8 h-8 mx-auto text-slate-300 mb-2" />
-                                <p className="text-sm text-slate-500">Nessun messaggio trovato per questa conversazione</p>
-                                <p className="text-xs text-slate-400 mt-1">ID: {conv.id}</p>
+                                <p className="text-sm text-slate-500">Nessun messaggio trovato</p>
                               </div>
                             ) : (
                               (conv.messages || []).map((msg, idx) => (
@@ -1264,19 +1370,18 @@ ${allMessages.slice(0, 100).join('\n---\n')}`,
                                       : 'bg-slate-100 mr-8 border-l-4 border-slate-400'
                                   }`}
                                 >
-                                  <div className="flex items-center justify-between mb-2">
-                                    <p className="text-xs font-bold text-slate-600 uppercase">
-                                      {msg.role === 'user' ? '👤 Dipendente' : '🤖 Assistente'}
-                                    </p>
-                                  </div>
+                                  <p className="text-xs font-bold text-slate-600 uppercase mb-2">
+                                    {msg.role === 'user' ? '👤 Dipendente' : '🤖 Assistente'}
+                                  </p>
                                   <p className="text-sm text-slate-800 whitespace-pre-wrap">{msg.content}</p>
                                 </div>
                               ))
                             )}
                           </div>
                         )}
-                    </div>
-                  ))}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </NeumorphicCard>
