@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { PDFDocument } from 'npm:pdf-lib@1.17.1';
 
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
@@ -23,6 +24,10 @@ Deno.serve(async (req) => {
       throw new Error('Failed to fetch PDF from URL');
     }
     const pdfBuffer = await pdfResponse.arrayBuffer();
+
+    // Load PDF document
+    const pdfDoc = await PDFDocument.load(pdfBuffer);
+    const totalPages = pdfDoc.getPageCount();
 
     // Use LLM to extract codici fiscali from each page
     const extractionResult = await base44.asServiceRole.integrations.Core.InvokeLLM({
@@ -54,7 +59,7 @@ Deno.serve(async (req) => {
     // Get all users
     const allUsers = await base44.asServiceRole.entities.User.list();
 
-    // Match each page to a user by codice_fiscale
+    // Match each page to a user and split PDF
     const splits = [];
     const unmatched = [];
     
@@ -68,11 +73,25 @@ Deno.serve(async (req) => {
       );
 
       if (matchedUser) {
+        // Create a new PDF with only this page
+        const singlePagePdf = await PDFDocument.create();
+        const [copiedPage] = await singlePagePdf.copyPages(pdfDoc, [page.page_number - 1]);
+        singlePagePdf.addPage(copiedPage);
+        
+        // Save as bytes
+        const pdfBytes = await singlePagePdf.save();
+        
+        // Upload single page PDF
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const { file_url: singlePageUrl } = await base44.asServiceRole.integrations.Core.UploadFile({
+          file: blob
+        });
+        
         splits.push({
           codice_fiscale: page.codice_fiscale,
           user_id: matchedUser.id,
           user_name: matchedUser.nome_cognome || matchedUser.full_name || matchedUser.email,
-          pdf_url: pdfUrl,
+          pdf_url: singlePageUrl,
           page_number: page.page_number
         });
       } else {
@@ -85,7 +104,7 @@ Deno.serve(async (req) => {
       pdf_splits: splits,
       status: splits.length > 0 ? 'completed' : 'failed',
       error_message: splits.length === 0 
-        ? `Nessun codice fiscale trovato o nessun match con utenti. Totale pagine: ${pages.length}`
+        ? `Nessun codice fiscale trovato o nessun match con utenti. Totale pagine: ${totalPages}`
         : unmatched.length > 0 
           ? `${splits.length} buste assegnate. ${unmatched.length} codici fiscali non trovati: ${unmatched.join(', ')}`
           : null
@@ -94,7 +113,7 @@ Deno.serve(async (req) => {
     return Response.json({
       success: true,
       splits_count: splits.length,
-      total_pages: pages.length,
+      total_pages: totalPages,
       unmatched_count: unmatched.length
     });
 
