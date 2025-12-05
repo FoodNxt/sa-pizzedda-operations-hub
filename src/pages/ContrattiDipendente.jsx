@@ -11,7 +11,8 @@ import {
   AlertTriangle,
   BookOpen,
   Mail,
-  CheckSquare
+  CheckSquare,
+  DollarSign
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { isValid } from 'date-fns';
@@ -193,10 +194,28 @@ export default function ContrattiDipendente() {
   const regolamentiFirmatiIds = regolamentiFirmati.map(rf => rf.regolamento_id);
   const regolamentiDaFirmare = regolamentiInviati.filter(r => !regolamentiFirmatiIds.includes(r.id));
 
+  const { data: bustePaga = [] } = useQuery({
+    queryKey: ['buste-paga'],
+    queryFn: () => base44.entities.BustaPaga.list('-created_date'),
+    enabled: !!currentUser
+  });
+
+  const mieBustePaga = bustePaga
+    .filter(b => b.status === 'completed' && b.pdf_splits?.some(s => s.user_id === currentUser?.id))
+    .map(b => {
+      const mioSplit = b.pdf_splits.find(s => s.user_id === currentUser.id);
+      return {
+        ...b,
+        mio_pdf_url: mioSplit?.pdf_url,
+        page_number: mioSplit?.page_number
+      };
+    });
+
   const tabs = [
     { id: 'contratti', label: 'Contratti', icon: FileText, count: toSignContracts.length },
     { id: 'lettere', label: 'Lettere', icon: AlertTriangle, count: lettereDaFirmare.length },
-    { id: 'regolamento', label: 'Regolamento', icon: BookOpen, count: regolamentiDaFirmare.length }
+    { id: 'regolamento', label: 'Regolamento', icon: BookOpen, count: regolamentiDaFirmare.length },
+    { id: 'buste_paga', label: 'Buste Paga', icon: FileText, count: 0 }
   ];
 
   if (isLoading) {
@@ -543,6 +562,44 @@ export default function ContrattiDipendente() {
               </div>
             )}
           </div>
+        </>
+      )}
+
+      {/* Buste Paga Tab */}
+      {activeTab === 'buste_paga' && (
+        <>
+          {mieBustePaga.length === 0 ? (
+            <NeumorphicCard className="p-8 text-center">
+              <DollarSign className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+              <p className="text-slate-500">Nessuna busta paga disponibile</p>
+            </NeumorphicCard>
+          ) : (
+            <div className="space-y-3">
+              {mieBustePaga.map(busta => (
+                <NeumorphicCard key={busta.id} className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-bold text-slate-800">
+                        {new Date(busta.mese + '-01').toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })}
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Disponibile dal: {new Date(busta.created_date).toLocaleDateString('it-IT')}
+                      </p>
+                    </div>
+                    <a
+                      href={busta.mio_pdf_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-2 rounded-xl text-white font-medium flex items-center gap-2 text-sm"
+                    >
+                      <Download className="w-4 h-4" />
+                      Scarica
+                    </a>
+                  </div>
+                </NeumorphicCard>
+              ))}
+            </div>
+          )}
         </>
       )}
 
