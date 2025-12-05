@@ -501,7 +501,9 @@ export default function StoreManagerAdmin() {
               const sm = users.find(u => u.id === store?.store_manager_id);
               const actual = getActualResults(target.store_id);
 
-              // Check if ANY threshold is breached (loses ALL bonuses)
+              // Check if ANY threshold is breached (loses ALL bonuses) - only for past months
+              const isCurrentMonth = selectedMonth === `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+              
               const fatturatoBreached = target.soglia_min_fatturato && actual.fatturato < target.soglia_min_fatturato;
               const recensioniBreached = target.soglia_min_recensioni && actual.mediaRecensioni && actual.mediaRecensioni < target.soglia_min_recensioni;
               const numRecensioniBreached = target.soglia_min_num_recensioni && actual.numRecensioni < target.soglia_min_num_recensioni;
@@ -509,7 +511,16 @@ export default function StoreManagerAdmin() {
               const ritardiBreached = target.soglia_max_ritardi && actual.totaleRitardi > target.soglia_max_ritardi;
               const pulizieBreached = target.soglia_min_pulizie && actual.mediaPulizie && actual.mediaPulizie < target.soglia_min_pulizie;
 
-              const anyThresholdBreached = fatturatoBreached || recensioniBreached || numRecensioniBreached || ordiniBreached || ritardiBreached || pulizieBreached;
+              const anyThresholdBreached = !isCurrentMonth && (fatturatoBreached || recensioniBreached || numRecensioniBreached || ordiniBreached || ritardiBreached || pulizieBreached);
+              
+              // For current month, show warnings but don't zero bonuses
+              const atRiskMetrics = [];
+              if (fatturatoBreached) atRiskMetrics.push('Fatturato');
+              if (recensioniBreached) atRiskMetrics.push('Media Recensioni');
+              if (numRecensioniBreached) atRiskMetrics.push('Num Recensioni');
+              if (ordiniBreached) atRiskMetrics.push('Ordini Sbagliati');
+              if (ritardiBreached) atRiskMetrics.push('Ritardi');
+              if (pulizieBreached) atRiskMetrics.push('Pulizie');
 
               // Calculate if targets are met
               const fatturatoMet = target.target_fatturato && actual.fatturato >= target.target_fatturato;
@@ -530,7 +541,7 @@ export default function StoreManagerAdmin() {
                 if (pulizieMet && target.bonus_pulizie) totalBonus += target.bonus_pulizie;
               }
 
-              const MetricCard = ({ icon: Icon, iconColor, label, target: tgt, actual: act, isMet, bonus, isLowerBetter = false, suffix = '' }) => (
+              const MetricCard = ({ icon: Icon, iconColor, label, target: tgt, actual: act, isMet, bonus, isLowerBetter = false, suffix = '', threshold, thresholdLabel }) => (
                 <div className={`neumorphic-flat p-3 rounded-lg ${isMet ? 'bg-green-50 border border-green-300' : ''}`}>
                   <div className="flex items-center justify-between mb-2">
                     <Icon className={`w-4 h-4 ${iconColor}`} />
@@ -553,6 +564,11 @@ export default function StoreManagerAdmin() {
                       / {tgt !== null && tgt !== undefined ? tgt.toLocaleString('it-IT') : '-'}{suffix}
                     </p>
                   </div>
+                  {threshold !== null && threshold !== undefined && (
+                    <p className="text-[10px] text-red-500 mt-0.5">
+                      {thresholdLabel || 'Soglia'}: {threshold}{suffix}
+                    </p>
+                  )}
                   {bonus && (
                     <p className={`text-xs mt-1 ${isMet ? 'text-green-600 font-bold' : 'text-slate-400'}`}>
                       {isMet ? '✓' : ''} €{bonus} bonus
@@ -608,6 +624,16 @@ export default function StoreManagerAdmin() {
                     </div>
                   )}
 
+                  {isCurrentMonth && atRiskMetrics.length > 0 && !anyThresholdBreached && (
+                    <div className="mb-3 p-2 bg-orange-100 border border-orange-300 rounded-lg text-sm text-orange-800 flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <strong>⚠️ Attenzione:</strong> Le seguenti metriche sono sotto la soglia minima e potrebbero causare la perdita di TUTTI i bonus a fine mese:
+                        <span className="font-bold ml-1">{atRiskMetrics.join(', ')}</span>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
                     <MetricCard
                       icon={DollarSign}
@@ -616,8 +642,10 @@ export default function StoreManagerAdmin() {
                       target={target.target_fatturato}
                       actual={actual.fatturato}
                       isMet={fatturatoMet && !anyThresholdBreached}
-                      bonus={!anyThresholdBreached ? target.bonus_fatturato : null}
+                      bonus={target.bonus_fatturato}
                       suffix="€"
+                      threshold={target.soglia_min_fatturato}
+                      thresholdLabel="Min"
                     />
                     <MetricCard
                       icon={Star}
@@ -626,7 +654,9 @@ export default function StoreManagerAdmin() {
                       target={target.target_recensioni_media}
                       actual={actual.mediaRecensioni}
                       isMet={recensioniMet && !anyThresholdBreached}
-                      bonus={!anyThresholdBreached ? target.bonus_recensioni : null}
+                      bonus={target.bonus_recensioni}
+                      threshold={target.soglia_min_recensioni}
+                      thresholdLabel="Min"
                     />
                     <MetricCard
                       icon={BarChart3}
@@ -635,7 +665,9 @@ export default function StoreManagerAdmin() {
                       target={target.target_num_recensioni}
                       actual={actual.numRecensioni}
                       isMet={numRecensioniMet && !anyThresholdBreached}
-                      bonus={!anyThresholdBreached ? target.bonus_num_recensioni : null}
+                      bonus={target.bonus_num_recensioni}
+                      threshold={target.soglia_min_num_recensioni}
+                      thresholdLabel="Min"
                     />
                     <MetricCard
                       icon={AlertTriangle}
@@ -644,8 +676,10 @@ export default function StoreManagerAdmin() {
                       target={target.target_ordini_sbagliati_max}
                       actual={actual.numOrdiniSbagliati}
                       isMet={ordiniMet && !anyThresholdBreached}
-                      bonus={!anyThresholdBreached ? target.bonus_ordini_sbagliati : null}
+                      bonus={target.bonus_ordini_sbagliati}
                       isLowerBetter
+                      threshold={target.soglia_max_ordini_sbagliati}
+                      thresholdLabel="Max"
                     />
                     <MetricCard
                       icon={Clock}
@@ -654,9 +688,11 @@ export default function StoreManagerAdmin() {
                       target={target.target_ritardi_max_minuti}
                       actual={actual.totaleRitardi}
                       isMet={ritardiMet && !anyThresholdBreached}
-                      bonus={!anyThresholdBreached ? target.bonus_ritardi : null}
+                      bonus={target.bonus_ritardi}
                       isLowerBetter
                       suffix=" min"
+                      threshold={target.soglia_max_ritardi}
+                      thresholdLabel="Max"
                     />
                     <MetricCard
                       icon={Sparkles}
@@ -665,7 +701,9 @@ export default function StoreManagerAdmin() {
                       target={target.target_pulizie_min_score}
                       actual={actual.mediaPulizie ? Math.round(actual.mediaPulizie) : null}
                       isMet={pulizieMet && !anyThresholdBreached}
-                      bonus={!anyThresholdBreached ? target.bonus_pulizie : null}
+                      bonus={target.bonus_pulizie}
+                      threshold={target.soglia_min_pulizie}
+                      thresholdLabel="Min"
                     />
                   </div>
                 </div>
