@@ -245,9 +245,14 @@ const navigationStructure = [
         title: "Store Manager",
         url: createPageUrl("StoreManagerAdmin"),
         icon: Users,
+      },
+      {
+        title: "ATS",
+        url: createPageUrl("ATS"),
+        icon: Users,
       }
-    ]
-  },
+      ]
+      },
   {
     title: "Pulizie",
     icon: Zap,

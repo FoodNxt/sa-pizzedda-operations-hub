@@ -83,6 +83,7 @@ import Assenze from './pages/Assenze';
 import CreaCorso from './pages/CreaCorso';
 import DashboardStoreManager from './pages/DashboardStoreManager';
 import StoreManagerAdmin from './pages/StoreManagerAdmin';
+import ATS from './pages/ATS';
 import __Layout from './Layout.jsx';
 
 
@@ -172,6 +173,7 @@ export const PAGES = {
     "CreaCorso": CreaCorso,
     "DashboardStoreManager": DashboardStoreManager,
     "StoreManagerAdmin": StoreManagerAdmin,
+    "ATS": ATS,
 }
 
 export const pagesConfig = {
