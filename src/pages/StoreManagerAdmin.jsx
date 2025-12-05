@@ -14,10 +14,16 @@ import {
   Plus,
   Edit,
   Trash2,
-  X
+  X,
+  TrendingUp,
+  TrendingDown,
+  CheckCircle,
+  Gift,
+  BarChart3
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
+import moment from "moment";
 
 export default function StoreManagerAdmin() {
   const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -32,7 +38,12 @@ export default function StoreManagerAdmin() {
     target_recensioni_media: '',
     target_ordini_sbagliati_max: '',
     target_ritardi_max_minuti: '',
-    target_pulizie_min_score: ''
+    target_pulizie_min_score: '',
+    bonus_fatturato: '',
+    bonus_recensioni: '',
+    bonus_ordini_sbagliati: '',
+    bonus_ritardi: '',
+    bonus_pulizie: ''
   });
 
   const queryClient = useQueryClient();
@@ -51,6 +62,81 @@ export default function StoreManagerAdmin() {
     queryKey: ['sm-targets', selectedMonth],
     queryFn: () => base44.entities.StoreManagerTarget.filter({ mese: selectedMonth })
   });
+
+  // Fetch actual data for comparison
+  const { data: iPraticoData = [] } = useQuery({
+    queryKey: ['ipratico-data', selectedMonth],
+    queryFn: () => base44.entities.iPratico.filter({})
+  });
+
+  const { data: reviews = [] } = useQuery({
+    queryKey: ['reviews', selectedMonth],
+    queryFn: () => base44.entities.Review.filter({})
+  });
+
+  const { data: ordiniSbagliati = [] } = useQuery({
+    queryKey: ['ordini-sbagliati', selectedMonth],
+    queryFn: () => base44.entities.WrongOrder.filter({})
+  });
+
+  const { data: shifts = [] } = useQuery({
+    queryKey: ['shifts-sm', selectedMonth],
+    queryFn: () => base44.entities.Shift.filter({})
+  });
+
+  const { data: pulizie = [] } = useQuery({
+    queryKey: ['pulizie-sm', selectedMonth],
+    queryFn: () => base44.entities.CleaningInspection.filter({})
+  });
+
+  // Calculate actual results per store for selected month
+  const getActualResults = (storeId) => {
+    const monthStart = moment(selectedMonth, 'YYYY-MM').startOf('month');
+    const monthEnd = moment(selectedMonth, 'YYYY-MM').endOf('month');
+
+    // Fatturato
+    const storeIPratico = iPraticoData.filter(i => 
+      i.store_id === storeId && 
+      moment(i.order_date).isBetween(monthStart, monthEnd, 'day', '[]')
+    );
+    const fatturato = storeIPratico.reduce((acc, i) => acc + (i.total_revenue || 0), 0);
+
+    // Recensioni
+    const storeReviews = reviews.filter(r => 
+      r.store_id === storeId && 
+      moment(r.review_date).isBetween(monthStart, monthEnd, 'day', '[]')
+    );
+    const mediaRecensioni = storeReviews.length > 0 
+      ? storeReviews.reduce((acc, r) => acc + r.rating, 0) / storeReviews.length 
+      : null;
+
+    // Ordini sbagliati
+    const storeOrdini = ordiniSbagliati.filter(o => 
+      o.store_id === storeId && 
+      moment(o.order_date || o.created_date).isBetween(monthStart, monthEnd, 'day', '[]')
+    );
+    const numOrdiniSbagliati = storeOrdini.length;
+
+    // Ritardi
+    const storeShifts = shifts.filter(s => 
+      s.store_id === storeId && 
+      moment(s.shift_date).isBetween(monthStart, monthEnd, 'day', '[]') &&
+      s.minuti_di_ritardo > 0
+    );
+    const totaleRitardi = storeShifts.reduce((acc, s) => acc + (s.minuti_di_ritardo || 0), 0);
+
+    // Pulizie
+    const storePulizie = pulizie.filter(p => 
+      p.store_id === storeId && 
+      moment(p.inspection_date).isBetween(monthStart, monthEnd, 'day', '[]') &&
+      p.overall_score !== undefined
+    );
+    const mediaPulizie = storePulizie.length > 0
+      ? storePulizie.reduce((acc, p) => acc + p.overall_score, 0) / storePulizie.length
+      : null;
+
+    return { fatturato, mediaRecensioni, numOrdiniSbagliati, totaleRitardi, mediaPulizie };
+  };
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.StoreManagerTarget.create(data),
@@ -82,7 +168,12 @@ export default function StoreManagerAdmin() {
       target_recensioni_media: '',
       target_ordini_sbagliati_max: '',
       target_ritardi_max_minuti: '',
-      target_pulizie_min_score: ''
+      target_pulizie_min_score: '',
+      bonus_fatturato: '',
+      bonus_recensioni: '',
+      bonus_ordini_sbagliati: '',
+      bonus_ritardi: '',
+      bonus_pulizie: ''
     });
     setEditingTarget(null);
     setShowForm(false);
@@ -96,7 +187,12 @@ export default function StoreManagerAdmin() {
       target_recensioni_media: target.target_recensioni_media || '',
       target_ordini_sbagliati_max: target.target_ordini_sbagliati_max || '',
       target_ritardi_max_minuti: target.target_ritardi_max_minuti || '',
-      target_pulizie_min_score: target.target_pulizie_min_score || ''
+      target_pulizie_min_score: target.target_pulizie_min_score || '',
+      bonus_fatturato: target.bonus_fatturato || '',
+      bonus_recensioni: target.bonus_recensioni || '',
+      bonus_ordini_sbagliati: target.bonus_ordini_sbagliati || '',
+      bonus_ritardi: target.bonus_ritardi || '',
+      bonus_pulizie: target.bonus_pulizie || ''
     });
     setShowForm(true);
   };
@@ -113,7 +209,12 @@ export default function StoreManagerAdmin() {
       target_recensioni_media: formData.target_recensioni_media ? parseFloat(formData.target_recensioni_media) : null,
       target_ordini_sbagliati_max: formData.target_ordini_sbagliati_max ? parseInt(formData.target_ordini_sbagliati_max) : null,
       target_ritardi_max_minuti: formData.target_ritardi_max_minuti ? parseInt(formData.target_ritardi_max_minuti) : null,
-      target_pulizie_min_score: formData.target_pulizie_min_score ? parseInt(formData.target_pulizie_min_score) : null
+      target_pulizie_min_score: formData.target_pulizie_min_score ? parseInt(formData.target_pulizie_min_score) : null,
+      bonus_fatturato: formData.bonus_fatturato ? parseFloat(formData.bonus_fatturato) : null,
+      bonus_recensioni: formData.bonus_recensioni ? parseFloat(formData.bonus_recensioni) : null,
+      bonus_ordini_sbagliati: formData.bonus_ordini_sbagliati ? parseFloat(formData.bonus_ordini_sbagliati) : null,
+      bonus_ritardi: formData.bonus_ritardi ? parseFloat(formData.bonus_ritardi) : null,
+      bonus_pulizie: formData.bonus_pulizie ? parseFloat(formData.bonus_pulizie) : null
     };
 
     if (editingTarget) {
@@ -285,6 +386,71 @@ export default function StoreManagerAdmin() {
               </div>
             </div>
 
+            {/* Bonus Section */}
+            <div className="mt-6 pt-4 border-t border-slate-200">
+              <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+                <Gift className="w-5 h-5 text-green-600" />
+                Bonus per Metrica (€)
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Bonus Fatturato</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.bonus_fatturato}
+                    onChange={(e) => setFormData({ ...formData, bonus_fatturato: e.target.value })}
+                    placeholder="€"
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Bonus Recensioni</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.bonus_recensioni}
+                    onChange={(e) => setFormData({ ...formData, bonus_recensioni: e.target.value })}
+                    placeholder="€"
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Bonus Ordini</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.bonus_ordini_sbagliati}
+                    onChange={(e) => setFormData({ ...formData, bonus_ordini_sbagliati: e.target.value })}
+                    placeholder="€"
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Bonus Ritardi</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.bonus_ritardi}
+                    onChange={(e) => setFormData({ ...formData, bonus_ritardi: e.target.value })}
+                    placeholder="€"
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Bonus Pulizie</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.bonus_pulizie}
+                    onChange={(e) => setFormData({ ...formData, bonus_pulizie: e.target.value })}
+                    placeholder="€"
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className="flex gap-3 pt-4">
               <NeumorphicButton type="button" onClick={resetForm}>
                 Annulla
@@ -313,14 +479,61 @@ export default function StoreManagerAdmin() {
             <p className="text-slate-500">Nessun target configurato per questo mese</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {targets.map(target => {
               const store = stores.find(s => s.id === target.store_id);
               const sm = users.find(u => u.id === store?.store_manager_id);
+              const actual = getActualResults(target.store_id);
+
+              // Calculate if targets are met
+              const fatturatoMet = target.target_fatturato && actual.fatturato >= target.target_fatturato;
+              const recensioniMet = target.target_recensioni_media && actual.mediaRecensioni && actual.mediaRecensioni >= target.target_recensioni_media;
+              const ordiniMet = target.target_ordini_sbagliati_max !== null && actual.numOrdiniSbagliati <= target.target_ordini_sbagliati_max;
+              const ritardiMet = target.target_ritardi_max_minuti && actual.totaleRitardi <= target.target_ritardi_max_minuti;
+              const pulizieMet = target.target_pulizie_min_score && actual.mediaPulizie && actual.mediaPulizie >= target.target_pulizie_min_score;
+
+              // Calculate total bonus
+              let totalBonus = 0;
+              if (fatturatoMet && target.bonus_fatturato) totalBonus += target.bonus_fatturato;
+              if (recensioniMet && target.bonus_recensioni) totalBonus += target.bonus_recensioni;
+              if (ordiniMet && target.bonus_ordini_sbagliati) totalBonus += target.bonus_ordini_sbagliati;
+              if (ritardiMet && target.bonus_ritardi) totalBonus += target.bonus_ritardi;
+              if (pulizieMet && target.bonus_pulizie) totalBonus += target.bonus_pulizie;
+
+              const MetricCard = ({ icon: Icon, iconColor, label, target: tgt, actual: act, isMet, bonus, isLowerBetter = false, suffix = '' }) => (
+                <div className={`neumorphic-flat p-3 rounded-lg ${isMet ? 'bg-green-50 border border-green-300' : ''}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <Icon className={`w-4 h-4 ${iconColor}`} />
+                    {isMet ? (
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                    ) : act !== null && act !== undefined ? (
+                      isLowerBetter ? (
+                        <TrendingUp className="w-4 h-4 text-red-500" />
+                      ) : (
+                        <TrendingDown className="w-4 h-4 text-red-500" />
+                      )
+                    ) : null}
+                  </div>
+                  <p className="text-xs text-slate-500">{label}</p>
+                  <div className="flex items-baseline gap-1 mt-1">
+                    <p className={`font-bold ${isMet ? 'text-green-700' : 'text-slate-700'}`}>
+                      {act !== null && act !== undefined ? (typeof act === 'number' ? act.toLocaleString('it-IT', { maximumFractionDigits: 1 }) : act) : '-'}{suffix}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      / {tgt !== null && tgt !== undefined ? tgt.toLocaleString('it-IT') : '-'}{suffix}
+                    </p>
+                  </div>
+                  {bonus && (
+                    <p className={`text-xs mt-1 ${isMet ? 'text-green-600 font-bold' : 'text-slate-400'}`}>
+                      {isMet ? '✓' : ''} €{bonus} bonus
+                    </p>
+                  )}
+                </div>
+              );
 
               return (
                 <div key={target.id} className="neumorphic-pressed p-4 rounded-xl">
-                  <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <Store className="w-6 h-6 text-purple-600" />
                       <div>
@@ -330,62 +543,84 @@ export default function StoreManagerAdmin() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleEdit(target)}
-                        className="nav-button p-2 rounded-lg hover:bg-blue-50"
-                      >
-                        <Edit className="w-4 h-4 text-blue-600" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm('Eliminare questo target?')) {
-                            deleteMutation.mutate(target.id);
-                          }
-                        }}
-                        className="nav-button p-2 rounded-lg hover:bg-red-50"
-                      >
-                        <Trash2 className="w-4 h-4 text-red-600" />
-                      </button>
+                    <div className="flex items-center gap-3">
+                      {totalBonus > 0 && (
+                        <div className="neumorphic-flat px-3 py-1 rounded-lg bg-green-50 border border-green-300">
+                          <p className="text-xs text-green-600">Bonus Totale</p>
+                          <p className="font-bold text-green-700">€{totalBonus}</p>
+                        </div>
+                      )}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEdit(target)}
+                          className="nav-button p-2 rounded-lg hover:bg-blue-50"
+                        >
+                          <Edit className="w-4 h-4 text-blue-600" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm('Eliminare questo target?')) {
+                              deleteMutation.mutate(target.id);
+                            }
+                          }}
+                          className="nav-button p-2 rounded-lg hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </button>
+                      </div>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                    <div className="neumorphic-flat p-2 rounded-lg text-center">
-                      <DollarSign className="w-4 h-4 text-green-600 mx-auto mb-1" />
-                      <p className="text-xs text-slate-500">Fatturato</p>
-                      <p className="font-bold text-slate-700">
-                        {target.target_fatturato ? `€${target.target_fatturato.toLocaleString()}` : '-'}
-                      </p>
-                    </div>
-                    <div className="neumorphic-flat p-2 rounded-lg text-center">
-                      <Star className="w-4 h-4 text-yellow-500 mx-auto mb-1" />
-                      <p className="text-xs text-slate-500">Recensioni</p>
-                      <p className="font-bold text-slate-700">
-                        {target.target_recensioni_media || '-'}
-                      </p>
-                    </div>
-                    <div className="neumorphic-flat p-2 rounded-lg text-center">
-                      <AlertTriangle className="w-4 h-4 text-red-600 mx-auto mb-1" />
-                      <p className="text-xs text-slate-500">Ordini Max</p>
-                      <p className="font-bold text-slate-700">
-                        {target.target_ordini_sbagliati_max ?? '-'}
-                      </p>
-                    </div>
-                    <div className="neumorphic-flat p-2 rounded-lg text-center">
-                      <Clock className="w-4 h-4 text-blue-600 mx-auto mb-1" />
-                      <p className="text-xs text-slate-500">Ritardi Max</p>
-                      <p className="font-bold text-slate-700">
-                        {target.target_ritardi_max_minuti ? `${target.target_ritardi_max_minuti} min` : '-'}
-                      </p>
-                    </div>
-                    <div className="neumorphic-flat p-2 rounded-lg text-center">
-                      <Sparkles className="w-4 h-4 text-purple-600 mx-auto mb-1" />
-                      <p className="text-xs text-slate-500">Pulizie Min</p>
-                      <p className="font-bold text-slate-700">
-                        {target.target_pulizie_min_score ?? '-'}
-                      </p>
-                    </div>
+                    <MetricCard
+                      icon={DollarSign}
+                      iconColor="text-green-600"
+                      label="Fatturato"
+                      target={target.target_fatturato}
+                      actual={actual.fatturato}
+                      isMet={fatturatoMet}
+                      bonus={target.bonus_fatturato}
+                      suffix="€"
+                    />
+                    <MetricCard
+                      icon={Star}
+                      iconColor="text-yellow-500"
+                      label="Media Recensioni"
+                      target={target.target_recensioni_media}
+                      actual={actual.mediaRecensioni}
+                      isMet={recensioniMet}
+                      bonus={target.bonus_recensioni}
+                    />
+                    <MetricCard
+                      icon={AlertTriangle}
+                      iconColor="text-red-600"
+                      label="Ordini Sbagliati"
+                      target={target.target_ordini_sbagliati_max}
+                      actual={actual.numOrdiniSbagliati}
+                      isMet={ordiniMet}
+                      bonus={target.bonus_ordini_sbagliati}
+                      isLowerBetter
+                    />
+                    <MetricCard
+                      icon={Clock}
+                      iconColor="text-blue-600"
+                      label="Ritardi Tot"
+                      target={target.target_ritardi_max_minuti}
+                      actual={actual.totaleRitardi}
+                      isMet={ritardiMet}
+                      bonus={target.bonus_ritardi}
+                      isLowerBetter
+                      suffix=" min"
+                    />
+                    <MetricCard
+                      icon={Sparkles}
+                      iconColor="text-purple-600"
+                      label="Score Pulizie"
+                      target={target.target_pulizie_min_score}
+                      actual={actual.mediaPulizie ? Math.round(actual.mediaPulizie) : null}
+                      isMet={pulizieMet}
+                      bonus={target.bonus_pulizie}
+                    />
                   </div>
                 </div>
               );
