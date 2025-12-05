@@ -138,12 +138,15 @@ export default function StrutturaTurno() {
     onSuccess: (data) => {
       console.log('Create mutation onSuccess, invalidating queries');
       queryClient.invalidateQueries({ queryKey: ['struttura-turno'] });
+      // Reset filters to show the new schema
+      setSelectedRuolo('');
+      setSelectedStoreFilter('');
       resetForm();
-      alert('Schema salvato con successo!');
+      alert('✅ Schema salvato e visibile nella lista!');
     },
     onError: (error) => {
       console.error('Error creating schema:', error);
-      alert('Errore durante il salvataggio: ' + error.message);
+      alert('❌ Errore durante il salvataggio: ' + error.message);
     }
   });
 
@@ -157,12 +160,15 @@ export default function StrutturaTurno() {
     onSuccess: () => {
       console.log('Update mutation onSuccess, invalidating queries');
       queryClient.invalidateQueries({ queryKey: ['struttura-turno'] });
+      // Reset filters to show the updated schema
+      setSelectedRuolo('');
+      setSelectedStoreFilter('');
       resetForm();
-      alert('Schema aggiornato con successo!');
+      alert('✅ Schema aggiornato con successo!');
     },
     onError: (error) => {
       console.error('Error updating schema:', error);
-      alert('Errore durante l\'aggiornamento: ' + error.message);
+      alert('❌ Errore durante l\'aggiornamento: ' + error.message);
     }
   });
 
