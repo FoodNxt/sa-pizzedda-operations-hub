@@ -62,7 +62,9 @@ export default function Planday() {
     ruolo: 'Pizzaiolo',
     dipendente_id: '',
     tipo_turno: 'Normale',
-    note: ''
+    note: '',
+    is_prova: false,
+    candidato_id: ''
   });
 
   const queryClient = useQueryClient();
@@ -194,6 +196,11 @@ export default function Planday() {
   const { data: struttureTurno = [] } = useQuery({
     queryKey: ['strutture-turno'],
     queryFn: () => base44.entities.StrutturaTurno.list(),
+  });
+
+  const { data: candidati = [] } = useQuery({
+    queryKey: ['candidati'],
+    queryFn: () => base44.entities.Candidato.filter({ stato: { $in: ['nuovo', 'in_valutazione', 'prova_programmata'] } }),
   });
 
   // Richieste turni liberi
@@ -434,7 +441,9 @@ export default function Planday() {
       ruolo: 'Pizzaiolo',
       dipendente_id: '',
       tipo_turno: 'Normale',
-      note: ''
+      note: '',
+      is_prova: false,
+      candidato_id: ''
     });
     setEditingTurno(null);
     setShowForm(false);
@@ -451,22 +460,29 @@ export default function Planday() {
       ruolo: turno.ruolo,
       dipendente_id: turno.dipendente_id || '',
       tipo_turno: turno.tipo_turno || 'Normale',
-      note: turno.note || ''
+      note: turno.note || '',
+      is_prova: turno.is_prova || false,
+      candidato_id: turno.candidato_id || ''
     });
     setShowForm(true);
   };
 
   const handleSaveTurno = () => {
     const dipendente = users.find(u => u.id === turnoForm.dipendente_id);
+    const candidato = candidati.find(c => c.id === turnoForm.candidato_id);
     const momento = getTurnoTipo({ ora_inizio: turnoForm.ora_inizio });
     const sequence = momento === 'Mattina' ? 'first' : 'second';
     
     const dataToSave = {
       ...turnoForm,
-      dipendente_nome: dipendente?.nome_cognome || dipendente?.full_name || '',
+      dipendente_nome: turnoForm.is_prova && candidato 
+        ? `${candidato.nome} ${candidato.cognome} (PROVA)`
+        : (dipendente?.nome_cognome || dipendente?.full_name || ''),
       tipo_turno: turnoForm.tipo_turno || 'Normale',
       momento_turno: momento,
-      turno_sequence: sequence
+      turno_sequence: sequence,
+      is_prova: turnoForm.is_prova,
+      candidato_id: turnoForm.is_prova ? turnoForm.candidato_id : ''
     };
 
     if (editingTurno) {
@@ -1682,6 +1698,50 @@ export default function Planday() {
                 className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
                 placeholder="Note opzionali..."
               />
+            </div>
+
+            {/* Turno di Prova */}
+            <div className="neumorphic-pressed p-4 rounded-xl bg-purple-50">
+              <div className="flex items-center gap-3 mb-3">
+                <input
+                  type="checkbox"
+                  id="is-prova"
+                  checked={turnoForm.is_prova}
+                  onChange={(e) => setTurnoForm({ 
+                    ...turnoForm, 
+                    is_prova: e.target.checked,
+                    dipendente_id: e.target.checked ? '' : turnoForm.dipendente_id,
+                    candidato_id: ''
+                  })}
+                  className="w-5 h-5"
+                />
+                <label htmlFor="is-prova" className="text-sm font-medium text-purple-800">
+                  🧪 Questo è un turno di PROVA (candidato)
+                </label>
+              </div>
+              
+              {turnoForm.is_prova && (
+                <div>
+                  <label className="text-sm font-medium text-purple-700 mb-1 block">Seleziona Candidato (da ATS)</label>
+                  <select
+                    value={turnoForm.candidato_id}
+                    onChange={(e) => setTurnoForm({ ...turnoForm, candidato_id: e.target.value })}
+                    className="w-full neumorphic-flat px-4 py-3 rounded-xl text-slate-700 outline-none"
+                  >
+                    <option value="">Seleziona candidato...</option>
+                    {candidati.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.nome} {c.cognome} {c.posizione ? `(${c.posizione})` : ''} - {c.telefono}
+                      </option>
+                    ))}
+                  </select>
+                  {candidati.length === 0 && (
+                    <p className="text-xs text-purple-600 mt-1">
+                      Nessun candidato disponibile. Aggiungi candidati dalla pagina ATS.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3 pt-2">
