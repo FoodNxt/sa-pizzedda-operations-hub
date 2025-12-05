@@ -13,7 +13,8 @@ import {
   MapPin,
   Clock,
   Package,
-  CheckCircle
+  CheckCircle,
+  Euro
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -30,6 +31,7 @@ export default function ElencoFornitori() {
     giorni_consegna: [],
     tempo_consegna_giorni: '',
     metodologia_ricezione_ordine: 'Email',
+    ordine_minimo: '',
     contatto_email: '',
     contatto_telefono: '',
     referente_nome: '',
@@ -76,6 +78,7 @@ export default function ElencoFornitori() {
       giorni_consegna: [],
       tempo_consegna_giorni: '',
       metodologia_ricezione_ordine: 'Email',
+      ordine_minimo: '',
       contatto_email: '',
       contatto_telefono: '',
       referente_nome: '',
@@ -98,6 +101,7 @@ export default function ElencoFornitori() {
       giorni_consegna: supplier.giorni_consegna || [],
       tempo_consegna_giorni: supplier.tempo_consegna_giorni || '',
       metodologia_ricezione_ordine: supplier.metodologia_ricezione_ordine || 'Email',
+      ordine_minimo: supplier.ordine_minimo || '',
       contatto_email: supplier.contatto_email || '',
       contatto_telefono: supplier.contatto_telefono || '',
       referente_nome: supplier.referente_nome || '',
@@ -113,6 +117,7 @@ export default function ElencoFornitori() {
     const data = {
       ...formData,
       tempo_consegna_giorni: formData.tempo_consegna_giorni ? parseInt(formData.tempo_consegna_giorni) : null,
+      ordine_minimo: formData.ordine_minimo ? parseFloat(formData.ordine_minimo) : null,
       // Mantieni retrocompatibilità: salva anche tipo_fornitore con la prima categoria
       tipo_fornitore: formData.categorie_fornitore.length > 0 ? formData.categorie_fornitore[0] : 'altro'
     };
@@ -405,6 +410,22 @@ export default function ElencoFornitori() {
                         </select>
                       </div>
                     </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
+                        <Euro className="w-4 h-4" />
+                        Ordine Minimo (€)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={formData.ordine_minimo}
+                        onChange={(e) => setFormData({ ...formData, ordine_minimo: e.target.value })}
+                        placeholder="es. 50.00"
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -602,6 +623,13 @@ export default function ElencoFornitori() {
                       <div className="flex items-center gap-2 mb-3">
                         <Clock className="w-4 h-4 text-slate-400" />
                         <p className="text-sm text-slate-700">Consegna in {supplier.tempo_consegna_giorni}gg</p>
+                      </div>
+                    )}
+
+                    {supplier.ordine_minimo && (
+                      <div className="flex items-center gap-2 mb-3">
+                        <Euro className="w-4 h-4 text-slate-400" />
+                        <p className="text-sm text-slate-700">Ordine min. €{supplier.ordine_minimo.toFixed(2)}</p>
                       </div>
                     )}
 

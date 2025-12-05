@@ -59,6 +59,7 @@ export default function MateriePrime() {
   const [storeQuantitaCritica, setStoreQuantitaCritica] = useState({});
   const [storeQuantitaOrdine, setStoreQuantitaOrdine] = useState({});
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [collapsedCategories, setCollapsedCategories] = useState({});
 
   const queryClient = useQueryClient();
 
@@ -330,6 +331,13 @@ export default function MateriePrime() {
     return sortConfig.direction === 'asc' 
       ? <ArrowUp className="w-3 h-3 text-blue-600" /> 
       : <ArrowDown className="w-3 h-3 text-blue-600" />;
+  };
+
+  const toggleCategory = (categoria) => {
+    setCollapsedCategories(prev => ({
+      ...prev,
+      [categoria]: !prev[categoria]
+    }));
   };
 
   const sortProducts = (products) => {
@@ -1012,16 +1020,28 @@ export default function MateriePrime() {
         ) : (
           sortedCategories.map(categoria => {
             const categoryProducts = productsByCategory[categoria];
+            const isCollapsed = collapsedCategories[categoria];
             return (
             <NeumorphicCard key={categoria} className="p-4 lg:p-6">
-              <h2 className="text-lg font-bold text-slate-800 mb-4">
-                {categoria}
-                <span className="ml-2 text-sm font-normal text-slate-500">
-                  ({categoryProducts.length})
-                </span>
-              </h2>
+              <button
+                onClick={() => toggleCategory(categoria)}
+                className="w-full flex items-center justify-between text-left"
+              >
+                <h2 className="text-lg font-bold text-slate-800">
+                  {categoria}
+                  <span className="ml-2 text-sm font-normal text-slate-500">
+                    ({categoryProducts.length})
+                  </span>
+                </h2>
+                {isCollapsed ? (
+                  <ChevronDown className="w-5 h-5 text-slate-500" />
+                ) : (
+                  <ChevronUp className="w-5 h-5 text-slate-500" />
+                )}
+              </button>
 
-              <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
+              {!isCollapsed && (
+              <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0 mt-4">
                 <table className="w-full min-w-[700px]">
                   <thead>
                     <tr className="border-b-2 border-blue-600">
@@ -1164,6 +1184,7 @@ export default function MateriePrime() {
                   </tbody>
                 </table>
               </div>
+              )}
             </NeumorphicCard>
           );
           })
