@@ -47,6 +47,7 @@ export default function UsersManagement() {
     data_inizio_contratto: '',
     durata_contratto_mesi: 0,
     planday: false,
+    abilitato_prove: false,
     status: 'active'
   });
   const [sendingContract, setSendingContract] = useState(false);
@@ -105,6 +106,7 @@ export default function UsersManagement() {
       data_inizio_contratto: user.data_inizio_contratto || '',
       durata_contratto_mesi: user.durata_contratto_mesi || 0,
       planday: user.planday || false,
+      abilitato_prove: user.abilitato_prove || false,
       status: user.status || 'active'
     });
   };
@@ -148,6 +150,7 @@ export default function UsersManagement() {
       data_inizio_contratto: '',
       durata_contratto_mesi: 0,
       planday: false,
+      abilitato_prove: false,
       status: 'active'
     });
     setSelectedTemplate('');
@@ -989,7 +992,7 @@ export default function UsersManagement() {
                       </select>
                     </div>
 
-                    <div className="md:col-span-2 neumorphic-pressed p-3 rounded-lg">
+                    <div className="neumorphic-pressed p-3 rounded-lg">
                       <label className="flex items-center gap-3 cursor-pointer">
                         <input
                           type="checkbox"
@@ -998,6 +1001,21 @@ export default function UsersManagement() {
                           className="w-5 h-5 rounded"
                         />
                         <span className="text-[#6b6b6b] font-medium">Abilitato Planday</span>
+                      </label>
+                    </div>
+
+                    <div className="neumorphic-pressed p-3 rounded-lg bg-purple-50">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.abilitato_prove || false}
+                          onChange={(e) => setFormData({ ...formData, abilitato_prove: e.target.checked })}
+                          className="w-5 h-5 rounded"
+                        />
+                        <div>
+                          <span className="text-[#6b6b6b] font-medium">Abilitato a fare Prove</span>
+                          <p className="text-xs text-purple-600">Può affiancare candidati durante turni di prova</p>
+                        </div>
                       </label>
                     </div>
                   </div>
