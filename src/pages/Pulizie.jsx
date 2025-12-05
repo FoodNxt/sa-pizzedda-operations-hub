@@ -264,6 +264,19 @@ export default function Pulizie() {
     { name: 'Lavandino', key: 'lavandino', icon: '🚰' }
   ];
 
+  // Get all photos from domande_risposte for this inspection
+  const getAllPhotosFromRisposte = (inspection) => {
+    if (!inspection.domande_risposte) return [];
+    return inspection.domande_risposte
+      .filter(r => r.tipo_controllo === 'foto' && r.risposta)
+      .map(r => ({
+        domanda_id: r.domanda_id,
+        domanda_testo: r.domanda_testo,
+        attrezzatura: r.attrezzatura,
+        foto_url: r.risposta
+      }));
+  };
+
   // Mutation for saving corrections
   const saveCorrectionMutation = useMutation({
     mutationFn: async ({ inspectionId, equipmentKey, correctedStatus, correctionNote }) => {
@@ -860,14 +873,25 @@ export default function Pulizie() {
               </div>
             )}
 
-            {/* All Form Responses - SEMPRE MOSTRA */}
+            {/* All Form Responses + Equipment Photos with AI Analysis */}
             <div className="mt-6">
-              <h3 className="text-xl font-bold text-[#6b6b6b] mb-4">📋 Tutte le Risposte del Form</h3>
+              <h3 className="text-xl font-bold text-[#6b6b6b] mb-4">📋 Dettagli Completi Ispezione</h3>
 
               {detailsModalInspection.domande_risposte && detailsModalInspection.domande_risposte.length > 0 ? (
                 <div className="space-y-3">
                   {detailsModalInspection.domande_risposte.map((risposta, idx) => {
                     const isFoto = risposta.tipo_controllo === 'foto' || risposta.tipo_controllo === 'photo' || (risposta.risposta && typeof risposta.risposta === 'string' && risposta.risposta.startsWith('http'));
+
+                    // Find equipment key for AI analysis
+                    const equipmentKey = risposta.attrezzatura ? risposta.attrezzatura.toLowerCase().replace(/\s+/g, '_') : null;
+                    const aiStatus = equipmentKey ? detailsModalInspection[`${equipmentKey}_pulizia_status`] : null;
+                    const aiNotes = equipmentKey ? detailsModalInspection[`${equipmentKey}_note_ai`] : null;
+                    const isCorrected = equipmentKey ? detailsModalInspection[`${equipmentKey}_corrected`] : false;
+                    const correctedStatus = equipmentKey ? detailsModalInspection[`${equipmentKey}_corrected_status`] : null;
+                    const correctionNote = equipmentKey ? detailsModalInspection[`${equipmentKey}_correction_note`] : null;
+                    const displayStatus = isCorrected ? correctedStatus : aiStatus;
+                    const isEditing = correctingEquipment === equipmentKey;
+
                     return (
                       <div key={idx} className="neumorphic-flat p-4 rounded-xl">
                         <div className="flex items-start gap-3">
@@ -877,16 +901,99 @@ export default function Pulizie() {
                             <ClipboardCheck className="w-5 h-5 text-[#8b7355] flex-shrink-0 mt-0.5" />
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-[#6b6b6b] mb-2">
-                              {risposta.domanda_testo || risposta.attrezzatura || `Domanda ${idx + 1}`}
-                            </p>
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-sm font-bold text-[#6b6b6b]">
+                                {risposta.domanda_testo || risposta.attrezzatura || `Domanda ${idx + 1}`}
+                              </p>
+                              {isFoto && aiStatus && !isEditing && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStartCorrection(equipmentKey);
+                                  }}
+                                  className="nav-button p-1 rounded text-xs flex items-center gap-1"
+                                >
+                                  <Edit className="w-3 h-3" />
+                                  Correggi AI
+                                </button>
+                              )}
+                            </div>
+
                             {isFoto ? (
                               risposta.risposta ? (
-                                <img 
-                                  src={risposta.risposta} 
-                                  alt={risposta.attrezzatura || `Foto ${idx + 1}`} 
-                                  className="w-full max-w-md h-auto rounded-lg border-2 border-slate-200"
-                                />
+                                <div>
+                                  <img 
+                                    src={risposta.risposta} 
+                                    alt={risposta.attrezzatura || `Foto ${idx + 1}`} 
+                                    className="w-full max-w-md h-auto rounded-lg border-2 border-slate-200 mb-3"
+                                  />
+
+                                  {/* AI Analysis or Correction Form */}
+                                  {isEditing ? (
+                                    <div className="neumorphic-pressed p-3 rounded-lg bg-yellow-50 border border-yellow-300 mt-2">
+                                      <h4 className="text-xs font-bold text-[#6b6b6b] mb-2 flex items-center gap-1">
+                                        <Edit className="w-3 h-3" />
+                                        Correggi Valutazione AI
+                                      </h4>
+                                      <div className="space-y-2">
+                                        <select
+                                          value={correctionData.status}
+                                          onChange={(e) => setCorrectionData({...correctionData, status: e.target.value})}
+                                          className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none"
+                                        >
+                                          <option value="pulito">Pulito</option>
+                                          <option value="medio">Medio</option>
+                                          <option value="sporco">Sporco</option>
+                                          <option value="non_valutabile">Non Valutabile</option>
+                                        </select>
+                                        <textarea
+                                          value={correctionData.note}
+                                          onChange={(e) => setCorrectionData({...correctionData, note: e.target.value})}
+                                          placeholder="Perché l'AI ha sbagliato?"
+                                          className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none h-16 resize-none"
+                                        />
+                                        <div className="flex gap-2">
+                                          <button
+                                            onClick={() => handleSaveCorrection(equipmentKey)}
+                                            className="flex-1 nav-button px-3 py-1 rounded-lg text-xs text-green-700 hover:bg-green-50"
+                                          >
+                                            <Save className="w-3 h-3 inline mr-1" />
+                                            Salva
+                                          </button>
+                                          <button
+                                            onClick={() => setCorrectingEquipment(null)}
+                                            className="nav-button px-3 py-1 rounded-lg text-xs text-slate-600"
+                                          >
+                                            Annulla
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ) : aiStatus ? (
+                                    <div className="space-y-2">
+                                      <div className={`px-3 py-2 rounded-lg border ${getStatusColor(displayStatus)}`}>
+                                        <div className="flex items-center justify-between">
+                                          {getStatusIcon(displayStatus)}
+                                          <span className="text-sm font-bold capitalize">{displayStatus}</span>
+                                        </div>
+                                      </div>
+                                      <div className="neumorphic-pressed p-3 rounded-lg bg-slate-50">
+                                        <p className="text-xs font-medium text-slate-600 mb-1">
+                                          {isCorrected ? 'Valutazione originale AI:' : 'Analisi AI:'}
+                                        </p>
+                                        <p className="text-xs text-slate-700">{aiNotes || 'Nessuna nota'}</p>
+                                      </div>
+                                      {isCorrected && (
+                                        <div className="neumorphic-pressed p-3 rounded-lg bg-blue-50 border border-blue-200">
+                                          <p className="text-xs font-medium text-blue-700 mb-1">✓ Corretto a: {correctedStatus}</p>
+                                          {correctionNote && (
+                                            <p className="text-xs text-blue-600">{correctionNote}</p>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ) : null}
+                                </div>
                               ) : (
                                 <p className="text-sm text-slate-500 italic">Nessuna foto caricata</p>
                               )
