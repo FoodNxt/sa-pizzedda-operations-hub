@@ -84,6 +84,7 @@ import CreaCorso from './pages/CreaCorso';
 import DashboardStoreManager from './pages/DashboardStoreManager';
 import StoreManagerAdmin from './pages/StoreManagerAdmin';
 import ATS from './pages/ATS';
+import ValutazioneProvaForm from './pages/ValutazioneProvaForm';
 import __Layout from './Layout.jsx';
 
 
@@ -174,6 +175,7 @@ export const PAGES = {
     "DashboardStoreManager": DashboardStoreManager,
     "StoreManagerAdmin": StoreManagerAdmin,
     "ATS": ATS,
+    "ValutazioneProvaForm": ValutazioneProvaForm,
 }
 
 export const pagesConfig = {

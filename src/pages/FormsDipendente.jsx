@@ -11,7 +11,8 @@ import {
   DollarSign,
   ChefHat,
   Pizza,
-  Trash2
+  Trash2,
+  UserCheck
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 
@@ -108,6 +109,14 @@ export default function FormsDipendente() {
       icon: ClipboardList,
       url: "Preparazioni",
       color: "from-violet-500 to-purple-600"
+    },
+    {
+      title: "Valutazione Prove",
+      description: "Valuta i candidati",
+      icon: UserCheck,
+      url: "ValutazioneProvaForm",
+      color: "from-pink-500 to-rose-600",
+      requiresAbilitatoProve: true
     }
   ];
 
@@ -164,7 +173,15 @@ export default function FormsDipendente() {
   const formsPages = getFormsPages();
 
   // Filter forms based on config
-  const filteredForms = forms.filter(form => formsPages.includes(form.url));
+  let filteredForms = forms.filter(form => formsPages.includes(form.url));
+
+  // Add ValutazioneProvaForm for users with abilitato_prove
+  if (user?.abilitato_prove) {
+    const valutazioneForm = forms.find(f => f.url === 'ValutazioneProvaForm');
+    if (valutazioneForm && !filteredForms.some(f => f.url === 'ValutazioneProvaForm')) {
+      filteredForms = [...filteredForms, valutazioneForm];
+    }
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
