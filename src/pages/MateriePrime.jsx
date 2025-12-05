@@ -32,6 +32,19 @@ export default function MateriePrime() {
   const [storeQuantities, setStoreQuantities] = useState({});
   const [showStorePositions, setShowStorePositions] = useState(false);
   const [storePositions, setStorePositions] = useState({});
+  
+  const CATEGORIE = [
+    'Angolo di Sardegna',
+    'Bevande',
+    'Consumabili',
+    'Dolci',
+    'Ingredienti base',
+    'Ingredienti pronti',
+    'Ortofrutta',
+    'Packaging',
+    'Pulizia'
+  ];
+
   const [formData, setFormData] = useState({
     nome_prodotto: '',
     nome_interno: '',
@@ -294,18 +307,6 @@ export default function MateriePrime() {
     p.fornitore?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.categoria?.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  const CATEGORIE = [
-    'Angolo di Sardegna',
-    'Bevande',
-    'Consumabili',
-    'Dolci',
-    'Ingredienti base',
-    'Ingredienti pronti',
-    'Ortofrutta',
-    'Packaging',
-    'Pulizia'
-  ];
 
   // Nomi interni unici e ordinati
   const nomiInterniUnici = [...new Set(products.map(p => p.nome_interno).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'it'));
