@@ -182,41 +182,48 @@ export default function ATS() {
   };
 
   const handleSelectProva = async (candidato, turno) => {
-    const dipendente = users.find(u => u.id === turno.dipendente_id);
-    
-    // Create trial shift in Planday
-    const nomeCompleto = `${candidato.nome} ${candidato.cognome}`;
-    await base44.entities.TurnoPlanday.create({
-      store_id: turno.store_id,
-      data: turno.data,
-      ora_inizio: turno.ora_inizio,
-      ora_fine: turno.ora_fine,
-      ruolo: turno.ruolo,
-      tipo_turno: 'Prova',
-      momento_turno: turno.momento_turno,
-      turno_sequence: turno.turno_sequence,
-      stato: 'programmato',
-      is_prova: true,
-      candidato_id: candidato.id,
-      dipendente_nome: nomeCompleto,
-      note: `Turno di prova con ${dipendente?.nome_cognome || dipendente?.full_name || ''}`
-    });
-    
-    // Update candidato
-    updateMutation.mutate({ 
-      id: candidato.id, 
-      data: { 
-        stato: 'prova_programmata',
-        prova_data: turno.data,
-        prova_ora_inizio: turno.ora_inizio,
-        prova_ora_fine: turno.ora_fine,
-        prova_store_id: turno.store_id,
-        prova_dipendente_id: turno.dipendente_id,
-        prova_dipendente_nome: dipendente?.nome_cognome || dipendente?.full_name || ''
-      } 
-    });
-    setShowProvaModal(null);
-    alert(`Prova programmata per il ${moment(turno.data).format('DD/MM/YYYY')} dalle ${turno.ora_inizio} alle ${turno.ora_fine}`);
+    try {
+      const dipendente = users.find(u => u.id === turno.dipendente_id);
+      const nomeCompleto = `${candidato.nome} ${candidato.cognome}`;
+      
+      // Create trial shift in Planday
+      await base44.entities.TurnoPlanday.create({
+        store_id: turno.store_id,
+        data: turno.data,
+        ora_inizio: turno.ora_inizio,
+        ora_fine: turno.ora_fine,
+        ruolo: candidato.posizione || turno.ruolo,
+        tipo_turno: 'Prova',
+        momento_turno: turno.momento_turno,
+        turno_sequence: turno.turno_sequence,
+        stato: 'programmato',
+        is_prova: true,
+        candidato_id: candidato.id,
+        dipendente_nome: nomeCompleto,
+        note: `Turno di prova con ${dipendente?.nome_cognome || dipendente?.full_name || ''}`
+      });
+      
+      // Update candidato
+      await updateMutation.mutateAsync({ 
+        id: candidato.id, 
+        data: { 
+          stato: 'prova_programmata',
+          prova_data: turno.data,
+          prova_ora_inizio: turno.ora_inizio,
+          prova_ora_fine: turno.ora_fine,
+          prova_store_id: turno.store_id,
+          prova_dipendente_id: turno.dipendente_id,
+          prova_dipendente_nome: dipendente?.nome_cognome || dipendente?.full_name || ''
+        } 
+      });
+      
+      setShowProvaModal(null);
+      queryClient.invalidateQueries({ queryKey: ['turni-planday-ats'] });
+      alert(`Prova programmata per il ${moment(turno.data).format('DD/MM/YYYY')} dalle ${turno.ora_inizio} alle ${turno.ora_fine}`);
+    } catch (error) {
+      console.error('Error creating trial shift:', error);
+      alert('Errore nella programmazione della prova');
+    }
   };
 
   const getStoreName = (storeId) => stores.find((s) => s.id === storeId)?.name || "";

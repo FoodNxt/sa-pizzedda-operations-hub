@@ -33,6 +33,8 @@ export default function Ricette() {
     note: '',
     attivo: true
   });
+  const [customNomeProdotto, setCustomNomeProdotto] = useState('');
+  const [addingNewProduct, setAddingNewProduct] = useState(false);
 
   // NEW: Define valid product names (all columns except data_vendita)
   const VALID_PRODUCT_NAMES = [
@@ -125,6 +127,8 @@ export default function Ricette() {
     setSelectedIngredient('');
     setIngredientQuantity('');
     setIngredientUnit('g');
+    setCustomNomeProdotto('');
+    setAddingNewProduct(false);
     setEditingRecipe(null);
     setShowForm(false);
   };
@@ -271,7 +275,7 @@ export default function Ricette() {
     return totalCost;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (formData.ingredienti.length === 0) {
@@ -279,8 +283,28 @@ export default function Ricette() {
       return;
     }
     
-    if (!formData.is_semilavorato && !VALID_PRODUCT_NAMES.includes(formData.nome_prodotto)) {
-      alert('Per i prodotti finali, seleziona un nome prodotto dalla lista.');
+    let nomeProdotto = formData.nome_prodotto;
+    
+    // If custom product name, add to ProdottiVenduti
+    if (!formData.is_semilavorato && addingNewProduct && customNomeProdotto.trim()) {
+      nomeProdotto = customNomeProdotto.trim();
+      
+      // Check if already exists in ProdottiVenduti
+      const esistente = await base44.entities.ProdottiVenduti.filter({ nome_prodotto: nomeProdotto });
+      
+      if (esistente.length === 0) {
+        // Add to ProdottiVenduti
+        await base44.entities.ProdottiVenduti.create({
+          nome_prodotto: nomeProdotto,
+          categoria: formData.categoria,
+          attivo: true
+        });
+        queryClient.invalidateQueries({ queryKey: ['prodotti-venduti'] });
+      }
+    }
+    
+    if (!formData.is_semilavorato && !nomeProdotto) {
+      alert('Seleziona o inserisci un nome prodotto');
       return;
     }
 
@@ -292,6 +316,7 @@ export default function Ricette() {
 
     const data = {
       ...formData,
+      nome_prodotto: nomeProdotto,
       prezzo_vendita_online: prezzoOnline,
       prezzo_vendita_offline: prezzoOffline,
       costo_unitario: costoUnitario,
@@ -430,27 +455,63 @@ export default function Ricette() {
                         className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                         required
                       />
+                    ) : addingNewProduct ? (
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          value={customNomeProdotto}
+                          onChange={(e) => setCustomNomeProdotto(e.target.value)}
+                          placeholder="Inserisci nuovo nome prodotto..."
+                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAddingNewProduct(false);
+                            setCustomNomeProdotto('');
+                          }}
+                          className="text-xs text-blue-600 hover:underline"
+                        >
+                          ← Torna alla lista prodotti
+                        </button>
+                      </div>
                     ) : (
-                      <select
-                        value={formData.nome_prodotto}
-                        onChange={(e) => setFormData({ ...formData, nome_prodotto: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                        required
-                      >
-                        <option value="">Seleziona prodotto...</option>
-                        {VALID_PRODUCT_NAMES.map(name => (
-                          <option key={name} value={name}>{name}</option>
-                        ))}
-                      </select>
+                      <div className="space-y-2">
+                        <select
+                          value={formData.nome_prodotto}
+                          onChange={(e) => setFormData({ ...formData, nome_prodotto: e.target.value })}
+                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                          required={!addingNewProduct}
+                        >
+                          <option value="">Seleziona prodotto...</option>
+                          {VALID_PRODUCT_NAMES.map(name => (
+                            <option key={name} value={name}>{name}</option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => setAddingNewProduct(true)}
+                          className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                        >
+                          <Plus className="w-3 h-3" />
+                          Aggiungi nuovo prodotto alla lista
+                        </button>
+                      </div>
                     )}
                     {formData.is_semilavorato && (
                       <p className="text-xs text-blue-600 mt-1">
                         ℹ️ Semilavorato: puoi inserire un nome libero
                       </p>
                     )}
-                    {!formData.is_semilavorato && (
+                    {!formData.is_semilavorato && !addingNewProduct && (
                       <p className="text-xs text-[#9b9b9b] mt-1">
-                        ℹ️ Solo prodotti della tabella Prodotti Venduti. Spunta "Semilavorato" per nomi personalizzati.
+                        ℹ️ Seleziona dalla lista o aggiungi un nuovo prodotto
+                      </p>
+                    )}
+                    {addingNewProduct && (
+                      <p className="text-xs text-green-600 mt-1">
+                        ✓ Il nuovo prodotto verrà aggiunto automaticamente alla lista Prodotti Venduti
                       </p>
                     )}
                   </div>

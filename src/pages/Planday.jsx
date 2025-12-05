@@ -199,8 +199,32 @@ export default function Planday() {
   });
 
   const { data: candidati = [] } = useQuery({
-    queryKey: ['candidati'],
+    queryKey: ['candidati-planday'],
     queryFn: () => base44.entities.Candidato.filter({ stato: { $in: ['nuovo', 'in_valutazione', 'prova_programmata'] } }),
+  });
+
+  // Listen for changes in trial shifts to update candidati
+  const updateCandidatoFromTrialShift = useMutation({
+    mutationFn: async ({ turno }) => {
+      if (!turno.is_prova || !turno.candidato_id) return;
+      
+      const candidato = candidati.find(c => c.id === turno.candidato_id);
+      if (!candidato) return;
+      
+      // Update candidato with trial details
+      return base44.entities.Candidato.update(candidato.id, {
+        stato: 'prova_programmata',
+        prova_data: turno.data,
+        prova_ora_inizio: turno.ora_inizio,
+        prova_ora_fine: turno.ora_fine,
+        prova_store_id: turno.store_id,
+        prova_dipendente_id: turno.dipendente_id,
+        prova_dipendente_nome: turno.dipendente_nome
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['candidati-planday'] });
+    }
   });
 
   // Richieste turni liberi
@@ -467,7 +491,7 @@ export default function Planday() {
     setShowForm(true);
   };
 
-  const handleSaveTurno = () => {
+  const handleSaveTurno = async () => {
     const dipendente = users.find(u => u.id === turnoForm.dipendente_id);
     const candidato = candidati.find(c => c.id === turnoForm.candidato_id);
     const momento = getTurnoTipo({ ora_inizio: turnoForm.ora_inizio });
@@ -476,9 +500,9 @@ export default function Planday() {
     const dataToSave = {
       ...turnoForm,
       dipendente_nome: turnoForm.is_prova && candidato 
-        ? `${candidato.nome} ${candidato.cognome} (PROVA)`
+        ? `${candidato.nome} ${candidato.cognome}`
         : (dipendente?.nome_cognome || dipendente?.full_name || ''),
-      tipo_turno: turnoForm.tipo_turno || 'Normale',
+      tipo_turno: turnoForm.is_prova ? 'Prova' : (turnoForm.tipo_turno || 'Normale'),
       momento_turno: momento,
       turno_sequence: sequence,
       is_prova: turnoForm.is_prova,
@@ -486,9 +510,23 @@ export default function Planday() {
     };
 
     if (editingTurno) {
-      updateMutation.mutate({ id: editingTurno.id, data: dataToSave });
+      await updateMutation.mutateAsync({ id: editingTurno.id, data: dataToSave });
     } else {
-      createMutation.mutate(dataToSave);
+      await createMutation.mutateAsync(dataToSave);
+    }
+
+    // If trial shift, update candidato
+    if (turnoForm.is_prova && candidato) {
+      await base44.entities.Candidato.update(candidato.id, {
+        stato: 'prova_programmata',
+        prova_data: turnoForm.data,
+        prova_ora_inizio: turnoForm.ora_inizio,
+        prova_ora_fine: turnoForm.ora_fine,
+        prova_store_id: turnoForm.store_id,
+        prova_dipendente_id: turnoForm.dipendente_id,
+        prova_dipendente_nome: dipendente?.nome_cognome || dipendente?.full_name || ''
+      });
+      queryClient.invalidateQueries({ queryKey: ['candidati-planday'] });
     }
   };
 
