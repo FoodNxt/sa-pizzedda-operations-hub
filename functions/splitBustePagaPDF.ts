@@ -81,10 +81,16 @@ Deno.serve(async (req) => {
         // Save as bytes
         const pdfBytes = await singlePagePdf.save();
         
-        // Upload single page PDF
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        // Upload single page PDF to temp file and then upload
+        const tempFilePath = `/tmp/busta_${matchedUser.id}_${page.page_number}.pdf`;
+        await Deno.writeFile(tempFilePath, pdfBytes);
+        
+        // Read and upload
+        const fileData = await Deno.readFile(tempFilePath);
+        const base64Data = btoa(String.fromCharCode(...fileData));
+        
         const { file_url: singlePageUrl } = await base44.asServiceRole.integrations.Core.UploadFile({
-          file: blob
+          file: base64Data
         });
         
         splits.push({
