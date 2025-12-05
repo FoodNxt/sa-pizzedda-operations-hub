@@ -180,6 +180,7 @@ export default function GestioneAccessoPagine() {
     { value: 'AcademyAdmin', label: 'Academy Admin', category: 'HR' },
     { value: 'Planday', label: 'Planday - Gestione Turni', category: 'HR' },
     { value: 'Assenze', label: 'Assenze (Ferie/Malattia)', category: 'HR' },
+    { value: 'ATS', label: 'ATS - Candidati', category: 'HR' },
     { value: 'RecalculateShifts', label: 'Ricalcola Ritardi Turni', category: 'HR' },
     { value: 'CleanupDuplicateShifts', label: 'Elimina Turni Duplicati', category: 'HR' },
     { value: 'Pulizie', label: 'Storico Pulizie', category: 'Pulizie' },
