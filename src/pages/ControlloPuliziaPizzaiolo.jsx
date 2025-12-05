@@ -94,14 +94,14 @@ export default function ControlloPuliziaPizzaiolo() {
       return;
     }
 
-    const domandeObbligatorie = domande.filter(d => d.obbligatoria !== false);
+    const domandeObbligatorie = domande.filter(d => d.obbligatoria !== false && d.richiesto !== false);
     for (const domanda of domandeObbligatorie) {
       if (domanda.tipo_controllo === 'foto' && !photos[domanda.id]) {
         setError(`Carica la foto: ${domanda.attrezzatura}`);
         return;
       }
-      if (domanda.tipo_controllo === 'multipla' && !risposte[domanda.id]) {
-        setError(`Rispondi alla domanda: ${domanda.domanda_testo || domanda.testo_domanda}`);
+      if (domanda.tipo_controllo === 'scelta_multipla' && !risposte[domanda.id]) {
+        setError(`Rispondi alla domanda: ${domanda.domanda_testo}`);
         return;
       }
     }
@@ -174,10 +174,10 @@ export default function ControlloPuliziaPizzaiolo() {
     if (!selectedStore || !currentUser || uploading) return false;
     if (currentUser?.user_type === 'dipendente' && !(currentUser.ruoli_dipendente || []).includes('Pizzaiolo')) return false;
     
-    const domandeObbligatorie = domande.filter(d => d.obbligatoria !== false);
+    const domandeObbligatorie = domande.filter(d => d.obbligatoria !== false && d.richiesto !== false);
     for (const domanda of domandeObbligatorie) {
       if (domanda.tipo_controllo === 'foto' && !photos[domanda.id]) return false;
-      if (domanda.tipo_controllo === 'multipla' && !risposte[domanda.id]) return false;
+      if (domanda.tipo_controllo === 'scelta_multipla' && !risposte[domanda.id]) return false;
     }
     return true;
   };
@@ -282,7 +282,7 @@ export default function ControlloPuliziaPizzaiolo() {
             <div className="space-y-6">
               {domande.map((domanda, index) => (
                 <div key={domanda.id} className="neumorphic-pressed p-5 rounded-xl">
-                  {domanda.tipo_controllo === 'foto' ? (
+                  {domanda.tipo_controllo === 'foto' || domanda.tipo_controllo === 'photo' ? (
                     <div>
                       <div className="flex items-center gap-2 mb-3">
                         <Camera className="w-5 h-5 text-[#8b7355]" />
@@ -346,8 +346,8 @@ export default function ControlloPuliziaPizzaiolo() {
                   ) : (
                     <div>
                       <label className="text-sm font-medium text-[#6b6b6b] mb-3 block">
-                        {index + 1}. {domanda.domanda_testo || domanda.testo_domanda}
-                        {domanda.obbligatoria !== false && <span className="text-red-600 ml-1">*</span>}
+                        {index + 1}. {domanda.domanda_testo}
+                        {(domanda.obbligatoria !== false && domanda.richiesto !== false) && <span className="text-red-600 ml-1">*</span>}
                       </label>
                       <div className="space-y-2">
                         {domanda.opzioni_risposta?.map((opzione, idx) => (
