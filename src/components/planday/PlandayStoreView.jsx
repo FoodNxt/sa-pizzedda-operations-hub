@@ -34,6 +34,7 @@ export default function PlandayStoreView({
 }) {
   const [quickAddPopup, setQuickAddPopup] = useState(null);
   const [quickForm, setQuickForm] = useState({
+    store_id: '',
     ruolo: 'Pizzaiolo',
     ora_inizio: '09:00',
     ora_fine: '17:00',
@@ -75,6 +76,7 @@ export default function PlandayStoreView({
     setQuickAddPopup({ day: day.format('YYYY-MM-DD'), dipendenteId });
     const dipendente = users.find(u => u.id === dipendenteId);
     setQuickForm({
+      store_id: selectedStore || stores[0]?.id || '',
       ruolo: dipendente?.ruoli_dipendente?.[0] || 'Pizzaiolo',
       ora_inizio: '09:00',
       ora_fine: '17:00',
@@ -89,6 +91,7 @@ export default function PlandayStoreView({
     setSelectedTurno(turno);
     setQuickAddPopup({ day: turno.data, dipendenteId: turno.dipendente_id });
     setQuickForm({
+      store_id: turno.store_id,
       ruolo: turno.ruolo,
       ora_inizio: turno.ora_inizio,
       ora_fine: turno.ora_fine,
@@ -99,13 +102,20 @@ export default function PlandayStoreView({
 
   const handleQuickSave = () => {
     if (quickAddPopup && onSaveTurno) {
+      if (!quickForm.store_id) {
+        alert('Seleziona un locale');
+        return;
+      }
       const dipendente = users.find(u => u.id === quickForm.dipendente_id);
       onSaveTurno({
-        store_id: selectedStore || stores[0]?.id,
+        store_id: quickForm.store_id,
         data: quickAddPopup.day,
         dipendente_id: quickForm.dipendente_id || '',
         dipendente_nome: dipendente?.nome_cognome || dipendente?.full_name || '',
-        ...quickForm
+        ruolo: quickForm.ruolo,
+        ora_inizio: quickForm.ora_inizio,
+        ora_fine: quickForm.ora_fine,
+        tipo_turno: quickForm.tipo_turno
       }, selectedTurno?.id);
     }
     setQuickAddPopup(null);
@@ -313,6 +323,12 @@ export default function PlandayStoreView({
             {moment(quickAddPopup.day).format('dddd DD MMMM')} {quickAddPopup.dipendenteId ? `- ${users.find(u => u.id === quickAddPopup.dipendenteId)?.nome_cognome || ''}` : ''}
           </div>
           <div className="space-y-2">
+            <select value={quickForm.store_id} onChange={(e) => setQuickForm({ ...quickForm, store_id: e.target.value })} className="w-full neumorphic-pressed px-2 py-1 rounded-lg text-sm outline-none">
+              <option value="">Seleziona locale...</option>
+              {stores.map(store => (
+                <option key={store.id} value={store.id}>{store.name}</option>
+              ))}
+            </select>
             <div className="grid grid-cols-2 gap-2">
               <input type="time" value={quickForm.ora_inizio} onChange={(e) => setQuickForm({ ...quickForm, ora_inizio: e.target.value })} className="neumorphic-pressed px-2 py-1 rounded-lg text-sm outline-none" />
               <input type="time" value={quickForm.ora_fine} onChange={(e) => setQuickForm({ ...quickForm, ora_fine: e.target.value })} className="neumorphic-pressed px-2 py-1 rounded-lg text-sm outline-none" />
