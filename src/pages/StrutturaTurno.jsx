@@ -167,10 +167,11 @@ export default function StrutturaTurno() {
     setShowForm(false);
   };
 
-  // Check if selected tipi_turno includes "Prova e Affiancamento"
-  const isProvaAffiancamento = (formData.tipi_turno || []).some(t => 
-    t.toLowerCase().includes('prova') && t.toLowerCase().includes('affiancamento')
-  );
+  // Check if selected tipi_turno includes "Prova" or "Affiancamento"
+  const isProvaAffiancamento = (formData.tipi_turno || []).some(t => {
+    const lower = t.toLowerCase();
+    return lower.includes('prova') || lower.includes('affiancamento');
+  });
 
   const handleEdit = (schema) => {
     setEditingSchema(schema);

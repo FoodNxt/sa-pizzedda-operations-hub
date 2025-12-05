@@ -274,11 +274,11 @@ export default function GestioneAssistente() {
 
   const deleteConversationMutation = useMutation({
     mutationFn: async (convId) => {
-      // Use the agents SDK to delete conversation
-      await base44.agents.deleteConversation(convId);
+      // Delete conversation from ConversazioneAssistente entity
+      await base44.entities.ConversazioneAssistente.delete(convId);
     },
     onSuccess: () => {
-      refetchConversations();
+      queryClient.invalidateQueries({ queryKey: ['assistente-conversazioni'] });
     },
   });
 

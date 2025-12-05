@@ -121,7 +121,7 @@ export default function ATS() {
   };
 
   return (
-    <ProtectedPage pageName="ATS">
+    <ProtectedPage pageName="ATS" requiredUserTypes={["admin", "manager"]}>
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>

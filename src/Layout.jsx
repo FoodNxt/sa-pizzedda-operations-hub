@@ -250,6 +250,7 @@ const navigationStructure = [
         title: "ATS",
         url: createPageUrl("ATS"),
         icon: Users,
+        requiredUserType: ["admin", "manager"]
       }
       ]
       },
