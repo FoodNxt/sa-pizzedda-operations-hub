@@ -79,12 +79,21 @@ export default function Documenti() {
             >
               Buste Paga
             </button>
+            <button
+              onClick={() => setActiveTab('unilav')}
+              className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all text-sm ${
+                activeTab === 'unilav' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'nav-button text-slate-700'
+              }`}
+            >
+              Unilav
+            </button>
           </div>
 
           {activeTab === 'contratti' && <DipendenteContrattiSection currentUser={currentUser} />}
           {activeTab === 'lettere' && <DipendenteLettereSection currentUser={currentUser} />}
           {activeTab === 'regolamento' && <DipendenteRegolamentoSection currentUser={currentUser} />}
           {activeTab === 'buste_paga' && <DipendenteBustePagaSection currentUser={currentUser} />}
+          {activeTab === 'unilav' && <DipendenteUnilavSection currentUser={currentUser} />}
         </div>
       </ProtectedPage>
     );
@@ -137,12 +146,21 @@ export default function Documenti() {
           >
             Buste Paga
           </button>
+          <button
+            onClick={() => setActiveTab('unilav')}
+            className={`flex-1 px-6 py-3 rounded-xl font-medium transition-all ${
+              activeTab === 'unilav' ? 'neumorphic-pressed text-[#8b7355]' : 'neumorphic-flat text-[#9b9b9b]'
+            }`}
+          >
+            Unilav
+          </button>
         </div>
 
         {activeTab === 'contratti' && <ContrattiSection />}
         {activeTab === 'lettere' && <LettereSection />}
         {activeTab === 'regolamento' && <RegolamentoSection />}
         {activeTab === 'buste_paga' && <BustePagaSection />}
+        {activeTab === 'unilav' && <UnilavSection />}
       </div>
     </ProtectedPage>
   );
@@ -508,6 +526,62 @@ function DipendenteLettereSection({ currentUser }) {
               </div>
             </div>
           </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function DipendenteUnilavSection({ currentUser }) {
+  const { data: unilavDocs = [], isLoading } = useQuery({
+    queryKey: ['unilav-docs', currentUser?.id],
+    queryFn: () => base44.entities.Unilav.filter({ user_id: currentUser?.id }),
+    enabled: !!currentUser,
+  });
+
+  if (isLoading) {
+    return (
+      <NeumorphicCard className="p-8 text-center">
+        <Loader2 className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-2" />
+        <p className="text-slate-500">Caricamento...</p>
+      </NeumorphicCard>
+    );
+  }
+
+  return (
+    <>
+      {unilavDocs.length === 0 ? (
+        <NeumorphicCard className="p-8 text-center">
+          <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+          <p className="text-slate-500">Nessun documento Unilav disponibile</p>
+        </NeumorphicCard>
+      ) : (
+        <div className="space-y-3">
+          {unilavDocs.map(doc => (
+            <NeumorphicCard key={doc.id} className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-slate-800">
+                    {doc.descrizione || 'Documento Unilav'}
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {doc.data_documento 
+                      ? new Date(doc.data_documento).toLocaleDateString('it-IT')
+                      : new Date(doc.created_date).toLocaleDateString('it-IT')}
+                  </p>
+                </div>
+                <a
+                  href={doc.pdf_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-2 rounded-xl text-white font-medium flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Scarica
+                </a>
+              </div>
+            </NeumorphicCard>
+          ))}
         </div>
       )}
     </>
@@ -2333,6 +2407,219 @@ function BustePagaSection() {
                     <p className="text-xs text-red-700">{busta.error_message}</p>
                   </div>
                 )}
+              </NeumorphicCard>
+            ))}
+          </div>
+        )}
+      </NeumorphicCard>
+    </>
+  );
+}
+
+// Unilav Section (Admin)
+function UnilavSection() {
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [descrizione, setDescrizione] = useState('');
+  const [dataDocumento, setDataDocumento] = useState('');
+
+  const queryClient = useQueryClient();
+
+  const { data: unilavDocs = [], isLoading } = useQuery({
+    queryKey: ['unilav-docs-admin'],
+    queryFn: () => base44.entities.Unilav.list('-created_date'),
+  });
+
+  const { data: users = [] } = useQuery({
+    queryKey: ['users-dipendenti-unilav'],
+    queryFn: async () => {
+      const allUsers = await base44.entities.User.list();
+      return allUsers.filter(u => u.user_type === 'dipendente' || u.user_type === 'user');
+    },
+  });
+
+  const uploadMutation = useMutation({
+    mutationFn: async ({ file, userId, descrizione, dataDocumento }) => {
+      setUploadingFile(true);
+      const user = users.find(u => u.id === userId);
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      
+      return base44.entities.Unilav.create({
+        user_id: userId,
+        user_name: user?.nome_cognome || user?.full_name || user?.email,
+        user_email: user?.email,
+        pdf_url: file_url,
+        descrizione: descrizione || 'Documento Unilav',
+        data_documento: dataDocumento || new Date().toISOString().split('T')[0]
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['unilav-docs-admin'] });
+      setSelectedFile(null);
+      setSelectedUserId('');
+      setDescrizione('');
+      setDataDocumento('');
+      setUploadingFile(false);
+      alert('Documento Unilav caricato con successo!');
+    },
+    onError: (error) => {
+      setUploadingFile(false);
+      alert('Errore: ' + error.message);
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.Unilav.delete(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['unilav-docs-admin'] })
+  });
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (file && file.type === 'application/pdf') {
+      setSelectedFile(file);
+    } else {
+      alert('Seleziona un file PDF');
+    }
+  };
+
+  const handleUpload = () => {
+    if (!selectedFile || !selectedUserId) {
+      alert('Seleziona file e dipendente');
+      return;
+    }
+    uploadMutation.mutate({ 
+      file: selectedFile, 
+      userId: selectedUserId, 
+      descrizione, 
+      dataDocumento 
+    });
+  };
+
+  return (
+    <>
+      <NeumorphicCard className="p-6 mb-6">
+        <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <Upload className="w-5 h-5 text-purple-600" />
+          Carica Documento Unilav
+        </h2>
+
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium text-slate-700 mb-2 block">Dipendente *</label>
+            <select
+              value={selectedUserId}
+              onChange={(e) => setSelectedUserId(e.target.value)}
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+            >
+              <option value="">Seleziona dipendente...</option>
+              {users.map(u => (
+                <option key={u.id} value={u.id}>
+                  {u.nome_cognome || u.full_name || u.email}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-slate-700 mb-2 block">Descrizione</label>
+            <input
+              type="text"
+              value={descrizione}
+              onChange={(e) => setDescrizione(e.target.value)}
+              placeholder="Es: Unilav Assunzione"
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-slate-700 mb-2 block">Data Documento</label>
+            <input
+              type="date"
+              value={dataDocumento}
+              onChange={(e) => setDataDocumento(e.target.value)}
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-slate-700 mb-2 block">File PDF *</label>
+            <input
+              type="file"
+              accept="application/pdf"
+              onChange={handleFileSelect}
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+            />
+            {selectedFile && (
+              <p className="text-xs text-green-600 mt-2">✓ {selectedFile.name}</p>
+            )}
+          </div>
+
+          <NeumorphicButton
+            onClick={handleUpload}
+            variant="primary"
+            disabled={!selectedFile || !selectedUserId || uploadingFile}
+            className="w-full flex items-center justify-center gap-2"
+          >
+            {uploadingFile ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Caricamento...
+              </>
+            ) : (
+              <>
+                <Upload className="w-5 h-5" />
+                Carica Documento
+              </>
+            )}
+          </NeumorphicButton>
+        </div>
+      </NeumorphicCard>
+
+      <NeumorphicCard className="p-6">
+        <h2 className="text-xl font-bold text-slate-800 mb-4">Documenti Unilav Caricati</h2>
+
+        {isLoading ? (
+          <div className="text-center py-8">
+            <Loader2 className="w-8 h-8 text-blue-500 animate-spin mx-auto" />
+          </div>
+        ) : unilavDocs.length === 0 ? (
+          <p className="text-center text-slate-500 py-8">Nessun documento caricato</p>
+        ) : (
+          <div className="space-y-3">
+            {unilavDocs.map(doc => (
+              <NeumorphicCard key={doc.id} className="p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h3 className="font-bold text-slate-800">{doc.user_name}</h3>
+                    <p className="text-sm text-slate-600">{doc.descrizione || 'Documento Unilav'}</p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Data: {doc.data_documento 
+                        ? new Date(doc.data_documento).toLocaleDateString('it-IT')
+                        : new Date(doc.created_date).toLocaleDateString('it-IT')}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <a
+                      href={doc.pdf_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="nav-button p-2 rounded-lg"
+                    >
+                      <Download className="w-4 h-4 text-blue-600" />
+                    </a>
+                    <button
+                      onClick={() => {
+                        if (confirm('Eliminare questo documento?')) {
+                          deleteMutation.mutate(doc.id);
+                        }
+                      }}
+                      className="nav-button p-2 rounded-lg"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-600" />
+                    </button>
+                  </div>
+                </div>
               </NeumorphicCard>
             ))}
           </div>
