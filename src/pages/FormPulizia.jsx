@@ -13,7 +13,7 @@ export default function FormPulizia() {
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [questionForm, setQuestionForm] = useState({
     domanda_testo: '',
-    tipo_controllo: 'multipla',
+    tipo_controllo: 'scelta_multipla',
     attrezzatura: '',
     opzioni_risposta: [''],
     ruoli_assegnati: [],
@@ -64,7 +64,7 @@ export default function FormPulizia() {
   const resetForm = () => {
     setQuestionForm({
       domanda_testo: '',
-      tipo_controllo: 'multipla',
+      tipo_controllo: 'scelta_multipla',
       attrezzatura: '',
       opzioni_risposta: [''],
       ruoli_assegnati: [],
@@ -103,10 +103,10 @@ export default function FormPulizia() {
     e.preventDefault();
     const data = {
       ...questionForm,
-      opzioni_risposta: questionForm.tipo_controllo === 'multipla' ? questionForm.opzioni_risposta.filter(o => o.trim()) : []
+      opzioni_risposta: questionForm.tipo_controllo === 'scelta_multipla' ? questionForm.opzioni_risposta.filter(o => o.trim()) : []
     };
-    // Rimuovi campi non necessari per tipo multipla
-    if (questionForm.tipo_controllo === 'multipla') {
+    // Rimuovi campi non necessari per tipo scelta_multipla
+    if (questionForm.tipo_controllo === 'scelta_multipla') {
       delete data.tipo_controllo_ai;
       delete data.prompt_ai;
       delete data.ordine_bibite;
@@ -344,7 +344,7 @@ export default function FormPulizia() {
                         onChange={(e) => setQuestionForm({ ...questionForm, tipo_controllo: e.target.value })}
                         className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                       >
-                        <option value="multipla">Risposta Multipla</option>
+                        <option value="scelta_multipla">Risposta Multipla</option>
                         <option value="foto">Foto Attrezzatura</option>
                       </select>
                     </div>
@@ -433,7 +433,7 @@ export default function FormPulizia() {
                       </>
                     )}
 
-                    {questionForm.tipo_controllo === 'multipla' && (
+                    {questionForm.tipo_controllo === 'scelta_multipla' && (
                       <div>
                         <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
                           Opzioni di Risposta
