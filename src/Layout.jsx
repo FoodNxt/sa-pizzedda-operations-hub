@@ -247,6 +247,11 @@ const navigationStructure = [
         icon: Users,
       },
       {
+        title: "Compliance",
+        url: createPageUrl("Compliance"),
+        icon: CheckSquare,
+      },
+      {
         title: "ATS",
         url: createPageUrl("ATS"),
         icon: Users,
