@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
@@ -7,7 +7,8 @@ import ProtectedPage from "../components/ProtectedPage";
 import { 
   Bot, Plus, Edit, Trash2, Save, X, Search, AlertTriangle, 
   MessageSquare, Book, Tag, Store, CheckCircle, XCircle, Loader2,
-  ChevronDown, ChevronRight, Eye, Folder, RefreshCw, ListChecks, GripVertical, Key, EyeOff, HelpCircle
+  ChevronDown, ChevronRight, Eye, Folder, RefreshCw, Key, EyeOff, HelpCircle, 
+  Calendar, User, Sparkles, BarChart3
 } from "lucide-react";
 import moment from "moment";
 
@@ -25,7 +26,7 @@ const DEFAULT_CATEGORIE = [
 ];
 
 export default function GestioneAssistente() {
-  const [activeTab, setActiveTab] = useState('knowledge');
+  const [activeTab, setActiveTab] = useState('conversazioni');
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -37,19 +38,13 @@ export default function GestioneAssistente() {
   const [editingCategory, setEditingCategory] = useState(null);
   const [categoryForm, setCategoryForm] = useState({ nome: '', ordine: 0 });
   
-  // Checklist state
-  const [showChecklistForm, setShowChecklistForm] = useState(false);
-  const [editingChecklist, setEditingChecklist] = useState(null);
-  const [checklistForm, setChecklistForm] = useState({
-    titolo: '',
-    descrizione: '',
-    categoria: 'Apertura Locale',
-    ruoli_assegnati: [],
-    store_specifico: '',
-    items: [],
-    attivo: true
-  });
-  const [newChecklistItem, setNewChecklistItem] = useState('');
+  // Conversation filters
+  const [filterEmployee, setFilterEmployee] = useState('');
+  const [filterStore, setFilterStore] = useState('');
+  const [dateRangeStart, setDateRangeStart] = useState('');
+  const [dateRangeEnd, setDateRangeEnd] = useState('');
+  const [analyzingQuestions, setAnalyzingQuestions] = useState(false);
+  const [commonQuestions, setCommonQuestions] = useState(null);
   
   // Accessi Store state
   const [showAccessoForm, setShowAccessoForm] = useState(false);
@@ -110,9 +105,16 @@ export default function GestioneAssistente() {
     queryFn: () => base44.entities.AssistenteCategoria.list('ordine'),
   });
 
-  const { data: checklists = [] } = useQuery({
-    queryKey: ['assistente-checklists'],
-    queryFn: () => base44.entities.AssistenteChecklist.list(),
+  const { data: shifts = [] } = useQuery({
+    queryKey: ['shifts-for-conversations'],
+    queryFn: () => base44.entities.Shift.list('-shift_date', 500),
+    enabled: activeTab === 'conversazioni',
+  });
+
+  const { data: users = [] } = useQuery({
+    queryKey: ['users-for-conversations'],
+    queryFn: () => base44.entities.User.list(),
+    enabled: activeTab === 'conversazioni',
   });
 
   const { data: accessi = [] } = useQuery({
@@ -220,29 +222,7 @@ export default function GestioneAssistente() {
     },
   });
 
-  // Checklist mutations
-  const createChecklistMutation = useMutation({
-    mutationFn: (data) => base44.entities.AssistenteChecklist.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['assistente-checklists'] });
-      resetChecklistForm();
-    },
-  });
 
-  const updateChecklistMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.AssistenteChecklist.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['assistente-checklists'] });
-      resetChecklistForm();
-    },
-  });
-
-  const deleteChecklistMutation = useMutation({
-    mutationFn: (id) => base44.entities.AssistenteChecklist.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['assistente-checklists'] });
-    },
-  });
 
   // Accessi mutations
   const createAccessoMutation = useMutation({
@@ -298,83 +278,123 @@ export default function GestioneAssistente() {
     setShowCategoryForm(false);
   };
 
-  const resetChecklistForm = () => {
-    setChecklistForm({
-      titolo: '',
-      descrizione: '',
-      categoria: 'Apertura Locale',
-      ruoli_assegnati: [],
-      store_specifico: '',
-      items: [],
-      attivo: true
-    });
-    setEditingChecklist(null);
-    setShowChecklistForm(false);
-    setNewChecklistItem('');
-  };
-
-  const handleEditChecklist = (checklist) => {
-    setEditingChecklist(checklist);
-    setChecklistForm({
-      titolo: checklist.titolo,
-      descrizione: checklist.descrizione || '',
-      categoria: checklist.categoria,
-      ruoli_assegnati: checklist.ruoli_assegnati || [],
-      store_specifico: checklist.store_specifico || '',
-      items: checklist.items || [],
-      attivo: checklist.attivo !== false
-    });
-    setShowChecklistForm(true);
-  };
-
-  const handleSaveChecklist = () => {
-    if (editingChecklist) {
-      updateChecklistMutation.mutate({ id: editingChecklist.id, data: checklistForm });
-    } else {
-      createChecklistMutation.mutate(checklistForm);
+  // Find store for conversation based on shift at message time
+  const getStoreForConversation = (conv) => {
+    if (!conv.user_email || !shifts.length) return null;
+    
+    const user = users.find(u => u.email === conv.user_email);
+    if (!user) return null;
+    
+    const userName = user.nome_cognome || user.full_name;
+    const convDate = conv.tracking?.last_message_date || conv.created_date;
+    if (!convDate) return null;
+    
+    const convMoment = moment(convDate);
+    const convDateStr = convMoment.format('YYYY-MM-DD');
+    
+    // Find shift on same day for this employee
+    const shift = shifts.find(s => 
+      s.employee_name === userName && 
+      s.shift_date?.startsWith(convDateStr)
+    );
+    
+    if (shift) {
+      const store = stores.find(st => st.id === shift.store_id);
+      return store ? { store, shiftType: shift.shift_type } : null;
     }
+    
+    return { store: null, noShift: true };
   };
 
-  const addChecklistItem = () => {
-    if (newChecklistItem.trim()) {
-      const newItem = {
-        id: Date.now().toString(),
-        testo: newChecklistItem.trim(),
-        ordine: checklistForm.items.length,
-        obbligatorio: true
-      };
-      setChecklistForm({ ...checklistForm, items: [...checklistForm.items, newItem] });
-      setNewChecklistItem('');
-    }
-  };
-
-  const removeChecklistItem = (itemId) => {
-    setChecklistForm({
-      ...checklistForm,
-      items: checklistForm.items.filter(i => i.id !== itemId)
+  // Filter conversations
+  const filteredConversations = useMemo(() => {
+    return conversations.filter(conv => {
+      // Filter by employee
+      if (filterEmployee && conv.user_email !== filterEmployee) {
+        return false;
+      }
+      
+      // Filter by store
+      if (filterStore) {
+        const storeInfo = getStoreForConversation(conv);
+        if (!storeInfo?.store || storeInfo.store.id !== filterStore) {
+          return false;
+        }
+      }
+      
+      // Filter by date range
+      const convDate = conv.tracking?.last_message_date || conv.created_date;
+      if (dateRangeStart && moment(convDate).isBefore(dateRangeStart, 'day')) {
+        return false;
+      }
+      if (dateRangeEnd && moment(convDate).isAfter(dateRangeEnd, 'day')) {
+        return false;
+      }
+      
+      return true;
     });
-  };
+  }, [conversations, filterEmployee, filterStore, dateRangeStart, dateRangeEnd, shifts, stores, users]);
 
-  const toggleRuolo = (ruolo) => {
-    const current = checklistForm.ruoli_assegnati || [];
-    if (current.includes(ruolo)) {
-      setChecklistForm({ ...checklistForm, ruoli_assegnati: current.filter(r => r !== ruolo) });
-    } else {
-      setChecklistForm({ ...checklistForm, ruoli_assegnati: [...current, ruolo] });
+  // Get unique employees from conversations
+  const conversationEmployees = useMemo(() => {
+    const emails = new Set();
+    conversations.forEach(conv => {
+      if (conv.user_email) emails.add(conv.user_email);
+    });
+    return Array.from(emails).map(email => {
+      const user = users.find(u => u.email === email);
+      return { email, name: user?.nome_cognome || user?.full_name || email };
+    }).sort((a, b) => a.name.localeCompare(b.name));
+  }, [conversations, users]);
+
+  // Analyze common questions
+  const analyzeCommonQuestions = async () => {
+    setAnalyzingQuestions(true);
+    try {
+      const allMessages = filteredConversations.flatMap(conv => 
+        (conv.messages || [])
+          .filter(m => m.role === 'user')
+          .map(m => m.content)
+      ).filter(Boolean);
+
+      if (allMessages.length === 0) {
+        setCommonQuestions({ topics: [], summary: 'Nessun messaggio da analizzare' });
+        setAnalyzingQuestions(false);
+        return;
+      }
+
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: `Analizza le seguenti domande fatte dai dipendenti all'assistente AI e identifica i temi/argomenti più comuni. 
+Raggruppa le domande per categoria e fornisci un conteggio approssimativo.
+
+Domande:
+${allMessages.slice(0, 100).join('\n---\n')}`,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            topics: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  categoria: { type: "string" },
+                  count: { type: "number" },
+                  esempi: { type: "array", items: { type: "string" } },
+                  suggerimento_kb: { type: "string" }
+                }
+              }
+            },
+            summary: { type: "string" }
+          }
+        }
+      });
+      setCommonQuestions(result);
+    } catch (error) {
+      console.error('Error analyzing questions:', error);
+      setCommonQuestions({ topics: [], summary: 'Errore durante l\'analisi' });
     }
+    setAnalyzingQuestions(false);
   };
-
-  const CHECKLIST_CATEGORIE = [
-    "Apertura Locale",
-    "Chiusura Locale",
-    "Pulizie",
-    "Preparazione Impasto",
-    "Gestione Cassa",
-    "Sicurezza",
-    "Altro"
-  ];
-
-  const RUOLI = ["Pizzaiolo", "Cassiere", "Store Manager"];
 
   const resetAccessoForm = () => {
     setAccessoForm({
