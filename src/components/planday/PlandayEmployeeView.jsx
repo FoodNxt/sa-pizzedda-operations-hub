@@ -21,13 +21,14 @@ export default function PlandayEmployeeView({
   struttureTurno = [],
   getFormDovutiPerTurno = () => [],
   getAttivitaTurno = () => [],
-  getTurnoSequenceFromMomento = () => 'first'
+  getTurnoSequenceFromMomento = () => 'first',
+  candidati = []
 }) {
   const [viewMode, setViewMode] = useState('settimana');
   const [currentDate, setCurrentDate] = useState(moment());
   const [quickPopup, setQuickPopup] = useState(null);
   const [selectedTurno, setSelectedTurno] = useState(null);
-  const [quickForm, setQuickForm] = useState({ ruolo: 'Pizzaiolo', ora_inizio: '09:00', ora_fine: '17:00', tipo_turno: 'Normale', store_id: '' });
+  const [quickForm, setQuickForm] = useState({ ruolo: 'Pizzaiolo', ora_inizio: '09:00', ora_fine: '17:00', tipo_turno: 'Normale', store_id: '', is_prova: false, candidato_id: '' });
 
   const dipendenti = useMemo(() => users.filter(u => u.ruoli_dipendente?.length > 0), [users]);
   const weekDays = useMemo(() => {
@@ -80,17 +81,33 @@ export default function PlandayEmployeeView({
   const handleTurnoClick = (turno) => {
     setSelectedTurno(turno);
     setQuickPopup({ day: turno.data });
-    setQuickForm({ ruolo: turno.ruolo, ora_inizio: turno.ora_inizio, ora_fine: turno.ora_fine, tipo_turno: turno.tipo_turno || 'Normale', store_id: turno.store_id });
+    setQuickForm({ 
+      ruolo: turno.ruolo, 
+      ora_inizio: turno.ora_inizio, 
+      ora_fine: turno.ora_fine, 
+      tipo_turno: turno.tipo_turno || 'Normale', 
+      store_id: turno.store_id,
+      is_prova: turno.is_prova || false,
+      candidato_id: turno.candidato_id || ''
+    });
   };
 
   const handleQuickSave = () => {
     if (onSaveTurno && quickPopup) {
+      const candidato = candidati.find(c => c.id === quickForm.candidato_id);
       onSaveTurno({
         store_id: quickForm.store_id || stores[0]?.id,
         data: quickPopup.day,
-        dipendente_id: selectedDipendente,
-        dipendente_nome: selectedUser?.nome_cognome || selectedUser?.full_name || '',
-        ...quickForm
+        dipendente_id: quickForm.is_prova ? '' : selectedDipendente,
+        dipendente_nome: quickForm.is_prova && candidato 
+          ? `${candidato.nome} ${candidato.cognome} (PROVA)`
+          : (selectedUser?.nome_cognome || selectedUser?.full_name || ''),
+        ruolo: quickForm.ruolo,
+        ora_inizio: quickForm.ora_inizio,
+        ora_fine: quickForm.ora_fine,
+        tipo_turno: quickForm.tipo_turno,
+        is_prova: quickForm.is_prova,
+        candidato_id: quickForm.is_prova ? quickForm.candidato_id : ''
       }, selectedTurno?.id);
     }
     setQuickPopup(null); setSelectedTurno(null);
@@ -249,6 +266,38 @@ export default function PlandayEmployeeView({
               <option value="">Seleziona store</option>
               {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
+
+            {/* Turno di Prova */}
+            <div className="neumorphic-flat p-2 rounded-lg bg-purple-50">
+              <label className="flex items-center gap-2 cursor-pointer text-xs">
+                <input
+                  type="checkbox"
+                  checked={quickForm.is_prova}
+                  onChange={(e) => setQuickForm({ 
+                    ...quickForm, 
+                    is_prova: e.target.checked,
+                    candidato_id: ''
+                  })}
+                  className="w-4 h-4"
+                />
+                <span className="font-medium text-purple-800">🧪 Turno di Prova</span>
+              </label>
+              {quickForm.is_prova && (
+                <select
+                  value={quickForm.candidato_id}
+                  onChange={(e) => setQuickForm({ ...quickForm, candidato_id: e.target.value })}
+                  className="w-full neumorphic-pressed px-2 py-1 rounded-lg text-xs outline-none mt-2"
+                >
+                  <option value="">Seleziona candidato...</option>
+                  {candidati.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.nome} {c.cognome} - {c.telefono}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
             <div className="flex gap-2 mt-3">
               {selectedTurno && <button onClick={handleDelete} className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-1"><Trash2 className="w-3 h-3" /> Elimina</button>}
               <div className="flex-1" />

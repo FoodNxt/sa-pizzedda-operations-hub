@@ -30,7 +30,8 @@ export default function PlandayStoreView({
   struttureTurno = [],
   getFormDovutiPerTurno = () => [],
   getAttivitaTurno = () => [],
-  getTurnoSequenceFromMomento = () => 'first'
+  getTurnoSequenceFromMomento = () => 'first',
+  candidati = []
 }) {
   const [quickAddPopup, setQuickAddPopup] = useState(null);
   const [quickForm, setQuickForm] = useState({
@@ -38,7 +39,9 @@ export default function PlandayStoreView({
     ruolo: 'Pizzaiolo',
     ora_inizio: '09:00',
     ora_fine: '17:00',
-    tipo_turno: 'Normale'
+    tipo_turno: 'Normale',
+    is_prova: false,
+    candidato_id: ''
   });
   const [selectedTurno, setSelectedTurno] = useState(null);
 
@@ -81,7 +84,9 @@ export default function PlandayStoreView({
       ora_inizio: '09:00',
       ora_fine: '17:00',
       tipo_turno: 'Normale',
-      dipendente_id: dipendenteId || ''
+      dipendente_id: dipendenteId || '',
+      is_prova: false,
+      candidato_id: ''
     });
     setSelectedTurno(null);
   };
@@ -96,7 +101,9 @@ export default function PlandayStoreView({
       ora_inizio: turno.ora_inizio,
       ora_fine: turno.ora_fine,
       tipo_turno: turno.tipo_turno || 'Normale',
-      dipendente_id: turno.dipendente_id || ''
+      dipendente_id: turno.dipendente_id || '',
+      is_prova: turno.is_prova || false,
+      candidato_id: turno.candidato_id || ''
     });
   };
 
@@ -107,15 +114,20 @@ export default function PlandayStoreView({
         return;
       }
       const dipendente = users.find(u => u.id === quickForm.dipendente_id);
+      const candidato = candidati.find(c => c.id === quickForm.candidato_id);
       onSaveTurno({
         store_id: quickForm.store_id,
         data: quickAddPopup.day,
-        dipendente_id: quickForm.dipendente_id || '',
-        dipendente_nome: dipendente?.nome_cognome || dipendente?.full_name || '',
+        dipendente_id: quickForm.is_prova ? '' : (quickForm.dipendente_id || ''),
+        dipendente_nome: quickForm.is_prova && candidato 
+          ? `${candidato.nome} ${candidato.cognome} (PROVA)`
+          : (dipendente?.nome_cognome || dipendente?.full_name || ''),
         ruolo: quickForm.ruolo,
         ora_inizio: quickForm.ora_inizio,
         ora_fine: quickForm.ora_fine,
-        tipo_turno: quickForm.tipo_turno
+        tipo_turno: quickForm.tipo_turno,
+        is_prova: quickForm.is_prova,
+        candidato_id: quickForm.is_prova ? quickForm.candidato_id : ''
       }, selectedTurno?.id);
     }
     setQuickAddPopup(null);
@@ -341,7 +353,12 @@ export default function PlandayStoreView({
             <select value={quickForm.tipo_turno} onChange={(e) => setQuickForm({ ...quickForm, tipo_turno: e.target.value })} className="w-full neumorphic-pressed px-2 py-1 rounded-lg text-sm outline-none">
               {(tipiTurno.length > 0 ? tipiTurno : ['Normale']).map(tipo => <option key={tipo} value={tipo}>{tipo}</option>)}
             </select>
-            <select value={quickForm.dipendente_id || ''} onChange={(e) => setQuickForm({ ...quickForm, dipendente_id: e.target.value })} className="w-full neumorphic-pressed px-2 py-1 rounded-lg text-sm outline-none">
+            <select 
+              value={quickForm.dipendente_id || ''} 
+              onChange={(e) => setQuickForm({ ...quickForm, dipendente_id: e.target.value })} 
+              className="w-full neumorphic-pressed px-2 py-1 rounded-lg text-sm outline-none"
+              disabled={quickForm.is_prova}
+            >
               <option value="">Non assegnato</option>
               {users.filter(u => {
                 const ruoli = u.ruoli_dipendente || [];
@@ -352,6 +369,39 @@ export default function PlandayStoreView({
                 </option>
               ))}
             </select>
+
+            {/* Turno di Prova */}
+            <div className="neumorphic-flat p-2 rounded-lg bg-purple-50">
+              <label className="flex items-center gap-2 cursor-pointer text-xs">
+                <input
+                  type="checkbox"
+                  checked={quickForm.is_prova}
+                  onChange={(e) => setQuickForm({ 
+                    ...quickForm, 
+                    is_prova: e.target.checked,
+                    dipendente_id: e.target.checked ? '' : quickForm.dipendente_id,
+                    candidato_id: ''
+                  })}
+                  className="w-4 h-4"
+                />
+                <span className="font-medium text-purple-800">🧪 Turno di Prova</span>
+              </label>
+              {quickForm.is_prova && (
+                <select
+                  value={quickForm.candidato_id}
+                  onChange={(e) => setQuickForm({ ...quickForm, candidato_id: e.target.value })}
+                  className="w-full neumorphic-pressed px-2 py-1 rounded-lg text-xs outline-none mt-2"
+                >
+                  <option value="">Seleziona candidato...</option>
+                  {candidati.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.nome} {c.cognome} - {c.telefono}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
             <div className="flex gap-2 mt-3">
               {selectedTurno && (
                 <button onClick={handleDelete} className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-1">

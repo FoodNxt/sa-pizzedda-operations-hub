@@ -1958,6 +1958,7 @@ export default function Planday() {
             getFormDovutiPerTurno={getFormDovutiPerTurno}
             getAttivitaTurno={getAttivitaTurno}
             getTurnoSequenceFromMomento={getTurnoSequenceFromMomento}
+            candidati={candidati}
           />
         )}
 
@@ -1981,6 +1982,7 @@ export default function Planday() {
             getFormDovutiPerTurno={getFormDovutiPerTurno}
             getAttivitaTurno={getAttivitaTurno}
             getTurnoSequenceFromMomento={getTurnoSequenceFromMomento}
+            candidati={candidati}
           />
         )}
 
