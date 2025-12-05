@@ -840,62 +840,6 @@ export default function MateriePrime() {
                   )}
                 </div>
 
-                {/* Assegnazione Negozi */}
-                <div className="neumorphic-flat p-4 rounded-xl">
-                  <h3 className="font-bold text-slate-700 mb-3 text-sm">🏪 Assegnazione Negozi</h3>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 mb-3">
-                      <input
-                        type="checkbox"
-                        id="all-stores"
-                        checked={formData.assigned_stores.length === 0}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setFormData({ ...formData, assigned_stores: [] });
-                          }
-                        }}
-                        className="w-4 h-4"
-                      />
-                      <label htmlFor="all-stores" className="text-sm font-medium text-slate-700">
-                        Tutti i locali
-                      </label>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-2">
-                      {stores.map(store => (
-                        <div key={store.id} className="neumorphic-pressed p-3 rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              id={`store-${store.id}`}
-                              checked={formData.assigned_stores.length === 0 || formData.assigned_stores.includes(store.id)}
-                              onChange={() => {
-                                if (formData.assigned_stores.length === 0) {
-                                  // Se erano tutti selezionati, deseleziona solo questo
-                                  setFormData({ 
-                                    ...formData, 
-                                    assigned_stores: stores.filter(s => s.id !== store.id).map(s => s.id)
-                                  });
-                                } else {
-                                  handleStoreToggle(store.id);
-                                }
-                              }}
-                              className="w-4 h-4"
-                            />
-                            <label htmlFor={`store-${store.id}`} className="text-sm text-slate-700 flex-1">
-                              {store.name}
-                            </label>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="text-xs text-slate-500 mt-2">
-                      ℹ️ Deseleziona un negozio per disattivare il prodotto in quel locale
-                    </p>
-                  </div>
-                </div>
-
                 {/* Posizione e Note */}
                 <div className="neumorphic-flat p-4 rounded-xl">
                   <h3 className="font-bold text-slate-700 mb-3 text-sm">📍 Posizione e Note</h3>
