@@ -467,7 +467,7 @@ export default function Planday() {
     setShowForm(true);
   };
 
-  const handleSaveTurno = () => {
+  const handleSaveTurno = async () => {
     const dipendente = users.find(u => u.id === turnoForm.dipendente_id);
     const candidato = candidati.find(c => c.id === turnoForm.candidato_id);
     const momento = getTurnoTipo({ ora_inizio: turnoForm.ora_inizio });
@@ -486,9 +486,23 @@ export default function Planday() {
     };
 
     if (editingTurno) {
-      updateMutation.mutate({ id: editingTurno.id, data: dataToSave });
+      await updateMutation.mutateAsync({ id: editingTurno.id, data: dataToSave });
     } else {
-      createMutation.mutate(dataToSave);
+      await createMutation.mutateAsync(dataToSave);
+    }
+    
+    // If it's a trial shift, update candidato in ATS
+    if (turnoForm.is_prova && candidato) {
+      await base44.entities.Candidato.update(candidato.id, {
+        stato: 'prova_programmata',
+        prova_data: turnoForm.data,
+        prova_ora_inizio: turnoForm.ora_inizio,
+        prova_ora_fine: turnoForm.ora_fine,
+        prova_store_id: turnoForm.store_id,
+        prova_dipendente_id: dipendente?.id || '',
+        prova_dipendente_nome: dipendente?.nome_cognome || dipendente?.full_name || ''
+      });
+      queryClient.invalidateQueries({ queryKey: ['candidati'] });
     }
   };
 
