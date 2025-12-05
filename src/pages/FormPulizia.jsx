@@ -39,6 +39,11 @@ export default function FormPulizia() {
     queryFn: () => base44.entities.Store.list(),
   });
 
+  const { data: attrezzature = [] } = useQuery({
+    queryKey: ['attrezzature'],
+    queryFn: () => base44.entities.Attrezzatura.filter({ attivo: true }),
+  });
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.DomandaPulizia.create(data),
     onSuccess: () => {
@@ -364,15 +369,21 @@ export default function FormPulizia() {
                       <>
                         <div>
                           <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                            Nome Attrezzatura
+                            Attrezzatura
                           </label>
-                          <input
-                            type="text"
+                          <select
                             value={questionForm.attrezzatura}
                             onChange={(e) => setQuestionForm({ ...questionForm, attrezzatura: e.target.value })}
                             className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                            placeholder="Es: Forno, Impastatrice..."
-                          />
+                          >
+                            <option value="">Seleziona attrezzatura...</option>
+                            {attrezzature.map(attr => (
+                              <option key={attr.id} value={attr.nome}>{attr.nome}</option>
+                            ))}
+                          </select>
+                          <p className="text-xs text-slate-500 mt-1">
+                            Seleziona da <a href="/attrezzature" target="_blank" className="text-blue-600 underline">Attrezzature</a>
+                          </p>
                         </div>
 
                         <div>
@@ -443,6 +454,25 @@ export default function FormPulizia() {
                         </div>
                       </>
                     )}
+
+                    <div>
+                      <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                        Attrezzatura Associata (opzionale)
+                      </label>
+                      <select
+                        value={questionForm.attrezzatura}
+                        onChange={(e) => setQuestionForm({ ...questionForm, attrezzatura: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                      >
+                        <option value="">Nessuna attrezzatura associata</option>
+                        {attrezzature.map(attr => (
+                          <option key={attr.id} value={attr.nome}>{attr.nome}</option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Opzionale: associa la domanda ad un'attrezzatura
+                      </p>
+                    </div>
 
                     {questionForm.tipo_controllo === 'scelta_multipla' && (
                       <>

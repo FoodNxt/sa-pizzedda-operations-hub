@@ -279,6 +279,11 @@ const navigationStructure = [
         title: "Form Pulizia",
         url: createPageUrl("FormPulizia"),
         icon: Camera,
+      },
+      {
+        title: "Attrezzature",
+        url: createPageUrl("Attrezzature"),
+        icon: Package,
       }
     ]
   },

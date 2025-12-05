@@ -197,7 +197,7 @@ export default function StrutturaTurno() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     // Validate ruolo is selected
@@ -211,11 +211,20 @@ export default function StrutturaTurno() {
       alert('Inserisci un nome per lo schema');
       return;
     }
+
+    // Ensure giorno_settimana is a number
+    const dataToSubmit = {
+      ...formData,
+      giorno_settimana: parseInt(formData.giorno_settimana),
+      tipi_turno: formData.tipi_turno || [],
+      assigned_stores: formData.assigned_stores || [],
+      slots: formData.slots || []
+    };
     
     if (editingSchema) {
-      updateMutation.mutate({ id: editingSchema.id, data: formData });
+      updateMutation.mutate({ id: editingSchema.id, data: dataToSubmit });
     } else {
-      createMutation.mutate(formData);
+      createMutation.mutate(dataToSubmit);
     }
   };
 
