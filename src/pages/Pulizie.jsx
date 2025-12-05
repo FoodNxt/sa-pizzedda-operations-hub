@@ -863,11 +863,11 @@ export default function Pulizie() {
             {/* All Form Responses - SEMPRE MOSTRA */}
             <div className="mt-6">
               <h3 className="text-xl font-bold text-[#6b6b6b] mb-4">📋 Tutte le Risposte del Form</h3>
-              
+
               {detailsModalInspection.domande_risposte && detailsModalInspection.domande_risposte.length > 0 ? (
                 <div className="space-y-3">
                   {detailsModalInspection.domande_risposte.map((risposta, idx) => {
-                    const isFoto = risposta.tipo_controllo === 'foto' || (risposta.risposta && typeof risposta.risposta === 'string' && risposta.risposta.startsWith('http'));
+                    const isFoto = risposta.tipo_controllo === 'foto' || risposta.tipo_controllo === 'photo' || (risposta.risposta && typeof risposta.risposta === 'string' && risposta.risposta.startsWith('http'));
                     return (
                       <div key={idx} className="neumorphic-flat p-4 rounded-xl">
                         <div className="flex items-start gap-3">
@@ -878,14 +878,14 @@ export default function Pulizie() {
                           )}
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold text-[#6b6b6b] mb-2">
-                              {risposta.domanda_testo || `Domanda ${idx + 1}`}
+                              {risposta.domanda_testo || risposta.attrezzatura || `Domanda ${idx + 1}`}
                             </p>
                             {isFoto ? (
                               risposta.risposta ? (
                                 <img 
                                   src={risposta.risposta} 
                                   alt={risposta.attrezzatura || `Foto ${idx + 1}`} 
-                                  className="w-full max-w-sm h-auto rounded-lg border-2 border-slate-200"
+                                  className="w-full max-w-md h-auto rounded-lg border-2 border-slate-200"
                                 />
                               ) : (
                                 <p className="text-sm text-slate-500 italic">Nessuna foto caricata</p>
@@ -902,17 +902,18 @@ export default function Pulizie() {
                   })}
                 </div>
               ) : (
-                /* Fallback per vecchi form senza domande_risposte - mostra le foto delle attrezzature */
+                /* Fallback per vecchi form senza domande_risposte - mostra le foto delle attrezzature e altri campi */
                 <div className="space-y-3">
+                  {/* Foto attrezzature */}
                   {equipment.map((eq) => {
                     const photoUrl = detailsModalInspection[`${eq.key}_foto_url`];
                     const aiStatus = detailsModalInspection[`${eq.key}_pulizia_status`];
                     const isCorrected = detailsModalInspection[`${eq.key}_corrected`];
                     const correctedStatus = detailsModalInspection[`${eq.key}_corrected_status`];
                     const displayStatus = isCorrected ? correctedStatus : aiStatus;
-                    
+
                     if (!photoUrl) return null;
-                    
+
                     return (
                       <div key={eq.key} className="neumorphic-flat p-4 rounded-xl">
                         <div className="flex items-start gap-3">
@@ -931,13 +932,93 @@ export default function Pulizie() {
                             <img 
                               src={photoUrl} 
                               alt={eq.name} 
-                              className="w-full max-w-sm h-auto rounded-lg border-2 border-slate-200"
+                              className="w-full max-w-md h-auto rounded-lg border-2 border-slate-200"
                             />
                           </div>
                         </div>
                       </div>
                     );
                   })}
+
+                  {/* Campi manuali del form vecchio */}
+                  {detailsModalInspection.pulizia_pavimenti_angoli && (
+                    <div className="neumorphic-flat p-4 rounded-xl">
+                      <div className="flex items-start gap-3">
+                        <ClipboardCheck className="w-5 h-5 text-[#8b7355] flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-bold text-[#6b6b6b] mb-1">Pulizia Pavimenti e Angoli</p>
+                          <span className={`px-3 py-1 rounded-lg text-sm font-medium ${getStatusColor(detailsModalInspection.pulizia_pavimenti_angoli)}`}>
+                            {detailsModalInspection.pulizia_pavimenti_angoli}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {detailsModalInspection.pulizia_tavoli_sala && (
+                    <div className="neumorphic-flat p-4 rounded-xl">
+                      <div className="flex items-start gap-3">
+                        <ClipboardCheck className="w-5 h-5 text-[#8b7355] flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-bold text-[#6b6b6b] mb-1">Pulizia Tavoli Sala</p>
+                          <span className={`px-3 py-1 rounded-lg text-sm font-medium ${getStatusColor(detailsModalInspection.pulizia_tavoli_sala)}`}>
+                            {detailsModalInspection.pulizia_tavoli_sala}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {detailsModalInspection.pulizia_vetrata_ingresso && (
+                    <div className="neumorphic-flat p-4 rounded-xl">
+                      <div className="flex items-start gap-3">
+                        <ClipboardCheck className="w-5 h-5 text-[#8b7355] flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-bold text-[#6b6b6b] mb-1">Pulizia Vetrata Ingresso</p>
+                          <span className={`px-3 py-1 rounded-lg text-sm font-medium ${getStatusColor(detailsModalInspection.pulizia_vetrata_ingresso)}`}>
+                            {detailsModalInspection.pulizia_vetrata_ingresso}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {detailsModalInspection.pulizia_tavolette_takeaway && (
+                    <div className="neumorphic-flat p-4 rounded-xl">
+                      <div className="flex items-start gap-3">
+                        <ClipboardCheck className="w-5 h-5 text-[#8b7355] flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-bold text-[#6b6b6b] mb-1">Pulizia Tavolette Takeaway</p>
+                          <span className={`px-3 py-1 rounded-lg text-sm font-medium ${getStatusColor(detailsModalInspection.pulizia_tavolette_takeaway)}`}>
+                            {detailsModalInspection.pulizia_tavolette_takeaway}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {detailsModalInspection.etichette_prodotti_aperti && (
+                    <div className="neumorphic-flat p-4 rounded-xl">
+                      <div className="flex items-start gap-3">
+                        <ClipboardCheck className="w-5 h-5 text-[#8b7355] flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-bold text-[#6b6b6b] mb-1">Etichette Prodotti Aperti</p>
+                          <span className="px-3 py-1 rounded-lg text-sm font-medium bg-blue-100 text-blue-700">
+                            {detailsModalInspection.etichette_prodotti_aperti?.replace(/_/g, ' ')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {detailsModalInspection.cartoni_pizza_pronti && (
+                    <div className="neumorphic-flat p-4 rounded-xl">
+                      <div className="flex items-start gap-3">
+                        <ClipboardCheck className="w-5 h-5 text-[#8b7355] flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-bold text-[#6b6b6b] mb-1">Cartoni Pizza Pronti</p>
+                          <span className="px-3 py-1 rounded-lg text-sm font-medium bg-blue-100 text-blue-700">
+                            {detailsModalInspection.cartoni_pizza_pronti?.replace(/_/g, ' ')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
