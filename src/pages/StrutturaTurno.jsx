@@ -240,19 +240,28 @@ export default function StrutturaTurno() {
       return;
     }
 
-    // Ensure giorno_settimana is a number
+    // Prepare data with all required fields
     const dataToSubmit = {
-      ...formData,
+      nome_schema: formData.nome_schema.trim(),
       giorno_settimana: parseInt(formData.giorno_settimana),
+      ruolo: formData.ruolo,
       tipi_turno: formData.tipi_turno || [],
       assigned_stores: formData.assigned_stores || [],
-      slots: formData.slots || []
+      slots: formData.slots || [],
+      is_active: formData.is_active !== false,
+      usa_minuti_relativi: formData.usa_minuti_relativi || false
     };
     
-    if (editingSchema) {
-      updateMutation.mutate({ id: editingSchema.id, data: dataToSubmit });
-    } else {
-      createMutation.mutate(dataToSubmit);
+    console.log('Submitting schema:', dataToSubmit);
+    
+    try {
+      if (editingSchema) {
+        await updateMutation.mutateAsync({ id: editingSchema.id, data: dataToSubmit });
+      } else {
+        await createMutation.mutateAsync(dataToSubmit);
+      }
+    } catch (error) {
+      console.error('Submit error:', error);
     }
   };
 
