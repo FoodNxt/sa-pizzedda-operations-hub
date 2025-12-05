@@ -216,13 +216,15 @@ export default function FormPulizia() {
 
           {/* Lista tutte le domande */}
           <NeumorphicCard className="p-6">
-            <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Tutte le Domande</h3>
-            {domande.filter(d => d.attivo !== false).length === 0 ? (
-              <p className="text-center text-slate-500 py-4">Nessuna domanda attiva</p>
+            <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Tutte le Domande ({domande.length})</h3>
+            {domande.length === 0 ? (
+              <p className="text-center text-slate-500 py-4">Nessuna domanda creata</p>
             ) : (
               <div className="space-y-3">
-                {domande.filter(d => d.attivo !== false).map((domanda, index) => (
-                  <div key={domanda.id} className="neumorphic-pressed p-4 rounded-xl">
+                {domande.map((domanda, index) => (
+                  <div key={domanda.id} className={`neumorphic-pressed p-4 rounded-xl ${
+                    domanda.attivo === false ? 'opacity-50' : ''
+                  }`}>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -232,6 +234,11 @@ export default function FormPulizia() {
                           }`}>
                             {domanda.tipo_controllo === 'foto' ? 'Foto' : 'Multipla'}
                           </span>
+                          {domanda.attivo === false && (
+                            <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">
+                              Disattivata
+                            </span>
+                          )}
                           {!domanda.richiesto && (
                             <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">
                               Opzionale

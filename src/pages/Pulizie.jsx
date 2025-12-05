@@ -860,11 +860,11 @@ export default function Pulizie() {
               </div>
             )}
 
-            {/* All Form Responses */}
-            {detailsModalInspection.domande_risposte && detailsModalInspection.domande_risposte.length > 0 && (
-              <div className="mt-6">
-                <h3 className="text-xl font-bold text-[#6b6b6b] mb-4">📋 Tutte le Risposte del Form</h3>
-                
+            {/* All Form Responses - SEMPRE MOSTRA */}
+            <div className="mt-6">
+              <h3 className="text-xl font-bold text-[#6b6b6b] mb-4">📋 Tutte le Risposte del Form</h3>
+              
+              {detailsModalInspection.domande_risposte && detailsModalInspection.domande_risposte.length > 0 ? (
                 <div className="space-y-3">
                   {detailsModalInspection.domande_risposte.map((risposta, idx) => (
                     <div key={idx} className="neumorphic-flat p-4 rounded-xl">
@@ -898,8 +898,10 @@ export default function Pulizie() {
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <p className="text-center text-slate-500 py-4">Nessuna risposta disponibile</p>
+              )}
+            </div>
             </NeumorphicCard>
           </div>
         </div>
