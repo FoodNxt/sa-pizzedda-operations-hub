@@ -16,6 +16,7 @@ export default function FormPulizia() {
     tipo_controllo: 'scelta_multipla',
     attrezzatura: '',
     opzioni_risposta: [''],
+    risposta_corretta: '',
     ruoli_assegnati: [],
     stores_assegnati: [],
     ordine: 0,
@@ -67,6 +68,7 @@ export default function FormPulizia() {
       tipo_controllo: 'scelta_multipla',
       attrezzatura: '',
       opzioni_risposta: [''],
+      risposta_corretta: '',
       ruoli_assegnati: [],
       stores_assegnati: [],
       ordine: 0,
@@ -87,6 +89,7 @@ export default function FormPulizia() {
       tipo_controllo: domanda.tipo_controllo || 'multipla',
       attrezzatura: domanda.attrezzatura || '',
       opzioni_risposta: domanda.opzioni_risposta || [''],
+      risposta_corretta: domanda.risposta_corretta || '',
       ruoli_assegnati: domanda.ruoli_assegnati || [],
       stores_assegnati: domanda.stores_assegnati || [],
       ordine: domanda.ordine || 0,
@@ -259,11 +262,19 @@ export default function FormPulizia() {
                         {domanda.tipo_controllo === 'foto' && domanda.attrezzatura && (
                           <p className="text-sm text-[#9b9b9b]">Attrezzatura: {domanda.attrezzatura}</p>
                         )}
-                        {domanda.tipo_controllo === 'multipla' && domanda.opzioni_risposta && (
+                        {domanda.tipo_controllo === 'scelta_multipla' && domanda.opzioni_risposta && (
                           <div className="flex flex-wrap gap-1 mt-2">
                             {domanda.opzioni_risposta.map((opz, idx) => (
-                              <span key={idx} className="text-xs px-2 py-1 rounded bg-slate-100 text-slate-600">
+                              <span 
+                                key={idx} 
+                                className={`text-xs px-2 py-1 rounded ${
+                                  domanda.risposta_corretta === opz 
+                                    ? 'bg-green-100 text-green-700 font-bold' 
+                                    : 'bg-slate-100 text-slate-600'
+                                }`}
+                              >
                                 {opz}
+                                {domanda.risposta_corretta === opz && ' ✓'}
                               </span>
                             ))}
                           </div>
@@ -434,36 +445,57 @@ export default function FormPulizia() {
                     )}
 
                     {questionForm.tipo_controllo === 'scelta_multipla' && (
-                      <div>
-                        <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                          Opzioni di Risposta
-                        </label>
-                        <div className="space-y-2">
-                          {questionForm.opzioni_risposta.map((opzione, index) => (
-                            <div key={index} className="flex gap-2 items-center">
-                              <input
-                                type="text"
-                                value={opzione}
-                                onChange={(e) => updateOpzioneRisposta(index, e.target.value)}
-                                className="flex-1 neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
-                                placeholder={`Opzione ${index + 1}`}
-                              />
-                              {questionForm.opzioni_risposta.length > 1 && (
-                                <button
-                                  type="button"
-                                  onClick={() => removeOpzioneRisposta(index)}
-                                  className="neumorphic-flat p-2 rounded-lg text-red-600"
-                                >
-                                  <X className="w-4 h-4" />
-                                </button>
-                              )}
-                            </div>
-                          ))}
-                          <NeumorphicButton type="button" onClick={addOpzioneRisposta} className="text-sm">
-                            <Plus className="w-4 h-4 inline mr-1" /> Aggiungi Opzione
-                          </NeumorphicButton>
+                      <>
+                        <div>
+                          <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                            Opzioni di Risposta
+                          </label>
+                          <div className="space-y-2">
+                            {questionForm.opzioni_risposta.map((opzione, index) => (
+                              <div key={index} className="flex gap-2 items-center">
+                                <input
+                                  type="text"
+                                  value={opzione}
+                                  onChange={(e) => updateOpzioneRisposta(index, e.target.value)}
+                                  className="flex-1 neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
+                                  placeholder={`Opzione ${index + 1}`}
+                                />
+                                {questionForm.opzioni_risposta.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => removeOpzioneRisposta(index)}
+                                    className="neumorphic-flat p-2 rounded-lg text-red-600"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                            <NeumorphicButton type="button" onClick={addOpzioneRisposta} className="text-sm">
+                              <Plus className="w-4 h-4 inline mr-1" /> Aggiungi Opzione
+                            </NeumorphicButton>
+                          </div>
                         </div>
-                      </div>
+
+                        <div>
+                          <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                            Risposta Corretta (opzionale)
+                          </label>
+                          <select
+                            value={questionForm.risposta_corretta}
+                            onChange={(e) => setQuestionForm({ ...questionForm, risposta_corretta: e.target.value })}
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                          >
+                            <option value="">Nessuna risposta corretta</option>
+                            {questionForm.opzioni_risposta.filter(o => o.trim()).map((opz, idx) => (
+                              <option key={idx} value={opz}>{opz}</option>
+                            ))}
+                          </select>
+                          <p className="text-xs text-slate-500 mt-1">
+                            Seleziona quale risposta è quella corretta (per scopi di feedback/valutazione futura)
+                          </p>
+                        </div>
+                      </>
                     )}
 
                     <div>
