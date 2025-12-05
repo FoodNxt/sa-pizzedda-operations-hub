@@ -413,6 +413,24 @@ export default function Impasto() {
                     <p className="text-sm text-yellow-600 mt-1">palline di impasto</p>
                   </div>
 
+                  {risultato.impastoNecessario > 65 && (
+                    <div className="neumorphic-card p-4 rounded-xl bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-400">
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-bold text-red-800 mb-1">⚠️ ATTENZIONE: Impasto superiore a 65 palline!</p>
+                          <p className="text-sm text-red-700 mb-2">
+                            Sono necessari <strong>{Math.ceil(risultato.impastoNecessario / 65)} impasti</strong> separati 
+                            (max 65 palline per impasto).
+                          </p>
+                          <p className="text-sm text-red-600">
+                            <strong>Contatta lo Store Manager</strong> per confermare la necessità di un impasto così grande.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <NeumorphicButton
                     onClick={handleCalcolaImpasto}
                     variant="primary"
@@ -447,6 +465,24 @@ export default function Impasto() {
                   <p className="text-4xl font-bold text-green-800">{risultato.impastoNecessario}</p>
                   <p className="text-sm text-green-600 mt-1">palline di impasto</p>
                 </div>
+
+                {risultato.impastoNecessario > 65 && (
+                  <div className="neumorphic-card p-4 rounded-xl bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-400 mb-4">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-red-800 mb-1">⚠️ ATTENZIONE: Impasto superiore a 65 palline!</p>
+                        <p className="text-sm text-red-700 mb-2">
+                          Sono necessari <strong>{Math.ceil(risultato.impastoNecessario / 65)} impasti</strong> separati 
+                          (max 65 palline per impasto).
+                        </p>
+                        <p className="text-sm text-red-600">
+                          <strong>Contatta lo Store Manager</strong> per confermare la necessità di un impasto così grande.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {risultato.ingredientiNecessari && risultato.ingredientiNecessari.length > 0 && risultato.impastoNecessario > 0 && (
                   <div className="neumorphic-pressed p-4 rounded-xl">

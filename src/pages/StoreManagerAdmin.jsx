@@ -35,12 +35,20 @@ export default function StoreManagerAdmin() {
   const [formData, setFormData] = useState({
     store_id: '',
     target_fatturato: '',
+    soglia_min_fatturato: '',
     target_recensioni_media: '',
+    soglia_min_recensioni: '',
+    target_num_recensioni: '',
+    soglia_min_num_recensioni: '',
     target_ordini_sbagliati_max: '',
+    soglia_max_ordini_sbagliati: '',
     target_ritardi_max_minuti: '',
+    soglia_max_ritardi: '',
     target_pulizie_min_score: '',
+    soglia_min_pulizie: '',
     bonus_fatturato: '',
     bonus_recensioni: '',
+    bonus_num_recensioni: '',
     bonus_ordini_sbagliati: '',
     bonus_ritardi: '',
     bonus_pulizie: ''
@@ -109,6 +117,7 @@ export default function StoreManagerAdmin() {
     const mediaRecensioni = storeReviews.length > 0 
       ? storeReviews.reduce((acc, r) => acc + r.rating, 0) / storeReviews.length 
       : null;
+    const numRecensioni = storeReviews.length;
 
     // Ordini sbagliati
     const storeOrdini = ordiniSbagliati.filter(o => 
@@ -135,7 +144,7 @@ export default function StoreManagerAdmin() {
       ? storePulizie.reduce((acc, p) => acc + p.overall_score, 0) / storePulizie.length
       : null;
 
-    return { fatturato, mediaRecensioni, numOrdiniSbagliati, totaleRitardi, mediaPulizie };
+    return { fatturato, mediaRecensioni, numRecensioni, numOrdiniSbagliati, totaleRitardi, mediaPulizie };
   };
 
   const createMutation = useMutation({
@@ -165,12 +174,20 @@ export default function StoreManagerAdmin() {
     setFormData({
       store_id: '',
       target_fatturato: '',
+      soglia_min_fatturato: '',
       target_recensioni_media: '',
+      soglia_min_recensioni: '',
+      target_num_recensioni: '',
+      soglia_min_num_recensioni: '',
       target_ordini_sbagliati_max: '',
+      soglia_max_ordini_sbagliati: '',
       target_ritardi_max_minuti: '',
+      soglia_max_ritardi: '',
       target_pulizie_min_score: '',
+      soglia_min_pulizie: '',
       bonus_fatturato: '',
       bonus_recensioni: '',
+      bonus_num_recensioni: '',
       bonus_ordini_sbagliati: '',
       bonus_ritardi: '',
       bonus_pulizie: ''
@@ -184,12 +201,20 @@ export default function StoreManagerAdmin() {
     setFormData({
       store_id: target.store_id,
       target_fatturato: target.target_fatturato || '',
+      soglia_min_fatturato: target.soglia_min_fatturato || '',
       target_recensioni_media: target.target_recensioni_media || '',
+      soglia_min_recensioni: target.soglia_min_recensioni || '',
+      target_num_recensioni: target.target_num_recensioni || '',
+      soglia_min_num_recensioni: target.soglia_min_num_recensioni || '',
       target_ordini_sbagliati_max: target.target_ordini_sbagliati_max || '',
+      soglia_max_ordini_sbagliati: target.soglia_max_ordini_sbagliati || '',
       target_ritardi_max_minuti: target.target_ritardi_max_minuti || '',
+      soglia_max_ritardi: target.soglia_max_ritardi || '',
       target_pulizie_min_score: target.target_pulizie_min_score || '',
+      soglia_min_pulizie: target.soglia_min_pulizie || '',
       bonus_fatturato: target.bonus_fatturato || '',
       bonus_recensioni: target.bonus_recensioni || '',
+      bonus_num_recensioni: target.bonus_num_recensioni || '',
       bonus_ordini_sbagliati: target.bonus_ordini_sbagliati || '',
       bonus_ritardi: target.bonus_ritardi || '',
       bonus_pulizie: target.bonus_pulizie || ''
@@ -206,12 +231,20 @@ export default function StoreManagerAdmin() {
       store_manager_id: store?.store_manager_id || null,
       mese: selectedMonth,
       target_fatturato: formData.target_fatturato ? parseFloat(formData.target_fatturato) : null,
+      soglia_min_fatturato: formData.soglia_min_fatturato ? parseFloat(formData.soglia_min_fatturato) : null,
       target_recensioni_media: formData.target_recensioni_media ? parseFloat(formData.target_recensioni_media) : null,
+      soglia_min_recensioni: formData.soglia_min_recensioni ? parseFloat(formData.soglia_min_recensioni) : null,
+      target_num_recensioni: formData.target_num_recensioni ? parseInt(formData.target_num_recensioni) : null,
+      soglia_min_num_recensioni: formData.soglia_min_num_recensioni ? parseInt(formData.soglia_min_num_recensioni) : null,
       target_ordini_sbagliati_max: formData.target_ordini_sbagliati_max ? parseInt(formData.target_ordini_sbagliati_max) : null,
+      soglia_max_ordini_sbagliati: formData.soglia_max_ordini_sbagliati ? parseInt(formData.soglia_max_ordini_sbagliati) : null,
       target_ritardi_max_minuti: formData.target_ritardi_max_minuti ? parseInt(formData.target_ritardi_max_minuti) : null,
+      soglia_max_ritardi: formData.soglia_max_ritardi ? parseInt(formData.soglia_max_ritardi) : null,
       target_pulizie_min_score: formData.target_pulizie_min_score ? parseInt(formData.target_pulizie_min_score) : null,
+      soglia_min_pulizie: formData.soglia_min_pulizie ? parseInt(formData.soglia_min_pulizie) : null,
       bonus_fatturato: formData.bonus_fatturato ? parseFloat(formData.bonus_fatturato) : null,
       bonus_recensioni: formData.bonus_recensioni ? parseFloat(formData.bonus_recensioni) : null,
+      bonus_num_recensioni: formData.bonus_num_recensioni ? parseFloat(formData.bonus_num_recensioni) : null,
       bonus_ordini_sbagliati: formData.bonus_ordini_sbagliati ? parseFloat(formData.bonus_ordini_sbagliati) : null,
       bonus_ritardi: formData.bonus_ritardi ? parseFloat(formData.bonus_ritardi) : null,
       bonus_pulizie: formData.bonus_pulizie ? parseFloat(formData.bonus_pulizie) : null
@@ -307,148 +340,131 @@ export default function StoreManagerAdmin() {
               </select>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-green-600" />
-                  Target Fatturato (€)
-                </label>
-                <input
-                  type="number"
-                  value={formData.target_fatturato}
-                  onChange={(e) => setFormData({ ...formData, target_fatturato: e.target.value })}
-                  placeholder="es. 50000"
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                />
+            <div className="space-y-4">
+              {/* Fatturato */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-green-50 rounded-xl">
+                <div className="md:col-span-3 flex items-center gap-2 text-green-700 font-bold">
+                  <DollarSign className="w-5 h-5" />
+                  Fatturato
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Target (€)</label>
+                  <input type="number" value={formData.target_fatturato} onChange={(e) => setFormData({ ...formData, target_fatturato: e.target.value })} placeholder="50000" className="w-full neumorphic-pressed px-3 py-2 rounded-xl outline-none" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-red-600 mb-1 block">Soglia Min (€)</label>
+                  <input type="number" value={formData.soglia_min_fatturato} onChange={(e) => setFormData({ ...formData, soglia_min_fatturato: e.target.value })} placeholder="30000" className="w-full neumorphic-pressed px-3 py-2 rounded-xl outline-none border border-red-200" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Bonus (€)</label>
+                  <input type="number" value={formData.bonus_fatturato} onChange={(e) => setFormData({ ...formData, bonus_fatturato: e.target.value })} placeholder="100" className="w-full neumorphic-pressed px-3 py-2 rounded-xl outline-none" />
+                </div>
               </div>
 
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
-                  <Star className="w-4 h-4 text-yellow-500" />
-                  Media Recensioni Min
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  min="1"
-                  max="5"
-                  value={formData.target_recensioni_media}
-                  onChange={(e) => setFormData({ ...formData, target_recensioni_media: e.target.value })}
-                  placeholder="es. 4.5"
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                />
+              {/* Recensioni Media */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-yellow-50 rounded-xl">
+                <div className="md:col-span-3 flex items-center gap-2 text-yellow-700 font-bold">
+                  <Star className="w-5 h-5" />
+                  Media Recensioni
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Target</label>
+                  <input type="number" step="0.1" min="1" max="5" value={formData.target_recensioni_media} onChange={(e) => setFormData({ ...formData, target_recensioni_media: e.target.value })} placeholder="4.5" className="w-full neumorphic-pressed px-3 py-2 rounded-xl outline-none" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-red-600 mb-1 block">Soglia Min</label>
+                  <input type="number" step="0.1" min="1" max="5" value={formData.soglia_min_recensioni} onChange={(e) => setFormData({ ...formData, soglia_min_recensioni: e.target.value })} placeholder="3.5" className="w-full neumorphic-pressed px-3 py-2 rounded-xl outline-none border border-red-200" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Bonus (€)</label>
+                  <input type="number" value={formData.bonus_recensioni} onChange={(e) => setFormData({ ...formData, bonus_recensioni: e.target.value })} placeholder="50" className="w-full neumorphic-pressed px-3 py-2 rounded-xl outline-none" />
+                </div>
               </div>
 
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-red-600" />
-                  Ordini Sbagliati Max
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={formData.target_ordini_sbagliati_max}
-                  onChange={(e) => setFormData({ ...formData, target_ordini_sbagliati_max: e.target.value })}
-                  placeholder="es. 5"
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                />
+              {/* Numero Recensioni */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-orange-50 rounded-xl">
+                <div className="md:col-span-3 flex items-center gap-2 text-orange-700 font-bold">
+                  <BarChart3 className="w-5 h-5" />
+                  Numero Recensioni
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Target</label>
+                  <input type="number" min="0" value={formData.target_num_recensioni} onChange={(e) => setFormData({ ...formData, target_num_recensioni: e.target.value })} placeholder="50" className="w-full neumorphic-pressed px-3 py-2 rounded-xl outline-none" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-red-600 mb-1 block">Soglia Min</label>
+                  <input type="number" min="0" value={formData.soglia_min_num_recensioni} onChange={(e) => setFormData({ ...formData, soglia_min_num_recensioni: e.target.value })} placeholder="20" className="w-full neumorphic-pressed px-3 py-2 rounded-xl outline-none border border-red-200" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Bonus (€)</label>
+                  <input type="number" value={formData.bonus_num_recensioni} onChange={(e) => setFormData({ ...formData, bonus_num_recensioni: e.target.value })} placeholder="30" className="w-full neumorphic-pressed px-3 py-2 rounded-xl outline-none" />
+                </div>
               </div>
 
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-blue-600" />
-                  Ritardi Max (min)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={formData.target_ritardi_max_minuti}
-                  onChange={(e) => setFormData({ ...formData, target_ritardi_max_minuti: e.target.value })}
-                  placeholder="es. 5"
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                />
+              {/* Ordini Sbagliati */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-red-50 rounded-xl">
+                <div className="md:col-span-3 flex items-center gap-2 text-red-700 font-bold">
+                  <AlertTriangle className="w-5 h-5" />
+                  Ordini Sbagliati
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Target Max</label>
+                  <input type="number" min="0" value={formData.target_ordini_sbagliati_max} onChange={(e) => setFormData({ ...formData, target_ordini_sbagliati_max: e.target.value })} placeholder="5" className="w-full neumorphic-pressed px-3 py-2 rounded-xl outline-none" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-red-600 mb-1 block">Soglia Max (no bonus)</label>
+                  <input type="number" min="0" value={formData.soglia_max_ordini_sbagliati} onChange={(e) => setFormData({ ...formData, soglia_max_ordini_sbagliati: e.target.value })} placeholder="15" className="w-full neumorphic-pressed px-3 py-2 rounded-xl outline-none border border-red-200" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Bonus (€)</label>
+                  <input type="number" value={formData.bonus_ordini_sbagliati} onChange={(e) => setFormData({ ...formData, bonus_ordini_sbagliati: e.target.value })} placeholder="50" className="w-full neumorphic-pressed px-3 py-2 rounded-xl outline-none" />
+                </div>
               </div>
 
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-purple-600" />
-                  Score Pulizie Min
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={formData.target_pulizie_min_score}
-                  onChange={(e) => setFormData({ ...formData, target_pulizie_min_score: e.target.value })}
-                  placeholder="es. 80"
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                />
+              {/* Ritardi */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-blue-50 rounded-xl">
+                <div className="md:col-span-3 flex items-center gap-2 text-blue-700 font-bold">
+                  <Clock className="w-5 h-5" />
+                  Ritardi (minuti)
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Target Max</label>
+                  <input type="number" min="0" value={formData.target_ritardi_max_minuti} onChange={(e) => setFormData({ ...formData, target_ritardi_max_minuti: e.target.value })} placeholder="30" className="w-full neumorphic-pressed px-3 py-2 rounded-xl outline-none" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-red-600 mb-1 block">Soglia Max (no bonus)</label>
+                  <input type="number" min="0" value={formData.soglia_max_ritardi} onChange={(e) => setFormData({ ...formData, soglia_max_ritardi: e.target.value })} placeholder="120" className="w-full neumorphic-pressed px-3 py-2 rounded-xl outline-none border border-red-200" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Bonus (€)</label>
+                  <input type="number" value={formData.bonus_ritardi} onChange={(e) => setFormData({ ...formData, bonus_ritardi: e.target.value })} placeholder="50" className="w-full neumorphic-pressed px-3 py-2 rounded-xl outline-none" />
+                </div>
+              </div>
+
+              {/* Pulizie */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-purple-50 rounded-xl">
+                <div className="md:col-span-3 flex items-center gap-2 text-purple-700 font-bold">
+                  <Sparkles className="w-5 h-5" />
+                  Score Pulizie
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Target Min</label>
+                  <input type="number" min="0" max="100" value={formData.target_pulizie_min_score} onChange={(e) => setFormData({ ...formData, target_pulizie_min_score: e.target.value })} placeholder="85" className="w-full neumorphic-pressed px-3 py-2 rounded-xl outline-none" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-red-600 mb-1 block">Soglia Min (no bonus)</label>
+                  <input type="number" min="0" max="100" value={formData.soglia_min_pulizie} onChange={(e) => setFormData({ ...formData, soglia_min_pulizie: e.target.value })} placeholder="60" className="w-full neumorphic-pressed px-3 py-2 rounded-xl outline-none border border-red-200" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Bonus (€)</label>
+                  <input type="number" value={formData.bonus_pulizie} onChange={(e) => setFormData({ ...formData, bonus_pulizie: e.target.value })} placeholder="50" className="w-full neumorphic-pressed px-3 py-2 rounded-xl outline-none" />
+                </div>
               </div>
             </div>
 
-            {/* Bonus Section */}
-            <div className="mt-6 pt-4 border-t border-slate-200">
-              <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
-                <Gift className="w-5 h-5 text-green-600" />
-                Bonus per Metrica (€)
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-slate-700 mb-2 block">Bonus Fatturato</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={formData.bonus_fatturato}
-                    onChange={(e) => setFormData({ ...formData, bonus_fatturato: e.target.value })}
-                    placeholder="€"
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-slate-700 mb-2 block">Bonus Recensioni</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={formData.bonus_recensioni}
-                    onChange={(e) => setFormData({ ...formData, bonus_recensioni: e.target.value })}
-                    placeholder="€"
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-slate-700 mb-2 block">Bonus Ordini</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={formData.bonus_ordini_sbagliati}
-                    onChange={(e) => setFormData({ ...formData, bonus_ordini_sbagliati: e.target.value })}
-                    placeholder="€"
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-slate-700 mb-2 block">Bonus Ritardi</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={formData.bonus_ritardi}
-                    onChange={(e) => setFormData({ ...formData, bonus_ritardi: e.target.value })}
-                    placeholder="€"
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-slate-700 mb-2 block">Bonus Pulizie</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={formData.bonus_pulizie}
-                    onChange={(e) => setFormData({ ...formData, bonus_pulizie: e.target.value })}
-                    placeholder="€"
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                  />
-                </div>
-              </div>
+            <div className="mt-4 p-3 bg-red-100 rounded-xl text-sm text-red-800">
+              <strong>⚠️ Soglie Minime:</strong> Se una metrica scende sotto la soglia minima (o sopra per ordini/ritardi), 
+              <strong> TUTTI i bonus vengono azzerati</strong> per quel mese.
             </div>
 
             <div className="flex gap-3 pt-4">
@@ -485,20 +501,34 @@ export default function StoreManagerAdmin() {
               const sm = users.find(u => u.id === store?.store_manager_id);
               const actual = getActualResults(target.store_id);
 
+              // Check if ANY threshold is breached (loses ALL bonuses)
+              const fatturatoBreached = target.soglia_min_fatturato && actual.fatturato < target.soglia_min_fatturato;
+              const recensioniBreached = target.soglia_min_recensioni && actual.mediaRecensioni && actual.mediaRecensioni < target.soglia_min_recensioni;
+              const numRecensioniBreached = target.soglia_min_num_recensioni && actual.numRecensioni < target.soglia_min_num_recensioni;
+              const ordiniBreached = target.soglia_max_ordini_sbagliati && actual.numOrdiniSbagliati > target.soglia_max_ordini_sbagliati;
+              const ritardiBreached = target.soglia_max_ritardi && actual.totaleRitardi > target.soglia_max_ritardi;
+              const pulizieBreached = target.soglia_min_pulizie && actual.mediaPulizie && actual.mediaPulizie < target.soglia_min_pulizie;
+
+              const anyThresholdBreached = fatturatoBreached || recensioniBreached || numRecensioniBreached || ordiniBreached || ritardiBreached || pulizieBreached;
+
               // Calculate if targets are met
               const fatturatoMet = target.target_fatturato && actual.fatturato >= target.target_fatturato;
               const recensioniMet = target.target_recensioni_media && actual.mediaRecensioni && actual.mediaRecensioni >= target.target_recensioni_media;
+              const numRecensioniMet = target.target_num_recensioni && actual.numRecensioni >= target.target_num_recensioni;
               const ordiniMet = target.target_ordini_sbagliati_max !== null && actual.numOrdiniSbagliati <= target.target_ordini_sbagliati_max;
               const ritardiMet = target.target_ritardi_max_minuti && actual.totaleRitardi <= target.target_ritardi_max_minuti;
               const pulizieMet = target.target_pulizie_min_score && actual.mediaPulizie && actual.mediaPulizie >= target.target_pulizie_min_score;
 
-              // Calculate total bonus
+              // Calculate total bonus (0 if any threshold is breached)
               let totalBonus = 0;
-              if (fatturatoMet && target.bonus_fatturato) totalBonus += target.bonus_fatturato;
-              if (recensioniMet && target.bonus_recensioni) totalBonus += target.bonus_recensioni;
-              if (ordiniMet && target.bonus_ordini_sbagliati) totalBonus += target.bonus_ordini_sbagliati;
-              if (ritardiMet && target.bonus_ritardi) totalBonus += target.bonus_ritardi;
-              if (pulizieMet && target.bonus_pulizie) totalBonus += target.bonus_pulizie;
+              if (!anyThresholdBreached) {
+                if (fatturatoMet && target.bonus_fatturato) totalBonus += target.bonus_fatturato;
+                if (recensioniMet && target.bonus_recensioni) totalBonus += target.bonus_recensioni;
+                if (numRecensioniMet && target.bonus_num_recensioni) totalBonus += target.bonus_num_recensioni;
+                if (ordiniMet && target.bonus_ordini_sbagliati) totalBonus += target.bonus_ordini_sbagliati;
+                if (ritardiMet && target.bonus_ritardi) totalBonus += target.bonus_ritardi;
+                if (pulizieMet && target.bonus_pulizie) totalBonus += target.bonus_pulizie;
+              }
 
               const MetricCard = ({ icon: Icon, iconColor, label, target: tgt, actual: act, isMet, bonus, isLowerBetter = false, suffix = '' }) => (
                 <div className={`neumorphic-flat p-3 rounded-lg ${isMet ? 'bg-green-50 border border-green-300' : ''}`}>
@@ -571,15 +601,22 @@ export default function StoreManagerAdmin() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  {anyThresholdBreached && (
+                    <div className="mb-3 p-2 bg-red-100 border border-red-300 rounded-lg text-sm text-red-800 flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4" />
+                      <strong>Soglia minima non raggiunta - Tutti i bonus azzerati!</strong>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
                     <MetricCard
                       icon={DollarSign}
                       iconColor="text-green-600"
                       label="Fatturato"
                       target={target.target_fatturato}
                       actual={actual.fatturato}
-                      isMet={fatturatoMet}
-                      bonus={target.bonus_fatturato}
+                      isMet={fatturatoMet && !anyThresholdBreached}
+                      bonus={!anyThresholdBreached ? target.bonus_fatturato : null}
                       suffix="€"
                     />
                     <MetricCard
@@ -588,8 +625,17 @@ export default function StoreManagerAdmin() {
                       label="Media Recensioni"
                       target={target.target_recensioni_media}
                       actual={actual.mediaRecensioni}
-                      isMet={recensioniMet}
-                      bonus={target.bonus_recensioni}
+                      isMet={recensioniMet && !anyThresholdBreached}
+                      bonus={!anyThresholdBreached ? target.bonus_recensioni : null}
+                    />
+                    <MetricCard
+                      icon={BarChart3}
+                      iconColor="text-orange-500"
+                      label="Num Recensioni"
+                      target={target.target_num_recensioni}
+                      actual={actual.numRecensioni}
+                      isMet={numRecensioniMet && !anyThresholdBreached}
+                      bonus={!anyThresholdBreached ? target.bonus_num_recensioni : null}
                     />
                     <MetricCard
                       icon={AlertTriangle}
@@ -597,8 +643,8 @@ export default function StoreManagerAdmin() {
                       label="Ordini Sbagliati"
                       target={target.target_ordini_sbagliati_max}
                       actual={actual.numOrdiniSbagliati}
-                      isMet={ordiniMet}
-                      bonus={target.bonus_ordini_sbagliati}
+                      isMet={ordiniMet && !anyThresholdBreached}
+                      bonus={!anyThresholdBreached ? target.bonus_ordini_sbagliati : null}
                       isLowerBetter
                     />
                     <MetricCard
@@ -607,8 +653,8 @@ export default function StoreManagerAdmin() {
                       label="Ritardi Tot"
                       target={target.target_ritardi_max_minuti}
                       actual={actual.totaleRitardi}
-                      isMet={ritardiMet}
-                      bonus={target.bonus_ritardi}
+                      isMet={ritardiMet && !anyThresholdBreached}
+                      bonus={!anyThresholdBreached ? target.bonus_ritardi : null}
                       isLowerBetter
                       suffix=" min"
                     />
@@ -618,8 +664,8 @@ export default function StoreManagerAdmin() {
                       label="Score Pulizie"
                       target={target.target_pulizie_min_score}
                       actual={actual.mediaPulizie ? Math.round(actual.mediaPulizie) : null}
-                      isMet={pulizieMet}
-                      bonus={target.bonus_pulizie}
+                      isMet={pulizieMet && !anyThresholdBreached}
+                      bonus={!anyThresholdBreached ? target.bonus_pulizie : null}
                     />
                   </div>
                 </div>
