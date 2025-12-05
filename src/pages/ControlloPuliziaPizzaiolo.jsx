@@ -101,7 +101,7 @@ export default function ControlloPuliziaPizzaiolo() {
         return;
       }
       if (domanda.tipo_controllo === 'multipla' && !risposte[domanda.id]) {
-        setError(`Rispondi alla domanda: ${domanda.testo_domanda}`);
+        setError(`Rispondi alla domanda: ${domanda.domanda_testo || domanda.testo_domanda}`);
         return;
       }
     }
@@ -134,7 +134,7 @@ export default function ControlloPuliziaPizzaiolo() {
         inspection_type: 'pizzaiolo',
         domande_risposte: domande.map(d => ({
           domanda_id: d.id,
-          domanda_testo: d.tipo_controllo === 'foto' ? `Foto: ${d.attrezzatura}` : d.testo_domanda,
+          domanda_testo: d.domanda_testo || (d.tipo_controllo === 'foto' ? `Foto: ${d.attrezzatura}` : d.testo_domanda),
           tipo_controllo: d.tipo_controllo,
           risposta: d.tipo_controllo === 'foto' ? uploadedUrls[d.id] : risposte[d.id],
           attrezzatura: d.attrezzatura
@@ -346,7 +346,7 @@ export default function ControlloPuliziaPizzaiolo() {
                   ) : (
                     <div>
                       <label className="text-sm font-medium text-[#6b6b6b] mb-3 block">
-                        {index + 1}. {domanda.testo_domanda}
+                        {index + 1}. {domanda.domanda_testo || domanda.testo_domanda}
                         {domanda.obbligatoria !== false && <span className="text-red-600 ml-1">*</span>}
                       </label>
                       <div className="space-y-2">
