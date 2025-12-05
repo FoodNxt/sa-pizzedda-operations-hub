@@ -31,7 +31,9 @@ Deno.serve(async (req) => {
         
         for (const eq of equipment) {
             const url = equipment_photos[eq.key];
-            if (url) {
+            if (!url) continue; // Skip if no photo URL
+            
+            {
                 // BUILD LEARNING EXAMPLES FROM CORRECTIONS
                 const relevantCorrections = correctionsHistory
                     .filter(i => i[`${eq.key}_corrected`] === true)
@@ -103,7 +105,7 @@ Sii molto critico e attento ai dettagli di igiene in una cucina professionale. $
                         problemi_critici: []
                     };
                 }
-            }
+            // Removed unnecessary closing brace
         }
 
         // Calculate overall score (only from analyzed photos)

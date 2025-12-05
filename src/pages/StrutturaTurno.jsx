@@ -199,6 +199,19 @@ export default function StrutturaTurno() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Validate ruolo is selected
+    if (!formData.ruolo) {
+      alert('Seleziona un ruolo');
+      return;
+    }
+    
+    // Validate nome_schema
+    if (!formData.nome_schema || !formData.nome_schema.trim()) {
+      alert('Inserisci un nome per lo schema');
+      return;
+    }
+    
     if (editingSchema) {
       updateMutation.mutate({ id: editingSchema.id, data: formData });
     } else {
