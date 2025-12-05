@@ -887,14 +887,19 @@ export default function Planday() {
 
   const handleQuickSave = () => {
     const dipendente = users.find(u => u.id === turnoForm.dipendente_id);
+    const candidato = candidati.find(c => c.id === turnoForm.candidato_id);
     const momento = getTurnoTipo({ ora_inizio: turnoForm.ora_inizio });
     const sequence = momento === 'Mattina' ? 'first' : 'second';
     
     const dataToSave = {
       ...turnoForm,
-      dipendente_nome: dipendente?.nome_cognome || dipendente?.full_name || '',
+      dipendente_nome: turnoForm.is_prova && candidato 
+        ? `${candidato.nome} ${candidato.cognome} (PROVA)`
+        : (dipendente?.nome_cognome || dipendente?.full_name || ''),
       momento_turno: momento,
-      turno_sequence: sequence
+      turno_sequence: sequence,
+      is_prova: turnoForm.is_prova,
+      candidato_id: turnoForm.is_prova ? turnoForm.candidato_id : ''
     };
     createMutation.mutate(dataToSave);
     setQuickTurnoPopup(null);
@@ -2358,6 +2363,41 @@ export default function Planday() {
                     className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
                     placeholder="Note opzionali..."
                   />
+                </div>
+
+                {/* Turno di Prova in Quick Popup */}
+                <div className="neumorphic-flat p-3 rounded-xl bg-purple-50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <input
+                      type="checkbox"
+                      id="quick-is-prova"
+                      checked={turnoForm.is_prova}
+                      onChange={(e) => setTurnoForm({ 
+                        ...turnoForm, 
+                        is_prova: e.target.checked,
+                        dipendente_id: e.target.checked ? '' : turnoForm.dipendente_id,
+                        candidato_id: ''
+                      })}
+                      className="w-4 h-4"
+                    />
+                    <label htmlFor="quick-is-prova" className="text-xs font-medium text-purple-800">
+                      🧪 Turno di PROVA
+                    </label>
+                  </div>
+                  {turnoForm.is_prova && (
+                    <select
+                      value={turnoForm.candidato_id}
+                      onChange={(e) => setTurnoForm({ ...turnoForm, candidato_id: e.target.value })}
+                      className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none"
+                    >
+                      <option value="">Seleziona candidato...</option>
+                      {candidati.map(c => (
+                        <option key={c.id} value={c.id}>
+                          {c.nome} {c.cognome} - {c.telefono}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </div>
 
