@@ -696,6 +696,7 @@ export default function StoreManagerAdmin() {
                   )}
 
                   <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+                    {(target.metriche_attive || ['fatturato', 'recensioni_media', 'num_recensioni', 'ordini_sbagliati', 'ritardi', 'pulizie']).includes('fatturato') && (
                     <MetricCard
                       icon={DollarSign}
                       iconColor="text-green-600"
@@ -708,6 +709,8 @@ export default function StoreManagerAdmin() {
                       threshold={target.soglia_min_fatturato}
                       thresholdLabel="Min"
                     />
+                    )}
+                    {(target.metriche_attive || ['fatturato', 'recensioni_media', 'num_recensioni', 'ordini_sbagliati', 'ritardi', 'pulizie']).includes('recensioni_media') && (
                     <MetricCard
                       icon={Star}
                       iconColor="text-yellow-500"
@@ -719,6 +722,8 @@ export default function StoreManagerAdmin() {
                       threshold={target.soglia_min_recensioni}
                       thresholdLabel="Min"
                     />
+                    )}
+                    {(target.metriche_attive || ['fatturato', 'recensioni_media', 'num_recensioni', 'ordini_sbagliati', 'ritardi', 'pulizie']).includes('num_recensioni') && (
                     <MetricCard
                       icon={BarChart3}
                       iconColor="text-orange-500"
@@ -730,6 +735,8 @@ export default function StoreManagerAdmin() {
                       threshold={target.soglia_min_num_recensioni}
                       thresholdLabel="Min"
                     />
+                    )}
+                    {(target.metriche_attive || ['fatturato', 'recensioni_media', 'num_recensioni', 'ordini_sbagliati', 'ritardi', 'pulizie']).includes('ordini_sbagliati') && (
                     <MetricCard
                       icon={AlertTriangle}
                       iconColor="text-red-600"
@@ -742,6 +749,8 @@ export default function StoreManagerAdmin() {
                       threshold={target.soglia_max_ordini_sbagliati}
                       thresholdLabel="Max"
                     />
+                    )}
+                    {(target.metriche_attive || ['fatturato', 'recensioni_media', 'num_recensioni', 'ordini_sbagliati', 'ritardi', 'pulizie']).includes('ritardi') && (
                     <MetricCard
                       icon={Clock}
                       iconColor="text-blue-600"
@@ -755,6 +764,8 @@ export default function StoreManagerAdmin() {
                       threshold={target.soglia_max_ritardi}
                       thresholdLabel="Max"
                     />
+                    )}
+                    {(target.metriche_attive || ['fatturato', 'recensioni_media', 'num_recensioni', 'ordini_sbagliati', 'ritardi', 'pulizie']).includes('pulizie') && (
                     <MetricCard
                       icon={Sparkles}
                       iconColor="text-purple-600"
@@ -766,6 +777,7 @@ export default function StoreManagerAdmin() {
                       threshold={target.soglia_min_pulizie}
                       thresholdLabel="Min"
                     />
+                    )}
                   </div>
                 </div>
               );
