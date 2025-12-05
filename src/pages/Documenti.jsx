@@ -2151,7 +2151,7 @@ function BustePagaSection() {
         pdfUrl: file_url
       });
 
-      return response.data;
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['buste-paga'] });
@@ -2161,7 +2161,8 @@ function BustePagaSection() {
     },
     onError: (error) => {
       setUploadingFile(false);
-      alert('Errore: ' + error.message);
+      console.error('Upload error:', error);
+      alert('Errore durante l\'elaborazione: ' + (error.response?.data?.error || error.message));
     }
   });
 

@@ -9,7 +9,8 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { bustaId, pdfUrl } = await req.json();
+    const body = await req.json();
+    const { bustaId, pdfUrl } = body;
 
     if (!bustaId || !pdfUrl) {
       return Response.json({ error: 'Missing bustaId or pdfUrl' }, { status: 400 });
@@ -92,12 +93,14 @@ Deno.serve(async (req) => {
     
     // Try to update busta status to failed
     try {
-      const base44 = createClientFromRequest(req);
-      const { bustaId } = await req.json();
-      await base44.asServiceRole.entities.BustaPaga.update(bustaId, {
-        status: 'failed',
-        error_message: error.message
-      });
+      const body = await req.clone().json();
+      const { bustaId } = body;
+      if (bustaId) {
+        await base44.asServiceRole.entities.BustaPaga.update(bustaId, {
+          status: 'failed',
+          error_message: error.message
+        });
+      }
     } catch (updateError) {
       console.error('Error updating busta status:', updateError);
     }
