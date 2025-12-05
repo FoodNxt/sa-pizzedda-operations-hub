@@ -1,8 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 Deno.serve(async (req) => {
+  const base44 = createClientFromRequest(req);
+  
   try {
-    const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
 
     if (!user || (user.user_type !== 'admin' && user.user_type !== 'manager')) {
@@ -18,18 +19,17 @@ Deno.serve(async (req) => {
 
     // Fetch PDF
     const pdfResponse = await fetch(pdfUrl);
+    if (!pdfResponse.ok) {
+      throw new Error('Failed to fetch PDF from URL');
+    }
     const pdfBuffer = await pdfResponse.arrayBuffer();
 
     // Use LLM to extract codici fiscali from each page
-    const { file_url: uploadedPdfUrl } = await base44.asServiceRole.integrations.Core.UploadFile({
-      file: new Blob([pdfBuffer], { type: 'application/pdf' })
-    });
-
     const extractionResult = await base44.asServiceRole.integrations.Core.InvokeLLM({
-      prompt: `Analizza questo PDF di buste paga. Per ogni pagina, estrai il CODICE FISCALE del dipendente.
-      Restituisci un array di oggetti con: page_number (numero pagina, partendo da 1) e codice_fiscale (stringa).
-      Se una pagina non contiene un codice fiscale valido, usa null.`,
-      file_urls: [uploadedPdfUrl],
+      prompt: `Analizza questo PDF di buste paga. Per ogni pagina, estrai il CODICE FISCALE del dipendente (formato italiano, es: RSSMRA85M01H501Z).
+      Restituisci un array di oggetti con: page_number (numero pagina, partendo da 1) e codice_fiscale (stringa, in maiuscolo).
+      Se una pagina non contiene un codice fiscale italiano valido, ometti quella pagina dall'array.`,
+      file_urls: [pdfUrl],
       response_json_schema: {
         type: "object",
         properties: {
@@ -40,10 +40,12 @@ Deno.serve(async (req) => {
               properties: {
                 page_number: { type: "number" },
                 codice_fiscale: { type: "string" }
-              }
+              },
+              required: ["page_number", "codice_fiscale"]
             }
           }
-        }
+        },
+        required: ["pages"]
       }
     });
 
@@ -54,24 +56,27 @@ Deno.serve(async (req) => {
 
     // Match each page to a user by codice_fiscale
     const splits = [];
+    const unmatched = [];
+    
     for (const page of pages) {
       if (!page.codice_fiscale) continue;
 
+      const normalizedCF = page.codice_fiscale.toUpperCase().replace(/\s/g, '');
       const matchedUser = allUsers.find(u => 
         u.codice_fiscale && 
-        u.codice_fiscale.toLowerCase().replace(/\s/g, '') === page.codice_fiscale.toLowerCase().replace(/\s/g, '')
+        u.codice_fiscale.toUpperCase().replace(/\s/g, '') === normalizedCF
       );
 
       if (matchedUser) {
-        // In a real implementation, you'd split the PDF page here
-        // For now, we'll just reference the full PDF with page number
         splits.push({
           codice_fiscale: page.codice_fiscale,
           user_id: matchedUser.id,
           user_name: matchedUser.nome_cognome || matchedUser.full_name || matchedUser.email,
-          pdf_url: pdfUrl, // In production: split and upload individual page
+          pdf_url: pdfUrl,
           page_number: page.page_number
         });
+      } else {
+        unmatched.push(page.codice_fiscale);
       }
     }
 
@@ -79,13 +84,18 @@ Deno.serve(async (req) => {
     await base44.asServiceRole.entities.BustaPaga.update(bustaId, {
       pdf_splits: splits,
       status: splits.length > 0 ? 'completed' : 'failed',
-      error_message: splits.length === 0 ? 'Nessun codice fiscale trovato' : null
+      error_message: splits.length === 0 
+        ? `Nessun codice fiscale trovato o nessun match con utenti. Totale pagine: ${pages.length}`
+        : unmatched.length > 0 
+          ? `${splits.length} buste assegnate. ${unmatched.length} codici fiscali non trovati: ${unmatched.join(', ')}`
+          : null
     });
 
     return Response.json({
       success: true,
       splits_count: splits.length,
-      total_pages: pages.length
+      total_pages: pages.length,
+      unmatched_count: unmatched.length
     });
 
   } catch (error) {
@@ -93,8 +103,10 @@ Deno.serve(async (req) => {
     
     // Try to update busta status to failed
     try {
-      const body = await req.clone().json();
+      const bodyText = await req.text();
+      const body = JSON.parse(bodyText);
       const { bustaId } = body;
+      
       if (bustaId) {
         await base44.asServiceRole.entities.BustaPaga.update(bustaId, {
           status: 'failed',
@@ -107,6 +119,7 @@ Deno.serve(async (req) => {
 
     return Response.json({ 
       error: error.message,
+      stack: error.stack,
       success: false
     }, { status: 500 });
   }
