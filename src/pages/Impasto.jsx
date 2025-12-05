@@ -452,19 +452,34 @@ export default function Impasto() {
                   <div className="neumorphic-pressed p-4 rounded-xl">
                     <h3 className="font-bold text-slate-700 mb-3">📋 Ingredienti Necessari</h3>
                     <div className="space-y-2">
-                      {risultato.ingredientiNecessari.map((ing, idx) => (
-                        <div key={idx} className="flex justify-between items-center py-2 border-b border-slate-200 last:border-0">
-                          <span className="text-slate-700 font-medium">{ing.nome_ingrediente}</span>
-                          <span className="text-slate-800 font-bold">
-                            {ing.quantita_totale >= 1000 && ing.unita_misura === 'g' 
-                              ? `${(ing.quantita_totale / 1000).toFixed(2)} kg`
-                              : ing.quantita_totale >= 1000 && ing.unita_misura === 'ml'
-                              ? `${(ing.quantita_totale / 1000).toFixed(2)} litri`
-                              : `${ing.quantita_totale.toFixed(ing.quantita_totale % 1 === 0 ? 0 : 2)} ${ing.unita_misura}`
-                            }
-                          </span>
-                        </div>
-                      ))}
+                      {risultato.ingredientiNecessari.map((ing, idx) => {
+                        // Convert to grams and round to integer
+                        let displayValue = ing.quantita_totale;
+                        let displayUnit = ing.unita_misura;
+
+                        // Convert kg to g
+                        if (ing.unita_misura === 'kg') {
+                          displayValue = displayValue * 1000;
+                          displayUnit = 'g';
+                        }
+                        // Convert liters to ml
+                        if (ing.unita_misura === 'litri') {
+                          displayValue = displayValue * 1000;
+                          displayUnit = 'ml';
+                        }
+
+                        // Round to integer
+                        displayValue = Math.round(displayValue);
+
+                        return (
+                          <div key={idx} className="flex justify-between items-center py-2 border-b border-slate-200 last:border-0">
+                            <span className="text-slate-700 font-medium">{ing.nome_ingrediente}</span>
+                            <span className="text-slate-800 font-bold">
+                              {displayValue} {displayUnit}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
