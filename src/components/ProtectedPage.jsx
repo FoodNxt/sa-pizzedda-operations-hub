@@ -21,7 +21,12 @@ export default function ProtectedPage({ children, pageName, requiredUserTypes = 
         const activeConfig = configs.find(c => c.is_active);
 
         if (!activeConfig) {
-          // No config found, deny access by default
+          // No config found, allow all pages for admin/manager, deny for dipendente
+          if (normalizedUserType === 'admin' || normalizedUserType === 'manager') {
+            setIsAuthorized(true);
+            setIsLoading(false);
+            return;
+          }
           setIsAuthorized(false);
           setIsLoading(false);
           navigate(createPageUrl('ProfiloDipendente'), { replace: true });
@@ -35,7 +40,7 @@ export default function ProtectedPage({ children, pageName, requiredUserTypes = 
           // Always allow access to admin/manager pages for these user types
           if (!allowedPages.includes(pageName)) {
             // Allow any page for admins if not explicitly restricted
-            const adminPages = ['Dashboard', 'Pulizie', 'PulizieMatch', 'Employees', 'Shifts', 'StoreReviews', 'Financials', 'UsersManagement', 'ATS', 'StoreManagerAdmin', 'Planday', 'GestioneAssistente', 'ValutazioneProvaForm'];
+            const adminPages = ['Dashboard', 'SummaryAI', 'FormTracker', 'Pulizie', 'PulizieMatch', 'FormPulizia', 'Attrezzature', 'Employees', 'Shifts', 'StoreReviews', 'Financials', 'UsersManagement', 'ATS', 'StoreManagerAdmin', 'Planday', 'GestioneAssistente', 'ValutazioneProvaForm', 'StrutturaTurno', 'Compliance', 'Documenti', 'FeedbackP2P', 'Inventory', 'MateriePrime', 'ElencoFornitori', 'ConfrontoListini', 'AnalisiSprechi', 'StoricoImpasti', 'PrecottureAdmin', 'InventarioAdmin', 'InventarioStoreManager', 'GestioneAccessoPagine', 'FunzionamentoApp', 'Alerts', 'RealTime', 'ChannelComparison', 'StoricoCassa', 'OrdiniSbagliati', 'MatchingOrdiniSbagliati', 'ProdottiVenduti', 'AcademyAdmin', 'Assenze', 'InventoryForms', 'FinancialForms', 'AssignReviews', 'EmployeeReviewsPerformance', 'Payroll'];
             if (adminPages.includes(pageName)) {
               allowedPages.push(pageName);
             }
@@ -44,7 +49,7 @@ export default function ProtectedPage({ children, pageName, requiredUserTypes = 
           allowedPages = activeConfig.manager_pages || [];
           // Allow key pages for managers too
           if (!allowedPages.includes(pageName)) {
-            const managerPages = ['Dashboard', 'Pulizie', 'PulizieMatch', 'Employees', 'Shifts', 'StoreReviews', 'Financials', 'ATS', 'StoreManagerAdmin', 'Planday', 'ValutazioneProvaForm'];
+            const managerPages = ['Dashboard', 'SummaryAI', 'FormTracker', 'Pulizie', 'PulizieMatch', 'FormPulizia', 'Attrezzature', 'Employees', 'Shifts', 'StoreReviews', 'Financials', 'ATS', 'StoreManagerAdmin', 'Planday', 'ValutazioneProvaForm', 'StrutturaTurno', 'Compliance', 'Documenti', 'FeedbackP2P', 'Inventory', 'MateriePrime', 'ConfrontoListini', 'Alerts', 'InventarioStoreManager', 'AssignReviews', 'EmployeeReviewsPerformance'];
             if (managerPages.includes(pageName)) {
               allowedPages.push(pageName);
             }
