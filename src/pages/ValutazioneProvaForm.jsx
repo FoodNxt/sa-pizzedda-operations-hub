@@ -60,7 +60,13 @@ export default function ValutazioneProvaForm() {
     mutationFn: (data) => base44.entities.ValutazioneProva.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mie-valutazioni'] });
+      queryClient.invalidateQueries({ queryKey: ['candidati-prova'] });
       setSubmitted(true);
+      // Reset form
+      setSelectedCandidato(null);
+      setRisposte({});
+      setNoteAggiuntive('');
+      setConsiglioAssunzione('');
     },
   });
 
@@ -113,21 +119,13 @@ export default function ValutazioneProvaForm() {
   }
 
   if (submitted) {
+    setTimeout(() => setSubmitted(false), 2000);
     return (
       <div className="max-w-2xl mx-auto p-6">
         <NeumorphicCard className="p-8 text-center">
           <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-slate-800 mb-2">Valutazione Inviata!</h2>
-          <p className="text-slate-600 mb-4">Grazie per aver compilato la valutazione.</p>
-          <NeumorphicButton onClick={() => {
-            setSubmitted(false);
-            setSelectedCandidato(null);
-            setRisposte({});
-            setNoteAggiuntive('');
-            setConsiglioAssunzione('');
-          }}>
-            Valuta un altro candidato
-          </NeumorphicButton>
+          <p className="text-slate-600">Grazie per aver compilato la valutazione.</p>
         </NeumorphicCard>
       </div>
     );
