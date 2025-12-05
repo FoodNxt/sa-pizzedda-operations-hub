@@ -35,17 +35,18 @@ export default function UsersManagement() {
     ruoli_dipendente: [],
     assigned_stores: [],
     employee_group: '',
-    // function_name was here, removed as per outline's implied change in `isFormComplete` and general direction
     phone: '',
     data_nascita: '',
-    citta_nascita: '', // Added citta_nascita
+    citta_nascita: '',
     codice_fiscale: '',
     indirizzo_residenza: '',
     iban: '',
     taglia_maglietta: '',
     ore_settimanali: 0,
     data_inizio_contratto: '',
+    tipo_contratto: 'determinato',
     durata_contratto_mesi: 0,
+    data_fine_contratto: '',
     planday: false,
     abilitato_prove: false,
     status: 'active'
@@ -94,17 +95,18 @@ export default function UsersManagement() {
       ruoli_dipendente: user.ruoli_dipendente || [],
       assigned_stores: user.assigned_stores || [],
       employee_group: user.employee_group || '',
-      // function_name was here
       phone: user.phone || '',
       data_nascita: user.data_nascita || '',
-      citta_nascita: user.citta_nascita || '', // Set citta_nascita
+      citta_nascita: user.citta_nascita || '',
       codice_fiscale: user.codice_fiscale || '',
       indirizzo_residenza: user.indirizzo_residenza || '',
       iban: user.iban || '',
       taglia_maglietta: user.taglia_maglietta || '',
       ore_settimanali: user.ore_settimanali || 0,
       data_inizio_contratto: user.data_inizio_contratto || '',
+      tipo_contratto: user.tipo_contratto || 'determinato',
       durata_contratto_mesi: user.durata_contratto_mesi || 0,
+      data_fine_contratto: user.data_fine_contratto || '',
       planday: user.planday || false,
       abilitato_prove: user.abilitato_prove || false,
       status: user.status || 'active'
@@ -138,17 +140,18 @@ export default function UsersManagement() {
       ruoli_dipendente: [],
       assigned_stores: [],
       employee_group: '',
-      // function_name was here
       phone: '',
       data_nascita: '',
-      citta_nascita: '', // Reset citta_nascita
+      citta_nascita: '',
       codice_fiscale: '',
       indirizzo_residenza: '',
       iban: '',
       taglia_maglietta: '',
       ore_settimanali: 0,
       data_inizio_contratto: '',
+      tipo_contratto: 'determinato',
       durata_contratto_mesi: 0,
+      data_fine_contratto: '',
       planday: false,
       abilitato_prove: false,
       status: 'active'
@@ -196,9 +199,9 @@ export default function UsersManagement() {
     });
   };
 
-  // Check if all required fields are filled (function_name removed from required check)
+  // Check if all required fields are filled
   const isFormComplete = () => {
-    return formData.nome_cognome?.trim() &&
+    const baseValid = formData.nome_cognome?.trim() &&
            formData.phone?.trim() &&
            formData.data_nascita &&
            formData.codice_fiscale?.trim() &&
@@ -206,8 +209,15 @@ export default function UsersManagement() {
            formData.iban?.trim() &&
            formData.employee_group &&
            formData.ore_settimanali > 0 &&
-           formData.data_inizio_contratto &&
-           formData.durata_contratto_mesi > 0;
+           formData.data_inizio_contratto;
+    
+    // For tempo indeterminato, we don't need durata or data_fine
+    if (formData.tipo_contratto === 'indeterminato') {
+      return baseValid;
+    }
+    
+    // For determinato, we need either durata OR data_fine
+    return baseValid && (formData.durata_contratto_mesi > 0 || formData.data_fine_contratto);
   };
 
   const canSendContract = () => {
@@ -684,9 +694,27 @@ export default function UsersManagement() {
                         {viewingUser.data_inizio_contratto ? new Date(viewingUser.data_inizio_contratto).toLocaleDateString('it-IT') : '-'}
                       </p>
                     </div>
-                    <div>
-                      <p className="text-[#9b9b9b]">Durata Contratto</p>
-                      <p className="text-[#6b6b6b] font-medium">{viewingUser.durata_contratto_mesi || '-'} mesi</p>
+                    <div className="col-span-2">
+                      <p className="text-[#9b9b9b]">Tipo Contratto</p>
+                      <p className="text-[#6b6b6b] font-medium">
+                        {viewingUser.tipo_contratto === 'indeterminato' ? (
+                          <span className="px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">
+                            Tempo Indeterminato
+                          </span>
+                        ) : (
+                          <>
+                            <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold mr-2">
+                              Tempo Determinato
+                            </span>
+                            {viewingUser.durata_contratto_mesi > 0 && (
+                              <span>{viewingUser.durata_contratto_mesi} mesi</span>
+                            )}
+                            {viewingUser.data_fine_contratto && (
+                              <span>fino al {new Date(viewingUser.data_fine_contratto).toLocaleDateString('it-IT')}</span>
+                            )}
+                          </>
+                        )}
+                      </p>
                     </div>
                     {viewingUser.user_type === 'dipendente' && (
                       <div className="col-span-2">
@@ -964,19 +992,68 @@ export default function UsersManagement() {
                       />
                     </div>
 
-                    <div>
+                    <div className="md:col-span-2">
                       <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                        Durata Contratto (Mesi) <span className="text-red-600">*</span>
+                        Tipo Contratto <span className="text-red-600">*</span>
                       </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={formData.durata_contratto_mesi}
-                        onChange={(e) => setFormData({ ...formData, durata_contratto_mesi: parseInt(e.target.value) || 0 })}
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                        placeholder="12"
-                      />
+                      <div className="flex gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, tipo_contratto: 'determinato' })}
+                          className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all ${
+                            formData.tipo_contratto === 'determinato'
+                              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                              : 'neumorphic-flat text-[#6b6b6b]'
+                          }`}
+                        >
+                          Tempo Determinato
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, tipo_contratto: 'indeterminato', durata_contratto_mesi: 0, data_fine_contratto: '' })}
+                          className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all ${
+                            formData.tipo_contratto === 'indeterminato'
+                              ? 'bg-gradient-to-r from-green-500 to-green-600 text-white'
+                              : 'neumorphic-flat text-[#6b6b6b]'
+                          }`}
+                        >
+                          Tempo Indeterminato
+                        </button>
+                      </div>
                     </div>
+
+                    {formData.tipo_contratto === 'determinato' && (
+                      <>
+                        <div>
+                          <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                            Durata Contratto (Mesi)
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={formData.durata_contratto_mesi}
+                            onChange={(e) => setFormData({ ...formData, durata_contratto_mesi: parseInt(e.target.value) || 0, data_fine_contratto: '' })}
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                            placeholder="12"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                            Oppure Data Fine Contratto
+                          </label>
+                          <input
+                            type="date"
+                            value={formData.data_fine_contratto}
+                            onChange={(e) => setFormData({ ...formData, data_fine_contratto: e.target.value, durata_contratto_mesi: 0 })}
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                          />
+                          <p className="text-xs text-slate-500 mt-1">
+                            Usa questo campo se preferisci specificare una data esatta
+                          </p>
+                        </div>
+                      </>
+                    )}
 
                     <div>
                       <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">

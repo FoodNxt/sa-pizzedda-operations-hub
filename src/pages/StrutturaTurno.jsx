@@ -129,19 +129,41 @@ export default function StrutturaTurno() {
   )].sort();
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.StrutturaTurno.create(data),
-    onSuccess: () => {
+    mutationFn: async (data) => {
+      console.log('Creating schema with data:', data);
+      const result = await base44.entities.StrutturaTurno.create(data);
+      console.log('Schema created successfully:', result);
+      return result;
+    },
+    onSuccess: (data) => {
+      console.log('Create mutation onSuccess, invalidating queries');
       queryClient.invalidateQueries({ queryKey: ['struttura-turno'] });
       resetForm();
+      alert('Schema salvato con successo!');
     },
+    onError: (error) => {
+      console.error('Error creating schema:', error);
+      alert('Errore durante il salvataggio: ' + error.message);
+    }
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.StrutturaTurno.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      console.log('Updating schema with data:', data);
+      const result = await base44.entities.StrutturaTurno.update(id, data);
+      console.log('Schema updated successfully:', result);
+      return result;
+    },
     onSuccess: () => {
+      console.log('Update mutation onSuccess, invalidating queries');
       queryClient.invalidateQueries({ queryKey: ['struttura-turno'] });
       resetForm();
+      alert('Schema aggiornato con successo!');
     },
+    onError: (error) => {
+      console.error('Error updating schema:', error);
+      alert('Errore durante l\'aggiornamento: ' + error.message);
+    }
   });
 
   const deleteMutation = useMutation({

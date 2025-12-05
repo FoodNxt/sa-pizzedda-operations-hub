@@ -238,7 +238,8 @@ export default function GestioneAccessoPagine() {
     { value: 'Contratti', label: '🚫 Contratti Admin', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
     { value: 'HRAdmin', label: '🚫 HR Admin', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
     { value: 'AcademyAdmin', label: '🚫 Academy Admin', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
-    { value: 'Pulizie', label: '🚫 Storico Pulizie', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false }
+    { value: 'Pulizie', label: '🚫 Storico Pulizie', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
+    { value: 'Attrezzature', label: '🚫 Attrezzature', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false }
   ];
 
   const handlePageToggle = (userType, pageName) => {
