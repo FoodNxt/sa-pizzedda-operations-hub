@@ -8,7 +8,7 @@ import ProtectedPage from "../components/ProtectedPage";
 
 const GIORNI = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
 const RUOLI = ['Pizzaiolo', 'Cassiere', 'Store Manager'];
-const TIPI_TURNO = ['Normale', 'Straordinario', 'Formazione', 'Affiancamento', 'Apertura', 'Chiusura'];
+// Tipi turno caricati da database
 const COLORI = [
   { value: 'blue', label: 'Blu', class: 'bg-blue-200 border-blue-400' },
   { value: 'green', label: 'Verde', class: 'bg-green-200 border-green-400' },
@@ -70,7 +70,8 @@ export default function StrutturaTurno() {
     assigned_stores: [],
     tipi_turno: [],
     slots: [],
-    is_active: true
+    is_active: true,
+    usa_minuti_relativi: false
   });
 
   const [newSlot, setNewSlot] = useState({
@@ -81,7 +82,9 @@ export default function StrutturaTurno() {
     richiede_form: false,
     form_page: '',
     corsi_ids: [],
-    attrezzature_pulizia: []
+    attrezzature_pulizia: [],
+    minuti_inizio: 0,
+    minuti_fine: 15
   });
   const [editingSlotIndex, setEditingSlotIndex] = useState(null);
   const [newAttrezzatura, setNewAttrezzatura] = useState('');
@@ -107,6 +110,16 @@ export default function StrutturaTurno() {
     queryKey: ['domande-pulizia'],
     queryFn: () => base44.entities.DomandaPulizia.filter({ attiva: true }),
   });
+
+  const { data: tipoTurnoConfigs = [] } = useQuery({
+    queryKey: ['tipo-turno-configs'],
+    queryFn: () => base44.entities.TipoTurnoConfig.list(),
+  });
+
+  // Derive tipi turno from configs in database
+  const TIPI_TURNO = tipoTurnoConfigs.length > 0
+    ? tipoTurnoConfigs.map(c => c.tipo_turno)
+    : ['Normale', 'Straordinario', 'Formazione', 'Affiancamento', 'Prova e Affiancamento', 'Apertura', 'Chiusura'];
 
   // Get unique equipment names from cleaning questions
   const attrezzatureDisponibili = [...new Set(
@@ -146,12 +159,18 @@ export default function StrutturaTurno() {
       assigned_stores: [],
       tipi_turno: [],
       slots: [],
-      is_active: true
+      is_active: true,
+      usa_minuti_relativi: false
     });
-    setNewSlot({ ora_inizio: '09:00', ora_fine: '09:15', attivita: '', colore: 'blue', richiede_form: false, form_page: '', corsi_ids: [], attrezzature_pulizia: [] });
+    setNewSlot({ ora_inizio: '09:00', ora_fine: '09:15', attivita: '', colore: 'blue', richiede_form: false, form_page: '', corsi_ids: [], attrezzature_pulizia: [], minuti_inizio: 0, minuti_fine: 15 });
     setEditingSchema(null);
     setShowForm(false);
   };
+
+  // Check if selected tipi_turno includes "Prova e Affiancamento"
+  const isProvaAffiancamento = (formData.tipi_turno || []).some(t => 
+    t.toLowerCase().includes('prova') && t.toLowerCase().includes('affiancamento')
+  );
 
   const handleEdit = (schema) => {
     setEditingSchema(schema);
@@ -162,7 +181,8 @@ export default function StrutturaTurno() {
       assigned_stores: schema.assigned_stores || [],
       tipi_turno: schema.tipi_turno || [],
       slots: schema.slots || [],
-      is_active: schema.is_active !== false
+      is_active: schema.is_active !== false,
+      usa_minuti_relativi: schema.usa_minuti_relativi || false
     });
     setShowForm(true);
   };
@@ -190,7 +210,16 @@ export default function StrutturaTurno() {
       alert('Inserisci una descrizione per l\'attività');
       return;
     }
-    const slotToAdd = {
+    const slotToAdd = isProvaAffiancamento ? {
+      minuti_inizio: newSlot.minuti_inizio,
+      minuti_fine: newSlot.minuti_fine,
+      attivita: newSlot.attivita,
+      colore: newSlot.colore,
+      richiede_form: newSlot.richiede_form || false,
+      form_page: newSlot.richiede_form ? newSlot.form_page : '',
+      corsi_ids: newSlot.corsi_ids || [],
+      attrezzature_pulizia: newSlot.attrezzature_pulizia || []
+    } : {
       ora_inizio: newSlot.ora_inizio,
       ora_fine: newSlot.ora_fine,
       attivita: newSlot.attivita,
@@ -207,17 +236,32 @@ export default function StrutturaTurno() {
       updatedSlots[editingSlotIndex] = slotToAdd;
       setFormData({
         ...formData,
-        slots: updatedSlots.sort((a, b) => a.ora_inizio.localeCompare(b.ora_inizio))
+        slots: isProvaAffiancamento 
+          ? updatedSlots.sort((a, b) => (a.minuti_inizio || 0) - (b.minuti_inizio || 0))
+          : updatedSlots.sort((a, b) => (a.ora_inizio || '').localeCompare(b.ora_inizio || ''))
       });
       setEditingSlotIndex(null);
     } else {
       // Add new slot
       setFormData({
         ...formData,
-        slots: [...formData.slots, slotToAdd].sort((a, b) => a.ora_inizio.localeCompare(b.ora_inizio))
+        slots: isProvaAffiancamento
+          ? [...formData.slots, slotToAdd].sort((a, b) => (a.minuti_inizio || 0) - (b.minuti_inizio || 0))
+          : [...formData.slots, slotToAdd].sort((a, b) => (a.ora_inizio || '').localeCompare(b.ora_inizio || ''))
       });
     }
-    setNewSlot({ ora_inizio: newSlot.ora_fine, ora_fine: newSlot.ora_fine, attivita: '', colore: 'blue', richiede_form: false, form_page: '', corsi_ids: [], attrezzature_pulizia: [] });
+    setNewSlot({ 
+      ora_inizio: newSlot.ora_fine, 
+      ora_fine: newSlot.ora_fine, 
+      attivita: '', 
+      colore: 'blue', 
+      richiede_form: false, 
+      form_page: '', 
+      corsi_ids: [], 
+      attrezzature_pulizia: [],
+      minuti_inizio: newSlot.minuti_fine,
+      minuti_fine: newSlot.minuti_fine + 15
+    });
   };
 
   const startEditSlot = (index) => {
@@ -525,7 +569,9 @@ export default function StrutturaTurno() {
                             <div className="flex items-center gap-2 min-w-[120px]">
                               <Clock className="w-4 h-4 text-slate-600" />
                               <span className="font-mono font-bold text-slate-700">
-                                {slot.ora_inizio} - {slot.ora_fine}
+                                {slot.minuti_inizio !== undefined 
+                                  ? `${slot.minuti_inizio}-${slot.minuti_fine} min`
+                                  : `${slot.ora_inizio} - ${slot.ora_fine}`}
                               </span>
                             </div>
                             <span className="text-slate-800 font-medium">{slot.attivita}</span>
@@ -679,31 +725,67 @@ export default function StrutturaTurno() {
 
                     {/* Add Slot Form */}
                     <div className="neumorphic-pressed p-4 rounded-xl mb-4">
+                      {isProvaAffiancamento && (
+                        <div className="mb-3 p-2 bg-purple-50 rounded-lg">
+                          <p className="text-xs text-purple-700">
+                            ⏱️ Per "Prova e Affiancamento" gli slot usano minuti relativi dall'inizio del turno
+                          </p>
+                        </div>
+                      )}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end mb-3">
-                        <div>
-                          <label className="text-xs font-medium text-slate-600 mb-1 block">Inizio</label>
-                          <select
-                            value={newSlot.ora_inizio}
-                            onChange={(e) => setNewSlot({ ...newSlot, ora_inizio: e.target.value })}
-                            className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
-                          >
-                            {TIME_SLOTS.map(time => (
-                              <option key={time} value={time}>{time}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-xs font-medium text-slate-600 mb-1 block">Fine</label>
-                          <select
-                            value={newSlot.ora_fine}
-                            onChange={(e) => setNewSlot({ ...newSlot, ora_fine: e.target.value })}
-                            className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
-                          >
-                            {TIME_SLOTS.map(time => (
-                              <option key={time} value={time}>{time}</option>
-                            ))}
-                          </select>
-                        </div>
+                        {isProvaAffiancamento ? (
+                          <>
+                            <div>
+                              <label className="text-xs font-medium text-slate-600 mb-1 block">Inizio (min)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="5"
+                                value={newSlot.minuti_inizio}
+                                onChange={(e) => setNewSlot({ ...newSlot, minuti_inizio: parseInt(e.target.value) || 0 })}
+                                className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs font-medium text-slate-600 mb-1 block">Fine (min)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="5"
+                                value={newSlot.minuti_fine}
+                                onChange={(e) => setNewSlot({ ...newSlot, minuti_fine: parseInt(e.target.value) || 0 })}
+                                className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                              />
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div>
+                              <label className="text-xs font-medium text-slate-600 mb-1 block">Inizio</label>
+                              <select
+                                value={newSlot.ora_inizio}
+                                onChange={(e) => setNewSlot({ ...newSlot, ora_inizio: e.target.value })}
+                                className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                              >
+                                {TIME_SLOTS.map(time => (
+                                  <option key={time} value={time}>{time}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="text-xs font-medium text-slate-600 mb-1 block">Fine</label>
+                              <select
+                                value={newSlot.ora_fine}
+                                onChange={(e) => setNewSlot({ ...newSlot, ora_fine: e.target.value })}
+                                className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                              >
+                                {TIME_SLOTS.map(time => (
+                                  <option key={time} value={time}>{time}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </>
+                        )}
                         <div>
                           <label className="text-xs font-medium text-slate-600 mb-1 block">Attività</label>
                           <input
@@ -872,7 +954,9 @@ export default function StrutturaTurno() {
                           >
                             <div className="flex items-center gap-4 flex-wrap">
                               <span className="font-mono font-bold text-slate-700">
-                                {slot.ora_inizio} - {slot.ora_fine}
+                                {slot.minuti_inizio !== undefined 
+                                  ? `${slot.minuti_inizio}-${slot.minuti_fine} min`
+                                  : `${slot.ora_inizio} - ${slot.ora_fine}`}
                               </span>
                               <span className="text-slate-800">{slot.attivita}</span>
                               {slot.richiede_form && slot.form_page && (
