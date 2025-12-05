@@ -34,6 +34,7 @@ export default function StoreManagerAdmin() {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     store_id: '',
+    metriche_attive: ['fatturato', 'recensioni_media', 'num_recensioni', 'ordini_sbagliati', 'ritardi', 'pulizie'],
     target_fatturato: '',
     soglia_min_fatturato: '',
     target_recensioni_media: '',
@@ -53,6 +54,15 @@ export default function StoreManagerAdmin() {
     bonus_ritardi: '',
     bonus_pulizie: ''
   });
+
+  const METRICHE_OPTIONS = [
+    { key: 'fatturato', label: 'Fatturato', icon: DollarSign, color: 'green' },
+    { key: 'recensioni_media', label: 'Media Recensioni', icon: Star, color: 'yellow' },
+    { key: 'num_recensioni', label: 'Numero Recensioni', icon: BarChart3, color: 'orange' },
+    { key: 'ordini_sbagliati', label: 'Ordini Sbagliati', icon: AlertTriangle, color: 'red' },
+    { key: 'ritardi', label: 'Ritardi', icon: Clock, color: 'blue' },
+    { key: 'pulizie', label: 'Pulizie', icon: Sparkles, color: 'purple' }
+  ];
 
   const queryClient = useQueryClient();
 
@@ -173,6 +183,7 @@ export default function StoreManagerAdmin() {
   const resetForm = () => {
     setFormData({
       store_id: '',
+      metriche_attive: ['fatturato', 'recensioni_media', 'num_recensioni', 'ordini_sbagliati', 'ritardi', 'pulizie'],
       target_fatturato: '',
       soglia_min_fatturato: '',
       target_recensioni_media: '',
@@ -200,6 +211,7 @@ export default function StoreManagerAdmin() {
     setEditingTarget(target);
     setFormData({
       store_id: target.store_id,
+      metriche_attive: target.metriche_attive || ['fatturato', 'recensioni_media', 'num_recensioni', 'ordini_sbagliati', 'ritardi', 'pulizie'],
       target_fatturato: target.target_fatturato || '',
       soglia_min_fatturato: target.soglia_min_fatturato || '',
       target_recensioni_media: target.target_recensioni_media || '',
@@ -230,6 +242,7 @@ export default function StoreManagerAdmin() {
       store_id: formData.store_id,
       store_manager_id: store?.store_manager_id || null,
       mese: selectedMonth,
+      metriche_attive: formData.metriche_attive,
       target_fatturato: formData.target_fatturato ? parseFloat(formData.target_fatturato) : null,
       soglia_min_fatturato: formData.soglia_min_fatturato ? parseFloat(formData.soglia_min_fatturato) : null,
       target_recensioni_media: formData.target_recensioni_media ? parseFloat(formData.target_recensioni_media) : null,
@@ -255,6 +268,15 @@ export default function StoreManagerAdmin() {
     } else {
       createMutation.mutate(data);
     }
+  };
+
+  const toggleMetrica = (key) => {
+    setFormData(prev => ({
+      ...prev,
+      metriche_attive: prev.metriche_attive.includes(key)
+        ? prev.metriche_attive.filter(m => m !== key)
+        : [...prev.metriche_attive, key]
+    }));
   };
 
   // Genera opzioni mesi (prossimi 12 mesi)
@@ -340,8 +362,36 @@ export default function StoreManagerAdmin() {
               </select>
             </div>
 
+            {/* Selezione Metriche Attive */}
+            <div className="p-4 bg-slate-100 rounded-xl mb-4">
+              <label className="text-sm font-medium text-slate-700 mb-3 block">
+                Metriche Attive per questo Store
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {METRICHE_OPTIONS.map(m => {
+                  const Icon = m.icon;
+                  const isActive = formData.metriche_attive.includes(m.key);
+                  return (
+                    <button
+                      key={m.key}
+                      type="button"
+                      onClick={() => toggleMetrica(m.key)}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-all ${
+                        isActive ? `bg-${m.color}-500 text-white` : 'neumorphic-flat text-slate-600'
+                      }`}
+                      style={isActive ? { backgroundColor: m.color === 'green' ? '#22c55e' : m.color === 'yellow' ? '#eab308' : m.color === 'orange' ? '#f97316' : m.color === 'red' ? '#ef4444' : m.color === 'blue' ? '#3b82f6' : '#a855f7' } : {}}
+                    >
+                      <Icon className="w-4 h-4" />
+                      {m.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="space-y-4">
               {/* Fatturato */}
+              {formData.metriche_attive.includes('fatturato') && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-green-50 rounded-xl">
                 <div className="md:col-span-3 flex items-center gap-2 text-green-700 font-bold">
                   <DollarSign className="w-5 h-5" />
@@ -360,8 +410,10 @@ export default function StoreManagerAdmin() {
                   <input type="number" value={formData.bonus_fatturato} onChange={(e) => setFormData({ ...formData, bonus_fatturato: e.target.value })} placeholder="100" className="w-full neumorphic-pressed px-3 py-2 rounded-xl outline-none" />
                 </div>
               </div>
+              )}
 
               {/* Recensioni Media */}
+              {formData.metriche_attive.includes('recensioni_media') && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-yellow-50 rounded-xl">
                 <div className="md:col-span-3 flex items-center gap-2 text-yellow-700 font-bold">
                   <Star className="w-5 h-5" />
@@ -380,8 +432,10 @@ export default function StoreManagerAdmin() {
                   <input type="number" value={formData.bonus_recensioni} onChange={(e) => setFormData({ ...formData, bonus_recensioni: e.target.value })} placeholder="50" className="w-full neumorphic-pressed px-3 py-2 rounded-xl outline-none" />
                 </div>
               </div>
+              )}
 
               {/* Numero Recensioni */}
+              {formData.metriche_attive.includes('num_recensioni') && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-orange-50 rounded-xl">
                 <div className="md:col-span-3 flex items-center gap-2 text-orange-700 font-bold">
                   <BarChart3 className="w-5 h-5" />
@@ -400,8 +454,10 @@ export default function StoreManagerAdmin() {
                   <input type="number" value={formData.bonus_num_recensioni} onChange={(e) => setFormData({ ...formData, bonus_num_recensioni: e.target.value })} placeholder="30" className="w-full neumorphic-pressed px-3 py-2 rounded-xl outline-none" />
                 </div>
               </div>
+              )}
 
               {/* Ordini Sbagliati */}
+              {formData.metriche_attive.includes('ordini_sbagliati') && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-red-50 rounded-xl">
                 <div className="md:col-span-3 flex items-center gap-2 text-red-700 font-bold">
                   <AlertTriangle className="w-5 h-5" />
@@ -420,8 +476,10 @@ export default function StoreManagerAdmin() {
                   <input type="number" value={formData.bonus_ordini_sbagliati} onChange={(e) => setFormData({ ...formData, bonus_ordini_sbagliati: e.target.value })} placeholder="50" className="w-full neumorphic-pressed px-3 py-2 rounded-xl outline-none" />
                 </div>
               </div>
+              )}
 
               {/* Ritardi */}
+              {formData.metriche_attive.includes('ritardi') && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-blue-50 rounded-xl">
                 <div className="md:col-span-3 flex items-center gap-2 text-blue-700 font-bold">
                   <Clock className="w-5 h-5" />
@@ -440,8 +498,10 @@ export default function StoreManagerAdmin() {
                   <input type="number" value={formData.bonus_ritardi} onChange={(e) => setFormData({ ...formData, bonus_ritardi: e.target.value })} placeholder="50" className="w-full neumorphic-pressed px-3 py-2 rounded-xl outline-none" />
                 </div>
               </div>
+              )}
 
               {/* Pulizie */}
+              {formData.metriche_attive.includes('pulizie') && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-purple-50 rounded-xl">
                 <div className="md:col-span-3 flex items-center gap-2 text-purple-700 font-bold">
                   <Sparkles className="w-5 h-5" />
@@ -460,6 +520,7 @@ export default function StoreManagerAdmin() {
                   <input type="number" value={formData.bonus_pulizie} onChange={(e) => setFormData({ ...formData, bonus_pulizie: e.target.value })} placeholder="50" className="w-full neumorphic-pressed px-3 py-2 rounded-xl outline-none" />
                 </div>
               </div>
+              )}
             </div>
 
             <div className="mt-4 p-3 bg-red-100 rounded-xl text-sm text-red-800">
