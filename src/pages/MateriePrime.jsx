@@ -59,7 +59,14 @@ export default function MateriePrime() {
   const [storeQuantitaCritica, setStoreQuantitaCritica] = useState({});
   const [storeQuantitaOrdine, setStoreQuantitaOrdine] = useState({});
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
-  const [collapsedCategories, setCollapsedCategories] = useState({});
+  const [collapsedCategories, setCollapsedCategories] = useState(() => {
+    // Default: tutte le categorie collassate
+    const initial = {};
+    CATEGORIE.forEach(cat => {
+      initial[cat] = true;
+    });
+    return initial;
+  });
 
   const queryClient = useQueryClient();
 

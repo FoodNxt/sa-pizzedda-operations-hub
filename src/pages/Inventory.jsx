@@ -16,7 +16,8 @@ import {
   Truck,
   Mail,
   Loader2,
-  Send
+  Send,
+  Edit
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { format, subDays, parseISO } from 'date-fns';
@@ -52,6 +53,11 @@ export default function Inventory() {
 
   const [sendingEmail, setSendingEmail] = useState({});
   const [emailSent, setEmailSent] = useState({});
+  const [customizingEmail, setCustomizingEmail] = useState(null);
+  const [emailTemplate, setEmailTemplate] = useState({
+    subject: '',
+    body: ''
+  });
 
   const { data: inventoryCantina = [] } = useQuery({
     queryKey: ['rilevazione-inventario-cantina'],
@@ -178,8 +184,33 @@ export default function Inventory() {
     );
   };
 
+  // Open email customization
+  const openEmailCustomization = (storeName, supplierName, orders) => {
+    const fornitore = getFornitoreByName(supplierName);
+    const productList = orders.map(order => 
+      `• ${order.nome_prodotto}: ${order.quantita_ordine} ${order.unita_misura}`
+    ).join('\n');
+
+    setEmailTemplate({
+      subject: `Ordine Sa Pizzedda - ${storeName}`,
+      body: `Gentile ${fornitore?.referente_nome || fornitore?.ragione_sociale || supplierName},
+
+Vi inviamo il seguente ordine per il locale ${storeName}:
+
+${productList}
+
+Grazie per la collaborazione.
+
+Cordiali saluti,
+Sa Pizzedda`
+    });
+    
+    setCustomizingEmail({ storeName, supplierName, orders });
+  };
+
   // Send order email to supplier
-  const sendOrderEmail = async (storeName, supplierName, orders) => {
+  const sendOrderEmail = async () => {
+    const { storeName, supplierName, orders } = customizingEmail;
     const fornitore = getFornitoreByName(supplierName);
     
     if (!fornitore?.contatto_email) {
@@ -191,26 +222,10 @@ export default function Inventory() {
     setSendingEmail(prev => ({ ...prev, [emailKey]: true }));
 
     try {
-      // Build email body
-      const productList = orders.map(order => 
-        `• ${order.nome_prodotto}: ${order.quantita_ordine} ${order.unita_misura}`
-      ).join('\n');
-
-      const emailBody = `Gentile ${fornitore.referente_nome || fornitore.ragione_sociale},
-
-Vi inviamo il seguente ordine per il locale ${storeName}:
-
-${productList}
-
-Grazie per la collaborazione.
-
-Cordiali saluti,
-Sa Pizzedda`;
-
       await base44.integrations.Core.SendEmail({
         to: fornitore.contatto_email,
-        subject: `Ordine Sa Pizzedda - ${storeName}`,
-        body: emailBody,
+        subject: emailTemplate.subject,
+        body: emailTemplate.body,
         from_name: 'Sa Pizzedda'
       });
 
@@ -218,6 +233,8 @@ Sa Pizzedda`;
       setTimeout(() => {
         setEmailSent(prev => ({ ...prev, [emailKey]: false }));
       }, 5000);
+      
+      setCustomizingEmail(null);
 
     } catch (error) {
       console.error('Errore invio email:', error);
@@ -720,7 +737,7 @@ Sa Pizzedda`;
                               
                               {fornitore?.contatto_email && (
                                 <button
-                                  onClick={() => sendOrderEmail(storeData.store.name, supplier, orders)}
+                                  onClick={() => openEmailCustomization(storeData.store.name, supplier, orders)}
                                   disabled={isSending || wasSent}
                                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                                     wasSent
@@ -740,8 +757,8 @@ Sa Pizzedda`;
                                     </>
                                   ) : (
                                     <>
-                                      <Send className="w-4 h-4" />
-                                      Invia Ordine
+                                      <Edit className="w-4 h-4" />
+                                      Prepara Ordine
                                     </>
                                   )}
                                 </button>
@@ -792,6 +809,55 @@ Sa Pizzedda`;
                   </NeumorphicCard>
                 ))
             )}
+          </div>
+        )}
+
+        {/* Email Customization Modal */}
+        {customizingEmail && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800">Personalizza Email Ordine</h2>
+                <button onClick={() => setCustomizingEmail(null)} className="nav-button p-2 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Oggetto Email</label>
+                  <input
+                    type="text"
+                    value={emailTemplate.subject}
+                    onChange={(e) => setEmailTemplate({ ...emailTemplate, subject: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Corpo Email</label>
+                  <textarea
+                    value={emailTemplate.body}
+                    onChange={(e) => setEmailTemplate({ ...emailTemplate, body: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none h-64 resize-none font-mono text-sm"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <NeumorphicButton onClick={() => setCustomizingEmail(null)} className="flex-1">
+                    Annulla
+                  </NeumorphicButton>
+                  <NeumorphicButton
+                    onClick={sendOrderEmail}
+                    variant="primary"
+                    className="flex-1 flex items-center justify-center gap-2"
+                  >
+                    <Send className="w-5 h-5" />
+                    Invia Email
+                  </NeumorphicButton>
+                </div>
+              </div>
+            </NeumorphicCard>
           </div>
         )}
 

@@ -273,14 +273,16 @@ export default function StrutturaTurno() {
       corsiIds = [slot.corso_id];
     }
     setNewSlot({
-      ora_inizio: slot.ora_inizio,
-      ora_fine: slot.ora_fine,
+      ora_inizio: slot.ora_inizio || '09:00',
+      ora_fine: slot.ora_fine || '09:15',
       attivita: slot.attivita,
       colore: slot.colore || 'blue',
       richiede_form: slot.richiede_form || false,
       form_page: slot.form_page || '',
       corsi_ids: corsiIds,
-      attrezzature_pulizia: slot.attrezzature_pulizia || []
+      attrezzature_pulizia: slot.attrezzature_pulizia || [],
+      minuti_inizio: slot.minuti_inizio || 0,
+      minuti_fine: slot.minuti_fine || 15
     });
     setEditingSlotIndex(index);
   };
@@ -362,16 +364,23 @@ export default function StrutturaTurno() {
   };
 
   const handleCopy = async () => {
+    if (copyTargetDays.length === 0 && copyTargetStores.length === 0) {
+      alert('Seleziona almeno un giorno o uno store');
+      return;
+    }
+
     // Copia su altri giorni
     if (copyTargetDays.length > 0) {
       for (const giorno of copyTargetDays) {
-        await createMutation.mutateAsync({
+        await base44.entities.StrutturaTurno.create({
           nome_schema: `${schemaToCopy.nome_schema} (${GIORNI[giorno]})`,
           giorno_settimana: giorno,
           ruolo: schemaToCopy.ruolo,
           assigned_stores: schemaToCopy.assigned_stores || [],
+          tipi_turno: schemaToCopy.tipi_turno || [],
           slots: schemaToCopy.slots || [],
-          is_active: true
+          is_active: true,
+          usa_minuti_relativi: schemaToCopy.usa_minuti_relativi || false
         });
       }
     }
@@ -380,22 +389,20 @@ export default function StrutturaTurno() {
     if (copyTargetStores.length > 0) {
       for (const storeId of copyTargetStores) {
         const storeName = getStoreName(storeId);
-        await createMutation.mutateAsync({
+        await base44.entities.StrutturaTurno.create({
           nome_schema: `${schemaToCopy.nome_schema} (${storeName})`,
           giorno_settimana: schemaToCopy.giorno_settimana,
           ruolo: schemaToCopy.ruolo,
           assigned_stores: [storeId],
+          tipi_turno: schemaToCopy.tipi_turno || [],
           slots: schemaToCopy.slots || [],
-          is_active: true
+          is_active: true,
+          usa_minuti_relativi: schemaToCopy.usa_minuti_relativi || false
         });
       }
     }
 
-    if (copyTargetDays.length === 0 && copyTargetStores.length === 0) {
-      alert('Seleziona almeno un giorno o uno store');
-      return;
-    }
-
+    queryClient.invalidateQueries({ queryKey: ['struttura-turno'] });
     setShowCopyModal(false);
     setSchemaToCopy(null);
     setCopyTargetDays([]);
