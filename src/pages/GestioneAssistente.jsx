@@ -347,28 +347,30 @@ export default function GestioneAssistente() {
     }).sort((a, b) => a.name.localeCompare(b.name));
   }, [conversations, users]);
 
-  // Analyze common questions
+  // Analyze common questions - ONLY from conversations, not from KB/FAQ/etc
   const analyzeCommonQuestions = async () => {
     setAnalyzingQuestions(true);
     try {
-      const allMessages = filteredConversations.flatMap(conv => 
+      // Extract only user messages from filtered conversations
+      const allUserMessages = filteredConversations.flatMap(conv => 
         (conv.messages || [])
           .filter(m => m.role === 'user')
           .map(m => m.content)
       ).filter(Boolean);
 
-      if (allMessages.length === 0) {
-        setCommonQuestions({ topics: [], summary: 'Nessun messaggio da analizzare' });
+      if (allUserMessages.length === 0) {
+        setCommonQuestions({ topics: [], summary: 'Nessun messaggio da analizzare nelle conversazioni filtrate' });
         setAnalyzingQuestions(false);
         return;
       }
 
       const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `Analizza le seguenti domande fatte dai dipendenti all'assistente AI e identifica i temi/argomenti più comuni. 
-Raggruppa le domande per categoria e fornisci un conteggio approssimativo.
+        prompt: `Analizza SOLO le seguenti domande fatte dai dipendenti nelle conversazioni con l'assistente AI.
+Identifica i temi/argomenti più comuni e raggruppa le domande per categoria.
+NON usare altre fonti di informazione, analizza ESCLUSIVAMENTE questi messaggi.
 
-Domande:
-${allMessages.slice(0, 100).join('\n---\n')}`,
+Messaggi dei dipendenti (${allUserMessages.length} totali):
+${allUserMessages.slice(0, 100).join('\n---\n')}`,
         response_json_schema: {
           type: "object",
           properties: {
