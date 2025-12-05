@@ -183,22 +183,18 @@ export default function ATS() {
 
   const handleSelectProva = async (candidato, turno) => {
     const dipendente = users.find(u => u.id === turno.dipendente_id);
-    const nomeCompleto = `${candidato.nome} ${candidato.cognome}`;
-    
-    const [h] = turno.ora_inizio.split(':').map(Number);
-    const momento = h < 14 ? 'Mattina' : 'Sera';
-    const sequence = momento === 'Mattina' ? 'first' : 'second';
     
     // Create trial shift in Planday
+    const nomeCompleto = `${candidato.nome} ${candidato.cognome}`;
     await base44.entities.TurnoPlanday.create({
       store_id: turno.store_id,
       data: turno.data,
       ora_inizio: turno.ora_inizio,
       ora_fine: turno.ora_fine,
-      ruolo: candidato.posizione || turno.ruolo,
+      ruolo: turno.ruolo,
       tipo_turno: 'Prova',
-      momento_turno: momento,
-      turno_sequence: sequence,
+      momento_turno: turno.momento_turno,
+      turno_sequence: turno.turno_sequence,
       stato: 'programmato',
       is_prova: true,
       candidato_id: candidato.id,

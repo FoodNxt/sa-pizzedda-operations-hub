@@ -271,11 +271,16 @@ export default function Ricette() {
     return totalCost;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
 
     if (formData.ingredienti.length === 0) {
       alert('Aggiungi almeno un ingrediente alla ricetta');
+      return;
+    }
+    
+    if (!formData.is_semilavorato && !VALID_PRODUCT_NAMES.includes(formData.nome_prodotto)) {
+      alert('Per i prodotti finali, seleziona un nome prodotto dalla lista.');
       return;
     }
 
@@ -426,49 +431,26 @@ export default function Ricette() {
                         required
                       />
                     ) : (
-                      <>
-                        <select
-                          value={formData.nome_prodotto}
-                          onChange={(e) => setFormData({ ...formData, nome_prodotto: e.target.value })}
-                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                          required
-                        >
-                          <option value="">Seleziona prodotto...</option>
-                          {VALID_PRODUCT_NAMES.map(name => (
-                            <option key={name} value={name}>{name}</option>
-                          ))}
-                          <option value="__custom__">➕ Aggiungi nuovo prodotto alla lista...</option>
-                        </select>
-                        {formData.nome_prodotto === '__custom__' && (
-                          <div className="mt-2 space-y-2">
-                            <input
-                              type="text"
-                              placeholder="Nome del nuovo prodotto"
-                              onBlur={(e) => {
-                                if (e.target.value.trim()) {
-                                  setFormData({ ...formData, nome_prodotto: e.target.value.trim() });
-                                } else {
-                                  setFormData({ ...formData, nome_prodotto: '' });
-                                }
-                              }}
-                              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                              autoFocus
-                            />
-                            <p className="text-xs text-green-600">
-                              ✓ Questo prodotto verrà aggiunto alla lista prodotti permanentemente
-                            </p>
-                          </div>
-                        )}
-                      </>
+                      <select
+                        value={formData.nome_prodotto}
+                        onChange={(e) => setFormData({ ...formData, nome_prodotto: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                        required
+                      >
+                        <option value="">Seleziona prodotto...</option>
+                        {VALID_PRODUCT_NAMES.map(name => (
+                          <option key={name} value={name}>{name}</option>
+                        ))}
+                      </select>
                     )}
                     {formData.is_semilavorato && (
                       <p className="text-xs text-blue-600 mt-1">
                         ℹ️ Semilavorato: puoi inserire un nome libero
                       </p>
                     )}
-                    {!formData.is_semilavorato && formData.nome_prodotto !== '__custom__' && (
+                    {!formData.is_semilavorato && (
                       <p className="text-xs text-[#9b9b9b] mt-1">
-                        ℹ️ Prodotti dalla tabella Prodotti Venduti. Seleziona "➕ Aggiungi nuovo..." per aggiungere un nome personalizzato.
+                        ℹ️ Solo prodotti della tabella Prodotti Venduti. Spunta "Semilavorato" per nomi personalizzati.
                       </p>
                     )}
                   </div>
