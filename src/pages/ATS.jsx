@@ -181,8 +181,28 @@ export default function ATS() {
     }
   };
 
-  const handleSelectProva = (candidato, turno) => {
+  const handleSelectProva = async (candidato, turno) => {
     const dipendente = users.find(u => u.id === turno.dipendente_id);
+    
+    // Create trial shift in Planday
+    const nomeCompleto = `${candidato.nome} ${candidato.cognome}`;
+    await base44.entities.TurnoPlanday.create({
+      store_id: turno.store_id,
+      data: turno.data,
+      ora_inizio: turno.ora_inizio,
+      ora_fine: turno.ora_fine,
+      ruolo: turno.ruolo,
+      tipo_turno: 'Prova',
+      momento_turno: turno.momento_turno,
+      turno_sequence: turno.turno_sequence,
+      stato: 'programmato',
+      is_prova: true,
+      candidato_id: candidato.id,
+      dipendente_nome: nomeCompleto,
+      note: `Turno di prova con ${dipendente?.nome_cognome || dipendente?.full_name || ''}`
+    });
+    
+    // Update candidato
     updateMutation.mutate({ 
       id: candidato.id, 
       data: { 

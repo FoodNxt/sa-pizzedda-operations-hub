@@ -35,7 +35,7 @@ export default function ProtectedPage({ children, pageName, requiredUserTypes = 
           // Always allow access to admin/manager pages for these user types
           if (!allowedPages.includes(pageName)) {
             // Allow any page for admins if not explicitly restricted
-            const adminPages = ['Dashboard', 'Pulizie', 'PulizieMatch', 'Employees', 'Shifts', 'StoreReviews', 'Financials', 'UsersManagement', 'ATS', 'StoreManagerAdmin', 'Planday', 'GestioneAssistente'];
+            const adminPages = ['Dashboard', 'Pulizie', 'PulizieMatch', 'Employees', 'Shifts', 'StoreReviews', 'Financials', 'UsersManagement', 'ATS', 'StoreManagerAdmin', 'Planday', 'GestioneAssistente', 'ValutazioneProvaForm'];
             if (adminPages.includes(pageName)) {
               allowedPages.push(pageName);
             }
@@ -44,7 +44,7 @@ export default function ProtectedPage({ children, pageName, requiredUserTypes = 
           allowedPages = activeConfig.manager_pages || [];
           // Allow key pages for managers too
           if (!allowedPages.includes(pageName)) {
-            const managerPages = ['Dashboard', 'Pulizie', 'PulizieMatch', 'Employees', 'Shifts', 'StoreReviews', 'Financials', 'ATS', 'StoreManagerAdmin', 'Planday'];
+            const managerPages = ['Dashboard', 'Pulizie', 'PulizieMatch', 'Employees', 'Shifts', 'StoreReviews', 'Financials', 'ATS', 'StoreManagerAdmin', 'Planday', 'ValutazioneProvaForm'];
             if (managerPages.includes(pageName)) {
               allowedPages.push(pageName);
             }

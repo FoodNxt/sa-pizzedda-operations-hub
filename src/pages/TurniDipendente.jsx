@@ -1188,34 +1188,40 @@ export default function TurniDipendente() {
                               </div>
                               
                               {/* Bottom: action buttons in full width */}
-                              {!isCompleted && (
-                                <div className="flex gap-2">
-                                  {isCorsoActivity && (
-                                    <Link 
-                                      to={createPageUrl('Academy')}
-                                      className="flex-1 px-4 py-2.5 bg-purple-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-purple-600 shadow-sm"
-                                    >
-                                      <GraduationCap className="w-4 h-4" /> Corso
-                                    </Link>
-                                  )}
-                                  {isFormActivity && (
-                                    <Link 
-                                      to={createPageUrl(att.form_page) + '?redirect=TurniDipendente'}
-                                      className="flex-1 px-4 py-2.5 bg-blue-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-blue-600 shadow-sm"
-                                    >
-                                      <FileText className="w-4 h-4" /> Compila Form
-                                    </Link>
-                                  )}
-                                  {!isFormActivity && !isCorsoActivity && (
-                                    <button
-                                      onClick={() => completaAttivitaMutation.mutate({ turno: prossimoTurno, attivitaNome: att.nome })}
-                                      disabled={completaAttivitaMutation.isPending}
-                                      className="flex-1 px-4 py-2.5 bg-green-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-green-600 shadow-sm"
-                                    >
-                                      <Check className="w-4 h-4" /> Segna Fatto
-                                    </button>
-                                  )}
-                                </div>
+                              {!isCompleted && prossimoTurno.timbrata_entrata && (
+                               <div className="flex gap-2">
+                                 {isCorsoActivity && (
+                                   <Link 
+                                     to={createPageUrl('Academy')}
+                                     className="flex-1 px-4 py-2.5 bg-purple-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-purple-600 shadow-sm"
+                                   >
+                                     <GraduationCap className="w-4 h-4" /> Corso
+                                   </Link>
+                                 )}
+                                 {isFormActivity && (
+                                   <Link 
+                                     to={createPageUrl(att.form_page) + '?redirect=TurniDipendente&turno_id=' + prossimoTurno.id + '&attivita=' + encodeURIComponent(att.nome)}
+                                     className="flex-1 px-4 py-2.5 bg-blue-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-blue-600 shadow-sm"
+                                   >
+                                     <FileText className="w-4 h-4" /> Compila Form
+                                   </Link>
+                                 )}
+                                 {!isFormActivity && !isCorsoActivity && (
+                                   <button
+                                     onClick={() => completaAttivitaMutation.mutate({ turno: prossimoTurno, attivitaNome: att.nome })}
+                                     disabled={completaAttivitaMutation.isPending}
+                                     className="flex-1 px-4 py-2.5 bg-green-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-green-600 shadow-sm"
+                                   >
+                                     <Check className="w-4 h-4" /> Segna Fatto
+                                   </button>
+                                 )}
+                               </div>
+                              )}
+                              {!isCompleted && !prossimoTurno.timbrata_entrata && (
+                               <div className="p-2 bg-yellow-50 rounded-lg text-xs text-yellow-700 flex items-center gap-2">
+                                 <AlertCircle className="w-3 h-3" />
+                                 Timbra entrata per sbloccare le attività
+                               </div>
                               )}
                               {isCompleted && (
                                 <span className="px-3 py-2 bg-green-100 text-green-700 text-sm font-medium rounded-xl flex items-center justify-center gap-1">
@@ -1248,13 +1254,18 @@ export default function TurniDipendente() {
                               <span className="px-3 py-2 bg-green-100 text-green-700 text-sm font-medium rounded-xl flex items-center justify-center gap-1">
                                 <CheckCircle className="w-4 h-4" /> Completato
                               </span>
-                            ) : (
+                            ) : prossimoTurno.timbrata_entrata ? (
                               <Link 
-                                to={createPageUrl(form.page) + '?redirect=TurniDipendente'}
+                                to={createPageUrl(form.page) + '?redirect=TurniDipendente&turno_id=' + prossimoTurno.id + '&attivita=' + encodeURIComponent(form.nome)}
                                 className="px-4 py-2.5 bg-blue-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-blue-600 shadow-sm"
                               >
                                 <FileText className="w-4 h-4" /> Compila Form
                               </Link>
+                            ) : (
+                              <div className="p-2 bg-yellow-50 rounded-lg text-xs text-yellow-700 flex items-center gap-2">
+                                <AlertCircle className="w-3 h-3" />
+                                Timbra entrata per sbloccare
+                              </div>
                             )}
                           </div>
                         </div>
