@@ -7,6 +7,8 @@ import { Camera, AlertTriangle, CheckCircle, Clock, User, Upload, Loader2, X, Sa
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 
+import ProtectedPage from "../components/ProtectedPage";
+
 export default function Segnalazioni() {
   const [showForm, setShowForm] = useState(false);
   const [selectedSegnalazione, setSelectedSegnalazione] = useState(null);

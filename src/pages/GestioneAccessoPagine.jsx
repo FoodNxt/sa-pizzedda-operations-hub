@@ -228,6 +228,8 @@ export default function GestioneAccessoPagine() {
     { value: 'Academy', label: '✅ Academy', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
     { value: 'Valutazione', label: '✅ La Mia Valutazione', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
     { value: 'FormsDipendente', label: '✅ Forms', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+    { value: 'Segnalazioni', label: '✅ Segnalazioni', icon: AlertCircle, category: 'Area Dipendente', recommended: true },
+    { value: 'ValutazioneProvaForm', label: '✅ Valutazione Prove', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
     { value: 'ControlloPuliziaCassiere', label: '✅ Controllo Pulizia Cassiere', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
     { value: 'ControlloPuliziaPizzaiolo', label: '✅ Controllo Pulizia Pizzaiolo', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
     { value: 'ControlloPuliziaStoreManager', label: '✅ Controllo Pulizia Store Manager', icon: CheckSquare, category: 'Area Dipendente', recommended: true },

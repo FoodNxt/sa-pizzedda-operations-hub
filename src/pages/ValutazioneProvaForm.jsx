@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
+import ProtectedPage from "../components/ProtectedPage";
 import { ClipboardList, Save, CheckCircle, User, Calendar, Store, Loader2, AlertCircle } from "lucide-react";
 import moment from "moment";
 
@@ -149,6 +150,7 @@ export default function ValutazioneProvaForm() {
   }
 
   return (
+    <ProtectedPage pageName="ValutazioneProvaForm">
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="mb-6">
         <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
@@ -319,5 +321,6 @@ export default function ValutazioneProvaForm() {
         </>
       )}
     </div>
+    </ProtectedPage>
   );
 }

@@ -633,9 +633,11 @@ export default function StrutturaTurno() {
                             <div className="flex items-center gap-2 min-w-[120px]">
                               <Clock className="w-4 h-4 text-slate-600" />
                               <span className="font-mono font-bold text-slate-700">
-                                {slot.minuti_inizio !== undefined 
+                                {slot.ora_inizio && slot.ora_fine
+                                  ? `${slot.ora_inizio} - ${slot.ora_fine}`
+                                  : slot.minuti_inizio !== undefined 
                                   ? `${slot.minuti_inizio}-${slot.minuti_fine} min`
-                                  : `${slot.ora_inizio} - ${slot.ora_fine}`}
+                                  : 'N/A'}
                               </span>
                             </div>
                             <span className="text-slate-800 font-medium">{slot.attivita}</span>
@@ -1018,9 +1020,11 @@ export default function StrutturaTurno() {
                           >
                             <div className="flex items-center gap-4 flex-wrap">
                               <span className="font-mono font-bold text-slate-700">
-                                {slot.minuti_inizio !== undefined 
+                                {slot.ora_inizio && slot.ora_fine
+                                  ? `${slot.ora_inizio} - ${slot.ora_fine}`
+                                  : slot.minuti_inizio !== undefined 
                                   ? `${slot.minuti_inizio}-${slot.minuti_fine} min`
-                                  : `${slot.ora_inizio} - ${slot.ora_fine}`}
+                                  : 'N/A'}
                               </span>
                               <span className="text-slate-800">{slot.attivita}</span>
                               {slot.richiede_form && slot.form_page && (
