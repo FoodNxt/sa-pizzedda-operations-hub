@@ -12,8 +12,7 @@ export default function Attrezzature() {
   const [formData, setFormData] = useState({
     nome: '',
     stores_assegnati: [],
-    responsabile_id: '',
-    responsabile_nome: '',
+    ruolo_responsabile: '',
     attivo: true
   });
 
@@ -29,13 +28,7 @@ export default function Attrezzature() {
     queryFn: () => base44.entities.Store.list(),
   });
 
-  const { data: dipendenti = [] } = useQuery({
-    queryKey: ['dipendenti-attrezzature'],
-    queryFn: async () => {
-      const users = await base44.entities.User.list();
-      return users.filter(u => u.user_type === 'dipendente' || u.user_type === 'user');
-    },
-  });
+
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Attrezzatura.create(data),
@@ -64,8 +57,7 @@ export default function Attrezzature() {
     setFormData({
       nome: '',
       stores_assegnati: [],
-      responsabile_id: '',
-      responsabile_nome: '',
+      ruolo_responsabile: '',
       attivo: true
     });
     setEditingAttrezzatura(null);
@@ -77,8 +69,7 @@ export default function Attrezzature() {
     setFormData({
       nome: attrezzatura.nome || '',
       stores_assegnati: attrezzatura.stores_assegnati || [],
-      responsabile_id: attrezzatura.responsabile_id || '',
-      responsabile_nome: attrezzatura.responsabile_nome || '',
+      ruolo_responsabile: attrezzatura.ruolo_responsabile || '',
       attivo: attrezzatura.attivo !== false
     });
     setShowForm(true);
@@ -169,10 +160,10 @@ export default function Attrezzature() {
                           ))
                         )}
                       </div>
-                      {attrezzatura.responsabile_nome && (
+                      {attrezzatura.ruolo_responsabile && (
                         <div className="flex items-center gap-1 text-sm text-[#8b7355]">
                           <User className="w-4 h-4" />
-                          <span>Responsabile: <strong>{attrezzatura.responsabile_nome}</strong></span>
+                          <span>Responsabile: <strong>{attrezzatura.ruolo_responsabile}</strong></span>
                         </div>
                       )}
                     </div>
@@ -256,26 +247,17 @@ export default function Attrezzature() {
                   <div>
                     <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
                       <User className="w-4 h-4 inline mr-1" />
-                      Responsabile Pulizia
+                      Ruolo Responsabile Pulizia
                     </label>
                     <select
-                      value={formData.responsabile_id}
-                      onChange={(e) => {
-                        const selectedDip = dipendenti.find(d => d.id === e.target.value);
-                        setFormData({
-                          ...formData,
-                          responsabile_id: e.target.value,
-                          responsabile_nome: selectedDip ? (selectedDip.nome_cognome || selectedDip.full_name || selectedDip.email) : ''
-                        });
-                      }}
+                      value={formData.ruolo_responsabile}
+                      onChange={(e) => setFormData({ ...formData, ruolo_responsabile: e.target.value })}
                       className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                     >
-                      <option value="">Nessun responsabile assegnato</option>
-                      {dipendenti.map((dip) => (
-                        <option key={dip.id} value={dip.id}>
-                          {dip.nome_cognome || dip.full_name || dip.email}
-                        </option>
-                      ))}
+                      <option value="">Nessun ruolo responsabile</option>
+                      <option value="Pizzaiolo">Pizzaiolo</option>
+                      <option value="Cassiere">Cassiere</option>
+                      <option value="Store Manager">Store Manager</option>
                     </select>
                   </div>
 
