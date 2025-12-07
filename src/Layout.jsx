@@ -256,6 +256,12 @@ const navigationStructure = [
         url: createPageUrl("ATS"),
         icon: Users,
         requiredUserType: ["admin", "manager"]
+      },
+      {
+        title: "Segnalazioni",
+        url: createPageUrl("Segnalazioni"),
+        icon: AlertTriangle,
+        requiredUserType: ["admin", "manager"]
       }
       ]
       },
@@ -727,7 +733,9 @@ export default function Layout({ children, currentPageName }) {
       'InventarioStoreManager': 'Inventario SM',
       'TurniDipendente': 'Turni',
       'AssistenteDipendente': 'Assistente',
-      'DashboardStoreManager': 'Dashboard'
+      'DashboardStoreManager': 'Dashboard',
+      'Segnalazioni': 'Segnalazioni',
+      'ValutazioneProvaForm': 'Valutazioni'
     };
     return titles[pageName] || pageName;
   };
@@ -752,7 +760,9 @@ export default function Layout({ children, currentPageName }) {
       'FeedbackP2P': Users,
       'InventarioStoreManager': Package,
       'TurniDipendente': Clock,
-      'DashboardStoreManager': LayoutDashboard
+      'DashboardStoreManager': LayoutDashboard,
+      'Segnalazioni': AlertTriangle,
+      'ValutazioneProvaForm': UserCheck
     };
     return icons[pageName] || User;
   };
