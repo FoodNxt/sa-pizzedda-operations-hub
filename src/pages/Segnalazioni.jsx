@@ -161,39 +161,73 @@ export default function Segnalazioni() {
 
   const [showLetteraModal, setShowLetteraModal] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [selectedDipendenteLettera, setSelectedDipendenteLettera] = useState('');
+  const [testoLettera, setTestoLettera] = useState('');
+  const [loadingLettera, setLoadingLettera] = useState(false);
 
-  const handleSendLettera = async (segnalazione) => {
-    if (!selectedTemplate) {
-      alert('Seleziona un template');
+  const handleGeneraLettera = async () => {
+    if (!selectedDipendenteLettera) {
+      alert('Seleziona un dipendente');
       return;
     }
 
-    const template = lettereTemplates.find(t => t.id === selectedTemplate);
-    if (!template) return;
+    setLoadingLettera(true);
+    try {
+      const dipendente = dipendenti.find(d => d.id === selectedDipendenteLettera);
+      const dipendenteNome = dipendente?.nome_cognome || dipendente?.full_name || dipendente?.email || '';
 
-    const dipendente = dipendenti.find(d => d.id === segnalazione.dipendente_id);
-    if (!dipendente) {
-      alert('Dipendente non trovato');
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: `Genera una lettera di richiamo formale per il dipendente ${dipendenteNome} in merito alla seguente segnalazione:
+
+Descrizione: ${selectedSegnalazione.descrizione}
+Data segnalazione: ${new Date(selectedSegnalazione.data_segnalazione).toLocaleDateString('it-IT')}
+Store: ${selectedSegnalazione.store_name}
+
+La lettera deve essere professionale ma ferma, includere:
+1. Riferimento alla segnalazione
+2. Descrizione del problema
+3. Invito a migliorare il comportamento
+4. Conseguenze in caso di ripetizione
+
+Mantieni un tono formale ma costruttivo.`,
+      });
+
+      setTestoLettera(result);
+    } catch (error) {
+      console.error('Errore generazione lettera:', error);
+      alert('Errore nella generazione della lettera');
+    }
+    setLoadingLettera(false);
+  };
+
+  const handleInviaLettera = async () => {
+    if (!selectedDipendenteLettera || !testoLettera) {
+      alert('Compila tutti i campi');
       return;
     }
 
     try {
+      const dipendente = dipendenti.find(d => d.id === selectedDipendenteLettera);
+
       await base44.entities.LetteraRichiamo.create({
-        user_id: dipendente.id,
-        user_name: dipendente.nome_cognome || dipendente.full_name,
-        template_id: template.id,
-        template_name: template.nome_template,
-        motivo: `Segnalazione: ${segnalazione.descrizione}`,
+        dipendente_id: selectedDipendenteLettera,
+        dipendente_nome: dipendente?.nome_cognome || dipendente?.full_name || dipendente?.email || '',
+        motivo: `Segnalazione: ${selectedSegnalazione.descrizione}`,
+        contenuto: testoLettera,
+        gravita: 'media',
         data_emissione: new Date().toISOString(),
-        stato: 'inviata'
+        emessa_da: user.nome_cognome || user.full_name || user.email,
+        stato: 'emessa'
       });
 
-      alert('✅ Lettera di richiamo creata con successo');
+      alert('✅ Lettera di richiamo inviata');
       setShowLetteraModal(false);
       setSelectedSegnalazione(null);
+      setSelectedDipendenteLettera('');
+      setTestoLettera('');
     } catch (error) {
-      console.error('Error creating lettera:', error);
-      alert('Errore nella creazione della lettera');
+      console.error('Errore invio lettera:', error);
+      alert('❌ Errore nell\'invio della lettera');
     }
   };
 
@@ -490,54 +524,108 @@ export default function Segnalazioni() {
       {/* Lettera Richiamo Modal */}
       {showLetteraModal && selectedSegnalazione && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <NeumorphicCard className="max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-[#6b6b6b]">Lettera di Richiamo</h2>
-              <button onClick={() => { setShowLetteraModal(false); setSelectedTemplate(''); }} className="text-[#9b9b9b]">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+          <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-[#6b6b6b]">Lettera di Richiamo</h2>
+                <button 
+                  onClick={() => { 
+                    setShowLetteraModal(false); 
+                    setSelectedSegnalazione(null);
+                    setSelectedDipendenteLettera('');
+                    setTestoLettera('');
+                  }} 
+                  className="text-[#9b9b9b]"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
 
-            <div className="mb-4">
-              <p className="text-sm text-[#6b6b6b] mb-2">
-                Dipendente: <strong>{selectedSegnalazione.dipendente_nome}</strong>
-              </p>
-              <p className="text-sm text-[#9b9b9b]">
-                {selectedSegnalazione.descrizione}
-              </p>
-            </div>
+              {/* Info Segnalazione */}
+              <div className="mb-4 p-4 bg-red-50 rounded-xl border border-red-200">
+                <p className="text-sm text-red-800 font-medium mb-1">Segnalazione:</p>
+                <p className="text-sm text-red-700">{selectedSegnalazione.descrizione}</p>
+                <p className="text-xs text-red-600 mt-2">
+                  {selectedSegnalazione.store_name} • {format(new Date(selectedSegnalazione.data_segnalazione), 'dd/MM/yyyy HH:mm', { locale: it })}
+                </p>
+              </div>
 
-            <div className="mb-4">
-              <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                Seleziona Template Lettera
-              </label>
-              <select
-                value={selectedTemplate}
-                onChange={(e) => setSelectedTemplate(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-              >
-                <option value="">Seleziona template...</option>
-                {lettereTemplates.filter(t => t.attivo).map(t => (
-                  <option key={t.id} value={t.id}>{t.nome_template}</option>
-                ))}
-              </select>
-            </div>
+              {/* Selezione Dipendente */}
+              <div className="mb-4">
+                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                  Dipendente Destinatario *
+                </label>
+                <select
+                  value={selectedDipendenteLettera}
+                  onChange={(e) => setSelectedDipendenteLettera(e.target.value)}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                >
+                  <option value="">Seleziona dipendente...</option>
+                  {dipendenti.map(dip => (
+                    <option key={dip.id} value={dip.id}>
+                      {dip.nome_cognome || dip.full_name || dip.email}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <div className="flex gap-3">
-              <NeumorphicButton onClick={() => { setShowLetteraModal(false); setSelectedTemplate(''); }} className="flex-1">
-                Annulla
-              </NeumorphicButton>
-              <NeumorphicButton
-                onClick={() => handleSendLettera(selectedSegnalazione)}
-                variant="primary"
-                className="flex-1 flex items-center justify-center gap-2"
-                disabled={!selectedTemplate}
-              >
-                <FileText className="w-5 h-5" />
-                Invia Lettera
-              </NeumorphicButton>
-            </div>
-          </NeumorphicCard>
+              {/* Genera testo */}
+              {selectedDipendenteLettera && !testoLettera && (
+                <NeumorphicButton
+                  onClick={handleGeneraLettera}
+                  variant="primary"
+                  className="w-full mb-4 flex items-center justify-center gap-2"
+                  disabled={loadingLettera}
+                >
+                  {loadingLettera ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Generazione lettera...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="w-4 h-4" />
+                      Genera Testo Lettera
+                    </>
+                  )}
+                </NeumorphicButton>
+              )}
+
+              {/* Editor Testo */}
+              {testoLettera && (
+                <>
+                  <div className="mb-4">
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Testo Lettera</label>
+                    <textarea
+                      value={testoLettera}
+                      onChange={(e) => setTestoLettera(e.target.value)}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none min-h-[300px] font-serif text-sm"
+                      placeholder="Modifica il testo della lettera..."
+                    />
+                  </div>
+
+                  <div className="flex gap-3">
+                    <NeumorphicButton
+                      onClick={() => {
+                        setTestoLettera('');
+                        setSelectedDipendenteLettera('');
+                      }}
+                      className="flex-1"
+                    >
+                      Reset
+                    </NeumorphicButton>
+                    <NeumorphicButton
+                      onClick={handleInviaLettera}
+                      variant="primary"
+                      className="flex-1"
+                    >
+                      Invia Lettera
+                    </NeumorphicButton>
+                  </div>
+                </>
+              )}
+            </NeumorphicCard>
+          </div>
         </div>
       )}
     </div>
