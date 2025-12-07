@@ -8,9 +8,10 @@ import {
   Bot, Plus, Edit, Trash2, Save, X, Search, AlertTriangle, 
   MessageSquare, Book, Tag, Store, CheckCircle, XCircle, Loader2,
   ChevronDown, ChevronRight, Eye, Folder, RefreshCw, Key, EyeOff, HelpCircle, 
-  Calendar, User, Sparkles, BarChart3
+  Calendar, User, Sparkles, BarChart3, FileText
 } from "lucide-react";
 import moment from "moment";
+import KnowledgeTree from "../components/assistente/KnowledgeTree";
 
 const DEFAULT_CATEGORIE = [
   "Procedure Operative",
@@ -88,6 +89,22 @@ export default function GestioneAssistente() {
   const [loadingNotion, setLoadingNotion] = useState(false);
   const [refreshingAllNotion, setRefreshingAllNotion] = useState(false);
 
+  // Knowledge Pages state (Notion-like structure)
+  const [showPageForm, setShowPageForm] = useState(false);
+  const [editingPage, setEditingPage] = useState(null);
+  const [parentPageId, setParentPageId] = useState(null);
+  const [pageForm, setPageForm] = useState({
+    titolo: '',
+    contenuto: '',
+    parent_page_id: null,
+    ordine: 0,
+    icona: '📄',
+    notion_url: '',
+    store_specifico: '',
+    attivo: true
+  });
+  const [expandedPages, setExpandedPages] = useState({});
+
   const queryClient = useQueryClient();
 
   const { data: knowledge = [] } = useQuery({
@@ -125,6 +142,11 @@ export default function GestioneAssistente() {
   const { data: faqs = [] } = useQuery({
     queryKey: ['assistente-faq'],
     queryFn: () => base44.entities.AssistenteFAQ.list('ordine'),
+  });
+
+  const { data: knowledgePages = [] } = useQuery({
+    queryKey: ['knowledge-pages'],
+    queryFn: () => base44.entities.KnowledgePage.list('ordine'),
   });
 
   // Recupera tracking conversazioni dal database
@@ -269,6 +291,30 @@ export default function GestioneAssistente() {
     mutationFn: (id) => base44.entities.AssistenteFAQ.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assistente-faq'] });
+    },
+  });
+
+  // Knowledge Pages mutations
+  const createPageMutation = useMutation({
+    mutationFn: (data) => base44.entities.KnowledgePage.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['knowledge-pages'] });
+      resetPageForm();
+    },
+  });
+
+  const updatePageMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.KnowledgePage.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['knowledge-pages'] });
+      resetPageForm();
+    },
+  });
+
+  const deletePageMutation = useMutation({
+    mutationFn: (id) => base44.entities.KnowledgePage.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['knowledge-pages'] });
     },
   });
 
@@ -461,6 +507,75 @@ ${allUserMessages.slice(0, 100).join('\n---\n')}`,
     });
     setEditingFAQ(null);
     setShowFAQForm(false);
+  };
+
+  const resetPageForm = () => {
+    setPageForm({
+      titolo: '',
+      contenuto: '',
+      parent_page_id: null,
+      ordine: 0,
+      icona: '📄',
+      notion_url: '',
+      store_specifico: '',
+      attivo: true
+    });
+    setEditingPage(null);
+    setParentPageId(null);
+    setShowPageForm(false);
+  };
+
+  const handleEditPage = (page) => {
+    setEditingPage(page);
+    setPageForm({
+      titolo: page.titolo,
+      contenuto: page.contenuto || '',
+      parent_page_id: page.parent_page_id || null,
+      ordine: page.ordine || 0,
+      icona: page.icona || '📄',
+      notion_url: page.notion_url || '',
+      store_specifico: page.store_specifico || '',
+      attivo: page.attivo !== false
+    });
+    setShowPageForm(true);
+  };
+
+  const handleAddChildPage = (parentId) => {
+    setParentPageId(parentId);
+    setPageForm({ ...pageForm, parent_page_id: parentId });
+    setShowPageForm(true);
+  };
+
+  const handleSavePage = () => {
+    const dataToSave = {
+      ...pageForm,
+      parent_page_id: parentPageId || pageForm.parent_page_id || null
+    };
+    
+    if (editingPage) {
+      updatePageMutation.mutate({ id: editingPage.id, data: dataToSave });
+    } else {
+      createPageMutation.mutate(dataToSave);
+    }
+  };
+
+  const handleDeletePage = (pageId) => {
+    const hasChildren = knowledgePages.some(p => p.parent_page_id === pageId);
+    if (hasChildren) {
+      if (!confirm('Questa pagina ha sottopagine. Eliminandola verranno eliminate anche tutte le sottopagine. Continuare?')) {
+        return;
+      }
+    } else if (!confirm('Eliminare questa pagina?')) {
+      return;
+    }
+    deletePageMutation.mutate(pageId);
+  };
+
+  const togglePageExpand = (pageId) => {
+    setExpandedPages(prev => ({
+      ...prev,
+      [pageId]: prev[pageId] === false ? true : false
+    }));
   };
 
   const handleEditFAQ = (faq) => {
@@ -716,6 +831,17 @@ ${allUserMessages.slice(0, 100).join('\n---\n')}`,
             Conversazioni
           </button>
           <button
+            onClick={() => setActiveTab('knowledge-pages')}
+            className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
+              activeTab === 'knowledge-pages'
+                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                : 'neumorphic-flat text-slate-700'
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            Knowledge Base ({knowledgePages.length})
+          </button>
+          <button
             onClick={() => setActiveTab('knowledge')}
             className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
               activeTab === 'knowledge'
@@ -724,7 +850,7 @@ ${allUserMessages.slice(0, 100).join('\n---\n')}`,
             }`}
           >
             <Book className="w-4 h-4" />
-            Knowledge Base ({knowledge.length})
+            Vecchia KB ({knowledge.length})
           </button>
           <button
             onClick={() => setActiveTab('categorie')}
@@ -1465,6 +1591,7 @@ ${allUserMessages.slice(0, 100).join('\n---\n')}`,
                       className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
                     >
                       <option value="">Seleziona negozio</option>
+                      <option value="ALL">Tutti i locali</option>
                       {stores.map(store => (
                         <option key={store.id} value={store.id}>{store.name}</option>
                       ))}
@@ -1544,6 +1671,80 @@ ${allUserMessages.slice(0, 100).join('\n---\n')}`,
 
             {/* Lista Accessi per Store */}
             <div className="space-y-4">
+              {/* Accessi generali (tutti i locali) */}
+              {(() => {
+                const generalAccessi = filteredAccessi.filter(a => a.store_id === 'ALL');
+                if (generalAccessi.length === 0) return null;
+                
+                return (
+                  <NeumorphicCard className="p-4 bg-gradient-to-br from-purple-50 to-blue-50">
+                    <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
+                      <Store className="w-4 h-4 text-purple-600" />
+                      Tutti i Locali
+                      <span className="text-sm font-normal text-slate-500">({generalAccessi.length} accessi)</span>
+                    </h3>
+                    <div className="space-y-2">
+                      {generalAccessi.map(accesso => (
+                        <div 
+                          key={accesso.id} 
+                          className={`neumorphic-pressed p-4 rounded-xl ${!accesso.attivo ? 'opacity-50' : ''}`}
+                        >
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <Key className="w-4 h-4 text-amber-600" />
+                                <h4 className="font-medium text-slate-800">{accesso.nome_accesso}</h4>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                {accesso.username && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-slate-500">Utente:</span>
+                                    <span className="font-mono text-slate-700">{accesso.username}</span>
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-2">
+                                  <span className="text-slate-500">Password:</span>
+                                  <span className="font-mono text-slate-700">
+                                    {showPasswords[accesso.id] ? accesso.password : '••••••••'}
+                                  </span>
+                                  <button
+                                    onClick={() => togglePasswordVisibility(accesso.id)}
+                                    className="text-slate-400 hover:text-slate-600"
+                                  >
+                                    {showPasswords[accesso.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                  </button>
+                                </div>
+                              </div>
+                              {accesso.note && (
+                                <p className="text-xs text-slate-500 mt-2">{accesso.note}</p>
+                              )}
+                            </div>
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => handleEditAccesso(accesso)}
+                                className="nav-button p-2 rounded-lg hover:bg-blue-50"
+                              >
+                                <Edit className="w-4 h-4 text-blue-600" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (confirm('Eliminare questo accesso?')) {
+                                    deleteAccessoMutation.mutate(accesso.id);
+                                  }
+                                }}
+                                className="nav-button p-2 rounded-lg hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4 text-red-600" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </NeumorphicCard>
+                );
+              })()}
+
               {stores.map(store => {
                 const storeAccessi = filteredAccessi.filter(a => a.store_id === store.id);
                 if (storeAccessi.length === 0 && filterAccessoStore) return null;
@@ -1839,6 +2040,179 @@ ${allUserMessages.slice(0, 100).join('\n---\n')}`,
                 </NeumorphicCard>
               )}
             </div>
+          </>
+        )}
+
+        {/* Knowledge Pages Tab (Notion-like) */}
+        {activeTab === 'knowledge-pages' && (
+          <>
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800">Knowledge Base - Struttura Pagine</h2>
+                <NeumorphicButton
+                  onClick={() => setShowPageForm(true)}
+                  variant="primary"
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Nuova Pagina Root
+                </NeumorphicButton>
+              </div>
+
+              {knowledgePages.length === 0 ? (
+                <div className="text-center py-12">
+                  <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <p className="text-slate-500">Nessuna pagina creata</p>
+                  <p className="text-xs text-slate-400 mt-2">
+                    Crea la prima pagina per iniziare a strutturare la knowledge base
+                  </p>
+                </div>
+              ) : (
+                <div className="neumorphic-flat p-4 rounded-xl">
+                  <KnowledgeTree 
+                    pages={knowledgePages}
+                    onEdit={handleEditPage}
+                    onDelete={handleDeletePage}
+                    onAddChild={handleAddChildPage}
+                    expandedPages={expandedPages}
+                    onToggleExpand={togglePageExpand}
+                  />
+                </div>
+              )}
+            </NeumorphicCard>
+
+            {/* Page Form Modal */}
+            {showPageForm && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <div className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+                  <NeumorphicCard className="p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-xl font-bold text-slate-800">
+                        {editingPage ? 'Modifica Pagina' : parentPageId ? 'Nuova Sottopagina' : 'Nuova Pagina'}
+                      </h2>
+                      <button onClick={resetPageForm} className="nav-button p-2 rounded-lg">
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="md:col-span-2">
+                          <label className="text-sm font-medium text-slate-700 mb-2 block">Titolo *</label>
+                          <input
+                            type="text"
+                            value={pageForm.titolo}
+                            onChange={(e) => setPageForm({ ...pageForm, titolo: e.target.value })}
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                            placeholder="Titolo della pagina"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-slate-700 mb-2 block">Icona</label>
+                          <input
+                            type="text"
+                            value={pageForm.icona}
+                            onChange={(e) => setPageForm({ ...pageForm, icona: e.target.value })}
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none text-center text-2xl"
+                            placeholder="📄"
+                            maxLength={2}
+                          />
+                        </div>
+                      </div>
+
+                      {!editingPage && !parentPageId && (
+                        <div>
+                          <label className="text-sm font-medium text-slate-700 mb-2 block">Pagina Parent (opzionale)</label>
+                          <select
+                            value={pageForm.parent_page_id || ''}
+                            onChange={(e) => setPageForm({ ...pageForm, parent_page_id: e.target.value || null })}
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                          >
+                            <option value="">Pagina Root</option>
+                            {knowledgePages.map(p => (
+                              <option key={p.id} value={p.id}>{p.icona} {p.titolo}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="text-sm font-medium text-slate-700 mb-2 block">Link Notion (opzionale)</label>
+                        <input
+                          type="url"
+                          value={pageForm.notion_url}
+                          onChange={(e) => setPageForm({ ...pageForm, notion_url: e.target.value })}
+                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                          placeholder="https://notion.so/..."
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium text-slate-700 mb-2 block">Contenuto (markdown supportato)</label>
+                        <textarea
+                          value={pageForm.contenuto}
+                          onChange={(e) => setPageForm({ ...pageForm, contenuto: e.target.value })}
+                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none min-h-[200px] font-mono text-sm"
+                          placeholder="# Titolo&#10;&#10;Contenuto della pagina..."
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-medium text-slate-700 mb-2 block">Locale Specifico</label>
+                          <select
+                            value={pageForm.store_specifico}
+                            onChange={(e) => setPageForm({ ...pageForm, store_specifico: e.target.value })}
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                          >
+                            <option value="">Tutti i locali</option>
+                            {stores.map(store => (
+                              <option key={store.id} value={store.id}>{store.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-slate-700 mb-2 block">Ordine</label>
+                          <input
+                            type="number"
+                            value={pageForm.ordine}
+                            onChange={(e) => setPageForm({ ...pageForm, ordine: parseInt(e.target.value) || 0 })}
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={pageForm.attivo}
+                            onChange={(e) => setPageForm({ ...pageForm, attivo: e.target.checked })}
+                            className="w-5 h-5"
+                          />
+                          <span className="text-sm font-medium text-slate-700">Attiva</span>
+                        </label>
+                      </div>
+
+                      <div className="flex gap-3 pt-4">
+                        <NeumorphicButton onClick={resetPageForm} className="flex-1">
+                          Annulla
+                        </NeumorphicButton>
+                        <NeumorphicButton 
+                          onClick={handleSavePage}
+                          variant="primary" 
+                          className="flex-1 flex items-center justify-center gap-2"
+                          disabled={!pageForm.titolo}
+                        >
+                          <Save className="w-4 h-4" />
+                          Salva
+                        </NeumorphicButton>
+                      </div>
+                    </div>
+                  </NeumorphicCard>
+                </div>
+              </div>
+            )}
           </>
         )}
 
