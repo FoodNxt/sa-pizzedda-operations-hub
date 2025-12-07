@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
-import { Package, Plus, Edit, Trash2, X, Save, Store } from 'lucide-react';
+import { Package, Plus, Edit, Trash2, X, Save, Store, User } from 'lucide-react';
 
 export default function Attrezzature() {
   const [showForm, setShowForm] = useState(false);
@@ -12,6 +12,8 @@ export default function Attrezzature() {
   const [formData, setFormData] = useState({
     nome: '',
     stores_assegnati: [],
+    responsabile_id: '',
+    responsabile_nome: '',
     attivo: true
   });
 
@@ -25,6 +27,14 @@ export default function Attrezzature() {
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
     queryFn: () => base44.entities.Store.list(),
+  });
+
+  const { data: dipendenti = [] } = useQuery({
+    queryKey: ['dipendenti-attrezzature'],
+    queryFn: async () => {
+      const users = await base44.entities.User.list();
+      return users.filter(u => u.user_type === 'dipendente' || u.user_type === 'user');
+    },
   });
 
   const createMutation = useMutation({
@@ -54,6 +64,8 @@ export default function Attrezzature() {
     setFormData({
       nome: '',
       stores_assegnati: [],
+      responsabile_id: '',
+      responsabile_nome: '',
       attivo: true
     });
     setEditingAttrezzatura(null);
@@ -65,6 +77,8 @@ export default function Attrezzature() {
     setFormData({
       nome: attrezzatura.nome || '',
       stores_assegnati: attrezzatura.stores_assegnati || [],
+      responsabile_id: attrezzatura.responsabile_id || '',
+      responsabile_nome: attrezzatura.responsabile_nome || '',
       attivo: attrezzatura.attivo !== false
     });
     setShowForm(true);
@@ -139,7 +153,7 @@ export default function Attrezzature() {
                           </span>
                         )}
                       </div>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2 mb-2">
                         {(!attrezzatura.stores_assegnati || attrezzatura.stores_assegnati.length === 0) ? (
                           <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">
                             Tutti i locali
@@ -155,6 +169,12 @@ export default function Attrezzature() {
                           ))
                         )}
                       </div>
+                      {attrezzatura.responsabile_nome && (
+                        <div className="flex items-center gap-1 text-sm text-[#8b7355]">
+                          <User className="w-4 h-4" />
+                          <span>Responsabile: <strong>{attrezzatura.responsabile_nome}</strong></span>
+                        </div>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       <button
@@ -231,6 +251,32 @@ export default function Attrezzature() {
                         </button>
                       ))}
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                      <User className="w-4 h-4 inline mr-1" />
+                      Responsabile Pulizia
+                    </label>
+                    <select
+                      value={formData.responsabile_id}
+                      onChange={(e) => {
+                        const selectedDip = dipendenti.find(d => d.id === e.target.value);
+                        setFormData({
+                          ...formData,
+                          responsabile_id: e.target.value,
+                          responsabile_nome: selectedDip ? (selectedDip.nome_cognome || selectedDip.full_name || selectedDip.email) : ''
+                        });
+                      }}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                    >
+                      <option value="">Nessun responsabile assegnato</option>
+                      {dipendenti.map((dip) => (
+                        <option key={dip.id} value={dip.id}>
+                          {dip.nome_cognome || dip.full_name || dip.email}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className="flex items-center gap-3">
