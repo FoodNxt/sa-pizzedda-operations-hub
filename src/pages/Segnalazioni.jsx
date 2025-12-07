@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
-import { Camera, AlertTriangle, CheckCircle, Clock, User, Upload, Loader2, X, Save } from 'lucide-react';
+import { Camera, AlertTriangle, CheckCircle, Clock, User, Upload, Loader2, X, Save, Trash2, FileText, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 
@@ -45,6 +45,11 @@ export default function Segnalazioni() {
     },
   });
 
+  const { data: lettereTemplates = [] } = useQuery({
+    queryKey: ['lettere-templates'],
+    queryFn: () => base44.entities.LetteraRichiamoTemplate.list(),
+  });
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Segnalazione.create(data),
     onSuccess: () => {
@@ -61,7 +66,15 @@ export default function Segnalazioni() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.Segnalazione.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['segnalazioni'] });
+    },
+  });
+
   const isStoreManager = user?.ruoli_dipendente?.includes('Store Manager');
+  const isAdmin = user?.user_type === 'admin' || user?.user_type === 'manager';
 
   const resetForm = () => {
     setFormData({ store_id: '', descrizione: '', foto_url: '' });
@@ -146,22 +159,63 @@ export default function Segnalazioni() {
     }
   };
 
+  const [showLetteraModal, setShowLetteraModal] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState('');
+
+  const handleSendLettera = async (segnalazione) => {
+    if (!selectedTemplate) {
+      alert('Seleziona un template');
+      return;
+    }
+
+    const template = lettereTemplates.find(t => t.id === selectedTemplate);
+    if (!template) return;
+
+    const dipendente = dipendenti.find(d => d.id === segnalazione.dipendente_id);
+    if (!dipendente) {
+      alert('Dipendente non trovato');
+      return;
+    }
+
+    try {
+      await base44.entities.LetteraRichiamo.create({
+        user_id: dipendente.id,
+        user_name: dipendente.nome_cognome || dipendente.full_name,
+        template_id: template.id,
+        template_name: template.nome_template,
+        motivo: `Segnalazione: ${segnalazione.descrizione}`,
+        data_emissione: new Date().toISOString(),
+        stato: 'inviata'
+      });
+
+      alert('✅ Lettera di richiamo creata con successo');
+      setShowLetteraModal(false);
+      setSelectedSegnalazione(null);
+    } catch (error) {
+      console.error('Error creating lettera:', error);
+      alert('Errore nella creazione della lettera');
+    }
+  };
+
   return (
+    <ProtectedPage pageName="Segnalazioni">
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Segnalazioni</h1>
-          <p className="text-[#9b9b9b]">Segnala problemi e anomalie negli store</p>
+          <p className="text-[#9b9b9b]">{isAdmin ? 'Gestisci le segnalazioni dei dipendenti' : 'Segnala problemi e anomalie negli store'}</p>
         </div>
-        <NeumorphicButton
-          onClick={() => setShowForm(true)}
-          variant="primary"
-          className="flex items-center gap-2"
-        >
-          <Camera className="w-5 h-5" />
-          Nuova Segnalazione
-        </NeumorphicButton>
+        {!isAdmin && (
+          <NeumorphicButton
+            onClick={() => setShowForm(true)}
+            variant="primary"
+            className="flex items-center gap-2"
+          >
+            <Camera className="w-5 h-5" />
+            Nuova Segnalazione
+          </NeumorphicButton>
+        )}
       </div>
 
       {/* Stats */}
@@ -344,8 +398,47 @@ export default function Segnalazioni() {
                       </div>
                     )}
 
+                    {/* Admin Actions */}
+                    {isAdmin && (
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {segnalazione.stato !== 'risolta' && (
+                          <NeumorphicButton
+                            onClick={() => handleUpdateStato(segnalazione.id, 'risolta')}
+                            variant="primary"
+                            className="text-sm flex items-center gap-1"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                            Completa
+                          </NeumorphicButton>
+                        )}
+                        
+                        <NeumorphicButton
+                          onClick={() => {
+                            setSelectedSegnalazione(segnalazione);
+                            setShowLetteraModal(true);
+                          }}
+                          className="text-sm flex items-center gap-1 text-orange-600"
+                        >
+                          <FileText className="w-4 h-4" />
+                          Lettera Richiamo
+                        </NeumorphicButton>
+
+                        <NeumorphicButton
+                          onClick={() => {
+                            if (confirm('Eliminare questa segnalazione?')) {
+                              deleteMutation.mutate(segnalazione.id);
+                            }
+                          }}
+                          className="text-sm flex items-center gap-1 text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Elimina
+                        </NeumorphicButton>
+                      </div>
+                    )}
+
                     {/* Store Manager Actions */}
-                    {isStoreManager && segnalazione.stato !== 'risolta' && (
+                    {isStoreManager && !isAdmin && segnalazione.stato !== 'risolta' && (
                       <div className="flex flex-wrap gap-2 mt-3">
                         {!segnalazione.responsabile_id && (
                           <div className="flex items-center gap-2">
@@ -380,6 +473,61 @@ export default function Segnalazioni() {
           </div>
         )}
       </NeumorphicCard>
+
+      {/* Lettera Richiamo Modal */}
+      {showLetteraModal && selectedSegnalazione && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <NeumorphicCard className="max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-[#6b6b6b]">Lettera di Richiamo</h2>
+              <button onClick={() => { setShowLetteraModal(false); setSelectedTemplate(''); }} className="text-[#9b9b9b]">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <p className="text-sm text-[#6b6b6b] mb-2">
+                Dipendente: <strong>{selectedSegnalazione.dipendente_nome}</strong>
+              </p>
+              <p className="text-sm text-[#9b9b9b]">
+                {selectedSegnalazione.descrizione}
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                Seleziona Template Lettera
+              </label>
+              <select
+                value={selectedTemplate}
+                onChange={(e) => setSelectedTemplate(e.target.value)}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+              >
+                <option value="">Seleziona template...</option>
+                {lettereTemplates.filter(t => t.attivo).map(t => (
+                  <option key={t.id} value={t.id}>{t.nome_template}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex gap-3">
+              <NeumorphicButton onClick={() => { setShowLetteraModal(false); setSelectedTemplate(''); }} className="flex-1">
+                Annulla
+              </NeumorphicButton>
+              <NeumorphicButton
+                onClick={() => handleSendLettera(selectedSegnalazione)}
+                variant="primary"
+                className="flex-1 flex items-center justify-center gap-2"
+                disabled={!selectedTemplate}
+              >
+                <FileText className="w-5 h-5" />
+                Invia Lettera
+              </NeumorphicButton>
+            </div>
+          </NeumorphicCard>
+        </div>
+      )}
     </div>
+    </ProtectedPage>
   );
 }
