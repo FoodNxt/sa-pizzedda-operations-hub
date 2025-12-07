@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
-import { Camera, AlertTriangle, CheckCircle, Clock, User, Upload, Loader2, X, Save, Trash2, FileText, Plus } from 'lucide-react';
+import { Camera, AlertTriangle, CheckCircle, Clock, User, Upload, Loader2, X, Save, Trash2, FileText, Plus, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 
@@ -19,6 +19,12 @@ export default function Segnalazioni() {
   });
   const [uploading, setUploading] = useState(false);
   const [photoPreview, setPhotoPreview] = useState(null);
+
+  const [showLetteraModal, setShowLetteraModal] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [selectedDipendenteLettera, setSelectedDipendenteLettera] = useState('');
+  const [testoLettera, setTestoLettera] = useState('');
+  const [loadingLettera, setLoadingLettera] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -159,16 +165,9 @@ export default function Segnalazioni() {
     }
   };
 
-  const [showLetteraModal, setShowLetteraModal] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState('');
-  const [selectedDipendenteLettera, setSelectedDipendenteLettera] = useState('');
-  const [testoLettera, setTestoLettera] = useState('');
-  const [loadingLettera, setLoadingLettera] = useState(false);
-  const [templatePreview, setTemplatePreview] = useState('');
-
   const handleCaricaTemplate = () => {
-    if (!selectedTemplate) {
-      alert('Seleziona un template');
+    if (!selectedTemplate || !selectedDipendenteLettera) {
+      alert('Seleziona un template e un dipendente');
       return;
     }
 
@@ -184,6 +183,7 @@ export default function Segnalazioni() {
     testo = testo.replace(/\[DATA\]/g, new Date().toLocaleDateString('it-IT'));
     testo = testo.replace(/\[MOTIVO\]/g, selectedSegnalazione.descrizione);
     testo = testo.replace(/\[STORE\]/g, selectedSegnalazione.store_name);
+    testo = testo.replace(/\[DATA_SEGNALAZIONE\]/g, new Date(selectedSegnalazione.data_segnalazione).toLocaleDateString('it-IT'));
 
     setTestoLettera(testo);
   };
@@ -213,6 +213,7 @@ export default function Segnalazioni() {
       setSelectedSegnalazione(null);
       setSelectedDipendenteLettera('');
       setTestoLettera('');
+      setSelectedTemplate('');
     } catch (error) {
       console.error('Errore invio lettera:', error);
       alert('❌ Errore nell\'invio della lettera');
@@ -423,16 +424,23 @@ export default function Segnalazioni() {
                     {/* Admin Actions */}
                     {isAdmin && (
                       <div className="flex flex-wrap gap-2 mt-3">
-                        {segnalazione.stato !== 'risolta' && (
-                          <NeumorphicButton
-                            onClick={() => handleUpdateStato(segnalazione.id, 'risolta')}
-                            variant="primary"
-                            className="text-sm flex items-center gap-1"
-                          >
-                            <CheckCircle className="w-4 h-4" />
-                            Completa
-                          </NeumorphicButton>
-                        )}
+                        <NeumorphicButton
+                          onClick={() => handleUpdateStato(segnalazione.id, segnalazione.stato === 'risolta' ? 'aperta' : 'risolta')}
+                          variant={segnalazione.stato === 'risolta' ? 'default' : 'primary'}
+                          className="text-sm flex items-center gap-1"
+                        >
+                          {segnalazione.stato === 'risolta' ? (
+                            <>
+                              <XCircle className="w-4 h-4" />
+                              Riapri
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="w-4 h-4" />
+                              Risolvi
+                            </>
+                          )}
+                        </NeumorphicButton>
                         
                         <NeumorphicButton
                           onClick={() => {
@@ -522,6 +530,7 @@ export default function Segnalazioni() {
                     setSelectedSegnalazione(null);
                     setSelectedDipendenteLettera('');
                     setTestoLettera('');
+                    setSelectedTemplate('');
                   }} 
                   className="text-[#9b9b9b]"
                 >
