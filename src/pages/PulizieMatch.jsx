@@ -47,6 +47,11 @@ export default function PulizieMatch() {
     queryFn: () => base44.entities.DomandaPulizia.list('ordine'),
   });
 
+  const { data: attrezzature = [] } = useQuery({
+    queryKey: ['attrezzature'],
+    queryFn: () => base44.entities.Attrezzatura.list(),
+  });
+
   // Filter for employee history
   const [selectedEmployeeFilter, setSelectedEmployeeFilter] = useState('all');
 
@@ -107,36 +112,14 @@ export default function PulizieMatch() {
     };
   };
 
-  // Get matching employee for a question based on primary/secondary responsibility config
-  // Logic: assign to primary, EXCEPT when the last shift ended was from secondary role
-  const getMatchingEmployeeForQuestion = (inspection, questionId) => {
-    const config = responsibilities[`question_${questionId}`];
-    if (!config || !config.primary || config.primary.length === 0) return null;
+  // Get matching employee based on attrezzatura responsibility
+  const getMatchingEmployeeForAttrezzatura = (inspection, attrezzaturaName) => {
+    if (!attrezzaturaName) return null;
+    
+    const attrezzatura = attrezzature.find(a => a.nome === attrezzaturaName);
+    if (!attrezzatura || !attrezzatura.ruolo_responsabile) return null;
 
-    const primaryRoles = config.primary;
-    const secondaryRole = config.secondary;
-
-    // If no secondary, just match primary
-    if (!secondaryRole) {
-      return getMatchingEmployeeByRoles(inspection, primaryRoles);
-    }
-
-    // Check who ended their shift last (between primary and secondary)
-    const lastPrimaryEmployee = getMatchingEmployeeByRoles(inspection, primaryRoles);
-    const lastSecondaryEmployee = getMatchingEmployeeByRoles(inspection, [secondaryRole]);
-
-    // If secondary role employee ended their shift AFTER all primary roles,
-    // then assign to secondary, otherwise assign to primary
-    if (lastSecondaryEmployee && lastPrimaryEmployee) {
-      if (lastSecondaryEmployee.minutesBeforeInspection < lastPrimaryEmployee.minutesBeforeInspection) {
-        // Secondary ended more recently (less minutes before inspection)
-        return { ...lastSecondaryEmployee, assignedAs: 'secondary' };
-      }
-    } else if (lastSecondaryEmployee && !lastPrimaryEmployee) {
-      return { ...lastSecondaryEmployee, assignedAs: 'secondary' };
-    }
-
-    return lastPrimaryEmployee ? { ...lastPrimaryEmployee, assignedAs: 'primary' } : null;
+    return getMatchingEmployeeByRoles(inspection, [attrezzatura.ruolo_responsabile]);
   };
 
   // Get all matching employees for display
@@ -217,15 +200,8 @@ export default function PulizieMatch() {
             <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
               Pulizie Match
             </h1>
-            <p className="text-sm text-slate-500">Assegna valutazioni pulizie ai dipendenti</p>
+            <p className="text-sm text-slate-500">Assegna valutazioni pulizie ai dipendenti in base alle attrezzature</p>
           </div>
-          <NeumorphicButton
-            onClick={() => setShowResponsibilityModal(true)}
-            className="flex items-center gap-2"
-          >
-            <Settings className="w-5 h-5" />
-            Assegnazione Responsabilità
-          </NeumorphicButton>
         </div>
 
         {/* Employee Filter */}
@@ -439,38 +415,33 @@ export default function PulizieMatch() {
                 <div>
                   <h3 className="text-lg font-bold text-slate-800 mb-3">Domande e Responsabili Assegnati</h3>
                   <div className="space-y-2">
-                    {cleaningQuestions.filter(q => q.attiva !== false).map(q => {
-                      const config = responsibilities[`question_${q.id}`];
-                      const matchedEmployee = getMatchingEmployeeForQuestion(selectedInspection, q.id);
+                    {selectedInspection.domande_risposte?.map((risposta, idx) => {
+                      const matchedEmployee = risposta.attrezzatura 
+                        ? getMatchingEmployeeForAttrezzatura(selectedInspection, risposta.attrezzatura)
+                        : null;
+                      
+                      const attrezzatura = risposta.attrezzatura 
+                        ? attrezzature.find(a => a.nome === risposta.attrezzatura)
+                        : null;
                       
                       return (
-                        <div key={q.id} className="neumorphic-flat p-3 rounded-xl">
+                        <div key={idx} className="neumorphic-flat p-3 rounded-xl">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <p className="text-sm font-medium text-slate-800">{q.testo_domanda}</p>
-                              {q.attrezzatura && (
-                                <p className="text-xs text-slate-500">({q.attrezzatura})</p>
+                              <p className="text-sm font-medium text-slate-800">{risposta.domanda_testo}</p>
+                              {risposta.attrezzatura && (
+                                <p className="text-xs text-slate-500">({risposta.attrezzatura})</p>
                               )}
                             </div>
                             <div className="text-right">
-                              {config?.primary?.length > 0 ? (
+                              {attrezzatura?.ruolo_responsabile ? (
                                 <div>
-                                  <div className="flex flex-wrap gap-1 justify-end mb-1">
-                                    {config.primary.map(role => (
-                                      <span key={role} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                                        {role}
-                                      </span>
-                                    ))}
-                                    {config.secondary && (
-                                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
-                                        +{config.secondary}
-                                      </span>
-                                    )}
-                                  </div>
+                                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                                    {attrezzatura.ruolo_responsabile}
+                                  </span>
                                   {matchedEmployee && (
-                                    <p className={`text-xs mt-1 ${matchedEmployee.assignedAs === 'secondary' ? 'text-orange-600' : 'text-green-600'}`}>
-                                      → {matchedEmployee.employeeName} 
-                                      {matchedEmployee.assignedAs === 'secondary' && ' (sec.)'}
+                                    <p className="text-xs mt-1 text-green-600">
+                                      → {matchedEmployee.employeeName}
                                     </p>
                                   )}
                                 </div>
@@ -489,131 +460,7 @@ export default function PulizieMatch() {
           </div>
         )}
 
-        {/* Responsibility Assignment Modal */}
-        {showResponsibilityModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-              <NeumorphicCard className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h2 className="text-2xl font-bold text-slate-800">
-                      Assegnazione Responsabilità Domande
-                    </h2>
-                    <p className="text-sm text-slate-500">
-                      Assegna responsabili primari e secondari per ogni domanda
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setShowResponsibilityModal(false)}
-                    className="nav-button p-2 rounded-lg"
-                  >
-                    <X className="w-5 h-5 text-slate-600" />
-                  </button>
-                </div>
 
-                <div className="space-y-4 mb-6">
-                  {cleaningQuestions.filter(q => q.attiva !== false).map(q => {
-                    const config = responsibilities[`question_${q.id}`] || { primary: [], secondary: '' };
-                    
-                    return (
-                      <div key={q.id} className="neumorphic-flat p-4 rounded-xl">
-                        <div className="flex items-start gap-3 mb-4">
-                          <span className="text-xl">{q.tipo_controllo === 'foto' ? '📷' : '📋'}</span>
-                          <div className="flex-1">
-                            <h3 className="font-bold text-slate-800">{q.testo_domanda}</h3>
-                            {q.attrezzatura && (
-                              <p className="text-xs text-slate-500">Attrezzatura: {q.attrezzatura}</p>
-                            )}
-                          </div>
-                        </div>
-                        
-                        {/* Primary Responsibilities (multiple selection) */}
-                        <div className="mb-3">
-                          <label className="text-sm font-medium text-slate-700 mb-2 block">
-                            Responsabili Primari (seleziona uno o più):
-                          </label>
-                          <div className="flex flex-wrap gap-2">
-                            {roleOptions.map(role => {
-                              const isSelected = config.primary?.includes(role);
-                              return (
-                                <button
-                                  key={role}
-                                  type="button"
-                                  onClick={() => {
-                                    const currentPrimary = config.primary || [];
-                                    const newPrimary = isSelected
-                                      ? currentPrimary.filter(r => r !== role)
-                                      : [...currentPrimary, role];
-                                    setResponsibilities({
-                                      ...responsibilities,
-                                      [`question_${q.id}`]: { ...config, primary: newPrimary }
-                                    });
-                                  }}
-                                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                                    isSelected 
-                                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' 
-                                      : 'neumorphic-flat text-slate-700'
-                                  }`}
-                                >
-                                  {role}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        {/* Secondary Responsibility (optional, single selection) */}
-                        <div>
-                          <label className="text-sm font-medium text-slate-700 mb-2 block">
-                            Responsabile Secondario (opzionale):
-                          </label>
-                          <select
-                            value={config.secondary || ''}
-                            onChange={(e) => setResponsibilities({
-                              ...responsibilities,
-                              [`question_${q.id}`]: { ...config, secondary: e.target.value }
-                            })}
-                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                          >
-                            <option value="">Nessun secondario</option>
-                            {roleOptions.filter(r => !config.primary?.includes(r)).map(role => (
-                              <option key={role} value={role}>{role}</option>
-                            ))}
-                          </select>
-                          <p className="text-xs text-slate-500 mt-1">
-                            Se l'ultimo turno terminato è del secondario, la responsabilità va a lui
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {cleaningQuestions.filter(q => q.attiva !== false).length === 0 && (
-                    <div className="neumorphic-pressed p-8 rounded-xl text-center">
-                      <p className="text-slate-500">Nessuna domanda pulizie configurata</p>
-                      <p className="text-xs text-slate-400 mt-2">Vai in Controllo Pulizie Master per aggiungere domande</p>
-                    </div>
-                  )}
-                </div>
-
-                <NeumorphicButton
-                  onClick={handleSaveResponsibilities}
-                  variant="primary"
-                  className="w-full flex items-center justify-center gap-2"
-                >
-                  <Save className="w-5 h-5" />
-                  Salva Assegnazioni
-                </NeumorphicButton>
-
-                <div className="mt-4 p-4 bg-blue-50 rounded-xl">
-                  <p className="text-xs text-blue-800">
-                    💡 <strong>Logica:</strong> La responsabilità viene assegnata ai ruoli primari, TRANNE quando l'ultimo dipendente che ha terminato il turno appartiene al ruolo secondario.
-                  </p>
-                </div>
-              </NeumorphicCard>
-            </div>
-          </div>
-        )}
 
         {/* Info Card */}
         <NeumorphicCard className="p-6 bg-blue-50">
@@ -628,7 +475,7 @@ export default function PulizieMatch() {
                 <strong>Esempio:</strong> Se Cassiere 1 ha turno 11:00-15:00 e Cassiere 2 ha turno 15:00-22:00, quando Cassiere 2 compila il form, la responsabilità viene assegnata a Cassiere 1.
               </p>
               <p className="text-sm text-blue-700">
-                Nella sezione "Assegnazione Responsabilità" puoi definire quale ruolo è responsabile di ogni domanda del form.
+                Le responsabilità sono assegnate in base al <strong>ruolo responsabile</strong> definito per ogni attrezzatura nella sezione <strong>Attrezzature</strong>.
               </p>
             </div>
           </div>
