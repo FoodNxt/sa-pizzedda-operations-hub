@@ -796,28 +796,34 @@ export default function TurniDipendente() {
     const turnoFine = turno.ora_fine;
     
     const schemasApplicabili = struttureTurno.filter(st => {
-      // Check ruolo (singolo)
-      if (st.ruolo && st.ruolo !== turno.ruolo) return false;
+      // Check ruolo (singolo) - MUST match exactly
+      if (st.ruolo !== turno.ruolo) return false;
       
       // Check stores
       const stStores = st.assigned_stores || [];
       if (stStores.length > 0 && !stStores.includes(turno.store_id)) return false;
       
-      // Check giorno (singolo numero)
-      if (st.giorno_settimana !== undefined && st.giorno_settimana !== dayOfWeek) return false;
+      // Check giorno (singolo numero) - MUST match exactly
+      if (st.giorno_settimana !== dayOfWeek) return false;
       
       // Filtro per tipo turno
       const stTipiTurno = st.tipi_turno || [];
       if (stTipiTurno.length > 0 && !stTipiTurno.includes(tipoTurno)) return false;
       
+      // Check if schema is active
+      if (st.is_active === false) return false;
+      
       return true;
     });
+    
+    // Se non ci sono schemi applicabili, return empty
+    if (schemasApplicabili.length === 0) return [];
     
     // Estrai attività con info complete, ordinate per ora - evita duplicati per NOME attività
     // Filtra solo attività dentro l'orario del turno
     const attivitaMap = new Map();
     schemasApplicabili.forEach(st => {
-      if (st.slots && Array.isArray(st.slots)) {
+      if (st.slots && Array.isArray(st.slots) && st.slots.length > 0) {
         st.slots.forEach(slot => {
           if (slot.attivita) {
             // Verifica che lo slot sia dentro l'orario del turno

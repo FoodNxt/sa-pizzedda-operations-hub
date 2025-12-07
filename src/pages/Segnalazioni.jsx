@@ -164,40 +164,28 @@ export default function Segnalazioni() {
   const [selectedDipendenteLettera, setSelectedDipendenteLettera] = useState('');
   const [testoLettera, setTestoLettera] = useState('');
   const [loadingLettera, setLoadingLettera] = useState(false);
+  const [templatePreview, setTemplatePreview] = useState('');
 
-  const handleGeneraLettera = async () => {
-    if (!selectedDipendenteLettera) {
-      alert('Seleziona un dipendente');
+  const handleCaricaTemplate = () => {
+    if (!selectedTemplate) {
+      alert('Seleziona un template');
       return;
     }
 
-    setLoadingLettera(true);
-    try {
-      const dipendente = dipendenti.find(d => d.id === selectedDipendenteLettera);
-      const dipendenteNome = dipendente?.nome_cognome || dipendente?.full_name || dipendente?.email || '';
+    const template = lettereTemplates.find(t => t.id === selectedTemplate);
+    if (!template) return;
 
-      const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `Genera una lettera di richiamo formale per il dipendente ${dipendenteNome} in merito alla seguente segnalazione:
+    const dipendente = dipendenti.find(d => d.id === selectedDipendenteLettera);
+    const dipendenteNome = dipendente?.nome_cognome || dipendente?.full_name || dipendente?.email || '';
 
-Descrizione: ${selectedSegnalazione.descrizione}
-Data segnalazione: ${new Date(selectedSegnalazione.data_segnalazione).toLocaleDateString('it-IT')}
-Store: ${selectedSegnalazione.store_name}
+    // Sostituisci placeholders nel template
+    let testo = template.contenuto || '';
+    testo = testo.replace(/\[NOME_DIPENDENTE\]/g, dipendenteNome);
+    testo = testo.replace(/\[DATA\]/g, new Date().toLocaleDateString('it-IT'));
+    testo = testo.replace(/\[MOTIVO\]/g, selectedSegnalazione.descrizione);
+    testo = testo.replace(/\[STORE\]/g, selectedSegnalazione.store_name);
 
-La lettera deve essere professionale ma ferma, includere:
-1. Riferimento alla segnalazione
-2. Descrizione del problema
-3. Invito a migliorare il comportamento
-4. Conseguenze in caso di ripetizione
-
-Mantieni un tono formale ma costruttivo.`,
-      });
-
-      setTestoLettera(result);
-    } catch (error) {
-      console.error('Errore generazione lettera:', error);
-      alert('Errore nella generazione della lettera');
-    }
-    setLoadingLettera(false);
+    setTestoLettera(testo);
   };
 
   const handleInviaLettera = async () => {
@@ -569,25 +557,34 @@ Mantieni un tono formale ma costruttivo.`,
                 </select>
               </div>
 
-              {/* Genera testo */}
+              {/* Selezione Template */}
               {selectedDipendenteLettera && !testoLettera && (
+                <div className="mb-4">
+                  <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                    Template Lettera *
+                  </label>
+                  <select
+                    value={selectedTemplate}
+                    onChange={(e) => setSelectedTemplate(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  >
+                    <option value="">Seleziona template...</option>
+                    {lettereTemplates.filter(t => t.attivo !== false).map(t => (
+                      <option key={t.id} value={t.id}>{t.nome_template}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Carica template */}
+              {selectedDipendenteLettera && selectedTemplate && !testoLettera && (
                 <NeumorphicButton
-                  onClick={handleGeneraLettera}
+                  onClick={handleCaricaTemplate}
                   variant="primary"
                   className="w-full mb-4 flex items-center justify-center gap-2"
-                  disabled={loadingLettera}
                 >
-                  {loadingLettera ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Generazione lettera...
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="w-4 h-4" />
-                      Genera Testo Lettera
-                    </>
-                  )}
+                  <FileText className="w-4 h-4" />
+                  Carica e Modifica Template
                 </NeumorphicButton>
               )}
 
@@ -608,17 +605,18 @@ Mantieni un tono formale ma costruttivo.`,
                     <NeumorphicButton
                       onClick={() => {
                         setTestoLettera('');
-                        setSelectedDipendenteLettera('');
+                        setSelectedTemplate('');
                       }}
                       className="flex-1"
                     >
-                      Reset
+                      Indietro
                     </NeumorphicButton>
                     <NeumorphicButton
                       onClick={handleInviaLettera}
                       variant="primary"
-                      className="flex-1"
+                      className="flex-1 flex items-center justify-center gap-2"
                     >
+                      <Save className="w-4 h-4" />
                       Invia Lettera
                     </NeumorphicButton>
                   </div>
