@@ -277,6 +277,14 @@ export default function Pulizie() {
       }));
   };
 
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.CleaningInspection.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cleaningInspections'] });
+      setDetailsModalInspection(null);
+    },
+  });
+
   // Mutation for saving corrections
   const saveCorrectionMutation = useMutation({
     mutationFn: async ({ inspectionId, equipmentKey, correctedStatus, correctionNote }) => {

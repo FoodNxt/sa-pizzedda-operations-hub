@@ -270,18 +270,7 @@ export default function StrutturaTurno() {
       alert('Inserisci una descrizione per l\'attività');
       return;
     }
-    const slotToAdd = isProvaAffiancamento ? {
-      minuti_inizio: newSlot.minuti_inizio,
-      minuti_fine: newSlot.minuti_fine,
-      attivita: newSlot.attivita,
-      colore: newSlot.colore,
-      richiede_form: newSlot.richiede_form || false,
-      form_page: newSlot.richiede_form ? newSlot.form_page : '',
-      corsi_ids: newSlot.corsi_ids || [],
-      attrezzature_pulizia: newSlot.attrezzature_pulizia || []
-    } : {
-      ora_inizio: newSlot.ora_inizio,
-      ora_fine: newSlot.ora_fine,
+    const slotToAdd = {
       attivita: newSlot.attivita,
       colore: newSlot.colore,
       richiede_form: newSlot.richiede_form || false,
@@ -289,6 +278,14 @@ export default function StrutturaTurno() {
       corsi_ids: newSlot.corsi_ids || [],
       attrezzature_pulizia: newSlot.attrezzature_pulizia || []
     };
+
+    if (isProvaAffiancamento) {
+      slotToAdd.minuti_inizio = newSlot.minuti_inizio;
+      slotToAdd.minuti_fine = newSlot.minuti_fine;
+    } else {
+      slotToAdd.ora_inizio = newSlot.ora_inizio;
+      slotToAdd.ora_fine = newSlot.ora_fine;
+    }
     
     if (editingSlotIndex !== null) {
       // Update existing slot
