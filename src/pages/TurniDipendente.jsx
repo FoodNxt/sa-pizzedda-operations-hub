@@ -796,17 +796,15 @@ export default function TurniDipendente() {
     const turnoFine = turno.ora_fine;
     
     const schemasApplicabili = struttureTurno.filter(st => {
-      const stRoles = st.ruoli || [];
-      if (stRoles.length > 0 && !stRoles.includes(turno.ruolo)) return false;
+      // Check ruolo (singolo)
+      if (st.ruolo && st.ruolo !== turno.ruolo) return false;
       
-      const stStores = st.stores || [];
+      // Check stores
+      const stStores = st.assigned_stores || [];
       if (stStores.length > 0 && !stStores.includes(turno.store_id)) return false;
       
-      const stDays = st.giorni_settimana || [];
-      if (stDays.length > 0 && !stDays.includes(dayOfWeek)) return false;
-      
-      const stMomento = st.momento_turno;
-      if (stMomento && stMomento !== momento) return false;
+      // Check giorno (singolo numero)
+      if (st.giorno_settimana !== undefined && st.giorno_settimana !== dayOfWeek) return false;
       
       // Filtro per tipo turno
       const stTipiTurno = st.tipi_turno || [];
