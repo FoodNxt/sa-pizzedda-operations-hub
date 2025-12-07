@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createPageUrl } from "@/utils";
 import { Link } from "react-router-dom";
-import { Sparkles, Camera, Calendar, Store, CheckCircle, AlertTriangle, XCircle, Plus, ChevronRight, X, Loader2, Edit, Save, TrendingUp, ClipboardCheck, Users, Clock, Settings, Eye, ChevronDown, ChevronUp } from 'lucide-react';
+import { Sparkles, Camera, Calendar, Store, CheckCircle, AlertTriangle, XCircle, Plus, ChevronRight, X, Loader2, Edit, Save, TrendingUp, ClipboardCheck, Users, Clock, Settings, Eye, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { format, parseISO, subDays } from 'date-fns';
@@ -644,12 +644,25 @@ export default function Pulizie() {
                   </p>
                 )}
               </div>
-              <button
-                onClick={() => {setDetailsModalInspection(null); setCorrectingEquipment(null);}}
-                className="neumorphic-flat p-2 rounded-lg text-[#6b6b6b] hover:text-red-600 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    if (confirm('Eliminare questa ispezione?')) {
+                      deleteMutation.mutate(detailsModalInspection.id);
+                    }
+                  }}
+                  className="neumorphic-flat p-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+                  title="Elimina ispezione"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => {setDetailsModalInspection(null); setCorrectingEquipment(null);}}
+                  className="neumorphic-flat p-2 rounded-lg text-[#6b6b6b] hover:text-red-600 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Overall Score */}

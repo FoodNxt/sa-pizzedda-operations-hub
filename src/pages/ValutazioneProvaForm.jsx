@@ -12,12 +12,18 @@ export default function ValutazioneProvaForm() {
   const [noteAggiuntive, setNoteAggiuntive] = useState('');
   const [consiglioAssunzione, setConsiglioAssunzione] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   const queryClient = useQueryClient();
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: async () => {
+      setIsCheckingAuth(true);
+      const userData = await base44.auth.me();
+      setIsCheckingAuth(false);
+      return userData;
+    },
   });
 
   const { data: valutazioniConfig = [] } = useQuery({
@@ -105,6 +111,17 @@ export default function ValutazioneProvaForm() {
   };
 
   const getStoreName = (storeId) => stores.find(s => s.id === storeId)?.name || '';
+
+  if (isCheckingAuth || !user) {
+    return (
+      <div className="max-w-2xl mx-auto p-6">
+        <NeumorphicCard className="p-8 text-center">
+          <Loader2 className="w-16 h-16 text-blue-500 animate-spin mx-auto mb-4" />
+          <p className="text-slate-600">Caricamento...</p>
+        </NeumorphicCard>
+      </div>
+    );
+  }
 
   if (!user?.abilitato_prove) {
     return (
