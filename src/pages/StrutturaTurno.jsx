@@ -106,9 +106,9 @@ export default function StrutturaTurno() {
     queryFn: () => base44.entities.Corso.list(),
   });
 
-  const { data: domandePulizia = [] } = useQuery({
-    queryKey: ['domande-pulizia'],
-    queryFn: () => base44.entities.DomandaPulizia.filter({ attiva: true }),
+  const { data: attrezzature = [] } = useQuery({
+    queryKey: ['attrezzature'],
+    queryFn: () => base44.entities.Attrezzatura.filter({ attivo: true }),
   });
 
   const { data: tipoTurnoConfigs = [] } = useQuery({
@@ -121,12 +121,8 @@ export default function StrutturaTurno() {
     ? tipoTurnoConfigs.map(c => c.tipo_turno)
     : ['Normale', 'Straordinario', 'Formazione', 'Affiancamento', 'Prova e Affiancamento', 'Apertura', 'Chiusura'];
 
-  // Get unique equipment names from cleaning questions
-  const attrezzatureDisponibili = [...new Set(
-    domandePulizia
-      .filter(d => d.tipo_controllo === 'foto' && d.attrezzatura)
-      .map(d => d.attrezzatura)
-  )].sort();
+  // Get equipment names from Attrezzatura entity
+  const attrezzatureDisponibili = attrezzature.map(a => a.nome).sort();
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
