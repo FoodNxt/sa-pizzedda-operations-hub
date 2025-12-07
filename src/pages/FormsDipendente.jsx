@@ -12,7 +12,8 @@ import {
   ChefHat,
   Pizza,
   Trash2,
-  UserCheck
+  UserCheck,
+  AlertTriangle
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 
@@ -117,6 +118,13 @@ export default function FormsDipendente() {
       url: "ValutazioneProvaForm",
       color: "from-pink-500 to-rose-600",
       requiresAbilitatoProve: true
+    },
+    {
+      title: "Segnalazioni",
+      description: "Segnala problemi o anomalie",
+      icon: AlertTriangle,
+      url: "Segnalazioni",
+      color: "from-orange-500 to-red-600"
     }
   ];
 
