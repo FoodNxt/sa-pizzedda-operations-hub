@@ -437,6 +437,19 @@ export default function Segnalazioni() {
                       </div>
                     )}
 
+                    {/* Dipendente Actions - can only resolve if not their own */}
+                    {!isAdmin && !isStoreManager && segnalazione.stato !== 'risolta' && segnalazione.dipendente_id !== user?.id && (
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        <NeumorphicButton
+                          onClick={() => handleUpdateStato(segnalazione.id, 'risolta')}
+                          className="text-sm flex items-center gap-1"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          Segna come Risolta
+                        </NeumorphicButton>
+                      </div>
+                    )}
+
                     {/* Store Manager Actions */}
                     {isStoreManager && !isAdmin && segnalazione.stato !== 'risolta' && (
                       <div className="flex flex-wrap gap-2 mt-3">
