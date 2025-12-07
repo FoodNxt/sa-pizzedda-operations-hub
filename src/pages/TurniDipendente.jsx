@@ -1120,8 +1120,14 @@ export default function TurniDipendente() {
 
               {/* Form e Attività da completare - SOLO PER PROSSIMO TURNO */}
               {(() => {
-                const formDovuti = getFormDovutiPerTurno(prossimoTurno);
+                // PRIMA controlla se esistono schemi StrutturaTurno applicabili
                 const attivita = getAttivitaTurno(prossimoTurno);
+                
+                // Se non ci sono schemi StrutturaTurno applicabili, NON mostrare nessuna attività
+                // (anche se ci sono form nel FormTrackerConfig)
+                if (attivita.length === 0) return null;
+                
+                const formDovuti = getFormDovutiPerTurno(prossimoTurno);
                 
                 // Calcola se tutte le attività sono completate
                 const allAttivitaComplete = attivita.every(att => {
@@ -1137,8 +1143,6 @@ export default function TurniDipendente() {
                   .filter(form => !attivita.some(a => a.form_page === form.page))
                   .every(f => f.completato);
                 const tuttoCompleto = allAttivitaComplete && formNonAssociatiComplete;
-                
-                if (formDovuti.length === 0 && attivita.length === 0) return null;
                 
                 return (
                   <div className="mb-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
