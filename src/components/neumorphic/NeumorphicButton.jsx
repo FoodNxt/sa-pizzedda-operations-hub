@@ -5,7 +5,8 @@ export default function NeumorphicButton({
   onClick, 
   className = "",
   disabled = false,
-  variant = "default"
+  variant = "default",
+  type = "button"
 }) {
   const [pressed, setPressed] = useState(false);
 
@@ -26,6 +27,7 @@ export default function NeumorphicButton({
 
   return (
     <button
+      type={type}
       onClick={handleClick}
       disabled={disabled}
       className={`
