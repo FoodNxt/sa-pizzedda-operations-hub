@@ -242,7 +242,7 @@ export default function FormInventario() {
                       <div className="md:col-span-1">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-slate-800 text-sm lg:text-base truncate">{product.nome_prodotto}</h3>
+                            <h3 className="font-bold text-slate-800 text-sm lg:text-base truncate">{product.nome_interno || product.nome_prodotto}</h3>
                             <p className="text-xs lg:text-sm text-slate-500">
                               {product.unita_misura}
                             </p>
