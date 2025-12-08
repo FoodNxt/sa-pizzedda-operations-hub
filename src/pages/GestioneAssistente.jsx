@@ -71,7 +71,9 @@ export default function GestioneAssistente() {
     categoria: 'Generale',
     store_id: '',
     ordine: 0,
-    attivo: true
+    attivo: true,
+    corso_suggerito_id: '',
+    corso_suggerito_nome: ''
   });
   const [filterFAQCategoria, setFilterFAQCategoria] = useState('');
   const [filterFAQStore, setFilterFAQStore] = useState('');
@@ -158,6 +160,12 @@ export default function GestioneAssistente() {
   const { data: faqs = [] } = useQuery({
     queryKey: ['assistente-faq'],
     queryFn: () => base44.entities.AssistenteFAQ.list('ordine'),
+  });
+
+  const { data: corsi = [] } = useQuery({
+    queryKey: ['corsi-academy'],
+    queryFn: () => base44.entities.Corso.list(),
+    enabled: activeTab === 'faq',
   });
 
   const { data: knowledgePages = [] } = useQuery({
@@ -556,7 +564,9 @@ ${allUserMessages.slice(0, 100).join('\n---\n')}`,
       categoria: 'Generale',
       store_id: '',
       ordine: 0,
-      attivo: true
+      attivo: true,
+      corso_suggerito_id: '',
+      corso_suggerito_nome: ''
     });
     setEditingFAQ(null);
     setShowFAQForm(false);
@@ -794,7 +804,9 @@ IMPORTANTE: Mantieni tutte le informazioni originali, migliorando solo la chiare
       categoria: faq.categoria,
       store_id: faq.store_id || '',
       ordine: faq.ordine || 0,
-      attivo: faq.attivo !== false
+      attivo: faq.attivo !== false,
+      corso_suggerito_id: faq.corso_suggerito_id || '',
+      corso_suggerito_nome: faq.corso_suggerito_nome || ''
     });
     setShowFAQForm(true);
   };
@@ -2217,6 +2229,32 @@ IMPORTANTE: Mantieni tutte le informazioni originali, migliorando solo la chiare
                   />
                 </div>
 
+                <div className="mb-4">
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">
+                    Corso Suggerito (opzionale)
+                  </label>
+                  <select
+                    value={faqForm.corso_suggerito_id}
+                    onChange={(e) => {
+                      const corso = corsi.find(c => c.id === e.target.value);
+                      setFAQForm({ 
+                        ...faqForm, 
+                        corso_suggerito_id: e.target.value,
+                        corso_suggerito_nome: corso?.titolo || ''
+                      });
+                    }}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                  >
+                    <option value="">Nessun corso</option>
+                    {corsi.filter(c => c.attivo !== false).map(corso => (
+                      <option key={corso.id} value={corso.id}>{corso.titolo}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Il chatbot potrà suggerire questo corso al dipendente direttamente in chat
+                  </p>
+                </div>
+
                 <div className="flex items-center mb-4">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -2272,14 +2310,20 @@ IMPORTANTE: Mantieni tutte le informazioni originali, migliorando solo la chiare
                               <p className="text-sm text-slate-600 mt-2 pl-6">
                                 <span className="text-green-600 font-medium">R:</span> {faq.risposta}
                               </p>
-                              {faq.store_id && (
-                                <div className="mt-2 pl-6">
-                                  <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-xs flex items-center gap-1 inline-flex">
+                              <div className="mt-2 pl-6 flex flex-wrap gap-2">
+                                {faq.store_id && (
+                                  <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-xs flex items-center gap-1">
                                     <Store className="w-3 h-3" />
                                     {getStoreName(faq.store_id)}
                                   </span>
-                                </div>
-                              )}
+                                )}
+                                {faq.corso_suggerito_id && (
+                                  <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs flex items-center gap-1">
+                                    <GraduationCap className="w-3 h-3" />
+                                    Corso: {faq.corso_suggerito_nome}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                             <div className="flex gap-1">
                               <button
