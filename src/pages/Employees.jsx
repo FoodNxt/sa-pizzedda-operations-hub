@@ -86,6 +86,11 @@ export default function Employees() {
     queryFn: () => base44.entities.CleaningInspection.list('-inspection_date'),
   });
 
+  const { data: attrezzature = [] } = useQuery({
+    queryKey: ['attrezzature'],
+    queryFn: () => base44.entities.Attrezzatura.list(),
+  });
+
   const currentOrderIds = useMemo(() => new Set(wrongOrders.map(o => o.id)), [wrongOrders]);
   const wrongOrderMatches = useMemo(() =>
     allWrongOrderMatches.filter(m => currentOrderIds.has(m.wrong_order_id))
@@ -306,24 +311,80 @@ export default function Employees() {
         performanceScore += reviewBonus;
       }
       
-      // Pulizie: penalità se score < 80
-      const cleaningData = cleaningInspections.filter(i => {
-        if (i.inspector_name !== employeeName) return false;
+      // Pulizie: assegna ogni domanda al dipendente responsabile basandosi sul ruolo dell'attrezzatura
+      const employeeCleaningScores = [];
+      
+      cleaningInspections.forEach(inspection => {
+        if (!inspection.domande_risposte || inspection.analysis_status !== 'completed') return;
+        
+        // Filter by date if needed
         if (startDate || endDate) {
-          if (!i.inspection_date) return false;
-          const inspDate = safeParseDate(i.inspection_date);
-          if (!inspDate) return false;
+          if (!inspection.inspection_date) return;
+          const inspDate = safeParseDate(inspection.inspection_date);
+          if (!inspDate) return;
           const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
           const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
-          if (start && end) return isWithinInterval(inspDate, { start, end });
-          else if (start) return inspDate >= start;
-          else if (end) return inspDate <= end;
+          if (start && end && !isWithinInterval(inspDate, { start, end })) return;
+          else if (start && inspDate < start) return;
+          else if (end && inspDate > end) return;
         }
-        return true;
+        
+        const inspectionDate = safeParseDate(inspection.inspection_date);
+        const inspectionStoreId = inspection.store_id;
+        
+        inspection.domande_risposte.forEach(risposta => {
+          if (!risposta.attrezzatura) return;
+          
+          const attrezzatura = attrezzature.find(a => a.nome === risposta.attrezzatura);
+          if (!attrezzatura || !attrezzatura.ruoli_responsabili || attrezzatura.ruoli_responsabili.length === 0) return;
+          
+          // Find the employee whose shift ended before the inspection
+          const eligibleShifts = employeeShifts.filter(shift => {
+            if (shift.store_id !== inspectionStoreId) return false;
+            
+            const shiftEnd = shift.actual_end || shift.scheduled_end;
+            if (!shiftEnd) return false;
+
+            try {
+              const shiftEndDate = safeParseDate(shiftEnd);
+              return shiftEndDate < inspectionDate;
+            } catch (e) {
+              return false;
+            }
+          });
+
+          const roleFilteredShifts = eligibleShifts.filter(shift => {
+            return attrezzatura.ruoli_responsabili.some(role => user.ruoli_dipendente?.includes(role));
+          });
+
+          const sortedShifts = roleFilteredShifts.sort((a, b) => {
+            const endA = safeParseDate(a.actual_end || a.scheduled_end);
+            const endB = safeParseDate(b.actual_end || b.scheduled_end);
+            return endB - endA;
+          });
+
+          if (sortedShifts.length > 0) {
+            // This employee was responsible for this question
+            const equipmentKey = risposta.attrezzatura.toLowerCase().replace(/\s+/g, '_');
+            const status = inspection[`${equipmentKey}_corrected`]
+              ? inspection[`${equipmentKey}_corrected_status`]
+              : inspection[`${equipmentKey}_pulizia_status`];
+            
+            if (status) {
+              let score = 0;
+              if (status === 'pulito') score = 100;
+              else if (status === 'medio') score = 50;
+              else if (status === 'sporco') score = 0;
+              else if (status === 'non_valutabile') return; // Skip non-evaluable
+              
+              employeeCleaningScores.push(score);
+            }
+          }
+        });
       });
       
-      if (cleaningData.length > 0) {
-        const avgCleaningScore = cleaningData.reduce((sum, i) => sum + (i.overall_score || 0), 0) / cleaningData.length;
+      if (employeeCleaningScores.length > 0) {
+        const avgCleaningScore = employeeCleaningScores.reduce((sum, s) => sum + s, 0) / employeeCleaningScores.length;
         if (avgCleaningScore < 80) {
           const cleaningPenalty = (80 - avgCleaningScore) * w_pulizie * 0.1;
           performanceScore -= cleaningPenalty;
@@ -616,32 +677,88 @@ export default function Employees() {
   };
 
   const getCleaningScoreForEmployee = (employeeName) => {
-    const employeeInspections = cleaningInspections.filter(i => {
-      if (i.inspector_name !== employeeName) return false;
+    const user = users.find(u => 
+      (u.nome_cognome || u.full_name || u.email) === employeeName
+    );
+    
+    if (!user) return { avgScore: null, count: 0 };
+    
+    const employeeCleaningScores = [];
+    
+    cleaningInspections.forEach(inspection => {
+      if (!inspection.domande_risposte || inspection.analysis_status !== 'completed') return;
       
+      // Filter by date if needed
       if (startDate || endDate) {
-        if (!i.inspection_date) return false;
-        const inspDate = safeParseDate(i.inspection_date);
-        if (!inspDate) return false;
-        
+        if (!inspection.inspection_date) return;
+        const inspDate = safeParseDate(inspection.inspection_date);
+        if (!inspDate) return;
         const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
         const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
-
-        if (start && end) {
-          return isWithinInterval(inspDate, { start, end });
-        } else if (start) {
-          return inspDate >= start;
-        } else if (end) {
-          return inspDate <= end;
-        }
+        if (start && end && !isWithinInterval(inspDate, { start, end })) return;
+        else if (start && inspDate < start) return;
+        else if (end && inspDate > end) return;
       }
-      return true;
+      
+      const inspectionDate = safeParseDate(inspection.inspection_date);
+      const inspectionStoreId = inspection.store_id;
+      
+      inspection.domande_risposte.forEach(risposta => {
+        if (!risposta.attrezzatura) return;
+        
+        const attrezzatura = attrezzature.find(a => a.nome === risposta.attrezzatura);
+        if (!attrezzatura || !attrezzatura.ruoli_responsabili || attrezzatura.ruoli_responsabili.length === 0) return;
+        
+        // Find shifts for this employee at this store that ended before inspection
+        const eligibleShifts = shifts.filter(shift => {
+          if (shift.employee_name !== employeeName) return false;
+          if (shift.store_id !== inspectionStoreId) return false;
+          
+          const shiftEnd = shift.actual_end || shift.scheduled_end;
+          if (!shiftEnd) return false;
+
+          try {
+            const shiftEndDate = safeParseDate(shiftEnd);
+            return shiftEndDate < inspectionDate;
+          } catch (e) {
+            return false;
+          }
+        });
+
+        const roleFilteredShifts = eligibleShifts.filter(shift => {
+          return attrezzatura.ruoli_responsabili.some(role => user.ruoli_dipendente?.includes(role));
+        });
+
+        const sortedShifts = roleFilteredShifts.sort((a, b) => {
+          const endA = safeParseDate(a.actual_end || a.scheduled_end);
+          const endB = safeParseDate(b.actual_end || b.scheduled_end);
+          return endB - endA;
+        });
+
+        if (sortedShifts.length > 0) {
+          // This employee was responsible for this question
+          const equipmentKey = risposta.attrezzatura.toLowerCase().replace(/\s+/g, '_');
+          const status = inspection[`${equipmentKey}_corrected`]
+            ? inspection[`${equipmentKey}_corrected_status`]
+            : inspection[`${equipmentKey}_pulizia_status`];
+          
+          if (status) {
+            let score = 0;
+            if (status === 'pulito') score = 100;
+            else if (status === 'medio') score = 50;
+            else if (status === 'sporco') score = 0;
+            else if (status === 'non_valutabile') return; // Skip non-evaluable
+            
+            employeeCleaningScores.push(score);
+          }
+        }
+      });
     });
 
-    if (employeeInspections.length === 0) return { avgScore: null, count: 0 };
+    if (employeeCleaningScores.length === 0) return { avgScore: null, count: 0 };
 
-    const avgScore = employeeInspections.reduce((sum, i) => sum + (i.overall_score || 0), 0) / employeeInspections.length;
-    return { avgScore, count: employeeInspections.length };
+    const avgScore = employeeCleaningScores.reduce((sum, s) => sum + s, 0) / employeeCleaningScores.length;
+    return { avgScore, count: employeeCleaningScores.length };
   };
 
   const getConfidenceBadgeColor = (confidence) => {
