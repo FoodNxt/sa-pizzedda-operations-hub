@@ -3360,48 +3360,25 @@ export default function Planday() {
                 {/* GPS Locali */}
                 <div className="neumorphic-pressed p-4 rounded-xl">
                   <h3 className="text-lg font-bold text-slate-800 mb-3">Posizione GPS Locali</h3>
+                  <p className="text-xs text-slate-500 mb-3">
+                    Le coordinate GPS sono gestite in HR → Assegnazione Locali
+                  </p>
                   <div className="space-y-3 max-h-48 overflow-y-auto">
                     {stores.map(store => (
                       <div key={store.id} className="neumorphic-flat p-3 rounded-xl">
-                        {editingStore?.id === store.id ? (
-                          <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div>
                             <div className="font-medium text-slate-800">{store.name}</div>
-                            <div className="grid grid-cols-2 gap-2">
-                              <input
-                                type="number"
-                                step="any"
-                                value={storeCoords.latitude}
-                                onChange={(e) => setStoreCoords({ ...storeCoords, latitude: e.target.value })}
-                                className="neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none"
-                                placeholder="Latitudine"
-                              />
-                              <input
-                                type="number"
-                                step="any"
-                                value={storeCoords.longitude}
-                                onChange={(e) => setStoreCoords({ ...storeCoords, longitude: e.target.value })}
-                                className="neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none"
-                                placeholder="Longitudine"
-                              />
+                            <div className="text-xs text-slate-400">
+                              {store.latitude && store.longitude ? `📍 ${store.latitude}, ${store.longitude}` : '⚠️ GPS non impostato'}
                             </div>
-                            <div className="flex gap-2">
-                              <button onClick={() => setEditingStore(null)} className="text-sm text-slate-600">Annulla</button>
-                              <button onClick={handleSaveStoreCoords} className="text-sm bg-blue-500 text-white px-3 py-1 rounded-lg">Salva</button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="font-medium text-slate-800">{store.name}</div>
-                              <div className="text-xs text-slate-400">
-                                {store.latitude && store.longitude ? `📍 ${store.latitude}, ${store.longitude}` : '⚠️ GPS non impostato'}
+                            {store.address && (
+                              <div className="text-xs text-slate-500 mt-1">
+                                📍 {store.address}
                               </div>
-                            </div>
-                            <button onClick={() => handleEditStore(store)} className="text-blue-600">
-                              <Edit className="w-4 h-4" />
-                            </button>
+                            )}
                           </div>
-                        )}
+                        </div>
                       </div>
                     ))}
                   </div>
