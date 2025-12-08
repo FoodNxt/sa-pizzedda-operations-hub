@@ -681,8 +681,9 @@ Sa Pizzedda`
                               <p className="text-xs text-slate-500">{completion.prodotti.length} prodotti</p>
                             </div>
                             <button
-                              onClick={() => {
-                                if (confirm(`Eliminare questo form con ${completion.prodotti.length} prodotti?`)) {
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (window.confirm(`Eliminare questo form con ${completion.prodotti.length} prodotti?`)) {
                                   completion.prodotti.forEach(p => deleteMutation.mutate(p.id));
                                 }
                               }}
