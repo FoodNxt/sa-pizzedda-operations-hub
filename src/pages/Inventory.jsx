@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Package,
   AlertTriangle,
@@ -17,7 +17,8 @@ import {
   Mail,
   Loader2,
   Send,
-  Edit
+  Edit,
+  Trash2
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -31,10 +32,20 @@ export default function Inventory() {
   const [selectedStore, setSelectedStore] = useState('all');
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [historyProduct, setHistoryProduct] = useState(null);
+  
+  const queryClient = useQueryClient();
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
     queryFn: () => base44.entities.Store.list(),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.RilevazioneInventario.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rilevazione-inventario'] });
+      alert('✅ Form inventario eliminato');
+    },
   });
 
   const { data: inventory = [] } = useQuery({
@@ -664,9 +675,21 @@ Sa Pizzedda`
                               {format(parseISO(completion.data), 'dd/MM/yyyy HH:mm', { locale: it })}
                             </p>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium text-slate-700">{completion.rilevato_da}</p>
-                            <p className="text-xs text-slate-500">{completion.prodotti.length} prodotti</p>
+                          <div className="flex items-start gap-3">
+                            <div className="text-right">
+                              <p className="text-sm font-medium text-slate-700">{completion.rilevato_da}</p>
+                              <p className="text-xs text-slate-500">{completion.prodotti.length} prodotti</p>
+                            </div>
+                            <button
+                              onClick={() => {
+                                if (confirm(`Eliminare questo form con ${completion.prodotti.length} prodotti?`)) {
+                                  completion.prodotti.forEach(p => deleteMutation.mutate(p.id));
+                                }
+                              }}
+                              className="text-red-500 hover:text-red-700 p-1"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
                         </div>
                         

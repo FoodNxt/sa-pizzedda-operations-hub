@@ -9,7 +9,10 @@ import {
   Loader2,
   Check,
   X,
-  Crown
+  Crown,
+  Navigation,
+  Settings,
+  Clock
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 
@@ -21,6 +24,11 @@ export default function HRAdmin() {
   
   // Store Manager per locale
   const [storeManagers, setStoreManagers] = useState({});
+  
+  // GPS Config
+  const [geocodingStore, setGeocodingStore] = useState(null);
+  const [gpsLocations, setGpsLocations] = useState({});
+  const [editingGps, setEditingGps] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -37,7 +45,12 @@ export default function HRAdmin() {
     queryFn: () => base44.entities.Store.list()
   });
 
-  // Inizializza storeManagers quando i dati sono caricati
+  const { data: timbraturaConfigs = [] } = useQuery({
+    queryKey: ['timbratura-config'],
+    queryFn: () => base44.entities.TimbraturaConfig.list(),
+  });
+
+  // Inizializza storeManagers e GPS quando i dati sono caricati
   React.useEffect(() => {
     if (stores.length > 0) {
       const managers = {};
@@ -47,6 +60,20 @@ export default function HRAdmin() {
       setStoreManagers(managers);
     }
   }, [stores]);
+
+  React.useEffect(() => {
+    if (timbraturaConfigs.length > 0) {
+      const gps = {};
+      timbraturaConfigs.forEach(config => {
+        if (config.stores_gps) {
+          Object.entries(config.stores_gps).forEach(([storeId, coords]) => {
+            gps[storeId] = coords;
+          });
+        }
+      });
+      setGpsLocations(gps);
+    }
+  }, [timbraturaConfigs]);
 
   const updateUserMutation = useMutation({
     mutationFn: async ({ userId, assignedStores, primaryStoresIds }) => {
@@ -112,6 +139,64 @@ export default function HRAdmin() {
     updateStoreMutation.mutate({ storeId, storeManagerId: userId || null });
   };
 
+  const geocodeAddress = async (storeId) => {
+    const store = stores.find(s => s.id === storeId);
+    if (!store?.address) {
+      alert('⚠️ Indirizzo non disponibile per questo store');
+      return;
+    }
+
+    setGeocodingStore(storeId);
+    try {
+      const address = `${store.address}${store.city ? ', ' + store.city : ''}`;
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`);
+      const data = await response.json();
+      
+      if (data.length > 0) {
+        const { lat, lon } = data[0];
+        await saveGpsLocationMutation.mutateAsync({
+          storeId,
+          latitude: parseFloat(lat),
+          longitude: parseFloat(lon)
+        });
+        alert(`✅ GPS calcolato da indirizzo: ${lat}, ${lon}`);
+      } else {
+        alert('❌ Impossibile trovare coordinate per questo indirizzo');
+      }
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      alert('❌ Errore nel calcolo GPS');
+    } finally {
+      setGeocodingStore(null);
+    }
+  };
+
+  const saveGpsLocationMutation = useMutation({
+    mutationFn: async ({ storeId, latitude, longitude }) => {
+      const activeConfig = timbraturaConfigs.find(c => c.is_active);
+      const updatedGps = {
+        ...(activeConfig?.stores_gps || {}),
+        [storeId]: { latitude, longitude }
+      };
+      
+      if (activeConfig) {
+        await base44.entities.TimbraturaConfig.update(activeConfig.id, {
+          stores_gps: updatedGps
+        });
+      } else {
+        await base44.entities.TimbraturaConfig.create({
+          is_active: true,
+          stores_gps: updatedGps,
+          raggio_metri: 100
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timbratura-config'] });
+      setEditingGps(null);
+    }
+  });
+
   // Filtra utenti che sono Store Manager
   const storeManagerUsers = users.filter(u => 
     u.ruoli_dipendente?.includes('Store Manager')
@@ -127,6 +212,113 @@ export default function HRAdmin() {
         </div>
         <p className="text-[#9b9b9b]">Gestisci l'assegnazione dei dipendenti ai locali</p>
       </div>
+
+      {/* Posizione GPS Locali */}
+      <NeumorphicCard className="p-6 bg-blue-50">
+        <div className="flex items-start gap-3 mb-4">
+          <MapPin className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
+          <div>
+            <h3 className="font-bold text-blue-800 mb-2">📍 Posizione GPS Locali</h3>
+            <p className="text-sm text-blue-700">
+              Configura le coordinate GPS per la verifica timbratura. Clicca su <Navigation className="w-3 h-3 inline" /> per calcolare automaticamente da indirizzo.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {stores.map(store => {
+            const gps = gpsLocations[store.id];
+            const isEditing = editingGps === store.id;
+            const isGeocoding = geocodingStore === store.id;
+
+            return (
+              <div key={store.id} className="neumorphic-flat p-4 rounded-xl bg-white">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h3 className="font-bold text-slate-800 mb-1">{store.name}</h3>
+                    {store.address && (
+                      <p className="text-xs text-slate-500 mb-2">{store.address}{store.city ? `, ${store.city}` : ''}</p>
+                    )}
+                    {isEditing ? (
+                      <div className="space-y-2">
+                        <input
+                          type="number"
+                          step="any"
+                          placeholder="Latitudine"
+                          defaultValue={gps?.latitude || ''}
+                          id={`lat-${store.id}`}
+                          className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm"
+                        />
+                        <input
+                          type="number"
+                          step="any"
+                          placeholder="Longitudine"
+                          defaultValue={gps?.longitude || ''}
+                          id={`lon-${store.id}`}
+                          className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              const lat = parseFloat(document.getElementById(`lat-${store.id}`).value);
+                              const lon = parseFloat(document.getElementById(`lon-${store.id}`).value);
+                              saveGpsLocationMutation.mutate({ storeId: store.id, latitude: lat, longitude: lon });
+                            }}
+                            className="px-3 py-1 bg-green-500 text-white rounded-lg text-xs"
+                          >
+                            Salva
+                          </button>
+                          <button
+                            onClick={() => setEditingGps(null)}
+                            className="px-3 py-1 bg-slate-300 text-slate-700 rounded-lg text-xs"
+                          >
+                            Annulla
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {gps ? (
+                          <p className="text-sm text-slate-600">
+                            📍 {gps.latitude.toFixed(6)}, {gps.longitude.toFixed(6)}
+                          </p>
+                        ) : (
+                          <p className="text-sm text-red-600">⚠️ GPS non configurato</p>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    {!isEditing && (
+                      <>
+                        <button
+                          onClick={() => geocodeAddress(store.id)}
+                          disabled={isGeocoding}
+                          className="text-purple-600 hover:text-purple-800 disabled:opacity-50"
+                          title="Calcola GPS da indirizzo"
+                        >
+                          {isGeocoding ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Navigation className="w-4 h-4" />
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setEditingGps(store.id)}
+                          className="text-blue-600 hover:text-blue-800"
+                          title="Modifica manualmente"
+                        >
+                          <Settings className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </NeumorphicCard>
 
       {/* Store Manager per Locale */}
       <NeumorphicCard className="p-6 bg-purple-50">
