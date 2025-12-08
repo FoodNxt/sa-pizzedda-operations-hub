@@ -7,7 +7,8 @@ import {
   AlertTriangle,
   ChefHat,
   ClipboardCheck,
-  ArrowRight
+  ArrowRight,
+  Truck
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import ProtectedPage from "../components/ProtectedPage";
@@ -41,6 +42,13 @@ export default function InventoryForms() {
       icon: ChefHat,
       url: createPageUrl("FormPreparazioni"),
       color: "from-green-500 to-emerald-600"
+    },
+    {
+      title: "Spostamenti",
+      description: "Registra trasferimenti prodotti tra negozi",
+      icon: Package,
+      url: createPageUrl("FormSpostamenti"),
+      color: "from-indigo-500 to-purple-600"
     }
   ];
 
@@ -88,6 +96,7 @@ export default function InventoryForms() {
                 <li>• <strong>Form Cantina</strong>: per rilevazioni rapide della cantina</li>
                 <li>• <strong>Teglie Buttate</strong>: monitora gli sprechi giornalieri</li>
                 <li>• <strong>Preparazioni</strong>: traccia i pesi delle preparazioni</li>
+                <li>• <strong>Spostamenti</strong>: registra trasferimenti tra negozi</li>
               </ul>
             </div>
           </div>

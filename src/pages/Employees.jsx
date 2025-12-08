@@ -13,7 +13,8 @@ import {
   X,
   Settings,
   Save,
-  BarChart3
+  BarChart3,
+  Sparkles
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -78,6 +79,11 @@ export default function Employees() {
   const { data: p2pResponses = [] } = useQuery({
     queryKey: ['p2p-responses'],
     queryFn: () => base44.entities.P2PFeedbackResponse.list('-submitted_date'),
+  });
+
+  const { data: cleaningInspections = [] } = useQuery({
+    queryKey: ['cleaning-inspections'],
+    queryFn: () => base44.entities.CleaningInspection.list('-inspection_date'),
   });
 
   const currentOrderIds = useMemo(() => new Set(wrongOrders.map(o => o.id)), [wrongOrders]);
@@ -581,6 +587,35 @@ export default function Employees() {
         const dateB = new Date(b.submitted_date || 0);
         return dateB.getTime() - dateA.getTime();
       });
+  };
+
+  const getCleaningScoreForEmployee = (employeeName) => {
+    const employeeInspections = cleaningInspections.filter(i => {
+      if (i.inspector_name !== employeeName) return false;
+      
+      if (startDate || endDate) {
+        if (!i.inspection_date) return false;
+        const inspDate = safeParseDate(i.inspection_date);
+        if (!inspDate) return false;
+        
+        const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
+        const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
+
+        if (start && end) {
+          return isWithinInterval(inspDate, { start, end });
+        } else if (start) {
+          return inspDate >= start;
+        } else if (end) {
+          return inspDate <= end;
+        }
+      }
+      return true;
+    });
+
+    if (employeeInspections.length === 0) return { avgScore: null, count: 0 };
+
+    const avgScore = employeeInspections.reduce((sum, i) => sum + (i.overall_score || 0), 0) / employeeInspections.length;
+    return { avgScore, count: employeeInspections.length };
   };
 
   const getConfidenceBadgeColor = (confidence) => {
@@ -1139,6 +1174,40 @@ export default function Employees() {
                     ) : (
                       <p className="text-sm text-slate-500 text-center py-2">
                         Nessuna recensione Google Maps ricevuta
+                      </p>
+                    );
+                  })()}
+                </div>
+
+                <div className="neumorphic-flat p-4 rounded-xl">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Sparkles className="w-5 h-5 text-cyan-600" />
+                    <h3 className="font-bold text-slate-800">Controlli Pulizia</h3>
+                  </div>
+                  {(() => {
+                    const cleaningData = getCleaningScoreForEmployee(selectedEmployee.full_name);
+                    return cleaningData.count > 0 ? (
+                      <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                        <p className="text-sm text-slate-500 mb-2">Score Medio</p>
+                        <div className="flex items-center justify-center gap-3">
+                          <p className={`text-3xl font-bold ${
+                            cleaningData.avgScore >= 80 ? 'text-green-600' :
+                            cleaningData.avgScore >= 60 ? 'text-blue-600' :
+                            cleaningData.avgScore >= 40 ? 'text-yellow-600' : 'text-red-600'
+                          }`}>
+                            {cleaningData.avgScore.toFixed(0)}
+                          </p>
+                          <Sparkles className={`w-6 h-6 ${
+                            cleaningData.avgScore >= 80 ? 'text-green-600' :
+                            cleaningData.avgScore >= 60 ? 'text-blue-600' :
+                            cleaningData.avgScore >= 40 ? 'text-yellow-600' : 'text-red-600'
+                          }`} />
+                        </div>
+                        <p className="text-xs text-slate-500 mt-2">{cleaningData.count} ispezioni completate</p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-500 text-center py-2">
+                        Nessun controllo pulizia assegnato
                       </p>
                     );
                   })()}

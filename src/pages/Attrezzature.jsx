@@ -4,17 +4,19 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
-import { Package, Plus, Edit, Trash2, X, Save, Store, User } from 'lucide-react';
+import { Package, Plus, Edit, Trash2, X, Save, Store, User, Upload, Loader2, Image } from 'lucide-react';
 
 export default function Attrezzature() {
   const [showForm, setShowForm] = useState(false);
   const [editingAttrezzatura, setEditingAttrezzatura] = useState(null);
   const [formData, setFormData] = useState({
     nome: '',
+    icona_url: '',
     stores_assegnati: [],
     ruoli_responsabili: [],
     attivo: true
   });
+  const [uploadingIcon, setUploadingIcon] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -56,6 +58,7 @@ export default function Attrezzature() {
   const resetForm = () => {
     setFormData({
       nome: '',
+      icona_url: '',
       stores_assegnati: [],
       ruoli_responsabili: [],
       attivo: true
@@ -68,11 +71,24 @@ export default function Attrezzature() {
     setEditingAttrezzatura(attrezzatura);
     setFormData({
       nome: attrezzatura.nome || '',
+      icona_url: attrezzatura.icona_url || '',
       stores_assegnati: attrezzatura.stores_assegnati || [],
       ruoli_responsabili: attrezzatura.ruoli_responsabili || (attrezzatura.ruolo_responsabile ? [attrezzatura.ruolo_responsabile] : []),
       attivo: attrezzatura.attivo !== false
     });
     setShowForm(true);
+  };
+
+  const handleUploadIcon = async (file) => {
+    setUploadingIcon(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setFormData(prev => ({ ...prev, icona_url: file_url }));
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Errore nel caricamento');
+    }
+    setUploadingIcon(false);
   };
 
   const handleSubmit = (e) => {
@@ -136,7 +152,11 @@ export default function Attrezzature() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <Package className="w-5 h-5 text-[#8b7355]" />
+                        {attrezzatura.icona_url ? (
+                          <img src={attrezzatura.icona_url} alt={attrezzatura.nome} className="w-8 h-8 object-contain rounded" />
+                        ) : (
+                          <Package className="w-5 h-5 text-[#8b7355]" />
+                        )}
                         <h3 className="font-bold text-[#6b6b6b]">{attrezzatura.nome}</h3>
                         {attrezzatura.attivo === false && (
                           <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">
@@ -221,6 +241,43 @@ export default function Attrezzature() {
                       className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                       placeholder="Es: Forno, Impastatrice, Frigo..."
                     />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
+                      <Image className="w-4 h-4" />
+                      Icona/Immagine (per Mappa Locali)
+                    </label>
+                    {formData.icona_url ? (
+                      <div className="flex items-center gap-3 p-3 bg-green-50 rounded-xl border border-green-200">
+                        <img src={formData.icona_url} alt="Icona" className="w-16 h-16 object-contain rounded-lg" />
+                        <span className="text-sm text-green-700 flex-1">Icona caricata</span>
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, icona_url: '' })}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="neumorphic-pressed flex items-center justify-center gap-2 h-24 rounded-xl cursor-pointer hover:bg-slate-50">
+                        {uploadingIcon ? (
+                          <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                        ) : (
+                          <>
+                            <Upload className="w-5 h-5 text-slate-400" />
+                            <span className="text-sm text-slate-600">Carica icona</span>
+                          </>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => e.target.files[0] && handleUploadIcon(e.target.files[0])}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
                   </div>
 
                   <div>

@@ -23,6 +23,7 @@ export default function DashboardStoreManager() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
+  const [selectedStoreId, setSelectedStoreId] = useState('');
 
   const { data: currentUser } = useQuery({
     queryKey: ['current-user'],
@@ -75,11 +76,18 @@ export default function DashboardStoreManager() {
     return stores.filter(s => s.store_manager_id === currentUser.id);
   }, [stores, currentUser]);
 
+  // Auto-select first store if not selected
+  React.useEffect(() => {
+    if (myStores.length > 0 && !selectedStoreId) {
+      setSelectedStoreId(myStores[0].id);
+    }
+  }, [myStores, selectedStoreId]);
+
   // Calcola metriche per il mese selezionato
   const metrics = useMemo(() => {
-    if (myStores.length === 0) return null;
+    if (myStores.length === 0 || !selectedStoreId) return null;
 
-    const storeIds = myStores.map(s => s.id);
+    const storeIds = [selectedStoreId];
     const monthStart = new Date(`${selectedMonth}-01`);
     const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
 
@@ -124,7 +132,38 @@ export default function DashboardStoreManager() {
       : 0;
 
     // Target
-    const target = targets.find(t => storeIds.includes(t.store_id));
+    const target = targets.find(t => t.store_id === selectedStoreId);
+
+    // Calcola bonus
+    let bonusTotale = 0;
+    const metriche = target?.metriche_attive || [];
+    
+    if (target) {
+      // Fatturato
+      if (metriche.includes('fatturato') && monthRevenue >= target.target_fatturato && monthRevenue >= (target.soglia_min_fatturato || 0)) {
+        bonusTotale += target.bonus_fatturato || 0;
+      }
+      // Recensioni media
+      if (metriche.includes('recensioni_media') && avgRating >= target.target_recensioni_media && avgRating >= (target.soglia_min_recensioni || 0)) {
+        bonusTotale += target.bonus_recensioni || 0;
+      }
+      // Numero recensioni
+      if (metriche.includes('num_recensioni') && monthReviews.length >= target.target_num_recensioni && monthReviews.length >= (target.soglia_min_num_recensioni || 0)) {
+        bonusTotale += target.bonus_num_recensioni || 0;
+      }
+      // Ordini sbagliati
+      if (metriche.includes('ordini_sbagliati') && monthWrongOrders.length <= target.target_ordini_sbagliati_max && monthWrongOrders.length <= (target.soglia_max_ordini_sbagliati || 999)) {
+        bonusTotale += target.bonus_ordini_sbagliati || 0;
+      }
+      // Ritardi
+      if (metriche.includes('ritardi') && avgDelay <= target.target_ritardi_max_minuti && avgDelay <= (target.soglia_max_ritardi || 999)) {
+        bonusTotale += target.bonus_ritardi || 0;
+      }
+      // Pulizie
+      if (metriche.includes('pulizie') && avgCleaningScore >= target.target_pulizie_min_score && avgCleaningScore >= (target.soglia_min_pulizie || 0)) {
+        bonusTotale += target.bonus_pulizie || 0;
+      }
+    }
 
     return {
       fatturato: monthRevenue,
@@ -135,15 +174,16 @@ export default function DashboardStoreManager() {
       avgCleaningScore,
       totalShifts: monthShifts.length,
       totalInspections: monthInspections.length,
-      target
+      target,
+      bonusTotale
     };
-  }, [myStores, selectedMonth, iPratico, reviews, wrongOrders, shifts, inspections, targets]);
+  }, [selectedStoreId, selectedMonth, iPratico, reviews, wrongOrders, shifts, inspections, targets]);
 
   // Scorecard dipendenti
   const employeeScorecard = useMemo(() => {
-    if (myStores.length === 0) return [];
+    if (!selectedStoreId) return [];
 
-    const storeIds = myStores.map(s => s.id);
+    const storeIds = [selectedStoreId];
     const monthStart = new Date(`${selectedMonth}-01`);
     const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
 
@@ -190,7 +230,7 @@ export default function DashboardStoreManager() {
         isPrimaryHere
       };
     }).sort((a, b) => b.shiftsCount - a.shiftsCount);
-  }, [myStores, selectedMonth, shifts, users, reviews]);
+  }, [selectedStoreId, selectedMonth, shifts, users, reviews]);
 
   // Genera opzioni mesi
   const monthOptions = useMemo(() => {
@@ -236,33 +276,71 @@ export default function DashboardStoreManager() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <Crown className="w-10 h-10 text-purple-600" />
-            <h1 className="text-3xl font-bold text-slate-800">Dashboard Store Manager</h1>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {myStores.map(store => (
-              <span key={store.id} className="px-3 py-1 rounded-full bg-purple-100 text-purple-700 font-medium text-sm">
-                {store.name}
-              </span>
-            ))}
-          </div>
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          <Crown className="w-10 h-10 text-purple-600" />
+          <h1 className="text-3xl font-bold text-slate-800">Dashboard Store Manager</h1>
         </div>
-        <select
-          value={selectedMonth}
-          onChange={(e) => setSelectedMonth(e.target.value)}
-          className="neumorphic-pressed px-4 py-2 rounded-xl outline-none"
-        >
-          {monthOptions.map(opt => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
+        
+        <div className="flex flex-col md:flex-row gap-3">
+          {myStores.length > 1 && (
+            <select
+              value={selectedStoreId}
+              onChange={(e) => setSelectedStoreId(e.target.value)}
+              className="neumorphic-pressed px-4 py-3 rounded-xl outline-none flex-1"
+            >
+              {myStores.map(store => (
+                <option key={store.id} value={store.id}>{store.name}</option>
+              ))}
+            </select>
+          )}
+          {myStores.length === 1 && (
+            <div className="px-4 py-3 rounded-xl bg-purple-100 text-purple-700 font-bold">
+              {myStores[0].name}
+            </div>
+          )}
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+          >
+            {monthOptions.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {metrics && (
         <>
+          {/* Bonus Card */}
+          {metrics.target && (
+            <NeumorphicCard className="p-6 bg-gradient-to-br from-purple-50 to-indigo-50 border-2 border-purple-200">
+              <div className="flex items-center gap-3 mb-4">
+                <Crown className="w-6 h-6 text-purple-600" />
+                <h2 className="text-xl font-bold text-purple-800">I Tuoi Obiettivi</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="neumorphic-pressed p-4 rounded-xl text-center bg-white">
+                  <p className="text-xs text-slate-500 mb-1">Bonus Sbloccato</p>
+                  <p className="text-3xl font-bold text-green-600">€{metrics.bonusTotale}</p>
+                </div>
+                <div className="neumorphic-pressed p-4 rounded-xl text-center bg-white">
+                  <p className="text-xs text-slate-500 mb-1">Target Fatturato</p>
+                  <p className="text-lg font-bold text-slate-700">€{metrics.target.target_fatturato?.toLocaleString() || '-'}</p>
+                  {metrics.target.soglia_min_fatturato && (
+                    <p className="text-xs text-red-600 mt-1">Min: €{metrics.target.soglia_min_fatturato.toLocaleString()}</p>
+                  )}
+                </div>
+                <div className="neumorphic-pressed p-4 rounded-xl text-center bg-white">
+                  <p className="text-xs text-slate-500 mb-1">Metriche Attive</p>
+                  <p className="text-lg font-bold text-indigo-600">{metrics.target.metriche_attive?.length || 0}</p>
+                  <p className="text-xs text-slate-500 mt-1">{metrics.target.metriche_attive?.join(', ')}</p>
+                </div>
+              </div>
+            </NeumorphicCard>
+          )}
+
           {/* Obiettivo Fatturato */}
           <NeumorphicCard className="p-6">
             <div className="flex items-center gap-3 mb-4">

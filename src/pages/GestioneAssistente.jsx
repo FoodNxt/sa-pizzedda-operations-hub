@@ -110,6 +110,7 @@ export default function GestioneAssistente() {
   const [selectedStoreMap, setSelectedStoreMap] = useState('');
   const [editingMap, setEditingMap] = useState(null);
   const [posizioniAttrezzature, setPosizioniAttrezzature] = useState([]);
+  const [lineeDisegnate, setLineeDisegnate] = useState([]);
   const [backgroundImageUrl, setBackgroundImageUrl] = useState('');
   const [uploadingBackground, setUploadingBackground] = useState(false);
 
@@ -857,10 +858,12 @@ ${allUserMessages.slice(0, 100).join('\n---\n')}`,
     if (existingMap) {
       setEditingMap(existingMap);
       setPosizioniAttrezzature(existingMap.attrezzature_posizioni || []);
+      setLineeDisegnate(existingMap.linee || []);
       setBackgroundImageUrl(existingMap.background_image || '');
     } else {
       setEditingMap(null);
       setPosizioniAttrezzature([]);
+      setLineeDisegnate([]);
       setBackgroundImageUrl('');
     }
   };
@@ -888,6 +891,7 @@ ${allUserMessages.slice(0, 100).join('\n---\n')}`,
       store_id: selectedStoreMap,
       store_name: store?.name || '',
       attrezzature_posizioni: posizioniAttrezzature,
+      linee: lineeDisegnate,
       background_image: backgroundImageUrl || ''
     };
 
@@ -2394,6 +2398,8 @@ ${allUserMessages.slice(0, 100).join('\n---\n')}`,
                     attrezzature={attrezzature}
                     posizioniAttrezzature={posizioniAttrezzature}
                     onPosizioniChange={setPosizioniAttrezzature}
+                    linee={lineeDisegnate}
+                    onLineeChange={setLineeDisegnate}
                     backgroundImage={backgroundImageUrl}
                   />
 
