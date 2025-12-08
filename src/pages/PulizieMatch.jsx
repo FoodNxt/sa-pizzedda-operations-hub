@@ -1,18 +1,29 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Users, Clock, CheckCircle, AlertTriangle, Save, Settings, Eye, X } from 'lucide-react';
+import { Users, Clock, CheckCircle, AlertTriangle, Save, Settings, Eye, X, Plus, Edit, Trash2 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
-import { format, parseISO, differenceInMinutes } from 'date-fns';
+import { format, parseISO, differenceInMinutes, subDays } from 'date-fns';
 import { it } from 'date-fns/locale';
 import ProtectedPage from "../components/ProtectedPage";
 
 export default function PulizieMatch() {
   const [selectedInspection, setSelectedInspection] = useState(null);
-  const [showResponsibilityModal, setShowResponsibilityModal] = useState(false);
-  const [responsibilities, setResponsibilities] = useState({});
-  // Structure: { question_id: { primary: ['Pizzaiolo', 'Cassiere'], secondary: 'Store Manager' } }
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [editingRule, setEditingRule] = useState(null);
+  const [ruleForm, setRuleForm] = useState({
+    nome_regola: '',
+    store_id: '',
+    ora_inizio_compilazione: '00:00',
+    ora_fine_compilazione: '23:59',
+    ruolo_target: 'Pizzaiolo',
+    tipo_match: 'turno_precedente_stesso_ruolo',
+    orario_turno_target_inizio: '',
+    orario_turno_target_fine: '',
+    attivo: true,
+    ordine: 0
+  });
 
   const queryClient = useQueryClient();
 
@@ -20,8 +31,6 @@ export default function PulizieMatch() {
     queryKey: ['cleaningInspections'],
     queryFn: async () => {
       const allInspections = await base44.entities.CleaningInspection.list('-inspection_date');
-      // Exclude Store Manager form inspections (they go to ControlloStoreManager page)
-      // Filter by inspector_role OR inspection_type for backward compatibility
       return allInspections.filter(i => 
         i.inspector_role !== 'Store Manager' && 
         i.inspection_type !== 'store_manager'
@@ -52,127 +61,187 @@ export default function PulizieMatch() {
     queryFn: () => base44.entities.Attrezzatura.list(),
   });
 
-  // Filter for employee history
+  const { data: matchConfigs = [] } = useQuery({
+    queryKey: ['pulizie-match-configs'],
+    queryFn: () => base44.entities.PulizieMatchConfig.list('ordine'),
+  });
+
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores'],
+    queryFn: () => base44.entities.Store.list(),
+  });
+
+  const createRuleMutation = useMutation({
+    mutationFn: (data) => base44.entities.PulizieMatchConfig.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pulizie-match-configs'] });
+      setShowConfigModal(false);
+      setEditingRule(null);
+    },
+  });
+
+  const updateRuleMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.PulizieMatchConfig.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pulizie-match-configs'] });
+      setShowConfigModal(false);
+      setEditingRule(null);
+    },
+  });
+
+  const deleteRuleMutation = useMutation({
+    mutationFn: (id) => base44.entities.PulizieMatchConfig.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pulizie-match-configs'] });
+    },
+  });
+
   const [selectedEmployeeFilter, setSelectedEmployeeFilter] = useState('all');
 
-  // Get the employee whose shift ended immediately before the inspection (by roles array)
-  const getMatchingEmployeeByRoles = (inspection, roles) => {
-    if (!inspection || !roles || roles.length === 0) return null;
-
-    const inspectionDate = parseISO(inspection.inspection_date);
-    const inspectionStoreId = inspection.store_id;
-
-    // Find all shifts that ended BEFORE the inspection for this store
-    const eligibleShifts = shifts.filter(shift => {
-      if (shift.store_id !== inspectionStoreId) return false;
-      
-      const shiftEnd = shift.actual_end || shift.scheduled_end;
-      if (!shiftEnd) return false;
-
-      try {
-        const shiftEndDate = parseISO(shiftEnd);
-        return shiftEndDate < inspectionDate;
-      } catch (e) {
-        return false;
-      }
-    });
-
-    // Filter by any of the roles
-    const roleFilteredShifts = eligibleShifts.filter(shift => {
-      const user = users.find(u => 
-        (u.nome_cognome || u.full_name || u.email) === shift.employee_name
-      );
-      return roles.some(role => user?.ruoli_dipendente?.includes(role));
-    });
-
-    // Sort by shift end time descending (most recent first)
-    const sortedShifts = roleFilteredShifts.sort((a, b) => {
-      const endA = parseISO(a.actual_end || a.scheduled_end);
-      const endB = parseISO(b.actual_end || b.scheduled_end);
-      return endB - endA;
-    });
-
-    const matchingShift = sortedShifts[0];
-    if (!matchingShift) return null;
-
-    const user = users.find(u => 
-      (u.nome_cognome || u.full_name || u.email) === matchingShift.employee_name
-    );
-
-    const shiftEnd = matchingShift.actual_end || matchingShift.scheduled_end;
-    const matchedRole = roles.find(role => user?.ruoli_dipendente?.includes(role));
-
-    return {
-      employeeName: matchingShift.employee_name,
-      userId: user?.id,
-      shiftEndTime: shiftEnd,
-      minutesBeforeInspection: differenceInMinutes(inspectionDate, parseISO(shiftEnd)),
-      roles: user?.ruoli_dipendente || [],
-      matchedRole
-    };
-  };
-
-  // Get matching employee based on attrezzatura responsibility
-  const getMatchingEmployeeForAttrezzatura = (inspection, attrezzaturaName) => {
-    if (!attrezzaturaName) return null;
-    
-    const attrezzatura = attrezzature.find(a => a.nome === attrezzaturaName);
-    if (!attrezzatura || !attrezzatura.ruolo_responsabile) return null;
-
-    return getMatchingEmployeeByRoles(inspection, [attrezzatura.ruolo_responsabile]);
-  };
-
-  // Get all matching employees for display
+  // Get matching employees based on configured rules
   const getMatchingEmployees = (inspection) => {
     if (!inspection) return [];
 
-    const roleMatches = [];
-    const seenEmployees = new Set();
+    const inspectionDate = parseISO(inspection.inspection_date);
+    const inspectionHour = inspectionDate.getHours();
+    const inspectionMinute = inspectionDate.getMinutes();
+    const inspectionTimeStr = `${String(inspectionHour).padStart(2, '0')}:${String(inspectionMinute).padStart(2, '0')}`;
+    const inspectionStoreId = inspection.store_id;
 
-    for (const role of roleOptions) {
-      const match = getMatchingEmployeeByRoles(inspection, [role]);
-      if (match && !seenEmployees.has(match.employeeName)) {
-        roleMatches.push({ ...match, matchedRole: role });
-        seenEmployees.add(match.employeeName);
-      }
+    // Find applicable rule
+    const applicableRule = matchConfigs
+      .filter(rule => rule.attivo !== false)
+      .filter(rule => !rule.store_id || rule.store_id === inspectionStoreId)
+      .find(rule => {
+        if (!rule.ora_inizio_compilazione || !rule.ora_fine_compilazione) return true;
+        return inspectionTimeStr >= rule.ora_inizio_compilazione && inspectionTimeStr <= rule.ora_fine_compilazione;
+      });
+
+    // Fallback to default logic
+    if (!applicableRule) {
+      return getDefaultMatching(inspection);
     }
 
-    return roleMatches.sort((a, b) => a.minutesBeforeInspection - b.minutesBeforeInspection);
+    const previousDay = subDays(inspectionDate, 1);
+    const previousDayStr = format(previousDay, 'yyyy-MM-dd');
+    const targetRole = applicableRule.ruolo_target;
+    let matchedShifts = [];
+
+    switch (applicableRule.tipo_match) {
+      case 'turno_precedente_stesso_ruolo':
+        matchedShifts = shifts.filter(shift => {
+          if (shift.store_id !== inspectionStoreId) return false;
+          const user = users.find(u => (u.nome_cognome || u.full_name || u.email) === shift.employee_name);
+          if (!user?.ruoli_dipendente?.includes(targetRole)) return false;
+          
+          const endTime = shift.scheduled_end || shift.actual_end;
+          if (!endTime) return false;
+          
+          try {
+            return parseISO(endTime) < inspectionDate;
+          } catch { return false; }
+        }).sort((a, b) => {
+          const aEnd = parseISO(a.scheduled_end || a.actual_end);
+          const bEnd = parseISO(b.scheduled_end || b.actual_end);
+          return bEnd - aEnd;
+        });
+        break;
+
+      case 'ultimo_turno_giorno_prima_stesso_ruolo':
+        matchedShifts = shifts.filter(shift => {
+          if (shift.store_id !== inspectionStoreId) return false;
+          const shiftDateStr = shift.shift_date?.split('T')[0];
+          if (shiftDateStr !== previousDayStr) return false;
+          const user = users.find(u => (u.nome_cognome || u.full_name || u.email) === shift.employee_name);
+          return user?.ruoli_dipendente?.includes(targetRole);
+        });
+        break;
+
+      case 'turno_specifico_orario':
+        if (applicableRule.orario_turno_target_inizio && applicableRule.orario_turno_target_fine) {
+          matchedShifts = shifts.filter(shift => {
+            if (shift.store_id !== inspectionStoreId) return false;
+            const shiftDateStr = shift.shift_date?.split('T')[0];
+            if (shiftDateStr !== previousDayStr) return false;
+            const user = users.find(u => (u.nome_cognome || u.full_name || u.email) === shift.employee_name);
+            if (!user?.ruoli_dipendente?.includes(targetRole)) return false;
+            const startTime = shift.scheduled_start || shift.actual_start;
+            if (!startTime) return false;
+            try {
+              const startDate = parseISO(startTime);
+              const shiftTimeStr = `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`;
+              return shiftTimeStr >= applicableRule.orario_turno_target_inizio && shiftTimeStr <= applicableRule.orario_turno_target_fine;
+            } catch { return false; }
+          });
+        }
+        break;
+
+      case 'tutti_turni_giorno_prima':
+        matchedShifts = shifts.filter(shift => {
+          if (shift.store_id !== inspectionStoreId) return false;
+          const shiftDateStr = shift.shift_date?.split('T')[0];
+          if (shiftDateStr !== previousDayStr) return false;
+          const user = users.find(u => (u.nome_cognome || u.full_name || u.email) === shift.employee_name);
+          return user?.ruoli_dipendente?.includes(targetRole);
+        });
+        break;
+    }
+
+    const employeeMap = new Map();
+    matchedShifts.forEach(shift => {
+      if (!employeeMap.has(shift.employee_name)) {
+        const user = users.find(u => (u.nome_cognome || u.full_name || u.email) === shift.employee_name);
+        const endTime = shift.scheduled_end || shift.actual_end;
+        employeeMap.set(shift.employee_name, {
+          employeeName: shift.employee_name,
+          userId: user?.id,
+          roles: user?.ruoli_dipendente || [],
+          appliedRule: applicableRule.nome_regola,
+          shiftEndTime: endTime,
+          minutesBeforeInspection: endTime ? differenceInMinutes(inspectionDate, parseISO(endTime)) : 0
+        });
+      }
+    });
+
+    return Array.from(employeeMap.values());
   };
 
-  const saveResponsibilityMutation = useMutation({
-    mutationFn: async (data) => {
-      // Save responsibilities configuration
-      // For now, store in localStorage or create a new entity
-      localStorage.setItem('cleaning_responsibilities', JSON.stringify(data));
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cleaning-responsibilities'] });
-      alert('Responsabilità salvate con successo!');
-      setShowResponsibilityModal(false);
-    }
-  });
+  // Default matching logic (fallback)
+  const getDefaultMatching = (inspection) => {
+    const inspectionDate = parseISO(inspection.inspection_date);
+    const employeeMap = new Map();
+    
+    const eligibleShifts = shifts.filter(shift => {
+      if (shift.store_id !== inspection.store_id) return false;
+      const endTime = shift.scheduled_end || shift.actual_end;
+      if (!endTime) return false;
+      try {
+        return parseISO(endTime) < inspectionDate;
+      } catch { return false; }
+    }).sort((a, b) => {
+      const aEnd = parseISO(a.scheduled_end || a.actual_end);
+      const bEnd = parseISO(b.scheduled_end || b.actual_end);
+      return bEnd - aEnd;
+    });
 
-  // Load responsibilities from localStorage
-  useMemo(() => {
-    try {
-      const stored = localStorage.getItem('cleaning_responsibilities');
-      if (stored) {
-        setResponsibilities(JSON.parse(stored));
+    eligibleShifts.slice(0, 5).forEach(shift => {
+      if (!employeeMap.has(shift.employee_name)) {
+        const user = users.find(u => (u.nome_cognome || u.full_name || u.email) === shift.employee_name);
+        const endTime = shift.scheduled_end || shift.actual_end;
+        employeeMap.set(shift.employee_name, {
+          employeeName: shift.employee_name,
+          userId: user?.id,
+          roles: user?.ruoli_dipendente || [],
+          appliedRule: 'Default (turno precedente)',
+          shiftEndTime: endTime,
+          minutesBeforeInspection: endTime ? differenceInMinutes(inspectionDate, parseISO(endTime)) : 0
+        });
       }
-    } catch (e) {
-      console.error('Error loading responsibilities:', e);
-    }
-  }, []);
+    });
 
-  const handleSaveResponsibilities = () => {
-    saveResponsibilityMutation.mutate(responsibilities);
+    return Array.from(employeeMap.values());
   };
 
-  const roleOptions = ['Pizzaiolo', 'Cassiere', 'Store Manager'];
-
-  // Get unique employees from all inspections
   const allMatchedEmployees = useMemo(() => {
     const employeeSet = new Set();
     inspections.forEach(inspection => {
@@ -180,28 +249,28 @@ export default function PulizieMatch() {
       employees.forEach(emp => employeeSet.add(emp.employeeName));
     });
     return Array.from(employeeSet).sort();
-  }, [inspections, shifts, users]);
+  }, [inspections, shifts, users, matchConfigs]);
 
-  // Filter inspections by selected employee
   const filteredInspections = useMemo(() => {
     if (selectedEmployeeFilter === 'all') return inspections;
-    
     return inspections.filter(inspection => {
       const employees = getMatchingEmployees(inspection);
       return employees.some(emp => emp.employeeName === selectedEmployeeFilter);
     });
-  }, [inspections, selectedEmployeeFilter, shifts, users]);
+  }, [inspections, selectedEmployeeFilter, shifts, users, matchConfigs]);
 
   return (
     <ProtectedPage pageName="PulizieMatch">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
-              Pulizie Match
-            </h1>
-            <p className="text-sm text-slate-500">Assegna valutazioni pulizie ai dipendenti in base alle attrezzature</p>
+            <h1 className="text-3xl font-bold text-slate-800">Pulizie Match</h1>
+            <p className="text-sm text-slate-500">Assegna valutazioni pulizie ai dipendenti</p>
           </div>
+          <NeumorphicButton onClick={() => setShowConfigModal(true)} className="flex items-center gap-2">
+            <Settings className="w-5 h-5" />
+            Regole Assegnazione
+          </NeumorphicButton>
         </div>
 
         {/* Employee Filter */}
@@ -213,7 +282,7 @@ export default function PulizieMatch() {
           <select
             value={selectedEmployeeFilter}
             onChange={(e) => setSelectedEmployeeFilter(e.target.value)}
-            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+            className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
           >
             <option value="all">Tutti i dipendenti</option>
             {allMatchedEmployees.map(emp => (
@@ -224,54 +293,44 @@ export default function PulizieMatch() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <NeumorphicCard className="p-6">
-            <div className="text-center">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 mx-auto mb-3 flex items-center justify-center shadow-lg">
-                <CheckCircle className="w-7 h-7 text-white" />
-              </div>
-              <h3 className="text-2xl font-bold text-slate-800 mb-1">
-                {inspections.filter(i => i.analysis_status === 'completed').length}
-              </h3>
-              <p className="text-xs text-slate-500">Ispezioni Completate</p>
+          <NeumorphicCard className="p-6 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 mx-auto mb-3 flex items-center justify-center">
+              <CheckCircle className="w-7 h-7 text-white" />
             </div>
+            <h3 className="text-2xl font-bold text-slate-800 mb-1">
+              {inspections.filter(i => i.analysis_status === 'completed').length}
+            </h3>
+            <p className="text-xs text-slate-500">Ispezioni Completate</p>
           </NeumorphicCard>
 
-          <NeumorphicCard className="p-6">
-            <div className="text-center">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 mx-auto mb-3 flex items-center justify-center shadow-lg">
-                <Users className="w-7 h-7 text-white" />
-              </div>
-              <h3 className="text-2xl font-bold text-green-600 mb-1">
-                {users.length}
-              </h3>
-              <p className="text-xs text-slate-500">Dipendenti Attivi</p>
+          <NeumorphicCard className="p-6 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 mx-auto mb-3 flex items-center justify-center">
+              <Users className="w-7 h-7 text-white" />
             </div>
+            <h3 className="text-2xl font-bold text-green-600 mb-1">{users.length}</h3>
+            <p className="text-xs text-slate-500">Dipendenti Attivi</p>
           </NeumorphicCard>
 
-          <NeumorphicCard className="p-6">
-            <div className="text-center">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 mx-auto mb-3 flex items-center justify-center shadow-lg">
-                <Clock className="w-7 h-7 text-white" />
-              </div>
-              <h3 className="text-2xl font-bold text-purple-600 mb-1">
-                2h
-              </h3>
-              <p className="text-xs text-slate-500">Finestra Matching</p>
+          <NeumorphicCard className="p-6 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 mx-auto mb-3 flex items-center justify-center">
+              <Settings className="w-7 h-7 text-white" />
             </div>
+            <h3 className="text-2xl font-bold text-purple-600 mb-1">
+              {matchConfigs.filter(r => r.attivo !== false).length}
+            </h3>
+            <p className="text-xs text-slate-500">Regole Attive</p>
           </NeumorphicCard>
         </div>
 
         {/* Inspections List */}
         <NeumorphicCard className="p-6">
           <h2 className="text-xl font-bold text-slate-800 mb-4">Ispezioni Recenti</h2>
-          
           <div className="space-y-3">
             {filteredInspections
               .filter(i => i.analysis_status === 'completed')
               .slice(0, 50)
               .map(inspection => {
                 const matchingEmployees = getMatchingEmployees(inspection);
-                
                 return (
                   <div key={inspection.id} className="neumorphic-pressed p-4 rounded-xl">
                     <div className="flex items-start justify-between">
@@ -286,43 +345,27 @@ export default function PulizieMatch() {
                             {inspection.overall_score}%
                           </span>
                         </div>
-                        
-                        <div className="flex items-center gap-4 text-sm text-slate-600 mb-2">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            {format(parseISO(inspection.inspection_date), 'dd MMM yyyy HH:mm', { locale: it })}
-                          </span>
-                          {inspection.inspector_name && (
-                            <span>Ispettore: {inspection.inspector_name}</span>
-                          )}
+                        <div className="text-sm text-slate-600 mb-2">
+                          <Clock className="w-4 h-4 inline mr-1" />
+                          {format(parseISO(inspection.inspection_date), 'dd MMM yyyy HH:mm', { locale: it })}
                         </div>
-
                         {matchingEmployees.length > 0 ? (
                           <div className="flex flex-wrap gap-2 mt-2">
                             {matchingEmployees.map((emp, idx) => (
-                              <div key={idx} className="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-200">
-                                <span className="font-medium">{emp.employeeName}</span>
-                                <span className="text-purple-600 ml-1">({emp.matchedRole})</span>
-                                <span className="text-blue-500 ml-1">
-                                  - turno finito {emp.minutesBeforeInspection}min prima
-                                </span>
-                              </div>
+                              <span key={idx} className="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-200" title={`Regola: ${emp.appliedRule}`}>
+                                {emp.employeeName} ({emp.roles.join(', ')})
+                              </span>
                             ))}
                           </div>
                         ) : (
-                          <div className="text-xs text-orange-600 bg-orange-50 px-3 py-1 rounded-lg inline-block mt-2">
+                          <div className="text-xs text-orange-600">
                             <AlertTriangle className="w-3 h-3 inline mr-1" />
-                            Nessun dipendente con turno terminato prima del form
+                            Nessun match trovato
                           </div>
                         )}
                       </div>
-
-                      <NeumorphicButton
-                        onClick={() => setSelectedInspection(inspection)}
-                        className="flex items-center gap-2 ml-4"
-                      >
+                      <NeumorphicButton onClick={() => setSelectedInspection(inspection)} className="ml-4">
                         <Eye className="w-4 h-4" />
-                        Dettagli
                       </NeumorphicButton>
                     </div>
                   </div>
@@ -333,41 +376,26 @@ export default function PulizieMatch() {
 
         {/* Details Modal */}
         {selectedInspection && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="max-w-4xl w-full my-8">
               <NeumorphicCard className="p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h2 className="text-2xl font-bold text-slate-800">
-                      Match Ispezione - {selectedInspection.store_name}
-                    </h2>
-                    <p className="text-sm text-slate-500">
-                      {format(parseISO(selectedInspection.inspection_date), 'dd MMMM yyyy - HH:mm', { locale: it })}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setSelectedInspection(null)}
-                    className="nav-button p-2 rounded-lg"
-                  >
-                    <X className="w-5 h-5 text-slate-600" />
+                  <h2 className="text-2xl font-bold text-slate-800">Dettagli Match - {selectedInspection.store_name}</h2>
+                  <button onClick={() => setSelectedInspection(null)} className="nav-button p-2 rounded-lg">
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
-
-                {/* Overall Score */}
                 <div className="neumorphic-pressed p-6 rounded-xl text-center mb-6">
                   <p className="text-sm text-slate-500 mb-2">Punteggio Complessivo</p>
                   <div className={`text-4xl font-bold ${
                     selectedInspection.overall_score >= 80 ? 'text-green-600' :
-                    selectedInspection.overall_score >= 60 ? 'text-yellow-600' :
-                    'text-red-600'
+                    selectedInspection.overall_score >= 60 ? 'text-yellow-600' : 'text-red-600'
                   }`}>
                     {selectedInspection.overall_score}%
                   </div>
                 </div>
-
-                {/* Matching Employees */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-bold text-slate-800 mb-3">Dipendenti in Turno</h3>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800 mb-3">Dipendenti Assegnati</h3>
                   {(() => {
                     const matches = getMatchingEmployees(selectedInspection);
                     return matches.length > 0 ? (
@@ -377,105 +405,209 @@ export default function PulizieMatch() {
                             <div className="flex items-center justify-between">
                               <div>
                                 <p className="font-bold text-slate-800">{emp.employeeName}</p>
-                                <p className="text-sm text-slate-600">
-                                  Turno terminato: {format(parseISO(emp.shiftEndTime), 'HH:mm', { locale: it })}
-                                </p>
-                                {emp.roles.length > 0 && (
-                                  <div className="flex gap-1 mt-1">
-                                    {emp.roles.map((role, ridx) => (
-                                      <span key={ridx} className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
-                                        {role}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
+                                <p className="text-sm text-slate-600">Ruoli: {emp.roles.join(', ')}</p>
+                                <p className="text-xs text-blue-600">Regola: {emp.appliedRule}</p>
                               </div>
                               <div className="text-right">
-                                <span className="text-sm font-bold text-blue-600">
-                                  {emp.minutesBeforeInspection} min
-                                </span>
-                                <p className="text-xs text-slate-500">prima dell'ispezione</p>
+                                <span className="text-sm font-bold text-blue-600">{emp.minutesBeforeInspection} min</span>
+                                <p className="text-xs text-slate-500">prima ispezione</p>
                               </div>
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="neumorphic-pressed p-8 rounded-xl text-center">
+                      <div className="neumorphic-pressed p-8 text-center">
                         <AlertTriangle className="w-12 h-12 text-orange-500 mx-auto mb-3" />
-                        <p className="text-slate-600">
-                          Nessun dipendente trovato nelle 2 ore precedenti l'ispezione
-                        </p>
+                        <p className="text-slate-600">Nessun dipendente trovato</p>
                       </div>
                     );
                   })()}
-                </div>
-
-                {/* Domande e Responsabili */}
-                <div>
-                  <h3 className="text-lg font-bold text-slate-800 mb-3">Domande e Responsabili Assegnati</h3>
-                  <div className="space-y-2">
-                    {selectedInspection.domande_risposte?.map((risposta, idx) => {
-                      const matchedEmployee = risposta.attrezzatura 
-                        ? getMatchingEmployeeForAttrezzatura(selectedInspection, risposta.attrezzatura)
-                        : null;
-                      
-                      const attrezzatura = risposta.attrezzatura 
-                        ? attrezzature.find(a => a.nome === risposta.attrezzatura)
-                        : null;
-                      
-                      return (
-                        <div key={idx} className="neumorphic-flat p-3 rounded-xl">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-slate-800">{risposta.domanda_testo}</p>
-                              {risposta.attrezzatura && (
-                                <p className="text-xs text-slate-500">({risposta.attrezzatura})</p>
-                              )}
-                            </div>
-                            <div className="text-right">
-                              {attrezzatura?.ruolo_responsabile ? (
-                                <div>
-                                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                                    {attrezzatura.ruolo_responsabile}
-                                  </span>
-                                  {matchedEmployee && (
-                                    <p className="text-xs mt-1 text-green-600">
-                                      → {matchedEmployee.employeeName}
-                                    </p>
-                                  )}
-                                </div>
-                              ) : (
-                                <span className="text-xs text-slate-400">Non assegnato</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
                 </div>
               </NeumorphicCard>
             </div>
           </div>
         )}
 
+        {/* Config Modal */}
+        {showConfigModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="max-w-6xl w-full my-8">
+              <NeumorphicCard className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-slate-800">Regole di Assegnazione</h2>
+                  <button onClick={() => {setShowConfigModal(false); setEditingRule(null);}} className="nav-button p-2 rounded-lg">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
 
+                {/* Rules List */}
+                <div className="space-y-3 mb-6">
+                  {matchConfigs.map(rule => (
+                    <div key={rule.id} className={`neumorphic-pressed p-4 rounded-xl ${rule.attivo === false ? 'opacity-50' : ''}`}>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="font-bold text-slate-800">{rule.nome_regola}</h3>
+                            {rule.attivo === false && (
+                              <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full">Disattivata</span>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-sm text-slate-600">
+                            <div><strong>Store:</strong> {rule.store_id ? stores.find(s => s.id === rule.store_id)?.name : 'Tutti'}</div>
+                            <div><strong>Orario form:</strong> {rule.ora_inizio_compilazione} - {rule.ora_fine_compilazione}</div>
+                            <div><strong>Ruolo:</strong> {rule.ruolo_target}</div>
+                            <div><strong>Tipo:</strong> {rule.tipo_match.replace(/_/g, ' ')}</div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => {setEditingRule(rule); setRuleForm(rule);}} className="nav-button p-2 rounded-lg">
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => {
+                            if (confirm('Eliminare questa regola?')) deleteRuleMutation.mutate(rule.id);
+                          }} className="nav-button p-2 rounded-lg text-red-600">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {matchConfigs.length === 0 && (
+                    <div className="text-center py-8 text-slate-500">
+                      <Settings className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                      <p>Nessuna regola configurata</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Rule Form */}
+                {editingRule && (
+                  <div className="neumorphic-flat p-6 rounded-xl mb-4 bg-blue-50">
+                    <h3 className="font-bold text-slate-800 mb-4">{editingRule.id === 'new' ? 'Nuova' : 'Modifica'} Regola</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="col-span-2">
+                        <label className="text-sm text-slate-600 mb-2 block">Nome Regola</label>
+                        <input
+                          type="text"
+                          value={ruleForm.nome_regola}
+                          onChange={(e) => setRuleForm({...ruleForm, nome_regola: e.target.value})}
+                          className="w-full neumorphic-pressed px-4 py-2 rounded-lg outline-none"
+                          placeholder="es. Controlli Mattina Pizzaiolo"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm text-slate-600 mb-2 block">Store</label>
+                        <select value={ruleForm.store_id} onChange={(e) => setRuleForm({...ruleForm, store_id: e.target.value})} className="w-full neumorphic-pressed px-4 py-2 rounded-lg outline-none">
+                          <option value="">Tutti i locali</option>
+                          {stores.map(s => (<option key={s.id} value={s.id}>{s.name}</option>))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-sm text-slate-600 mb-2 block">Ruolo Target</label>
+                        <select value={ruleForm.ruolo_target} onChange={(e) => setRuleForm({...ruleForm, ruolo_target: e.target.value})} className="w-full neumorphic-pressed px-4 py-2 rounded-lg outline-none">
+                          <option value="Pizzaiolo">Pizzaiolo</option>
+                          <option value="Cassiere">Cassiere</option>
+                          <option value="Store Manager">Store Manager</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-sm text-slate-600 mb-2 block">Ora Inizio Form</label>
+                        <input type="time" value={ruleForm.ora_inizio_compilazione} onChange={(e) => setRuleForm({...ruleForm, ora_inizio_compilazione: e.target.value})} className="w-full neumorphic-pressed px-4 py-2 rounded-lg outline-none" />
+                      </div>
+                      <div>
+                        <label className="text-sm text-slate-600 mb-2 block">Ora Fine Form</label>
+                        <input type="time" value={ruleForm.ora_fine_compilazione} onChange={(e) => setRuleForm({...ruleForm, ora_fine_compilazione: e.target.value})} className="w-full neumorphic-pressed px-4 py-2 rounded-lg outline-none" />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="text-sm text-slate-600 mb-2 block">Tipo Match</label>
+                        <select value={ruleForm.tipo_match} onChange={(e) => setRuleForm({...ruleForm, tipo_match: e.target.value})} className="w-full neumorphic-pressed px-4 py-2 rounded-lg outline-none">
+                          <option value="turno_precedente_stesso_ruolo">Turno precedente stesso ruolo</option>
+                          <option value="ultimo_turno_giorno_prima_stesso_ruolo">Ultimo turno giorno prima stesso ruolo</option>
+                          <option value="turno_specifico_orario">Turno specifico per orario</option>
+                          <option value="tutti_turni_giorno_prima">Tutti i turni giorno prima</option>
+                        </select>
+                      </div>
+                      {ruleForm.tipo_match === 'turno_specifico_orario' && (
+                        <>
+                          <div>
+                            <label className="text-sm text-slate-600 mb-2 block">Ora Inizio Turno Target</label>
+                            <input type="time" value={ruleForm.orario_turno_target_inizio} onChange={(e) => setRuleForm({...ruleForm, orario_turno_target_inizio: e.target.value})} className="w-full neumorphic-pressed px-4 py-2 rounded-lg outline-none" />
+                          </div>
+                          <div>
+                            <label className="text-sm text-slate-600 mb-2 block">Ora Fine Turno Target</label>
+                            <input type="time" value={ruleForm.orario_turno_target_fine} onChange={(e) => setRuleForm({...ruleForm, orario_turno_target_fine: e.target.value})} className="w-full neumorphic-pressed px-4 py-2 rounded-lg outline-none" />
+                          </div>
+                        </>
+                      )}
+                      <div>
+                        <label className="text-sm text-slate-600 mb-2 block">Ordine (Priorità)</label>
+                        <input type="number" value={ruleForm.ordine} onChange={(e) => setRuleForm({...ruleForm, ordine: parseInt(e.target.value)})} className="w-full neumorphic-pressed px-4 py-2 rounded-lg outline-none" />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" checked={ruleForm.attivo !== false} onChange={(e) => setRuleForm({...ruleForm, attivo: e.target.checked})} className="w-5 h-5" />
+                        <label className="text-sm text-slate-700">Regola Attiva</label>
+                      </div>
+                    </div>
+                    <div className="flex gap-3 mt-4">
+                      <button onClick={() => setEditingRule(null)} className="nav-button px-4 py-2 rounded-lg text-slate-600">Annulla</button>
+                      <button
+                        onClick={() => {
+                          if (!ruleForm.nome_regola) {alert('Inserisci nome regola'); return;}
+                          if (editingRule.id === 'new') {
+                            createRuleMutation.mutate(ruleForm);
+                          } else {
+                            updateRuleMutation.mutate({id: editingRule.id, data: ruleForm});
+                          }
+                        }}
+                        className="flex-1 nav-button px-4 py-2 rounded-lg bg-gradient-to-r from-green-500 to-green-600 text-white font-medium"
+                      >
+                        <Save className="w-4 h-4 inline mr-2" />
+                        {editingRule.id === 'new' ? 'Crea' : 'Salva'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {!editingRule && (
+                  <NeumorphicButton
+                    onClick={() => {
+                      setEditingRule({id: 'new'});
+                      setRuleForm({
+                        nome_regola: '',
+                        store_id: '',
+                        ora_inizio_compilazione: '00:00',
+                        ora_fine_compilazione: '23:59',
+                        ruolo_target: 'Pizzaiolo',
+                        tipo_match: 'turno_precedente_stesso_ruolo',
+                        orario_turno_target_inizio: '',
+                        orario_turno_target_fine: '',
+                        attivo: true,
+                        ordine: matchConfigs.length
+                      });
+                    }}
+                    className="w-full flex items-center justify-center gap-2"
+                    variant="primary"
+                  >
+                    <Plus className="w-5 h-5" />
+                    Aggiungi Nuova Regola
+                  </NeumorphicButton>
+                )}
+              </NeumorphicCard>
+            </div>
+          </div>
+        )}
 
         {/* Info Card */}
         <NeumorphicCard className="p-6 bg-blue-50">
           <div className="flex items-start gap-3">
             <Clock className="w-6 h-6 text-blue-600" />
             <div>
-              <h3 className="font-bold text-blue-800 mb-2">Come Funziona il Matching</h3>
-              <p className="text-sm text-blue-700 mb-2">
-                Il sistema assegna automaticamente le ispezioni al dipendente che ha terminato il turno <strong>immediatamente prima</strong> della compilazione del form.
-              </p>
-              <p className="text-sm text-blue-700 mb-2">
-                <strong>Esempio:</strong> Se Cassiere 1 ha turno 11:00-15:00 e Cassiere 2 ha turno 15:00-22:00, quando Cassiere 2 compila il form, la responsabilità viene assegnata a Cassiere 1.
-              </p>
+              <h3 className="font-bold text-blue-800 mb-2">Come Funziona</h3>
               <p className="text-sm text-blue-700">
-                Le responsabilità sono assegnate in base al <strong>ruolo responsabile</strong> definito per ogni attrezzatura nella sezione <strong>Attrezzature</strong>.
+                {matchConfigs.filter(r => r.attivo !== false).length > 0 
+                  ? `Il sistema applica ${matchConfigs.filter(r => r.attivo !== false).length} regole attive per trovare i dipendenti responsabili.`
+                  : 'Nessuna regola configurata - usa logica default (turno precedente).'}
               </p>
             </div>
           </div>
