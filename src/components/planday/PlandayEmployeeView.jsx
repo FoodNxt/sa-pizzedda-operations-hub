@@ -181,16 +181,16 @@ export default function PlandayEmployeeView({
                     <div className="space-y-1">
                     {dayTurni.map(turno => (
                       <div key={turno.id} draggable onDragStart={(e) => handleDragStart(e, turno)} className="p-2 rounded-lg cursor-grab text-xs relative text-white" style={getRuoloStyle(turno.ruolo)} onClick={() => handleTurnoClick(turno)}>
+                       {turno.is_prova && (
+                         <div className="absolute top-0 left-0 px-1 py-0.5 text-[7px] font-bold text-white rounded-br bg-purple-600">
+                           🧪
+                         </div>
+                       )}
                        {turno.tipo_turno && turno.tipo_turno !== 'Normale' && <div className="absolute top-0 right-0 w-0 h-0 border-t-[10px] border-l-[10px] border-l-transparent" style={{ borderTopColor: getTipoColor(turno.tipo_turno) }} />}
                        <div className="font-bold">{turno.ora_inizio} - {turno.ora_fine}</div>
                        <div className="opacity-80">{turno.ruolo}</div>
                        {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
                          <div className="text-[9px] font-bold">{turno.tipo_turno}</div>
-                       )}
-                       {turno.is_prova && (
-                         <div className="text-[8px] px-1 bg-purple-500 bg-opacity-60 rounded mt-0.5">
-                           🧪 PROVA
-                         </div>
                        )}
                        <div className="opacity-80 text-[10px]">{getStoreName(turno.store_id)}</div>
                         {/* Form + Attività */}

@@ -1915,13 +1915,18 @@ export default function Planday() {
                                     </button>
                                   </div>
                                   {/* Tipo turno badge più visibile */}
+                                  {turno.is_prova && (
+                                   <div className="absolute top-0 left-0 px-1 py-0.5 text-[8px] font-bold text-white rounded-br bg-purple-600">
+                                     🧪 PROVA
+                                   </div>
+                                  )}
                                   {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
-                                    <div 
-                                      className="absolute top-0 right-5 px-1 py-0.5 text-[8px] font-bold text-white rounded-b"
-                                      style={{ backgroundColor: coloriTipoTurno[turno.tipo_turno] || '#94a3b8' }}
-                                    >
-                                      {turno.tipo_turno.slice(0, 3).toUpperCase()}
-                                    </div>
+                                   <div 
+                                     className="absolute top-0 right-5 px-1 py-0.5 text-[8px] font-bold text-white rounded-b"
+                                     style={{ backgroundColor: coloriTipoTurno[turno.tipo_turno] || '#94a3b8' }}
+                                   >
+                                     {turno.tipo_turno.slice(0, 3).toUpperCase()}
+                                   </div>
                                   )}
                                   <div className="truncate text-[10px] font-medium">{turno.ruolo}</div>
                                   {turno.dipendente_nome && (

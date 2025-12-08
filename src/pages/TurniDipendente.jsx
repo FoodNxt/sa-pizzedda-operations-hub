@@ -1030,6 +1030,14 @@ export default function TurniDipendente() {
                       </span>
                     </div>
                   )}
+                  {prossimoTurno.is_prova && (
+                    <div className="mt-2 p-2 bg-purple-100 border border-purple-300 rounded-lg">
+                      <p className="text-xs font-bold text-purple-800">🧪 TURNO DI PROVA</p>
+                      <p className="text-xs text-purple-700 mt-1">
+                        Oggi hai un candidato in prova. Valuta le sue performance durante il turno.
+                      </p>
+                    </div>
+                  )}
                 </div>
                 {!prossimoTurnoStatus.inCorso && !prossimoTurno.timbrata_entrata && !prossimoTurno.timbrata_uscita && (
                   <div>
@@ -1438,11 +1446,16 @@ export default function TurniDipendente() {
                           (!turno.richiesta_scambio || !['pending', 'accepted'].includes(turno.richiesta_scambio?.stato));
                         
                         return (
-                        <div key={turno.id} className={`p-3 rounded-lg border ${COLORI_RUOLO[turno.ruolo]}`}>
+                        <div key={turno.id} className={`p-3 rounded-lg border ${COLORI_RUOLO[turno.ruolo]} ${turno.is_prova ? 'ring-2 ring-purple-500' : ''}`}>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <Clock className="w-4 h-4" />
                               <span className="font-medium">{turno.ora_inizio} - {turno.ora_fine}</span>
+                              {turno.is_prova && (
+                                <span className="px-2 py-0.5 bg-purple-500 text-white rounded-full text-[10px] font-bold">
+                                  🧪 PROVA
+                                </span>
+                              )}
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="text-sm">{turno.ruolo}</span>

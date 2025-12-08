@@ -236,6 +236,11 @@ export default function PlandayStoreView({
                       style={getRuoloStyle(turno.ruolo)}
                       onClick={(e) => handleTurnoClick(e, turno)}
                     >
+                      {turno.is_prova && (
+                        <div className="absolute top-0 left-0 px-1 py-0.5 text-[7px] font-bold text-white rounded-br bg-purple-600">
+                          🧪
+                        </div>
+                      )}
                       {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
                         <div className="absolute top-0 right-0 w-0 h-0 border-t-[12px] border-l-[12px] border-l-transparent" style={{ borderTopColor: getTipoTurnoColor(turno.tipo_turno) }} />
                       )}
@@ -243,11 +248,6 @@ export default function PlandayStoreView({
                       <div>{turno.ora_inizio} - {turno.ora_fine}</div>
                       {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
                         <div className="text-[9px] font-bold mt-0.5">{turno.tipo_turno}</div>
-                      )}
-                      {turno.is_prova && (
-                        <div className="text-[8px] px-1 bg-purple-500 bg-opacity-60 rounded mt-0.5">
-                          🧪 PROVA
-                        </div>
                       )}
                     </div>
                   ))}
@@ -292,6 +292,11 @@ export default function PlandayStoreView({
                         style={getRuoloStyle(turno.ruolo)}
                         onClick={(e) => handleTurnoClick(e, turno)}
                       >
+                        {turno.is_prova && (
+                          <div className="absolute top-0 left-0 px-1 py-0.5 text-[7px] font-bold text-white rounded-br bg-purple-600">
+                            🧪
+                          </div>
+                        )}
                         {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
                           <div className="absolute top-0 right-0 w-0 h-0 border-t-[12px] border-l-[12px] border-l-transparent" style={{ borderTopColor: getTipoTurnoColor(turno.tipo_turno) }} />
                         )}
@@ -299,11 +304,6 @@ export default function PlandayStoreView({
                         <div>{turno.ora_inizio} - {turno.ora_fine}</div>
                         {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
                           <div className="text-[9px] font-bold mt-0.5">{turno.tipo_turno}</div>
-                        )}
-                        {turno.is_prova && (
-                          <div className="text-[8px] px-1 bg-purple-500 bg-opacity-60 rounded mt-0.5">
-                            🧪 PROVA
-                          </div>
                         )}
                         {!selectedStore && turno.store_id && <div className="opacity-80 text-[10px]">{getStoreName(turno.store_id)}</div>}
                         {/* Form + Attività */}
