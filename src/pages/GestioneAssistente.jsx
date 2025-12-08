@@ -721,6 +721,33 @@ Determina se ci sono stati cambi significativi che richiedono un aggiornamento d
     }
   };
 
+  const handleImproveWithAI = async () => {
+    if (!pageForm.contenuto?.trim()) {
+      alert('Nessun contenuto da migliorare');
+      return;
+    }
+
+    setGeneratingContent(true);
+    try {
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: `Sei un esperto di comunicazione aziendale. Migliora il seguente contenuto per renderlo più chiaro e comprensibile per un chatbot AI e per i dipendenti che lo leggeranno. Mantieni lo stesso significato e informazioni, ma rendilo più strutturato, chiaro e facile da comprendere. Usa il formato markdown.
+
+Contenuto da migliorare:
+${pageForm.contenuto}
+
+IMPORTANTE: Mantieni tutte le informazioni originali, migliorando solo la chiarezza e la struttura del testo.`,
+        add_context_from_internet: false
+      });
+
+      setPageForm({ ...pageForm, contenuto: result });
+    } catch (error) {
+      console.error('Error improving content:', error);
+      alert('Errore nel miglioramento del contenuto');
+    } finally {
+      setGeneratingContent(false);
+    }
+  };
+
   const handleAddChildPage = (parentId) => {
     setParentPageId(parentId);
     setPageForm({ ...pageForm, parent_page_id: parentId });
@@ -2493,7 +2520,24 @@ Determina se ci sono stati cambi significativi che richiedono un aggiornamento d
                       )}
 
                       <div>
-                        <label className="text-sm font-medium text-slate-700 mb-2 block">Contenuto (markdown supportato)</label>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-sm font-medium text-slate-700 block">Contenuto (markdown supportato)</label>
+                          {pageForm.contenuto && (
+                            <NeumorphicButton
+                              type="button"
+                              onClick={handleImproveWithAI}
+                              disabled={generatingContent}
+                              className="text-xs px-3 py-1.5 flex items-center gap-1.5"
+                            >
+                              {generatingContent ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <Sparkles className="w-3 h-3" />
+                              )}
+                              Migliora con AI
+                            </NeumorphicButton>
+                          )}
+                        </div>
                         <textarea
                           value={pageForm.contenuto}
                           onChange={(e) => setPageForm({ ...pageForm, contenuto: e.target.value })}

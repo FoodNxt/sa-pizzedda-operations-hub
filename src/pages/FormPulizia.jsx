@@ -264,8 +264,21 @@ export default function FormPulizia() {
                           ))}
                         </div>
                         <p className="font-medium text-[#6b6b6b] mb-1">{domanda.domanda_testo}</p>
-                        {domanda.tipo_controllo === 'foto' && domanda.attrezzatura && (
-                          <p className="text-sm text-[#9b9b9b]">Attrezzatura: {domanda.attrezzatura}</p>
+                        {domanda.attrezzatura && (
+                          <p className="text-sm text-[#9b9b9b]">
+                            🔧 Attrezzatura: <span className="font-medium">{domanda.attrezzatura}</span>
+                          </p>
+                        )}
+                        {domanda.tipo_controllo === 'foto' && domanda.tipo_controllo_ai && (
+                          <p className="text-xs text-purple-600 mt-1">
+                            🤖 Controllo AI: {
+                              domanda.tipo_controllo_ai === 'pulizia' ? 'Pulizia' :
+                              domanda.tipo_controllo_ai === 'divisa' ? 'Divisa Corretta' :
+                              domanda.tipo_controllo_ai === 'frigo_bibite' ? 'Frigo Bibite' :
+                              domanda.tipo_controllo_ai === 'etichette' ? 'Presenza Etichette' :
+                              'Personalizzato'
+                            }
+                          </p>
                         )}
                         {domanda.tipo_controllo === 'scelta_multipla' && domanda.opzioni_risposta && (
                           <div className="flex flex-wrap gap-1 mt-2">
