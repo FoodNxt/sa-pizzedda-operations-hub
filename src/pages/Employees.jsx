@@ -284,6 +284,7 @@ export default function Employees() {
       const w_timbrature = getWeight('timbrature_mancanti');
       const w_num_recensioni = getWeight('numero_recensioni');
       const w_punteggio_recensioni = getWeight('punteggio_recensioni');
+      const w_pulizie = getWeight('pulizie');
 
       // Calculate base score starting from 100
       let performanceScore = 100;
@@ -303,6 +304,30 @@ export default function Employees() {
       if (googleReviews.length > 0) {
         const reviewBonus = Math.min(googleReviews.length * w_num_recensioni, 5);
         performanceScore += reviewBonus;
+      }
+      
+      // Pulizie: penalità se score < 80
+      const cleaningData = cleaningInspections.filter(i => {
+        if (i.inspector_name !== employeeName) return false;
+        if (startDate || endDate) {
+          if (!i.inspection_date) return false;
+          const inspDate = safeParseDate(i.inspection_date);
+          if (!inspDate) return false;
+          const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
+          const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
+          if (start && end) return isWithinInterval(inspDate, { start, end });
+          else if (start) return inspDate >= start;
+          else if (end) return inspDate <= end;
+        }
+        return true;
+      });
+      
+      if (cleaningData.length > 0) {
+        const avgCleaningScore = cleaningData.reduce((sum, i) => sum + (i.overall_score || 0), 0) / cleaningData.length;
+        if (avgCleaningScore < 80) {
+          const cleaningPenalty = (80 - avgCleaningScore) * w_pulizie * 0.1;
+          performanceScore -= cleaningPenalty;
+        }
       }
       
       // Ensure score stays between 0 and 100
@@ -337,7 +362,8 @@ export default function Employees() {
           w_ritardi,
           w_timbrature,
           w_num_recensioni,
-          w_punteggio_recensioni
+          w_punteggio_recensioni,
+          w_pulizie
         }
       };
     });
@@ -895,6 +921,15 @@ export default function Employees() {
                   {selectedEmployee.googleReviewCount > 0 && (
                     <p className="text-green-600"><strong>+ Bonus Recensioni:</strong> min({selectedEmployee.googleReviewCount} × {selectedEmployee.weights.w_num_recensioni}, 5) = +{Math.min(selectedEmployee.googleReviewCount * selectedEmployee.weights.w_num_recensioni, 5).toFixed(1)}</p>
                   )}
+                  {(() => {
+                    const cleaningData = getCleaningScoreForEmployee(selectedEmployee.full_name);
+                    if (cleaningData.count > 0 && cleaningData.avgScore < 80) {
+                      const penalty = (80 - cleaningData.avgScore) * selectedEmployee.weights.w_pulizie * 0.1;
+                      return (
+                        <p className="text-red-600"><strong>- Pulizie &lt; 80:</strong> (80 - {cleaningData.avgScore.toFixed(1)}) × {selectedEmployee.weights.w_pulizie} × 0.1 = -{penalty.toFixed(1)}</p>
+                      );
+                    }
+                  })()}
                   <p className="font-bold mt-2 pt-2 border-t border-blue-200"><strong>Punteggio Finale:</strong> {selectedEmployee.performanceScore}</p>
                 </div>
               </div>
@@ -1403,7 +1438,8 @@ function MetricWeightsModal({ weights, onClose }) {
     ritardi: weights.find(w => w.metric_name === 'ritardi')?.weight || 0.3,
     timbrature_mancanti: weights.find(w => w.metric_name === 'timbrature_mancanti')?.weight || 1,
     numero_recensioni: weights.find(w => w.metric_name === 'numero_recensioni')?.weight || 0.5,
-    punteggio_recensioni: weights.find(w => w.metric_name === 'punteggio_recensioni')?.weight || 2
+    punteggio_recensioni: weights.find(w => w.metric_name === 'punteggio_recensioni')?.weight || 2,
+    pulizie: weights.find(w => w.metric_name === 'pulizie')?.weight || 1
   });
 
   const saveMutation = useMutation({
@@ -1425,10 +1461,11 @@ function MetricWeightsModal({ weights, onClose }) {
 
   const metricLabels = {
     ordini_sbagliati: 'Peso Ordini Sbagliati',
-    ritardi: 'Peso Ritardi (%)',
+    ritardi: 'Peso Ritardi',
     timbrature_mancanti: 'Peso Timbrature Mancanti',
     numero_recensioni: 'Peso Numero Recensioni',
-    punteggio_recensioni: 'Peso Punteggio Recensioni'
+    punteggio_recensioni: 'Peso Punteggio Recensioni',
+    pulizie: 'Peso Pulizie (se < 80)'
   };
 
   return (

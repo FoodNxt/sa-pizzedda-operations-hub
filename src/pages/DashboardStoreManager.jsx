@@ -14,7 +14,10 @@ import {
   Target,
   Store,
   CheckCircle,
-  XCircle
+  XCircle,
+  Eye,
+  X,
+  ArrowRight
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 
@@ -24,6 +27,7 @@ export default function DashboardStoreManager() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
   const [selectedStoreId, setSelectedStoreId] = useState('');
+  const [showDetailModal, setShowDetailModal] = useState(null); // 'reviews', 'wrongOrders', 'delays', 'cleanings'
 
   const { data: currentUser } = useQuery({
     queryKey: ['current-user'],
@@ -169,11 +173,15 @@ export default function DashboardStoreManager() {
       fatturato: monthRevenue,
       avgRating,
       totalReviews: monthReviews.length,
+      monthReviews,
       wrongOrdersCount: monthWrongOrders.length,
+      monthWrongOrders,
       avgDelay,
       avgCleaningScore,
       totalShifts: monthShifts.length,
       totalInspections: monthInspections.length,
+      monthInspections,
+      monthShifts,
       target,
       bonusTotale
     };
@@ -341,138 +349,195 @@ export default function DashboardStoreManager() {
             </NeumorphicCard>
           )}
 
-          {/* Obiettivo Fatturato */}
-          <NeumorphicCard className="p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <DollarSign className="w-6 h-6 text-green-600" />
-              <h2 className="text-xl font-bold text-slate-800">Obiettivo Fatturato</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="neumorphic-pressed p-4 rounded-xl text-center">
-                <p className="text-sm text-slate-500 mb-1">Fatturato Attuale</p>
-                <p className="text-3xl font-bold text-green-600">€{metrics.fatturato.toLocaleString()}</p>
+          {/* Metriche Attive */}
+          {metrics.target?.metriche_attive?.includes('fatturato') && (
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <DollarSign className="w-6 h-6 text-green-600" />
+                <h2 className="text-xl font-bold text-slate-800">Fatturato</h2>
               </div>
-              <div className="neumorphic-pressed p-4 rounded-xl text-center">
-                <p className="text-sm text-slate-500 mb-1">Target</p>
-                <p className="text-3xl font-bold text-slate-700">
-                  {metrics.target?.target_fatturato ? `€${metrics.target.target_fatturato.toLocaleString()}` : '-'}
-                </p>
-              </div>
-              <div className="neumorphic-pressed p-4 rounded-xl text-center">
-                <p className="text-sm text-slate-500 mb-1">Progresso</p>
-                {metrics.target?.target_fatturato ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <p className={`text-3xl font-bold ${
-                      metrics.fatturato >= metrics.target.target_fatturato ? 'text-green-600' : 'text-orange-600'
-                    }`}>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                  <p className="text-xs text-slate-500 mb-1">Attuale</p>
+                  <p className="text-2xl font-bold text-green-600">€{metrics.fatturato.toLocaleString()}</p>
+                </div>
+                <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                  <p className="text-xs text-slate-500 mb-1">Target Bonus</p>
+                  <p className="text-xl font-bold text-blue-700">€{metrics.target.target_fatturato?.toLocaleString()}</p>
+                  <p className="text-xs text-green-600 mt-1">+€{metrics.target.bonus_fatturato || 0}</p>
+                </div>
+                <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                  <p className="text-xs text-slate-500 mb-1">Soglia Min</p>
+                  <p className="text-xl font-bold text-red-600">€{metrics.target.soglia_min_fatturato?.toLocaleString() || '-'}</p>
+                  <p className="text-xs text-red-600 mt-1">perdi tutto</p>
+                </div>
+                <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                  <p className="text-xs text-slate-500 mb-1">Stato</p>
+                  {metrics.fatturato >= metrics.target.target_fatturato ? (
+                    <CheckCircle className="w-8 h-8 text-green-600 mx-auto" />
+                  ) : (
+                    <p className={`text-xl font-bold ${metrics.fatturato >= metrics.target.soglia_min_fatturato ? 'text-orange-600' : 'text-red-600'}`}>
                       {Math.round((metrics.fatturato / metrics.target.target_fatturato) * 100)}%
                     </p>
-                    {metrics.fatturato >= metrics.target.target_fatturato ? (
-                      <CheckCircle className="w-6 h-6 text-green-600" />
-                    ) : (
-                      <Target className="w-6 h-6 text-orange-600" />
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-3xl font-bold text-slate-400">-</p>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
-          </NeumorphicCard>
+            </NeumorphicCard>
+          )}
 
-          {/* Performance */}
-          <NeumorphicCard className="p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <Star className="w-6 h-6 text-yellow-500" />
-              <h2 className="text-xl font-bold text-slate-800">Performance</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="neumorphic-pressed p-4 rounded-xl">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-slate-500">Media Recensioni</span>
-                  {metrics.target?.target_recensioni_media && (
-                    <span className="text-xs text-slate-400">Target: {metrics.target.target_recensioni_media}</span>
-                  )}
-                </div>
+          {/* Recensioni */}
+          {metrics.target?.metriche_attive?.includes('recensioni_media') && (
+            <NeumorphicCard className="p-6 cursor-pointer hover:shadow-lg transition-all" onClick={() => setShowDetailModal('reviews')}>
+              <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <p className={`text-3xl font-bold ${
-                    metrics.avgRating >= (metrics.target?.target_recensioni_media || 4) ? 'text-green-600' : 'text-orange-600'
-                  }`}>
-                    {metrics.avgRating.toFixed(1)}
-                  </p>
-                  <div className="flex">
-                    {[1,2,3,4,5].map(i => (
-                      <Star key={i} className={`w-5 h-5 ${i <= Math.round(metrics.avgRating) ? 'text-yellow-400 fill-yellow-400' : 'text-slate-300'}`} />
-                    ))}
+                  <Star className="w-6 h-6 text-yellow-500" />
+                  <h2 className="text-xl font-bold text-slate-800">Media Recensioni</h2>
+                </div>
+                <Eye className="w-5 h-5 text-slate-400" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                  <p className="text-xs text-slate-500 mb-1">Attuale</p>
+                  <div className="flex items-center justify-center gap-1">
+                    <p className="text-2xl font-bold text-slate-800">{metrics.avgRating.toFixed(1)}</p>
+                    <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
                   </div>
-                  <span className="text-sm text-slate-500">({metrics.totalReviews} recensioni)</span>
+                  <p className="text-xs text-slate-500 mt-1">({metrics.totalReviews} rec)</p>
                 </div>
-              </div>
-              <div className="neumorphic-pressed p-4 rounded-xl">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-slate-500">Ordini Sbagliati</span>
-                  {metrics.target?.target_ordini_sbagliati_max !== undefined && (
-                    <span className="text-xs text-slate-400">Max: {metrics.target.target_ordini_sbagliati_max}</span>
+                <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                  <p className="text-xs text-slate-500 mb-1">Target Bonus</p>
+                  <p className="text-xl font-bold text-blue-700">{metrics.target.target_recensioni_media}</p>
+                  <p className="text-xs text-green-600 mt-1">+€{metrics.target.bonus_recensioni || 0}</p>
+                </div>
+                <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                  <p className="text-xs text-slate-500 mb-1">Soglia Min</p>
+                  <p className="text-xl font-bold text-red-600">{metrics.target.soglia_min_recensioni || '-'}</p>
+                  <p className="text-xs text-red-600 mt-1">perdi tutto</p>
+                </div>
+                <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                  <p className="text-xs text-slate-500 mb-1">Stato</p>
+                  {metrics.avgRating >= metrics.target.target_recensioni_media ? (
+                    <CheckCircle className="w-8 h-8 text-green-600 mx-auto" />
+                  ) : (
+                    <XCircle className="w-8 h-8 text-orange-600 mx-auto" />
                   )}
                 </div>
-                <div className="flex items-center gap-3">
-                  <p className={`text-3xl font-bold ${
-                    metrics.wrongOrdersCount <= (metrics.target?.target_ordini_sbagliati_max || 10) ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {metrics.wrongOrdersCount}
-                  </p>
-                  <AlertTriangle className={`w-6 h-6 ${
-                    metrics.wrongOrdersCount <= (metrics.target?.target_ordini_sbagliati_max || 10) ? 'text-green-600' : 'text-red-600'
-                  }`} />
-                </div>
               </div>
-            </div>
-          </NeumorphicCard>
+            </NeumorphicCard>
+          )}
 
-          {/* Ops */}
-          <NeumorphicCard className="p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <Clock className="w-6 h-6 text-blue-600" />
-              <h2 className="text-xl font-bold text-slate-800">Ops</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="neumorphic-pressed p-4 rounded-xl">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-slate-500">Media Ritardi</span>
-                  {metrics.target?.target_ritardi_max_minuti !== undefined && (
-                    <span className="text-xs text-slate-400">Max: {metrics.target.target_ritardi_max_minuti} min</span>
+          {/* Ordini Sbagliati */}
+          {metrics.target?.metriche_attive?.includes('ordini_sbagliati') && (
+            <NeumorphicCard className="p-6 cursor-pointer hover:shadow-lg transition-all" onClick={() => setShowDetailModal('wrongOrders')}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                  <h2 className="text-xl font-bold text-slate-800">Ordini Sbagliati</h2>
+                </div>
+                <Eye className="w-5 h-5 text-slate-400" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                  <p className="text-xs text-slate-500 mb-1">Attuali</p>
+                  <p className="text-2xl font-bold text-red-600">{metrics.wrongOrdersCount}</p>
+                </div>
+                <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                  <p className="text-xs text-slate-500 mb-1">Target Bonus</p>
+                  <p className="text-xl font-bold text-blue-700">≤ {metrics.target.target_ordini_sbagliati_max}</p>
+                  <p className="text-xs text-green-600 mt-1">+€{metrics.target.bonus_ordini_sbagliati || 0}</p>
+                </div>
+                <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                  <p className="text-xs text-slate-500 mb-1">Soglia Max</p>
+                  <p className="text-xl font-bold text-red-600">{metrics.target.soglia_max_ordini_sbagliati || '-'}</p>
+                  <p className="text-xs text-red-600 mt-1">perdi tutto</p>
+                </div>
+                <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                  <p className="text-xs text-slate-500 mb-1">Stato</p>
+                  {metrics.wrongOrdersCount <= metrics.target.target_ordini_sbagliati_max ? (
+                    <CheckCircle className="w-8 h-8 text-green-600 mx-auto" />
+                  ) : (
+                    <XCircle className="w-8 h-8 text-red-600 mx-auto" />
                   )}
                 </div>
-                <div className="flex items-center gap-3">
-                  <p className={`text-3xl font-bold ${
-                    metrics.avgDelay <= (metrics.target?.target_ritardi_max_minuti || 5) ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {metrics.avgDelay.toFixed(1)} min
-                  </p>
-                  <span className="text-sm text-slate-500">({metrics.totalShifts} turni)</span>
-                </div>
               </div>
-              <div className="neumorphic-pressed p-4 rounded-xl">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-slate-500">Score Pulizie</span>
-                  {metrics.target?.target_pulizie_min_score !== undefined && (
-                    <span className="text-xs text-slate-400">Min: {metrics.target.target_pulizie_min_score}</span>
+            </NeumorphicCard>
+          )}
+
+          {/* Ritardi */}
+          {metrics.target?.metriche_attive?.includes('ritardi') && (
+            <NeumorphicCard className="p-6 cursor-pointer hover:shadow-lg transition-all" onClick={() => setShowDetailModal('delays')}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <Clock className="w-6 h-6 text-blue-600" />
+                  <h2 className="text-xl font-bold text-slate-800">Ritardi</h2>
+                </div>
+                <Eye className="w-5 h-5 text-slate-400" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                  <p className="text-xs text-slate-500 mb-1">Media Attuale</p>
+                  <p className="text-2xl font-bold text-slate-800">{metrics.avgDelay.toFixed(1)} min</p>
+                  <p className="text-xs text-slate-500 mt-1">({metrics.totalShifts} turni)</p>
+                </div>
+                <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                  <p className="text-xs text-slate-500 mb-1">Target Bonus</p>
+                  <p className="text-xl font-bold text-blue-700">≤ {metrics.target.target_ritardi_max_minuti} min</p>
+                  <p className="text-xs text-green-600 mt-1">+€{metrics.target.bonus_ritardi || 0}</p>
+                </div>
+                <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                  <p className="text-xs text-slate-500 mb-1">Soglia Max</p>
+                  <p className="text-xl font-bold text-red-600">{metrics.target.soglia_max_ritardi || '-'} min</p>
+                  <p className="text-xs text-red-600 mt-1">perdi tutto</p>
+                </div>
+                <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                  <p className="text-xs text-slate-500 mb-1">Stato</p>
+                  {metrics.avgDelay <= metrics.target.target_ritardi_max_minuti ? (
+                    <CheckCircle className="w-8 h-8 text-green-600 mx-auto" />
+                  ) : (
+                    <XCircle className="w-8 h-8 text-red-600 mx-auto" />
                   )}
                 </div>
+              </div>
+            </NeumorphicCard>
+          )}
+
+          {/* Pulizie */}
+          {metrics.target?.metriche_attive?.includes('pulizie') && (
+            <NeumorphicCard className="p-6 cursor-pointer hover:shadow-lg transition-all" onClick={() => setShowDetailModal('cleanings')}>
+              <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <p className={`text-3xl font-bold ${
-                    metrics.avgCleaningScore >= (metrics.target?.target_pulizie_min_score || 70) ? 'text-green-600' : 'text-orange-600'
-                  }`}>
-                    {metrics.avgCleaningScore.toFixed(0)}
-                  </p>
-                  <Sparkles className={`w-6 h-6 ${
-                    metrics.avgCleaningScore >= (metrics.target?.target_pulizie_min_score || 70) ? 'text-green-600' : 'text-orange-600'
-                  }`} />
-                  <span className="text-sm text-slate-500">({metrics.totalInspections} ispezioni)</span>
+                  <Sparkles className="w-6 h-6 text-cyan-600" />
+                  <h2 className="text-xl font-bold text-slate-800">Pulizie</h2>
+                </div>
+                <Eye className="w-5 h-5 text-slate-400" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                  <p className="text-xs text-slate-500 mb-1">Score Attuale</p>
+                  <p className="text-2xl font-bold text-slate-800">{metrics.avgCleaningScore.toFixed(0)}</p>
+                  <p className="text-xs text-slate-500 mt-1">({metrics.totalInspections} controlli)</p>
+                </div>
+                <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                  <p className="text-xs text-slate-500 mb-1">Target Bonus</p>
+                  <p className="text-xl font-bold text-blue-700">≥ {metrics.target.target_pulizie_min_score}</p>
+                  <p className="text-xs text-green-600 mt-1">+€{metrics.target.bonus_pulizie || 0}</p>
+                </div>
+                <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                  <p className="text-xs text-slate-500 mb-1">Soglia Min</p>
+                  <p className="text-xl font-bold text-red-600">{metrics.target.soglia_min_pulizie || '-'}</p>
+                  <p className="text-xs text-red-600 mt-1">perdi tutto</p>
+                </div>
+                <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                  <p className="text-xs text-slate-500 mb-1">Stato</p>
+                  {metrics.avgCleaningScore >= metrics.target.target_pulizie_min_score ? (
+                    <CheckCircle className="w-8 h-8 text-green-600 mx-auto" />
+                  ) : (
+                    <XCircle className="w-8 h-8 text-orange-600 mx-auto" />
+                  )}
                 </div>
               </div>
-            </div>
-          </NeumorphicCard>
+            </NeumorphicCard>
+          )}
 
           {/* Scorecard Dipendenti */}
           <NeumorphicCard className="p-6">
