@@ -574,19 +574,46 @@ export default function Pulizie() {
                   </div>
                 </div>
 
-                {/* Equipment Status Grid */}
-                {inspection.analysis_status === 'completed' && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
-                    {equipment.map((eq) => {
-                      const status = inspection[`${eq.key}_corrected`]
-                        ? inspection[`${eq.key}_corrected_status`]
-                        : inspection[`${eq.key}_pulizia_status`];
+                {/* All Questions Status */}
+                {inspection.analysis_status === 'completed' && inspection.domande_risposte && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 mb-4">
+                    {inspection.domande_risposte.map((risposta, idx) => {
+                      const isFoto = risposta.tipo_controllo === 'foto';
+                      
+                      // For photo questions, use AI analysis
+                      let passed = null;
+                      if (isFoto) {
+                        const equipmentKey = risposta.attrezzatura ? risposta.attrezzatura.toLowerCase().replace(/\s+/g, '_') : null;
+                        if (equipmentKey) {
+                          const status = inspection[`${equipmentKey}_corrected`]
+                            ? inspection[`${equipmentKey}_corrected_status`]
+                            : inspection[`${equipmentKey}_pulizia_status`];
+                          passed = status === 'pulito';
+                        }
+                      } else {
+                        // For multiple choice, check if answer is correct (if risposta_corretta is defined)
+                        // Since we don't have the original question with risposta_corretta here, we'll show neutral icon
+                        passed = null;
+                      }
+                      
                       return (
-                        <div key={eq.key} className={`neumorphic-pressed p-3 rounded-lg border-2 ${getStatusColor(status)}`}>
-                          <div className="flex items-center justify-between mb-1">
-                            {getStatusIcon(status)}
+                        <div key={idx} className={`neumorphic-pressed p-2 rounded-lg text-center ${
+                          passed === true ? 'bg-green-50 border border-green-200' :
+                          passed === false ? 'bg-red-50 border border-red-200' :
+                          'bg-slate-50 border border-slate-200'
+                        }`}>
+                          <div className="flex justify-center mb-1">
+                            {passed === true ? (
+                              <CheckCircle className="w-4 h-4 text-green-600" />
+                            ) : passed === false ? (
+                              <XCircle className="w-4 h-4 text-red-600" />
+                            ) : (
+                              <ClipboardCheck className="w-4 h-4 text-slate-400" />
+                            )}
                           </div>
-                          <p className="text-xs font-medium">{eq.name}</p>
+                          <p className="text-xs font-medium text-slate-700 truncate" title={risposta.domanda_testo}>
+                            {risposta.domanda_testo?.substring(0, 20)}...
+                          </p>
                         </div>
                       );
                     })}
@@ -894,10 +921,8 @@ export default function Pulizie() {
               </div>
             )}
 
-            {/* All Form Responses + Equipment Photos with AI Analysis */}
+            {/* All Form Responses */}
             <div className="mt-6">
-              <h3 className="text-xl font-bold text-[#6b6b6b] mb-4">📋 Dettagli Completi Ispezione</h3>
-
               {detailsModalInspection.domande_risposte && detailsModalInspection.domande_risposte.length > 0 ? (
                 <div className="space-y-3">
                   {detailsModalInspection.domande_risposte.map((risposta, idx) => {

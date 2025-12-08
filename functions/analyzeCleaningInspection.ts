@@ -5,11 +5,11 @@ Deno.serve(async (req) => {
         const base44 = createClientFromRequest(req);
         
         const body = await req.json();
-        const { inspection_id, equipment_photos } = body;
+        const { inspection_id, domande_risposte } = body;
 
-        if (!inspection_id || !equipment_photos) {
+        if (!inspection_id || !domande_risposte) {
             return Response.json({ 
-                error: 'Missing inspection_id or equipment_photos'
+                error: 'Missing inspection_id or domande_risposte'
             }, { status: 400 });
         }
 
@@ -17,39 +17,39 @@ Deno.serve(async (req) => {
         const allInspections = await base44.asServiceRole.entities.CleaningInspection.list('-inspection_date', 100);
         const correctionsHistory = allInspections.filter(i => i.has_corrections === true);
 
-        const equipment = [
-            { key: 'forno', label: 'Forno' },
-            { key: 'impastatrice', label: 'Impastatrice' },
-            { key: 'tavolo_lavoro', label: 'Tavolo Lavoro' },
-            { key: 'frigo', label: 'Frigo' },
-            { key: 'cassa', label: 'Cassa' },
-            { key: 'lavandino', label: 'Lavandino' }
-        ];
+        // Get all foto-type questions from domande_risposte
+        const fotoQuestions = domande_risposte.filter(r => r.tipo_controllo === 'foto' && r.risposta);
 
         // Analyze each photo with AI
         const analysisResults = {};
+        const updateData = {
+            analysis_status: 'completed'
+        };
         
-        for (const eq of equipment) {
-            const url = equipment_photos[eq.key];
-            if (!url) continue; // Skip if no photo URL
+        for (const question of fotoQuestions) {
+            const url = question.risposta;
+            const attrezzatura = question.attrezzatura;
+            const equipmentKey = attrezzatura ? attrezzatura.toLowerCase().replace(/\s+/g, '_') : null;
+            const prompt_ai = question.prompt_ai;
             
-            {
-                // BUILD LEARNING EXAMPLES FROM CORRECTIONS
-                const relevantCorrections = correctionsHistory
-                    .filter(i => i[`${eq.key}_corrected`] === true)
-                    .slice(0, 5) // Use last 5 corrections
-                    .map(i => ({
-                        ai_said: i[`${eq.key}_pulizia_status`],
-                        correct_answer: i[`${eq.key}_corrected_status`],
-                        user_note: i[`${eq.key}_correction_note`],
-                        ai_note: i[`${eq.key}_note_ai`]
-                    }));
+            if (!url || !equipmentKey) continue;
+            
+            // BUILD LEARNING EXAMPLES FROM CORRECTIONS
+            const relevantCorrections = correctionsHistory
+                .filter(i => i[`${equipmentKey}_corrected`] === true)
+                .slice(0, 5)
+                .map(i => ({
+                    ai_said: i[`${equipmentKey}_pulizia_status`],
+                    correct_answer: i[`${equipmentKey}_corrected_status`],
+                    user_note: i[`${equipmentKey}_correction_note`],
+                    ai_note: i[`${equipmentKey}_note_ai`]
+                }));
 
-                // BUILD ENHANCED PROMPT WITH LEARNING
-                let learningSection = '';
-                if (relevantCorrections.length > 0) {
-                    learningSection = `\n\n🎓 ESEMPI DI APPRENDIMENTO (da correzioni precedenti):
-Questi sono esempi reali di come hai corretto l'AI in passato per ${eq.label}. Usa questi esempi per migliorare la tua valutazione.
+            // BUILD ENHANCED PROMPT WITH LEARNING
+            let learningSection = '';
+            if (relevantCorrections.length > 0) {
+                learningSection = `\n\n🎓 ESEMPI DI APPRENDIMENTO (da correzioni precedenti):
+Questi sono esempi reali di come hai corretto l'AI in passato per ${attrezzatura}. Usa questi esempi per migliorare la tua valutazione.
 
 ${relevantCorrections.map((c, idx) => `
 Esempio ${idx + 1}:
@@ -60,9 +60,10 @@ Esempio ${idx + 1}:
 `).join('\n')}
 
 ⚠️ IMPORTANTE: Impara da questi esempi! Se vedi situazioni simili, applica gli stessi criteri di valutazione.`;
-                }
+            }
 
-                const prompt = `Analizza questa foto di ${eq.label} in una pizzeria e valuta lo stato di pulizia.
+            // Use custom prompt if provided, otherwise use default
+            const finalPrompt = prompt_ai || `Analizza questa foto di ${attrezzatura} in una pizzeria e valuta lo stato di pulizia.
 ${learningSection}
 
 Rispondi in formato JSON con questa struttura esatta:
@@ -82,61 +83,51 @@ IMPORTANTE: Nelle note, specifica sempre la POSIZIONE ESATTA dello sporco (es. "
 
 Sii molto critico e attento ai dettagli di igiene in una cucina professionale. ${relevantCorrections.length > 0 ? 'APPLICA GLI INSEGNAMENTI dagli esempi sopra!' : ''}`;
 
-                try {
-                    const aiResponse = await base44.integrations.Core.InvokeLLM({
-                        prompt,
-                        file_urls: [url],
-                        response_json_schema: {
-                            type: "object",
-                            properties: {
-                                pulizia_status: { type: "string" },
-                                note: { type: "string" },
-                                problemi_critici: { type: "array", items: { type: "string" } }
-                            }
+            try {
+                const aiResponse = await base44.integrations.Core.InvokeLLM({
+                    prompt: finalPrompt,
+                    file_urls: [url],
+                    response_json_schema: {
+                        type: "object",
+                        properties: {
+                            pulizia_status: { type: "string" },
+                            note: { type: "string" },
+                            problemi_critici: { type: "array", items: { type: "string" } }
                         }
-                    });
+                    }
+                });
 
-                    analysisResults[eq.key] = aiResponse;
-                } catch (aiError) {
-                    console.error(`Error analyzing ${eq.key}:`, aiError);
-                    analysisResults[eq.key] = {
-                        pulizia_status: 'non_valutabile',
-                        note: 'Errore durante l\'analisi: ' + aiError.message,
-                        problemi_critici: []
-                    };
-                }
-            // Removed unnecessary closing brace
+                analysisResults[equipmentKey] = aiResponse;
+                updateData[`${equipmentKey}_pulizia_status`] = aiResponse.pulizia_status;
+                updateData[`${equipmentKey}_note_ai`] = aiResponse.note;
+            } catch (aiError) {
+                console.error(`Error analyzing ${equipmentKey}:`, aiError);
+                analysisResults[equipmentKey] = {
+                    pulizia_status: 'non_valutabile',
+                    note: 'Errore durante l\'analisi: ' + aiError.message,
+                    problemi_critici: []
+                };
+                updateData[`${equipmentKey}_pulizia_status`] = 'non_valutabile';
+                updateData[`${equipmentKey}_note_ai`] = 'Errore: ' + aiError.message;
+            }
         }
 
         // Calculate overall score (only from analyzed photos)
         const statusScores = { pulito: 100, medio: 50, sporco: 0, non_valutabile: 50 };
-        const analyzedEquipment = equipment.filter(eq => analysisResults[eq.key]);
-        const scores = analyzedEquipment.map(eq => statusScores[analysisResults[eq.key]?.pulizia_status] || 50);
+        const analyzedKeys = Object.keys(analysisResults);
+        const scores = analyzedKeys.map(key => statusScores[analysisResults[key]?.pulizia_status] || 50);
         const overallScore = scores.length > 0 
             ? Math.round(scores.reduce((sum, s) => sum + s, 0) / scores.length)
             : 0;
 
         // Collect critical issues
-        const allCriticalIssues = equipment
-            .map(eq => analysisResults[eq.key]?.problemi_critici || [])
+        const allCriticalIssues = analyzedKeys
+            .map(key => analysisResults[key]?.problemi_critici || [])
             .flat()
             .filter(Boolean);
 
-        // Update inspection record
-        const updateData = {
-            analysis_status: 'completed',
-            overall_score: overallScore,
-            critical_issues: allCriticalIssues.length > 0 ? allCriticalIssues.join('; ') : null
-        };
-
-        // Add all equipment analysis results
-        equipment.forEach(eq => {
-            const result = analysisResults[eq.key];
-            if (result) {
-                updateData[`${eq.key}_pulizia_status`] = result.pulizia_status;
-                updateData[`${eq.key}_note_ai`] = result.note;
-            }
-        });
+        updateData.overall_score = overallScore;
+        updateData.critical_issues = allCriticalIssues.length > 0 ? allCriticalIssues.join('; ') : null;
 
         await base44.asServiceRole.entities.CleaningInspection.update(inspection_id, updateData);
 
