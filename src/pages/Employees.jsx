@@ -912,16 +912,22 @@ export default function Employees() {
                 <h4 className="text-sm font-bold text-blue-800 mb-2">Dettaglio Calcolo Punteggio</h4>
                 <div className="text-xs text-blue-800 space-y-1">
                   <p><strong>Base:</strong> 100 punti</p>
-                  <p className="text-red-600"><strong>- Ordini Sbagliati:</strong> {selectedEmployee.wrongOrders} × {selectedEmployee.weights.w_ordini} = -{(selectedEmployee.wrongOrders * selectedEmployee.weights.w_ordini).toFixed(1)}</p>
-                  <p className="text-red-600"><strong>- Ritardi:</strong> {selectedEmployee.numeroRitardi} × {selectedEmployee.weights.w_ritardi} = -{(selectedEmployee.numeroRitardi * selectedEmployee.weights.w_ritardi).toFixed(1)}</p>
-                  <p className="text-red-600"><strong>- Timbrature Mancate:</strong> {selectedEmployee.numeroTimbratureMancate} × {selectedEmployee.weights.w_timbrature} = -{(selectedEmployee.numeroTimbratureMancate * selectedEmployee.weights.w_timbrature).toFixed(1)}</p>
-                  {selectedEmployee.googleReviewCount > 0 && selectedEmployee.avgGoogleRating < 5 && (
+                  {selectedEmployee.weights.w_ordini > 0 && (
+                    <p className="text-red-600"><strong>- Ordini Sbagliati:</strong> {selectedEmployee.wrongOrders} × {selectedEmployee.weights.w_ordini} = -{(selectedEmployee.wrongOrders * selectedEmployee.weights.w_ordini).toFixed(1)}</p>
+                  )}
+                  {selectedEmployee.weights.w_ritardi > 0 && (
+                    <p className="text-red-600"><strong>- Ritardi:</strong> {selectedEmployee.numeroRitardi} × {selectedEmployee.weights.w_ritardi} = -{(selectedEmployee.numeroRitardi * selectedEmployee.weights.w_ritardi).toFixed(1)}</p>
+                  )}
+                  {selectedEmployee.weights.w_timbrature > 0 && (
+                    <p className="text-red-600"><strong>- Timbrature Mancate:</strong> {selectedEmployee.numeroTimbratureMancate} × {selectedEmployee.weights.w_timbrature} = -{(selectedEmployee.numeroTimbratureMancate * selectedEmployee.weights.w_timbrature).toFixed(1)}</p>
+                  )}
+                  {selectedEmployee.weights.w_punteggio_recensioni > 0 && selectedEmployee.googleReviewCount > 0 && selectedEmployee.avgGoogleRating < 5 && (
                     <p className="text-red-600"><strong>- Media Recensioni &lt; 5:</strong> (5 - {selectedEmployee.avgGoogleRating.toFixed(1)}) × {selectedEmployee.weights.w_punteggio_recensioni} = -{((5 - selectedEmployee.avgGoogleRating) * selectedEmployee.weights.w_punteggio_recensioni).toFixed(1)}</p>
                   )}
-                  {selectedEmployee.googleReviewCount > 0 && (
+                  {selectedEmployee.weights.w_num_recensioni > 0 && selectedEmployee.googleReviewCount > 0 && (
                     <p className="text-green-600"><strong>+ Bonus Recensioni:</strong> min({selectedEmployee.googleReviewCount} × {selectedEmployee.weights.w_num_recensioni}, 5) = +{Math.min(selectedEmployee.googleReviewCount * selectedEmployee.weights.w_num_recensioni, 5).toFixed(1)}</p>
                   )}
-                  {(() => {
+                  {selectedEmployee.weights.w_pulizie > 0 && (() => {
                     const cleaningData = getCleaningScoreForEmployee(selectedEmployee.full_name);
                     if (cleaningData.count > 0) {
                       if (cleaningData.avgScore < 80) {
@@ -931,12 +937,12 @@ export default function Employees() {
                         );
                       } else {
                         return (
-                          <p className="text-green-600"><strong>✓ Pulizie OK:</strong> Score {cleaningData.avgScore.toFixed(1)} ≥ 80 (nessuna penalità)</p>
+                          <p className="text-green-600"><strong>✓ Pulizie OK:</strong> Score {cleaningData.avgScore.toFixed(1)} ≥ 80 (peso {selectedEmployee.weights.w_pulizie}, nessuna penalità)</p>
                         );
                       }
                     } else {
                       return (
-                        <p className="text-slate-500"><strong>Pulizie:</strong> Nessun controllo assegnato</p>
+                        <p className="text-slate-500"><strong>Pulizie:</strong> Nessun controllo (peso {selectedEmployee.weights.w_pulizie})</p>
                       );
                     }
                   })()}
