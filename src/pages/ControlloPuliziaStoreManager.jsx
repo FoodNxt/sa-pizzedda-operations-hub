@@ -154,7 +154,8 @@ export default function ControlloPuliziaStoreManager() {
           domanda_testo: d.domanda_testo || (d.tipo_controllo === 'foto' ? `Foto: ${d.attrezzatura}` : d.testo_domanda),
           tipo_controllo: d.tipo_controllo,
           risposta: d.tipo_controllo === 'foto' ? uploadedUrls[d.id] : risposte[d.id],
-          attrezzatura: d.attrezzatura
+          attrezzatura: d.attrezzatura,
+          prompt_ai: d.prompt_ai
         }))
       };
 
@@ -173,7 +174,7 @@ export default function ControlloPuliziaStoreManager() {
 
       base44.functions.invoke('analyzeCleaningInspection', {
         inspection_id: inspection.id,
-        equipment_photos: equipmentPhotos
+        domande_risposte: inspectionData.domande_risposte
       }).catch(error => {
         console.error('Error starting AI analysis:', error);
       });
