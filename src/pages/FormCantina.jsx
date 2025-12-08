@@ -292,7 +292,7 @@ export default function FormCantina() {
                       <div className="md:col-span-1">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">
-                            <h3 className="font-bold text-[#6b6b6b]">{product.nome_prodotto}</h3>
+                            <h3 className="font-bold text-[#6b6b6b]">{product.nome_interno || product.nome_prodotto}</h3>
                             <p className="text-sm text-[#9b9b9b]">
                               Min: {product.quantita_minima} {product.unita_misura}
                             </p>
