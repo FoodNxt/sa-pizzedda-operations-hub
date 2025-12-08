@@ -1927,6 +1927,11 @@ export default function Planday() {
                                   {turno.dipendente_nome && (
                                     <div className="truncate text-[10px] font-bold">{turno.dipendente_nome}</div>
                                   )}
+                                  {turno.is_prova && (
+                                    <div className="text-[8px] px-1 bg-purple-500 bg-opacity-60 rounded mt-0.5">
+                                      🧪 PROVA
+                                    </div>
+                                  )}
                                   {!selectedStore && (
                                     <div className="truncate text-[9px] opacity-80">{getStoreName(turno.store_id)}</div>
                                   )}

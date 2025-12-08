@@ -244,6 +244,11 @@ export default function PlandayStoreView({
                       {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
                         <div className="text-[9px] font-bold mt-0.5">{turno.tipo_turno}</div>
                       )}
+                      {turno.is_prova && (
+                        <div className="text-[8px] px-1 bg-purple-500 bg-opacity-60 rounded mt-0.5">
+                          🧪 PROVA
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -294,6 +299,11 @@ export default function PlandayStoreView({
                         <div>{turno.ora_inizio} - {turno.ora_fine}</div>
                         {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
                           <div className="text-[9px] font-bold mt-0.5">{turno.tipo_turno}</div>
+                        )}
+                        {turno.is_prova && (
+                          <div className="text-[8px] px-1 bg-purple-500 bg-opacity-60 rounded mt-0.5">
+                            🧪 PROVA
+                          </div>
                         )}
                         {!selectedStore && turno.store_id && <div className="opacity-80 text-[10px]">{getStoreName(turno.store_id)}</div>}
                         {/* Form + Attività */}

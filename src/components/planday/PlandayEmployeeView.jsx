@@ -187,6 +187,11 @@ export default function PlandayEmployeeView({
                        {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
                          <div className="text-[9px] font-bold">{turno.tipo_turno}</div>
                        )}
+                       {turno.is_prova && (
+                         <div className="text-[8px] px-1 bg-purple-500 bg-opacity-60 rounded mt-0.5">
+                           🧪 PROVA
+                         </div>
+                       )}
                        <div className="opacity-80 text-[10px]">{getStoreName(turno.store_id)}</div>
                         {/* Form + Attività */}
                         {(() => {
@@ -231,6 +236,9 @@ export default function PlandayEmployeeView({
                             {turno.ora_inizio}-{turno.ora_fine}
                             {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
                               <span className="text-[7px] ml-0.5">({turno.tipo_turno})</span>
+                            )}
+                            {turno.is_prova && (
+                              <span className="text-[7px] ml-0.5 bg-purple-500 bg-opacity-60 px-0.5 rounded">🧪</span>
                             )}
                           </div>
                         ))}
