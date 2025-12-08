@@ -50,6 +50,11 @@ export default function Pulizie() {
     queryFn: () => base44.entities.ControlloSMConfig.list(),
   });
 
+  const { data: cleaningQuestions = [] } = useQuery({
+    queryKey: ['cleaning-questions'],
+    queryFn: () => base44.entities.DomandaPulizia.list('ordine'),
+  });
+
   const currentConfig = smConfigs[0];
 
   // Filter inspections for dipendenti (Cassiere/Pizzaiolo)
