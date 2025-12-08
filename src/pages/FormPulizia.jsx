@@ -455,24 +455,7 @@ export default function FormPulizia() {
                       </>
                     )}
 
-                    <div>
-                      <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                        Attrezzatura Associata (opzionale)
-                      </label>
-                      <select
-                        value={questionForm.attrezzatura}
-                        onChange={(e) => setQuestionForm({ ...questionForm, attrezzatura: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                      >
-                        <option value="">Nessuna attrezzatura associata</option>
-                        {attrezzature.map(attr => (
-                          <option key={attr.id} value={attr.nome}>{attr.nome}</option>
-                        ))}
-                      </select>
-                      <p className="text-xs text-slate-500 mt-1">
-                        Opzionale: associa la domanda ad un'attrezzatura
-                      </p>
-                    </div>
+
 
                     {questionForm.tipo_controllo === 'scelta_multipla' && (
                       <>
