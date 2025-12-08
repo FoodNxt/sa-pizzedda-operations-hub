@@ -387,7 +387,7 @@ export default function DashboardStoreManager() {
 
           {/* Recensioni */}
           {metrics.target?.metriche_attive?.includes('recensioni_media') && (
-            <NeumorphicCard className="p-6 cursor-pointer hover:shadow-lg transition-all" onClick={() => setShowDetailModal('reviews')}>
+            <NeumorphicCard className="p-6 cursor-pointer hover:shadow-lg transition-all" onClick={(e) => { e.stopPropagation(); setShowDetailModal('reviews'); }}>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <Star className="w-6 h-6 text-yellow-500" />
@@ -428,7 +428,7 @@ export default function DashboardStoreManager() {
 
           {/* Ordini Sbagliati */}
           {metrics.target?.metriche_attive?.includes('ordini_sbagliati') && (
-            <NeumorphicCard className="p-6 cursor-pointer hover:shadow-lg transition-all" onClick={() => setShowDetailModal('wrongOrders')}>
+            <NeumorphicCard className="p-6 cursor-pointer hover:shadow-lg transition-all" onClick={(e) => { e.stopPropagation(); setShowDetailModal('wrongOrders'); }}>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <AlertTriangle className="w-6 h-6 text-red-600" />
@@ -465,7 +465,7 @@ export default function DashboardStoreManager() {
 
           {/* Ritardi */}
           {metrics.target?.metriche_attive?.includes('ritardi') && (
-            <NeumorphicCard className="p-6 cursor-pointer hover:shadow-lg transition-all" onClick={() => setShowDetailModal('delays')}>
+            <NeumorphicCard className="p-6 cursor-pointer hover:shadow-lg transition-all" onClick={(e) => { e.stopPropagation(); setShowDetailModal('delays'); }}>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <Clock className="w-6 h-6 text-blue-600" />
@@ -503,7 +503,7 @@ export default function DashboardStoreManager() {
 
           {/* Pulizie */}
           {metrics.target?.metriche_attive?.includes('pulizie') && (
-            <NeumorphicCard className="p-6 cursor-pointer hover:shadow-lg transition-all" onClick={() => setShowDetailModal('cleanings')}>
+            <NeumorphicCard className="p-6 cursor-pointer hover:shadow-lg transition-all" onClick={(e) => { e.stopPropagation(); setShowDetailModal('cleanings'); }}>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <Sparkles className="w-6 h-6 text-cyan-600" />

@@ -30,8 +30,8 @@ export default function MappaLocaleCanvas({
     if (!drawingMode || !canvasRef.current) return;
     
     const rect = canvasRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / zoom / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / zoom / rect.height) * 100;
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
     
     setCurrentLine({ x1: x, y1: y, x2: x, y2: y });
   };
@@ -39,8 +39,8 @@ export default function MappaLocaleCanvas({
   const handleMouseMove = (e) => {
     if (!canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / zoom / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / zoom / rect.height) * 100;
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
 
     if (draggingId) {
       const updatedPosizioni = posizioniAttrezzature.map(pos => 
@@ -168,12 +168,11 @@ export default function MappaLocaleCanvas({
             src={backgroundImage} 
             alt="Background" 
             className="absolute inset-0 w-full h-full object-contain opacity-30 pointer-events-none"
-            style={{ transform: `scale(${zoom})` }}
           />
         )}
 
         {/* Linee disegnate */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ transform: `scale(${zoom})` }}>
+        <svg className="absolute inset-0 w-full h-full pointer-events-none">
           {(linee || []).map((line, idx) => (
             <line
               key={idx}
@@ -215,7 +214,7 @@ export default function MappaLocaleCanvas({
                 top: `${pos.y}%`,
                 width: `${width}%`,
                 height: `${height}%`,
-                transform: `translate(-50%, -50%) scale(${zoom})`,
+                transform: `translate(-50%, -50%)`,
                 zIndex: draggingId === pos.attrezzatura_id || resizingId === pos.attrezzatura_id ? 1000 : 1,
                 minWidth: '40px',
                 minHeight: '40px'

@@ -923,10 +923,20 @@ export default function Employees() {
                   )}
                   {(() => {
                     const cleaningData = getCleaningScoreForEmployee(selectedEmployee.full_name);
-                    if (cleaningData.count > 0 && cleaningData.avgScore < 80) {
-                      const penalty = (80 - cleaningData.avgScore) * selectedEmployee.weights.w_pulizie * 0.1;
+                    if (cleaningData.count > 0) {
+                      if (cleaningData.avgScore < 80) {
+                        const penalty = (80 - cleaningData.avgScore) * selectedEmployee.weights.w_pulizie * 0.1;
+                        return (
+                          <p className="text-red-600"><strong>- Pulizie &lt; 80:</strong> (80 - {cleaningData.avgScore.toFixed(1)}) × {selectedEmployee.weights.w_pulizie} × 0.1 = -{penalty.toFixed(1)}</p>
+                        );
+                      } else {
+                        return (
+                          <p className="text-green-600"><strong>✓ Pulizie OK:</strong> Score {cleaningData.avgScore.toFixed(1)} ≥ 80 (nessuna penalità)</p>
+                        );
+                      }
+                    } else {
                       return (
-                        <p className="text-red-600"><strong>- Pulizie &lt; 80:</strong> (80 - {cleaningData.avgScore.toFixed(1)}) × {selectedEmployee.weights.w_pulizie} × 0.1 = -{penalty.toFixed(1)}</p>
+                        <p className="text-slate-500"><strong>Pulizie:</strong> Nessun controllo assegnato</p>
                       );
                     }
                   })()}
