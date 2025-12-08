@@ -12,9 +12,12 @@ import {
   Crown,
   Navigation,
   Settings,
-  Clock
+  Clock,
+  Map
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 
 export default function HRAdmin() {
   const [editingUserId, setEditingUserId] = useState(null);
@@ -29,6 +32,7 @@ export default function HRAdmin() {
   const [geocodingStore, setGeocodingStore] = useState(null);
   const [gpsLocations, setGpsLocations] = useState({});
   const [editingGps, setEditingGps] = useState(null);
+  const [showMapModal, setShowMapModal] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -291,6 +295,13 @@ export default function HRAdmin() {
                   <div className="flex gap-2">
                     {!isEditing && (
                       <>
+                        <button
+                          onClick={() => setShowMapModal(store)}
+                          className="text-green-600 hover:text-green-800"
+                          title="Apri mappa"
+                        >
+                          <Map className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => geocodeAddress(store.id)}
                           disabled={isGeocoding}
@@ -557,6 +568,94 @@ export default function HRAdmin() {
           </div>
         )}
       </NeumorphicCard>
+
+      {/* Map Modal */}
+      {showMapModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <NeumorphicCard className="p-6 max-w-4xl w-full">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">{showMapModal.name}</h2>
+                <p className="text-sm text-slate-500">Clicca sulla mappa per posizionare il marker</p>
+              </div>
+              <button onClick={() => setShowMapModal(null)} className="nav-button p-2 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="h-[500px] rounded-xl overflow-hidden mb-4">
+              <MapSelector
+                initialPosition={
+                  gpsLocations[showMapModal.id] 
+                    ? [gpsLocations[showMapModal.id].latitude, gpsLocations[showMapModal.id].longitude]
+                    : [45.4642, 9.1900] // Default Milano
+                }
+                onPositionChange={(lat, lng) => {
+                  setGpsLocations(prev => ({
+                    ...prev,
+                    [showMapModal.id]: { latitude: lat, longitude: lng }
+                  }));
+                }}
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <NeumorphicButton onClick={() => setShowMapModal(null)} className="flex-1">
+                Annulla
+              </NeumorphicButton>
+              <NeumorphicButton
+                onClick={() => {
+                  const coords = gpsLocations[showMapModal.id];
+                  if (coords) {
+                    saveGpsLocationMutation.mutate({
+                      storeId: showMapModal.id,
+                      latitude: coords.latitude,
+                      longitude: coords.longitude
+                    });
+                    setShowMapModal(null);
+                  }
+                }}
+                variant="primary"
+                className="flex-1 flex items-center justify-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                Salva Posizione
+              </NeumorphicButton>
+            </div>
+          </NeumorphicCard>
+        </div>
+      )}
     </div>
+  );
+}
+
+function MapSelector({ initialPosition, onPositionChange }) {
+  const [position, setPosition] = useState(initialPosition);
+
+  function LocationMarker() {
+    useMapEvents({
+      click(e) {
+        const { lat, lng } = e.latlng;
+        setPosition([lat, lng]);
+        onPositionChange(lat, lng);
+      },
+    });
+
+    return position ? <Marker position={position} /> : null;
+  }
+
+  return (
+    <MapContainer
+      center={position}
+      zoom={15}
+      style={{ height: '100%', width: '100%' }}
+      key={`${position[0]}-${position[1]}`}
+    >
+      <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
+      <LocationMarker />
+    </MapContainer>
   );
 }

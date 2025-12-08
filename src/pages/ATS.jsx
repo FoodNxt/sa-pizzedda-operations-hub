@@ -29,6 +29,7 @@ export default function ATS() {
   const [valutazioneConfig, setValutazioneConfig] = useState({ domande: [] });
   const [newDomanda, setNewDomanda] = useState({ testo: '', opzioni: ['', '', '', ''], obbligatoria: true });
   const [expandedValutazione, setExpandedValutazione] = useState(null);
+  const [provaCustomTime, setProvaCustomTime] = useState({ ora_inizio: '', ora_fine: '' });
   const [formData, setFormData] = useState({
     nome: "",
     cognome: "",
@@ -186,21 +187,14 @@ export default function ATS() {
       const dipendente = users.find(u => u.id === turno.dipendente_id);
       const nomeCompleto = `${candidato.nome} ${candidato.cognome}`;
       
-      // Create trial shift in Planday
-      await base44.entities.TurnoPlanday.create({
-        store_id: turno.store_id,
-        data: turno.data,
-        ora_inizio: turno.ora_inizio,
-        ora_fine: turno.ora_fine,
-        ruolo: candidato.posizione || turno.ruolo,
-        tipo_turno: 'Prova',
-        momento_turno: turno.momento_turno,
-        turno_sequence: turno.turno_sequence,
-        stato: 'programmato',
+      const oraInizio = provaCustomTime.ora_inizio || turno.ora_inizio;
+      const oraFine = provaCustomTime.ora_fine || turno.ora_fine;
+      
+      // Update existing turno to mark it as prova
+      await base44.entities.TurnoPlanday.update(turno.id, {
         is_prova: true,
         candidato_id: candidato.id,
-        dipendente_nome: nomeCompleto,
-        note: `Turno di prova con ${dipendente?.nome_cognome || dipendente?.full_name || ''}`
+        note: `${turno.note || ''}\n🧪 PROVA: ${nomeCompleto} ${oraInizio}-${oraFine}`.trim()
       });
       
       // Update candidato
@@ -209,8 +203,8 @@ export default function ATS() {
         data: { 
           stato: 'prova_programmata',
           prova_data: turno.data,
-          prova_ora_inizio: turno.ora_inizio,
-          prova_ora_fine: turno.ora_fine,
+          prova_ora_inizio: oraInizio,
+          prova_ora_fine: oraFine,
           prova_store_id: turno.store_id,
           prova_dipendente_id: turno.dipendente_id,
           prova_dipendente_nome: dipendente?.nome_cognome || dipendente?.full_name || ''
@@ -218,11 +212,12 @@ export default function ATS() {
       });
       
       setShowProvaModal(null);
+      setProvaCustomTime({ ora_inizio: '', ora_fine: '' });
       queryClient.invalidateQueries({ queryKey: ['turni-planday-ats'] });
-      alert(`Prova programmata per il ${moment(turno.data).format('DD/MM/YYYY')} dalle ${turno.ora_inizio} alle ${turno.ora_fine}`);
+      alert(`✅ Prova programmata per il ${moment(turno.data).format('DD/MM/YYYY')} dalle ${oraInizio} alle ${oraFine}`);
     } catch (error) {
       console.error('Error creating trial shift:', error);
-      alert('Errore nella programmazione della prova');
+      alert('❌ Errore nella programmazione della prova');
     }
   };
 
@@ -552,10 +547,10 @@ export default function ATS() {
                               <div className="mb-3 p-2 bg-purple-50 rounded-lg text-xs">
                                 <p className="font-bold text-purple-800 mb-1">📅 Dettagli Prova:</p>
                                 <div className="space-y-0.5 text-purple-700">
-                                  <p><Calendar className="w-3 h-3 inline mr-1" />{moment(candidato.prova_data).format('ddd DD MMM YYYY')}</p>
-                                  <p><Clock className="w-3 h-3 inline mr-1" />{candidato.prova_ora_inizio} - {candidato.prova_ora_fine}</p>
-                                  <p><Store className="w-3 h-3 inline mr-1" />{getStoreName(candidato.prova_store_id)}</p>
-                                  <p><User className="w-3 h-3 inline mr-1" />Con: {candidato.prova_dipendente_nome}</p>
+                                  <p className="flex items-center gap-1"><Calendar className="w-3 h-3 flex-shrink-0" /><span className="break-words">{moment(candidato.prova_data).format('ddd DD MMM YYYY')}</span></p>
+                                  <p className="flex items-center gap-1"><Clock className="w-3 h-3 flex-shrink-0" /><span className="break-words">{candidato.prova_ora_inizio} - {candidato.prova_ora_fine}</span></p>
+                                  <p className="flex items-center gap-1"><Store className="w-3 h-3 flex-shrink-0" /><span className="break-words">{getStoreName(candidato.prova_store_id)}</span></p>
+                                  <p className="flex items-center gap-1"><User className="w-3 h-3 flex-shrink-0" /><span className="break-words">Con: {candidato.prova_dipendente_nome}</span></p>
                                 </div>
                               </div>
                             )}
@@ -839,6 +834,36 @@ export default function ATS() {
                 </p>
               </div>
 
+              <div className="mb-4 neumorphic-pressed p-4 rounded-xl">
+                <h3 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Orario Prova (opzionale)
+                </h3>
+                <p className="text-xs text-slate-500 mb-3">
+                  Lascia vuoto per usare l'orario del turno del dipendente
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-slate-700 mb-1 block">Ora Inizio</label>
+                    <input
+                      type="time"
+                      value={provaCustomTime.ora_inizio}
+                      onChange={(e) => setProvaCustomTime({ ...provaCustomTime, ora_inizio: e.target.value })}
+                      className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-slate-700 mb-1 block">Ora Fine</label>
+                    <input
+                      type="time"
+                      value={provaCustomTime.ora_fine}
+                      onChange={(e) => setProvaCustomTime({ ...provaCustomTime, ora_fine: e.target.value })}
+                      className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <h3 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
                 <User className="w-4 h-4" />
                 Turni disponibili con dipendenti abilitati
@@ -865,11 +890,11 @@ export default function ATS() {
                         key={turno.id} 
                         className="neumorphic-pressed p-3 rounded-lg flex items-center justify-between hover:bg-blue-50 transition-colors"
                       >
-                        <div>
+                        <div className="flex-1 min-w-0 pr-3">
                           <p className="font-medium text-slate-800">
                             {moment(turno.data).format('ddd DD MMM YYYY')}
                           </p>
-                          <div className="flex items-center gap-3 text-sm text-slate-600">
+                          <div className="flex items-center gap-3 text-sm text-slate-600 flex-wrap">
                             <span className="flex items-center gap-1">
                               <Clock className="w-3 h-3" />
                               {turno.ora_inizio} - {turno.ora_fine}
@@ -880,7 +905,7 @@ export default function ATS() {
                             </span>
                           </div>
                           {turno.dipendente && (
-                            <p className="text-xs text-purple-600 mt-1">
+                            <p className="text-xs text-purple-600 mt-1 truncate">
                               👤 Con: {turno.dipendente.nome_cognome || turno.dipendente.full_name}
                             </p>
                           )}
@@ -888,7 +913,7 @@ export default function ATS() {
                         <NeumorphicButton
                           onClick={() => handleSelectProva(showProvaModal, turno)}
                           variant="primary"
-                          className="text-xs px-3 py-1"
+                          className="text-xs px-3 py-1 flex-shrink-0"
                         >
                           Seleziona
                         </NeumorphicButton>
