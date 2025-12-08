@@ -12,7 +12,7 @@ export default function Attrezzature() {
   const [formData, setFormData] = useState({
     nome: '',
     stores_assegnati: [],
-    ruolo_responsabile: '',
+    ruoli_responsabili: [],
     attivo: true
   });
 
@@ -57,7 +57,7 @@ export default function Attrezzature() {
     setFormData({
       nome: '',
       stores_assegnati: [],
-      ruolo_responsabile: '',
+      ruoli_responsabili: [],
       attivo: true
     });
     setEditingAttrezzatura(null);
@@ -69,7 +69,7 @@ export default function Attrezzature() {
     setFormData({
       nome: attrezzatura.nome || '',
       stores_assegnati: attrezzatura.stores_assegnati || [],
-      ruolo_responsabile: attrezzatura.ruolo_responsabile || '',
+      ruoli_responsabili: attrezzatura.ruoli_responsabili || (attrezzatura.ruolo_responsabile ? [attrezzatura.ruolo_responsabile] : []),
       attivo: attrezzatura.attivo !== false
     });
     setShowForm(true);
@@ -160,10 +160,12 @@ export default function Attrezzature() {
                           ))
                         )}
                       </div>
-                      {attrezzatura.ruolo_responsabile && (
+                      {((attrezzatura.ruoli_responsabili && attrezzatura.ruoli_responsabili.length > 0) || attrezzatura.ruolo_responsabile) && (
                         <div className="flex items-center gap-1 text-sm text-[#8b7355]">
                           <User className="w-4 h-4" />
-                          <span>Responsabile: <strong>{attrezzatura.ruolo_responsabile}</strong></span>
+                          <span>Responsabili: <strong>{
+                            (attrezzatura.ruoli_responsabili || (attrezzatura.ruolo_responsabile ? [attrezzatura.ruolo_responsabile] : [])).join(', ')
+                          }</strong></span>
                         </div>
                       )}
                     </div>
@@ -247,18 +249,32 @@ export default function Attrezzature() {
                   <div>
                     <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
                       <User className="w-4 h-4 inline mr-1" />
-                      Ruolo Responsabile Pulizia
+                      Ruoli Responsabili Pulizia
                     </label>
-                    <select
-                      value={formData.ruolo_responsabile}
-                      onChange={(e) => setFormData({ ...formData, ruolo_responsabile: e.target.value })}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                    >
-                      <option value="">Nessun ruolo responsabile</option>
-                      <option value="Pizzaiolo">Pizzaiolo</option>
-                      <option value="Cassiere">Cassiere</option>
-                      <option value="Store Manager">Store Manager</option>
-                    </select>
+                    <div className="flex flex-wrap gap-2">
+                      {['Pizzaiolo', 'Cassiere', 'Store Manager'].map(ruolo => (
+                        <button
+                          key={ruolo}
+                          type="button"
+                          onClick={() => {
+                            const current = formData.ruoli_responsabili || [];
+                            if (current.includes(ruolo)) {
+                              setFormData({ ...formData, ruoli_responsabili: current.filter(r => r !== ruolo) });
+                            } else {
+                              setFormData({ ...formData, ruoli_responsabili: [...current, ruolo] });
+                            }
+                          }}
+                          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                            (formData.ruoli_responsabili || []).includes(ruolo)
+                              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                              : 'neumorphic-flat text-[#6b6b6b]'
+                          }`}
+                        >
+                          {ruolo}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">Seleziona uno o più ruoli responsabili della pulizia</p>
                   </div>
 
                   <div className="flex items-center gap-3">
