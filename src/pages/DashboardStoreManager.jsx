@@ -363,7 +363,17 @@ export default function DashboardStoreManager() {
               </div>
 
               {/* Overview Metriche Attive */}
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3" style={{ 
+                gridTemplateColumns: window.innerWidth >= 1024 ? `repeat(${metrics.target.metriche_attive?.filter(m => {
+                  if (m === 'fatturato' && metrics.target.target_fatturato) return true;
+                  if (m === 'recensioni_media' && metrics.target.target_recensioni_media) return true;
+                  if (m === 'num_recensioni' && metrics.target.target_num_recensioni) return true;
+                  if (m === 'ordini_sbagliati' && metrics.target.target_ordini_sbagliati_max !== undefined) return true;
+                  if (m === 'ritardi' && metrics.target.target_ritardi_max_minuti !== undefined) return true;
+                  if (m === 'pulizie' && metrics.target.target_pulizie_min_score) return true;
+                  return false;
+                }).length || 6}, minmax(0, 1fr))` : undefined
+              }}>
                 {metrics.target.metriche_attive?.includes('fatturato') && metrics.target.target_fatturato && (
                   <div className="neumorphic-flat p-3 rounded-xl text-center">
                     <DollarSign className="w-5 h-5 text-green-600 mx-auto mb-1" />
@@ -833,20 +843,28 @@ export default function DashboardStoreManager() {
                 ) : (
                   metrics.monthReviews.map(review => (
                     <div key={review.id} className="neumorphic-pressed p-4 rounded-xl">
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-                          <span className="font-bold text-slate-800">{review.rating}/5</span>
+                          <span className="font-bold text-slate-800 text-lg">{review.rating}/5</span>
                         </div>
                         <span className="text-xs text-slate-500">
                           {new Date(review.review_date).toLocaleDateString('it-IT')}
                         </span>
                       </div>
                       {review.review_text && (
-                        <p className="text-sm text-slate-600">{review.review_text}</p>
+                        <div className="bg-slate-50 p-3 rounded-lg mb-2">
+                          <p className="text-sm text-slate-700 italic">"{review.review_text}"</p>
+                        </div>
                       )}
                       {review.employee_assigned_name && (
-                        <p className="text-xs text-slate-500 mt-2">👤 {review.employee_assigned_name}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-xs font-medium text-slate-500">Assegnata a:</span>
+                          <span className="text-xs font-bold text-slate-700">{review.employee_assigned_name}</span>
+                        </div>
+                      )}
+                      {!review.review_text && !review.employee_assigned_name && (
+                        <p className="text-xs text-slate-400 italic">Nessun dettaglio aggiuntivo</p>
                       )}
                     </div>
                   ))
