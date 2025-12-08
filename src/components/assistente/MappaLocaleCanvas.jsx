@@ -150,12 +150,12 @@ export default function MappaLocaleCanvas({
       {/* Canvas */}
       <div 
         ref={canvasRef}
-        className="relative w-full h-[500px] rounded-xl overflow-hidden border-2 border-slate-200 bg-slate-50"
+        className="relative w-full h-[500px] rounded-xl overflow-auto border-2 border-slate-200 bg-slate-50"
         style={{
           backgroundImage: showGrid 
             ? 'linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px)'
             : 'none',
-          backgroundSize: '20px 20px',
+          backgroundSize: `${20 * zoom}px ${20 * zoom}px`,
           cursor: drawingMode ? 'crosshair' : draggingId || resizingId ? 'move' : 'default'
         }}
         onMouseDown={handleCanvasMouseDown}
@@ -163,6 +163,12 @@ export default function MappaLocaleCanvas({
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
+        <div style={{
+          width: `${100 * zoom}%`,
+          height: `${100 * zoom}%`,
+          position: 'relative',
+          transformOrigin: 'top left'
+        }}>
         {backgroundImage && (
           <img 
             src={backgroundImage} 
@@ -262,6 +268,7 @@ export default function MappaLocaleCanvas({
             </div>
           );
         })}
+        </div>
       </div>
 
       {/* Gestione Linee */}

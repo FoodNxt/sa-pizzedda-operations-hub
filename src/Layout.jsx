@@ -37,7 +37,8 @@ import {
   Home,
   Edit,
   LogOut,
-  Calendar
+  Calendar,
+  Bell
 } from "lucide-react";
 import CompleteProfileModal from "./components/auth/CompleteProfileModal";
 
@@ -419,6 +420,7 @@ export default function Layout({ children, currentPageName }) {
   
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [isLoadingConfig, setIsLoadingConfig] = useState(true);
+  const [notifications, setNotifications] = useState({});
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -436,6 +438,46 @@ export default function Layout({ children, currentPageName }) {
     };
     fetchConfig();
   }, []);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const user = await base44.auth.me();
+        const newNotifications = {};
+
+        // Segnalazioni aperte
+        const segnalazioni = await base44.entities.Segnalazione.filter({ stato: 'aperta' });
+        if (segnalazioni.length > 0) {
+          newNotifications.Segnalazioni = segnalazioni.length;
+        }
+
+        // Richieste ferie/malattia in pending
+        const ferie = await base44.entities.RichiestaFerie.filter({ stato: 'pending' });
+        const malattie = await base44.entities.RichiestaMalattia.filter({ stato: 'pending' });
+        const turniLiberi = await base44.entities.RichiestaTurnoLibero.filter({ stato: 'pending' });
+        const totalRichieste = ferie.length + malattie.length + turniLiberi.length;
+        if (totalRichieste > 0) {
+          newNotifications.Assenze = totalRichieste;
+        }
+
+        // Candidati nuovi
+        const candidati = await base44.entities.Candidato.filter({ stato: 'nuovo' });
+        if (candidati.length > 0) {
+          newNotifications.ATS = candidati.length;
+        }
+
+        setNotifications(newNotifications);
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      }
+    };
+
+    if (!isLoadingUser && currentUser) {
+      fetchNotifications();
+      const interval = setInterval(fetchNotifications, 60000); // Refresh ogni minuto
+      return () => clearInterval(interval);
+    }
+  }, [isLoadingUser, currentUser]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -1057,7 +1099,7 @@ export default function Layout({ children, currentPageName }) {
                                     onClick={() => setSidebarOpen(false)}
                                     className={`
                                       flex items-center gap-3 px-4 py-2 rounded-lg
-                                      transition-all duration-200
+                                      transition-all duration-200 relative
                                       ${isActive ? 'neumorphic-pressed bg-blue-50' : 'hover:bg-slate-100'}
                                     `}
                                   >
@@ -1065,6 +1107,11 @@ export default function Layout({ children, currentPageName }) {
                                     <span className={`text-sm font-medium ${isActive ? 'text-slate-800' : 'text-slate-600'}`}>
                                       {subItem.title}
                                     </span>
+                                    {notifications[subItem.title] && (
+                                      <span className="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                                        {notifications[subItem.title]}
+                                      </span>
+                                    )}
                                   </Link>
                                 );
                               })}

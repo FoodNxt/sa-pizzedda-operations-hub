@@ -280,6 +280,22 @@ export default function FormInventario() {
         ))}
 
         <NeumorphicCard className="p-4 lg:p-6">
+          {(() => {
+            const compiled = Object.keys(quantities).filter(k => quantities[k] !== '' && quantities[k] !== null).length;
+            const total = products.length;
+            const missing = total - compiled;
+            
+            if (missing > 0) {
+              return (
+                <div className="neumorphic-pressed p-4 rounded-xl mb-4 bg-orange-50 border-2 border-orange-300">
+                  <p className="text-sm text-orange-800 font-bold text-center">
+                    ⚠️ Mancano {missing} prodotti da inventariare ({compiled}/{total})
+                  </p>
+                </div>
+              );
+            }
+          })()}
+          
           <NeumorphicButton
             type="submit"
             variant="primary"
@@ -298,8 +314,6 @@ export default function FormInventario() {
               </>
             )}
           </NeumorphicButton>
-
-
         </NeumorphicCard>
       </form>
     </div>
