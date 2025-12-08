@@ -355,32 +355,88 @@ export default function DashboardStoreManager() {
                 <Crown className="w-6 h-6 text-purple-600" />
                 <h2 className="text-xl font-bold text-purple-800">I Tuoi Obiettivi</h2>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="neumorphic-pressed p-4 rounded-xl text-center bg-white">
-                  <p className="text-xs text-slate-500 mb-1">Bonus Sbloccato</p>
-                  <p className="text-3xl font-bold text-green-600">€{metrics.bonusTotale}</p>
-                </div>
-                <div className="neumorphic-pressed p-4 rounded-xl text-center bg-white">
-                  <p className="text-xs text-slate-500 mb-1">Target Fatturato</p>
-                  <p className="text-lg font-bold text-slate-700">€{metrics.target.target_fatturato?.toLocaleString() || '-'}</p>
-                  {metrics.target.soglia_min_fatturato && (
-                    <p className="text-xs text-red-600 mt-1">Min: €{metrics.target.soglia_min_fatturato.toLocaleString()}</p>
-                  )}
-                </div>
-                <div className="neumorphic-pressed p-4 rounded-xl text-center bg-white">
-                  <p className="text-xs text-slate-500 mb-1">Metriche Attive</p>
-                  <p className="text-lg font-bold text-indigo-600">{metrics.target.metriche_attive?.length || 0}</p>
-                  <p className="text-xs text-slate-500 mt-1">
-                    {metrics.target.metriche_attive?.filter(m => 
-                      (m === 'fatturato' && metrics.target.target_fatturato) ||
-                      (m === 'recensioni_media' && metrics.target.target_recensioni_media) ||
-                      (m === 'num_recensioni' && metrics.target.target_num_recensioni) ||
-                      (m === 'ordini_sbagliati' && metrics.target.target_ordini_sbagliati_max !== undefined) ||
-                      (m === 'ritardi' && metrics.target.target_ritardi_max_minuti !== undefined) ||
-                      (m === 'pulizie' && metrics.target.target_pulizie_min_score)
-                    ).join(', ')}
-                  </p>
-                </div>
+              
+              {/* Bonus Totale */}
+              <div className="neumorphic-pressed p-6 rounded-xl text-center bg-white mb-4">
+                <p className="text-sm text-slate-500 mb-1">Bonus Totale Sbloccato</p>
+                <p className="text-4xl font-bold text-green-600">€{metrics.bonusTotale}</p>
+              </div>
+
+              {/* Overview Metriche Attive */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                {metrics.target.metriche_attive?.includes('fatturato') && metrics.target.target_fatturato && (
+                  <div className="neumorphic-flat p-3 rounded-xl text-center">
+                    <DollarSign className="w-5 h-5 text-green-600 mx-auto mb-1" />
+                    <p className="text-xs text-slate-500 mb-1">Fatturato</p>
+                    {metrics.fatturato >= metrics.target.target_fatturato ? (
+                      <CheckCircle className="w-5 h-5 text-green-600 mx-auto" />
+                    ) : metrics.fatturato >= (metrics.target.soglia_min_fatturato || 0) ? (
+                      <XCircle className="w-5 h-5 text-orange-600 mx-auto" />
+                    ) : (
+                      <XCircle className="w-5 h-5 text-red-600 mx-auto" />
+                    )}
+                  </div>
+                )}
+                
+                {metrics.target.metriche_attive?.includes('recensioni_media') && metrics.target.target_recensioni_media && (
+                  <div className="neumorphic-flat p-3 rounded-xl text-center">
+                    <Star className="w-5 h-5 text-yellow-500 mx-auto mb-1" />
+                    <p className="text-xs text-slate-500 mb-1">Recensioni</p>
+                    {metrics.avgRating >= metrics.target.target_recensioni_media ? (
+                      <CheckCircle className="w-5 h-5 text-green-600 mx-auto" />
+                    ) : (
+                      <XCircle className="w-5 h-5 text-orange-600 mx-auto" />
+                    )}
+                  </div>
+                )}
+
+                {metrics.target.metriche_attive?.includes('num_recensioni') && metrics.target.target_num_recensioni && (
+                  <div className="neumorphic-flat p-3 rounded-xl text-center">
+                    <Star className="w-5 h-5 text-blue-500 mx-auto mb-1" />
+                    <p className="text-xs text-slate-500 mb-1"># Recensioni</p>
+                    {metrics.totalReviews >= metrics.target.target_num_recensioni ? (
+                      <CheckCircle className="w-5 h-5 text-green-600 mx-auto" />
+                    ) : (
+                      <XCircle className="w-5 h-5 text-orange-600 mx-auto" />
+                    )}
+                  </div>
+                )}
+
+                {metrics.target.metriche_attive?.includes('ordini_sbagliati') && metrics.target.target_ordini_sbagliati_max !== undefined && (
+                  <div className="neumorphic-flat p-3 rounded-xl text-center">
+                    <AlertTriangle className="w-5 h-5 text-red-600 mx-auto mb-1" />
+                    <p className="text-xs text-slate-500 mb-1">Ordini</p>
+                    {metrics.wrongOrdersCount <= metrics.target.target_ordini_sbagliati_max ? (
+                      <CheckCircle className="w-5 h-5 text-green-600 mx-auto" />
+                    ) : (
+                      <XCircle className="w-5 h-5 text-red-600 mx-auto" />
+                    )}
+                  </div>
+                )}
+
+                {metrics.target.metriche_attive?.includes('ritardi') && metrics.target.target_ritardi_max_minuti !== undefined && (
+                  <div className="neumorphic-flat p-3 rounded-xl text-center">
+                    <Clock className="w-5 h-5 text-blue-600 mx-auto mb-1" />
+                    <p className="text-xs text-slate-500 mb-1">Ritardi</p>
+                    {metrics.avgDelay <= metrics.target.target_ritardi_max_minuti ? (
+                      <CheckCircle className="w-5 h-5 text-green-600 mx-auto" />
+                    ) : (
+                      <XCircle className="w-5 h-5 text-red-600 mx-auto" />
+                    )}
+                  </div>
+                )}
+
+                {metrics.target.metriche_attive?.includes('pulizie') && metrics.target.target_pulizie_min_score && (
+                  <div className="neumorphic-flat p-3 rounded-xl text-center">
+                    <Sparkles className="w-5 h-5 text-cyan-600 mx-auto mb-1" />
+                    <p className="text-xs text-slate-500 mb-1">Pulizie</p>
+                    {metrics.avgCleaningScore >= metrics.target.target_pulizie_min_score ? (
+                      <CheckCircle className="w-5 h-5 text-green-600 mx-auto" />
+                    ) : (
+                      <XCircle className="w-5 h-5 text-orange-600 mx-auto" />
+                    )}
+                  </div>
+                )}
               </div>
             </NeumorphicCard>
           )}
