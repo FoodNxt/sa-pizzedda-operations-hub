@@ -105,6 +105,13 @@ export default function GestioneAssistente() {
     attivo: true
   });
   const [expandedPages, setExpandedPages] = useState({});
+  
+  // AI Content Generation state
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [useAppKnowledge, setUseAppKnowledge] = useState(false);
+  const [generatingContent, setGeneratingContent] = useState(false);
+  const [refreshingContent, setRefreshingContent] = useState(false);
+  const [proposedContent, setProposedContent] = useState(null);
 
   // Mappa locali state
   const [selectedStoreMap, setSelectedStoreMap] = useState('');
@@ -569,6 +576,9 @@ ${allUserMessages.slice(0, 100).join('\n---\n')}`,
     setEditingPage(null);
     setParentPageId(null);
     setShowPageForm(false);
+    setAiPrompt('');
+    setUseAppKnowledge(false);
+    setProposedContent(null);
   };
 
   const handleEditPage = (page) => {
@@ -584,6 +594,131 @@ ${allUserMessages.slice(0, 100).join('\n---\n')}`,
       attivo: page.attivo !== false
     });
     setShowPageForm(true);
+    setAiPrompt('');
+    setUseAppKnowledge(false);
+    setProposedContent(null);
+  };
+
+  const handleGenerateAIContent = async () => {
+    if (!aiPrompt.trim()) {
+      alert('Inserisci un prompt per generare il contenuto');
+      return;
+    }
+
+    setGeneratingContent(true);
+    try {
+      let prompt = `${aiPrompt}\n\nGenera un contenuto dettagliato e strutturato in formato markdown per questa pagina di knowledge base.`;
+      
+      if (useAppKnowledge) {
+        // Fetch page access config to understand app structure
+        const configs = await base44.entities.PageAccessConfig.list();
+        const activeConfig = configs.find(c => c.is_active);
+        
+        const appStructure = {
+          pizzaiolo_pages: activeConfig?.pizzaiolo_pages || [],
+          cassiere_pages: activeConfig?.cassiere_pages || [],
+          store_manager_pages: activeConfig?.store_manager_pages || [],
+          after_registration: activeConfig?.after_registration || [],
+          after_contract_received: activeConfig?.after_contract_received || [],
+          after_contract_signed: activeConfig?.after_contract_signed || []
+        };
+
+        prompt += `\n\nUsa le seguenti informazioni sulla struttura dell'app lato dipendente:
+        
+Pagine disponibili per Pizzaioli: ${JSON.stringify(appStructure.pizzaiolo_pages)}
+Pagine disponibili per Cassieri: ${JSON.stringify(appStructure.cassiere_pages)}
+Pagine disponibili per Store Manager: ${JSON.stringify(appStructure.store_manager_pages)}
+
+Flusso dipendente:
+- Dopo registrazione: ${JSON.stringify(appStructure.after_registration)}
+- Dopo ricezione contratto: ${JSON.stringify(appStructure.after_contract_received)}
+- Dopo firma contratto: ${JSON.stringify(appStructure.after_contract_signed)}
+
+Includi queste informazioni nel contenuto per guidare i dipendenti.`;
+      }
+
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: prompt,
+        add_context_from_internet: false
+      });
+
+      setPageForm({ ...pageForm, contenuto: result });
+      setAiPrompt('');
+    } catch (error) {
+      console.error('Error generating content:', error);
+      alert('Errore nella generazione del contenuto');
+    } finally {
+      setGeneratingContent(false);
+    }
+  };
+
+  const handleRefreshAIContent = async () => {
+    if (!editingPage || !editingPage.contenuto) {
+      alert('Nessun contenuto esistente da aggiornare');
+      return;
+    }
+
+    setRefreshingContent(true);
+    try {
+      // Check if app structure has changed
+      const configs = await base44.entities.PageAccessConfig.list();
+      const activeConfig = configs.find(c => c.is_active);
+      
+      const currentAppStructure = {
+        pizzaiolo_pages: activeConfig?.pizzaiolo_pages || [],
+        cassiere_pages: activeConfig?.cassiere_pages || [],
+        store_manager_pages: activeConfig?.store_manager_pages || [],
+        after_registration: activeConfig?.after_registration || [],
+        after_contract_received: activeConfig?.after_contract_received || [],
+        after_contract_signed: activeConfig?.after_contract_signed || []
+      };
+
+      const checkPrompt = `Confronta il seguente contenuto di una pagina knowledge base con la struttura attuale dell'app.
+
+Contenuto attuale della pagina:
+${editingPage.contenuto}
+
+Struttura attuale dell'app:
+${JSON.stringify(currentAppStructure, null, 2)}
+
+Determina se ci sono stati cambi significativi che richiedono un aggiornamento del contenuto.`;
+
+      const analysisResult = await base44.integrations.Core.InvokeLLM({
+        prompt: checkPrompt,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            has_changes: { type: "boolean" },
+            changes_description: { type: "string" },
+            suggested_content: { type: "string" }
+          }
+        }
+      });
+
+      if (!analysisResult.has_changes) {
+        alert('✅ Nessun cambiamento rilevato nella struttura dell\'app. Il contenuto è aggiornato.');
+        setRefreshingContent(false);
+        return;
+      }
+
+      // Show proposed content for approval
+      setProposedContent({
+        changes: analysisResult.changes_description,
+        newContent: analysisResult.suggested_content
+      });
+    } catch (error) {
+      console.error('Error refreshing content:', error);
+      alert('Errore durante il refresh del contenuto');
+    } finally {
+      setRefreshingContent(false);
+    }
+  };
+
+  const handleApproveProposedContent = () => {
+    if (proposedContent) {
+      setPageForm({ ...pageForm, contenuto: proposedContent.newContent });
+      setProposedContent(null);
+    }
   };
 
   const handleAddChildPage = (parentId) => {
@@ -2261,6 +2396,101 @@ ${allUserMessages.slice(0, 100).join('\n---\n')}`,
                           placeholder="https://notion.so/..."
                         />
                       </div>
+
+                      {/* AI Content Generation */}
+                      <div className="neumorphic-flat p-4 rounded-xl bg-gradient-to-br from-purple-50 to-blue-50">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Sparkles className="w-5 h-5 text-purple-600" />
+                          <h3 className="font-bold text-slate-800">Genera Contenuto con AI</h3>
+                        </div>
+                        
+                        <div className="space-y-3">
+                          <div>
+                            <textarea
+                              value={aiPrompt}
+                              onChange={(e) => setAiPrompt(e.target.value)}
+                              className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none min-h-[80px]"
+                              placeholder="Es: Crea una guida su come usare il form inventario per i dipendenti..."
+                            />
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              id="useAppKnowledge"
+                              checked={useAppKnowledge}
+                              onChange={(e) => setUseAppKnowledge(e.target.checked)}
+                              className="w-4 h-4"
+                            />
+                            <label htmlFor="useAppKnowledge" className="text-sm text-slate-700 cursor-pointer">
+                              Usa conoscenza della struttura app lato dipendente
+                            </label>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <NeumorphicButton
+                              onClick={handleGenerateAIContent}
+                              disabled={generatingContent || !aiPrompt.trim()}
+                              className="flex-1 flex items-center justify-center gap-2"
+                            >
+                              {generatingContent ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Sparkles className="w-4 h-4" />
+                              )}
+                              Genera Contenuto
+                            </NeumorphicButton>
+
+                            {editingPage && (
+                              <NeumorphicButton
+                                onClick={handleRefreshAIContent}
+                                disabled={refreshingContent}
+                                className="flex-1 flex items-center justify-center gap-2"
+                              >
+                                {refreshingContent ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <RefreshCw className="w-4 h-4" />
+                                )}
+                                Verifica Aggiornamenti
+                              </NeumorphicButton>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Proposed Content Approval */}
+                      {proposedContent && (
+                        <div className="neumorphic-flat p-4 rounded-xl bg-orange-50 border-2 border-orange-300">
+                          <div className="flex items-start gap-3 mb-3">
+                            <AlertTriangle className="w-5 h-5 text-orange-600 mt-0.5" />
+                            <div className="flex-1">
+                              <h4 className="font-bold text-orange-800 mb-1">Cambiamenti Rilevati</h4>
+                              <p className="text-sm text-orange-700 mb-3">{proposedContent.changes}</p>
+                              <div className="bg-white rounded-lg p-3 mb-3 max-h-[200px] overflow-y-auto">
+                                <p className="text-xs font-bold text-slate-600 mb-2">Contenuto Proposto:</p>
+                                <pre className="text-xs text-slate-700 whitespace-pre-wrap">{proposedContent.newContent}</pre>
+                              </div>
+                              <div className="flex gap-2">
+                                <NeumorphicButton
+                                  onClick={handleApproveProposedContent}
+                                  variant="primary"
+                                  className="flex-1 flex items-center justify-center gap-2"
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                  Approva e Applica
+                                </NeumorphicButton>
+                                <NeumorphicButton
+                                  onClick={() => setProposedContent(null)}
+                                  className="flex-1"
+                                >
+                                  Rifiuta
+                                </NeumorphicButton>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       <div>
                         <label className="text-sm font-medium text-slate-700 mb-2 block">Contenuto (markdown supportato)</label>
