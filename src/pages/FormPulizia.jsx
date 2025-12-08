@@ -403,6 +403,8 @@ export default function FormPulizia() {
                                 prompt = questionForm.ordine_bibite 
                                   ? `Analizza la foto del frigo bibite. Verifica che sia pieno e che le bibite siano nell'ordine corretto: ${questionForm.ordine_bibite}. Rispondi con: conforme, non conforme. Specifica eventuali problemi.`
                                   : 'Analizza la foto del frigo bibite. Verifica che sia pieno e ordinato. Rispondi con: conforme, non conforme.';
+                              } else if (tipo === 'etichette') {
+                                prompt = 'Analizza la foto e verifica la presenza di etichette su prodotti o contenitori. Controlla che siano presenti, leggibili e con data/informazioni visibili. Rispondi con: conforme, non conforme. Specifica quali etichette mancano o sono illeggibili.';
                               } else if (tipo === 'personalizzato') {
                                 prompt = questionForm.prompt_ai || '';
                               }
@@ -413,6 +415,7 @@ export default function FormPulizia() {
                             <option value="pulizia">🧹 Pulizia (Pulito/Sporco)</option>
                             <option value="divisa">👕 Divisa Corretta (Cappellino + Maglietta)</option>
                             <option value="frigo_bibite">🥤 Frigo Bibite (Pieno + Ordine)</option>
+                            <option value="etichette">🏷️ Presenza Etichette</option>
                             <option value="personalizzato">✏️ Personalizzato</option>
                           </select>
                         </div>
