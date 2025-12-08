@@ -46,6 +46,7 @@ export default function AcademyAdmin() {
   
   // Stati per "Corsi da creare"
   const [showTemplateForm, setShowTemplateForm] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState(null);
   const [templateFormData, setTemplateFormData] = useState({
     titolo: '',
     descrizione: '',
@@ -94,6 +95,23 @@ export default function AcademyAdmin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['corsi-templates'] });
       setShowTemplateForm(false);
+      setEditingTemplate(null);
+      setTemplateFormData({
+        titolo: '',
+        descrizione: '',
+        categoria: '',
+        ruoli_target: [],
+        stores_target: []
+      });
+    },
+  });
+
+  const updateTemplateMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.CorsoTemplate.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['corsi-templates'] });
+      setShowTemplateForm(false);
+      setEditingTemplate(null);
       setTemplateFormData({
         titolo: '',
         descrizione: '',
@@ -936,8 +954,21 @@ export default function AcademyAdmin() {
           {showTemplateForm && (
             <div className="neumorphic-pressed p-4 rounded-xl mb-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-slate-700">Nuovo Corso da Creare</h3>
-                <button onClick={() => setShowTemplateForm(false)} className="text-slate-500">
+                <h3 className="font-bold text-slate-700">
+                  {editingTemplate ? 'Modifica Corso da Creare' : 'Nuovo Corso da Creare'}
+                </h3>
+                <button onClick={() => {
+                  setShowTemplateForm(false);
+                  setEditingTemplate(null);
+                  setTemplateFormData({
+                    titolo: '',
+                    descrizione: '',
+                    categoria: '',
+                    ruoli_target: [],
+                    stores_target: [],
+                    sessioni: []
+                  });
+                }} className="text-slate-500">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -1100,6 +1131,7 @@ export default function AcademyAdmin() {
                 <div className="flex justify-end gap-3 pt-4">
                   <NeumorphicButton onClick={() => {
                     setShowTemplateForm(false);
+                    setEditingTemplate(null);
                     setTemplateFormData({
                       titolo: '',
                       descrizione: '',
@@ -1118,14 +1150,19 @@ export default function AcademyAdmin() {
                         alert('Inserisci il titolo del corso');
                         return;
                       }
-                      createTemplateMutation.mutate({
+                      const dataToSave = {
                         ...templateFormData,
                         status: templateFormData.sessioni?.length > 0 ? 'in_lavorazione' : 'da_creare'
-                      });
+                      };
+                      if (editingTemplate) {
+                        updateTemplateMutation.mutate({ id: editingTemplate.id, data: dataToSave });
+                      } else {
+                        createTemplateMutation.mutate(dataToSave);
+                      }
                     }}
-                    disabled={createTemplateMutation.isPending}
+                    disabled={createTemplateMutation.isPending || updateTemplateMutation.isPending}
                   >
-                    Crea
+                    {editingTemplate ? 'Aggiorna' : 'Crea'}
                   </NeumorphicButton>
                 </div>
               </div>
@@ -1190,6 +1227,23 @@ export default function AcademyAdmin() {
                       </div>
                       
                       <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setEditingTemplate(template);
+                            setTemplateFormData({
+                              titolo: template.titolo,
+                              descrizione: template.descrizione || '',
+                              categoria: template.categoria || '',
+                              ruoli_target: template.ruoli_target || [],
+                              stores_target: template.stores_target || [],
+                              sessioni: template.sessioni || []
+                            });
+                            setShowTemplateForm(true);
+                          }}
+                          className="nav-button px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors"
+                        >
+                          <Edit className="w-4 h-4 text-slate-600" />
+                        </button>
                         {template.status !== 'completato' && (
                           <Link
                             to={createPageUrl('CreaCorso') + `?templateId=${template.id}`}

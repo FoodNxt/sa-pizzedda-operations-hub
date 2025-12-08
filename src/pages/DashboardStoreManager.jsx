@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   Crown,
   DollarSign,
@@ -17,7 +17,8 @@ import {
   XCircle,
   Eye,
   X,
-  ArrowRight
+  ArrowRight,
+  Bell
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 
@@ -28,6 +29,9 @@ export default function DashboardStoreManager() {
   });
   const [selectedStoreId, setSelectedStoreId] = useState('');
   const [showDetailModal, setShowDetailModal] = useState(null); // 'reviews', 'wrongOrders', 'delays', 'cleanings'
+  const [showApprovazioniModal, setShowApprovazioniModal] = useState(false);
+
+  const queryClient = useQueryClient();
 
   const { data: currentUser } = useQuery({
     queryKey: ['current-user'],
@@ -72,6 +76,15 @@ export default function DashboardStoreManager() {
   const { data: iPratico = [] } = useQuery({
     queryKey: ['ipratico'],
     queryFn: () => base44.entities.iPratico.list('-order_date')
+  });
+
+  const { data: richiesteScambio = [] } = useQuery({
+    queryKey: ['richieste-scambio', selectedStoreId],
+    queryFn: () => base44.entities.RichiestaTurnoLibero.filter({ 
+      store_id: selectedStoreId,
+      stato: 'in_attesa'
+    }),
+    enabled: !!selectedStoreId
   });
 
   // Trova i locali di cui l'utente è Store Manager
@@ -285,9 +298,23 @@ export default function DashboardStoreManager() {
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 mb-6">
-        <div className="flex items-center gap-3">
-          <Crown className="w-10 h-10 text-purple-600" />
-          <h1 className="text-3xl font-bold text-slate-800">Dashboard Store Manager</h1>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Crown className="w-10 h-10 text-purple-600" />
+            <h1 className="text-3xl font-bold text-slate-800">Dashboard Store Manager</h1>
+          </div>
+          <button
+            onClick={() => setShowApprovazioniModal(true)}
+            className="neumorphic-flat px-4 py-3 rounded-xl flex items-center gap-2 hover:shadow-lg transition-all relative"
+          >
+            <Bell className="w-5 h-5 text-purple-600" />
+            <span className="font-medium text-slate-700">Approvazioni</span>
+            {richiesteScambio.length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                {richiesteScambio.length}
+              </span>
+            )}
+          </button>
         </div>
         
         <div className="flex flex-col md:flex-row gap-3">
@@ -343,7 +370,16 @@ export default function DashboardStoreManager() {
                 <div className="neumorphic-pressed p-4 rounded-xl text-center bg-white">
                   <p className="text-xs text-slate-500 mb-1">Metriche Attive</p>
                   <p className="text-lg font-bold text-indigo-600">{metrics.target.metriche_attive?.length || 0}</p>
-                  <p className="text-xs text-slate-500 mt-1">{metrics.target.metriche_attive?.join(', ')}</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {metrics.target.metriche_attive?.filter(m => 
+                      (m === 'fatturato' && metrics.target.target_fatturato) ||
+                      (m === 'recensioni_media' && metrics.target.target_recensioni_media) ||
+                      (m === 'num_recensioni' && metrics.target.target_num_recensioni) ||
+                      (m === 'ordini_sbagliati' && metrics.target.target_ordini_sbagliati_max !== undefined) ||
+                      (m === 'ritardi' && metrics.target.target_ritardi_max_minuti !== undefined) ||
+                      (m === 'pulizie' && metrics.target.target_pulizie_min_score)
+                    ).join(', ')}
+                  </p>
                 </div>
               </div>
             </NeumorphicCard>
@@ -386,7 +422,7 @@ export default function DashboardStoreManager() {
           )}
 
           {/* Recensioni */}
-          {metrics.target?.metriche_attive?.includes('recensioni_media') && (
+          {metrics.target?.metriche_attive?.includes('recensioni_media') && metrics.target.target_recensioni_media && (
             <NeumorphicCard className="p-6 cursor-pointer hover:shadow-lg transition-all" onClick={(e) => { e.stopPropagation(); setShowDetailModal('reviews'); }}>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -427,7 +463,7 @@ export default function DashboardStoreManager() {
           )}
 
           {/* Ordini Sbagliati */}
-          {metrics.target?.metriche_attive?.includes('ordini_sbagliati') && (
+          {metrics.target?.metriche_attive?.includes('ordini_sbagliati') && metrics.target.target_ordini_sbagliati_max !== undefined && (
             <NeumorphicCard className="p-6 cursor-pointer hover:shadow-lg transition-all" onClick={(e) => { e.stopPropagation(); setShowDetailModal('wrongOrders'); }}>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -464,7 +500,7 @@ export default function DashboardStoreManager() {
           )}
 
           {/* Ritardi */}
-          {metrics.target?.metriche_attive?.includes('ritardi') && (
+          {metrics.target?.metriche_attive?.includes('ritardi') && metrics.target.target_ritardi_max_minuti !== undefined && (
             <NeumorphicCard className="p-6 cursor-pointer hover:shadow-lg transition-all" onClick={(e) => { e.stopPropagation(); setShowDetailModal('delays'); }}>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -502,7 +538,7 @@ export default function DashboardStoreManager() {
           )}
 
           {/* Pulizie */}
-          {metrics.target?.metriche_attive?.includes('pulizie') && (
+          {metrics.target?.metriche_attive?.includes('pulizie') && metrics.target.target_pulizie_min_score && (
             <NeumorphicCard className="p-6 cursor-pointer hover:shadow-lg transition-all" onClick={(e) => { e.stopPropagation(); setShowDetailModal('cleanings'); }}>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -608,6 +644,275 @@ export default function DashboardStoreManager() {
             )}
           </NeumorphicCard>
         </>
+      )}
+
+      {/* Modal Approvazioni */}
+      {showApprovazioniModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                  <Bell className="w-6 h-6 text-purple-600" />
+                  Richieste di Scambio Turno
+                </h2>
+                <button onClick={() => setShowApprovazioniModal(false)} className="text-slate-500">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {richiesteScambio.length === 0 ? (
+                <div className="text-center py-12">
+                  <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                  <p className="text-slate-600 font-medium">Nessuna richiesta in attesa</p>
+                  <p className="text-sm text-slate-500 mt-1">Tutte le richieste sono state processate</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {richiesteScambio.map(richiesta => (
+                    <div key={richiesta.id} className="neumorphic-pressed p-5 rounded-xl">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Users className="w-5 h-5 text-blue-600" />
+                            <h3 className="font-bold text-slate-800">{richiesta.dipendente_nome}</h3>
+                          </div>
+                          <div className="space-y-1 text-sm text-slate-600">
+                            <p>📅 Data: {new Date(richiesta.data_turno).toLocaleDateString('it-IT')}</p>
+                            <p>🕐 Orario: {richiesta.ora_inizio} - {richiesta.ora_fine}</p>
+                            <p>👤 Ruolo: {richiesta.ruolo}</p>
+                            <p>🏪 Locale: {richiesta.store_name}</p>
+                            {richiesta.note && (
+                              <p className="text-slate-500 italic mt-2">💬 {richiesta.note}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={async () => {
+                              try {
+                                await base44.entities.RichiestaTurnoLibero.update(richiesta.id, {
+                                  stato: 'approvata',
+                                  data_approvazione: new Date().toISOString(),
+                                  approvato_da: currentUser.email
+                                });
+                                queryClient.invalidateQueries({ queryKey: ['richieste-scambio'] });
+                                alert('✅ Richiesta approvata');
+                              } catch (error) {
+                                alert('❌ Errore nell\'approvazione');
+                              }
+                            }}
+                            className="px-4 py-2 rounded-lg bg-green-500 text-white font-medium hover:bg-green-600 transition-colors flex items-center gap-1"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                            Approva
+                          </button>
+                          <button
+                            onClick={async () => {
+                              try {
+                                await base44.entities.RichiestaTurnoLibero.update(richiesta.id, {
+                                  stato: 'rifiutata',
+                                  data_approvazione: new Date().toISOString(),
+                                  approvato_da: currentUser.email
+                                });
+                                queryClient.invalidateQueries({ queryKey: ['richieste-scambio'] });
+                                alert('❌ Richiesta rifiutata');
+                              } catch (error) {
+                                alert('❌ Errore nel rifiuto');
+                              }
+                            }}
+                            className="px-4 py-2 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 transition-colors flex items-center gap-1"
+                          >
+                            <XCircle className="w-4 h-4" />
+                            Rifiuta
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </NeumorphicCard>
+          </div>
+        </div>
+      )}
+
+      {/* Detail Modals */}
+      {showDetailModal === 'reviews' && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                  <Star className="w-6 h-6 text-yellow-500" />
+                  Dettaglio Recensioni
+                </h2>
+                <button onClick={() => setShowDetailModal(null)} className="text-slate-500">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="space-y-3">
+                {metrics.monthReviews.length === 0 ? (
+                  <p className="text-center text-slate-500 py-8">Nessuna recensione questo mese</p>
+                ) : (
+                  metrics.monthReviews.map(review => (
+                    <div key={review.id} className="neumorphic-pressed p-4 rounded-xl">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+                          <span className="font-bold text-slate-800">{review.rating}/5</span>
+                        </div>
+                        <span className="text-xs text-slate-500">
+                          {new Date(review.review_date).toLocaleDateString('it-IT')}
+                        </span>
+                      </div>
+                      {review.review_text && (
+                        <p className="text-sm text-slate-600">{review.review_text}</p>
+                      )}
+                      {review.employee_assigned_name && (
+                        <p className="text-xs text-slate-500 mt-2">👤 {review.employee_assigned_name}</p>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </NeumorphicCard>
+          </div>
+        </div>
+      )}
+
+      {showDetailModal === 'wrongOrders' && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                  Dettaglio Ordini Sbagliati
+                </h2>
+                <button onClick={() => setShowDetailModal(null)} className="text-slate-500">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="space-y-3">
+                {metrics.monthWrongOrders.length === 0 ? (
+                  <p className="text-center text-slate-500 py-8">Nessun ordine sbagliato questo mese 🎉</p>
+                ) : (
+                  metrics.monthWrongOrders.map(order => (
+                    <div key={order.id} className="neumorphic-pressed p-4 rounded-xl">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-bold text-red-700">Ordine #{order.order_number || 'N/A'}</span>
+                        <span className="text-xs text-slate-500">
+                          {new Date(order.order_date).toLocaleDateString('it-IT')}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-600 mb-1">📦 {order.wrong_items}</p>
+                      {order.employee_name && (
+                        <p className="text-xs text-slate-500">👤 {order.employee_name}</p>
+                      )}
+                      {order.note && (
+                        <p className="text-xs text-slate-500 italic mt-2">{order.note}</p>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </NeumorphicCard>
+          </div>
+        </div>
+      )}
+
+      {showDetailModal === 'delays' && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                  <Clock className="w-6 h-6 text-blue-600" />
+                  Dettaglio Ritardi
+                </h2>
+                <button onClick={() => setShowDetailModal(null)} className="text-slate-500">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="space-y-3">
+                {metrics.monthShifts.filter(s => s.ritardo).length === 0 ? (
+                  <p className="text-center text-slate-500 py-8">Nessun ritardo questo mese 🎉</p>
+                ) : (
+                  metrics.monthShifts.filter(s => s.ritardo).map(shift => (
+                    <div key={shift.id} className="neumorphic-pressed p-4 rounded-xl">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-bold text-slate-800">{shift.employee_name}</span>
+                        <span className="text-xs text-slate-500">
+                          {new Date(shift.shift_date).toLocaleDateString('it-IT')}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-slate-600">
+                        <span>🕐 Previsto: {new Date(shift.scheduled_start).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</span>
+                        <ArrowRight className="w-4 h-4" />
+                        <span className="text-red-600 font-medium">
+                          Timbrato: {shift.actual_start ? new Date(shift.actual_start).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : 'Non timbrato'}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-bold">
+                          +{shift.minuti_di_ritardo} min
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </NeumorphicCard>
+          </div>
+        </div>
+      )}
+
+      {showDetailModal === 'cleanings' && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                  <Sparkles className="w-6 h-6 text-cyan-600" />
+                  Dettaglio Pulizie
+                </h2>
+                <button onClick={() => setShowDetailModal(null)} className="text-slate-500">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="space-y-3">
+                {metrics.monthInspections.length === 0 ? (
+                  <p className="text-center text-slate-500 py-8">Nessun controllo pulizie questo mese</p>
+                ) : (
+                  metrics.monthInspections.map(inspection => (
+                    <div key={inspection.id} className="neumorphic-pressed p-4 rounded-xl">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-bold text-slate-800">{inspection.inspector_name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-3 py-1 rounded-full font-bold ${
+                            inspection.overall_score >= 80 ? 'bg-green-100 text-green-700' :
+                            inspection.overall_score >= 60 ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-red-100 text-red-700'
+                          }`}>
+                            {inspection.overall_score}/100
+                          </span>
+                          <span className="text-xs text-slate-500">
+                            {new Date(inspection.inspection_date).toLocaleDateString('it-IT')}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        Ruolo: {inspection.inspector_role} • Tipo: {inspection.inspection_type}
+                      </p>
+                      {inspection.critical_issues && (
+                        <p className="text-sm text-red-600 mt-2">⚠️ {inspection.critical_issues}</p>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </NeumorphicCard>
+          </div>
+        </div>
       )}
     </div>
   );
