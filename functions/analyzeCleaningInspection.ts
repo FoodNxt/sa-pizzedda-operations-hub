@@ -30,6 +30,7 @@ Deno.serve(async (req) => {
             const url = question.risposta;
             const attrezzatura = question.attrezzatura;
             const prompt_ai = question.prompt_ai;
+            const domandaId = question.domanda_id;
             
             // Skip only if no URL (photo) is provided
             if (!url) {
@@ -38,12 +39,20 @@ Deno.serve(async (req) => {
             }
             
             // Generate equipment key for storing results
-            const equipmentKey = attrezzatura ? attrezzatura.toLowerCase().replace(/\s+/g, '_') : `question_${question.domanda_id}`;
-            
-            if (!equipmentKey) {
+            // Use attrezzatura if available, otherwise use domanda_id, otherwise use domanda_testo
+            let equipmentKey;
+            if (attrezzatura) {
+                equipmentKey = attrezzatura.toLowerCase().replace(/\s+/g, '_');
+            } else if (domandaId) {
+                equipmentKey = `domanda_${domandaId}`;
+            } else if (question.domanda_testo) {
+                equipmentKey = question.domanda_testo.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 50);
+            } else {
                 console.log('Skipping question - cannot generate equipment key:', question);
                 continue;
             }
+            
+            console.log(`Processing question with key: ${equipmentKey}`);
             
             // BUILD LEARNING EXAMPLES FROM CORRECTIONS
             const relevantCorrections = correctionsHistory

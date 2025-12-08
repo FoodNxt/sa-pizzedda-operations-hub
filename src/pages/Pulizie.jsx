@@ -928,8 +928,16 @@ export default function Pulizie() {
                   {detailsModalInspection.domande_risposte.map((risposta, idx) => {
                     const isFoto = risposta.tipo_controllo === 'foto' || risposta.tipo_controllo === 'photo' || (risposta.risposta && typeof risposta.risposta === 'string' && risposta.risposta.startsWith('http'));
 
-                    // Find equipment key for AI analysis
-                    const equipmentKey = risposta.attrezzatura ? risposta.attrezzatura.toLowerCase().replace(/\s+/g, '_') : null;
+                    // Find equipment key for AI analysis - try multiple methods
+                    let equipmentKey;
+                    if (risposta.attrezzatura) {
+                      equipmentKey = risposta.attrezzatura.toLowerCase().replace(/\s+/g, '_');
+                    } else if (risposta.domanda_id) {
+                      equipmentKey = `domanda_${risposta.domanda_id}`;
+                    } else if (risposta.domanda_testo) {
+                      equipmentKey = risposta.domanda_testo.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 50);
+                    }
+
                     const aiStatus = equipmentKey ? detailsModalInspection[`${equipmentKey}_pulizia_status`] : null;
                     const aiNotes = equipmentKey ? detailsModalInspection[`${equipmentKey}_note_ai`] : null;
                     const isCorrected = equipmentKey ? detailsModalInspection[`${equipmentKey}_corrected`] : false;
@@ -937,6 +945,13 @@ export default function Pulizie() {
                     const correctionNote = equipmentKey ? detailsModalInspection[`${equipmentKey}_correction_note`] : null;
                     const displayStatus = isCorrected ? correctedStatus : aiStatus;
                     const isEditing = correctingEquipment === equipmentKey;
+
+                    // For multiple choice, check if answer is correct
+                    const originalQuestion = cleaningQuestions.find(q => q.id === risposta.domanda_id);
+                    const isMultipleChoice = risposta.tipo_controllo === 'scelta_multipla';
+                    const isCorrect = isMultipleChoice && originalQuestion?.risposta_corretta 
+                      ? risposta.risposta === originalQuestion.risposta_corretta 
+                      : null;
 
                     return (
                       <div key={idx} className="neumorphic-flat p-4 rounded-xl">
@@ -1044,9 +1059,23 @@ export default function Pulizie() {
                                 <p className="text-sm text-slate-500 italic">Nessuna foto caricata</p>
                               )
                             ) : (
-                              <span className="inline-block px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-100 text-blue-700">
-                                {risposta.risposta || 'Nessuna risposta'}
-                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className={`inline-block px-3 py-1.5 rounded-lg text-sm font-medium ${
+                                  isCorrect === false ? 'bg-red-100 text-red-700' : 
+                                  isCorrect === true ? 'bg-green-100 text-green-700' : 
+                                  'bg-blue-100 text-blue-700'
+                                }`}>
+                                  {risposta.risposta || 'Nessuna risposta'}
+                                </span>
+                                {isCorrect === false && originalQuestion?.risposta_corretta && (
+                                  <span className="text-xs text-red-600">
+                                    ✗ Risposta corretta: <strong>{originalQuestion.risposta_corretta}</strong>
+                                  </span>
+                                )}
+                                {isCorrect === true && (
+                                  <span className="text-xs text-green-600">✓ Corretto</span>
+                                )}
+                              </div>
                             )}
                           </div>
                         </div>
