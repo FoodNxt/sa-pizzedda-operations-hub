@@ -8,10 +8,11 @@ import {
   Bot, Plus, Edit, Trash2, Save, X, Search, AlertTriangle, 
   MessageSquare, Book, Tag, Store, CheckCircle, XCircle, Loader2,
   ChevronDown, ChevronRight, Eye, Folder, RefreshCw, Key, EyeOff, HelpCircle, 
-  Calendar, User, Sparkles, BarChart3, FileText
+  Calendar, User, Sparkles, BarChart3, FileText, Upload, MapPin
 } from "lucide-react";
 import moment from "moment";
 import KnowledgeTree from "../components/assistente/KnowledgeTree";
+import MappaLocaleCanvas from "../components/assistente/MappaLocaleCanvas";
 
 const DEFAULT_CATEGORIE = [
   "Procedure Operative",
@@ -105,6 +106,13 @@ export default function GestioneAssistente() {
   });
   const [expandedPages, setExpandedPages] = useState({});
 
+  // Mappa locali state
+  const [selectedStoreMap, setSelectedStoreMap] = useState('');
+  const [editingMap, setEditingMap] = useState(null);
+  const [posizioniAttrezzature, setPosizioniAttrezzature] = useState([]);
+  const [backgroundImageUrl, setBackgroundImageUrl] = useState('');
+  const [uploadingBackground, setUploadingBackground] = useState(false);
+
   const queryClient = useQueryClient();
 
   const { data: knowledge = [] } = useQuery({
@@ -147,6 +155,18 @@ export default function GestioneAssistente() {
   const { data: knowledgePages = [] } = useQuery({
     queryKey: ['knowledge-pages'],
     queryFn: () => base44.entities.KnowledgePage.list('ordine'),
+  });
+
+  const { data: mappeLocali = [] } = useQuery({
+    queryKey: ['mappe-locali'],
+    queryFn: () => base44.entities.MappaLocale.list(),
+    enabled: activeTab === 'mappe',
+  });
+
+  const { data: attrezzature = [] } = useQuery({
+    queryKey: ['attrezzature-mappe'],
+    queryFn: () => base44.entities.Attrezzatura.filter({ attivo: true }),
+    enabled: activeTab === 'mappe',
   });
 
   // Recupera tracking conversazioni dal database
@@ -315,6 +335,31 @@ export default function GestioneAssistente() {
     mutationFn: (id) => base44.entities.KnowledgePage.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['knowledge-pages'] });
+    },
+  });
+
+  // Mappe locali mutations
+  const createMapMutation = useMutation({
+    mutationFn: (data) => base44.entities.MappaLocale.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['mappe-locali'] });
+    },
+  });
+
+  const updateMapMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.MappaLocale.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['mappe-locali'] });
+    },
+  });
+
+  const deleteMapMutation = useMutation({
+    mutationFn: (id) => base44.entities.MappaLocale.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['mappe-locali'] });
+      setSelectedStoreMap('');
+      setEditingMap(null);
+      setPosizioniAttrezzature([]);
     },
   });
 
@@ -805,6 +850,61 @@ ${allUserMessages.slice(0, 100).join('\n---\n')}`,
     return acc;
   }, {});
 
+  // Mappa locali handlers
+  const handleSelectStoreMap = (storeId) => {
+    setSelectedStoreMap(storeId);
+    const existingMap = mappeLocali.find(m => m.store_id === storeId);
+    if (existingMap) {
+      setEditingMap(existingMap);
+      setPosizioniAttrezzature(existingMap.attrezzature_posizioni || []);
+      setBackgroundImageUrl(existingMap.background_image || '');
+    } else {
+      setEditingMap(null);
+      setPosizioniAttrezzature([]);
+      setBackgroundImageUrl('');
+    }
+  };
+
+  const handleUploadBackground = async (file) => {
+    setUploadingBackground(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setBackgroundImageUrl(file_url);
+    } catch (error) {
+      console.error('Error uploading:', error);
+      alert('Errore nel caricamento dell\'immagine');
+    }
+    setUploadingBackground(false);
+  };
+
+  const handleSaveMap = async () => {
+    if (!selectedStoreMap) {
+      alert('Seleziona uno store');
+      return;
+    }
+
+    const store = stores.find(s => s.id === selectedStoreMap);
+    const mapData = {
+      store_id: selectedStoreMap,
+      store_name: store?.name || '',
+      attrezzature_posizioni: posizioniAttrezzature,
+      background_image: backgroundImageUrl || ''
+    };
+
+    try {
+      if (editingMap) {
+        await updateMapMutation.mutateAsync({ id: editingMap.id, data: mapData });
+      } else {
+        await createMapMutation.mutateAsync(mapData);
+      }
+      alert('✅ Mappa salvata');
+      handleSelectStoreMap(selectedStoreMap); // Refresh
+    } catch (error) {
+      console.error('Error saving map:', error);
+      alert('Errore nel salvataggio');
+    }
+  };
+
   return (
     <ProtectedPage pageName="GestioneAssistente">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -884,6 +984,17 @@ ${allUserMessages.slice(0, 100).join('\n---\n')}`,
           >
             <HelpCircle className="w-4 h-4" />
             FAQ ({faqs.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('mappe')}
+            className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
+              activeTab === 'mappe'
+                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                : 'neumorphic-flat text-slate-700'
+            }`}
+          >
+            <Store className="w-4 h-4" />
+            Mappa Locali
           </button>
           <button
             onClick={() => setActiveTab('verifica')}
@@ -2212,6 +2323,141 @@ ${allUserMessages.slice(0, 100).join('\n---\n')}`,
                   </NeumorphicCard>
                 </div>
               </div>
+            )}
+          </>
+        )}
+
+        {/* Mappa Locali Tab */}
+        {activeTab === 'mappe' && (
+          <>
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-800">Mappa Locali</h2>
+                  <p className="text-sm text-slate-500 mt-1">Crea piantine dei locali e posiziona le attrezzature</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="text-sm font-medium text-slate-700">Locale:</label>
+                  <select
+                    value={selectedStoreMap}
+                    onChange={(e) => handleSelectStoreMap(e.target.value)}
+                    className="neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  >
+                    <option value="">Seleziona un locale...</option>
+                    {stores.map(store => (
+                      <option key={store.id} value={store.id}>{store.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {selectedStoreMap && (
+                <>
+                  {/* Upload Background */}
+                  <div className="mb-4">
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">
+                      Immagine di Sfondo (opzionale)
+                    </label>
+                    {backgroundImageUrl ? (
+                      <div className="flex items-center gap-3 p-3 bg-green-50 rounded-xl border border-green-200">
+                        <img src={backgroundImageUrl} alt="Preview" className="w-20 h-20 object-cover rounded-lg" />
+                        <span className="text-sm text-green-700 flex-1">Immagine caricata</span>
+                        <button
+                          onClick={() => setBackgroundImageUrl('')}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="neumorphic-pressed flex items-center justify-center gap-2 h-24 rounded-xl cursor-pointer hover:bg-slate-50">
+                        {uploadingBackground ? (
+                          <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                        ) : (
+                          <>
+                            <Upload className="w-5 h-5 text-slate-400" />
+                            <span className="text-sm text-slate-600">Carica planimetria o foto del locale</span>
+                          </>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => e.target.files[0] && handleUploadBackground(e.target.files[0])}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  {/* Canvas */}
+                  <MappaLocaleCanvas
+                    attrezzature={attrezzature}
+                    posizioniAttrezzature={posizioniAttrezzature}
+                    onPosizioniChange={setPosizioniAttrezzature}
+                    backgroundImage={backgroundImageUrl}
+                  />
+
+                  {/* Actions */}
+                  <div className="flex gap-3 mt-4">
+                    {editingMap && (
+                      <button
+                        onClick={() => {
+                          if (confirm('Eliminare questa mappa?')) {
+                            deleteMapMutation.mutate(editingMap.id);
+                          }
+                        }}
+                        className="px-4 py-2 rounded-xl bg-red-500 text-white font-medium hover:bg-red-600 flex items-center gap-2"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Elimina Mappa
+                      </button>
+                    )}
+                    <button
+                      onClick={handleSaveMap}
+                      className="ml-auto px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium hover:from-blue-600 hover:to-blue-700 flex items-center gap-2"
+                    >
+                      <Save className="w-5 h-5" />
+                      {editingMap ? 'Aggiorna Mappa' : 'Salva Mappa'}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {!selectedStoreMap && (
+                <div className="text-center py-12">
+                  <MapPin className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <p className="text-slate-500">Seleziona un locale per iniziare</p>
+                </div>
+              )}
+            </NeumorphicCard>
+
+            {/* Mappe Esistenti */}
+            {mappeLocali.length > 0 && (
+              <NeumorphicCard className="p-6">
+                <h3 className="font-bold text-slate-800 mb-4">Mappe Configurate</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {mappeLocali.map(mappa => {
+                    const store = stores.find(s => s.id === mappa.store_id);
+                    return (
+                      <button
+                        key={mappa.id}
+                        onClick={() => handleSelectStoreMap(mappa.store_id)}
+                        className={`neumorphic-flat p-4 rounded-xl text-left hover:shadow-lg transition-all ${
+                          selectedStoreMap === mappa.store_id ? 'ring-2 ring-blue-500' : ''
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <Store className="w-5 h-5 text-blue-600" />
+                          <span className="font-bold text-slate-800">{store?.name || mappa.store_name}</span>
+                        </div>
+                        <p className="text-sm text-slate-600">
+                          {(mappa.attrezzature_posizioni || []).length} attrezzature posizionate
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </NeumorphicCard>
             )}
           </>
         )}
