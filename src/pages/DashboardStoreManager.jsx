@@ -479,13 +479,18 @@ export default function DashboardStoreManager() {
 
           {/* Recensioni */}
           {metrics.target?.metriche_attive?.includes('recensioni_media') && metrics.target.target_recensioni_media && (
-            <NeumorphicCard className="p-6 cursor-pointer hover:shadow-lg transition-all" onClick={(e) => { e.stopPropagation(); setShowDetailModal('reviews'); }}>
+            <NeumorphicCard className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <Star className="w-6 h-6 text-yellow-500" />
                   <h2 className="text-xl font-bold text-slate-800">Media Recensioni</h2>
                 </div>
-                <Eye className="w-5 h-5 text-slate-400" />
+                <button 
+                  onClick={() => setShowDetailModal('reviews')}
+                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  <Eye className="w-5 h-5 text-slate-400 hover:text-slate-600" />
+                </button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div className="neumorphic-pressed p-4 rounded-xl text-center">
@@ -520,13 +525,18 @@ export default function DashboardStoreManager() {
 
           {/* Ordini Sbagliati */}
           {metrics.target?.metriche_attive?.includes('ordini_sbagliati') && metrics.target.target_ordini_sbagliati_max !== undefined && (
-            <NeumorphicCard className="p-6 cursor-pointer hover:shadow-lg transition-all" onClick={(e) => { e.stopPropagation(); setShowDetailModal('wrongOrders'); }}>
+            <NeumorphicCard className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <AlertTriangle className="w-6 h-6 text-red-600" />
                   <h2 className="text-xl font-bold text-slate-800">Ordini Sbagliati</h2>
                 </div>
-                <Eye className="w-5 h-5 text-slate-400" />
+                <button 
+                  onClick={() => setShowDetailModal('wrongOrders')}
+                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  <Eye className="w-5 h-5 text-slate-400 hover:text-slate-600" />
+                </button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div className="neumorphic-pressed p-4 rounded-xl text-center">
@@ -557,13 +567,18 @@ export default function DashboardStoreManager() {
 
           {/* Ritardi */}
           {metrics.target?.metriche_attive?.includes('ritardi') && metrics.target.target_ritardi_max_minuti !== undefined && (
-            <NeumorphicCard className="p-6 cursor-pointer hover:shadow-lg transition-all" onClick={(e) => { e.stopPropagation(); setShowDetailModal('delays'); }}>
+            <NeumorphicCard className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <Clock className="w-6 h-6 text-blue-600" />
                   <h2 className="text-xl font-bold text-slate-800">Ritardi</h2>
                 </div>
-                <Eye className="w-5 h-5 text-slate-400" />
+                <button 
+                  onClick={() => setShowDetailModal('delays')}
+                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  <Eye className="w-5 h-5 text-slate-400 hover:text-slate-600" />
+                </button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div className="neumorphic-pressed p-4 rounded-xl text-center">
@@ -595,13 +610,18 @@ export default function DashboardStoreManager() {
 
           {/* Pulizie */}
           {metrics.target?.metriche_attive?.includes('pulizie') && metrics.target.target_pulizie_min_score && (
-            <NeumorphicCard className="p-6 cursor-pointer hover:shadow-lg transition-all" onClick={(e) => { e.stopPropagation(); setShowDetailModal('cleanings'); }}>
+            <NeumorphicCard className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <Sparkles className="w-6 h-6 text-cyan-600" />
                   <h2 className="text-xl font-bold text-slate-800">Pulizie</h2>
                 </div>
-                <Eye className="w-5 h-5 text-slate-400" />
+                <button 
+                  onClick={() => setShowDetailModal('cleanings')}
+                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  <Eye className="w-5 h-5 text-slate-400 hover:text-slate-600" />
+                </button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div className="neumorphic-pressed p-4 rounded-xl text-center">
