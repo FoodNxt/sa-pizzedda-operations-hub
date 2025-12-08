@@ -29,10 +29,21 @@ Deno.serve(async (req) => {
         for (const question of fotoQuestions) {
             const url = question.risposta;
             const attrezzatura = question.attrezzatura;
-            const equipmentKey = attrezzatura ? attrezzatura.toLowerCase().replace(/\s+/g, '_') : null;
             const prompt_ai = question.prompt_ai;
             
-            if (!url || !equipmentKey) continue;
+            // Skip only if no URL (photo) is provided
+            if (!url) {
+                console.log('Skipping question - no photo URL:', question);
+                continue;
+            }
+            
+            // Generate equipment key for storing results
+            const equipmentKey = attrezzatura ? attrezzatura.toLowerCase().replace(/\s+/g, '_') : `question_${question.domanda_id}`;
+            
+            if (!equipmentKey) {
+                console.log('Skipping question - cannot generate equipment key:', question);
+                continue;
+            }
             
             // BUILD LEARNING EXAMPLES FROM CORRECTIONS
             const relevantCorrections = correctionsHistory
@@ -62,8 +73,15 @@ Esempio ${idx + 1}:
 ⚠️ IMPORTANTE: Impara da questi esempi! Se vedi situazioni simili, applica gli stessi criteri di valutazione.`;
             }
 
-            // Use custom prompt if provided, otherwise use default
-            const finalPrompt = prompt_ai || `Analizza questa foto di ${attrezzatura} in una pizzeria e valuta lo stato di pulizia.
+            // Always analyze with a prompt - use custom or default
+            let finalPrompt;
+            
+            if (prompt_ai) {
+                // Use custom prompt with learning section if available
+                finalPrompt = learningSection ? `${prompt_ai}\n${learningSection}` : prompt_ai;
+            } else {
+                // Use comprehensive default prompt
+                finalPrompt = `Analizza questa foto di ${attrezzatura || 'attrezzatura'} in una pizzeria e valuta lo stato di pulizia.
 ${learningSection}
 
 Rispondi in formato JSON con questa struttura esatta:
@@ -82,6 +100,7 @@ Criteri di valutazione:
 IMPORTANTE: Nelle note, specifica sempre la POSIZIONE ESATTA dello sporco (es. "Residui di farina nell'angolo in alto a destra", "Macchie di unto sulla superficie centrale", "Incrostazioni sul bordo inferiore").
 
 Sii molto critico e attento ai dettagli di igiene in una cucina professionale. ${relevantCorrections.length > 0 ? 'APPLICA GLI INSEGNAMENTI dagli esempi sopra!' : ''}`;
+            }
 
             try {
                 const aiResponse = await base44.integrations.Core.InvokeLLM({
