@@ -342,7 +342,9 @@ export default function ControlloPuliziaStoreManager() {
                           />
                           <button
                             type="button"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
                               setPhotos(prev => {
                                 const newPhotos = {...prev};
                                 delete newPhotos[domanda.id];

@@ -307,7 +307,9 @@ export default function ControlloPuliziaPizzaiolo() {
                           />
                           <button
                             type="button"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
                               setPhotos(prev => {
                                 const newPhotos = {...prev};
                                 delete newPhotos[domanda.id];
@@ -329,7 +331,11 @@ export default function ControlloPuliziaPizzaiolo() {
                         <div>
                           <button
                             type="button"
-                            onClick={() => document.getElementById(`photo-${domanda.id}`).click()}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              document.getElementById(`photo-${domanda.id}`).click();
+                            }}
                             className="w-full neumorphic-flat p-8 rounded-lg text-center hover:shadow-lg transition-all"
                             disabled={uploading}
                           >
@@ -342,6 +348,7 @@ export default function ControlloPuliziaPizzaiolo() {
                             accept="image/*"
                             capture="environment"
                             onChange={(e) => handlePhotoChange(domanda.id, e)}
+                            onClick={(e) => e.stopPropagation()}
                             className="hidden"
                             disabled={uploading}
                           />
