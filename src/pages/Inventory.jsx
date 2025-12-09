@@ -32,6 +32,7 @@ export default function Inventory() {
   const [selectedStore, setSelectedStore] = useState('all');
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [historyProduct, setHistoryProduct] = useState(null);
+  const [selectedFormCompletion, setSelectedFormCompletion] = useState(null);
   
   const queryClient = useQueryClient();
 
@@ -661,10 +662,14 @@ Sa Pizzedda`
                 
                 return (
                   <div className="space-y-3">
-                    {sortedCompletions.map((completion, idx) => (
-                      <div key={idx} className="neumorphic-pressed p-4 rounded-xl">
+                     {sortedCompletions.map((completion, idx) => (
+                      <div 
+                        key={idx} 
+                        onClick={() => setSelectedFormCompletion(completion)}
+                        className="neumorphic-pressed p-4 rounded-xl hover:shadow-xl transition-all cursor-pointer"
+                      >
                         <div className="flex items-start justify-between mb-2">
-                          <div>
+                          <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-slate-800">{completion.store_name}</span>
                               {completion.isCantina && (
@@ -693,7 +698,7 @@ Sa Pizzedda`
                             </button>
                           </div>
                         </div>
-                        
+
                         <div className="flex flex-wrap gap-1 mt-2">
                           {completion.prodotti.slice(0, 5).map((prod, pIdx) => (
                             <span key={pIdx} className="px-2 py-1 rounded-lg text-xs bg-slate-100 text-slate-600">
@@ -880,6 +885,93 @@ Sa Pizzedda`
                     <Send className="w-5 h-5" />
                     Invia Email
                   </NeumorphicButton>
+                </div>
+              </div>
+            </NeumorphicCard>
+          </div>
+        )}
+
+        {/* Form Completion Detail Modal */}
+        {selectedFormCompletion && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end lg:items-center justify-center z-50 p-0 lg:p-4">
+            <NeumorphicCard className="w-full lg:max-w-4xl max-h-[90vh] overflow-y-auto p-4 lg:p-6 rounded-t-3xl lg:rounded-2xl">
+              <div className="flex items-center justify-between mb-6 sticky top-0 bg-[#e0e5ec] z-10 pb-4">
+                <div>
+                  <h2 className="text-xl lg:text-2xl font-bold text-slate-800">Dettaglio Form Inventario</h2>
+                  <p className="text-sm text-slate-500 mt-1">
+                    {selectedFormCompletion.store_name} - {format(parseISO(selectedFormCompletion.data), 'dd/MM/yyyy HH:mm', { locale: it })}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSelectedFormCompletion(null)}
+                  className="neumorphic-flat p-2 rounded-lg"
+                >
+                  <X className="w-5 h-5 text-slate-700" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="neumorphic-flat p-4 rounded-xl">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-slate-500">Locale</p>
+                      <p className="font-bold text-slate-800">{selectedFormCompletion.store_name}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500">Compilato da</p>
+                      <p className="font-bold text-slate-800">{selectedFormCompletion.rilevato_da}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500">Data</p>
+                      <p className="font-bold text-slate-800">
+                        {format(parseISO(selectedFormCompletion.data), 'dd/MM/yyyy HH:mm', { locale: it })}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500">Prodotti</p>
+                      <p className="font-bold text-slate-800">{selectedFormCompletion.prodotti.length}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="neumorphic-flat p-4 rounded-xl">
+                  <h3 className="font-bold text-slate-800 mb-3">Prodotti Inventariati</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b-2 border-blue-600">
+                          <th className="text-left p-3 text-slate-600 font-medium text-sm">Prodotto</th>
+                          <th className="text-right p-3 text-slate-600 font-medium text-sm">Quantità</th>
+                          <th className="text-center p-3 text-slate-600 font-medium text-sm">Stato</th>
+                          <th className="text-left p-3 text-slate-600 font-medium text-sm">Note</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedFormCompletion.prodotti
+                          .sort((a, b) => a.nome_prodotto.localeCompare(b.nome_prodotto))
+                          .map((prod, idx) => (
+                          <tr key={idx} className="border-b border-slate-200 hover:bg-slate-50">
+                            <td className="p-3 text-sm text-slate-700">{prod.nome_prodotto}</td>
+                            <td className="p-3 text-sm text-right font-bold text-blue-600">
+                              {prod.quantita_rilevata} {prod.unita_misura}
+                            </td>
+                            <td className="p-3 text-center">
+                              {prod.sotto_minimo ? (
+                                <span className="px-2 py-1 rounded-full text-xs bg-red-100 text-red-700 font-medium">
+                                  Sotto Minimo
+                                </span>
+                              ) : (
+                                <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700 font-medium">
+                                  OK
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-3 text-sm text-slate-500">{prod.note || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             </NeumorphicCard>

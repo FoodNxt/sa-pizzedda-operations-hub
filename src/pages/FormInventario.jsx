@@ -35,11 +35,22 @@ export default function FormInventario() {
   });
 
   const { data: products = [], isLoading: productsLoading } = useQuery({
-    queryKey: ['materie-prime-negozio'],
+    queryKey: ['materie-prime-negozio', selectedStore],
     queryFn: async () => {
       const allProducts = await base44.entities.MateriePrime.filter({ attivo: true });
-      return allProducts.filter(p => !p.posizione || p.posizione === 'negozio');
+      return allProducts.filter(p => {
+        // Filter by position
+        if (p.posizione && p.posizione !== 'negozio') return false;
+        
+        // Filter by store assignment
+        if (selectedStore && p.assigned_stores && p.assigned_stores.length > 0) {
+          return p.assigned_stores.includes(selectedStore);
+        }
+        
+        return true;
+      });
     },
+    enabled: !!selectedStore,
   });
 
   const handleQuantityChange = (productId, value) => {
