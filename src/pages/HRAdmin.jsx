@@ -34,6 +34,7 @@ export default function HRAdmin() {
   const [gpsLocations, setGpsLocations] = useState({});
   const [editingGps, setEditingGps] = useState(null);
   const [showMapModal, setShowMapModal] = useState(null);
+  const [tempMapPosition, setTempMapPosition] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -592,21 +593,32 @@ export default function HRAdmin() {
                     : [45.4642, 9.1900] // Default Milano
                 }
                 onPositionChange={(lat, lng) => {
-                  setGpsLocations(prev => ({
-                    ...prev,
-                    [showMapModal.id]: { latitude: lat, longitude: lng }
-                  }));
+                  setTempMapPosition({ latitude: lat, longitude: lng });
                 }}
               />
             </div>
+            
+            {tempMapPosition && (
+              <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  📍 Nuova posizione: {tempMapPosition.latitude.toFixed(6)}, {tempMapPosition.longitude.toFixed(6)}
+                </p>
+              </div>
+            )}
 
             <div className="flex gap-3">
-              <NeumorphicButton onClick={() => setShowMapModal(null)} className="flex-1">
+              <NeumorphicButton 
+                onClick={() => {
+                  setShowMapModal(null);
+                  setTempMapPosition(null);
+                }} 
+                className="flex-1"
+              >
                 Annulla
               </NeumorphicButton>
               <NeumorphicButton
                 onClick={async () => {
-                  const coords = gpsLocations[showMapModal.id];
+                  const coords = tempMapPosition || gpsLocations[showMapModal.id];
                   if (coords) {
                     await saveGpsLocationMutation.mutateAsync({
                       storeId: showMapModal.id,
@@ -614,11 +626,12 @@ export default function HRAdmin() {
                       longitude: coords.longitude
                     });
                     setShowMapModal(null);
+                    setTempMapPosition(null);
                   }
                 }}
                 variant="primary"
                 className="flex-1 flex items-center justify-center gap-2"
-                disabled={saveGpsLocationMutation.isPending}
+                disabled={saveGpsLocationMutation.isPending || (!tempMapPosition && !gpsLocations[showMapModal.id])}
               >
                 {saveGpsLocationMutation.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
