@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Camera, Upload, CheckCircle, AlertCircle, Loader2, ClipboardCheck } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
+import CameraCapture from "../components/camera/CameraCapture";
 
 export default function ControlloPuliziaStoreManager() {
   const navigate = useNavigate();
@@ -24,6 +25,7 @@ export default function ControlloPuliziaStoreManager() {
   const [uploadProgress, setUploadProgress] = useState('');
   const [error, setError] = useState('');
   const [isAfterDeadline, setIsAfterDeadline] = useState(false);
+  const [activeCamera, setActiveCamera] = useState(null);
 
   // Check if current time is after 10:30
   useEffect(() => {
@@ -77,21 +79,15 @@ export default function ControlloPuliziaStoreManager() {
     },
   });
 
-  const handlePhotoChange = (questionId, e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const file = e.target.files?.[0];
-    if (file) {
-      setPhotos(prev => ({ ...prev, [questionId]: file }));
-      
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviews(prev => ({ ...prev, [questionId]: reader.result }));
-      };
-      reader.readAsDataURL(file);
-      
-      e.target.value = '';
-    }
+  const handlePhotoCapture = (questionId, file) => {
+    setPhotos(prev => ({ ...prev, [questionId]: file }));
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviews(prev => ({ ...prev, [questionId]: reader.result }));
+    };
+    reader.readAsDataURL(file);
+    setActiveCamera(null);
   };
 
   const handleSubmit = async (e) => {
@@ -489,6 +485,14 @@ export default function ControlloPuliziaStoreManager() {
             </button>
           </div>
         </form>
+      )}
+
+      {/* Camera Modal */}
+      {activeCamera && (
+        <CameraCapture
+          onCapture={(file) => handlePhotoCapture(activeCamera, file)}
+          onClose={() => setActiveCamera(null)}
+        />
       )}
     </div>
   );

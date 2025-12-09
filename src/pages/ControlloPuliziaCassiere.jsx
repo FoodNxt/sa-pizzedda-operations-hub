@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Camera, Upload, CheckCircle, AlertCircle, Loader2, ClipboardCheck } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
+import CameraCapture from "../components/camera/CameraCapture";
 
 export default function ControlloPuliziaCassiere() {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ export default function ControlloPuliziaCassiere() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
   const [error, setError] = useState('');
+  const [activeCamera, setActiveCamera] = useState(null);
 
   // Get current user and check role
   useEffect(() => {
@@ -62,21 +64,15 @@ export default function ControlloPuliziaCassiere() {
     },
   });
 
-  const handlePhotoChange = (questionId, e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const file = e.target.files?.[0];
-    if (file) {
-      setPhotos(prev => ({ ...prev, [questionId]: file }));
-      
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviews(prev => ({ ...prev, [questionId]: reader.result }));
-      };
-      reader.readAsDataURL(file);
-      
-      e.target.value = '';
-    }
+  const handlePhotoCapture = (questionId, file) => {
+    setPhotos(prev => ({ ...prev, [questionId]: file }));
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviews(prev => ({ ...prev, [questionId]: reader.result }));
+    };
+    reader.readAsDataURL(file);
+    setActiveCamera(null);
   };
 
   const handleSubmit = async (e) => {
@@ -339,31 +335,18 @@ export default function ControlloPuliziaCassiere() {
                           </button>
                         </div>
                       ) : (
-                        <div>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              document.getElementById(`photo-${domanda.id}`).click();
-                            }}
-                            className="w-full neumorphic-flat p-8 rounded-lg text-center hover:shadow-lg transition-all"
-                            disabled={uploading}
-                          >
-                            <Upload className="w-8 h-8 text-[#9b9b9b] mx-auto mb-2" />
-                            <p className="text-sm text-[#9b9b9b]">Clicca per caricare foto</p>
-                          </button>
-                          <input
-                            id={`photo-${domanda.id}`}
-                            type="file"
-                            accept="image/*"
-                            capture="environment"
-                            onChange={(e) => handlePhotoChange(domanda.id, e)}
-                            onClick={(e) => e.stopPropagation()}
-                            className="hidden"
-                            disabled={uploading}
-                          />
-                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setActiveCamera(domanda.id);
+                          }}
+                          className="w-full neumorphic-flat p-8 rounded-lg text-center hover:shadow-lg transition-all"
+                          disabled={uploading}
+                        >
+                          <Camera className="w-8 h-8 text-[#9b9b9b] mx-auto mb-2" />
+                          <p className="text-sm text-[#9b9b9b]">Scatta Foto</p>
+                        </button>
                       )}
 
                       {photos[domanda.id] && (
@@ -474,6 +457,14 @@ export default function ControlloPuliziaCassiere() {
             </button>
           </div>
         </form>
+      )}
+
+      {/* Camera Modal */}
+      {activeCamera && (
+        <CameraCapture
+          onCapture={(file) => handlePhotoCapture(activeCamera, file)}
+          onClose={() => setActiveCamera(null)}
+        />
       )}
     </div>
   );
