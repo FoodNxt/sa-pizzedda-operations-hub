@@ -179,8 +179,10 @@ export default function HRAdmin() {
 
   const saveGpsLocationMutation = useMutation({
     mutationFn: async ({ storeId, latitude, longitude }) => {
-      // Fetch fresh config data to avoid stale closure
-      const configs = await base44.entities.TimbraturaConfig.list();
+      console.log('Saving GPS for store:', storeId, 'lat:', latitude, 'lng:', longitude);
+      
+      // Fetch fresh config data
+      const configs = await base44.asServiceRole.entities.TimbraturaConfig.list();
       const activeConfig = configs.find(c => c.is_active);
       
       const updatedGps = {
@@ -188,22 +190,34 @@ export default function HRAdmin() {
         [storeId]: { latitude, longitude }
       };
       
+      console.log('Updated GPS object:', updatedGps);
+      
       if (activeConfig) {
-        await base44.entities.TimbraturaConfig.update(activeConfig.id, {
+        const result = await base44.asServiceRole.entities.TimbraturaConfig.update(activeConfig.id, {
           stores_gps: updatedGps
         });
+        console.log('Update result:', result);
+        return result;
       } else {
-        await base44.entities.TimbraturaConfig.create({
+        const result = await base44.asServiceRole.entities.TimbraturaConfig.create({
           is_active: true,
           stores_gps: updatedGps,
           distanza_massima_metri: 100
         });
+        console.log('Create result:', result);
+        return result;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Save successful, data:', data);
       queryClient.invalidateQueries({ queryKey: ['timbratura-config'] });
       setEditingGps(null);
       setTempMapPosition(null);
+      setShowMapModal(null);
+    },
+    onError: (error) => {
+      console.error('Save failed:', error);
+      alert('Errore nel salvataggio: ' + error.message);
     }
   });
 
@@ -627,14 +641,21 @@ export default function HRAdmin() {
               </NeumorphicButton>
               <NeumorphicButton
                 onClick={async () => {
+                  console.log('Save button clicked, tempMapPosition:', tempMapPosition);
+                  console.log('Store ID:', showMapModal?.id);
+                  
                   const coords = tempMapPosition;
                   if (coords) {
-                    await saveGpsLocationMutation.mutateAsync({
-                      storeId: showMapModal.id,
-                      latitude: coords.latitude,
-                      longitude: coords.longitude
-                    });
-                    setShowMapModal(null);
+                    try {
+                      await saveGpsLocationMutation.mutateAsync({
+                        storeId: showMapModal.id,
+                        latitude: coords.latitude,
+                        longitude: coords.longitude
+                      });
+                      alert('✅ Posizione salvata con successo!');
+                    } catch (error) {
+                      console.error('Error in save:', error);
+                    }
                   } else {
                     alert('⚠️ Clicca sulla mappa per selezionare una posizione');
                   }
