@@ -34,24 +34,32 @@ export default function FormInventario() {
     queryFn: () => base44.entities.Store.list(),
   });
 
-  const { data: products = [], isLoading: productsLoading } = useQuery({
-    queryKey: ['materie-prime-negozio', selectedStore],
+  const { data: allProducts = [], isLoading: productsLoading } = useQuery({
+    queryKey: ['materie-prime-negozio'],
     queryFn: async () => {
       const allProducts = await base44.entities.MateriePrime.filter({ attivo: true });
-      return allProducts.filter(p => {
-        // Filter by position
-        if (p.posizione && p.posizione !== 'negozio') return false;
-        
-        // Filter by store assignment
-        if (selectedStore && p.assigned_stores && p.assigned_stores.length > 0) {
-          return p.assigned_stores.includes(selectedStore);
-        }
-        
-        return true;
-      });
+      return allProducts.filter(p => !p.posizione || p.posizione === 'negozio');
     },
-    enabled: !!selectedStore,
   });
+
+  // Filter products by selected store
+  const products = React.useMemo(() => {
+    if (!selectedStore) return allProducts;
+    
+    return allProducts.filter(p => {
+      // Check if product is "in uso" for this specific store
+      if (p.in_uso_per_store && p.in_uso_per_store[selectedStore] === false) {
+        return false;
+      }
+      
+      // If assigned_stores is defined and not empty, check if store is included
+      if (p.assigned_stores && p.assigned_stores.length > 0) {
+        return p.assigned_stores.includes(selectedStore);
+      }
+      
+      return true;
+    });
+  }, [allProducts, selectedStore]);
 
   const handleQuantityChange = (productId, value) => {
     setQuantities(prev => ({
