@@ -1111,9 +1111,10 @@ export default function Pulizie() {
                         </div>
                       </div>
                     );
-                  })}
-                </div>
-              ) : (
+                    });
+                    })()}
+                    </div>
+                    ) : (
                 /* Fallback per vecchi form senza domande_risposte - mostra le foto delle attrezzature e altri campi */
                 <div className="space-y-3">
                   {/* Foto attrezzature */}
