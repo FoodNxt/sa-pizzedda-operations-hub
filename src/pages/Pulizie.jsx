@@ -647,9 +647,10 @@ export default function Pulizie() {
                   </button>
                 )}
               </div>
-            ))}
-          </div>
-        ) : (
+            );
+            })})()}
+            </div>
+            ) : (
           <div className="text-center py-12">
             <Camera className="w-16 h-16 text-[#9b9b9b] opacity-50 mx-auto mb-4" />
             <p className="text-[#9b9b9b] mb-4">Nessuna ispezione trovata</p>
@@ -930,7 +931,11 @@ export default function Pulizie() {
             <div className="mt-6">
               {detailsModalInspection.domande_risposte && detailsModalInspection.domande_risposte.length > 0 ? (
                 <div className="space-y-3">
-                  {detailsModalInspection.domande_risposte.map((risposta, idx) => {
+                  {(() => {
+                    const totalQuestions = detailsModalInspection.domande_risposte.length;
+                    const pointsPerQuestion = totalQuestions > 0 ? (100 / totalQuestions).toFixed(1) : 0;
+
+                    return detailsModalInspection.domande_risposte.map((risposta, idx) => {
                     const isFoto = risposta.tipo_controllo === 'foto' || risposta.tipo_controllo === 'photo' || (risposta.risposta && typeof risposta.risposta === 'string' && risposta.risposta.startsWith('http'));
 
                     // Find equipment key for AI analysis - try multiple methods
@@ -958,6 +963,16 @@ export default function Pulizie() {
                       ? risposta.risposta === originalQuestion.risposta_corretta 
                       : null;
 
+                    // Calculate score for this question
+                    let questionScore = 0;
+                    if (isFoto) {
+                      if (displayStatus === 'pulito') questionScore = parseFloat(pointsPerQuestion);
+                      else if (displayStatus === 'medio') questionScore = parseFloat(pointsPerQuestion) * 0.5;
+                      else if (displayStatus === 'sporco') questionScore = 0;
+                    } else if (isMultipleChoice) {
+                      questionScore = isCorrect ? parseFloat(pointsPerQuestion) : 0;
+                    }
+
                     return (
                       <div key={idx} className="neumorphic-flat p-4 rounded-xl">
                         <div className="flex items-start gap-3">
@@ -968,9 +983,18 @@ export default function Pulizie() {
                           )}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-2">
-                              <p className="text-sm font-bold text-[#6b6b6b]">
-                                {risposta.domanda_testo || risposta.attrezzatura || `Domanda ${idx + 1}`}
-                              </p>
+                              <div>
+                                <p className="text-sm font-bold text-[#6b6b6b]">
+                                  {risposta.domanda_testo || risposta.attrezzatura || `Domanda ${idx + 1}`}
+                                </p>
+                                <p className="text-xs text-[#9b9b9b] mt-1">
+                                  Peso: {pointsPerQuestion}% | Punteggio: <span className={`font-bold ${
+                                    questionScore >= parseFloat(pointsPerQuestion) * 0.8 ? 'text-green-600' :
+                                    questionScore >= parseFloat(pointsPerQuestion) * 0.5 ? 'text-yellow-600' :
+                                    'text-red-600'
+                                  }`}>{questionScore.toFixed(1)}%</span>
+                                </p>
+                              </div>
                               {isFoto && aiStatus && !isEditing && (
                                 <button
                                   onClick={(e) => {
