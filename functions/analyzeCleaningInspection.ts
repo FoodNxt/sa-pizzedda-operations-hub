@@ -17,9 +17,8 @@ Deno.serve(async (req) => {
         const allInspections = await base44.asServiceRole.entities.CleaningInspection.list('-inspection_date', 100);
         const correctionsHistory = allInspections.filter(i => i.has_corrections === true);
 
-        // Get all foto-type questions from domande_risposte that have a photo URL
+        // Get ALL questions that have a photo URL, regardless of tipo_controllo
         const fotoQuestions = domande_risposte.filter(r => 
-            (r.tipo_controllo === 'foto' || r.tipo_controllo === 'photo') && 
             r.risposta && 
             typeof r.risposta === 'string' && 
             r.risposta.startsWith('http')
