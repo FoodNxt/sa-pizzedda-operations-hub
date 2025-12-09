@@ -185,51 +185,42 @@ export default function HRAdmin() {
       console.log('  Longitude:', longitude);
       
       // Fetch fresh config data
-      console.log('🔍 Fetching configs...');
       const configs = await base44.entities.TimbraturaConfig.list();
-      console.log('📋 Found configs:', configs.length);
-      
       const activeConfig = configs.find(c => c.is_active);
-      console.log('⚙️ Active config:', activeConfig ? activeConfig.id : 'none');
       
+      // SOVRASCRIVI completamente la posizione dello store
       const updatedGps = {
         ...(activeConfig?.stores_gps || {}),
         [storeId]: { latitude, longitude }
       };
       
-      console.log('🗺️ Updated GPS object:', JSON.stringify(updatedGps, null, 2));
+      console.log('🗺️ GPS che verrà salvato:', updatedGps);
       
       if (activeConfig) {
-        console.log('🔄 Updating existing config:', activeConfig.id);
         const result = await base44.entities.TimbraturaConfig.update(activeConfig.id, {
           stores_gps: updatedGps
         });
-        console.log('✅ Update result:', result);
+        console.log('✅ Salvato nel DB - Config ID:', activeConfig.id);
         return result;
       } else {
-        console.log('➕ Creating new config');
         const result = await base44.entities.TimbraturaConfig.create({
           is_active: true,
           stores_gps: updatedGps,
           distanza_massima_metri: 100
         });
-        console.log('✅ Create result:', result);
+        console.log('✅ Creato nuovo config nel DB');
         return result;
       }
     },
-    onSuccess: (data) => {
-      console.log('🎉 MUTATION SUCCESS');
-      console.log('📊 Data returned:', data);
-      console.log('🔄 Invalidating queries...');
-      queryClient.invalidateQueries({ queryKey: ['timbratura-config'] });
-      console.log('🧹 Cleaning up state...');
+    onSuccess: async (data) => {
+      console.log('🎉 SALVATO CON SUCCESSO NEL DATABASE');
+      await queryClient.invalidateQueries({ queryKey: ['timbratura-config'] });
       setEditingGps(null);
       setTempMapPosition(null);
       setShowMapModal(null);
-      console.log('✨ All done!');
     },
     onError: (error) => {
-      console.error('💥 MUTATION ERROR:', error);
+      console.error('💥 ERRORE SALVATAGGIO:', error);
       alert('Errore nel salvataggio: ' + error.message);
     }
   });
@@ -700,11 +691,16 @@ export default function HRAdmin() {
 
 function MapSelector({ initialPosition, onPositionChange }) {
   const [position, setPosition] = useState(initialPosition);
+  const isInitialMount = React.useRef(true);
 
   useEffect(() => {
-    console.log('🎯 MapSelector mounted/updated - initialPosition:', initialPosition);
-    setPosition(initialPosition);
-  }, [initialPosition]);
+    // Solo al primo mount, non quando initialPosition cambia
+    if (isInitialMount.current) {
+      console.log('🎯 MapSelector INITIAL MOUNT - setting position:', initialPosition);
+      setPosition(initialPosition);
+      isInitialMount.current = false;
+    }
+  }, []);
 
   function DraggableMarker() {
     const markerRef = React.useRef(null);
