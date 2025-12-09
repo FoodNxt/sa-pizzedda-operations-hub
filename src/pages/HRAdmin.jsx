@@ -297,13 +297,16 @@ export default function HRAdmin() {
                   <div className="flex gap-2">
                     {!isEditing && (
                       <>
-                        <button
-                          onClick={() => setShowMapModal(store)}
-                          className="text-green-600 hover:text-green-800"
-                          title="Apri mappa"
-                        >
-                          <Map className="w-4 h-4" />
-                        </button>
+                       <button
+                         onClick={() => {
+                           setShowMapModal(store);
+                           setTempMapPosition(gps || null);
+                         }}
+                         className="text-green-600 hover:text-green-800"
+                         title="Apri mappa"
+                       >
+                         <Map className="w-4 h-4" />
+                       </button>
                         <button
                           onClick={() => geocodeAddress(store.id)}
                           disabled={isGeocoding}

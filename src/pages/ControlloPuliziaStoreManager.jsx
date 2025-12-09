@@ -86,6 +86,10 @@ export default function ControlloPuliziaStoreManager() {
         setPreviews(prev => ({ ...prev, [questionId]: reader.result }));
       };
       reader.readAsDataURL(file);
+      
+      // Reset input value to allow re-uploading same file
+      const input = document.getElementById(`photo-${questionId}`);
+      if (input) input.value = '';
     }
   };
 
