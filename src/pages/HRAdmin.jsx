@@ -179,7 +179,10 @@ export default function HRAdmin() {
 
   const saveGpsLocationMutation = useMutation({
     mutationFn: async ({ storeId, latitude, longitude }) => {
-      const activeConfig = timbraturaConfigs.find(c => c.is_active);
+      // Fetch fresh config data to avoid stale closure
+      const configs = await base44.entities.TimbraturaConfig.list();
+      const activeConfig = configs.find(c => c.is_active);
+      
       const updatedGps = {
         ...(activeConfig?.stores_gps || {}),
         [storeId]: { latitude, longitude }
@@ -193,13 +196,14 @@ export default function HRAdmin() {
         await base44.entities.TimbraturaConfig.create({
           is_active: true,
           stores_gps: updatedGps,
-          raggio_metri: 100
+          distanza_massima_metri: 100
         });
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timbratura-config'] });
       setEditingGps(null);
+      setTempMapPosition(null);
     }
   });
 
@@ -299,8 +303,8 @@ export default function HRAdmin() {
                       <>
                        <button
                          onClick={() => {
+                           setTempMapPosition(null);
                            setShowMapModal(store);
-                           setTempMapPosition(gps || null);
                          }}
                          className="text-green-600 hover:text-green-800"
                          title="Apri mappa"
@@ -621,7 +625,7 @@ export default function HRAdmin() {
               </NeumorphicButton>
               <NeumorphicButton
                 onClick={async () => {
-                  const coords = tempMapPosition || gpsLocations[showMapModal.id];
+                  const coords = tempMapPosition;
                   if (coords) {
                     await saveGpsLocationMutation.mutateAsync({
                       storeId: showMapModal.id,
@@ -629,12 +633,13 @@ export default function HRAdmin() {
                       longitude: coords.longitude
                     });
                     setShowMapModal(null);
-                    setTempMapPosition(null);
+                  } else {
+                    alert('⚠️ Clicca sulla mappa per selezionare una posizione');
                   }
                 }}
                 variant="primary"
                 className="flex-1 flex items-center justify-center gap-2"
-                disabled={saveGpsLocationMutation.isPending || (!tempMapPosition && !gpsLocations[showMapModal.id])}
+                disabled={saveGpsLocationMutation.isPending || !tempMapPosition}
               >
                 {saveGpsLocationMutation.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
