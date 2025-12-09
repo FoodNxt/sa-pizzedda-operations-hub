@@ -322,23 +322,24 @@ export default function ControlloPuliziaPizzaiolo() {
                         </div>
                       ) : (
                         <div>
-                          <label 
-                            htmlFor={`photo-${domanda.id}`}
-                            className="block cursor-pointer"
+                          <button
+                            type="button"
+                            onClick={() => document.getElementById(`photo-${domanda.id}`).click()}
+                            className="w-full neumorphic-flat p-8 rounded-lg text-center hover:shadow-lg transition-all"
+                            disabled={uploading}
                           >
-                            <div className="neumorphic-flat p-8 rounded-lg text-center hover:shadow-lg transition-all">
-                              <Upload className="w-8 h-8 text-[#9b9b9b] mx-auto mb-2" />
-                              <p className="text-sm text-[#9b9b9b]">Clicca per caricare foto</p>
-                            </div>
-                          </label>
+                            <Upload className="w-8 h-8 text-[#9b9b9b] mx-auto mb-2" />
+                            <p className="text-sm text-[#9b9b9b]">Clicca per caricare foto</p>
+                          </button>
                           <input
                             id={`photo-${domanda.id}`}
                             type="file"
                             accept="image/*"
                             capture="environment"
                             onChange={(e) => {
-                              e.preventDefault();
-                              handlePhotoChange(domanda.id, e.target.files[0]);
+                              if (e.target.files[0]) {
+                                handlePhotoChange(domanda.id, e.target.files[0]);
+                              }
                             }}
                             className="hidden"
                             disabled={uploading}
