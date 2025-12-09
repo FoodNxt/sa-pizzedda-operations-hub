@@ -182,7 +182,7 @@ export default function HRAdmin() {
       console.log('Saving GPS for store:', storeId, 'lat:', latitude, 'lng:', longitude);
       
       // Fetch fresh config data
-      const configs = await base44.asServiceRole.entities.TimbraturaConfig.list();
+      const configs = await base44.entities.TimbraturaConfig.list();
       const activeConfig = configs.find(c => c.is_active);
       
       const updatedGps = {
@@ -193,13 +193,13 @@ export default function HRAdmin() {
       console.log('Updated GPS object:', updatedGps);
       
       if (activeConfig) {
-        const result = await base44.asServiceRole.entities.TimbraturaConfig.update(activeConfig.id, {
+        const result = await base44.entities.TimbraturaConfig.update(activeConfig.id, {
           stores_gps: updatedGps
         });
         console.log('Update result:', result);
         return result;
       } else {
-        const result = await base44.asServiceRole.entities.TimbraturaConfig.create({
+        const result = await base44.entities.TimbraturaConfig.create({
           is_active: true,
           stores_gps: updatedGps,
           distanza_massima_metri: 100
@@ -683,6 +683,7 @@ function MapSelector({ initialPosition, onPositionChange }) {
   const [position, setPosition] = useState(initialPosition);
 
   useEffect(() => {
+    console.log('Initial position:', initialPosition);
     setPosition(initialPosition);
   }, [initialPosition]);
 
@@ -690,12 +691,14 @@ function MapSelector({ initialPosition, onPositionChange }) {
     useMapEvents({
       click(e) {
         const { lat, lng } = e.latlng;
-        console.log('Map clicked:', lat, lng);
-        setPosition([lat, lng]);
+        console.log('Map clicked at:', lat, lng);
+        const newPos = [lat, lng];
+        setPosition(newPos);
         onPositionChange(lat, lng);
       },
     });
 
+    console.log('Rendering marker at:', position);
     return position ? <Marker position={position} /> : null;
   }
 
