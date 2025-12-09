@@ -60,7 +60,10 @@ export default function ControlloPuliziaPizzaiolo() {
     },
   });
 
-  const handlePhotoChange = (questionId, file) => {
+  const handlePhotoChange = (questionId, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const file = e.target.files?.[0];
     if (file) {
       setPhotos(prev => ({ ...prev, [questionId]: file }));
       
@@ -70,9 +73,7 @@ export default function ControlloPuliziaPizzaiolo() {
       };
       reader.readAsDataURL(file);
       
-      // Reset input value to allow re-uploading same file
-      const input = document.getElementById(`photo-${questionId}`);
-      if (input) input.value = '';
+      e.target.value = '';
     }
   };
 
@@ -340,11 +341,7 @@ export default function ControlloPuliziaPizzaiolo() {
                             type="file"
                             accept="image/*"
                             capture="environment"
-                            onChange={(e) => {
-                              if (e.target.files[0]) {
-                                handlePhotoChange(domanda.id, e.target.files[0]);
-                              }
-                            }}
+                            onChange={(e) => handlePhotoChange(domanda.id, e)}
                             className="hidden"
                             disabled={uploading}
                           />
