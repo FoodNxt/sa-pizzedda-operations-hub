@@ -702,23 +702,53 @@ function MapSelector({ initialPosition, onPositionChange }) {
   const [position, setPosition] = useState(initialPosition);
 
   useEffect(() => {
-    console.log('Initial position:', initialPosition);
+    console.log('🎯 MapSelector mounted/updated - initialPosition:', initialPosition);
     setPosition(initialPosition);
   }, [initialPosition]);
 
-  function LocationMarker() {
+  function DraggableMarker() {
+    const markerRef = React.useRef(null);
+
     useMapEvents({
       click(e) {
         const { lat, lng } = e.latlng;
-        console.log('Map clicked at:', lat, lng);
         const newPos = [lat, lng];
+        console.log('🖱️ Map clicked at:', lat, lng);
+        console.log('📍 Setting position to:', newPos);
         setPosition(newPos);
         onPositionChange(lat, lng);
+        
+        // Force marker update
+        if (markerRef.current) {
+          markerRef.current.setLatLng(newPos);
+        }
       },
     });
 
-    console.log('Rendering marker at:', position);
-    return position ? <Marker position={position} /> : null;
+    useEffect(() => {
+      console.log('📌 Marker rendering at:', position);
+      if (markerRef.current && position) {
+        markerRef.current.setLatLng(position);
+      }
+    }, [position]);
+
+    return position ? (
+      <Marker 
+        ref={markerRef}
+        position={position}
+        draggable={true}
+        eventHandlers={{
+          dragend: (e) => {
+            const marker = e.target;
+            const newPos = marker.getLatLng();
+            const newPosArray = [newPos.lat, newPos.lng];
+            console.log('🎯 Marker dragged to:', newPosArray);
+            setPosition(newPosArray);
+            onPositionChange(newPos.lat, newPos.lng);
+          },
+        }}
+      />
+    ) : null;
   }
 
   return (
@@ -731,7 +761,7 @@ function MapSelector({ initialPosition, onPositionChange }) {
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <LocationMarker />
+      <DraggableMarker />
     </MapContainer>
   );
 }
