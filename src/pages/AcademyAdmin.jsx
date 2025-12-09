@@ -692,7 +692,7 @@ export default function AcademyAdmin() {
                   className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                 >
                   <option value="">-- Nessuna --</option>
-                  {categorie.map(cat => (
+                  {[...categorie].sort((a, b) => a.nome.localeCompare(b.nome)).map(cat => (
                     <option key={cat.id} value={cat.nome}>{cat.nome}</option>
                   ))}
                 </select>
@@ -1011,7 +1011,7 @@ export default function AcademyAdmin() {
                       className="w-full neumorphic-flat px-4 py-3 rounded-xl text-slate-700 outline-none"
                     >
                       <option value="">-- Seleziona --</option>
-                      {categorie.map(cat => (
+                      {[...categorie].sort((a, b) => a.nome.localeCompare(b.nome)).map(cat => (
                         <option key={cat.id} value={cat.nome}>{cat.nome}</option>
                       ))}
                     </select>
