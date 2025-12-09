@@ -60,26 +60,20 @@ export default function HRAdmin() {
   React.useEffect(() => {
     if (stores.length > 0) {
       const managers = {};
+      const gps = {};
       stores.forEach(store => {
         managers[store.id] = store.store_manager_id || '';
-      });
-      setStoreManagers(managers);
-    }
-  }, [stores]);
-
-  React.useEffect(() => {
-    if (timbraturaConfigs.length > 0) {
-      const gps = {};
-      timbraturaConfigs.forEach(config => {
-        if (config.stores_gps) {
-          Object.entries(config.stores_gps).forEach(([storeId, coords]) => {
-            gps[storeId] = coords;
-          });
+        if (store.latitude && store.longitude) {
+          gps[store.id] = {
+            latitude: store.latitude,
+            longitude: store.longitude
+          };
         }
       });
+      setStoreManagers(managers);
       setGpsLocations(gps);
     }
-  }, [timbraturaConfigs]);
+  }, [stores]);
 
   const updateUserMutation = useMutation({
     mutationFn: async ({ userId, assignedStores, primaryStoresIds }) => {
@@ -179,28 +173,13 @@ export default function HRAdmin() {
 
   const saveGpsLocationMutation = useMutation({
     mutationFn: async ({ storeId, latitude, longitude }) => {
-      const configs = await base44.entities.TimbraturaConfig.list();
-      const activeConfig = configs.find(c => c.is_active);
-      
-      const updatedGps = {
-        ...(activeConfig?.stores_gps || {}),
-        [storeId]: { latitude: parseFloat(latitude), longitude: parseFloat(longitude) }
-      };
-      
-      if (activeConfig) {
-        return await base44.entities.TimbraturaConfig.update(activeConfig.id, {
-          stores_gps: updatedGps
-        });
-      } else {
-        return await base44.entities.TimbraturaConfig.create({
-          is_active: true,
-          stores_gps: updatedGps,
-          distanza_massima_metri: 100
-        });
-      }
+      return await base44.entities.Store.update(storeId, {
+        latitude: parseFloat(latitude),
+        longitude: parseFloat(longitude)
+      });
     },
     onSuccess: async (data, variables) => {
-      // Aggiorna SUBITO lo stato locale
+      // Aggiorna stato locale
       setGpsLocations(prev => ({
         ...prev,
         [variables.storeId]: {
@@ -209,8 +188,8 @@ export default function HRAdmin() {
         }
       }));
       
-      // Poi invalida la query per ricaricare dal DB
-      await queryClient.invalidateQueries({ queryKey: ['timbratura-config'] });
+      // Ricarica stores
+      await queryClient.invalidateQueries({ queryKey: ['stores'] });
     }
   });
 
