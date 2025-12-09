@@ -648,7 +648,8 @@ export default function Pulizie() {
                 )}
               </div>
             );
-            })})()}
+            });
+            })()}
             </div>
             ) : (
           <div className="text-center py-12">
