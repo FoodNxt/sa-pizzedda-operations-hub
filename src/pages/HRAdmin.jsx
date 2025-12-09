@@ -605,10 +605,10 @@ export default function HRAdmin() {
                 Annulla
               </NeumorphicButton>
               <NeumorphicButton
-                onClick={() => {
+                onClick={async () => {
                   const coords = gpsLocations[showMapModal.id];
                   if (coords) {
-                    saveGpsLocationMutation.mutate({
+                    await saveGpsLocationMutation.mutateAsync({
                       storeId: showMapModal.id,
                       latitude: coords.latitude,
                       longitude: coords.longitude
@@ -618,8 +618,13 @@ export default function HRAdmin() {
                 }}
                 variant="primary"
                 className="flex-1 flex items-center justify-center gap-2"
+                disabled={saveGpsLocationMutation.isPending}
               >
-                <Save className="w-4 h-4" />
+                {saveGpsLocationMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
                 Salva Posizione
               </NeumorphicButton>
             </div>
