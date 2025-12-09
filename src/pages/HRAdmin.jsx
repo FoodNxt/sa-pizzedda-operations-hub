@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -594,12 +594,14 @@ export default function HRAdmin() {
 
             <div className="h-[500px] rounded-xl overflow-hidden mb-4">
               <MapSelector
+                key={showMapModal.id}
                 initialPosition={
                   gpsLocations[showMapModal.id] 
                     ? [gpsLocations[showMapModal.id].latitude, gpsLocations[showMapModal.id].longitude]
                     : [45.4642, 9.1900] // Default Milano
                 }
                 onPositionChange={(lat, lng) => {
+                  console.log('Position changed:', lat, lng);
                   setTempMapPosition({ latitude: lat, longitude: lng });
                 }}
               />
@@ -659,10 +661,15 @@ export default function HRAdmin() {
 function MapSelector({ initialPosition, onPositionChange }) {
   const [position, setPosition] = useState(initialPosition);
 
+  useEffect(() => {
+    setPosition(initialPosition);
+  }, [initialPosition]);
+
   function LocationMarker() {
     useMapEvents({
       click(e) {
         const { lat, lng } = e.latlng;
+        console.log('Map clicked:', lat, lng);
         setPosition([lat, lng]);
         onPositionChange(lat, lng);
       },
@@ -673,10 +680,9 @@ function MapSelector({ initialPosition, onPositionChange }) {
 
   return (
     <MapContainer
-      center={position}
+      center={initialPosition}
       zoom={15}
       style={{ height: '100%', width: '100%' }}
-      key={`${position[0]}-${position[1]}`}
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
