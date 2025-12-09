@@ -647,11 +647,9 @@ export default function Pulizie() {
                   </button>
                 )}
               </div>
-            );
-            });
-            })()}
-            </div>
-            ) : (
+            ))}
+          </div>
+        ) : (
           <div className="text-center py-12">
             <Camera className="w-16 h-16 text-[#9b9b9b] opacity-50 mx-auto mb-4" />
             <p className="text-[#9b9b9b] mb-4">Nessuna ispezione trovata</p>
