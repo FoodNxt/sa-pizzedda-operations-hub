@@ -179,44 +179,57 @@ export default function HRAdmin() {
 
   const saveGpsLocationMutation = useMutation({
     mutationFn: async ({ storeId, latitude, longitude }) => {
-      console.log('Saving GPS for store:', storeId, 'lat:', latitude, 'lng:', longitude);
+      console.log('📝 MUTATION START - Saving GPS');
+      console.log('  Store ID:', storeId);
+      console.log('  Latitude:', latitude);
+      console.log('  Longitude:', longitude);
       
       // Fetch fresh config data
+      console.log('🔍 Fetching configs...');
       const configs = await base44.entities.TimbraturaConfig.list();
+      console.log('📋 Found configs:', configs.length);
+      
       const activeConfig = configs.find(c => c.is_active);
+      console.log('⚙️ Active config:', activeConfig ? activeConfig.id : 'none');
       
       const updatedGps = {
         ...(activeConfig?.stores_gps || {}),
         [storeId]: { latitude, longitude }
       };
       
-      console.log('Updated GPS object:', updatedGps);
+      console.log('🗺️ Updated GPS object:', JSON.stringify(updatedGps, null, 2));
       
       if (activeConfig) {
+        console.log('🔄 Updating existing config:', activeConfig.id);
         const result = await base44.entities.TimbraturaConfig.update(activeConfig.id, {
           stores_gps: updatedGps
         });
-        console.log('Update result:', result);
+        console.log('✅ Update result:', result);
         return result;
       } else {
+        console.log('➕ Creating new config');
         const result = await base44.entities.TimbraturaConfig.create({
           is_active: true,
           stores_gps: updatedGps,
           distanza_massima_metri: 100
         });
-        console.log('Create result:', result);
+        console.log('✅ Create result:', result);
         return result;
       }
     },
     onSuccess: (data) => {
-      console.log('Save successful, data:', data);
+      console.log('🎉 MUTATION SUCCESS');
+      console.log('📊 Data returned:', data);
+      console.log('🔄 Invalidating queries...');
       queryClient.invalidateQueries({ queryKey: ['timbratura-config'] });
+      console.log('🧹 Cleaning up state...');
       setEditingGps(null);
       setTempMapPosition(null);
       setShowMapModal(null);
+      console.log('✨ All done!');
     },
     onError: (error) => {
-      console.error('Save failed:', error);
+      console.error('💥 MUTATION ERROR:', error);
       alert('Errore nel salvataggio: ' + error.message);
     }
   });
@@ -615,8 +628,9 @@ export default function HRAdmin() {
                     : [45.4642, 9.1900] // Default Milano
                 }
                 onPositionChange={(lat, lng) => {
-                  console.log('Position changed:', lat, lng);
-                  setTempMapPosition({ latitude: lat, longitude: lng });
+                  const newPosition = { latitude: lat, longitude: lng };
+                  console.log('🗺️ Position changed to:', newPosition);
+                  setTempMapPosition(newPosition);
                 }}
               />
             </div>
@@ -641,23 +655,28 @@ export default function HRAdmin() {
               </NeumorphicButton>
               <NeumorphicButton
                 onClick={async () => {
-                  console.log('Save button clicked, tempMapPosition:', tempMapPosition);
-                  console.log('Store ID:', showMapModal?.id);
+                  console.log('💾 SAVE button clicked');
+                  console.log('📍 tempMapPosition:', tempMapPosition);
+                  console.log('🏪 Store ID:', showMapModal?.id);
+                  console.log('🏪 Store Name:', showMapModal?.name);
                   
-                  const coords = tempMapPosition;
-                  if (coords) {
-                    try {
-                      await saveGpsLocationMutation.mutateAsync({
-                        storeId: showMapModal.id,
-                        latitude: coords.latitude,
-                        longitude: coords.longitude
-                      });
-                      alert('✅ Posizione salvata con successo!');
-                    } catch (error) {
-                      console.error('Error in save:', error);
-                    }
-                  } else {
+                  if (!tempMapPosition) {
                     alert('⚠️ Clicca sulla mappa per selezionare una posizione');
+                    return;
+                  }
+                  
+                  try {
+                    console.log('🚀 Starting mutation...');
+                    await saveGpsLocationMutation.mutateAsync({
+                      storeId: showMapModal.id,
+                      latitude: tempMapPosition.latitude,
+                      longitude: tempMapPosition.longitude
+                    });
+                    console.log('✅ Mutation completed successfully');
+                    alert('✅ Posizione salvata con successo!');
+                  } catch (error) {
+                    console.error('❌ Error in save:', error);
+                    alert('❌ Errore: ' + error.message);
                   }
                 }}
                 variant="primary"
