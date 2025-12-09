@@ -66,7 +66,7 @@ export default function CameraCapture({ onCapture, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black z-50 flex flex-col">
+    <div className="fixed inset-0 bg-black z-[9999] flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between p-4 bg-black/50">
         <button
@@ -115,14 +115,13 @@ export default function CameraCapture({ onCapture, onClose }) {
 
       {/* Capture Button */}
       {!error && (
-        <div className="p-8 flex justify-center bg-black/50">
+        <div className="fixed bottom-0 left-0 right-0 p-8 flex justify-center bg-gradient-to-t from-black via-black/80 to-transparent">
           <button
             onClick={capturePhoto}
-            className="w-20 h-20 rounded-full bg-white border-4 border-gray-300 hover:border-blue-500 transition-all shadow-lg active:scale-95"
+            className="w-20 h-20 rounded-full bg-white border-8 border-white/30 hover:border-blue-500 transition-all shadow-2xl active:scale-90"
+            style={{ touchAction: 'manipulation' }}
           >
-            <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
-              <Camera className="w-8 h-8 text-gray-700" />
-            </div>
+            <div className="w-full h-full rounded-full bg-white" />
           </button>
         </div>
       )}
