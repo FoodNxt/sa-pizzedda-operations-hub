@@ -179,49 +179,65 @@ export default function HRAdmin() {
 
   const saveGpsLocationMutation = useMutation({
     mutationFn: async ({ storeId, latitude, longitude }) => {
-      console.log('📝 MUTATION START - Saving GPS');
-      console.log('  Store ID:', storeId);
-      console.log('  Latitude:', latitude);
-      console.log('  Longitude:', longitude);
+      console.log('🔥 MUTATION START');
+      console.log('Store ID:', storeId);
+      console.log('Lat:', latitude, 'Lng:', longitude);
       
-      // Fetch fresh config data
       const configs = await base44.entities.TimbraturaConfig.list();
-      const activeConfig = configs.find(c => c.is_active);
+      console.log('Configs trovati:', configs.length);
       
-      // SOVRASCRIVI completamente la posizione dello store
+      const activeConfig = configs.find(c => c.is_active);
+      console.log('Active config:', activeConfig?.id);
+      console.log('Current stores_gps:', activeConfig?.stores_gps);
+      
       const updatedGps = {
         ...(activeConfig?.stores_gps || {}),
-        [storeId]: { latitude, longitude }
+        [storeId]: { latitude: parseFloat(latitude), longitude: parseFloat(longitude) }
       };
       
-      console.log('🗺️ GPS che verrà salvato:', updatedGps);
+      console.log('🗺️ Nuovo stores_gps:', JSON.stringify(updatedGps));
       
+      let result;
       if (activeConfig) {
-        const result = await base44.entities.TimbraturaConfig.update(activeConfig.id, {
+        console.log('⚡ Updating config:', activeConfig.id);
+        result = await base44.entities.TimbraturaConfig.update(activeConfig.id, {
           stores_gps: updatedGps
         });
-        console.log('✅ Salvato nel DB - Config ID:', activeConfig.id);
-        return result;
+        console.log('✅ Update result:', result);
       } else {
-        const result = await base44.entities.TimbraturaConfig.create({
+        console.log('⚡ Creating new config');
+        result = await base44.entities.TimbraturaConfig.create({
           is_active: true,
           stores_gps: updatedGps,
           distanza_massima_metri: 100
         });
-        console.log('✅ Creato nuovo config nel DB');
-        return result;
+        console.log('✅ Create result:', result);
       }
+      
+      return result;
     },
-    onSuccess: async (data) => {
-      console.log('🎉 SALVATO CON SUCCESSO NEL DATABASE');
+    onSuccess: async (data, variables) => {
+      console.log('🎊 onSuccess triggered');
+      console.log('Data:', data);
+      console.log('Variables:', variables);
+      
+      // Force refresh
       await queryClient.invalidateQueries({ queryKey: ['timbratura-config'] });
-      setEditingGps(null);
-      setTempMapPosition(null);
-      setShowMapModal(null);
+      
+      // Aggiorna anche lo stato locale immediatamente
+      setGpsLocations(prev => ({
+        ...prev,
+        [variables.storeId]: {
+          latitude: variables.latitude,
+          longitude: variables.longitude
+        }
+      }));
+      
+      console.log('✅ State updated');
     },
     onError: (error) => {
-      console.error('💥 ERRORE SALVATAGGIO:', error);
-      alert('Errore nel salvataggio: ' + error.message);
+      console.error('💥 Mutation error:', error);
+      alert('Errore: ' + error.message);
     }
   });
 
@@ -646,10 +662,9 @@ export default function HRAdmin() {
               </NeumorphicButton>
               <NeumorphicButton
                 onClick={async () => {
-                  console.log('💾 SAVE button clicked');
-                  console.log('📍 tempMapPosition:', tempMapPosition);
-                  console.log('🏪 Store ID:', showMapModal?.id);
-                  console.log('🏪 Store Name:', showMapModal?.name);
+                  console.log('💾 SAVE CLICKED');
+                  console.log('Store:', showMapModal?.id, showMapModal?.name);
+                  console.log('New Position:', tempMapPosition);
                   
                   if (!tempMapPosition) {
                     alert('⚠️ Clicca sulla mappa per selezionare una posizione');
@@ -657,16 +672,32 @@ export default function HRAdmin() {
                   }
                   
                   try {
-                    console.log('🚀 Starting mutation...');
-                    await saveGpsLocationMutation.mutateAsync({
+                    const result = await saveGpsLocationMutation.mutateAsync({
                       storeId: showMapModal.id,
                       latitude: tempMapPosition.latitude,
                       longitude: tempMapPosition.longitude
                     });
-                    console.log('✅ Mutation completed successfully');
-                    alert('✅ Posizione salvata con successo!');
+                    
+                    console.log('✅ Saved result:', result);
+                    
+                    // Verifica che sia stato salvato
+                    const verifyConfigs = await base44.entities.TimbraturaConfig.list();
+                    const verifyConfig = verifyConfigs.find(c => c.is_active);
+                    console.log('🔍 Verify - stores_gps dopo salvataggio:', verifyConfig?.stores_gps);
+                    console.log('🔍 Verify - GPS per questo store:', verifyConfig?.stores_gps?.[showMapModal.id]);
+                    
+                    if (verifyConfig?.stores_gps?.[showMapModal.id]) {
+                      const saved = verifyConfig.stores_gps[showMapModal.id];
+                      if (saved.latitude === tempMapPosition.latitude && saved.longitude === tempMapPosition.longitude) {
+                        alert(`✅ Posizione salvata!\nLat: ${saved.latitude}\nLng: ${saved.longitude}`);
+                      } else {
+                        alert('⚠️ Salvataggio parziale - verificare');
+                      }
+                    } else {
+                      alert('⚠️ Posizione non trovata dopo il salvataggio');
+                    }
                   } catch (error) {
-                    console.error('❌ Error in save:', error);
+                    console.error('❌ Save error:', error);
                     alert('❌ Errore: ' + error.message);
                   }
                 }}
