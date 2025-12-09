@@ -330,7 +330,8 @@ export default function HRAdmin() {
                       <>
                        <button
                          onClick={() => {
-                           setTempMapPosition(null);
+                           const currentGps = gpsLocations[store.id];
+                           setTempMapPosition(currentGps || null);
                            setShowMapModal(store);
                          }}
                          className="text-green-600 hover:text-green-800"
@@ -621,15 +622,14 @@ export default function HRAdmin() {
 
             <div className="h-[500px] rounded-xl overflow-hidden mb-4">
               <MapSelector
-                key={showMapModal.id}
                 initialPosition={
                   gpsLocations[showMapModal.id] 
                     ? [gpsLocations[showMapModal.id].latitude, gpsLocations[showMapModal.id].longitude]
-                    : [45.4642, 9.1900] // Default Milano
+                    : [45.4642, 9.1900]
                 }
                 onPositionChange={(lat, lng) => {
                   const newPosition = { latitude: lat, longitude: lng };
-                  console.log('🗺️ Position changed to:', newPosition);
+                  console.log('🗺️ POSITION CHANGED:', newPosition);
                   setTempMapPosition(newPosition);
                 }}
               />
