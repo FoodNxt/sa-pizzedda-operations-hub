@@ -382,9 +382,10 @@ export default function FormPulizia() {
                       <>
                         <div>
                           <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                            Attrezzatura
+                            Attrezzatura <span className="text-red-600">*</span>
                           </label>
                           <select
+                            required
                             value={questionForm.attrezzatura}
                             onChange={(e) => setQuestionForm({ ...questionForm, attrezzatura: e.target.value })}
                             className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
@@ -604,7 +605,11 @@ export default function FormPulizia() {
                       <NeumorphicButton 
                         type="submit" 
                         variant="primary"
-                        disabled={!questionForm.domanda_testo || questionForm.ruoli_assegnati.length === 0}
+                        disabled={
+                          !questionForm.domanda_testo || 
+                          questionForm.ruoli_assegnati.length === 0 ||
+                          (questionForm.tipo_controllo === 'foto' && !questionForm.attrezzatura)
+                        }
                       >
                         {editingQuestion ? 'Aggiorna' : 'Crea'} Domanda
                       </NeumorphicButton>

@@ -296,20 +296,36 @@ export default function Pulizie() {
       // Get the current inspection to recalculate overall score
       const inspection = detailsModalInspection;
       
-      // Count equipment statuses for score calculation
+      // Get all photo questions
+      const photoQuestions = inspection.domande_risposte?.filter(r => 
+        r.risposta && typeof r.risposta === 'string' && r.risposta.startsWith('http')
+      ) || [];
+      
+      // Count statuses for all analyzed photos
       let puliti = 0;
       let medi = 0;
       let sporchi = 0;
       let total = 0;
       
-      equipment.forEach(eq => {
-        const status = eq.key === equipmentKey 
-          ? correctedStatus 
-          : (inspection[`${eq.key}_corrected`] 
-              ? inspection[`${eq.key}_corrected_status`]
-              : inspection[`${eq.key}_pulizia_status`]);
+      photoQuestions.forEach((risposta, idx) => {
+        let eqKey;
+        if (risposta.attrezzatura) {
+          eqKey = risposta.attrezzatura.toLowerCase().replace(/\s+/g, '_');
+        } else if (risposta.domanda_id) {
+          eqKey = `domanda_${risposta.domanda_id}`;
+        } else if (risposta.domanda_testo) {
+          eqKey = risposta.domanda_testo.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 50);
+        } else {
+          eqKey = `foto_${idx}`;
+        }
         
-        if (status && inspection[`${eq.key}_foto_url`]) {
+        const status = eqKey === equipmentKey 
+          ? correctedStatus 
+          : (inspection[`${eqKey}_corrected`] 
+              ? inspection[`${eqKey}_corrected_status`]
+              : inspection[`${eqKey}_pulizia_status`]);
+        
+        if (status) {
           total++;
           if (status === 'pulito') puliti++;
           else if (status === 'medio') medi++;
@@ -713,32 +729,53 @@ export default function Pulizie() {
               </div>
             </div>
 
-            {/* Equipment Details Grid */}
+            {/* All Photos Analysis - Dynamic */}
             <div className="space-y-6">
-              {equipment.map((eq) => {
-                const photoUrl = detailsModalInspection[`${eq.key}_foto_url`];
-                const aiStatus = detailsModalInspection[`${eq.key}_pulizia_status`];
-                const aiNotes = detailsModalInspection[`${eq.key}_note_ai`];
-                const isCorrected = detailsModalInspection[`${eq.key}_corrected`];
-                const correctedStatus = detailsModalInspection[`${eq.key}_corrected_status`];
-                const correctionNote = detailsModalInspection[`${eq.key}_correction_note`];
-                const isEditing = correctingEquipment === eq.key;
+              {detailsModalInspection.domande_risposte?.filter(r => 
+                r.risposta && typeof r.risposta === 'string' && r.risposta.startsWith('http')
+              ).map((risposta, idx) => {
+                // Generate equipment key same way as backend
+                let equipmentKey;
+                if (risposta.attrezzatura) {
+                  equipmentKey = risposta.attrezzatura.toLowerCase().replace(/\s+/g, '_');
+                } else if (risposta.domanda_id) {
+                  equipmentKey = `domanda_${risposta.domanda_id}`;
+                } else if (risposta.domanda_testo) {
+                  equipmentKey = risposta.domanda_testo.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 50);
+                } else {
+                  equipmentKey = `foto_${idx}`;
+                }
 
+                const aiStatus = detailsModalInspection[`${equipmentKey}_pulizia_status`];
+                const aiNotes = detailsModalInspection[`${equipmentKey}_note_ai`];
+                const isCorrected = detailsModalInspection[`${equipmentKey}_corrected`];
+                const correctedStatus = detailsModalInspection[`${equipmentKey}_corrected_status`];
+                const correctionNote = detailsModalInspection[`${equipmentKey}_correction_note`];
+                const isEditing = correctingEquipment === equipmentKey;
                 const displayStatus = isCorrected ? correctedStatus : aiStatus;
 
-                if (!photoUrl) return null;
-
                 return (
-                  <div key={eq.key} className="neumorphic-flat p-6 rounded-xl">
+                  <div key={idx} className="neumorphic-flat p-6 rounded-xl">
                     <div className="flex items-center gap-3 mb-4">
-                      <span className="text-3xl">{eq.icon}</span>
-                      <h3 className="text-xl font-bold text-[#6b6b6b]">{eq.name}</h3>
+                      <span className="text-3xl">📷</span>
+                      <h3 className="text-xl font-bold text-[#6b6b6b]">
+                        {risposta.attrezzatura || risposta.domanda_testo || `Foto ${idx + 1}`}
+                      </h3>
 
                       {/* Status Badge */}
-                      <div className={`ml-auto px-4 py-2 rounded-lg border-2 flex items-center gap-2 ${getStatusColor(displayStatus)}`}>
-                        {getStatusIcon(displayStatus)}
-                        <span className="font-bold capitalize">{displayStatus}</span>
-                      </div>
+                      {displayStatus && (
+                        <div className={`ml-auto px-4 py-2 rounded-lg border-2 flex items-center gap-2 ${getStatusColor(displayStatus)}`}>
+                          {getStatusIcon(displayStatus)}
+                          <span className="font-bold capitalize">{displayStatus}</span>
+                        </div>
+                      )}
+
+                      {!displayStatus && (
+                        <div className="ml-auto px-4 py-2 rounded-lg border-2 bg-orange-50 text-orange-700 border-orange-200 flex items-center gap-2">
+                          <AlertTriangle className="w-5 h-5" />
+                          <span className="font-bold">Non Analizzata</span>
+                        </div>
+                      )}
 
                       {/* Correction Badge */}
                       {isCorrected && (
@@ -748,9 +785,9 @@ export default function Pulizie() {
                       )}
 
                       {/* Edit Button */}
-                      {!isEditing && (
+                      {!isEditing && displayStatus && (
                         <button
-                          onClick={() => handleStartCorrection(eq.key)}
+                          onClick={() => handleStartCorrection(equipmentKey)}
                           className="neumorphic-flat p-2 rounded-lg text-[#6b6b6b] hover:text-[#8b7355] transition-colors"
                           title="Correggi valutazione"
                         >
@@ -763,8 +800,8 @@ export default function Pulizie() {
                       {/* Photo */}
                       <div className="neumorphic-pressed p-4 rounded-xl">
                         <img
-                          src={photoUrl}
-                          alt={eq.name}
+                          src={risposta.risposta}
+                          alt={risposta.attrezzatura || risposta.domanda_testo}
                           className="w-full h-auto rounded-lg"
                         />
                       </div>
@@ -810,7 +847,7 @@ export default function Pulizie() {
 
                               <div className="flex gap-2">
                                 <button
-                                  onClick={() => handleSaveCorrection(eq.key)}
+                                  onClick={() => handleSaveCorrection(equipmentKey)}
                                   disabled={saveCorrectionMutation.isPending}
                                   className="flex-1 neumorphic-flat px-4 py-2 rounded-lg text-green-700 hover:text-green-800 font-medium transition-colors flex items-center justify-center gap-2"
                                 >
@@ -836,7 +873,7 @@ export default function Pulizie() {
                               </p>
                             </div>
                           </div>
-                        ) : (
+                        ) : displayStatus ? (
                           /* Analysis Display */
                           <>
                             <div className="neumorphic-pressed p-4 rounded-xl">
@@ -903,6 +940,17 @@ export default function Pulizie() {
                               </div>
                             )}
                           </>
+                        ) : (
+                          /* No AI Analysis */
+                          <div className="neumorphic-pressed p-4 rounded-xl bg-orange-50 border-2 border-orange-300">
+                            <h4 className="font-bold text-orange-700 mb-2 flex items-center gap-2">
+                              <AlertTriangle className="w-4 h-4" />
+                              Analisi Non Disponibile
+                            </h4>
+                            <p className="text-sm text-orange-600">
+                              Questa foto non è stata analizzata dall'AI. Potrebbe essere necessario rianalizzare l'ispezione.
+                            </p>
+                          </div>
                         )}
                       </div>
                     </div>
