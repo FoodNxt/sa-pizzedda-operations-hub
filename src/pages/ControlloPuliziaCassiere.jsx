@@ -332,20 +332,29 @@ export default function ControlloPuliziaCassiere() {
                           </button>
                         </div>
                       ) : (
-                        <label className="block cursor-pointer">
-                          <div className="neumorphic-flat p-8 rounded-lg text-center hover:shadow-lg transition-all">
-                            <Upload className="w-8 h-8 text-[#9b9b9b] mx-auto mb-2" />
-                            <p className="text-sm text-[#9b9b9b]">Clicca per caricare foto</p>
-                          </div>
+                        <div>
+                          <label 
+                            htmlFor={`photo-${domanda.id}`}
+                            className="block cursor-pointer"
+                          >
+                            <div className="neumorphic-flat p-8 rounded-lg text-center hover:shadow-lg transition-all">
+                              <Upload className="w-8 h-8 text-[#9b9b9b] mx-auto mb-2" />
+                              <p className="text-sm text-[#9b9b9b]">Clicca per caricare foto</p>
+                            </div>
+                          </label>
                           <input
+                            id={`photo-${domanda.id}`}
                             type="file"
                             accept="image/*"
                             capture="environment"
-                            onChange={(e) => handlePhotoChange(domanda.id, e.target.files[0])}
+                            onChange={(e) => {
+                              e.preventDefault();
+                              handlePhotoChange(domanda.id, e.target.files[0]);
+                            }}
                             className="hidden"
                             disabled={uploading}
                           />
-                        </label>
+                        </div>
                       )}
 
                       {photos[domanda.id] && (
