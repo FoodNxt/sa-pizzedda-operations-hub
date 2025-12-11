@@ -819,29 +819,41 @@ export default function TurniDipendente() {
     // Se non ci sono schemi applicabili, return empty
     if (schemasApplicabili.length === 0) return [];
     
-    // Estrai attività con info complete, ordinate per ora - evita duplicati per NOME attività
-    // Filtra solo attività dentro l'orario del turno
+    // Estrai attività con info complete - evita duplicati per NOME attività
     const attivitaMap = new Map();
+    const attivitaInizio = [];
+    const attivitaFine = [];
+    
     schemasApplicabili.forEach(st => {
       if (st.slots && Array.isArray(st.slots) && st.slots.length > 0) {
         st.slots.forEach(slot => {
           if (slot.attivita) {
-            // Verifica che lo slot sia dentro l'orario del turno
-            const slotInizio = slot.ora_inizio || '00:00';
-            
-            // Lo slot è valido se inizia durante il turno
-            if (slotInizio >= turnoInizio && slotInizio < turnoFine) {
-              // Usa solo il nome dell'attività come chiave per evitare duplicati
-              const key = slot.attivita;
-              if (!attivitaMap.has(key)) {
-                attivitaMap.set(key, {
-                  nome: slot.attivita,
-                  ora_inizio: slot.ora_inizio,
-                  ora_fine: slot.ora_fine,
-                  form_page: slot.form_page,
-                  corsi_ids: slot.corsi_ids || (slot.corso_id ? [slot.corso_id] : []),
-                  richiede_form: slot.richiede_form
-                });
+            const key = slot.attivita;
+            const attivitaData = {
+              nome: slot.attivita,
+              ora_inizio: slot.ora_inizio,
+              ora_fine: slot.ora_fine,
+              form_page: slot.form_page,
+              corsi_ids: slot.corsi_ids || (slot.corso_id ? [slot.corso_id] : []),
+              richiede_form: slot.richiede_form,
+              necessario_ogni_turno: slot.necessario_ogni_turno || false,
+              momento_turno: slot.momento_turno
+            };
+
+            // Slot necessari in ogni turno
+            if (slot.necessario_ogni_turno) {
+              if (slot.momento_turno === 'inizio') {
+                attivitaInizio.push(attivitaData);
+              } else if (slot.momento_turno === 'fine') {
+                attivitaFine.push(attivitaData);
+              }
+            } else {
+              // Slot normali: verifica orario
+              const slotInizio = slot.ora_inizio || '00:00';
+              if (slotInizio >= turnoInizio && slotInizio < turnoFine) {
+                if (!attivitaMap.has(key)) {
+                  attivitaMap.set(key, attivitaData);
+                }
               }
             }
           }
@@ -849,8 +861,11 @@ export default function TurniDipendente() {
       }
     });
     
-    // Ordina per ora inizio
-    return Array.from(attivitaMap.values()).sort((a, b) => (a.ora_inizio || '').localeCompare(b.ora_inizio || ''));
+    // Ordina attività normali per ora inizio
+    const attivitaNormali = Array.from(attivitaMap.values()).sort((a, b) => (a.ora_inizio || '').localeCompare(b.ora_inizio || ''));
+    
+    // Combina: attività inizio + attività normali + attività fine
+    return [...attivitaInizio, ...attivitaNormali, ...attivitaFine];
   };
   
   const isAttivitaCompletata = (turnoId, attivitaNome) => {

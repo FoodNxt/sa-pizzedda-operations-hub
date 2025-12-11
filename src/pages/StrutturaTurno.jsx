@@ -86,7 +86,9 @@ export default function StrutturaTurno() {
     corsi_ids: [],
     attrezzature_pulizia: [],
     minuti_inizio: 0,
-    minuti_fine: 15
+    minuti_fine: 15,
+    necessario_ogni_turno: false,
+    momento_turno: 'inizio'
   });
   const [editingSlotIndex, setEditingSlotIndex] = useState(null);
   const [newAttrezzatura, setNewAttrezzatura] = useState('');
@@ -188,7 +190,7 @@ export default function StrutturaTurno() {
       is_active: true,
       usa_minuti_relativi: false
     });
-    setNewSlot({ ora_inizio: '09:00', ora_fine: '09:15', attivita: '', colore: 'blue', richiede_form: false, form_page: '', corsi_ids: [], attrezzature_pulizia: [], minuti_inizio: 0, minuti_fine: 15 });
+    setNewSlot({ ora_inizio: '09:00', ora_fine: '09:15', attivita: '', colore: 'blue', richiede_form: false, form_page: '', corsi_ids: [], attrezzature_pulizia: [], minuti_inizio: 0, minuti_fine: 15, necessario_ogni_turno: false, momento_turno: 'inizio' });
     setEditingSchema(null);
     setShowForm(false);
   };
@@ -274,15 +276,19 @@ export default function StrutturaTurno() {
       richiede_form: newSlot.richiede_form || false,
       form_page: newSlot.richiede_form ? newSlot.form_page : '',
       corsi_ids: newSlot.corsi_ids || [],
-      attrezzature_pulizia: newSlot.attrezzature_pulizia || []
+      attrezzature_pulizia: newSlot.attrezzature_pulizia || [],
+      necessario_ogni_turno: newSlot.necessario_ogni_turno || false,
+      momento_turno: newSlot.necessario_ogni_turno ? newSlot.momento_turno : undefined
     };
 
-    if (isProvaAffiancamento) {
-      slotToAdd.minuti_inizio = newSlot.minuti_inizio;
-      slotToAdd.minuti_fine = newSlot.minuti_fine;
-    } else {
-      slotToAdd.ora_inizio = newSlot.ora_inizio;
-      slotToAdd.ora_fine = newSlot.ora_fine;
+    if (!newSlot.necessario_ogni_turno) {
+      if (isProvaAffiancamento) {
+        slotToAdd.minuti_inizio = newSlot.minuti_inizio;
+        slotToAdd.minuti_fine = newSlot.minuti_fine;
+      } else {
+        slotToAdd.ora_inizio = newSlot.ora_inizio;
+        slotToAdd.ora_fine = newSlot.ora_fine;
+      }
     }
     
     if (editingSlotIndex !== null) {
@@ -315,7 +321,9 @@ export default function StrutturaTurno() {
       corsi_ids: [], 
       attrezzature_pulizia: [],
       minuti_inizio: newSlot.minuti_fine,
-      minuti_fine: newSlot.minuti_fine + 15
+      minuti_fine: newSlot.minuti_fine + 15,
+      necessario_ogni_turno: false,
+      momento_turno: 'inizio'
     });
   };
 
@@ -336,14 +344,16 @@ export default function StrutturaTurno() {
       corsi_ids: corsiIds,
       attrezzature_pulizia: slot.attrezzature_pulizia || [],
       minuti_inizio: slot.minuti_inizio || 0,
-      minuti_fine: slot.minuti_fine || 15
+      minuti_fine: slot.minuti_fine || 15,
+      necessario_ogni_turno: slot.necessario_ogni_turno || false,
+      momento_turno: slot.momento_turno || 'inizio'
     });
     setEditingSlotIndex(index);
   };
 
   const cancelEditSlot = () => {
     setEditingSlotIndex(null);
-    setNewSlot({ ora_inizio: '09:00', ora_fine: '09:15', attivita: '', colore: 'blue', richiede_form: false, form_page: '', corsi_ids: [], attrezzature_pulizia: [] });
+    setNewSlot({ ora_inizio: '09:00', ora_fine: '09:15', attivita: '', colore: 'blue', richiede_form: false, form_page: '', corsi_ids: [], attrezzature_pulizia: [], necessario_ogni_turno: false, momento_turno: 'inizio' });
   };
 
   const getCorsoName = (corsoId) => {
@@ -422,7 +432,9 @@ export default function StrutturaTurno() {
       corsi_ids: [], 
       attrezzature_pulizia: [],
       minuti_inizio: 0,
-      minuti_fine: 15
+      minuti_fine: 15,
+      necessario_ogni_turno: false,
+      momento_turno: 'inizio'
     });
     setShowBulkAddSlotModal(true);
   };
@@ -443,7 +455,9 @@ export default function StrutturaTurno() {
       richiede_form: newSlot.richiede_form || false,
       form_page: newSlot.richiede_form ? newSlot.form_page : '',
       corsi_ids: newSlot.corsi_ids || [],
-      attrezzature_pulizia: newSlot.attrezzature_pulizia || []
+      attrezzature_pulizia: newSlot.attrezzature_pulizia || [],
+      necessario_ogni_turno: newSlot.necessario_ogni_turno || false,
+      momento_turno: newSlot.necessario_ogni_turno ? newSlot.momento_turno : undefined
     };
 
     for (const schemaId of selectedSchemiForSlot) {
@@ -456,12 +470,14 @@ export default function StrutturaTurno() {
       });
 
       const slotForSchema = { ...slotToAdd };
-      if (isProvaAff) {
-        slotForSchema.minuti_inizio = newSlot.minuti_inizio;
-        slotForSchema.minuti_fine = newSlot.minuti_fine;
-      } else {
-        slotForSchema.ora_inizio = newSlot.ora_inizio;
-        slotForSchema.ora_fine = newSlot.ora_fine;
+      if (!newSlot.necessario_ogni_turno) {
+        if (isProvaAff) {
+          slotForSchema.minuti_inizio = newSlot.minuti_inizio;
+          slotForSchema.minuti_fine = newSlot.minuti_fine;
+        } else {
+          slotForSchema.ora_inizio = newSlot.ora_inizio;
+          slotForSchema.ora_fine = newSlot.ora_fine;
+        }
       }
 
       const updatedSlots = [...(schema.slots || []), slotForSchema];
@@ -718,7 +734,9 @@ export default function StrutturaTurno() {
                             <div className="flex items-center gap-2 min-w-[120px]">
                               <Clock className="w-4 h-4 text-slate-600" />
                               <span className="font-mono font-bold text-slate-700">
-                                {slot.ora_inizio && slot.ora_fine
+                                {slot.necessario_ogni_turno
+                                  ? `${slot.momento_turno === 'inizio' ? '▶️ INIZIO' : '⏹️ FINE'}`
+                                  : slot.ora_inizio && slot.ora_fine
                                   ? `${slot.ora_inizio} - ${slot.ora_fine}`
                                   : slot.minuti_inizio !== undefined 
                                   ? `${slot.minuti_inizio}-${slot.minuti_fine} min`
@@ -726,6 +744,11 @@ export default function StrutturaTurno() {
                               </span>
                             </div>
                             <span className="text-slate-800 font-medium">{slot.attivita}</span>
+                            {slot.necessario_ogni_turno && (
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                                🔄 Ogni turno
+                              </span>
+                            )}
                             {slot.richiede_form && slot.form_page && (
                               <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700 flex items-center gap-1">
                                 <FileText className="w-3 h-3" />
@@ -883,8 +906,62 @@ export default function StrutturaTurno() {
                           </p>
                         </div>
                       )}
+                      
+                      {/* Checkbox Necessario Ogni Turno */}
+                      <div className="mb-3 flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="necessario-ogni-turno"
+                          checked={newSlot.necessario_ogni_turno}
+                          onChange={(e) => setNewSlot({ ...newSlot, necessario_ogni_turno: e.target.checked })}
+                          className="w-4 h-4"
+                        />
+                        <label htmlFor="necessario-ogni-turno" className="text-sm font-medium text-slate-700">
+                          🔄 Necessario in ogni turno (inizio o fine)
+                        </label>
+                      </div>
+
+                      {newSlot.necessario_ogni_turno && (
+                        <div className="mb-3 p-3 bg-blue-50 rounded-lg">
+                          <label className="text-xs font-medium text-slate-600 mb-2 block">Quando eseguire l'attività?</label>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setNewSlot({ ...newSlot, momento_turno: 'inizio' })}
+                              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                newSlot.momento_turno === 'inizio'
+                                  ? 'bg-gradient-to-r from-green-500 to-green-600 text-white'
+                                  : 'nav-button text-slate-700'
+                              }`}
+                            >
+                              ▶️ Inizio Turno
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setNewSlot({ ...newSlot, momento_turno: 'fine' })}
+                              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                newSlot.momento_turno === 'fine'
+                                  ? 'bg-gradient-to-r from-red-500 to-red-600 text-white'
+                                  : 'nav-button text-slate-700'
+                              }`}
+                            >
+                              ⏹️ Fine Turno
+                            </button>
+                          </div>
+                          <p className="text-xs text-blue-700 mt-2">
+                            ℹ️ L'attività apparirà automaticamente come prima o ultima attività del turno
+                          </p>
+                        </div>
+                      )}
+
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end mb-3">
-                        {isProvaAffiancamento ? (
+                        {newSlot.necessario_ogni_turno ? (
+                          <div className="col-span-2 md:col-span-4 p-3 bg-green-50 rounded-lg text-center">
+                            <p className="text-sm text-green-700 font-medium">
+                              ✓ Attività programmata per {newSlot.momento_turno === 'inizio' ? 'INIZIO' : 'FINE'} turno (orario automatico)
+                            </p>
+                          </div>
+                        ) : isProvaAffiancamento ? (
                           <>
                             <div>
                               <label className="text-xs font-medium text-slate-600 mb-1 block">Inizio (min)</label>
@@ -1188,32 +1265,87 @@ export default function StrutturaTurno() {
                 <div className="space-y-6">
                   {/* Slot Configuration */}
                   <div className="neumorphic-pressed p-4 rounded-xl">
-                    <h3 className="text-sm font-bold text-slate-700 mb-3">Configura Slot</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                      <div>
-                        <label className="text-xs font-medium text-slate-600 mb-1 block">Inizio</label>
-                        <select
-                          value={newSlot.ora_inizio}
-                          onChange={(e) => setNewSlot({ ...newSlot, ora_inizio: e.target.value })}
-                          className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                  <h3 className="text-sm font-bold text-slate-700 mb-3">Configura Slot</h3>
+
+                  {/* Checkbox Necessario Ogni Turno */}
+                  <div className="mb-3 flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="bulk-necessario-ogni-turno"
+                      checked={newSlot.necessario_ogni_turno}
+                      onChange={(e) => setNewSlot({ ...newSlot, necessario_ogni_turno: e.target.checked })}
+                      className="w-4 h-4"
+                    />
+                    <label htmlFor="bulk-necessario-ogni-turno" className="text-sm font-medium text-slate-700">
+                      🔄 Necessario in ogni turno (inizio o fine)
+                    </label>
+                  </div>
+
+                  {newSlot.necessario_ogni_turno && (
+                    <div className="mb-3 p-3 bg-blue-50 rounded-lg">
+                      <label className="text-xs font-medium text-slate-600 mb-2 block">Quando eseguire l'attività?</label>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setNewSlot({ ...newSlot, momento_turno: 'inizio' })}
+                          className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                            newSlot.momento_turno === 'inizio'
+                              ? 'bg-gradient-to-r from-green-500 to-green-600 text-white'
+                              : 'nav-button text-slate-700'
+                          }`}
                         >
-                          {TIME_SLOTS.map(time => (
-                            <option key={time} value={time}>{time}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-xs font-medium text-slate-600 mb-1 block">Fine</label>
-                        <select
-                          value={newSlot.ora_fine}
-                          onChange={(e) => setNewSlot({ ...newSlot, ora_fine: e.target.value })}
-                          className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                          ▶️ Inizio Turno
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setNewSlot({ ...newSlot, momento_turno: 'fine' })}
+                          className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                            newSlot.momento_turno === 'fine'
+                              ? 'bg-gradient-to-r from-red-500 to-red-600 text-white'
+                              : 'nav-button text-slate-700'
+                          }`}
                         >
-                          {TIME_SLOTS.map(time => (
-                            <option key={time} value={time}>{time}</option>
-                          ))}
-                        </select>
+                          ⏹️ Fine Turno
+                        </button>
                       </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                    {newSlot.necessario_ogni_turno ? (
+                      <div className="col-span-2 md:col-span-2 p-3 bg-green-50 rounded-lg text-center">
+                        <p className="text-sm text-green-700 font-medium">
+                          ✓ {newSlot.momento_turno === 'inizio' ? 'INIZIO' : 'FINE'} turno (orario automatico)
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <div>
+                          <label className="text-xs font-medium text-slate-600 mb-1 block">Inizio</label>
+                          <select
+                            value={newSlot.ora_inizio}
+                            onChange={(e) => setNewSlot({ ...newSlot, ora_inizio: e.target.value })}
+                            className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                          >
+                            {TIME_SLOTS.map(time => (
+                              <option key={time} value={time}>{time}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-slate-600 mb-1 block">Fine</label>
+                          <select
+                            value={newSlot.ora_fine}
+                            onChange={(e) => setNewSlot({ ...newSlot, ora_fine: e.target.value })}
+                            className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                          >
+                            {TIME_SLOTS.map(time => (
+                              <option key={time} value={time}>{time}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </>
+                    )}
                       <div>
                         <label className="text-xs font-medium text-slate-600 mb-1 block">Attività</label>
                         <input
