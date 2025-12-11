@@ -942,33 +942,31 @@ Sa Pizzedda`
                         <tr className="border-b-2 border-blue-600">
                           <th className="text-left p-3 text-slate-600 font-medium text-sm">Prodotto</th>
                           <th className="text-right p-3 text-slate-600 font-medium text-sm">Quantità</th>
-                          <th className="text-center p-3 text-slate-600 font-medium text-sm">Stato</th>
+                          <th className="text-right p-3 text-slate-600 font-medium text-sm">Min / Critica / Ordine</th>
                           <th className="text-left p-3 text-slate-600 font-medium text-sm">Note</th>
                         </tr>
                       </thead>
                       <tbody>
                         {selectedFormCompletion.prodotti
                           .sort((a, b) => a.nome_prodotto.localeCompare(b.nome_prodotto))
-                          .map((prod, idx) => (
+                          .map((prod, idx) => {
+                            const product = products.find(p => p.id === prod.prodotto_id);
+                            const quantitaCritica = product?.store_specific_quantita_critica?.[prod.store_id] || product?.quantita_critica || '-';
+                            const quantitaOrdine = product?.store_specific_quantita_ordine?.[prod.store_id] || product?.quantita_ordine || '-';
+                            
+                            return (
                           <tr key={idx} className="border-b border-slate-200 hover:bg-slate-50">
                             <td className="p-3 text-sm text-slate-700">{prod.nome_prodotto}</td>
                             <td className="p-3 text-sm text-right font-bold text-blue-600">
                               {prod.quantita_rilevata} {prod.unita_misura}
                             </td>
-                            <td className="p-3 text-center">
-                              {prod.sotto_minimo ? (
-                                <span className="px-2 py-1 rounded-full text-xs bg-red-100 text-red-700 font-medium">
-                                  Sotto Minimo
-                                </span>
-                              ) : (
-                                <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700 font-medium">
-                                  OK
-                                </span>
-                              )}
+                            <td className="p-3 text-sm text-right text-slate-600">
+                              {prod.quantita_minima} / {quantitaCritica} / {quantitaOrdine}
                             </td>
                             <td className="p-3 text-sm text-slate-500">{prod.note || '-'}</td>
                           </tr>
-                        ))}
+                            );
+                        })}
                       </tbody>
                     </table>
                   </div>
