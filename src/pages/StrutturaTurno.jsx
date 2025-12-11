@@ -62,6 +62,8 @@ export default function StrutturaTurno() {
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [schemaToCopy, setSchemaToCopy] = useState(null);
   const [copyTargetDays, setCopyTargetDays] = useState([]);
+  const [showBulkAddSlotModal, setShowBulkAddSlotModal] = useState(false);
+  const [selectedSchemiForSlot, setSelectedSchemiForSlot] = useState([]);
 
   const [formData, setFormData] = useState({
     nome_schema: '',
@@ -408,6 +410,84 @@ export default function StrutturaTurno() {
 
   const [copyTargetStores, setCopyTargetStores] = useState([]);
 
+  const openBulkAddSlotModal = () => {
+    setSelectedSchemiForSlot([]);
+    setNewSlot({ 
+      ora_inizio: '09:00', 
+      ora_fine: '09:15', 
+      attivita: '', 
+      colore: 'blue', 
+      richiede_form: false, 
+      form_page: '', 
+      corsi_ids: [], 
+      attrezzature_pulizia: [],
+      minuti_inizio: 0,
+      minuti_fine: 15
+    });
+    setShowBulkAddSlotModal(true);
+  };
+
+  const handleBulkAddSlot = async () => {
+    if (selectedSchemiForSlot.length === 0) {
+      alert('Seleziona almeno uno schema');
+      return;
+    }
+    if (!newSlot.attivita.trim()) {
+      alert('Inserisci una descrizione per l\'attività');
+      return;
+    }
+
+    const slotToAdd = {
+      attivita: newSlot.attivita,
+      colore: newSlot.colore,
+      richiede_form: newSlot.richiede_form || false,
+      form_page: newSlot.richiede_form ? newSlot.form_page : '',
+      corsi_ids: newSlot.corsi_ids || [],
+      attrezzature_pulizia: newSlot.attrezzature_pulizia || []
+    };
+
+    for (const schemaId of selectedSchemiForSlot) {
+      const schema = schemi.find(s => s.id === schemaId);
+      if (!schema) continue;
+
+      const isProvaAff = (schema.tipi_turno || []).some(t => {
+        const lower = t.toLowerCase();
+        return lower.includes('prova') || lower.includes('affiancamento');
+      });
+
+      const slotForSchema = { ...slotToAdd };
+      if (isProvaAff) {
+        slotForSchema.minuti_inizio = newSlot.minuti_inizio;
+        slotForSchema.minuti_fine = newSlot.minuti_fine;
+      } else {
+        slotForSchema.ora_inizio = newSlot.ora_inizio;
+        slotForSchema.ora_fine = newSlot.ora_fine;
+      }
+
+      const updatedSlots = [...(schema.slots || []), slotForSchema];
+      const sortedSlots = isProvaAff
+        ? updatedSlots.sort((a, b) => (a.minuti_inizio || 0) - (b.minuti_inizio || 0))
+        : updatedSlots.sort((a, b) => (a.ora_inizio || '').localeCompare(b.ora_inizio || ''));
+
+      await base44.entities.StrutturaTurno.update(schema.id, {
+        ...schema,
+        slots: sortedSlots
+      });
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['struttura-turno'] });
+    setShowBulkAddSlotModal(false);
+    alert(`✅ Slot aggiunto a ${selectedSchemiForSlot.length} schemi!`);
+  };
+
+  const toggleSchemaForSlot = (schemaId) => {
+    if (selectedSchemiForSlot.includes(schemaId)) {
+      setSelectedSchemiForSlot(selectedSchemiForSlot.filter(id => id !== schemaId));
+    } else {
+      setSelectedSchemiForSlot([...selectedSchemiForSlot, schemaId]);
+    }
+  };
+
   const openCopyModal = (schema) => {
     setSchemaToCopy(schema);
     setCopyTargetDays([]);
@@ -487,17 +567,26 @@ export default function StrutturaTurno() {
             </h1>
             <p className="text-sm text-slate-500">Gestisci gli schemi dei turni per giorno e ruolo</p>
           </div>
-          <NeumorphicButton
-            onClick={() => {
-              setFormData({ ...formData, giorno_settimana: selectedGiorno });
-              setShowForm(true);
-            }}
-            variant="primary"
-            className="flex items-center gap-2"
-          >
-            <Plus className="w-5 h-5" />
-            Nuovo Schema
-          </NeumorphicButton>
+          <div className="flex gap-2">
+            <NeumorphicButton
+              onClick={openBulkAddSlotModal}
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              Aggiungi Slot a Più Schemi
+            </NeumorphicButton>
+            <NeumorphicButton
+              onClick={() => {
+                setFormData({ ...formData, giorno_settimana: selectedGiorno });
+                setShowForm(true);
+              }}
+              variant="primary"
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              Nuovo Schema
+            </NeumorphicButton>
+          </div>
         </div>
 
         {/* Filters */}
@@ -1079,6 +1168,203 @@ export default function StrutturaTurno() {
                     </NeumorphicButton>
                   </div>
                 </form>
+              </NeumorphicCard>
+            </div>
+          </div>
+        )}
+
+        {/* Bulk Add Slot Modal */}
+        {showBulkAddSlotModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <NeumorphicCard className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold text-slate-800">Aggiungi Slot a Più Schemi</h2>
+                  <button onClick={() => setShowBulkAddSlotModal(false)} className="nav-button p-2 rounded-lg">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-6">
+                  {/* Slot Configuration */}
+                  <div className="neumorphic-pressed p-4 rounded-xl">
+                    <h3 className="text-sm font-bold text-slate-700 mb-3">Configura Slot</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                      <div>
+                        <label className="text-xs font-medium text-slate-600 mb-1 block">Inizio</label>
+                        <select
+                          value={newSlot.ora_inizio}
+                          onChange={(e) => setNewSlot({ ...newSlot, ora_inizio: e.target.value })}
+                          className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                        >
+                          {TIME_SLOTS.map(time => (
+                            <option key={time} value={time}>{time}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-slate-600 mb-1 block">Fine</label>
+                        <select
+                          value={newSlot.ora_fine}
+                          onChange={(e) => setNewSlot({ ...newSlot, ora_fine: e.target.value })}
+                          className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                        >
+                          {TIME_SLOTS.map(time => (
+                            <option key={time} value={time}>{time}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-slate-600 mb-1 block">Attività</label>
+                        <input
+                          type="text"
+                          value={newSlot.attivita}
+                          onChange={(e) => setNewSlot({ ...newSlot, attivita: e.target.value })}
+                          className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                          placeholder="Descrizione..."
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-slate-600 mb-1 block">Colore</label>
+                        <select
+                          value={newSlot.colore}
+                          onChange={(e) => setNewSlot({ ...newSlot, colore: e.target.value })}
+                          className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                        >
+                          {COLORI.map(c => (
+                            <option key={c.value} value={c.value}>{c.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="bulk-richiede-form"
+                          checked={newSlot.richiede_form}
+                          onChange={(e) => setNewSlot({ ...newSlot, richiede_form: e.target.checked })}
+                          className="w-4 h-4"
+                        />
+                        <label htmlFor="bulk-richiede-form" className="text-xs font-medium text-slate-600">
+                          Richiede Form
+                        </label>
+                      </div>
+                      {newSlot.richiede_form && (
+                        <div>
+                          <select
+                            value={newSlot.form_page}
+                            onChange={(e) => setNewSlot({ ...newSlot, form_page: e.target.value })}
+                            className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                          >
+                            {AVAILABLE_FORMS.map(f => (
+                              <option key={f.value} value={f.value}>{f.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Corsi */}
+                    <div className="mb-3">
+                      <label className="text-xs font-medium text-slate-600 mb-2 block">
+                        <GraduationCap className="w-3 h-3 inline mr-1" />
+                        Corsi
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {corsi.filter(c => c.attivo !== false).map(c => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => toggleCorso(c.id)}
+                            className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                              (newSlot.corsi_ids || []).includes(c.id)
+                                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                                : 'nav-button text-slate-700'
+                            }`}
+                          >
+                            {c.nome_corso}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Attrezzature */}
+                    <div>
+                      <label className="text-xs font-medium text-slate-600 mb-2 block">
+                        <Sparkles className="w-3 h-3 inline mr-1" />
+                        Attrezzature
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {attrezzatureDisponibili.map(attr => (
+                          <button
+                            key={attr}
+                            type="button"
+                            onClick={() => toggleAttrezzatura(attr)}
+                            className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                              (newSlot.attrezzature_pulizia || []).includes(attr)
+                                ? 'bg-gradient-to-r from-green-500 to-green-600 text-white'
+                                : 'nav-button text-slate-700'
+                            }`}
+                          >
+                            {attr}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Schema Selection */}
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-700 mb-3">Seleziona Schemi</h3>
+                    <p className="text-xs text-slate-500 mb-3">Lo slot sarà aggiunto a tutti gli schemi selezionati</p>
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {schemi.filter(s => s.is_active !== false).map(schema => (
+                        <button
+                          key={schema.id}
+                          type="button"
+                          onClick={() => toggleSchemaForSlot(schema.id)}
+                          className={`w-full text-left p-3 rounded-xl transition-all ${
+                            selectedSchemiForSlot.includes(schema.id)
+                              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                              : 'neumorphic-pressed text-slate-700'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-bold text-sm">{schema.nome_schema}</p>
+                              <p className="text-xs opacity-80">
+                                {GIORNI[schema.giorno_settimana]} - {schema.ruolo}
+                                {(schema.assigned_stores || []).length > 0 && (
+                                  <> - {(schema.assigned_stores || []).map(id => getStoreName(id)).join(', ')}</>
+                                )}
+                              </p>
+                            </div>
+                            {selectedSchemiForSlot.includes(schema.id) && (
+                              <span className="text-lg">✓</span>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <NeumorphicButton onClick={() => setShowBulkAddSlotModal(false)} className="flex-1">
+                      Annulla
+                    </NeumorphicButton>
+                    <NeumorphicButton
+                      onClick={handleBulkAddSlot}
+                      variant="primary"
+                      className="flex-1 flex items-center justify-center gap-2"
+                      disabled={selectedSchemiForSlot.length === 0}
+                    >
+                      <Plus className="w-5 h-5" />
+                      Aggiungi a {selectedSchemiForSlot.length} Schemi
+                    </NeumorphicButton>
+                  </div>
+                </div>
               </NeumorphicCard>
             </div>
           </div>
