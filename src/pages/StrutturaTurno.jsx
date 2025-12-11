@@ -1273,7 +1273,7 @@ export default function StrutturaTurno() {
                       )}
                     </div>
 
-                    <div className="grid grid-cols-1 gap-3 mb-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                       <div>
                         <label className="text-xs font-medium text-slate-600 mb-1 block">Attività</label>
                         <input
@@ -1352,20 +1352,21 @@ export default function StrutturaTurno() {
                               </select>
                             </div>
                           </>
-                        )
-                      ) : (
-                        <div>
-                          <label className="text-xs font-medium text-slate-600 mb-1 block">Posizione nel Turno</label>
-                          <select
-                            value={newSlot.posizione_turno}
-                            onChange={(e) => setNewSlot({ ...newSlot, posizione_turno: e.target.value })}
-                            className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
-                          >
-                            <option value="inizio">⬆️ Inizio Turno (prima attività)</option>
-                            <option value="fine">⬇️ Fine Turno (ultima attività)</option>
-                          </select>
-                        </div>
-                      )}
+                        )}
+                      </div>
+                    ) : (
+                      <div className="mb-3">
+                        <label className="text-xs font-medium text-slate-600 mb-1 block">Posizione nel Turno</label>
+                        <select
+                          value={newSlot.posizione_turno}
+                          onChange={(e) => setNewSlot({ ...newSlot, posizione_turno: e.target.value })}
+                          className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                        >
+                          <option value="inizio">⬆️ Inizio Turno (prima attività)</option>
+                          <option value="fine">⬇️ Fine Turno (ultima attività)</option>
+                        </select>
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-3 mb-3">
                       <div className="flex items-center gap-2">

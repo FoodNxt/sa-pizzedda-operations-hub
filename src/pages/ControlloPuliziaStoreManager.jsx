@@ -540,9 +540,6 @@ export default function ControlloPuliziaStoreManager() {
             </button>
           </div>
         </form>
-      )}
-
-
     </div>
   );
 }
