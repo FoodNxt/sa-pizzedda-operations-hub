@@ -932,27 +932,6 @@ export default function StrutturaTurno() {
                         </div>
                       )}
                       
-                      {/* Checkbox Necessario Form Modal */}
-                      <div className="mb-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            id="necessario-form-modal"
-                            checked={newSlot.necessario_in_ogni_turno}
-                            onChange={(e) => setNewSlot({ ...newSlot, necessario_in_ogni_turno: e.target.checked })}
-                            className="w-4 h-4"
-                          />
-                          <label htmlFor="necessario-form-modal" className="text-xs font-bold text-purple-700">
-                            ⭐ Necessario in Ogni Turno
-                          </label>
-                        </div>
-                        {newSlot.necessario_in_ogni_turno && (
-                          <p className="text-xs text-purple-600 mt-1">
-                            Questa attività sarà sempre mostrata, indipendentemente dall'orario
-                          </p>
-                        )}
-                      </div>
-
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
                         {!newSlot.necessario_in_ogni_turno ? (
                           isProvaAffiancamento ? (
