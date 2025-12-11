@@ -477,8 +477,7 @@ export default function ControlloPuliziaPizzaiolo() {
               )}
             </button>
           </div>
-        </form>
-      )}
+      </form>
 
       {/* Camera Modal */}
       {activeCamera && (
