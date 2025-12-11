@@ -52,16 +52,41 @@ export default function ControlloPuliziaCassiere() {
     queryFn: () => base44.entities.Store.list(),
   });
 
-  // Load domande for Cassiere
+  const { data: attrezzature = [] } = useQuery({
+    queryKey: ['attrezzature'],
+    queryFn: () => base44.entities.Attrezzatura.list(),
+  });
+
+  // Load domande for Cassiere - solo dopo selezione store
   const { data: domande = [], isLoading: isLoadingDomande } = useQuery({
-    queryKey: ['domande-pulizia-cassiere'],
+    queryKey: ['domande-pulizia-cassiere', selectedStore],
     queryFn: async () => {
+      if (!selectedStore) return [];
+      
       const allDomande = await base44.entities.DomandaPulizia.list('ordine');
-      return allDomande.filter(d => 
+      
+      // Filtra domande per ruolo Cassiere
+      const domandePerRuolo = allDomande.filter(d => 
         d.attiva !== false && 
         d.ruoli_assegnati?.includes('Cassiere')
       );
+      
+      // Filtra domande con attrezzature in base a quelle presenti nel locale
+      const attrezzatureDelLocale = attrezzature.filter(a => {
+        if (!a.stores_assegnati || a.stores_assegnati.length === 0) return true;
+        return a.stores_assegnati.includes(selectedStore);
+      }).map(a => a.nome);
+      
+      return domandePerRuolo.filter(d => {
+        // Se la domanda ha un'attrezzatura, verifica che sia presente nel locale
+        if (d.attrezzatura) {
+          return attrezzatureDelLocale.includes(d.attrezzatura);
+        }
+        // Domande senza attrezzatura sono sempre mostrate
+        return true;
+      });
     },
+    enabled: !!selectedStore,
   });
 
   const handlePhotoCapture = (questionId, file) => {
