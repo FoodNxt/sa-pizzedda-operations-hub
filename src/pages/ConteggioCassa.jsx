@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate, useLocation } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 import {
   DollarSign,
   Save,
@@ -16,6 +18,13 @@ import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 
 export default function ConteggioCassa() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const urlParams = new URLSearchParams(location.search);
+  const redirectTo = urlParams.get('redirect');
+  const turnoId = urlParams.get('turno_id');
+  const attivitaNome = urlParams.get('attivita');
+  
   const [selectedStore, setSelectedStore] = useState('');
   const [valoreConteggio, setValoreConteggio] = useState('');
   const [saving, setSaving] = useState(false);
@@ -77,12 +86,36 @@ export default function ConteggioCassa() {
       });
 
       setSaveSuccess(true);
-      setValoreConteggio('');
-      setSelectedStore('');
       
       queryClient.invalidateQueries({ queryKey: ['conteggi-cassa'] });
 
-      setTimeout(() => setSaveSuccess(false), 3000);
+      // Segna attività come completata se viene da un turno
+      if (turnoId && attivitaNome) {
+        try {
+          await base44.entities.AttivitaCompletata.create({
+            dipendente_id: currentUser.id,
+            dipendente_nome: currentUser.nome_cognome || currentUser.full_name,
+            turno_id: turnoId,
+            turno_data: new Date().toISOString().split('T')[0],
+            store_id: store.id,
+            attivita_nome: decodeURIComponent(attivitaNome),
+            completato_at: new Date().toISOString()
+          });
+        } catch (error) {
+          console.error('Error marking activity as completed:', error);
+        }
+      }
+
+      // Redirect dopo un breve delay
+      setTimeout(() => {
+        if (redirectTo) {
+          navigate(createPageUrl(redirectTo));
+        } else {
+          setSaveSuccess(false);
+          setValoreConteggio('');
+          setSelectedStore('');
+        }
+      }, 1500);
     } catch (error) {
       console.error('Error saving conteggio:', error);
       alert('Errore durante il salvataggio: ' + error.message);

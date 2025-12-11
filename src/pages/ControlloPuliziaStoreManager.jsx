@@ -12,6 +12,8 @@ export default function ControlloPuliziaStoreManager() {
   const urlParams = new URLSearchParams(location.search);
   const redirectTo = urlParams.get('redirect');
   const storeIdFromUrl = urlParams.get('storeId');
+  const turnoId = urlParams.get('turno_id');
+  const attivitaNome = urlParams.get('attivita');
   
   const [selectedStore, setSelectedStore] = useState(storeIdFromUrl || '');
   const [storeLockedFromShift, setStoreLockedFromShift] = useState(!!storeIdFromUrl);
@@ -206,6 +208,23 @@ export default function ControlloPuliziaStoreManager() {
       }).catch(error => {
         console.error('Error starting AI analysis:', error);
       });
+
+      // Segna attività come completata se viene da un turno
+      if (turnoId && attivitaNome) {
+        try {
+          await base44.entities.AttivitaCompletata.create({
+            dipendente_id: currentUser.id,
+            dipendente_nome: currentUser.nome_cognome || currentUser.full_name,
+            turno_id: turnoId,
+            turno_data: new Date().toISOString().split('T')[0],
+            store_id: store.id,
+            attivita_nome: decodeURIComponent(attivitaNome),
+            completato_at: new Date().toISOString()
+          });
+        } catch (error) {
+          console.error('Error marking activity as completed:', error);
+        }
+      }
 
       navigate(redirectTo ? createPageUrl(redirectTo) : createPageUrl('Pulizie'));
 

@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate, useLocation } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
@@ -9,6 +11,13 @@ import { ChefHat, Calculator, AlertCircle, CheckCircle, Loader2, BookOpen, Plus,
 const giorni = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
 
 export default function Impasto() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const urlParams = new URLSearchParams(location.search);
+  const redirectTo = urlParams.get('redirect');
+  const turnoId = urlParams.get('turno_id');
+  const attivitaNome = urlParams.get('attivita');
+  
   const [activeTab, setActiveTab] = useState('calcolo');
   const [selectedStore, setSelectedStore] = useState('');
   const [barelleInFrigo, setBarelleInFrigo] = useState('');
@@ -101,8 +110,33 @@ export default function Impasto() {
 
   const logMutation = useMutation({
     mutationFn: (data) => base44.entities.CalcoloImpastoLog.create(data),
-    onSuccess: () => {
+    onSuccess: async () => {
       setCalcoloConfermato(true);
+
+      // Segna attività come completata se viene da un turno
+      if (turnoId && attivitaNome && user) {
+        try {
+          const store = stores.find(s => s.id === selectedStore);
+          await base44.entities.AttivitaCompletata.create({
+            dipendente_id: user.id,
+            dipendente_nome: user.nome_cognome || user.full_name,
+            turno_id: turnoId,
+            turno_data: new Date().toISOString().split('T')[0],
+            store_id: store.id,
+            attivita_nome: decodeURIComponent(attivitaNome),
+            completato_at: new Date().toISOString()
+          });
+        } catch (error) {
+          console.error('Error marking activity as completed:', error);
+        }
+      }
+
+      // Redirect dopo un breve delay
+      if (redirectTo) {
+        setTimeout(() => {
+          navigate(createPageUrl(redirectTo));
+        }, 2000);
+      }
     },
   });
 

@@ -1,15 +1,28 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate, useLocation } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import ProtectedPage from "../components/ProtectedPage";
-import { Pizza, Clock, AlertCircle } from "lucide-react";
+import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
+import { Pizza, Clock, AlertCircle, CheckCircle } from "lucide-react";
 
 const giorni = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
 
 export default function Precotture() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const urlParams = new URLSearchParams(location.search);
+  const redirectTo = urlParams.get('redirect');
+  const turnoId = urlParams.get('turno_id');
+  const attivitaNome = urlParams.get('attivita');
+  
   const [selectedStore, setSelectedStore] = useState('');
   const [rossePresenti, setRossePresenti] = useState('');
+  const [confermato, setConfermato] = useState(false);
+
+  const queryClient = useQueryClient();
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -19,6 +32,35 @@ export default function Precotture() {
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
+  });
+
+  const confermaMutation = useMutation({
+    mutationFn: async () => {
+      // Segna attività come completata
+      if (turnoId && attivitaNome && user) {
+        const store = stores.find(s => s.id === selectedStore);
+        await base44.entities.AttivitaCompletata.create({
+          dipendente_id: user.id,
+          dipendente_nome: user.nome_cognome || user.full_name,
+          turno_id: turnoId,
+          turno_data: new Date().toISOString().split('T')[0],
+          store_id: store.id,
+          attivita_nome: decodeURIComponent(attivitaNome),
+          completato_at: new Date().toISOString()
+        });
+      }
+    },
+    onSuccess: () => {
+      setConfermato(true);
+      queryClient.invalidateQueries({ queryKey: ['attivita-completate'] });
+      
+      // Redirect dopo un breve delay
+      if (redirectTo) {
+        setTimeout(() => {
+          navigate(createPageUrl(redirectTo));
+        }, 2000);
+      }
+    },
   });
 
   const { data: impasti = [] } = useQuery({
@@ -174,7 +216,35 @@ export default function Precotture() {
                     <p className="text-sm font-medium text-green-700">Precotture Rosse da preparare</p>
                   </div>
                   
-                  <p className="text-4xl font-bold text-green-800">{risultato.rosseDaFare}</p>
+                  <p className="text-4xl font-bold text-green-800 mb-4">{risultato.rosseDaFare}</p>
+
+                  {!confermato && turnoId && attivitaNome && (
+                    <NeumorphicButton
+                      onClick={() => confermaMutation.mutate()}
+                      variant="primary"
+                      className="w-full flex items-center justify-center gap-2"
+                      disabled={confermaMutation.isPending}
+                    >
+                      {confermaMutation.isPending ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Confermo...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="w-5 h-5" />
+                          Conferma Calcolo
+                        </>
+                      )}
+                    </NeumorphicButton>
+                  )}
+
+                  {confermato && (
+                    <div className="flex items-center justify-center gap-2 text-green-700 font-medium">
+                      <CheckCircle className="w-5 h-5" />
+                      Confermato!
+                    </div>
+                  )}
                 </div>
               </NeumorphicCard>
             )}

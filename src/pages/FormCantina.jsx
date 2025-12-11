@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate, useLocation } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 import {
   ClipboardList,
   Save,
@@ -15,6 +17,13 @@ import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 
 export default function FormCantina() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const urlParams = new URLSearchParams(location.search);
+  const redirectTo = urlParams.get('redirect');
+  const turnoId = urlParams.get('turno_id');
+  const attivitaNome = urlParams.get('attivita');
+  
   const [selectedStore, setSelectedStore] = useState('');
   const [quantities, setQuantities] = useState({});
   const [notes, setNotes] = useState({});
@@ -107,12 +116,37 @@ export default function FormCantina() {
       await base44.entities.RilevazioneInventarioCantina.bulkCreate(rilevazioni);
 
       setSaveSuccess(true);
-      setQuantities({});
-      setNotes({});
       
       queryClient.invalidateQueries({ queryKey: ['rilevazioni-inventario-cantina'] });
 
-      setTimeout(() => setSaveSuccess(false), 3000);
+      // Segna attività come completata se viene da un turno
+      if (turnoId && attivitaNome) {
+        try {
+          const store = stores.find(s => s.id === selectedStore);
+          await base44.entities.AttivitaCompletata.create({
+            dipendente_id: currentUser.id,
+            dipendente_nome: currentUser.nome_cognome || currentUser.full_name,
+            turno_id: turnoId,
+            turno_data: new Date().toISOString().split('T')[0],
+            store_id: store.id,
+            attivita_nome: decodeURIComponent(attivitaNome),
+            completato_at: new Date().toISOString()
+          });
+        } catch (error) {
+          console.error('Error marking activity as completed:', error);
+        }
+      }
+
+      // Redirect dopo un breve delay
+      setTimeout(() => {
+        if (redirectTo) {
+          navigate(createPageUrl(redirectTo));
+        } else {
+          setSaveSuccess(false);
+          setQuantities({});
+          setNotes({});
+        }
+      }, 1500);
     } catch (error) {
       console.error('Error saving inventory:', error);
       alert('Errore durante il salvataggio: ' + error.message);
