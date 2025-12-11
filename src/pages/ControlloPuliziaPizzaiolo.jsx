@@ -72,6 +72,7 @@ export default function ControlloPuliziaPizzaiolo() {
       
       // Filtra domande con attrezzature in base a quelle presenti nel locale
       const attrezzatureDelLocale = attrezzature.filter(a => {
+        if (a.attivo === false) return false;
         if (!a.stores_assegnati || a.stores_assegnati.length === 0) return true;
         return a.stores_assegnati.includes(selectedStore);
       }).map(a => a.nome);
