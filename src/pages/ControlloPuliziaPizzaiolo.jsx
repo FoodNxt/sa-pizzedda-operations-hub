@@ -237,26 +237,9 @@ export default function ControlloPuliziaPizzaiolo() {
         <p className="text-[#9b9b9b]">Compila il form di controllo pulizia</p>
       </div>
 
-      {!selectedStore ? (
-        <NeumorphicCard className="p-12 text-center">
-          <AlertCircle className="w-16 h-16 text-blue-500 mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-[#6b6b6b] mb-2">Seleziona un Locale</h3>
-          <p className="text-[#9b9b9b]">Seleziona prima il locale per caricare le domande</p>
-        </NeumorphicCard>
-      ) : isLoadingDomande ? (
-        <NeumorphicCard className="p-12 text-center">
-          <Loader2 className="w-12 h-12 text-[#8b7355] animate-spin mx-auto mb-4" />
-          <p className="text-[#9b9b9b]">Caricamento domande...</p>
-        </NeumorphicCard>
-      ) : domande.length === 0 ? (
-        <NeumorphicCard className="p-12 text-center">
-          <AlertCircle className="w-16 h-16 text-[#9b9b9b] mx-auto mb-4 opacity-50" />
-          <h3 className="text-xl font-bold text-[#6b6b6b] mb-2">Nessuna domanda disponibile</h3>
-          <p className="text-[#9b9b9b]">Non ci sono domande configurate per questo locale</p>
-        </NeumorphicCard>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <NeumorphicCard className="p-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Store Selection - Always visible */}
+        <NeumorphicCard className="p-6">
             <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">Informazioni Ispezione</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -305,16 +288,35 @@ export default function ControlloPuliziaPizzaiolo() {
                 </div>
               </div>
             </div>
-          </NeumorphicCard>
+            </NeumorphicCard>
 
-          <NeumorphicCard className="p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <ClipboardCheck className="w-6 h-6 text-[#8b7355]" />
-              <h2 className="text-xl font-bold text-[#6b6b6b]">Controlli di Pulizia</h2>
-            </div>
+            {/* Questions Section */}
+            {!selectedStore ? (
+            <NeumorphicCard className="p-12 text-center">
+              <AlertCircle className="w-16 h-16 text-blue-500 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-[#6b6b6b] mb-2">Seleziona un Locale</h3>
+              <p className="text-[#9b9b9b]">Seleziona prima il locale per caricare le domande</p>
+            </NeumorphicCard>
+            ) : isLoadingDomande ? (
+            <NeumorphicCard className="p-12 text-center">
+              <Loader2 className="w-12 h-12 text-[#8b7355] animate-spin mx-auto mb-4" />
+              <p className="text-[#9b9b9b]">Caricamento domande...</p>
+            </NeumorphicCard>
+            ) : domande.length === 0 ? (
+            <NeumorphicCard className="p-12 text-center">
+              <AlertCircle className="w-16 h-16 text-[#9b9b9b] mx-auto mb-4 opacity-50" />
+              <h3 className="text-xl font-bold text-[#6b6b6b] mb-2">Nessuna domanda disponibile</h3>
+              <p className="text-[#9b9b9b]">Non ci sono domande configurate per questo locale</p>
+            </NeumorphicCard>
+            ) : (
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <ClipboardCheck className="w-6 h-6 text-[#8b7355]" />
+                <h2 className="text-xl font-bold text-[#6b6b6b]">Controlli di Pulizia</h2>
+              </div>
 
-            <div className="space-y-6">
-              {domande.map((domanda, index) => (
+              <div className="space-y-6">
+                {domande.map((domanda, index) => (
                 <div key={domanda.id} className="neumorphic-pressed p-5 rounded-xl">
                   {domanda.tipo_controllo === 'foto' || domanda.tipo_controllo === 'photo' ? (
                     <div>
@@ -415,8 +417,9 @@ export default function ControlloPuliziaPizzaiolo() {
               ))}
             </div>
           </NeumorphicCard>
+        )}
 
-          {error && (
+        {error && (
             <NeumorphicCard className="p-4 bg-red-50">
               <div className="flex items-center gap-2 text-red-700">
                 <AlertCircle className="w-5 h-5" />
