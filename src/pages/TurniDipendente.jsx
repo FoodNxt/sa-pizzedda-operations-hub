@@ -820,13 +820,36 @@ export default function TurniDipendente() {
     if (schemasApplicabili.length === 0) return [];
     
     // Estrai attività con info complete, ordinate per ora - evita duplicati per NOME attività
-    // Filtra solo attività dentro l'orario del turno
     const attivitaMap = new Map();
+    const attivitaInizio = [];
+    const attivitaFine = [];
+    
     schemasApplicabili.forEach(st => {
       if (st.slots && Array.isArray(st.slots) && st.slots.length > 0) {
         st.slots.forEach(slot => {
           if (slot.attivita) {
-            // Verifica che lo slot sia dentro l'orario del turno
+            // Slot necessario in ogni turno - va sempre mostrato
+            if (slot.necessario_in_ogni_turno) {
+              const attivita = {
+                nome: slot.attivita,
+                ora_inizio: slot.posizione_turno === 'inizio' ? turnoInizio : turnoFine,
+                ora_fine: slot.ora_fine,
+                form_page: slot.form_page,
+                corsi_ids: slot.corsi_ids || (slot.corso_id ? [slot.corso_id] : []),
+                richiede_form: slot.richiede_form,
+                necessario_in_ogni_turno: true,
+                posizione_turno: slot.posizione_turno
+              };
+              
+              if (slot.posizione_turno === 'inizio') {
+                attivitaInizio.push(attivita);
+              } else {
+                attivitaFine.push(attivita);
+              }
+              return;
+            }
+            
+            // Verifica che lo slot sia dentro l'orario del turno (solo per slot normali)
             const slotInizio = slot.ora_inizio || '00:00';
             
             // Lo slot è valido se inizia durante il turno
@@ -849,8 +872,11 @@ export default function TurniDipendente() {
       }
     });
     
-    // Ordina per ora inizio
-    return Array.from(attivitaMap.values()).sort((a, b) => (a.ora_inizio || '').localeCompare(b.ora_inizio || ''));
+    // Ordina slot normali per ora
+    const attivitaNormali = Array.from(attivitaMap.values()).sort((a, b) => (a.ora_inizio || '').localeCompare(b.ora_inizio || ''));
+    
+    // Combina: inizio + normali + fine
+    return [...attivitaInizio, ...attivitaNormali, ...attivitaFine];
   };
   
   const isAttivitaCompletata = (turnoId, attivitaNome) => {

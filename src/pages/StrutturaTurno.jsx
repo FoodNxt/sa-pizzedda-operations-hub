@@ -422,7 +422,9 @@ export default function StrutturaTurno() {
       corsi_ids: [], 
       attrezzature_pulizia: [],
       minuti_inizio: 0,
-      minuti_fine: 15
+      minuti_fine: 15,
+      necessario_in_ogni_turno: false,
+      posizione_turno: 'inizio'
     });
     setShowBulkAddSlotModal(true);
   };
@@ -456,12 +458,16 @@ export default function StrutturaTurno() {
       });
 
       const slotForSchema = { ...slotToAdd };
-      if (isProvaAff) {
-        slotForSchema.minuti_inizio = newSlot.minuti_inizio;
-        slotForSchema.minuti_fine = newSlot.minuti_fine;
-      } else {
-        slotForSchema.ora_inizio = newSlot.ora_inizio;
-        slotForSchema.ora_fine = newSlot.ora_fine;
+      
+      // Solo se NON è necessario in ogni turno, aggiungi gli orari
+      if (!newSlot.necessario_in_ogni_turno) {
+        if (isProvaAff) {
+          slotForSchema.minuti_inizio = newSlot.minuti_inizio;
+          slotForSchema.minuti_fine = newSlot.minuti_fine;
+        } else {
+          slotForSchema.ora_inizio = newSlot.ora_inizio;
+          slotForSchema.ora_fine = newSlot.ora_fine;
+        }
       }
 
       const updatedSlots = [...(schema.slots || []), slotForSchema];
@@ -1189,31 +1195,67 @@ export default function StrutturaTurno() {
                   {/* Slot Configuration */}
                   <div className="neumorphic-pressed p-4 rounded-xl">
                     <h3 className="text-sm font-bold text-slate-700 mb-3">Configura Slot</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                      <div>
-                        <label className="text-xs font-medium text-slate-600 mb-1 block">Inizio</label>
+                    {/* Checkbox Necessario in Ogni Turno */}
+                    <div className="col-span-2 mb-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="necessario-ogni-turno"
+                          checked={newSlot.necessario_in_ogni_turno}
+                          onChange={(e) => setNewSlot({ ...newSlot, necessario_in_ogni_turno: e.target.checked })}
+                          className="w-4 h-4"
+                        />
+                        <label htmlFor="necessario-ogni-turno" className="text-xs font-bold text-purple-700">
+                          ⭐ Necessario in Ogni Turno
+                        </label>
+                      </div>
+                      {newSlot.necessario_in_ogni_turno && (
+                        <p className="text-xs text-purple-600 mt-1">
+                          Questa attività sarà sempre mostrata, indipendentemente dall'orario del turno
+                        </p>
+                      )}
+                    </div>
+
+                    {!newSlot.necessario_in_ogni_turno ? (
+                      <>
+                        <div>
+                          <label className="text-xs font-medium text-slate-600 mb-1 block">Inizio</label>
+                          <select
+                            value={newSlot.ora_inizio}
+                            onChange={(e) => setNewSlot({ ...newSlot, ora_inizio: e.target.value })}
+                            className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                          >
+                            {TIME_SLOTS.map(time => (
+                              <option key={time} value={time}>{time}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-slate-600 mb-1 block">Fine</label>
+                          <select
+                            value={newSlot.ora_fine}
+                            onChange={(e) => setNewSlot({ ...newSlot, ora_fine: e.target.value })}
+                            className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                          >
+                            {TIME_SLOTS.map(time => (
+                              <option key={time} value={time}>{time}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="col-span-2">
+                        <label className="text-xs font-medium text-slate-600 mb-1 block">Posizione nel Turno</label>
                         <select
-                          value={newSlot.ora_inizio}
-                          onChange={(e) => setNewSlot({ ...newSlot, ora_inizio: e.target.value })}
+                          value={newSlot.posizione_turno}
+                          onChange={(e) => setNewSlot({ ...newSlot, posizione_turno: e.target.value })}
                           className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
                         >
-                          {TIME_SLOTS.map(time => (
-                            <option key={time} value={time}>{time}</option>
-                          ))}
+                          <option value="inizio">⬆️ Inizio Turno (prima attività)</option>
+                          <option value="fine">⬇️ Fine Turno (ultima attività)</option>
                         </select>
                       </div>
-                      <div>
-                        <label className="text-xs font-medium text-slate-600 mb-1 block">Fine</label>
-                        <select
-                          value={newSlot.ora_fine}
-                          onChange={(e) => setNewSlot({ ...newSlot, ora_fine: e.target.value })}
-                          className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
-                        >
-                          {TIME_SLOTS.map(time => (
-                            <option key={time} value={time}>{time}</option>
-                          ))}
-                        </select>
-                      </div>
+                    )}
                       <div>
                         <label className="text-xs font-medium text-slate-600 mb-1 block">Attività</label>
                         <input
