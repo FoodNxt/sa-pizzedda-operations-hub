@@ -16,11 +16,13 @@ import {
   CheckCircle
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
-import { format, isValid, subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { format, isValid, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addWeeks, eachWeekOfInterval } from 'date-fns';
 import { it } from 'date-fns/locale';
 
 export default function OreLavorate() {
   const [expandedSections, setExpandedSections] = useState({});
+  const [selectedMonth, setSelectedMonth] = useState(0); // 0 = mese scorso, 1 = 2 mesi fa, etc.
+  const [viewType, setViewType] = useState('monthly'); // 'monthly' or 'weekly'
 
   // Fetch current user
   const { data: user, isLoading: userLoading } = useQuery({
@@ -55,10 +57,10 @@ export default function OreLavorate() {
     return uniqueShifts.sort((a, b) => new Date(b.shift_date) - new Date(a.shift_date));
   }, [user, shifts]);
 
-  // Calculate previous month data with detailed breakdown
+  // Calculate selected month data with detailed breakdown
   const previousMonthData = useMemo(() => {
     const now = new Date();
-    const prevMonth = subMonths(now, 1);
+    const prevMonth = subMonths(now, selectedMonth + 1);
     const monthStart = startOfMonth(prevMonth);
     const monthEnd = endOfMonth(prevMonth);
 
@@ -129,6 +131,48 @@ export default function OreLavorate() {
       turniAssenza,
       lateShifts
     };
+  }, [myShifts, selectedMonth]);
+
+  // Calculate weekly data
+  const weeklyData = useMemo(() => {
+    const now = new Date();
+    const last12Weeks = eachWeekOfInterval({
+      start: addWeeks(now, -12),
+      end: now
+    }, { weekStartsOn: 1 }); // Monday
+
+    return last12Weeks.map(weekStart => {
+      const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+      
+      const weekShifts = myShifts.filter(s => {
+        const shiftDate = new Date(s.shift_date);
+        return shiftDate >= weekStart && shiftDate <= weekEnd;
+      });
+
+      const turniBase = weekShifts.filter(s => {
+        const type = (s.shift_type || '').toLowerCase();
+        return !type.includes('straordinario') && !type.includes('ferie') && 
+               !type.includes('malattia') && !type.includes('assenza');
+      });
+
+      const turniStraordinari = weekShifts.filter(s => 
+        (s.shift_type || '').toLowerCase().includes('straordinario')
+      );
+
+      const oreBase = turniBase.reduce((sum, s) => sum + (s.scheduled_minutes || 0), 0) / 60;
+      const oreStraordinari = turniStraordinari.reduce((sum, s) => sum + (s.scheduled_minutes || 0), 0) / 60;
+      const oreTotali = oreBase + oreStraordinari;
+
+      return {
+        weekStart,
+        weekEnd,
+        weekLabel: `${format(weekStart, 'dd MMM', { locale: it })} - ${format(weekEnd, 'dd MMM', { locale: it })}`,
+        oreBase,
+        oreStraordinari,
+        oreTotali,
+        turniCount: weekShifts.length
+      };
+    }).reverse();
   }, [myShifts]);
 
   const toggleSection = (section) => {
@@ -263,11 +307,108 @@ export default function OreLavorate() {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Ore Lavorate</h1>
-        <p className="text-[#9b9b9b]">Riepilogo dettagliato delle ore per {previousMonthData.monthName}</p>
+        <p className="text-[#9b9b9b]">Riepilogo dettagliato delle tue ore lavorate</p>
       </div>
 
-      {/* Main Card - Vertical Breakdown */}
-      <NeumorphicCard className="p-6">
+      {/* View Type Toggle */}
+      <NeumorphicCard className="p-4">
+        <div className="flex gap-2">
+          <button
+            onClick={() => setViewType('monthly')}
+            className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all ${
+              viewType === 'monthly'
+                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                : 'neumorphic-flat text-[#6b6b6b]'
+            }`}
+          >
+            📅 Mensile
+          </button>
+          <button
+            onClick={() => setViewType('weekly')}
+            className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all ${
+              viewType === 'weekly'
+                ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg'
+                : 'neumorphic-flat text-[#6b6b6b]'
+            }`}
+          >
+            📆 Settimanale
+          </button>
+        </div>
+      </NeumorphicCard>
+
+      {/* Month Selector - only for monthly view */}
+      {viewType === 'monthly' && (
+        <NeumorphicCard className="p-4">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-[#8b7355]" />
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+              className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+            >
+              {[...Array(12)].map((_, i) => {
+                const month = subMonths(new Date(), i + 1);
+                return (
+                  <option key={i} value={i}>
+                    {format(month, 'MMMM yyyy', { locale: it })}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        </NeumorphicCard>
+      )}
+
+      {/* Weekly View */}
+      {viewType === 'weekly' && (
+        <NeumorphicCard className="p-6">
+          <h2 className="text-xl font-bold text-[#6b6b6b] mb-6 flex items-center gap-2">
+            <Calendar className="w-6 h-6 text-[#8b7355]" />
+            Ore per Settimana (ultime 12 settimane)
+          </h2>
+
+          <div className="space-y-3">
+            {weeklyData.map((week, idx) => (
+              <div key={idx} className="neumorphic-pressed p-4 rounded-xl">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="font-bold text-[#6b6b6b]">{week.weekLabel}</p>
+                    <p className="text-xs text-[#9b9b9b]">{week.turniCount} turni</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-blue-600">{week.oreTotali.toFixed(1)}h</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4 text-sm mt-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                    <span className="text-slate-600">Base: {week.oreBase.toFixed(1)}h</span>
+                  </div>
+                  {week.oreStraordinari > 0 && (
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                      <span className="text-slate-600">Straord.: {week.oreStraordinari.toFixed(1)}h</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Progress bar */}
+                <div className="mt-3 bg-slate-200 rounded-full h-2 overflow-hidden">
+                  <div
+                    className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all"
+                    style={{ width: `${Math.min((week.oreTotali / 40) * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </NeumorphicCard>
+      )}
+
+      {/* Monthly View */}
+      {viewType === 'monthly' && (
+        <NeumorphicCard className="p-6">
         <h2 className="text-xl font-bold text-[#6b6b6b] mb-6 flex items-center gap-2">
           <Calendar className="w-6 h-6 text-[#8b7355]" />
           Dettaglio Ore - {previousMonthData.monthName}
@@ -365,8 +506,10 @@ export default function OreLavorate() {
           </div>
         </div>
       </NeumorphicCard>
+      )}
 
-      {/* Summary Formula */}
+      {/* Summary Formula - only for monthly */}
+      {viewType === 'monthly' && (
       <NeumorphicCard className="p-6 bg-blue-50">
         <div className="flex items-start gap-3">
           <Clock className="w-6 h-6 text-blue-600 flex-shrink-0" />
@@ -387,6 +530,7 @@ export default function OreLavorate() {
           </div>
         </div>
       </NeumorphicCard>
+      )}
     </div>
   );
 }
