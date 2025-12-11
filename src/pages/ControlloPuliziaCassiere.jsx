@@ -489,8 +489,7 @@ export default function ControlloPuliziaCassiere() {
               )}
             </button>
           </div>
-        </form>
-      )}
+      </form>
 
       {/* Camera Modal */}
       {activeCamera && (
