@@ -478,6 +478,25 @@ export default function FormPulizia() {
                       <>
                         <div>
                           <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                            Attrezzatura di Riferimento (opzionale)
+                          </label>
+                          <select
+                            value={questionForm.attrezzatura}
+                            onChange={(e) => setQuestionForm({ ...questionForm, attrezzatura: e.target.value })}
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                          >
+                            <option value="">Nessuna attrezzatura</option>
+                            {attrezzature.map(attr => (
+                              <option key={attr.id} value={attr.nome}>{attr.nome}</option>
+                            ))}
+                          </select>
+                          <p className="text-xs text-slate-500 mt-1">
+                            Se specificata, la domanda verrà mostrata solo nei locali dove l'attrezzatura è presente
+                          </p>
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
                             Opzioni di Risposta
                           </label>
                           <div className="space-y-2">
