@@ -51,15 +51,41 @@ export default function ControlloPuliziaPizzaiolo() {
     queryFn: () => base44.entities.Store.list(),
   });
 
+  const { data: attrezzature = [] } = useQuery({
+    queryKey: ['attrezzature'],
+    queryFn: () => base44.entities.Attrezzatura.list(),
+  });
+
+  // Load domande for Pizzaiolo - solo dopo selezione store
   const { data: domande = [], isLoading: isLoadingDomande } = useQuery({
-    queryKey: ['domande-pulizia-pizzaiolo'],
+    queryKey: ['domande-pulizia-pizzaiolo', selectedStore],
     queryFn: async () => {
+      if (!selectedStore) return [];
+      
       const allDomande = await base44.entities.DomandaPulizia.list('ordine');
-      return allDomande.filter(d => 
+      
+      // Filtra domande per ruolo Pizzaiolo
+      const domandePerRuolo = allDomande.filter(d => 
         d.attiva !== false && 
         d.ruoli_assegnati?.includes('Pizzaiolo')
       );
+      
+      // Filtra domande con attrezzature in base a quelle presenti nel locale
+      const attrezzatureDelLocale = attrezzature.filter(a => {
+        if (!a.stores_assegnati || a.stores_assegnati.length === 0) return true;
+        return a.stores_assegnati.includes(selectedStore);
+      }).map(a => a.nome);
+      
+      return domandePerRuolo.filter(d => {
+        // Se la domanda ha un'attrezzatura, verifica che sia presente nel locale
+        if (d.attrezzatura) {
+          return attrezzatureDelLocale.includes(d.attrezzatura);
+        }
+        // Domande senza attrezzatura sono sempre mostrate
+        return true;
+      });
     },
+    enabled: !!selectedStore,
   });
 
   const handlePhotoCapture = (questionId, file) => {
@@ -211,7 +237,13 @@ export default function ControlloPuliziaPizzaiolo() {
         <p className="text-[#9b9b9b]">Compila il form di controllo pulizia</p>
       </div>
 
-      {isLoadingDomande ? (
+      {!selectedStore ? (
+        <NeumorphicCard className="p-12 text-center">
+          <AlertCircle className="w-16 h-16 text-blue-500 mx-auto mb-4" />
+          <h3 className="text-xl font-bold text-[#6b6b6b] mb-2">Seleziona un Locale</h3>
+          <p className="text-[#9b9b9b]">Seleziona prima il locale per caricare le domande</p>
+        </NeumorphicCard>
+      ) : isLoadingDomande ? (
         <NeumorphicCard className="p-12 text-center">
           <Loader2 className="w-12 h-12 text-[#8b7355] animate-spin mx-auto mb-4" />
           <p className="text-[#9b9b9b]">Caricamento domande...</p>
@@ -219,8 +251,8 @@ export default function ControlloPuliziaPizzaiolo() {
       ) : domande.length === 0 ? (
         <NeumorphicCard className="p-12 text-center">
           <AlertCircle className="w-16 h-16 text-[#9b9b9b] mx-auto mb-4 opacity-50" />
-          <h3 className="text-xl font-bold text-[#6b6b6b] mb-2">Nessuna domanda configurata</h3>
-          <p className="text-[#9b9b9b]">Contatta l'amministratore per configurare le domande di controllo</p>
+          <h3 className="text-xl font-bold text-[#6b6b6b] mb-2">Nessuna domanda disponibile</h3>
+          <p className="text-[#9b9b9b]">Non ci sono domande configurate per questo locale</p>
         </NeumorphicCard>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
