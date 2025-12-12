@@ -591,8 +591,14 @@ export default function TurniDipendente() {
     const allTurni = [...turni, ...turniFuturi];
     const futuri = allTurni
       .filter(t => {
+        // Escludi turni completati
+        if (t.stato === 'completato') return false;
+        
+        const turnoStart = moment(`${t.data} ${t.ora_inizio}`);
         const turnoEnd = moment(`${t.data} ${t.ora_fine}`);
-        return turnoEnd.isAfter(now) && t.stato !== 'completato';
+        
+        // Includi turni non ancora iniziati o in corso
+        return turnoEnd.isAfter(now);
       })
       .sort((a, b) => {
         const aStart = moment(`${a.data} ${a.ora_inizio}`);
@@ -600,7 +606,7 @@ export default function TurniDipendente() {
         return aStart.diff(bStart);
       });
     return futuri[0] || null;
-  }, [turni, turniFuturi]);
+  }, [turni, turniFuturi, now]);
 
   // Colleghi che lavorano nello stesso turno del prossimo turno
   const { data: colleghiProssimoTurno = [] } = useQuery({
