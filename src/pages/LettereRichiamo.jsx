@@ -265,7 +265,7 @@ export default function LettereRichiamo() {
             ) : (
               lettere.map(lettera => (
                 <NeumorphicCard key={lettera.id} className="p-4">
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${
@@ -295,13 +295,13 @@ export default function LettereRichiamo() {
                     </div>
                     <button
                       onClick={() => {
-                        if (confirm('Eliminare questa lettera?')) {
+                        if (confirm('Sei sicuro di voler eliminare questa lettera? Verrà eliminata anche per il dipendente.')) {
                           deleteLetteraMutation.mutate(lettera.id);
                         }
                       }}
-                      className="nav-button p-2 rounded-lg"
+                      className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors flex-shrink-0"
                     >
-                      <Trash2 className="w-4 h-4 text-red-600" />
+                      <Trash2 className="w-5 h-5 text-red-600" />
                     </button>
                   </div>
                 </NeumorphicCard>
