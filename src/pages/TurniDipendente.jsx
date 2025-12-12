@@ -595,7 +595,13 @@ export default function TurniDipendente() {
         if (t.stato === 'completato') return false;
         
         const turnoStart = moment(`${t.data} ${t.ora_inizio}`);
-        const turnoEnd = moment(`${t.data} ${t.ora_fine}`);
+        let turnoEnd = moment(`${t.data} ${t.ora_fine}`);
+        
+        // Se il turno finisce tra 00:00 e 06:00, è il giorno dopo
+        const [endHour] = t.ora_fine.split(':').map(Number);
+        if (endHour >= 0 && endHour < 6) {
+          turnoEnd = turnoEnd.add(1, 'day');
+        }
         
         // Includi turni non ancora iniziati o in corso
         return turnoEnd.isAfter(now);
