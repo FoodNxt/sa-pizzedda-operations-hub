@@ -67,6 +67,13 @@ export default function LettereRichiamo() {
     },
   });
 
+  const deleteLetteraMutation = useMutation({
+    mutationFn: (id) => base44.entities.LetteraRichiamo.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lettere-richiamo'] });
+    },
+  });
+
   const inviaLetteraMutation = useMutation({
     mutationFn: async (data) => {
       const template = templates.find(t => t.id === data.template_id);
@@ -286,6 +293,16 @@ export default function LettereRichiamo() {
                         {lettera.data_firma && ` • Firmata il ${new Date(lettera.data_firma).toLocaleDateString('it-IT')}`}
                       </p>
                     </div>
+                    <button
+                      onClick={() => {
+                        if (confirm('Eliminare questa lettera?')) {
+                          deleteLetteraMutation.mutate(lettera.id);
+                        }
+                      }}
+                      className="nav-button p-2 rounded-lg"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-600" />
+                    </button>
                   </div>
                 </NeumorphicCard>
               ))
