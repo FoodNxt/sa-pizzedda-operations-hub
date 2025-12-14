@@ -85,6 +85,22 @@ export default function CompleteProfileModal({ user, onComplete }) {
       }
 
       console.log('✅ Verifica completata con successo!');
+
+      // Crea Employee se non esiste
+      try {
+        const employees = await base44.entities.Employee.filter({ email: user.email });
+        
+        if (employees.length === 0) {
+          await base44.entities.Employee.create({
+            full_name: trimmedName,
+            email: user.email,
+            status: 'active',
+            employee_id_external: user.id
+          });
+        }
+      } catch (employeeError) {
+        console.error('Error creating Employee:', employeeError);
+      }
       
       onComplete();
 
