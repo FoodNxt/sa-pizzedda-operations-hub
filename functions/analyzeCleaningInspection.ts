@@ -88,11 +88,30 @@ Esempio ${idx + 1}:
 ⚠️ IMPORTANTE: Impara da questi esempi! Se vedi situazioni simili, applica gli stessi criteri di valutazione.`;
             }
 
-            // Always analyze with a prompt - use custom or default
+            // Get custom prompt if available
+            const customPrompts = await base44.asServiceRole.entities.PromptAIPulizia.list();
+            
+            // Determine category from tipo_controllo_ai in domanda
+            let categoria = 'Pulizia'; // default
+            if (prompt_ai && prompt_ai.includes('divisa')) {
+                categoria = 'Divisa corretta';
+            } else if (prompt_ai && prompt_ai.includes('frigo bibite')) {
+                categoria = 'Frigo bibite';
+            } else if (prompt_ai && prompt_ai.includes('etichette')) {
+                categoria = 'Presenza etichette';
+            }
+            
+            // Find custom prompt for this category
+            const customPrompt = customPrompts.find(p => p.categoria === categoria && p.attivo !== false);
+            
+            // Always analyze with a prompt - use custom, provided, or default
             let finalPrompt;
             
-            if (prompt_ai) {
-                // Use custom prompt with learning section if available
+            if (customPrompt?.prompt) {
+                // Use custom configured prompt with learning section
+                finalPrompt = learningSection ? `${customPrompt.prompt}\n${learningSection}` : customPrompt.prompt;
+            } else if (prompt_ai) {
+                // Use prompt from question with learning section if available
                 finalPrompt = learningSection ? `${prompt_ai}\n${learningSection}` : prompt_ai;
             } else {
                 // Use comprehensive default prompt
@@ -116,6 +135,8 @@ IMPORTANTE: Nelle note, specifica sempre la POSIZIONE ESATTA dello sporco (es. "
 
 Sii molto critico e attento ai dettagli di igiene in una cucina professionale. ${relevantCorrections.length > 0 ? 'APPLICA GLI INSEGNAMENTI dagli esempi sopra!' : ''}`;
             }
+            
+            console.log(`Using prompt for ${attrezzatura || equipmentKey} - Category: ${categoria}, Custom: ${!!customPrompt}`)
 
             try {
                 const aiResponse = await base44.integrations.Core.InvokeLLM({

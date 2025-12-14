@@ -5,7 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
-import { Camera, ClipboardCheck, Users, ChefHat, UserCheck, Plus, Edit, Trash2, X, Save, AlertTriangle } from 'lucide-react';
+import { Camera, ClipboardCheck, Users, ChefHat, UserCheck, Plus, Edit, Trash2, X, Save, AlertTriangle, Settings } from 'lucide-react';
 
 export default function FormPulizia() {
   const [activeSection, setActiveSection] = useState('master');
@@ -176,11 +176,21 @@ export default function FormPulizia() {
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <Camera className="w-10 h-10 text-[#8b7355]" />
-          <h1 className="text-3xl font-bold text-[#6b6b6b]">Form Pulizia</h1>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <Camera className="w-10 h-10 text-[#8b7355]" />
+              <h1 className="text-3xl font-bold text-[#6b6b6b]">Form Pulizia</h1>
+            </div>
+            <p className="text-[#9b9b9b]">Seleziona il form di controllo pulizia da compilare</p>
+          </div>
+          <Link to={createPageUrl('ImpostazioniAIPulizia')}>
+            <NeumorphicButton className="flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              Impostazioni AI
+            </NeumorphicButton>
+          </Link>
         </div>
-        <p className="text-[#9b9b9b]">Seleziona il form di controllo pulizia da compilare</p>
       </div>
 
       {/* Section Tabs */}

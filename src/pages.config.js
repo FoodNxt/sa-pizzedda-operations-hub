@@ -89,6 +89,7 @@ import Compliance from './pages/Compliance';
 import Attrezzature from './pages/Attrezzature';
 import Segnalazioni from './pages/Segnalazioni';
 import FormSpostamenti from './pages/FormSpostamenti';
+import ImpostazioniAIPulizia from './pages/ImpostazioniAIPulizia';
 import __Layout from './Layout.jsx';
 
 
@@ -184,6 +185,7 @@ export const PAGES = {
     "Attrezzature": Attrezzature,
     "Segnalazioni": Segnalazioni,
     "FormSpostamenti": FormSpostamenti,
+    "ImpostazioniAIPulizia": ImpostazioniAIPulizia,
 }
 
 export const pagesConfig = {
