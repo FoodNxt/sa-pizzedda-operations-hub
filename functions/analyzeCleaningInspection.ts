@@ -24,75 +24,121 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Inspection not found' }, { status: 404 });
     }
 
-    // Analyze only photo questions
+    // Analyze ALL photo questions
     const fotoDomande = domande_risposte.filter(d => d.tipo_controllo === 'foto' && d.risposta);
     
+    console.log(`Found ${fotoDomande.length} photo questions to analyze`);
+    
     const analysisResults = {};
+    const updatedDomandeRisposte = [...domande_risposte];
 
     for (const domanda of fotoDomande) {
       try {
-        const attrezzatura = domanda.attrezzatura?.toLowerCase().replace(/\s+/g, '_');
+        const attrezzatura = domanda.attrezzatura?.toLowerCase()
+          .replace(/\s+/g, '_')
+          .replace(/[àáâãä]/g, 'a')
+          .replace(/[èéêë]/g, 'e')
+          .replace(/[ìíîï]/g, 'i')
+          .replace(/[òóôõö]/g, 'o')
+          .replace(/[ùúûü]/g, 'u');
         
-        // Build AI prompt
-        let prompt = `Analizza questa foto di ${domanda.attrezzatura} e valuta lo stato di pulizia.
+        console.log(`Analyzing ${domanda.attrezzatura} (field: ${attrezzatura})`);
         
-IMPORTANTE: Devi rispondere SOLO con una di queste due parole: "pulito" o "sporco".
+        // Build AI prompt - VERY STRICT
+        let prompt = `Analizza questa foto e valuta SOLO lo stato di pulizia di: ${domanda.attrezzatura}.
 
-${domanda.prompt_ai || 'Valuta attentamente lo stato generale di pulizia, presenza di sporco, macchie, residui di cibo, o disordine.'}
+REGOLE CRITICHE:
+1. Rispondi OBBLIGATORIAMENTE con UNA SOLA parola: "pulito" o "sporco"
+2. "pulito" = accettabile, ordinato, senza sporco visibile
+3. "sporco" = sporco evidente, disordinato, macchie, residui
 
-Rispondi con:
-- "pulito" se l'attrezzatura è in condizioni accettabili
-- "sporco" se presenta sporco evidente, macchie, o necessita pulizia
+${domanda.prompt_ai || ''}
 
-Fornisci anche una breve descrizione (massimo 2 frasi) di cosa hai osservato.
+Dopo la valutazione, aggiungi una riga con: "NOTE: [breve descrizione di cosa vedi]"
 
-Formato risposta:
-STATUS: [pulito o sporco]
-NOTE: [descrizione breve]`;
+ESEMPIO RISPOSTA:
+pulito
+NOTE: Superficie pulita e ordinata`;
 
-        // Call AI
+        // Call AI with explicit instructions
         const aiResponse = await base44.asServiceRole.integrations.Core.InvokeLLM({
           prompt: prompt,
           file_urls: [domanda.risposta]
         });
 
-        // Parse response
-        const responseText = aiResponse?.toLowerCase() || '';
-        let status = 'sporco'; // Default to sporco if uncertain
+        console.log(`AI Response for ${domanda.attrezzatura}:`, aiResponse);
+
+        // Parse response - more robust
+        const responseText = (aiResponse || '').toLowerCase().trim();
+        let status = 'sporco'; // Default conservativo
         let note = aiResponse || '';
 
-        if (responseText.includes('pulito') && !responseText.includes('non pulito') && !responseText.includes('poco pulito')) {
+        // Check first line for status
+        const lines = responseText.split('\n');
+        const firstLine = lines[0].trim();
+        
+        if (firstLine === 'pulito' || firstLine.includes('status: pulito')) {
+          status = 'pulito';
+        } else if (firstLine === 'sporco' || firstLine.includes('status: sporco')) {
+          status = 'sporco';
+        } else if (responseText.includes('pulito') && !responseText.includes('non pulito') && !responseText.includes('poco pulito') && !responseText.includes('sporco')) {
           status = 'pulito';
         }
 
-        // Extract note if present
+        // Extract note
         const noteMatch = aiResponse?.match(/NOTE:\s*(.+)/i);
         if (noteMatch) {
           note = noteMatch[1].trim();
+        } else {
+          note = aiResponse?.substring(0, 200) || 'Analisi completata';
         }
 
-        // Store results with dynamic field names
+        console.log(`Result for ${domanda.attrezzatura}: ${status}`);
+
+        // Store in dynamic fields
         analysisResults[`${attrezzatura}_pulizia_status`] = status;
         analysisResults[`${attrezzatura}_note_ai`] = note;
+        analysisResults[`${attrezzatura}_foto_url`] = domanda.risposta;
+
+        // Update in domande_risposte array too for easier access
+        const domandaIndex = updatedDomandeRisposte.findIndex(d => d.domanda_id === domanda.domanda_id);
+        if (domandaIndex !== -1) {
+          updatedDomandeRisposte[domandaIndex] = {
+            ...updatedDomandeRisposte[domandaIndex],
+            ai_status: status,
+            ai_note: note
+          };
+        }
 
       } catch (error) {
-        console.error(`Error analyzing ${domanda.attrezzatura}:`, error);
-        // Set default values on error
-        const attrezzatura = domanda.attrezzatura?.toLowerCase().replace(/\s+/g, '_');
+        console.error(`ERROR analyzing ${domanda.attrezzatura}:`, error);
+        const attrezzatura = domanda.attrezzatura?.toLowerCase()
+          .replace(/\s+/g, '_')
+          .replace(/[àáâãä]/g, 'a')
+          .replace(/[èéêë]/g, 'e')
+          .replace(/[ìíîï]/g, 'i')
+          .replace(/[òóôõö]/g, 'o')
+          .replace(/[ùúûü]/g, 'u');
         analysisResults[`${attrezzatura}_pulizia_status`] = 'sporco';
-        analysisResults[`${attrezzatura}_note_ai`] = 'Errore durante l\'analisi AI';
+        analysisResults[`${attrezzatura}_note_ai`] = `Errore analisi: ${error.message}`;
       }
     }
 
-    // Update inspection with results
+    console.log('Analysis results:', analysisResults);
+
+    // Update inspection with ALL results
     await base44.asServiceRole.entities.CleaningInspection.update(inspection_id, {
       ...analysisResults,
+      domande_risposte: updatedDomandeRisposte,
       analysis_status: 'completed'
     });
 
+    console.log(`Successfully analyzed ${fotoDomande.length} photos for inspection ${inspection_id}`);
+
     return Response.json({ 
       success: true, 
-      message: 'Analysis completed',
+      message: `Analysis completed for ${fotoDomande.length} photos`,
+      analyzed_count: fotoDomande.length,
       results: analysisResults
     });
 
