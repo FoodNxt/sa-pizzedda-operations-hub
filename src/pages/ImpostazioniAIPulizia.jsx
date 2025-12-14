@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
-import { Sparkles, Save, RotateCcw, AlertCircle } from 'lucide-react';
+import { Sparkles, Save, RotateCcw, AlertCircle, Edit } from 'lucide-react';
 
 const defaultPrompts = {
   'Pulizia': `Analizza questa foto di attrezzatura in una pizzeria e valuta lo stato di pulizia.
