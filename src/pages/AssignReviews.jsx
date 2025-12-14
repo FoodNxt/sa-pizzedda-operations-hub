@@ -41,10 +41,10 @@ export default function AssignReviews() {
   });
 
   const { data: employees = [] } = useQuery({
-    queryKey: ['employees'],
+    queryKey: ['dipendenti-users'],
     queryFn: async () => {
-      const allEmployees = await base44.entities.Employee.list();
-      return allEmployees.filter(e => e.status === 'active');
+      const allUsers = await base44.entities.User.list();
+      return allUsers.filter(u => u.user_type === 'dipendente');
     },
   });
 
@@ -621,29 +621,32 @@ export default function AssignReviews() {
                   </label>
                   <div className="max-h-64 overflow-y-auto space-y-2 neumorphic-pressed p-3 rounded-xl">
                     {employees.length > 0 ? (
-                      employees.map(emp => (
-                        <label
-                          key={emp.id}
-                          className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${
-                            selectedEmployees.includes(emp.full_name)
-                              ? 'bg-blue-100 border-2 border-blue-500'
-                              : 'neumorphic-flat hover:bg-slate-50'
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedEmployees.includes(emp.full_name)}
-                            onChange={() => toggleEmployeeSelection(emp.full_name)}
-                            className="w-5 h-5 rounded"
-                          />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-[#6b6b6b]">{emp.full_name}</p>
-                            {emp.function_name && (
-                              <p className="text-xs text-[#9b9b9b]">{emp.function_name}</p>
-                            )}
-                          </div>
-                        </label>
-                      ))
+                      employees.map(emp => {
+                        const displayName = emp.nome_cognome || emp.full_name || emp.email;
+                        return (
+                          <label
+                            key={emp.id}
+                            className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${
+                              selectedEmployees.includes(displayName)
+                                ? 'bg-blue-100 border-2 border-blue-500'
+                                : 'neumorphic-flat hover:bg-slate-50'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedEmployees.includes(displayName)}
+                              onChange={() => toggleEmployeeSelection(displayName)}
+                              className="w-5 h-5 rounded"
+                            />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-[#6b6b6b]">{displayName}</p>
+                              {emp.ruoli_dipendente && emp.ruoli_dipendente.length > 0 && (
+                                <p className="text-xs text-[#9b9b9b]">{emp.ruoli_dipendente.join(', ')}</p>
+                              )}
+                            </div>
+                          </label>
+                        );
+                      }))
                     ) : (
                       <p className="text-sm text-[#9b9b9b] text-center py-4">
                         Nessun dipendente attivo trovato
