@@ -24,7 +24,8 @@ export default function FormPulizia() {
     attivo: true,
     tipo_controllo_ai: 'pulizia',
     prompt_ai: '',
-    ordine_bibite: ''
+    ordine_bibite: '',
+    richiede_foto: false
   });
 
   const queryClient = useQueryClient();
@@ -81,7 +82,8 @@ export default function FormPulizia() {
       attivo: true,
       tipo_controllo_ai: 'pulizia',
       prompt_ai: '',
-      ordine_bibite: ''
+      ordine_bibite: '',
+      richiede_foto: false
     });
     setEditingQuestion(null);
     setShowQuestionForm(false);
@@ -102,7 +104,8 @@ export default function FormPulizia() {
       attivo: domanda.attivo !== false,
       tipo_controllo_ai: domanda.tipo_controllo_ai || 'pulizia',
       prompt_ai: domanda.prompt_ai || '',
-      ordine_bibite: domanda.ordine_bibite || ''
+      ordine_bibite: domanda.ordine_bibite || '',
+      richiede_foto: domanda.richiede_foto || false
     });
     setShowQuestionForm(true);
   };
@@ -553,6 +556,19 @@ export default function FormPulizia() {
                           <p className="text-xs text-slate-500 mt-1">
                             Seleziona quale risposta è quella corretta (per scopi di feedback/valutazione futura)
                           </p>
+                        </div>
+
+                        <div className="flex items-center gap-3 neumorphic-pressed p-4 rounded-xl">
+                          <input
+                            type="checkbox"
+                            id="richiede_foto"
+                            checked={questionForm.richiede_foto || false}
+                            onChange={(e) => setQuestionForm({...questionForm, richiede_foto: e.target.checked})}
+                            className="w-5 h-5 rounded"
+                          />
+                          <label htmlFor="richiede_foto" className="text-sm font-medium text-[#6b6b6b]">
+                            Richiedi anche una foto oltre alla risposta multipla
+                          </label>
                         </div>
                       </>
                     )}
