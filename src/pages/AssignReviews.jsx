@@ -454,38 +454,52 @@ export default function AssignReviews() {
                       </div>
                     </div>
 
-                    {review.isAssigned && (
-                      <div className="neumorphic-flat px-4 py-2 rounded-lg">
-                        <div className="flex items-center justify-between gap-3 mb-2">
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="w-4 h-4 text-green-600" />
-                            <span className="text-sm font-medium text-green-600">Assegnata</span>
+                    <div className="neumorphic-flat px-4 py-2 rounded-lg min-w-[200px]">
+                      {review.isAssigned ? (
+                        <>
+                          <div className="flex items-center justify-between gap-3 mb-2">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600" />
+                              <span className="text-sm font-medium text-green-600">Assegnata</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleEditReview(review)}
+                                className="neumorphic-flat p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                                title="Modifica assegnazione"
+                              >
+                                <Edit className="w-4 h-4 text-blue-600" />
+                              </button>
+                              <button
+                                onClick={() => handleUnassignReview(review.id)}
+                                className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+                                title="Rimuovi assegnazione"
+                              >
+                                <X className="w-4 h-4 text-red-600" />
+                              </button>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleEditReview(review)}
-                              className="neumorphic-flat p-2 rounded-lg hover:bg-blue-50 transition-colors"
-                              title="Modifica assegnazione"
-                            >
-                              <Edit className="w-4 h-4 text-blue-600" />
-                            </button>
-                            <button
-                              onClick={() => handleUnassignReview(review.id)}
-                              className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
-                              title="Rimuovi assegnazione"
-                            >
-                              <X className="w-4 h-4 text-red-600" />
-                            </button>
-                          </div>
+                          <p className="text-sm text-[#6b6b6b] font-medium">{review.employee_assigned_name}</p>
+                          {review.assignment_confidence && (
+                            <p className={`text-xs mt-1 px-2 py-1 rounded inline-block ${getConfidenceColor(review.assignment_confidence)}`}>
+                              {review.assignment_confidence}
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <div className="text-center py-2">
+                          <button
+                            onClick={() => {
+                              setEditingReview(review);
+                              setEditForm('');
+                            }}
+                            className="neumorphic-flat px-4 py-2 rounded-lg text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors"
+                          >
+                            Assegna Manualmente
+                          </button>
                         </div>
-                        <p className="text-sm text-[#6b6b6b] font-medium">{review.employee_assigned_name}</p>
-                        {review.assignment_confidence && (
-                          <p className={`text-xs mt-1 px-2 py-1 rounded inline-block ${getConfidenceColor(review.assignment_confidence)}`}>
-                            {review.assignment_confidence}
-                          </p>
-                        )}
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
 
                   {review.comment && (
