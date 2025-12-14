@@ -1724,15 +1724,31 @@ Rispondi in formato JSON:
                         i.inspection_date === foto.inspection_date && 
                         i.store_name === foto.store_name
                       );
-                      
+
                       const domanda = inspection?.domande_risposte?.find(r => r.risposta === foto.foto_url);
-                      
+
+                      // Generate equipment key EXACTLY like in backend and fotoPerAttrezzatura
                       let equipmentKey;
+                      const domandeIndex = inspection?.domande_risposte?.findIndex(r => r.risposta === foto.foto_url);
+
                       if (domanda?.attrezzatura) {
                         equipmentKey = domanda.attrezzatura.toLowerCase().replace(/\s+/g, '_');
                       } else if (domanda?.domanda_id) {
                         equipmentKey = `domanda_${domanda.domanda_id}`;
+                      } else if (domanda?.domanda_testo) {
+                        equipmentKey = domanda.domanda_testo.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 50);
+                      } else if (domandeIndex >= 0) {
+                        equipmentKey = `foto_${domandeIndex}`;
                       }
+
+                      console.log('📸 Foto:', {
+                        attrezzatura: selectedAttrezzatura,
+                        equipmentKey,
+                        inspection_id: inspection?.id,
+                        current_status: inspection?.[`${equipmentKey}_pulizia_status`],
+                        is_corrected: inspection?.[`${equipmentKey}_corrected`],
+                        corrected_status: inspection?.[`${equipmentKey}_corrected_status`]
+                      });
 
                       return (
                       <div key={idx} className="neumorphic-flat p-4 rounded-xl">
