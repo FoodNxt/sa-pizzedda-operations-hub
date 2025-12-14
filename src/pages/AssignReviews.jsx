@@ -12,7 +12,7 @@ export default function AssignReviews() {
   const [resetting, setResetting] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [editingReview, setEditingReview] = useState(null);
-  const [editForm, setEditForm] = useState('');
+  const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [configForm, setConfigForm] = useState({
     tipi_turno_inclusi: ['Normale'],
     ruoli_esclusi: ['Preparazioni', 'Volantinaggio']
@@ -38,6 +38,14 @@ export default function AssignReviews() {
   const { data: configs = [] } = useQuery({
     queryKey: ['review-assignment-config'],
     queryFn: () => base44.entities.ReviewAssignmentConfig.list(),
+  });
+
+  const { data: employees = [] } = useQuery({
+    queryKey: ['employees'],
+    queryFn: async () => {
+      const allEmployees = await base44.entities.Employee.list();
+      return allEmployees.filter(e => e.status === 'active');
+    },
   });
 
   const activeConfig = configs.find(c => c.is_active) || {
@@ -290,7 +298,8 @@ export default function AssignReviews() {
 
   const handleEditReview = (review) => {
     setEditingReview(review);
-    setEditForm(review.employee_assigned_name || '');
+    const currentNames = review.employee_assigned_name ? review.employee_assigned_name.split(',').map(n => n.trim()) : [];
+    setSelectedEmployees(currentNames);
   };
 
   // Initialize config form when opening settings
@@ -304,21 +313,32 @@ export default function AssignReviews() {
   }, [showSettings, activeConfig]);
 
   const handleSaveEdit = async () => {
-    if (!editForm.trim()) {
-      alert('Inserisci un nome dipendente valido');
+    if (selectedEmployees.length === 0) {
+      alert('Seleziona almeno un dipendente');
       return;
     }
+
+    const confidence = selectedEmployees.length === 1 ? 'high' : 
+                      selectedEmployees.length === 2 ? 'medium' : 'low';
 
     await updateReviewMutation.mutateAsync({
       reviewId: editingReview.id,
       data: {
-        employee_assigned_name: editForm.trim(),
-        assignment_confidence: 'manual'
+        employee_assigned_name: selectedEmployees.join(', '),
+        assignment_confidence: confidence
       }
     });
 
     setEditingReview(null);
-    setEditForm('');
+    setSelectedEmployees([]);
+  };
+
+  const toggleEmployeeSelection = (employeeName) => {
+    setSelectedEmployees(prev => 
+      prev.includes(employeeName) 
+        ? prev.filter(n => n !== employeeName)
+        : [...prev, employeeName]
+    );
   };
 
   return (
@@ -491,7 +511,7 @@ export default function AssignReviews() {
                           <button
                             onClick={() => {
                               setEditingReview(review);
-                              setEditForm('');
+                              setSelectedEmployees([]);
                             }}
                             className="neumorphic-flat px-4 py-2 rounded-lg text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors"
                           >
@@ -596,19 +616,46 @@ export default function AssignReviews() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                    Nome Dipendente
+                  <label className="text-sm font-medium text-[#6b6b6b] mb-3 block">
+                    Seleziona Dipendenti ({selectedEmployees.length} selezionati)
                   </label>
-                  <input
-                    type="text"
-                    value={editForm}
-                    onChange={(e) => setEditForm(e.target.value)}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                    placeholder="Es. Mario Rossi"
-                  />
-                  <p className="text-xs text-[#9b9b9b] mt-2">
-                    Puoi inserire più nomi separati da virgola (es. Mario Rossi, Luigi Bianchi)
-                  </p>
+                  <div className="max-h-64 overflow-y-auto space-y-2 neumorphic-pressed p-3 rounded-xl">
+                    {employees.length > 0 ? (
+                      employees.map(emp => (
+                        <label
+                          key={emp.id}
+                          className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${
+                            selectedEmployees.includes(emp.full_name)
+                              ? 'bg-blue-100 border-2 border-blue-500'
+                              : 'neumorphic-flat hover:bg-slate-50'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedEmployees.includes(emp.full_name)}
+                            onChange={() => toggleEmployeeSelection(emp.full_name)}
+                            className="w-5 h-5 rounded"
+                          />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-[#6b6b6b]">{emp.full_name}</p>
+                            {emp.function_name && (
+                              <p className="text-xs text-[#9b9b9b]">{emp.function_name}</p>
+                            )}
+                          </div>
+                        </label>
+                      ))
+                    ) : (
+                      <p className="text-sm text-[#9b9b9b] text-center py-4">
+                        Nessun dipendente attivo trovato
+                      </p>
+                    )}
+                  </div>
+                  {selectedEmployees.length > 0 && (
+                    <div className="mt-3 p-3 neumorphic-flat rounded-lg">
+                      <p className="text-xs text-[#9b9b9b] mb-2">Dipendenti selezionati:</p>
+                      <p className="text-sm text-[#6b6b6b] font-medium">{selectedEmployees.join(', ')}</p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex gap-3 pt-4">
