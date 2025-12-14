@@ -174,10 +174,19 @@ Sii critico con l'igiene professionale. ${relevantCorrections.length > 0 ? 'APPL
                     }
                 });
 
-                analysisResults[equipmentKey] = aiResponse;
-                updateData[`${equipmentKey}_pulizia_status`] = aiResponse.pulizia_status;
-                updateData[`${equipmentKey}_note_ai`] = aiResponse.note;
-                console.log(`✓ AI analysis successful for ${equipmentKey}:`, aiResponse.pulizia_status);
+                // FORCE a valid status - never leave undefined
+                const validStatuses = ['pulito', 'medio', 'sporco', 'non_valutabile'];
+                const finalStatus = validStatuses.includes(aiResponse.pulizia_status) 
+                    ? aiResponse.pulizia_status 
+                    : 'medio';
+
+                analysisResults[equipmentKey] = {
+                    ...aiResponse,
+                    pulizia_status: finalStatus
+                };
+                updateData[`${equipmentKey}_pulizia_status`] = finalStatus;
+                updateData[`${equipmentKey}_note_ai`] = aiResponse.note || 'Analizzato dall\'AI';
+                console.log(`✓ AI analysis successful for ${equipmentKey}:`, finalStatus);
             } catch (aiError) {
                 console.error(`❌ ERROR analyzing ${equipmentKey}:`, aiError);
                 console.error('Error details:', {
@@ -187,13 +196,15 @@ Sii critico con l'igiene professionale. ${relevantCorrections.length > 0 ? 'APPL
                     attrezzatura: attrezzatura
                 });
                 
+                // ALWAYS provide a status even on error - default to 'medio' requiring manual review
                 analysisResults[equipmentKey] = {
-                    pulizia_status: 'non_valutabile',
-                    note: 'Errore durante l\'analisi AI: ' + aiError.message,
-                    problemi_critici: []
+                    pulizia_status: 'medio',
+                    note: 'Analisi AI fallita - richiede valutazione manuale. Errore: ' + aiError.message,
+                    problemi_critici: ['Errore AI - necessaria revisione manuale']
                 };
-                updateData[`${equipmentKey}_pulizia_status`] = 'non_valutabile';
-                updateData[`${equipmentKey}_note_ai`] = 'Errore AI: ' + aiError.message;
+                updateData[`${equipmentKey}_pulizia_status`] = 'medio';
+                updateData[`${equipmentKey}_note_ai`] = 'AI fallita - richiede revisione. Errore: ' + aiError.message;
+                console.log(`⚠️ Set default 'medio' status for ${equipmentKey} due to AI error`);
             }
         }
 
