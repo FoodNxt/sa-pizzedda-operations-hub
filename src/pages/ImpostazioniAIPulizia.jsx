@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
-import { Sparkles, Save, RotateCcw, AlertCircle, Edit, AlertTriangle } from 'lucide-react';
+import { Sparkles, Save, RotateCcw, AlertCircle, Edit, AlertTriangle, Plus, X, Trash2 } from 'lucide-react';
 
 const defaultPrompts = {
   'Pulizia': `Analizza questa foto di attrezzatura in una pizzeria e valuta lo stato di pulizia.
@@ -87,6 +87,12 @@ export default function ImpostazioniAIPulizia() {
   const queryClient = useQueryClient();
   const [editingCategory, setEditingCategory] = useState(null);
   const [promptText, setPromptText] = useState('');
+  const [rispostePossibili, setRispostePossibili] = useState(['pulito', 'medio', 'sporco', 'non_valutabile']);
+  const [rispostaCorretta, setRispostaCorretta] = useState('pulito');
+  const [punteggiRisposte, setPunteggiRisposte] = useState({ pulito: 100, medio: 50, sporco: 0, non_valutabile: 50 });
+  const [newRisposta, setNewRisposta] = useState('');
+  const [showNewCategoryForm, setShowNewCategoryForm] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   const { data: prompts = [] } = useQuery({
     queryKey: ['prompt-ai-pulizia'],
@@ -114,7 +120,13 @@ export default function ImpostazioniAIPulizia() {
     },
   });
 
-  const categories = ['Pulizia', 'Divisa corretta', 'Frigo bibite', 'Presenza etichette'];
+  const allCategories = [...new Set([
+    'Pulizia', 
+    'Divisa corretta', 
+    'Frigo bibite', 
+    'Presenza etichette',
+    ...prompts.map(p => p.categoria)
+  ])];
 
   const getPromptForCategory = (category) => {
     const existing = prompts.find(p => p.categoria === category && p.attivo !== false);
@@ -123,7 +135,11 @@ export default function ImpostazioniAIPulizia() {
 
   const handleEdit = (category) => {
     setEditingCategory(category);
+    const existing = prompts.find(p => p.categoria === category);
     setPromptText(getPromptForCategory(category));
+    setRispostePossibili(existing?.risposte_possibili || ['pulito', 'medio', 'sporco', 'non_valutabile']);
+    setRispostaCorretta(existing?.risposta_corretta || 'pulito');
+    setPunteggiRisposte(existing?.punteggi_risposte || { pulito: 100, medio: 50, sporco: 0, non_valutabile: 50 });
   };
 
   const handleSave = () => {
@@ -132,6 +148,9 @@ export default function ImpostazioniAIPulizia() {
     const data = {
       categoria: editingCategory,
       prompt: promptText,
+      risposte_possibili: rispostePossibili,
+      risposta_corretta: rispostaCorretta,
+      punteggi_risposte: punteggiRisposte,
       attivo: true
     };
 
@@ -141,6 +160,44 @@ export default function ImpostazioniAIPulizia() {
       createPromptMutation.mutate(data);
     }
   };
+
+  const handleAddRisposta = () => {
+    if (newRisposta.trim() && !rispostePossibili.includes(newRisposta.trim())) {
+      const nuovaRisposta = newRisposta.trim();
+      setRispostePossibili([...rispostePossibili, nuovaRisposta]);
+      setPunteggiRisposte({ ...punteggiRisposte, [nuovaRisposta]: 50 });
+      setNewRisposta('');
+    }
+  };
+
+  const handleRemoveRisposta = (risposta) => {
+    setRispostePossibili(rispostePossibili.filter(r => r !== risposta));
+    const newPunteggi = { ...punteggiRisposte };
+    delete newPunteggi[risposta];
+    setPunteggiRisposte(newPunteggi);
+    if (rispostaCorretta === risposta) {
+      setRispostaCorretta(rispostePossibili[0] || '');
+    }
+  };
+
+  const handleCreateNewCategory = () => {
+    if (newCategoryName.trim()) {
+      setEditingCategory(newCategoryName.trim());
+      setPromptText('');
+      setRispostePossibili(['pulito', 'medio', 'sporco', 'non_valutabile']);
+      setRispostaCorretta('pulito');
+      setPunteggiRisposte({ pulito: 100, medio: 50, sporco: 0, non_valutabile: 50 });
+      setShowNewCategoryForm(false);
+      setNewCategoryName('');
+    }
+  };
+
+  const deletePromptMutation = useMutation({
+    mutationFn: (id) => base44.entities.PromptAIPulizia.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['prompt-ai-pulizia'] });
+    },
+  });
 
   const handleReset = (category) => {
     if (confirm(`Vuoi ripristinare il prompt predefinito per ${category}?`)) {
@@ -183,8 +240,38 @@ export default function ImpostazioniAIPulizia() {
         </div>
       </NeumorphicCard>
 
+      {/* New Category Button */}
+      <NeumorphicCard className="p-4">
+        {showNewCategoryForm ? (
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              placeholder="Nome nuova categoria..."
+              className="flex-1 neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
+              onKeyPress={(e) => e.key === 'Enter' && handleCreateNewCategory()}
+            />
+            <NeumorphicButton onClick={handleCreateNewCategory} variant="primary">
+              <Plus className="w-4 h-4" />
+            </NeumorphicButton>
+            <NeumorphicButton onClick={() => setShowNewCategoryForm(false)}>
+              <X className="w-4 h-4" />
+            </NeumorphicButton>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowNewCategoryForm(true)}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-blue-600 hover:bg-blue-50 transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            <span className="font-medium">Nuova Categoria Prompt</span>
+          </button>
+        )}
+      </NeumorphicCard>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {categories.map(category => {
+        {allCategories.map(category => {
           const isEditing = editingCategory === category;
           const domandeCount = getDomandeCount(category);
           const currentPrompt = getPromptForCategory(category);
@@ -205,31 +292,108 @@ export default function ImpostazioniAIPulizia() {
                   )}
                 </div>
                 {!isEditing && (
-                  <button
-                    onClick={() => handleEdit(category)}
-                    className="neumorphic-flat p-2 rounded-lg text-blue-600 hover:bg-blue-50"
-                  >
-                    <Edit className="w-5 h-5" />
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEdit(category)}
+                      className="neumorphic-flat p-2 rounded-lg text-blue-600 hover:bg-blue-50"
+                    >
+                      <Edit className="w-5 h-5" />
+                    </button>
+                    {isCustom && (
+                      <button
+                        onClick={() => {
+                          const existing = prompts.find(p => p.categoria === category);
+                          if (confirm(`Eliminare la categoria "${category}"?`)) {
+                            deletePromptMutation.mutate(existing.id);
+                          }
+                        }}
+                        className="neumorphic-flat p-2 rounded-lg text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
 
               {isEditing ? (
                 <div className="space-y-4">
-                  <textarea
-                    value={promptText}
-                    onChange={(e) => setPromptText(e.target.value)}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none h-64 resize-none text-sm"
-                    placeholder="Inserisci il prompt per l'AI..."
-                  />
-                  <div className="flex gap-2">
-                    <NeumorphicButton
-                      onClick={() => handleReset(category)}
-                      className="flex items-center gap-2 text-sm"
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Prompt AI</label>
+                    <textarea
+                      value={promptText}
+                      onChange={(e) => setPromptText(e.target.value)}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none h-40 resize-none text-sm"
+                      placeholder="Inserisci il prompt per l'AI..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Risposte Possibili</label>
+                    <div className="space-y-2">
+                      {rispostePossibili.map(risposta => (
+                        <div key={risposta} className="flex items-center gap-2 neumorphic-pressed p-2 rounded-lg">
+                          <input
+                            type="text"
+                            value={risposta}
+                            disabled
+                            className="flex-1 bg-transparent text-[#6b6b6b] text-sm outline-none"
+                          />
+                          <input
+                            type="number"
+                            value={punteggiRisposte[risposta] || 0}
+                            onChange={(e) => setPunteggiRisposte({...punteggiRisposte, [risposta]: parseInt(e.target.value) || 0})}
+                            className="w-16 neumorphic-pressed px-2 py-1 rounded text-sm text-center outline-none"
+                            placeholder="pts"
+                          />
+                          <span className="text-xs text-[#9b9b9b]">pts</span>
+                          <button
+                            onClick={() => handleRemoveRisposta(risposta)}
+                            className="p-1 text-red-600 hover:bg-red-50 rounded"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newRisposta}
+                          onChange={(e) => setNewRisposta(e.target.value)}
+                          placeholder="Aggiungi risposta..."
+                          className="flex-1 neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none"
+                          onKeyPress={(e) => e.key === 'Enter' && handleAddRisposta()}
+                        />
+                        <NeumorphicButton onClick={handleAddRisposta} className="text-sm">
+                          <Plus className="w-4 h-4" />
+                        </NeumorphicButton>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Risposta Corretta (100%)</label>
+                    <select
+                      value={rispostaCorretta}
+                      onChange={(e) => setRispostaCorretta(e.target.value)}
+                      className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
                     >
-                      <RotateCcw className="w-4 h-4" />
-                      Ripristina Default
-                    </NeumorphicButton>
+                      {rispostePossibili.map(r => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex gap-2">
+                    {defaultPrompts[category] && (
+                      <NeumorphicButton
+                        onClick={() => handleReset(category)}
+                        className="flex items-center gap-2 text-sm"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                        Ripristina
+                      </NeumorphicButton>
+                    )}
                     <NeumorphicButton
                       onClick={() => setEditingCategory(null)}
                       className="text-sm"
