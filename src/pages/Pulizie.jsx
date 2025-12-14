@@ -491,7 +491,7 @@ Rispondi in formato JSON:
     const inspection = detailsModalInspection;
     setCorrectingEquipment(equipmentKey);
     setCorrectionData({
-      status: inspection[`${equipmentKey}_pulizia_status`],
+      status: inspection[`${equipmentKey}_pulizia_status`] || 'medio',
       note: ''
     });
   };
@@ -992,9 +992,9 @@ Rispondi in formato JSON:
                       )}
 
                       {!displayStatus && (
-                        <div className="ml-auto px-4 py-2 rounded-lg border-2 bg-orange-50 text-orange-700 border-orange-200 flex items-center gap-2">
+                        <div className="ml-auto px-4 py-2 rounded-lg border-2 bg-gray-50 text-gray-700 border-gray-200 flex items-center gap-2">
                           <AlertTriangle className="w-5 h-5" />
-                          <span className="font-bold">Non Analizzata</span>
+                          <span className="font-bold">Da Valutare</span>
                         </div>
                       )}
 
@@ -1005,12 +1005,12 @@ Rispondi in formato JSON:
                         </div>
                       )}
 
-                      {/* Edit Button */}
-                      {!isEditing && displayStatus && (
+                      {/* Edit/Evaluate Button - ALWAYS VISIBLE */}
+                      {!isEditing && (
                         <button
                           onClick={() => handleStartCorrection(equipmentKey)}
                           className="neumorphic-flat p-2 rounded-lg text-[#6b6b6b] hover:text-[#8b7355] transition-colors"
-                          title="Correggi valutazione"
+                          title={displayStatus ? "Correggi valutazione" : "Valuta manualmente"}
                         >
                           <Edit className="w-5 h-5" />
                         </button>
