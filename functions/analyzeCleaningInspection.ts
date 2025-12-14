@@ -36,6 +36,7 @@ Deno.serve(async (req) => {
             const url = question.risposta;
             const attrezzatura = question.attrezzatura;
             const prompt_ai = question.prompt_ai;
+            const tipoControlloAI = question.tipo_controllo_ai;
             const domandaId = question.domanda_id;
             
             // Skip only if no URL (photo) is provided
@@ -91,9 +92,15 @@ Esempio ${idx + 1}:
             // Get custom prompt if available
             const customPrompts = await base44.asServiceRole.entities.PromptAIPulizia.list();
             
-            // Determine category from tipo_controllo_ai in domanda
+            // Determine category from tipo_controllo_ai of the question or from prompt_ai content
             let categoria = 'Pulizia'; // default
-            if (prompt_ai && prompt_ai.includes('divisa')) {
+            if (tipoControlloAI === 'divisa') {
+                categoria = 'Divisa corretta';
+            } else if (tipoControlloAI === 'frigo_bibite') {
+                categoria = 'Frigo bibite';
+            } else if (tipoControlloAI === 'etichette') {
+                categoria = 'Presenza etichette';
+            } else if (prompt_ai && prompt_ai.includes('divisa')) {
                 categoria = 'Divisa corretta';
             } else if (prompt_ai && prompt_ai.includes('frigo bibite')) {
                 categoria = 'Frigo bibite';
@@ -136,7 +143,8 @@ IMPORTANTE: Nelle note, specifica sempre la POSIZIONE ESATTA dello sporco (es. "
 Sii molto critico e attento ai dettagli di igiene in una cucina professionale. ${relevantCorrections.length > 0 ? 'APPLICA GLI INSEGNAMENTI dagli esempi sopra!' : ''}`;
             }
             
-            console.log(`Using prompt for ${attrezzatura || equipmentKey} - Category: ${categoria}, Custom: ${!!customPrompt}`)
+            console.log(`Processing photo for ${attrezzatura || equipmentKey} (URL: ${url})`);
+            console.log(`Detected Category: ${categoria}, Custom Prompt Used: ${!!customPrompt?.prompt}`);
 
             try {
                 const aiResponse = await base44.integrations.Core.InvokeLLM({
@@ -155,6 +163,7 @@ Sii molto critico e attento ai dettagli di igiene in una cucina professionale. $
                 analysisResults[equipmentKey] = aiResponse;
                 updateData[`${equipmentKey}_pulizia_status`] = aiResponse.pulizia_status;
                 updateData[`${equipmentKey}_note_ai`] = aiResponse.note;
+                console.log(`✓ AI analysis successful for ${equipmentKey}:`, aiResponse.pulizia_status);
             } catch (aiError) {
                 console.error(`Error analyzing ${equipmentKey}:`, aiError);
                 analysisResults[equipmentKey] = {
