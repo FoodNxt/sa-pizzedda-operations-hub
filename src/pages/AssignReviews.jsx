@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { UserCheck, Clock, Star, MapPin, AlertCircle, CheckCircle, Users, Filter, RefreshCw, Settings, X } from 'lucide-react';
@@ -9,7 +9,6 @@ import { format, isWithinInterval, parseISO } from 'date-fns';
 export default function AssignReviews() {
   const [selectedStore, setSelectedStore] = useState('all');
   const [showOnlyUnassigned, setShowOnlyUnassigned] = useState(true);
-  const [autoAssigning, setAutoAssigning] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [configForm, setConfigForm] = useState({
@@ -191,38 +190,41 @@ export default function AssignReviews() {
     });
   };
 
-  const handleAutoAssignAll = async () => {
-    setAutoAssigning(true);
-    
-    const unassignedWithMatches = enrichedReviews.filter(r => !r.isAssigned && r.hasMatches);
-    
-    for (const review of unassignedWithMatches) {
-      // Get employee names from matchingEmployees
-      const employeeNames = review.matchingEmployees.map(m => m.employee_name);
+  // Auto-assign unassigned reviews on load
+  useEffect(() => {
+    const autoAssignReviews = async () => {
+      const unassignedWithMatches = enrichedReviews.filter(r => !r.isAssigned && r.hasMatches);
       
-      // ROBUST: Remove duplicates with Set and normalize
-      const uniqueNames = [...new Set(
-        employeeNames
-          .map(name => (name || '').trim())
-          .filter(name => name.length > 0)
-      )];
+      if (unassignedWithMatches.length === 0) return;
       
-      if (uniqueNames.length === 0) continue; // Skip if no valid names after normalization
-      
-      const confidence = uniqueNames.length === 1 ? 'high' : 
-                       uniqueNames.length === 2 ? 'medium' : 'low';
-      
-      await updateReviewMutation.mutateAsync({
-        reviewId: review.id,
-        data: {
-          employee_assigned_name: uniqueNames.join(', '),
-          assignment_confidence: confidence
-        }
-      });
+      for (const review of unassignedWithMatches) {
+        const employeeNames = review.matchingEmployees.map(m => m.employee_name);
+        
+        const uniqueNames = [...new Set(
+          employeeNames
+            .map(name => (name || '').trim())
+            .filter(name => name.length > 0)
+        )];
+        
+        if (uniqueNames.length === 0) continue;
+        
+        const confidence = uniqueNames.length === 1 ? 'high' : 
+                         uniqueNames.length === 2 ? 'medium' : 'low';
+        
+        await updateReviewMutation.mutateAsync({
+          reviewId: review.id,
+          data: {
+            employee_assigned_name: uniqueNames.join(', '),
+            assignment_confidence: confidence
+          }
+        });
+      }
+    };
+
+    if (enrichedReviews.length > 0) {
+      autoAssignReviews();
     }
-    
-    setAutoAssigning(false);
-  };
+  }, [enrichedReviews.length]);
 
   const handleResetAllAssignments = async () => {
     if (!confirm('Sei sicuro di voler resettare TUTTE le assegnazioni? Questa azione non può essere annullata.')) {
@@ -361,34 +363,24 @@ export default function AssignReviews() {
             <RefreshCw className={`w-4 h-4 ${resetting ? 'animate-spin' : ''}`} />
             {resetting ? 'Resettando...' : `Reset (${stats.assigned})`}
           </NeumorphicButton>
-
-          <NeumorphicButton
-            onClick={handleAutoAssignAll}
-            disabled={autoAssigning || stats.withMatches === 0}
-            variant="primary"
-          >
-            {autoAssigning ? 'Assegnazione...' : `Auto-Assegna (${stats.withMatches})`}
-          </NeumorphicButton>
         </div>
       </div>
 
-      {/* Reset Warning */}
-      {stats.assigned > 0 && (
-        <NeumorphicCard className="p-4 bg-yellow-50 border-2 border-yellow-400">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-yellow-700 mt-0.5" />
-            <div className="text-sm text-yellow-800">
-              <p className="font-bold mb-1">⚠️ Problema Rilevato</p>
-              <p className="mb-2">
-                Ci sono <strong>{stats.assigned} recensioni già assegnate</strong>. Se noti assegnazioni doppie o errate, usa il pulsante <strong>"Reset Assegnazioni"</strong> per rimuovere tutte le assegnazioni esistenti e poi riassegnale con la logica corretta usando <strong>"Auto-Assegna Tutte"</strong>.
-              </p>
-              <p className="text-xs">
-                Il reset rimuoverà TUTTE le assegnazioni e potrai riassegnare le recensioni con la nuova logica che previene i duplicati.
-              </p>
-            </div>
+      {/* Auto-Assignment Info */}
+      <NeumorphicCard className="p-4 bg-green-50 border-2 border-green-400">
+        <div className="flex items-start gap-3">
+          <CheckCircle className="w-5 h-5 text-green-700 mt-0.5" />
+          <div className="text-sm text-green-800">
+            <p className="font-bold mb-1">✅ Assegnazione Automatica Attiva</p>
+            <p className="mb-2">
+              Le recensioni vengono assegnate automaticamente in base ai turni Planday. Le recensioni già assegnate in passato rimangono invariate.
+            </p>
+            <p className="text-xs">
+              Puoi modificare manualmente le assegnazioni cliccando su "Rimuovi" o resettare tutte le assegnazioni con il pulsante "Reset".
+            </p>
           </div>
-        </NeumorphicCard>
-      )}
+        </div>
+      </NeumorphicCard>
 
       {/* Reviews List */}
       <div className="space-y-4">
