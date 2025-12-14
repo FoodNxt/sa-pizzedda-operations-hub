@@ -646,7 +646,7 @@ export default function AssignReviews() {
                             </div>
                           </label>
                         );
-                      }))
+                      })
                     ) : (
                       <p className="text-sm text-[#9b9b9b] text-center py-4">
                         Nessun dipendente attivo trovato
