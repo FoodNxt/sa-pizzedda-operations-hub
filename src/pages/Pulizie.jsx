@@ -297,25 +297,36 @@ export default function Pulizie() {
   // Mutation for saving corrections
   const reanalyzeMutation = useMutation({
     mutationFn: async ({ foto_url, equipmentKey, inspectionId, domanda, attrezzatura }) => {
+      console.log('🔄 RIANALISI SINGOLA FOTO:', {
+        attrezzatura,
+        equipmentKey,
+        inspectionId,
+        foto_url: foto_url.substring(0, 50) + '...'
+      });
+
       // Call AI analysis for this specific photo with improved prompt
-      const improvedPrompt = `Analizza attentamente questa foto di ${attrezzatura || 'attrezzatura'} in una pizzeria e valuta lo stato di pulizia.
+      const improvedPrompt = `Analizza QUESTA SINGOLA FOTO di ${attrezzatura || 'attrezzatura'} in una pizzeria e valuta lo stato di pulizia.
 
-IMPORTANTE: Cerca di valutare la pulizia anche se la foto non è perfetta. Usa "non_valutabile" SOLO se:
-- La foto è completamente sfocata o troppo scura per vedere qualsiasi dettaglio
-- L'attrezzatura non è visibile nella foto
-- La foto mostra qualcosa di completamente diverso
+⚠️ REGOLE CRITICHE:
+1. Usa "non_valutabile" SOLO in casi estremi (foto completamente nera/sfocata/attrezzatura invisibile)
+2. Se vedi QUALSIASI parte dell'attrezzatura, devi esprimere un giudizio (pulito/medio/sporco)
+3. Se l'immagine è leggermente sfocata MA vedi l'attrezzatura, valutala comunque
+4. Se la foto è parziale ma mostra parte dell'attrezzatura, valuta quella parte
 
-Se riesci a vedere l'attrezzatura, anche parzialmente, esprimi comunque un giudizio su ciò che vedi.
+Se proprio devi usare "non_valutabile", SPIEGA DETTAGLIATAMENTE il motivo esatto:
+- Cosa vedi nella foto?
+- Perché non riesci a valutare?
+- Cosa manca per poter valutare?
 
 Rispondi in formato JSON:
 {
   "pulizia_status": "pulito" | "medio" | "sporco" | "non_valutabile",
-  "note": "Se valutabile: descrizione dettagliata dello stato e POSIZIONE ESATTA dello sporco. Se non valutabile: spiega ESATTAMENTE perché non riesci a valutare (es: 'La foto è completamente sfocata', 'L'attrezzatura non è visibile', 'La foto mostra solo il pavimento')",
-  "problemi_critici": ["lista di problemi gravi"] o []
+  "note": "DESCRIZIONE DETTAGLIATA: Se valutabile -> stato pulizia e posizione sporco. Se NON valutabile -> SPIEGA ESATTAMENTE perché (es: 'La foto è completamente nera, non si vede nulla', 'La foto mostra solo il pavimento, l'attrezzatura non è nell'inquadratura', 'La foto è totalmente sfocata, impossibile distinguere dettagli')",
+  "problemi_critici": []
 }`;
 
       const response = await base44.integrations.Core.InvokeLLM({
-        prompt: domanda?.prompt_ai || improvedPrompt,
+        prompt: improvedPrompt,
         file_urls: [foto_url],
         response_json_schema: {
           type: "object",
@@ -327,7 +338,9 @@ Rispondi in formato JSON:
         }
       });
 
-      // Update inspection with new analysis
+      console.log('✅ Rianalisi completata:', response);
+
+      // Update ONLY this specific inspection with new analysis
       await base44.entities.CleaningInspection.update(inspectionId, {
         [`${equipmentKey}_pulizia_status`]: response.pulizia_status,
         [`${equipmentKey}_note_ai`]: response.note
@@ -342,13 +355,66 @@ Rispondi in formato JSON:
 
   const manualEvalMutation = useMutation({
     mutationFn: async ({ inspectionId, equipmentKey, status, note }) => {
+      // Get inspection to recalculate score
+      const inspection = inspections.find(i => i.id === inspectionId);
+      
+      // Recalculate overall score
+      const photoQuestions = inspection.domande_risposte?.filter(r => 
+        r.risposta && typeof r.risposta === 'string' && r.risposta.startsWith('http')
+      ) || [];
+      
+      const statusScores = { pulito: 100, medio: 50, sporco: 0, non_valutabile: 50 };
+      const allScores = [];
+      
+      photoQuestions.forEach((risposta, idx) => {
+        let eqKey;
+        if (risposta.attrezzatura) {
+          eqKey = risposta.attrezzatura.toLowerCase().replace(/\s+/g, '_');
+        } else if (risposta.domanda_id) {
+          eqKey = `domanda_${risposta.domanda_id}`;
+        } else if (risposta.domanda_testo) {
+          eqKey = risposta.domanda_testo.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 50);
+        } else {
+          eqKey = `foto_${idx}`;
+        }
+        
+        const currentStatus = eqKey === equipmentKey 
+          ? status 
+          : (inspection[`${eqKey}_corrected`] 
+              ? inspection[`${eqKey}_corrected_status`]
+              : inspection[`${eqKey}_pulizia_status`]);
+        
+        if (currentStatus) {
+          allScores.push(statusScores[currentStatus] || 50);
+        }
+      });
+      
+      // Add scores from multiple choice
+      inspection.domande_risposte?.forEach(q => {
+        if (q.tipo_controllo === 'scelta_multipla' && q.risposta) {
+          const risposta = q.risposta.toLowerCase();
+          if (risposta.includes('pulito') || risposta.includes('tutti_con_etichette') || risposta.includes('piu_di_40')) {
+            allScores.push(100);
+          } else if (risposta.includes('da_migliorare') || risposta.includes('alcuni_senza_etichette')) {
+            allScores.push(50);
+          } else if (risposta.includes('sporco') || risposta.includes('nessuno_con_etichette') || risposta.includes('meno_di_40') || risposta.includes('nessun_cartone')) {
+            allScores.push(0);
+          }
+        }
+      });
+      
+      const newOverallScore = allScores.length > 0 
+        ? Math.round(allScores.reduce((sum, s) => sum + s, 0) / allScores.length)
+        : 0;
+
       await base44.entities.CleaningInspection.update(inspectionId, {
         [`${equipmentKey}_pulizia_status`]: status,
         [`${equipmentKey}_note_ai`]: `Valutazione manuale: ${note || 'Nessuna nota aggiunta'}`,
         [`${equipmentKey}_corrected`]: true,
         [`${equipmentKey}_corrected_status`]: status,
         [`${equipmentKey}_correction_note`]: 'Valutato manualmente (AI non disponibile)',
-        has_corrections: true
+        has_corrections: true,
+        overall_score: newOverallScore
       });
     },
     onSuccess: () => {
