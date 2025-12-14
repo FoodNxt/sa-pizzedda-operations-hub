@@ -21,6 +21,8 @@ export default function Pulizie() {
   const [expandedLocale, setExpandedLocale] = useState({});
   const [showFotoAttrezzature, setShowFotoAttrezzature] = useState(false);
   const [selectedAttrezzatura, setSelectedAttrezzatura] = useState('');
+  const [manualEvaluating, setManualEvaluating] = useState(null);
+  const [manualEvalData, setManualEvalData] = useState({ status: 'medio', note: '' });
 
   const queryClient = useQueryClient();
 
@@ -294,19 +296,26 @@ export default function Pulizie() {
 
   // Mutation for saving corrections
   const reanalyzeMutation = useMutation({
-    mutationFn: async ({ foto_url, equipmentKey, inspectionId, domanda }) => {
-      // Call AI analysis for this specific photo
-      const response = await base44.integrations.Core.InvokeLLM({
-        prompt: domanda?.prompt_ai || `Analizza questa foto di attrezzatura in una pizzeria e valuta lo stato di pulizia.
+    mutationFn: async ({ foto_url, equipmentKey, inspectionId, domanda, attrezzatura }) => {
+      // Call AI analysis for this specific photo with improved prompt
+      const improvedPrompt = `Analizza attentamente questa foto di ${attrezzatura || 'attrezzatura'} in una pizzeria e valuta lo stato di pulizia.
 
-Rispondi in formato JSON con questa struttura esatta:
+IMPORTANTE: Cerca di valutare la pulizia anche se la foto non è perfetta. Usa "non_valutabile" SOLO se:
+- La foto è completamente sfocata o troppo scura per vedere qualsiasi dettaglio
+- L'attrezzatura non è visibile nella foto
+- La foto mostra qualcosa di completamente diverso
+
+Se riesci a vedere l'attrezzatura, anche parzialmente, esprimi comunque un giudizio su ciò che vedi.
+
+Rispondi in formato JSON:
 {
   "pulizia_status": "pulito" | "medio" | "sporco" | "non_valutabile",
-  "note": "Descrizione dettagliata dello stato di pulizia, specifica ESATTAMENTE dove si trova lo sporco",
-  "problemi_critici": ["lista", "di", "problemi"] oppure []
-}
+  "note": "Se valutabile: descrizione dettagliata dello stato e POSIZIONE ESATTA dello sporco. Se non valutabile: spiega ESATTAMENTE perché non riesci a valutare (es: 'La foto è completamente sfocata', 'L'attrezzatura non è visibile', 'La foto mostra solo il pavimento')",
+  "problemi_critici": ["lista di problemi gravi"] o []
+}`;
 
-IMPORTANTE: Nelle note, specifica sempre la POSIZIONE ESATTA dello sporco.`,
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: domanda?.prompt_ai || improvedPrompt,
         file_urls: [foto_url],
         response_json_schema: {
           type: "object",
@@ -328,6 +337,23 @@ IMPORTANTE: Nelle note, specifica sempre la POSIZIONE ESATTA dello sporco.`,
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cleaningInspections'] });
+    },
+  });
+
+  const manualEvalMutation = useMutation({
+    mutationFn: async ({ inspectionId, equipmentKey, status, note }) => {
+      await base44.entities.CleaningInspection.update(inspectionId, {
+        [`${equipmentKey}_pulizia_status`]: status,
+        [`${equipmentKey}_note_ai`]: `Valutazione manuale: ${note || 'Nessuna nota aggiunta'}`,
+        [`${equipmentKey}_corrected`]: true,
+        [`${equipmentKey}_corrected_status`]: status,
+        [`${equipmentKey}_correction_note`]: 'Valutato manualmente (AI non disponibile)',
+        has_corrections: true
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cleaningInspections'] });
+      setManualEvaluating(null);
     },
   });
 
@@ -1662,34 +1688,93 @@ IMPORTANTE: Nelle note, specifica sempre la POSIZIONE ESATTA dello sporco.`,
                           )}
                         </div>
 
-                        {/* Reanalyze Button for non_valutabile */}
+                        {/* Reanalyze Button or Manual Eval Form for non_valutabile */}
                         {foto.voto === 'non_valutabile' && inspection && equipmentKey && (
-                          <button
-                            onClick={() => {
-                              if (confirm('Rianalizzare questa foto con l\'AI?')) {
-                                reanalyzeMutation.mutate({
-                                  foto_url: foto.foto_url,
-                                  equipmentKey: equipmentKey,
-                                  inspectionId: inspection.id,
-                                  domanda: domanda
-                                });
-                              }
-                            }}
-                            disabled={reanalyzeMutation.isPending}
-                            className="w-full neumorphic-flat px-3 py-2 rounded-lg text-orange-700 hover:text-orange-800 font-medium transition-colors flex items-center justify-center gap-2 mb-2"
-                          >
-                            {reanalyzeMutation.isPending ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                Rianalisi...
-                              </>
-                            ) : (
-                              <>
-                                <Sparkles className="w-4 h-4" />
-                                Rianalizza
-                              </>
-                            )}
-                          </button>
+                          manualEvaluating === `${inspection.id}_${equipmentKey}` ? (
+                            <div className="neumorphic-pressed p-3 rounded-lg bg-blue-50 border border-blue-300 mb-2">
+                              <h4 className="text-xs font-bold text-blue-700 mb-2">Valutazione Manuale</h4>
+                              <select
+                                value={manualEvalData.status}
+                                onChange={(e) => setManualEvalData({...manualEvalData, status: e.target.value})}
+                                className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none mb-2"
+                              >
+                                <option value="pulito">Pulito</option>
+                                <option value="medio">Medio</option>
+                                <option value="sporco">Sporco</option>
+                              </select>
+                              <textarea
+                                value={manualEvalData.note}
+                                onChange={(e) => setManualEvalData({...manualEvalData, note: e.target.value})}
+                                placeholder="Note sulla valutazione..."
+                                className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none h-16 resize-none mb-2"
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => {
+                                    manualEvalMutation.mutate({
+                                      inspectionId: inspection.id,
+                                      equipmentKey: equipmentKey,
+                                      status: manualEvalData.status,
+                                      note: manualEvalData.note
+                                    });
+                                  }}
+                                  disabled={manualEvalMutation.isPending}
+                                  className="flex-1 neumorphic-flat px-3 py-1.5 rounded-lg text-xs text-green-700 hover:bg-green-50 font-medium"
+                                >
+                                  {manualEvalMutation.isPending ? (
+                                    <Loader2 className="w-3 h-3 animate-spin inline mr-1" />
+                                  ) : (
+                                    <Save className="w-3 h-3 inline mr-1" />
+                                  )}
+                                  Salva
+                                </button>
+                                <button
+                                  onClick={() => setManualEvaluating(null)}
+                                  className="neumorphic-flat px-3 py-1.5 rounded-lg text-xs text-slate-600"
+                                >
+                                  Annulla
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex gap-2 mb-2">
+                              <button
+                                onClick={() => {
+                                  reanalyzeMutation.mutate({
+                                    foto_url: foto.foto_url,
+                                    equipmentKey: equipmentKey,
+                                    inspectionId: inspection.id,
+                                    domanda: domanda,
+                                    attrezzatura: selectedAttrezzatura
+                                  });
+                                }}
+                                disabled={reanalyzeMutation.isPending}
+                                className="flex-1 neumorphic-flat px-3 py-2 rounded-lg text-orange-700 hover:text-orange-800 font-medium transition-colors flex items-center justify-center gap-2"
+                              >
+                                {reanalyzeMutation.isPending ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    <span className="text-xs">Rianalisi...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Sparkles className="w-4 h-4" />
+                                    <span className="text-xs">Rianalizza AI</span>
+                                  </>
+                                )}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setManualEvaluating(`${inspection.id}_${equipmentKey}`);
+                                  setManualEvalData({ status: 'medio', note: '' });
+                                }}
+                                className="flex-1 neumorphic-flat px-3 py-2 rounded-lg text-blue-700 hover:text-blue-800 font-medium transition-colors flex items-center justify-center gap-2"
+                              >
+                                <Edit className="w-4 h-4" />
+                                <span className="text-xs">Valuta Manualmente</span>
+                              </button>
+                            </div>
+                          )
                         )}
 
                         {/* Info */}
