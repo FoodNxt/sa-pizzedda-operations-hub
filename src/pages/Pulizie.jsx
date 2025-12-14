@@ -1303,12 +1303,12 @@ Rispondi in formato JSON:
                       else if (displayStatus === 'sporco') questionScore = 0;
                       else if (displayStatus === 'non_valutabile') questionScore = 50;
                     } else if (isMultipleChoice) {
-                      const risposta = risposta.risposta?.toLowerCase() || '';
-                      if (risposta.includes('pulito') || risposta.includes('tutti_con_etichette') || risposta.includes('piu_di_40')) {
+                      const testoRisposta = risposta.risposta?.toLowerCase() || '';
+                      if (testoRisposta.includes('pulito') || testoRisposta.includes('tutti_con_etichette') || testoRisposta.includes('piu_di_40')) {
                         questionScore = 100;
-                      } else if (risposta.includes('da_migliorare') || risposta.includes('alcuni_senza_etichette')) {
+                      } else if (testoRisposta.includes('da_migliorare') || testoRisposta.includes('alcuni_senza_etichette')) {
                         questionScore = 50;
-                      } else if (risposta.includes('sporco') || risposta.includes('nessuno_con_etichette') || risposta.includes('meno_di_40') || risposta.includes('nessun_cartone')) {
+                      } else if (testoRisposta.includes('sporco') || testoRisposta.includes('nessuno_con_etichette') || testoRisposta.includes('meno_di_40') || testoRisposta.includes('nessun_cartone')) {
                         questionScore = 0;
                       }
                     }
