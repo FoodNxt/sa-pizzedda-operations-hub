@@ -30,6 +30,7 @@ export default function ValutazionePulizie() {
   const [dateTo, setDateTo] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [expandedInspections, setExpandedInspections] = useState({});
+  const [selectedImage, setSelectedImage] = useState(null);
   const [settingsForm, setSettingsForm] = useState({
     metodo_calcolo: 'media',
     punteggio_pulito: 100,
@@ -389,7 +390,11 @@ export default function ValutazionePulizie() {
                                   <img 
                                     src={domanda.risposta} 
                                     alt={domanda.attrezzatura}
-                                    className="w-full h-48 object-cover rounded-lg mb-2"
+                                    className="w-full h-48 object-cover rounded-lg mb-2 cursor-pointer hover:opacity-90 transition-opacity"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedImage(domanda.risposta);
+                                    }}
                                   />
                                 )}
                                 {note && (
@@ -578,6 +583,27 @@ export default function ValutazionePulizie() {
               </div>
             </div>
           </NeumorphicCard>
+        </div>
+      )}
+
+      {/* Image Lightbox */}
+      {selectedImage && (
+        <div 
+          className="fixed inset-0 bg-black/90 flex items-center justify-center z-[100] p-4"
+          onClick={() => setSelectedImage(null)}
+        >
+          <button
+            onClick={() => setSelectedImage(null)}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors"
+          >
+            <X className="w-8 h-8" />
+          </button>
+          <img 
+            src={selectedImage} 
+            alt="Foto ingrandita"
+            className="max-w-full max-h-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
     </div>
