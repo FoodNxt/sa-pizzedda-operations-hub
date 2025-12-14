@@ -355,12 +355,11 @@ Rispondi in formato JSON:
 
   const manualEvalMutation = useMutation({
     mutationFn: async ({ inspectionId, equipmentKey, status, note }) => {
-      // Get fresh inspection data
-      const inspection = await base44.entities.CleaningInspection.filter({ id: inspectionId });
-      const currentInspection = inspection[0];
+      // Get inspection to recalculate score
+      const inspection = inspections.find(i => i.id === inspectionId);
       
       // Recalculate overall score
-      const photoQuestions = currentInspection.domande_risposte?.filter(r => 
+      const photoQuestions = inspection.domande_risposte?.filter(r => 
         r.risposta && typeof r.risposta === 'string' && r.risposta.startsWith('http')
       ) || [];
       
@@ -381,9 +380,9 @@ Rispondi in formato JSON:
         
         const currentStatus = eqKey === equipmentKey 
           ? status 
-          : (currentInspection[`${eqKey}_corrected`] 
-              ? currentInspection[`${eqKey}_corrected_status`]
-              : currentInspection[`${eqKey}_pulizia_status`]);
+          : (inspection[`${eqKey}_corrected`] 
+              ? inspection[`${eqKey}_corrected_status`]
+              : inspection[`${eqKey}_pulizia_status`]);
         
         if (currentStatus) {
           allScores.push(statusScores[currentStatus] || 50);
@@ -391,7 +390,7 @@ Rispondi in formato JSON:
       });
       
       // Add scores from multiple choice
-      currentInspection.domande_risposte?.forEach(q => {
+      inspection.domande_risposte?.forEach(q => {
         if (q.tipo_controllo === 'scelta_multipla' && q.risposta) {
           const risposta = q.risposta.toLowerCase();
           if (risposta.includes('pulito') || risposta.includes('tutti_con_etichette') || risposta.includes('piu_di_40')) {
@@ -410,21 +409,21 @@ Rispondi in formato JSON:
 
       await base44.entities.CleaningInspection.update(inspectionId, {
         [`${equipmentKey}_pulizia_status`]: status,
-        [`${equipmentKey}_note_ai`]: `Valutazione manuale: ${note || 'Nessuna nota aggiunta'}`,
-        [`${equipmentKey}_corrected`]: false,
-        [`${equipmentKey}_corrected_status`]: null,
-        [`${equipmentKey}_correction_note`]: null,
-        has_corrections: false,
+        [`${equipmentKey}_note_ai`]: note ? `Valutazione manuale: ${note}` : 'Valutato manualmente',
+        [`${equipmentKey}_corrected`]: true,
+        [`${equipmentKey}_corrected_status`]: status,
+        [`${equipmentKey}_correction_note`]: note || 'Valutato manualmente',
+        has_corrections: true,
         overall_score: newOverallScore
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cleaningInspections'] });
+    onSuccess: async (_, { inspectionId }) => {
+      await queryClient.invalidateQueries({ queryKey: ['cleaningInspections'] });
       setManualEvaluating(null);
+      // Reload the modal inspection data
       if (detailsModalInspection) {
-        base44.entities.CleaningInspection.filter({ id: detailsModalInspection.id }).then(result => {
-          setDetailsModalInspection(result[0]);
-        });
+        const result = await base44.entities.CleaningInspection.filter({ id: inspectionId });
+        setDetailsModalInspection(result[0]);
       }
     },
   });
@@ -434,16 +433,14 @@ Rispondi in formato JSON:
       // Get the current inspection to recalculate overall score
       const inspection = detailsModalInspection;
       
-      // Get all photo questions
+      // Recalculate score using same method as backend
+      const statusScores = { pulito: 100, medio: 50, sporco: 0, non_valutabile: 50 };
+      const allScores = [];
+      
+      // Add scores from photos
       const photoQuestions = inspection.domande_risposte?.filter(r => 
         r.risposta && typeof r.risposta === 'string' && r.risposta.startsWith('http')
       ) || [];
-      
-      // Count statuses for all analyzed photos
-      let puliti = 0;
-      let medi = 0;
-      let sporchi = 0;
-      let total = 0;
       
       photoQuestions.forEach((risposta, idx) => {
         let eqKey;
@@ -464,16 +461,26 @@ Rispondi in formato JSON:
               : inspection[`${eqKey}_pulizia_status`]);
         
         if (status) {
-          total++;
-          if (status === 'pulito') puliti++;
-          else if (status === 'medio') medi++;
-          else if (status === 'sporco') sporchi++;
+          allScores.push(statusScores[status] || 50);
         }
       });
       
-      // Calculate new overall score (pulito=100, medio=50, sporco=0)
-      const newOverallScore = total > 0 
-        ? Math.round(((puliti * 100 + medi * 50) / total))
+      // Add scores from multiple choice
+      inspection.domande_risposte?.forEach(q => {
+        if (q.tipo_controllo === 'scelta_multipla' && q.risposta) {
+          const risposta = q.risposta.toLowerCase();
+          if (risposta.includes('pulito') || risposta.includes('tutti_con_etichette') || risposta.includes('piu_di_40')) {
+            allScores.push(100);
+          } else if (risposta.includes('da_migliorare') || risposta.includes('alcuni_senza_etichette')) {
+            allScores.push(50);
+          } else if (risposta.includes('sporco') || risposta.includes('nessuno_con_etichette') || risposta.includes('meno_di_40') || risposta.includes('nessun_cartone')) {
+            allScores.push(0);
+          }
+        }
+      });
+      
+      const newOverallScore = allScores.length > 0 
+        ? Math.round(allScores.reduce((sum, s) => sum + s, 0) / allScores.length)
         : 0;
       
       const updateData = {
@@ -486,10 +493,15 @@ Rispondi in formato JSON:
 
       await base44.entities.CleaningInspection.update(inspectionId, updateData);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cleaningInspections'] });
+    onSuccess: async (_, { inspectionId }) => {
+      await queryClient.invalidateQueries({ queryKey: ['cleaningInspections'] });
       setCorrectingEquipment(null);
       setCorrectionData({});
+      // Reload the modal inspection data
+      if (detailsModalInspection) {
+        const result = await base44.entities.CleaningInspection.filter({ id: inspectionId });
+        setDetailsModalInspection(result[0]);
+      }
     }
   });
 
@@ -952,8 +964,54 @@ Rispondi in formato JSON:
             <div className="neumorphic-pressed p-6 rounded-xl text-center mb-6">
               <p className="text-sm text-[#9b9b9b] mb-2">Punteggio Complessivo</p>
               <div className={`text-5xl font-bold ${getOverallStatusColor(detailsModalInspection.overall_score)}`}>
-                {detailsModalInspection.overall_score}%
+                {(() => {
+                  // RECALCULATE score correctly here (average of individual scores)
+                  const allQuestions = detailsModalInspection.domande_risposte || [];
+                  const allScores = [];
+                  
+                  allQuestions.forEach((risposta, idx) => {
+                    const isFoto = risposta.tipo_controllo === 'foto' || (risposta.risposta && typeof risposta.risposta === 'string' && risposta.risposta.startsWith('http'));
+                    
+                    if (isFoto) {
+                      let equipmentKey;
+                      if (risposta.attrezzatura) {
+                        equipmentKey = risposta.attrezzatura.toLowerCase().replace(/\s+/g, '_');
+                      } else if (risposta.domanda_id) {
+                        equipmentKey = `domanda_${risposta.domanda_id}`;
+                      } else if (risposta.domanda_testo) {
+                        equipmentKey = risposta.domanda_testo.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 50);
+                      } else {
+                        equipmentKey = `foto_${idx}`;
+                      }
+                      
+                      const displayStatus = detailsModalInspection[`${equipmentKey}_corrected`]
+                        ? detailsModalInspection[`${equipmentKey}_corrected_status`]
+                        : detailsModalInspection[`${equipmentKey}_pulizia_status`];
+                      
+                      if (displayStatus === 'pulito') allScores.push(100);
+                      else if (displayStatus === 'medio') allScores.push(50);
+                      else if (displayStatus === 'sporco') allScores.push(0);
+                      else if (displayStatus === 'non_valutabile') allScores.push(50);
+                    } else if (risposta.tipo_controllo === 'scelta_multipla' && risposta.risposta) {
+                      const risp = risposta.risposta.toLowerCase();
+                      if (risp.includes('pulito') || risp.includes('tutti_con_etichette') || risp.includes('piu_di_40')) {
+                        allScores.push(100);
+                      } else if (risp.includes('da_migliorare') || risp.includes('alcuni_senza_etichette')) {
+                        allScores.push(50);
+                      } else if (risp.includes('sporco') || risp.includes('nessuno_con_etichette') || risp.includes('meno_di_40') || risp.includes('nessun_cartone')) {
+                        allScores.push(0);
+                      }
+                    }
+                  });
+                  
+                  const calculatedScore = allScores.length > 0 
+                    ? Math.round(allScores.reduce((sum, s) => sum + s, 0) / allScores.length)
+                    : 0;
+                  
+                  return calculatedScore;
+                })()}%
               </div>
+              <p className="text-xs text-[#9b9b9b] mt-2">Media dei punteggi delle singole domande</p>
             </div>
 
             {/* All Photos Analysis - Dynamic */}
@@ -1237,14 +1295,22 @@ Rispondi in formato JSON:
                       ? risposta.risposta === originalQuestion.risposta_corretta 
                       : null;
 
-                    // Calculate score for this question
+                    // Calculate score for this question using NEW method (100/50/0)
                     let questionScore = 0;
                     if (isFoto) {
-                      if (displayStatus === 'pulito') questionScore = parseFloat(pointsPerQuestion);
-                      else if (displayStatus === 'medio') questionScore = parseFloat(pointsPerQuestion) * 0.5;
+                      if (displayStatus === 'pulito') questionScore = 100;
+                      else if (displayStatus === 'medio') questionScore = 50;
                       else if (displayStatus === 'sporco') questionScore = 0;
+                      else if (displayStatus === 'non_valutabile') questionScore = 50;
                     } else if (isMultipleChoice) {
-                      questionScore = isCorrect ? parseFloat(pointsPerQuestion) : 0;
+                      const risposta = risposta.risposta?.toLowerCase() || '';
+                      if (risposta.includes('pulito') || risposta.includes('tutti_con_etichette') || risposta.includes('piu_di_40')) {
+                        questionScore = 100;
+                      } else if (risposta.includes('da_migliorare') || risposta.includes('alcuni_senza_etichette')) {
+                        questionScore = 50;
+                      } else if (risposta.includes('sporco') || risposta.includes('nessuno_con_etichette') || risposta.includes('meno_di_40') || risposta.includes('nessun_cartone')) {
+                        questionScore = 0;
+                      }
                     }
 
                     return (

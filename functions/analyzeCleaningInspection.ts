@@ -130,29 +130,29 @@ Esempio ${idx + 1}:
                 finalPrompt = `Analizza questa foto di ${attrezzatura || 'attrezzatura'} in una pizzeria e valuta lo stato di pulizia.
 ${learningSection}
 
-⚠️ REGOLE CRITICHE - DEVI SEMPRE DARE UN VOTO:
-1. USA "non_valutabile" SOLO in casi ESTREMI: foto completamente nera, totalmente sfocata, attrezzatura completamente invisibile
-2. Se vedi QUALSIASI parte dell'attrezzatura, DEVI dare un voto (pulito/medio/sporco)
-3. Anche se la foto è parziale o leggermente sfocata, valuta ciò che vedi
-4. Se la foto mostra solo una parte dell'attrezzatura, valuta quella parte
+⚠️⚠️⚠️ REGOLE ASSOLUTE - LEGGI ATTENTAMENTE:
+1. NON PUOI MAI USARE "non_valutabile" - È VIETATO
+2. DEVI SEMPRE dare un voto tra: pulito, medio, sporco
+3. Anche se la foto è sfocata/parziale/buia - DEVI valutare ciò che vedi
+4. Se hai dubbi → usa "medio" come default
+5. Se la foto è molto scura ma vedi anche solo un dettaglio → valuta quel dettaglio
+6. Se la foto mostra solo una parte → valuta quella parte
 
-Se usi "non_valutabile", SPIEGA DETTAGLIATAMENTE:
-- Cosa vedi esattamente nella foto?
-- Perché è impossibile valutare?
-- Cosa manca per poter dare un voto?
+IMPORTANTE: La risposta "non_valutabile" verrà automaticamente convertita in "medio" e marcata come errore.
 
 Rispondi in formato JSON:
 {
-  "pulizia_status": "pulito" | "medio" | "sporco" | "non_valutabile",
+  "pulizia_status": "pulito" | "medio" | "sporco",
   "note": "Se VALUTABILE: descrizione dettagliata e POSIZIONE ESATTA dello sporco. Se NON VALUTABILE: spiega ESATTAMENTE perché è impossibile valutare (es: 'Foto completamente nera senza dettagli visibili', 'Attrezzatura completamente fuori dall'inquadratura, si vede solo il pavimento', 'Foto totalmente sfocata, impossibile distinguere qualsiasi dettaglio')",
   "problemi_critici": []
 }
 
-Criteri:
-- "pulito": Perfettamente pulito, nessun residuo
-- "medio": Piccoli residui o macchie, accettabile
-- "sporco": Sporco evidente, richiede pulizia urgente
-- "non_valutabile": SOLO se davvero impossibile vedere l'attrezzatura
+Criteri RIGOROSI:
+- "pulito": Perfettamente pulito, nessun residuo visibile
+- "medio": Piccoli residui o macchie, accettabile. USA QUESTO se hai dubbi o la foto non è perfetta
+- "sporco": Sporco evidente, residui di cibo, incrostazioni, richiede pulizia urgente
+
+RICORDA: Se hai anche solo il MINIMO DUBBIO → scegli "medio". Non esiste "non_valutabile".
 
 Sii critico con l'igiene professionale. ${relevantCorrections.length > 0 ? 'APPLICA gli insegnamenti dagli esempi!' : ''}`;
             }
@@ -174,11 +174,23 @@ Sii critico con l'igiene professionale. ${relevantCorrections.length > 0 ? 'APPL
                     }
                 });
 
-                // FORCE a valid status - never leave undefined
-                const validStatuses = ['pulito', 'medio', 'sporco', 'non_valutabile'];
-                const finalStatus = validStatuses.includes(aiResponse.pulizia_status) 
-                    ? aiResponse.pulizia_status 
-                    : 'medio';
+                // FORCE a valid status - NEVER ALLOW non_valutabile, default to medio
+                const validStatuses = ['pulito', 'medio', 'sporco'];
+                let finalStatus;
+                
+                if (validStatuses.includes(aiResponse.pulizia_status)) {
+                    finalStatus = aiResponse.pulizia_status;
+                } else if (aiResponse.pulizia_status === 'non_valutabile') {
+                    // AI dice non_valutabile -> forza a medio e aggiungi nota
+                    finalStatus = 'medio';
+                    aiResponse.note = `⚠️ FOTO RICHIEDE VALUTAZIONE MANUALE - L'AI ha risposto "non_valutabile" ma è richiesto un voto. Originale: ${aiResponse.note || 'Nessuna nota AI'}`;
+                    console.log(`⚠️ AI returned non_valutabile for ${equipmentKey}, forcing to medio`);
+                } else {
+                    // Risposta invalida -> forza a medio
+                    finalStatus = 'medio';
+                    aiResponse.note = `⚠️ RISPOSTA AI NON VALIDA (${aiResponse.pulizia_status}) - Richiede valutazione manuale`;
+                    console.log(`⚠️ AI returned invalid status "${aiResponse.pulizia_status}" for ${equipmentKey}, forcing to medio`);
+                }
 
                 analysisResults[equipmentKey] = {
                     ...aiResponse,
