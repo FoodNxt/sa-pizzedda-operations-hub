@@ -13,7 +13,6 @@ import CleanupDuplicateShifts from './pages/CleanupDuplicateShifts';
 import Inventory from './pages/Inventory';
 import RealTime from './pages/RealTime';
 import Payroll from './pages/Payroll';
-import Pulizie from './pages/Pulizie';
 import FotoLocale from './pages/FotoLocale';
 import SummaryAI from './pages/SummaryAI';
 import IPraticoSetup from './pages/IPraticoSetup';
@@ -67,7 +66,6 @@ import FeedbackP2P from './pages/FeedbackP2P';
 import FormTracker from './pages/FormTracker';
 import Documenti from './pages/Documenti';
 import FormsDipendente from './pages/FormsDipendente';
-import PulizieMatch from './pages/PulizieMatch';
 import OreLavorate from './pages/OreLavorate';
 import Alerts from './pages/Alerts';
 import ControlloStoreManager from './pages/ControlloStoreManager';
@@ -89,7 +87,6 @@ import Compliance from './pages/Compliance';
 import Attrezzature from './pages/Attrezzature';
 import Segnalazioni from './pages/Segnalazioni';
 import FormSpostamenti from './pages/FormSpostamenti';
-import ImpostazioniAIPulizia from './pages/ImpostazioniAIPulizia';
 import __Layout from './Layout.jsx';
 
 
@@ -109,7 +106,6 @@ export const PAGES = {
     "Inventory": Inventory,
     "RealTime": RealTime,
     "Payroll": Payroll,
-    "Pulizie": Pulizie,
     "FotoLocale": FotoLocale,
     "SummaryAI": SummaryAI,
     "IPraticoSetup": IPraticoSetup,
@@ -163,7 +159,6 @@ export const PAGES = {
     "FormTracker": FormTracker,
     "Documenti": Documenti,
     "FormsDipendente": FormsDipendente,
-    "PulizieMatch": PulizieMatch,
     "OreLavorate": OreLavorate,
     "Alerts": Alerts,
     "ControlloStoreManager": ControlloStoreManager,
@@ -185,7 +180,6 @@ export const PAGES = {
     "Attrezzature": Attrezzature,
     "Segnalazioni": Segnalazioni,
     "FormSpostamenti": FormSpostamenti,
-    "ImpostazioniAIPulizia": ImpostazioniAIPulizia,
 }
 
 export const pagesConfig = {

@@ -279,16 +279,6 @@ const navigationStructure = [
     requiredUserType: ["admin", "manager"],
     items: [
       {
-        title: "Storico Pulizie",
-        url: createPageUrl("Pulizie"),
-        icon: Zap,
-      },
-      {
-        title: "Pulizie Match",
-        url: createPageUrl("PulizieMatch"),
-        icon: Users,
-      },
-      {
         title: "Form Pulizia",
         url: createPageUrl("FormPulizia"),
         icon: Camera,

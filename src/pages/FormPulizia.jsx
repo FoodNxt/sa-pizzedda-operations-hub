@@ -5,7 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
-import { Camera, ClipboardCheck, Users, ChefHat, UserCheck, Plus, Edit, Trash2, X, Save, AlertTriangle, Settings } from 'lucide-react';
+import { Camera, ClipboardCheck, Users, ChefHat, UserCheck, Plus, Edit, Trash2, X, Save, AlertTriangle } from 'lucide-react';
 
 export default function FormPulizia() {
   const [activeSection, setActiveSection] = useState('master');
@@ -22,9 +22,7 @@ export default function FormPulizia() {
     ordine: 0,
     richiesto: true,
     attivo: true,
-    tipo_controllo_ai: 'pulizia',
     prompt_ai: '',
-    ordine_bibite: '',
     richiede_foto: false
   });
 
@@ -80,9 +78,7 @@ export default function FormPulizia() {
       ordine: 0,
       richiesto: true,
       attivo: true,
-      tipo_controllo_ai: 'pulizia',
       prompt_ai: '',
-      ordine_bibite: '',
       richiede_foto: false
     });
     setEditingQuestion(null);
@@ -102,9 +98,7 @@ export default function FormPulizia() {
       ordine: domanda.ordine || 0,
       richiesto: domanda.richiesto !== false,
       attivo: domanda.attivo !== false,
-      tipo_controllo_ai: domanda.tipo_controllo_ai || 'pulizia',
       prompt_ai: domanda.prompt_ai || '',
-      ordine_bibite: domanda.ordine_bibite || '',
       richiede_foto: domanda.richiede_foto || false
     });
     setShowQuestionForm(true);
@@ -116,12 +110,6 @@ export default function FormPulizia() {
       ...questionForm,
       opzioni_risposta: questionForm.tipo_controllo === 'scelta_multipla' ? questionForm.opzioni_risposta.filter(o => o.trim()) : []
     };
-    // Rimuovi campi non necessari per tipo scelta_multipla
-    if (questionForm.tipo_controllo === 'scelta_multipla') {
-      delete data.tipo_controllo_ai;
-      delete data.prompt_ai;
-      delete data.ordine_bibite;
-    }
     if (editingQuestion) {
       updateMutation.mutate({ id: editingQuestion.id, data });
     } else {
@@ -179,21 +167,11 @@ export default function FormPulizia() {
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <Camera className="w-10 h-10 text-[#8b7355]" />
-              <h1 className="text-3xl font-bold text-[#6b6b6b]">Form Pulizia</h1>
-            </div>
-            <p className="text-[#9b9b9b]">Seleziona il form di controllo pulizia da compilare</p>
-          </div>
-          <Link to={createPageUrl('ImpostazioniAIPulizia')}>
-            <NeumorphicButton className="flex items-center gap-2">
-              <Settings className="w-5 h-5" />
-              Impostazioni AI
-            </NeumorphicButton>
-          </Link>
+        <div className="flex items-center gap-3 mb-2">
+          <Camera className="w-10 h-10 text-[#8b7355]" />
+          <h1 className="text-3xl font-bold text-[#6b6b6b]">Form Pulizia</h1>
         </div>
+        <p className="text-[#9b9b9b]">Seleziona il form di controllo pulizia da compilare</p>
       </div>
 
       {/* Section Tabs */}
@@ -282,15 +260,9 @@ export default function FormPulizia() {
                             🔧 Attrezzatura: <span className="font-medium">{domanda.attrezzatura}</span>
                           </p>
                         )}
-                        {domanda.tipo_controllo === 'foto' && domanda.tipo_controllo_ai && (
+                        {domanda.tipo_controllo === 'foto' && (
                           <p className="text-xs text-purple-600 mt-1">
-                            🤖 Controllo AI: {
-                              domanda.tipo_controllo_ai === 'pulizia' ? 'Pulizia' :
-                              domanda.tipo_controllo_ai === 'divisa' ? 'Divisa Corretta' :
-                              domanda.tipo_controllo_ai === 'frigo_bibite' ? 'Frigo Bibite' :
-                              domanda.tipo_controllo_ai === 'etichette' ? 'Presenza Etichette' :
-                              'Personalizzato'
-                            }
+                            🤖 Controllo AI: Pulito/Sporco
                           </p>
                         )}
                         {domanda.tipo_controllo === 'scelta_multipla' && domanda.opzioni_risposta && (
@@ -415,71 +387,16 @@ export default function FormPulizia() {
 
                         <div>
                           <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                            Tipo di Controllo AI
-                          </label>
-                          <select
-                            value={questionForm.tipo_controllo_ai || 'pulizia'}
-                            onChange={(e) => {
-                              const tipo = e.target.value;
-                              let prompt = '';
-                              if (tipo === 'pulizia') {
-                                prompt = 'Analizza la foto e valuta lo stato di pulizia. Rispondi con: pulito, medio, sporco. Descrivi eventuali problemi riscontrati.';
-                              } else if (tipo === 'divisa') {
-                                prompt = 'Analizza la foto del dipendente e verifica se indossa la divisa corretta: cappellino e maglietta aziendale. Rispondi con: conforme, non conforme. Specifica cosa manca se non conforme.';
-                              } else if (tipo === 'frigo_bibite') {
-                                prompt = questionForm.ordine_bibite 
-                                  ? `Analizza la foto del frigo bibite. Verifica che sia pieno e che le bibite siano nell'ordine corretto: ${questionForm.ordine_bibite}. Rispondi con: conforme, non conforme. Specifica eventuali problemi.`
-                                  : 'Analizza la foto del frigo bibite. Verifica che sia pieno e ordinato. Rispondi con: conforme, non conforme.';
-                              } else if (tipo === 'etichette') {
-                                prompt = 'Analizza la foto e verifica la presenza di etichette su prodotti o contenitori. Controlla che siano presenti, leggibili e con data/informazioni visibili. Rispondi con: conforme, non conforme. Specifica quali etichette mancano o sono illeggibili.';
-                              } else if (tipo === 'personalizzato') {
-                                prompt = questionForm.prompt_ai || '';
-                              }
-                              setQuestionForm({ ...questionForm, tipo_controllo_ai: tipo, prompt_ai: prompt });
-                            }}
-                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                          >
-                            <option value="pulizia">🧹 Pulizia (Pulito/Sporco)</option>
-                            <option value="divisa">👕 Divisa Corretta (Cappellino + Maglietta)</option>
-                            <option value="frigo_bibite">🥤 Frigo Bibite (Pieno + Ordine)</option>
-                            <option value="etichette">🏷️ Presenza Etichette</option>
-                            <option value="personalizzato">✏️ Personalizzato</option>
-                          </select>
-                        </div>
-
-                        {questionForm.tipo_controllo_ai === 'frigo_bibite' && (
-                          <div>
-                            <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                              Ordine Bibite nel Frigo (dall'alto verso il basso)
-                            </label>
-                            <textarea
-                              value={questionForm.ordine_bibite || ''}
-                              onChange={(e) => {
-                                const ordine = e.target.value;
-                                setQuestionForm({ 
-                                  ...questionForm, 
-                                  ordine_bibite: ordine,
-                                  prompt_ai: `Analizza la foto del frigo bibite. Verifica che sia pieno e che le bibite siano nell'ordine corretto: ${ordine}. Rispondi con: conforme, non conforme. Specifica eventuali problemi.`
-                                });
-                              }}
-                              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none h-24"
-                              placeholder="Es: Ripiano 1: Coca Cola, Fanta&#10;Ripiano 2: Acqua naturale, Acqua frizzante&#10;Ripiano 3: Birra, Energy drink"
-                            />
-                          </div>
-                        )}
-
-                        <div>
-                          <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                            Prompt per l'AI
+                            Istruzioni Personalizzate per l'AI (opzionale)
                           </label>
                           <textarea
                             value={questionForm.prompt_ai || ''}
-                            onChange={(e) => setQuestionForm({ ...questionForm, prompt_ai: e.target.value, tipo_controllo_ai: 'personalizzato' })}
-                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none h-32"
-                            placeholder="Descrivi cosa l'AI deve controllare nella foto..."
+                            onChange={(e) => setQuestionForm({ ...questionForm, prompt_ai: e.target.value })}
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none h-24"
+                            placeholder="Es: Controlla anche le griglie interne e gli angoli nascosti..."
                           />
                           <p className="text-xs text-slate-500 mt-1">
-                            Istruzioni dettagliate su cosa l'AI deve verificare nella foto
+                            L'AI valuterà sempre Pulito/Sporco. Qui puoi aggiungere istruzioni specifiche su cosa controllare.
                           </p>
                         </div>
                       </>
