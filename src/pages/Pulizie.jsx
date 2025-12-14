@@ -615,39 +615,54 @@ export default function Pulizie() {
                     {inspection.domande_risposte.map((risposta, idx) => {
                       const isFoto = risposta.tipo_controllo === 'foto';
                       
-                      // For photo questions, use AI analysis
                       let passed = null;
+                      let equipmentKey = null;
+                      
                       if (isFoto) {
-                        const equipmentKey = risposta.attrezzatura ? risposta.attrezzatura.toLowerCase().replace(/\s+/g, '_') : null;
-                        if (equipmentKey) {
-                          const status = inspection[`${equipmentKey}_corrected`]
-                            ? inspection[`${equipmentKey}_corrected_status`]
-                            : inspection[`${equipmentKey}_pulizia_status`];
-                          passed = status === 'pulito';
+                        // Generate equipment key same way as backend
+                        if (risposta.attrezzatura) {
+                          equipmentKey = risposta.attrezzatura.toLowerCase().replace(/\s+/g, '_');
+                        } else if (risposta.domanda_id) {
+                          equipmentKey = `domanda_${risposta.domanda_id}`;
+                        } else if (risposta.domanda_testo) {
+                          equipmentKey = risposta.domanda_testo.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 50);
+                        } else {
+                          equipmentKey = `foto_${idx}`;
                         }
+                        
+                        const status = inspection[`${equipmentKey}_corrected`]
+                          ? inspection[`${equipmentKey}_corrected_status`]
+                          : inspection[`${equipmentKey}_pulizia_status`];
+                        
+                        if (status === 'pulito') passed = true;
+                        else if (status === 'sporco') passed = false;
+                        else if (status === 'medio') passed = null; // neutral for medio
+                        else passed = null; // non_valutabile or missing
                       } else {
-                        // For multiple choice, check if answer is correct (if risposta_corretta is defined)
-                        // Since we don't have the original question with risposta_corretta here, we'll show neutral icon
-                        passed = null;
+                        // For multiple choice, check correct answer
+                        const originalQuestion = cleaningQuestions.find(q => q.id === risposta.domanda_id);
+                        if (originalQuestion?.risposta_corretta) {
+                          passed = risposta.risposta === originalQuestion.risposta_corretta;
+                        }
                       }
                       
                       return (
                         <div key={idx} className={`neumorphic-pressed p-2 rounded-lg text-center ${
                           passed === true ? 'bg-green-50 border border-green-200' :
                           passed === false ? 'bg-red-50 border border-red-200' :
-                          'bg-slate-50 border border-slate-200'
+                          'bg-yellow-50 border border-yellow-200'
                         }`}>
                           <div className="flex justify-center mb-1">
                             {passed === true ? (
-                              <CheckCircle className="w-4 h-4 text-green-600" />
+                              <CheckCircle className="w-5 h-5 text-green-600" />
                             ) : passed === false ? (
-                              <XCircle className="w-4 h-4 text-red-600" />
+                              <XCircle className="w-5 h-5 text-red-600" />
                             ) : (
-                              <ClipboardCheck className="w-4 h-4 text-slate-400" />
+                              <AlertTriangle className="w-5 h-5 text-yellow-600" />
                             )}
                           </div>
                           <p className="text-xs font-medium text-slate-700 truncate" title={risposta.domanda_testo}>
-                            {risposta.domanda_testo?.substring(0, 20)}...
+                            {risposta.domanda_testo?.substring(0, 15) || risposta.attrezzatura}
                           </p>
                         </div>
                       );
