@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { UserCheck, Clock, Star, MapPin, AlertCircle, CheckCircle, Users, Filter, RefreshCw, Settings, X } from 'lucide-react';
+import { UserCheck, Clock, Star, MapPin, AlertCircle, CheckCircle, Users, Filter, RefreshCw, Settings, X, Edit } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { format, isWithinInterval, parseISO } from 'date-fns';
@@ -11,6 +11,8 @@ export default function AssignReviews() {
   const [showOnlyUnassigned, setShowOnlyUnassigned] = useState(true);
   const [resetting, setResetting] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [editingReview, setEditingReview] = useState(null);
+  const [editForm, setEditForm] = useState('');
   const [configForm, setConfigForm] = useState({
     tipi_turno_inclusi: ['Normale'],
     ruoli_esclusi: ['Preparazioni', 'Volantinaggio']
@@ -286,6 +288,29 @@ export default function AssignReviews() {
     });
   };
 
+  const handleEditReview = (review) => {
+    setEditingReview(review);
+    setEditForm(review.employee_assigned_name || '');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editForm.trim()) {
+      alert('Inserisci un nome dipendente valido');
+      return;
+    }
+
+    await updateReviewMutation.mutateAsync({
+      reviewId: editingReview.id,
+      data: {
+        employee_assigned_name: editForm.trim(),
+        assignment_confidence: 'manual'
+      }
+    });
+
+    setEditingReview(null);
+    setEditForm('');
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -426,12 +451,20 @@ export default function AssignReviews() {
                             <CheckCircle className="w-4 h-4 text-green-600" />
                             <span className="text-sm font-medium text-green-600">Assegnata</span>
                           </div>
-                          <button
-                            onClick={() => handleUnassignReview(review.id)}
-                            className="text-xs text-red-600 hover:text-red-700"
-                          >
-                            Rimuovi
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleEditReview(review)}
+                              className="text-xs text-blue-600 hover:text-blue-700"
+                            >
+                              <Edit className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => handleUnassignReview(review.id)}
+                              className="text-xs text-red-600 hover:text-red-700"
+                            >
+                              Rimuovi
+                            </button>
+                          </div>
                         </div>
                         <p className="text-xs text-[#6b6b6b] font-medium">{review.employee_assigned_name}</p>
                         {review.assignment_confidence && (
@@ -522,6 +555,49 @@ export default function AssignReviews() {
           </div>
         </div>
       </NeumorphicCard>
+
+      {/* Edit Modal */}
+      {editingReview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="max-w-md w-full">
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-[#6b6b6b]">Modifica Assegnazione</h2>
+                <button onClick={() => setEditingReview(null)} className="nav-button p-2 rounded-lg">
+                  <X className="w-5 h-5 text-[#6b6b6b]" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                    Nome Dipendente
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm}
+                    onChange={(e) => setEditForm(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                    placeholder="Es. Mario Rossi"
+                  />
+                  <p className="text-xs text-[#9b9b9b] mt-2">
+                    Puoi inserire più nomi separati da virgola (es. Mario Rossi, Luigi Bianchi)
+                  </p>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <NeumorphicButton onClick={() => setEditingReview(null)} className="flex-1">
+                    Annulla
+                  </NeumorphicButton>
+                  <NeumorphicButton onClick={handleSaveEdit} variant="primary" className="flex-1">
+                    Salva
+                  </NeumorphicButton>
+                </div>
+              </div>
+            </NeumorphicCard>
+          </div>
+        </div>
+      )}
 
       {/* Settings Modal */}
       {showSettings && (
