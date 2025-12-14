@@ -177,7 +177,7 @@ Sii molto critico e attento ai dettagli di igiene in una cucina professionale. $
         console.log(`Calculated overall score: ${overallScore} from ${allScores.length} questions`);
 
         // Collect critical issues
-        const allCriticalIssues = analyzedKeys
+        const allCriticalIssues = Object.keys(analysisResults)
             .map(key => analysisResults[key]?.problemi_critici || [])
             .flat()
             .filter(Boolean);
