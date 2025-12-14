@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { UserCheck, Clock, Star, MapPin, AlertCircle, CheckCircle, Users, Filter, RefreshCw } from 'lucide-react';
+import { UserCheck, Clock, Star, MapPin, AlertCircle, CheckCircle, Users, Filter, RefreshCw, Settings, X } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { format, isWithinInterval, parseISO } from 'date-fns';
@@ -11,6 +11,11 @@ export default function AssignReviews() {
   const [showOnlyUnassigned, setShowOnlyUnassigned] = useState(true);
   const [autoAssigning, setAutoAssigning] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [configForm, setConfigForm] = useState({
+    tipi_turno_inclusi: ['Normale'],
+    ruoli_esclusi: ['Preparazioni', 'Volantinaggio']
+  });
   
   const queryClient = useQueryClient();
 
@@ -19,15 +24,25 @@ export default function AssignReviews() {
     queryFn: () => base44.entities.Review.list('-review_date'),
   });
 
-  const { data: shifts = [] } = useQuery({
-    queryKey: ['shifts'],
-    queryFn: () => base44.entities.Shift.list(),
+  const { data: turniPlanday = [] } = useQuery({
+    queryKey: ['turni-planday'],
+    queryFn: () => base44.entities.TurnoPlanday.list('-data'),
   });
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
     queryFn: () => base44.entities.Store.list(),
   });
+
+  const { data: configs = [] } = useQuery({
+    queryKey: ['review-assignment-config'],
+    queryFn: () => base44.entities.ReviewAssignmentConfig.list(),
+  });
+
+  const activeConfig = configs.find(c => c.is_active) || {
+    tipi_turno_inclusi: ['Normale'],
+    ruoli_esclusi: ['Preparazioni', 'Volantinaggio']
+  };
 
   const updateReviewMutation = useMutation({
     mutationFn: ({ reviewId, data }) => base44.entities.Review.update(reviewId, data),
@@ -36,70 +51,76 @@ export default function AssignReviews() {
     },
   });
 
-  // Find matching employees for a review - FIXED with robust duplicate prevention
+  const updateConfigMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.ReviewAssignmentConfig.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['review-assignment-config'] });
+      setShowSettings(false);
+    },
+  });
+
+  const createConfigMutation = useMutation({
+    mutationFn: (data) => base44.entities.ReviewAssignmentConfig.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['review-assignment-config'] });
+      setShowSettings(false);
+    },
+  });
+
+  // Find matching employees for a review using TurnoPlanday
   const findMatchingEmployees = (review) => {
     if (!review.review_date || !review.store_id) return [];
 
     try {
       const reviewDate = parseISO(review.review_date);
-      if (isNaN(reviewDate.getTime())) return []; // Invalid date
+      if (isNaN(reviewDate.getTime())) return [];
       
-      // Use a Map to track unique employees by name (case-insensitive, trimmed)
       const employeeMap = new Map();
       
-      shifts.forEach(shift => {
-        // Same store check
-        if (shift.store_id !== review.store_id) return;
+      turniPlanday.forEach(turno => {
+        if (turno.store_id !== review.store_id) return;
         
-        // Normalize employee name (trim whitespace, lowercase for comparison)
-        const normalizedName = (shift.employee_name || '').trim();
+        const normalizedName = (turno.dipendente_nome || '').trim();
         const mapKey = normalizedName.toLowerCase();
         
-        // Skip if empty name
         if (!normalizedName) return;
-        
-        // Skip if employee already processed (case-insensitive)
         if (employeeMap.has(mapKey)) return;
         
-        // Exclude certain shift types
-        const excludedTypes = [
-          'Malattia (Certificato)', 
-          'Malattia (No Certificato)',
-          'Ferie',
-          'Assenza non retribuita'
-        ];
-        if (excludedTypes.includes(shift.shift_type)) return;
+        // Check tipo_turno against config
+        if (!activeConfig.tipi_turno_inclusi.includes(turno.tipo_turno || 'Normale')) return;
         
         // Exclude certain roles
-        if (shift.employee_group_name === 'Preparazioni' || shift.employee_group_name === 'Volantinaggio') return;
+        if (activeConfig.ruoli_esclusi.includes(turno.ruolo)) return;
         
-        // Use ONLY scheduled times
-        if (!shift.scheduled_start || !shift.scheduled_end) return;
+        if (!turno.data || !turno.ora_inizio || !turno.ora_fine) return;
         
         try {
-          const shiftStart = parseISO(shift.scheduled_start);
-          const shiftEnd = parseISO(shift.scheduled_end);
+          const turnoDate = turno.data;
+          const reviewDateStr = format(reviewDate, 'yyyy-MM-dd');
           
-          // Validate shift dates
-          if (isNaN(shiftStart.getTime()) || isNaN(shiftEnd.getTime())) return;
+          if (turnoDate !== reviewDateStr) return;
           
-          // Check if review time falls within shift time
+          const [startHour, startMin] = turno.ora_inizio.split(':').map(Number);
+          const [endHour, endMin] = turno.ora_fine.split(':').map(Number);
+          
+          const shiftStart = new Date(reviewDate);
+          shiftStart.setHours(startHour, startMin, 0, 0);
+          
+          const shiftEnd = new Date(reviewDate);
+          shiftEnd.setHours(endHour, endMin, 0, 0);
+          
           if (isWithinInterval(reviewDate, { start: shiftStart, end: shiftEnd })) {
-            // Add to map using lowercase key, but keep original name for display
             employeeMap.set(mapKey, {
               employee_name: normalizedName,
-              shift
+              turno
             });
           }
         } catch (e) {
-          // Skip this shift if date parsing fails
+          // Skip this turno if parsing fails
         }
       });
 
-      // Convert map to array
       const uniqueEmployees = Array.from(employeeMap.values());
-
-      // Calculate confidence based on number of unique employees
       const confidence = uniqueEmployees.length === 1 ? 'high' : 
                         uniqueEmployees.length === 2 ? 'medium' : 'low';
 
@@ -108,7 +129,7 @@ export default function AssignReviews() {
         confidence
       }));
     } catch (e) {
-      return []; // Return empty array if any error occurs
+      return [];
     }
   };
 
@@ -123,7 +144,7 @@ export default function AssignReviews() {
         isAssigned: !!review.employee_assigned_name
       };
     });
-  }, [reviews, shifts]);
+  }, [reviews, turniPlanday, activeConfig]);
 
   // Filter reviews
   const filteredReviews = enrichedReviews.filter(review => {
@@ -239,6 +260,30 @@ export default function AssignReviews() {
     }
   };
 
+  const handleSaveConfig = async () => {
+    const configData = {
+      is_active: true,
+      tipi_turno_inclusi: configForm.tipi_turno_inclusi,
+      ruoli_esclusi: configForm.ruoli_esclusi
+    };
+
+    if (activeConfig.id) {
+      await updateConfigMutation.mutateAsync({ id: activeConfig.id, data: configData });
+    } else {
+      await createConfigMutation.mutateAsync(configData);
+    }
+  };
+
+  const handleUnassignReview = async (reviewId) => {
+    await updateReviewMutation.mutateAsync({
+      reviewId,
+      data: {
+        employee_assigned_name: null,
+        assignment_confidence: null
+      }
+    });
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -301,12 +346,20 @@ export default function AssignReviews() {
 
         <div className="flex gap-3">
           <NeumorphicButton
+            onClick={() => setShowSettings(true)}
+            className="flex items-center gap-2"
+          >
+            <Settings className="w-4 h-4" />
+            Impostazioni
+          </NeumorphicButton>
+
+          <NeumorphicButton
             onClick={handleResetAllAssignments}
             disabled={resetting || stats.assigned === 0}
             className="flex items-center gap-2"
           >
             <RefreshCw className={`w-4 h-4 ${resetting ? 'animate-spin' : ''}`} />
-            {resetting ? 'Resettando...' : `Reset Assegnazioni (${stats.assigned})`}
+            {resetting ? 'Resettando...' : `Reset (${stats.assigned})`}
           </NeumorphicButton>
 
           <NeumorphicButton
@@ -314,7 +367,7 @@ export default function AssignReviews() {
             disabled={autoAssigning || stats.withMatches === 0}
             variant="primary"
           >
-            {autoAssigning ? 'Assegnazione...' : `Auto-Assegna Tutte (${stats.withMatches})`}
+            {autoAssigning ? 'Assegnazione...' : `Auto-Assegna (${stats.withMatches})`}
           </NeumorphicButton>
         </div>
       </div>
@@ -376,9 +429,17 @@ export default function AssignReviews() {
 
                     {review.isAssigned && (
                       <div className="neumorphic-flat px-4 py-2 rounded-lg">
-                        <div className="flex items-center gap-2 mb-1">
-                          <CheckCircle className="w-4 h-4 text-green-600" />
-                          <span className="text-sm font-medium text-green-600">Assegnata</span>
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="w-4 h-4 text-green-600" />
+                            <span className="text-sm font-medium text-green-600">Assegnata</span>
+                          </div>
+                          <button
+                            onClick={() => handleUnassignReview(review.id)}
+                            className="text-xs text-red-600 hover:text-red-700"
+                          >
+                            Rimuovi
+                          </button>
                         </div>
                         <p className="text-xs text-[#6b6b6b] font-medium">{review.employee_assigned_name}</p>
                         {review.assignment_confidence && (
@@ -415,22 +476,10 @@ export default function AssignReviews() {
                           
                           <div className="text-xs text-[#9b9b9b] space-y-1">
                             <p>
-                              Turno: {(() => {
-                                try {
-                                  return format(parseISO(match.shift.scheduled_start), 'HH:mm');
-                                } catch (e) {
-                                  return 'N/A';
-                                }
-                              })()} - {(() => {
-                                try {
-                                  return format(parseISO(match.shift.scheduled_end), 'HH:mm');
-                                } catch (e) {
-                                  return 'N/A';
-                                }
-                              })()}
+                              Turno: {match.turno.ora_inizio} - {match.turno.ora_fine}
                             </p>
-                            {match.shift.shift_type && (
-                              <p>Tipo: {match.shift.shift_type}</p>
+                            {match.turno.tipo_turno && (
+                              <p>Tipo: {match.turno.tipo_turno}</p>
                             )}
                           </div>
                         </div>
@@ -469,20 +518,107 @@ export default function AssignReviews() {
         <div className="flex items-start gap-3">
           <AlertCircle className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
           <div className="text-sm text-blue-800">
-            <p className="font-bold mb-2">Come funziona l'assegnazione:</p>
+            <p className="font-bold mb-2">Come funziona l'assegnazione automatica:</p>
             <ul className="space-y-1 ml-4">
-              <li>• Ogni dipendente viene assegnato MASSIMO UNA VOLTA per recensione (confronto case-insensitive)</li>
-              <li>• I nomi vengono normalizzati (rimossi spazi extra) per prevenire duplicati</li>
-              <li>• Le recensioni vengono assegnate a TUTTI i dipendenti in turno nell'orario della recensione</li>
-              <li>• Viene utilizzato l'orario pianificato (scheduled_start e scheduled_end)</li>
-              <li>• Vengono esclusi: "Ferie", "Malattia (Certificato)", "Malattia (No Certificato)", "Assenza non retribuita"</li>
-              <li>• Vengono esclusi i ruoli: "Preparazioni" e "Volantinaggio"</li>
-              <li>• Confidenza alta: 1 dipendente | Media: 2 dipendenti | Bassa: 3+ dipendenti</li>
-              <li className="font-bold text-blue-900 mt-2">• Se hai ancora duplicati, usa "Reset Assegnazioni" e poi "Auto-Assegna Tutte"</li>
+              <li>• Le recensioni vengono assegnate automaticamente in base ai turni Planday</li>
+              <li>• Solo i turni con tipologie configurate nelle impostazioni vengono considerati</li>
+              <li>• Tipologie incluse: {activeConfig.tipi_turno_inclusi.join(', ')}</li>
+              <li>• Ruoli esclusi: {activeConfig.ruoli_esclusi.join(', ')}</li>
+              <li>• Puoi modificare manualmente le assegnazioni cliccando su "Rimuovi"</li>
+              <li>• Confidenza: Alta (1 dipendente) | Media (2 dipendenti) | Bassa (3+ dipendenti)</li>
             </ul>
           </div>
         </div>
       </NeumorphicCard>
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="max-w-2xl w-full">
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-[#6b6b6b]">Impostazioni Assegnazione</h2>
+                <button onClick={() => setShowSettings(false)} className="nav-button p-2 rounded-lg">
+                  <X className="w-5 h-5 text-[#6b6b6b]" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <div>
+                  <label className="text-sm font-medium text-[#6b6b6b] mb-3 block">
+                    Tipologie di Turno da Includere
+                  </label>
+                  <div className="space-y-2">
+                    {['Normale', 'Straordinario', 'Prova', 'Affiancamento', 'Ferie', 'Malattia'].map(tipo => (
+                      <label key={tipo} className="flex items-center gap-3 p-3 neumorphic-flat rounded-lg cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={configForm.tipi_turno_inclusi.includes(tipo)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setConfigForm({
+                                ...configForm,
+                                tipi_turno_inclusi: [...configForm.tipi_turno_inclusi, tipo]
+                              });
+                            } else {
+                              setConfigForm({
+                                ...configForm,
+                                tipi_turno_inclusi: configForm.tipi_turno_inclusi.filter(t => t !== tipo)
+                              });
+                            }
+                          }}
+                          className="w-5 h-5"
+                        />
+                        <span className="text-[#6b6b6b] font-medium">{tipo}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-[#6b6b6b] mb-3 block">
+                    Ruoli da Escludere
+                  </label>
+                  <div className="space-y-2">
+                    {['Pizzaiolo', 'Cassiere', 'Store Manager', 'Preparazioni', 'Volantinaggio'].map(ruolo => (
+                      <label key={ruolo} className="flex items-center gap-3 p-3 neumorphic-flat rounded-lg cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={configForm.ruoli_esclusi.includes(ruolo)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setConfigForm({
+                                ...configForm,
+                                ruoli_esclusi: [...configForm.ruoli_esclusi, ruolo]
+                              });
+                            } else {
+                              setConfigForm({
+                                ...configForm,
+                                ruoli_esclusi: configForm.ruoli_esclusi.filter(r => r !== ruolo)
+                              });
+                            }
+                          }}
+                          className="w-5 h-5"
+                        />
+                        <span className="text-[#6b6b6b] font-medium">{ruolo}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <NeumorphicButton onClick={() => setShowSettings(false)} className="flex-1">
+                    Annulla
+                  </NeumorphicButton>
+                  <NeumorphicButton onClick={handleSaveConfig} variant="primary" className="flex-1">
+                    Salva Impostazioni
+                  </NeumorphicButton>
+                </div>
+              </div>
+            </NeumorphicCard>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
