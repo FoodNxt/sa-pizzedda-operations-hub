@@ -13,7 +13,10 @@ import {
   Settings,
   X,
   Save,
-  AlertCircle
+  AlertCircle,
+  ChevronDown,
+  ChevronRight,
+  Image
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -26,10 +29,13 @@ export default function ValutazionePulizie() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [showSettings, setShowSettings] = useState(false);
+  const [expandedInspections, setExpandedInspections] = useState({});
   const [settingsForm, setSettingsForm] = useState({
     metodo_calcolo: 'media',
     punteggio_pulito: 100,
     punteggio_sporco: 0,
+    punteggio_risposta_corretta: 100,
+    punteggio_risposta_errata: 0,
     pesi_domande: {},
     note: ''
   });
@@ -69,6 +75,11 @@ export default function ValutazionePulizie() {
     queryFn: () => base44.entities.PulizieConfig.list(),
   });
 
+  const { data: domande = [] } = useQuery({
+    queryKey: ['domande-pulizia'],
+    queryFn: () => base44.entities.DomandaPulizia.list(),
+  });
+
   const activeConfig = configs.find(c => c.is_active) || null;
 
   const createConfigMutation = useMutation({
@@ -95,30 +106,41 @@ export default function ValutazionePulizie() {
     const config = activeConfig || {
       metodo_calcolo: 'media',
       punteggio_pulito: 100,
-      punteggio_sporco: 0
+      punteggio_sporco: 0,
+      punteggio_risposta_corretta: 100,
+      punteggio_risposta_errata: 0
     };
-
-    const fotoDomande = inspection.domande_risposte.filter(d => d.tipo_controllo === 'foto');
-    
-    if (fotoDomande.length === 0) return 0;
 
     let totalScore = 0;
     let totalWeight = 0;
 
-    fotoDomande.forEach(domanda => {
-      // Get AI status from inspection fields
-      const attrezzatura = domanda.attrezzatura?.toLowerCase().replace(/\s+/g, '_');
-      const statusField = `${attrezzatura}_pulizia_status`;
-      const correctedField = `${attrezzatura}_corrected_status`;
-      
-      let status = inspection[correctedField] || inspection[statusField];
-      
-      // Calculate score based on status
+    inspection.domande_risposte.forEach(domanda => {
       let score = 0;
-      if (status === 'pulito') {
-        score = config.punteggio_pulito;
-      } else if (status === 'sporco') {
-        score = config.punteggio_sporco;
+      
+      if (domanda.tipo_controllo === 'foto') {
+        // Get AI status from inspection fields
+        const attrezzatura = domanda.attrezzatura?.toLowerCase().replace(/\s+/g, '_');
+        const statusField = `${attrezzatura}_pulizia_status`;
+        const correctedField = `${attrezzatura}_corrected_status`;
+        
+        let status = inspection[correctedField] || inspection[statusField];
+        
+        if (status === 'pulito') {
+          score = config.punteggio_pulito;
+        } else if (status === 'sporco') {
+          score = config.punteggio_sporco;
+        }
+      } else if (domanda.tipo_controllo === 'scelta_multipla') {
+        // Find the original question to get the correct answer
+        const originalQuestion = domande.find(d => d.id === domanda.domanda_id);
+        const userAnswer = domanda.risposta?.toLowerCase() || '';
+        const correctAnswer = originalQuestion?.risposta_corretta?.toLowerCase() || '';
+        
+        if (userAnswer === correctAnswer) {
+          score = config.punteggio_risposta_corretta;
+        } else {
+          score = config.punteggio_risposta_errata;
+        }
       }
 
       // Get weight
@@ -143,6 +165,8 @@ export default function ValutazionePulizie() {
         metodo_calcolo: activeConfig.metodo_calcolo,
         punteggio_pulito: activeConfig.punteggio_pulito,
         punteggio_sporco: activeConfig.punteggio_sporco,
+        punteggio_risposta_corretta: activeConfig.punteggio_risposta_corretta || 100,
+        punteggio_risposta_errata: activeConfig.punteggio_risposta_errata || 0,
         pesi_domande: activeConfig.pesi_domande || {},
         note: activeConfig.note || ''
       });
@@ -151,6 +175,8 @@ export default function ValutazionePulizie() {
         metodo_calcolo: 'media',
         punteggio_pulito: 100,
         punteggio_sporco: 0,
+        punteggio_risposta_corretta: 100,
+        punteggio_risposta_errata: 0,
         pesi_domande: {},
         note: ''
       });
@@ -244,13 +270,13 @@ export default function ValutazionePulizie() {
           <div className="flex items-center gap-2 text-blue-700">
             <AlertCircle className="w-5 h-5" />
             <p className="text-sm">
-              <strong>Metodo calcolo attivo:</strong> {
-                activeConfig.metodo_calcolo === 'media' ? 'Media dei punteggi' :
-                activeConfig.metodo_calcolo === 'somma' ? 'Somma dei punteggi' :
+              <strong>Metodo:</strong> {
+                activeConfig.metodo_calcolo === 'media' ? 'Media' :
+                activeConfig.metodo_calcolo === 'somma' ? 'Somma' :
                 'Personalizzato'
               } | 
-              <strong> Pulito: {activeConfig.punteggio_pulito}</strong> | 
-              <strong> Sporco: {activeConfig.punteggio_sporco}</strong>
+              <strong> Foto - Pulito: {activeConfig.punteggio_pulito}, Sporco: {activeConfig.punteggio_sporco}</strong> | 
+              <strong> Scelta Multipla - Corretta: {activeConfig.punteggio_risposta_corretta || 100}, Errata: {activeConfig.punteggio_risposta_errata || 0}</strong>
             </p>
           </div>
         </NeumorphicCard>
@@ -272,16 +298,23 @@ export default function ValutazionePulizie() {
           inspections.map((inspection) => {
             const score = calculateScore(inspection);
             const scoreColor = score >= 80 ? 'text-green-600' : score >= 50 ? 'text-orange-600' : 'text-red-600';
+            const isExpanded = expandedInspections[inspection.id];
             
             return (
               <NeumorphicCard key={inspection.id} className="p-6">
-                <div className="flex items-start justify-between">
+                <div 
+                  className="flex items-start justify-between cursor-pointer"
+                  onClick={() => setExpandedInspections(prev => ({
+                    ...prev,
+                    [inspection.id]: !prev[inspection.id]
+                  }))}
+                >
                   <div className="flex-1">
-                    <div className="flex items-center gap-4 mb-3">
+                    <div className="flex items-center gap-4">
                       <div className={`text-3xl font-bold ${scoreColor}`}>
                         {score}%
                       </div>
-                      <div>
+                      <div className="flex-1">
                         <h3 className="text-lg font-bold text-[#6b6b6b]">{inspection.store_name}</h3>
                         <div className="flex items-center gap-4 text-sm text-[#9b9b9b] mt-1">
                           <div className="flex items-center gap-1">
@@ -295,40 +328,9 @@ export default function ValutazionePulizie() {
                         </div>
                       </div>
                     </div>
-
-                    {/* Questions Results */}
-                    <div className="space-y-2 mt-4">
-                      {inspection.domande_risposte?.filter(d => d.tipo_controllo === 'foto').map((domanda, idx) => {
-                        const attrezzatura = domanda.attrezzatura?.toLowerCase().replace(/\s+/g, '_');
-                        const statusField = `${attrezzatura}_pulizia_status`;
-                        const correctedField = `${attrezzatura}_corrected_status`;
-                        const status = inspection[correctedField] || inspection[statusField];
-                        
-                        return (
-                          <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-slate-50">
-                            <span className="text-sm text-[#6b6b6b]">{domanda.attrezzatura}</span>
-                            <div className="flex items-center gap-2">
-                              {status === 'pulito' ? (
-                                <>
-                                  <CheckCircle className="w-5 h-5 text-green-600" />
-                                  <span className="text-sm font-medium text-green-600">Pulito</span>
-                                </>
-                              ) : status === 'sporco' ? (
-                                <>
-                                  <XCircle className="w-5 h-5 text-red-600" />
-                                  <span className="text-sm font-medium text-red-600">Sporco</span>
-                                </>
-                              ) : (
-                                <span className="text-sm text-[#9b9b9b]">Non valutato</span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
                   </div>
 
-                  <div className="ml-4">
+                  <div className="flex items-center gap-3 ml-4">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                       inspection.inspector_role === 'Pizzaiolo' ? 'bg-orange-100 text-orange-700' :
                       inspection.inspector_role === 'Cassiere' ? 'bg-blue-100 text-blue-700' :
@@ -336,8 +338,117 @@ export default function ValutazionePulizie() {
                     }`}>
                       {inspection.inspector_role}
                     </span>
+                    {isExpanded ? (
+                      <ChevronDown className="w-5 h-5 text-[#9b9b9b]" />
+                    ) : (
+                      <ChevronRight className="w-5 h-5 text-[#9b9b9b]" />
+                    )}
                   </div>
                 </div>
+
+                {/* Expanded Details */}
+                {isExpanded && (
+                  <div className="mt-6 space-y-4 pt-4 border-t border-slate-200">
+                    {/* Photo Questions */}
+                    {inspection.domande_risposte?.filter(d => d.tipo_controllo === 'foto').length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-bold text-[#6b6b6b] mb-3 flex items-center gap-2">
+                          <Image className="w-4 h-4" />
+                          Controlli Foto
+                        </h4>
+                        <div className="space-y-2">
+                          {inspection.domande_risposte.filter(d => d.tipo_controllo === 'foto').map((domanda, idx) => {
+                            const attrezzatura = domanda.attrezzatura?.toLowerCase().replace(/\s+/g, '_');
+                            const statusField = `${attrezzatura}_pulizia_status`;
+                            const correctedField = `${attrezzatura}_corrected_status`;
+                            const noteField = `${attrezzatura}_note_ai`;
+                            const status = inspection[correctedField] || inspection[statusField];
+                            const note = inspection[noteField];
+                            
+                            return (
+                              <div key={idx} className="neumorphic-pressed p-4 rounded-lg">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="font-medium text-[#6b6b6b]">{domanda.attrezzatura}</span>
+                                  <div className="flex items-center gap-2">
+                                    {status === 'pulito' ? (
+                                      <>
+                                        <CheckCircle className="w-5 h-5 text-green-600" />
+                                        <span className="text-sm font-medium text-green-600">Pulito</span>
+                                      </>
+                                    ) : status === 'sporco' ? (
+                                      <>
+                                        <XCircle className="w-5 h-5 text-red-600" />
+                                        <span className="text-sm font-medium text-red-600">Sporco</span>
+                                      </>
+                                    ) : (
+                                      <span className="text-sm text-[#9b9b9b]">Non valutato</span>
+                                    )}
+                                  </div>
+                                </div>
+                                {domanda.risposta && (
+                                  <img 
+                                    src={domanda.risposta} 
+                                    alt={domanda.attrezzatura}
+                                    className="w-full h-48 object-cover rounded-lg mb-2"
+                                  />
+                                )}
+                                {note && (
+                                  <p className="text-xs text-[#9b9b9b] mt-2">
+                                    <strong>Note AI:</strong> {note}
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Multiple Choice Questions */}
+                    {inspection.domande_risposte?.filter(d => d.tipo_controllo === 'scelta_multipla').length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-bold text-[#6b6b6b] mb-3 flex items-center gap-2">
+                          <ClipboardCheck className="w-4 h-4" />
+                          Domande a Scelta Multipla
+                        </h4>
+                        <div className="space-y-2">
+                          {inspection.domande_risposte.filter(d => d.tipo_controllo === 'scelta_multipla').map((domanda, idx) => {
+                            const originalQuestion = domande.find(d => d.id === domanda.domanda_id);
+                            const isCorrect = domanda.risposta?.toLowerCase() === originalQuestion?.risposta_corretta?.toLowerCase();
+                            
+                            return (
+                              <div key={idx} className="neumorphic-pressed p-4 rounded-lg">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium text-[#6b6b6b] mb-2">
+                                      {domanda.domanda_testo}
+                                    </p>
+                                    <p className="text-sm text-[#9b9b9b]">
+                                      <strong>Risposta:</strong> {domanda.risposta}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {isCorrect ? (
+                                      <>
+                                        <CheckCircle className="w-5 h-5 text-green-600" />
+                                        <span className="text-sm font-medium text-green-600">Corretta</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <XCircle className="w-5 h-5 text-red-600" />
+                                        <span className="text-sm font-medium text-red-600">Errata</span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </NeumorphicCard>
             );
           })
@@ -379,29 +490,61 @@ export default function ValutazionePulizie() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                    Punteggio "Pulito"
-                  </label>
-                  <input
-                    type="number"
-                    value={settingsForm.punteggio_pulito}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, punteggio_pulito: parseInt(e.target.value) || 0 })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                  />
-                </div>
+              <div>
+                <h3 className="text-lg font-bold text-[#6b6b6b] mb-3">Punteggi Domande Foto</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                      Punteggio "Pulito"
+                    </label>
+                    <input
+                      type="number"
+                      value={settingsForm.punteggio_pulito}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, punteggio_pulito: parseInt(e.target.value) || 0 })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                    />
+                  </div>
 
-                <div>
-                  <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                    Punteggio "Sporco"
-                  </label>
-                  <input
-                    type="number"
-                    value={settingsForm.punteggio_sporco}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, punteggio_sporco: parseInt(e.target.value) || 0 })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                  />
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                      Punteggio "Sporco"
+                    </label>
+                    <input
+                      type="number"
+                      value={settingsForm.punteggio_sporco}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, punteggio_sporco: parseInt(e.target.value) || 0 })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-bold text-[#6b6b6b] mb-3">Punteggi Scelta Multipla</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                      Risposta Corretta
+                    </label>
+                    <input
+                      type="number"
+                      value={settingsForm.punteggio_risposta_corretta}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, punteggio_risposta_corretta: parseInt(e.target.value) || 0 })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                      Risposta Errata
+                    </label>
+                    <input
+                      type="number"
+                      value={settingsForm.punteggio_risposta_errata}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, punteggio_risposta_errata: parseInt(e.target.value) || 0 })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                    />
+                  </div>
                 </div>
               </div>
 
