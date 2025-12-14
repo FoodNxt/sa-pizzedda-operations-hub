@@ -471,7 +471,7 @@ export default function AssignReviews() {
                         <div key={`${review.id}-${match.employee_name}-${idx}`} className="neumorphic-flat p-3 rounded-lg">
                           <div className="mb-2">
                             <p className="font-medium text-[#6b6b6b] text-sm">{match.employee_name}</p>
-                            <p className="text-xs text-[#9b9b9b]">{match.shift.employee_group_name || 'N/A'}</p>
+                            <p className="text-xs text-[#9b9b9b]">{match.turno.ruolo || 'N/A'}</p>
                           </div>
                           
                           <div className="text-xs text-[#9b9b9b] space-y-1">
