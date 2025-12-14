@@ -183,6 +183,7 @@ export default function ControlloPuliziaStoreManager() {
           domanda_id: d.id,
           domanda_testo: d.domanda_testo || (d.tipo_controllo === 'foto' ? `Foto: ${d.attrezzatura}` : d.testo_domanda),
           tipo_controllo: d.tipo_controllo,
+          tipo_controllo_ai: d.tipo_controllo_ai,
           risposta: d.tipo_controllo === 'foto' ? uploadedUrls[d.id] : risposte[d.id],
           attrezzatura: d.attrezzatura,
           prompt_ai: d.prompt_ai
