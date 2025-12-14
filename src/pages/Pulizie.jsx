@@ -293,6 +293,44 @@ export default function Pulizie() {
   });
 
   // Mutation for saving corrections
+  const reanalyzeMutation = useMutation({
+    mutationFn: async ({ foto_url, equipmentKey, inspectionId, domanda }) => {
+      // Call AI analysis for this specific photo
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: domanda?.prompt_ai || `Analizza questa foto di attrezzatura in una pizzeria e valuta lo stato di pulizia.
+
+Rispondi in formato JSON con questa struttura esatta:
+{
+  "pulizia_status": "pulito" | "medio" | "sporco" | "non_valutabile",
+  "note": "Descrizione dettagliata dello stato di pulizia, specifica ESATTAMENTE dove si trova lo sporco",
+  "problemi_critici": ["lista", "di", "problemi"] oppure []
+}
+
+IMPORTANTE: Nelle note, specifica sempre la POSIZIONE ESATTA dello sporco.`,
+        file_urls: [foto_url],
+        response_json_schema: {
+          type: "object",
+          properties: {
+            pulizia_status: { type: "string" },
+            note: { type: "string" },
+            problemi_critici: { type: "array", items: { type: "string" } }
+          }
+        }
+      });
+
+      // Update inspection with new analysis
+      await base44.entities.CleaningInspection.update(inspectionId, {
+        [`${equipmentKey}_pulizia_status`]: response.pulizia_status,
+        [`${equipmentKey}_note_ai`]: response.note
+      });
+
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cleaningInspections'] });
+    },
+  });
+
   const saveCorrectionMutation = useMutation({
     mutationFn: async ({ inspectionId, equipmentKey, correctedStatus, correctionNote }) => {
       // Get the current inspection to recalculate overall score
@@ -1588,7 +1626,23 @@ export default function Pulizie() {
                   </h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {fotoPerAttrezzatura.get(selectedAttrezzatura).map((foto, idx) => (
+                    {fotoPerAttrezzatura.get(selectedAttrezzatura).map((foto, idx) => {
+                      // Find inspection and equipment key for this photo
+                      const inspection = inspections.find(i => 
+                        i.inspection_date === foto.inspection_date && 
+                        i.store_name === foto.store_name
+                      );
+                      
+                      const domanda = inspection?.domande_risposte?.find(r => r.risposta === foto.foto_url);
+                      
+                      let equipmentKey;
+                      if (domanda?.attrezzatura) {
+                        equipmentKey = domanda.attrezzatura.toLowerCase().replace(/\s+/g, '_');
+                      } else if (domanda?.domanda_id) {
+                        equipmentKey = `domanda_${domanda.domanda_id}`;
+                      }
+
+                      return (
                       <div key={idx} className="neumorphic-flat p-4 rounded-xl">
                         {/* Photo */}
                         <div className="neumorphic-pressed p-2 rounded-lg mb-3">
@@ -1608,6 +1662,36 @@ export default function Pulizie() {
                           )}
                         </div>
 
+                        {/* Reanalyze Button for non_valutabile */}
+                        {foto.voto === 'non_valutabile' && inspection && equipmentKey && (
+                          <button
+                            onClick={() => {
+                              if (confirm('Rianalizzare questa foto con l\'AI?')) {
+                                reanalyzeMutation.mutate({
+                                  foto_url: foto.foto_url,
+                                  equipmentKey: equipmentKey,
+                                  inspectionId: inspection.id,
+                                  domanda: domanda
+                                });
+                              }
+                            }}
+                            disabled={reanalyzeMutation.isPending}
+                            className="w-full neumorphic-flat px-3 py-2 rounded-lg text-orange-700 hover:text-orange-800 font-medium transition-colors flex items-center justify-center gap-2 mb-2"
+                          >
+                            {reanalyzeMutation.isPending ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Rianalisi...
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="w-4 h-4" />
+                                Rianalizza
+                              </>
+                            )}
+                          </button>
+                        )}
+
                         {/* Info */}
                         <div className="space-y-1 text-xs text-[#9b9b9b]">
                           <p className="flex items-center gap-1">
@@ -1626,14 +1710,20 @@ export default function Pulizie() {
                           )}
                         </div>
 
-                        {/* AI Notes */}
+                        {/* AI Notes / Error Reason */}
                         {foto.note && (
-                          <div className="mt-3 neumorphic-pressed p-2 rounded-lg bg-slate-50">
+                          <div className={`mt-3 neumorphic-pressed p-2 rounded-lg ${
+                            foto.voto === 'non_valutabile' ? 'bg-orange-50 border border-orange-200' : 'bg-slate-50'
+                          }`}>
+                            {foto.voto === 'non_valutabile' && (
+                              <p className="text-xs font-bold text-orange-700 mb-1">Motivo:</p>
+                            )}
                             <p className="text-xs text-slate-600 line-clamp-3">{foto.note}</p>
                           </div>
                         )}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               ) : (
