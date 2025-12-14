@@ -574,14 +574,14 @@ export default function Pulizie() {
                     </div>
                   </div>
 
-                  <div className="text-right">
+                  <div className="flex items-center gap-2">
                     {inspection.analysis_status === 'completed' ? (
-                      <>
+                      <div className="text-right">
                         <div className={`text-3xl font-bold mb-1 ${getOverallStatusColor(inspection.overall_score)}`}>
                           {inspection.overall_score || 0}%
                         </div>
                         <p className="text-xs text-[#9b9b9b]">Punteggio Globale</p>
-                      </>
+                      </div>
                     ) : inspection.analysis_status === 'processing' ? (
                       <div className="text-sm text-blue-600 flex items-center gap-2">
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -592,6 +592,20 @@ export default function Pulizie() {
                         Errore analisi
                       </div>
                     )}
+                    <button
+                      onClick={() => {
+                        const message = inspection.analysis_status === 'processing' 
+                          ? 'Questa ispezione ha un\'analisi in corso. Vuoi eliminarla comunque?' 
+                          : 'Sei sicuro di voler eliminare questa ispezione?';
+                        if (confirm(message)) {
+                          deleteMutation.mutate(inspection.id);
+                        }
+                      }}
+                      className="neumorphic-flat p-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+                      title="Elimina ispezione"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
                   </div>
                 </div>
 
