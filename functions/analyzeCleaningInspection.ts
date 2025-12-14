@@ -24,7 +24,12 @@ Deno.serve(async (req) => {
             r.risposta.startsWith('http')
         );
 
+        console.log('=== PHOTO ANALYSIS DEBUG ===');
+        console.log(`Total domande_risposte received: ${domande_risposte.length}`);
         console.log(`Found ${fotoQuestions.length} photo questions to analyze`);
+        fotoQuestions.forEach((q, idx) => {
+            console.log(`Photo ${idx + 1}: ${q.domanda_testo || q.attrezzatura || 'Unknown'} - URL: ${q.risposta?.substring(0, 50)}...`);
+        });
 
         // Analyze each photo with AI
         const analysisResults = {};
@@ -165,14 +170,21 @@ Sii molto critico e attento ai dettagli di igiene in una cucina professionale. $
                 updateData[`${equipmentKey}_note_ai`] = aiResponse.note;
                 console.log(`✓ AI analysis successful for ${equipmentKey}:`, aiResponse.pulizia_status);
             } catch (aiError) {
-                console.error(`Error analyzing ${equipmentKey}:`, aiError);
+                console.error(`❌ ERROR analyzing ${equipmentKey}:`, aiError);
+                console.error('Error details:', {
+                    message: aiError.message,
+                    stack: aiError.stack,
+                    url: url,
+                    attrezzatura: attrezzatura
+                });
+                
                 analysisResults[equipmentKey] = {
                     pulizia_status: 'non_valutabile',
-                    note: 'Errore durante l\'analisi: ' + aiError.message,
+                    note: 'Errore durante l\'analisi AI: ' + aiError.message,
                     problemi_critici: []
                 };
                 updateData[`${equipmentKey}_pulizia_status`] = 'non_valutabile';
-                updateData[`${equipmentKey}_note_ai`] = 'Errore: ' + aiError.message;
+                updateData[`${equipmentKey}_note_ai`] = 'Errore AI: ' + aiError.message;
             }
         }
 
@@ -215,12 +227,20 @@ Sii molto critico e attento ai dettagli di igiene in una cucina professionale. $
         updateData.overall_score = overallScore;
         updateData.critical_issues = allCriticalIssues.length > 0 ? allCriticalIssues.join('; ') : null;
 
+        console.log('=== FINAL UPDATE DATA ===');
+        console.log(`Analysis results count: ${Object.keys(analysisResults).length}`);
+        console.log(`Overall score: ${overallScore}`);
+        console.log('Update data keys:', Object.keys(updateData));
+
         await base44.asServiceRole.entities.CleaningInspection.update(inspection_id, updateData);
+
+        console.log('✅ Inspection updated successfully');
 
         return Response.json({
             success: true,
             inspection_id,
             overall_score: overallScore,
+            photos_analyzed: Object.keys(analysisResults).length,
             analysis_results: analysisResults,
             learned_from_corrections: correctionsHistory.length
         }, { status: 200 });
