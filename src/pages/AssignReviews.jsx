@@ -293,6 +293,16 @@ export default function AssignReviews() {
     setEditForm(review.employee_assigned_name || '');
   };
 
+  // Initialize config form when opening settings
+  useEffect(() => {
+    if (showSettings) {
+      setConfigForm({
+        tipi_turno_inclusi: activeConfig.tipi_turno_inclusi || ['Normale'],
+        ruoli_esclusi: activeConfig.ruoli_esclusi || ['Preparazioni', 'Volantinaggio']
+      });
+    }
+  }, [showSettings, activeConfig]);
+
   const handleSaveEdit = async () => {
     if (!editForm.trim()) {
       alert('Inserisci un nome dipendente valido');
@@ -446,7 +456,7 @@ export default function AssignReviews() {
 
                     {review.isAssigned && (
                       <div className="neumorphic-flat px-4 py-2 rounded-lg">
-                        <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center justify-between gap-3 mb-2">
                           <div className="flex items-center gap-2">
                             <CheckCircle className="w-4 h-4 text-green-600" />
                             <span className="text-sm font-medium text-green-600">Assegnata</span>
@@ -454,19 +464,21 @@ export default function AssignReviews() {
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => handleEditReview(review)}
-                              className="text-xs text-blue-600 hover:text-blue-700"
+                              className="neumorphic-flat p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                              title="Modifica assegnazione"
                             >
-                              <Edit className="w-3 h-3" />
+                              <Edit className="w-4 h-4 text-blue-600" />
                             </button>
                             <button
                               onClick={() => handleUnassignReview(review.id)}
-                              className="text-xs text-red-600 hover:text-red-700"
+                              className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+                              title="Rimuovi assegnazione"
                             >
-                              Rimuovi
+                              <X className="w-4 h-4 text-red-600" />
                             </button>
                           </div>
                         </div>
-                        <p className="text-xs text-[#6b6b6b] font-medium">{review.employee_assigned_name}</p>
+                        <p className="text-sm text-[#6b6b6b] font-medium">{review.employee_assigned_name}</p>
                         {review.assignment_confidence && (
                           <p className={`text-xs mt-1 px-2 py-1 rounded inline-block ${getConfidenceColor(review.assignment_confidence)}`}>
                             {review.assignment_confidence}
