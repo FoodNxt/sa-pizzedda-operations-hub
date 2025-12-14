@@ -355,11 +355,12 @@ Rispondi in formato JSON:
 
   const manualEvalMutation = useMutation({
     mutationFn: async ({ inspectionId, equipmentKey, status, note }) => {
-      // Get inspection to recalculate score
-      const inspection = inspections.find(i => i.id === inspectionId);
+      // Get fresh inspection data
+      const inspection = await base44.entities.CleaningInspection.filter({ id: inspectionId });
+      const currentInspection = inspection[0];
       
       // Recalculate overall score
-      const photoQuestions = inspection.domande_risposte?.filter(r => 
+      const photoQuestions = currentInspection.domande_risposte?.filter(r => 
         r.risposta && typeof r.risposta === 'string' && r.risposta.startsWith('http')
       ) || [];
       
@@ -380,9 +381,9 @@ Rispondi in formato JSON:
         
         const currentStatus = eqKey === equipmentKey 
           ? status 
-          : (inspection[`${eqKey}_corrected`] 
-              ? inspection[`${eqKey}_corrected_status`]
-              : inspection[`${eqKey}_pulizia_status`]);
+          : (currentInspection[`${eqKey}_corrected`] 
+              ? currentInspection[`${eqKey}_corrected_status`]
+              : currentInspection[`${eqKey}_pulizia_status`]);
         
         if (currentStatus) {
           allScores.push(statusScores[currentStatus] || 50);
@@ -390,7 +391,7 @@ Rispondi in formato JSON:
       });
       
       // Add scores from multiple choice
-      inspection.domande_risposte?.forEach(q => {
+      currentInspection.domande_risposte?.forEach(q => {
         if (q.tipo_controllo === 'scelta_multipla' && q.risposta) {
           const risposta = q.risposta.toLowerCase();
           if (risposta.includes('pulito') || risposta.includes('tutti_con_etichette') || risposta.includes('piu_di_40')) {
@@ -410,16 +411,21 @@ Rispondi in formato JSON:
       await base44.entities.CleaningInspection.update(inspectionId, {
         [`${equipmentKey}_pulizia_status`]: status,
         [`${equipmentKey}_note_ai`]: `Valutazione manuale: ${note || 'Nessuna nota aggiunta'}`,
-        [`${equipmentKey}_corrected`]: true,
-        [`${equipmentKey}_corrected_status`]: status,
-        [`${equipmentKey}_correction_note`]: 'Valutato manualmente (AI non disponibile)',
-        has_corrections: true,
+        [`${equipmentKey}_corrected`]: false,
+        [`${equipmentKey}_corrected_status`]: null,
+        [`${equipmentKey}_correction_note`]: null,
+        has_corrections: false,
         overall_score: newOverallScore
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cleaningInspections'] });
       setManualEvaluating(null);
+      if (detailsModalInspection) {
+        base44.entities.CleaningInspection.filter({ id: detailsModalInspection.id }).then(result => {
+          setDetailsModalInspection(result[0]);
+        });
+      }
     },
   });
 
