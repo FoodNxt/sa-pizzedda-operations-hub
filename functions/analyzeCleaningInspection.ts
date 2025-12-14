@@ -24,6 +24,8 @@ Deno.serve(async (req) => {
             r.risposta.startsWith('http')
         );
 
+        console.log(`Found ${fotoQuestions.length} photo questions to analyze`);
+
         // Analyze each photo with AI
         const analysisResults = {};
         const updateData = {
@@ -43,20 +45,20 @@ Deno.serve(async (req) => {
             }
             
             // Generate equipment key for storing results
-            // Use attrezzatura if available, otherwise use domanda_id, otherwise use domanda_testo
+            // ALWAYS generate a key - use attrezzatura, domanda_id, or domanda_testo
             let equipmentKey;
-            if (attrezzatura) {
+            if (attrezzatura && attrezzatura.trim()) {
                 equipmentKey = attrezzatura.toLowerCase().replace(/\s+/g, '_');
-            } else if (domandaId) {
-                equipmentKey = `domanda_${domandaId}`;
-            } else if (question.domanda_testo) {
+            } else if (domandaId && domandaId.trim()) {
+                equipmentKey = `domanda_${domandaId.replace(/[^a-z0-9]/gi, '_')}`;
+            } else if (question.domanda_testo && question.domanda_testo.trim()) {
                 equipmentKey = question.domanda_testo.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 50);
             } else {
-                console.log('Skipping question - cannot generate equipment key:', question);
-                continue;
+                // Last resort: use question index
+                equipmentKey = `foto_${fotoQuestions.indexOf(question)}`;
             }
             
-            console.log(`Processing question with key: ${equipmentKey}`);
+            console.log(`Processing question with key: ${equipmentKey}, attrezzatura: ${attrezzatura || 'N/A'}`);
             
             // BUILD LEARNING EXAMPLES FROM CORRECTIONS
             const relevantCorrections = correctionsHistory
@@ -144,13 +146,35 @@ Sii molto critico e attento ai dettagli di igiene in una cucina professionale. $
             }
         }
 
-        // Calculate overall score (only from analyzed photos)
+        // Calculate overall score from ALL questions (photos + multiple choice)
         const statusScores = { pulito: 100, medio: 50, sporco: 0, non_valutabile: 50 };
-        const analyzedKeys = Object.keys(analysisResults);
-        const scores = analyzedKeys.map(key => statusScores[analysisResults[key]?.pulizia_status] || 50);
-        const overallScore = scores.length > 0 
-            ? Math.round(scores.reduce((sum, s) => sum + s, 0) / scores.length)
+        const allScores = [];
+        
+        // Add scores from analyzed photos
+        Object.keys(analysisResults).forEach(key => {
+            const status = analysisResults[key]?.pulizia_status;
+            allScores.push(statusScores[status] || 50);
+        });
+        
+        // Add scores from multiple choice questions
+        domande_risposte.forEach(q => {
+            if (q.tipo_controllo === 'scelta_multipla' && q.risposta) {
+                const risposta = q.risposta.toLowerCase();
+                if (risposta.includes('pulito') || risposta.includes('tutti_con_etichette') || risposta.includes('piu_di_40')) {
+                    allScores.push(100);
+                } else if (risposta.includes('da_migliorare') || risposta.includes('alcuni_senza_etichette')) {
+                    allScores.push(50);
+                } else if (risposta.includes('sporco') || risposta.includes('nessuno_con_etichette') || risposta.includes('meno_di_40') || risposta.includes('nessun_cartone')) {
+                    allScores.push(0);
+                }
+            }
+        });
+        
+        const overallScore = allScores.length > 0 
+            ? Math.round(allScores.reduce((sum, s) => sum + s, 0) / allScores.length)
             : 0;
+        
+        console.log(`Calculated overall score: ${overallScore} from ${allScores.length} questions`);
 
         // Collect critical issues
         const allCriticalIssues = analyzedKeys
