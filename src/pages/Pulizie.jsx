@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createPageUrl } from "@/utils";
 import { Link } from "react-router-dom";
-import { Sparkles, Camera, Calendar, Store, CheckCircle, AlertTriangle, XCircle, Plus, ChevronRight, X, Loader2, Edit, Save, TrendingUp, ClipboardCheck, Users, Clock, Settings, Eye, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { Sparkles, Camera, Calendar, Store, CheckCircle, AlertTriangle, XCircle, Plus, ChevronRight, X, Loader2, Edit, Save, TrendingUp, ClipboardCheck, Users, Clock, Settings, Eye, ChevronDown, ChevronUp, Trash2, Images } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { format, parseISO, subDays } from 'date-fns';
@@ -19,6 +19,8 @@ export default function Pulizie() {
   const [correctingEquipment, setCorrectingEquipment] = useState(null);
   const [correctionData, setCorrectionData] = useState({});
   const [expandedLocale, setExpandedLocale] = useState({});
+  const [showFotoAttrezzature, setShowFotoAttrezzature] = useState(false);
+  const [selectedAttrezzatura, setSelectedAttrezzatura] = useState('');
 
   const queryClient = useQueryClient();
 
@@ -384,6 +386,57 @@ export default function Pulizie() {
     }
   };
 
+  // Get all photos organized by equipment
+  const fotoPerAttrezzatura = useMemo(() => {
+    const photoMap = new Map();
+    
+    inspections.filter(i => i.analysis_status === 'completed').forEach(inspection => {
+      if (!inspection.domande_risposte) return;
+      
+      inspection.domande_risposte
+        .filter(r => r.tipo_controllo === 'foto' && r.risposta && typeof r.risposta === 'string' && r.risposta.startsWith('http'))
+        .forEach((risposta, idx) => {
+          const attrezzatura = risposta.attrezzatura || risposta.domanda_testo || `Foto ${idx + 1}`;
+          
+          // Generate equipment key
+          let equipmentKey;
+          if (risposta.attrezzatura) {
+            equipmentKey = risposta.attrezzatura.toLowerCase().replace(/\s+/g, '_');
+          } else if (risposta.domanda_id) {
+            equipmentKey = `domanda_${risposta.domanda_id}`;
+          } else if (risposta.domanda_testo) {
+            equipmentKey = risposta.domanda_testo.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 50);
+          } else {
+            equipmentKey = `foto_${idx}`;
+          }
+          
+          const aiStatus = inspection[`${equipmentKey}_pulizia_status`];
+          const aiNotes = inspection[`${equipmentKey}_note_ai`];
+          const isCorrected = inspection[`${equipmentKey}_corrected`];
+          const correctedStatus = inspection[`${equipmentKey}_corrected_status`];
+          const displayStatus = isCorrected ? correctedStatus : aiStatus;
+          
+          if (!photoMap.has(attrezzatura)) {
+            photoMap.set(attrezzatura, []);
+          }
+          
+          photoMap.get(attrezzatura).push({
+            foto_url: risposta.risposta,
+            voto: displayStatus || 'non_valutabile',
+            note: aiNotes,
+            store_name: inspection.store_name,
+            inspection_date: inspection.inspection_date,
+            inspector_name: inspection.inspector_name,
+            isCorrected
+          });
+        });
+    });
+    
+    return photoMap;
+  }, [inspections]);
+
+  const attrezzatureDisponibili = Array.from(fotoPerAttrezzatura.keys()).sort();
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -392,12 +445,21 @@ export default function Pulizie() {
           <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Storico Pulizie</h1>
           <p className="text-[#9b9b9b]">Sistema di ispezione con analisi AI</p>
         </div>
-        <Link to={createPageUrl('FotoLocale')}>
-          <NeumorphicButton variant="primary" className="flex items-center gap-2">
-            <Camera className="w-5 h-5" />
-            Nuova Ispezione
+        <div className="flex gap-3">
+          <NeumorphicButton 
+            onClick={() => setShowFotoAttrezzature(true)}
+            className="flex items-center gap-2"
+          >
+            <Images className="w-5 h-5" />
+            Foto Attrezzature
           </NeumorphicButton>
-        </Link>
+          <Link to={createPageUrl('FotoLocale')}>
+            <NeumorphicButton variant="primary" className="flex items-center gap-2">
+              <Camera className="w-5 h-5" />
+              Nuova Ispezione
+            </NeumorphicButton>
+          </Link>
+        </div>
       </div>
 
       {/* View Toggle */}
@@ -1472,6 +1534,117 @@ export default function Pulizie() {
             </div>
           </NeumorphicCard>
         </>
+      )}
+
+      {/* Modal Foto Attrezzature */}
+      {showFotoAttrezzature && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="max-w-6xl w-full max-h-[95vh] overflow-y-auto">
+            <NeumorphicCard className="p-6">
+              {/* Header */}
+              <div className="flex items-start justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-[#6b6b6b] mb-1 flex items-center gap-2">
+                    <Images className="w-7 h-7 text-[#8b7355]" />
+                    Foto Attrezzature
+                  </h2>
+                  <p className="text-[#9b9b9b]">Vedi tutte le foto e voti per ogni attrezzatura</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowFotoAttrezzature(false);
+                    setSelectedAttrezzatura('');
+                  }}
+                  className="neumorphic-flat p-2 rounded-lg text-[#6b6b6b] hover:text-red-600 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Attrezzatura Selector */}
+              <div className="mb-6">
+                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                  Seleziona Attrezzatura
+                </label>
+                <select
+                  value={selectedAttrezzatura}
+                  onChange={(e) => setSelectedAttrezzatura(e.target.value)}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                >
+                  <option value="">-- Seleziona un'attrezzatura --</option>
+                  {attrezzatureDisponibili.map(attr => (
+                    <option key={attr} value={attr}>
+                      {attr} ({fotoPerAttrezzatura.get(attr).length} foto)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Photos Grid */}
+              {selectedAttrezzatura ? (
+                <div>
+                  <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">
+                    {selectedAttrezzatura} - {fotoPerAttrezzatura.get(selectedAttrezzatura).length} foto totali
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {fotoPerAttrezzatura.get(selectedAttrezzatura).map((foto, idx) => (
+                      <div key={idx} className="neumorphic-flat p-4 rounded-xl">
+                        {/* Photo */}
+                        <div className="neumorphic-pressed p-2 rounded-lg mb-3">
+                          <img
+                            src={foto.foto_url}
+                            alt={selectedAttrezzatura}
+                            className="w-full h-48 object-cover rounded-lg"
+                          />
+                        </div>
+
+                        {/* Voto */}
+                        <div className={`flex items-center justify-between px-3 py-2 rounded-lg border-2 mb-2 ${getStatusColor(foto.voto)}`}>
+                          {getStatusIcon(foto.voto)}
+                          <span className="font-bold capitalize">{foto.voto}</span>
+                          {foto.isCorrected && (
+                            <span className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">Corretto</span>
+                          )}
+                        </div>
+
+                        {/* Info */}
+                        <div className="space-y-1 text-xs text-[#9b9b9b]">
+                          <p className="flex items-center gap-1">
+                            <Store className="w-3 h-3" />
+                            {foto.store_name}
+                          </p>
+                          <p className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {format(new Date(foto.inspection_date), 'dd MMM yyyy HH:mm', { locale: it })}
+                          </p>
+                          {foto.inspector_name && (
+                            <p className="flex items-center gap-1">
+                              <Users className="w-3 h-3" />
+                              {foto.inspector_name}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* AI Notes */}
+                        {foto.note && (
+                          <div className="mt-3 neumorphic-pressed p-2 rounded-lg bg-slate-50">
+                            <p className="text-xs text-slate-600 line-clamp-3">{foto.note}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <Images className="w-16 h-16 text-[#9b9b9b] opacity-50 mx-auto mb-4" />
+                  <p className="text-[#9b9b9b]">Seleziona un'attrezzatura per vedere le foto</p>
+                </div>
+              )}
+            </NeumorphicCard>
+          </div>
+        </div>
       )}
     </div>
   );
