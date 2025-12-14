@@ -279,6 +279,11 @@ const navigationStructure = [
     requiredUserType: ["admin", "manager"],
     items: [
       {
+        title: "Valutazione Pulizie",
+        url: createPageUrl("ValutazionePulizie"),
+        icon: ClipboardCheck,
+      },
+      {
         title: "Form Pulizia",
         url: createPageUrl("FormPulizia"),
         icon: Camera,
