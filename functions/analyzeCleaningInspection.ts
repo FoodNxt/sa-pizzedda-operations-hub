@@ -126,26 +126,35 @@ Esempio ${idx + 1}:
                 // Use prompt from question with learning section if available
                 finalPrompt = learningSection ? `${prompt_ai}\n${learningSection}` : prompt_ai;
             } else {
-                // Use comprehensive default prompt
+                // Use comprehensive default prompt with STRICT rules
                 finalPrompt = `Analizza questa foto di ${attrezzatura || 'attrezzatura'} in una pizzeria e valuta lo stato di pulizia.
 ${learningSection}
 
-Rispondi in formato JSON con questa struttura esatta:
+⚠️ REGOLE CRITICHE - DEVI SEMPRE DARE UN VOTO:
+1. USA "non_valutabile" SOLO in casi ESTREMI: foto completamente nera, totalmente sfocata, attrezzatura completamente invisibile
+2. Se vedi QUALSIASI parte dell'attrezzatura, DEVI dare un voto (pulito/medio/sporco)
+3. Anche se la foto è parziale o leggermente sfocata, valuta ciò che vedi
+4. Se la foto mostra solo una parte dell'attrezzatura, valuta quella parte
+
+Se usi "non_valutabile", SPIEGA DETTAGLIATAMENTE:
+- Cosa vedi esattamente nella foto?
+- Perché è impossibile valutare?
+- Cosa manca per poter dare un voto?
+
+Rispondi in formato JSON:
 {
   "pulizia_status": "pulito" | "medio" | "sporco" | "non_valutabile",
-  "note": "Descrizione dettagliata dello stato di pulizia, specifica ESATTAMENTE dove si trova lo sporco (es. 'angolo in basso a sinistra', 'superficie superiore', 'maniglie', 'bordi laterali', ecc.)",
-  "problemi_critici": ["lista", "di", "problemi"] oppure []
+  "note": "Se VALUTABILE: descrizione dettagliata e POSIZIONE ESATTA dello sporco. Se NON VALUTABILE: spiega ESATTAMENTE perché è impossibile valutare (es: 'Foto completamente nera senza dettagli visibili', 'Attrezzatura completamente fuori dall'inquadratura, si vede solo il pavimento', 'Foto totalmente sfocata, impossibile distinguere qualsiasi dettaglio')",
+  "problemi_critici": []
 }
 
-Criteri di valutazione:
-- "pulito": Attrezzatura perfettamente pulita, senza residui visibili
-- "medio": Presenza di piccoli residui o macchie, ma condizioni accettabili
-- "sporco": Sporco evidente, incrostazioni, residui di cibo, necessita pulizia urgente
-- "non_valutabile": Foto non chiara o non mostra l'attrezzatura
+Criteri:
+- "pulito": Perfettamente pulito, nessun residuo
+- "medio": Piccoli residui o macchie, accettabile
+- "sporco": Sporco evidente, richiede pulizia urgente
+- "non_valutabile": SOLO se davvero impossibile vedere l'attrezzatura
 
-IMPORTANTE: Nelle note, specifica sempre la POSIZIONE ESATTA dello sporco (es. "Residui di farina nell'angolo in alto a destra", "Macchie di unto sulla superficie centrale", "Incrostazioni sul bordo inferiore").
-
-Sii molto critico e attento ai dettagli di igiene in una cucina professionale. ${relevantCorrections.length > 0 ? 'APPLICA GLI INSEGNAMENTI dagli esempi sopra!' : ''}`;
+Sii critico con l'igiene professionale. ${relevantCorrections.length > 0 ? 'APPLICA gli insegnamenti dagli esempi!' : ''}`;
             }
             
             console.log(`Processing photo for ${attrezzatura || equipmentKey} (URL: ${url})`);
