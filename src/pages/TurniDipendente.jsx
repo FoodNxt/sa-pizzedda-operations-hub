@@ -260,14 +260,14 @@ export default function TurniDipendente() {
     enabled: !!currentUser?.id,
   });
 
-  // Turni futuri per scambio
+  // Turni futuri per scambio (include TUTTI i turni futuri, non solo i miei)
   const { data: turniFuturi = [] } = useQuery({
     queryKey: ['turni-futuri', currentUser?.id],
     queryFn: async () => {
       if (!currentUser?.id) return [];
       const oggi = moment().format('YYYY-MM-DD');
+      // Prendi tutti i turni futuri per poter vedere anche quelli dei colleghi nelle richieste di scambio
       return base44.entities.TurnoPlanday.filter({
-        dipendente_id: currentUser.id,
         data: { $gte: oggi }
       });
     },
