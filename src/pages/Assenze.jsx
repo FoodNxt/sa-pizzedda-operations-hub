@@ -445,48 +445,73 @@ export default function Assenze() {
               <p className="text-slate-500 text-center py-8">Nessuna richiesta di malattia</p>
             ) : (
               <div className="space-y-3">
-                {richiesteMalattia.map(request => (
-                  <div key={request.id} className="neumorphic-pressed p-4 rounded-xl">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <User className="w-4 h-4 text-slate-500" />
-                          <span className="font-bold text-slate-800">{request.dipendente_nome}</span>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatoColor(request.stato)}`}>
-                            {getStatoLabel(request.stato)}
-                          </span>
+                {richiesteMalattia.map(request => {
+                  // Trova i turni coinvolti
+                  const turniCoinvolti = allTurni?.filter(t => {
+                    const turnoDate = moment(t.data);
+                    const inizioMalattia = moment(request.data_inizio);
+                    const fineMalattia = request.data_fine ? moment(request.data_fine) : inizioMalattia;
+                    return t.dipendente_id === request.dipendente_id && 
+                           turnoDate.isSameOrAfter(inizioMalattia, 'day') && 
+                           turnoDate.isSameOrBefore(fineMalattia, 'day');
+                  }) || [];
+
+                  return (
+                    <div key={request.id} className="neumorphic-pressed p-4 rounded-xl">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <User className="w-4 h-4 text-slate-500" />
+                            <span className="font-bold text-slate-800">{request.dipendente_nome}</span>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatoColor(request.stato)}`}>
+                              {getStatoLabel(request.stato)}
+                            </span>
+                          </div>
+                          <div className="text-sm text-slate-600 space-y-1">
+                            <p>📅 Dal {moment(request.data_inizio).format('DD/MM/YYYY')} {request.data_fine && `al ${moment(request.data_fine).format('DD/MM/YYYY')}`}</p>
+                            {request.descrizione && <p>💬 {request.descrizione}</p>}
+                            {request.certificato_url && (
+                              <a href={request.certificato_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-xs flex items-center gap-1">
+                                <FileText className="w-3 h-3" /> Vedi Certificato
+                              </a>
+                            )}
+                            
+                            {/* Turni coinvolti */}
+                            {turniCoinvolti.length > 0 && (
+                              <div className="mt-2 p-2 bg-orange-50 rounded-lg border border-orange-200">
+                                <p className="text-xs font-bold text-orange-700 mb-1">Turni coinvolti ({turniCoinvolti.length}):</p>
+                                <div className="space-y-1">
+                                  {turniCoinvolti.map(turno => (
+                                    <div key={turno.id} className="text-xs text-orange-600">
+                                      • {moment(turno.data).format('ddd DD/MM')} - {turno.ora_inizio} - {turno.ora_fine} ({turno.ruolo}) - {getStoreName(turno.store_id)}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div className="text-sm text-slate-600 space-y-1">
-                          <p>📅 Dal {moment(request.data_inizio).format('DD/MM/YYYY')} {request.data_fine && `al ${moment(request.data_fine).format('DD/MM/YYYY')}`}</p>
-                          {request.descrizione && <p>💬 {request.descrizione}</p>}
-                          <p className="text-xs text-slate-400">Turni coinvolti: {request.turni_coinvolti?.length || 0}</p>
-                          {request.certificato_url && (
-                            <a href={request.certificato_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-xs flex items-center gap-1">
-                              <FileText className="w-3 h-3" /> Vedi Certificato
-                            </a>
-                          )}
-                        </div>
+                        
+                        {(request.stato === 'non_certificata' || request.stato === 'in_attesa_verifica') && request.certificato_url && (
+                          <div className="flex flex-col gap-2">
+                            <button
+                              onClick={() => handleVerifyMalattia(request, true)}
+                              className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 flex items-center gap-1"
+                            >
+                              <Check className="w-3 h-3" /> Certifica
+                            </button>
+                            <button
+                              onClick={() => handleVerifyMalattia(request, false)}
+                              className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 flex items-center gap-1"
+                            >
+                              <X className="w-3 h-3" /> Rifiuta
+                            </button>
+                          </div>
+                        )}
                       </div>
-                      
-                      {(request.stato === 'non_certificata' || request.stato === 'in_attesa_verifica') && request.certificato_url && (
-                        <div className="flex flex-col gap-2">
-                          <button
-                            onClick={() => handleVerifyMalattia(request, true)}
-                            className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 flex items-center gap-1"
-                          >
-                            <Check className="w-3 h-3" /> Certifica
-                          </button>
-                          <button
-                            onClick={() => handleVerifyMalattia(request, false)}
-                            className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 flex items-center gap-1"
-                          >
-                            <X className="w-3 h-3" /> Rifiuta
-                          </button>
-                        </div>
-                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </NeumorphicCard>
