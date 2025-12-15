@@ -247,14 +247,13 @@ export default function TurniDipendente() {
     enabled: !!currentUser?.id,
   });
 
-  // Tutti i turni del giorno del turno selezionato (per vedere chi lavora già)
-  const { data: turniGiornoScambio = [] } = useQuery({
-    queryKey: ['turni-giorno-scambio', selectedTurnoScambio?.data, selectedTurnoScambio?.store_id],
+  // Tutti i turni del giorno del turno selezionato (per vedere sovrapposizioni orarie)
+  const { data: tuttiTurniGiornoScambio = [] } = useQuery({
+    queryKey: ['tutti-turni-giorno-scambio', selectedTurnoScambio?.data],
     queryFn: async () => {
       if (!selectedTurnoScambio) return [];
       return base44.entities.TurnoPlanday.filter({
-        data: selectedTurnoScambio.data,
-        store_id: selectedTurnoScambio.store_id
+        data: selectedTurnoScambio.data
       });
     },
     enabled: !!selectedTurnoScambio,
@@ -696,9 +695,27 @@ export default function TurniDipendente() {
     return { canTimbra: true, tipo: 'entrata', reason: null };
   }, [prossimoTurno, storesData, config, userPosition, now]);
 
+  // Helper per controllare sovrapposizione oraria
+  const checkSovrapposizioneOraria = (turno1Inizio, turno1Fine, turno2Inizio, turno2Fine) => {
+    const t1Start = turno1Inizio.replace(':', '');
+    const t1End = turno1Fine.replace(':', '');
+    const t2Start = turno2Inizio.replace(':', '');
+    const t2End = turno2Fine.replace(':', '');
+    
+    // Gestione turni che finiscono dopo mezzanotte
+    const t1FinishesNextDay = parseInt(t1End) < parseInt(t1Start);
+    const t2FinishesNextDay = parseInt(t2End) < parseInt(t2Start);
+    
+    if (!t1FinishesNextDay && !t2FinishesNextDay) {
+      return !(parseInt(t1End) <= parseInt(t2Start) || parseInt(t2End) <= parseInt(t1Start));
+    }
+    
+    return true; // Se uno finisce dopo mezzanotte, consideriamo sovrapposizione per sicurezza
+  };
+
   // Colleghi disponibili per scambio
   const colleghiPerScambio = useMemo(() => {
-    if (!selectedTurnoScambio || !allUsers.length) return [];
+    if (!selectedTurnoScambio || !allUsers.length || !tuttiTurniGiornoScambio.length) return [];
     
     return allUsers
       .filter(u => {
@@ -717,23 +734,37 @@ export default function TurniDipendente() {
       .map(u => {
         const storesAssegnati = u.store_assegnati || [];
         const isAssegnatoStore = storesAssegnati.includes(selectedTurnoScambio.store_id) || storesAssegnati.length === 0;
-        const staGiaLavorando = turniGiornoScambio.some(t => 
-          t.dipendente_id === u.id && t.id !== selectedTurnoScambio.id
+        
+        // Trova TUTTI i turni del dipendente in quel giorno
+        const turniDipendente = tuttiTurniGiornoScambio.filter(t => t.dipendente_id === u.id);
+        
+        // Controlla sovrapposizioni orarie
+        const turniSovrapposti = turniDipendente.filter(t => 
+          checkSovrapposizioneOraria(
+            selectedTurnoScambio.ora_inizio, 
+            selectedTurnoScambio.ora_fine,
+            t.ora_inizio, 
+            t.ora_fine
+          )
         );
+        
+        const haConflitti = turniSovrapposti.length > 0;
         
         return {
           ...u,
           isAssegnatoStore,
-          staGiaLavorando,
-          turnoEsistente: turniGiornoScambio.find(t => t.dipendente_id === u.id && t.id !== selectedTurnoScambio.id)
+          haConflitti,
+          turniSovrapposti,
+          tuttiTurniGiorno: turniDipendente
         };
       })
       .sort((a, b) => {
-        // Prima chi non sta già lavorando
-        if (a.staGiaLavorando !== b.staGiaLavorando) return a.staGiaLavorando ? 1 : -1;
+        // Prima chi non ha conflitti e è assegnato allo store
+        if (a.haConflitti !== b.haConflitti) return a.haConflitti ? 1 : -1;
+        if (a.isAssegnatoStore !== b.isAssegnatoStore) return a.isAssegnatoStore ? -1 : 1;
         return 0;
       });
-  }, [selectedTurnoScambio, allUsers, turniGiornoScambio, currentUser, storesData]);
+  }, [selectedTurnoScambio, allUsers, tuttiTurniGiornoScambio, currentUser]);
 
   const openScambioModal = (turno) => {
     setSelectedTurnoScambio(turno);
@@ -1963,24 +1994,27 @@ export default function TurniDipendente() {
 
               {colleghiPerScambio.length === 0 ? (
                 <p className="text-slate-500 text-center py-4">
-                  Nessun collega disponibile con il ruolo {selectedTurnoScambio.ruolo}
+                  Nessun collega disponibile con il ruolo {selectedTurnoScambio.ruolo} per questo store
                 </p>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {colleghiPerScambio.map(collega => (
                     <div 
                       key={collega.id}
-                      className={`p-3 rounded-xl border cursor-pointer hover:bg-slate-50 transition-colors ${
-                        collega.staGiaLavorando ? 'border-yellow-300 bg-yellow-50' :
-                        !collega.isAssegnatoStore ? 'border-orange-300 bg-orange-50' :
-                        'border-slate-200'
+                      className={`p-4 rounded-xl border transition-all ${
+                        collega.haConflitti ? 'border-red-300 bg-red-50 cursor-not-allowed opacity-60' :
+                        'border-green-300 bg-green-50 cursor-pointer hover:bg-green-100'
                       }`}
-                      onClick={() => richiestaScambioMutation.mutate({ 
-                        turnoId: selectedTurnoScambio.id, 
-                        richiestoA: collega.id 
-                      })}
+                      onClick={() => {
+                        if (!collega.haConflitti) {
+                          richiestaScambioMutation.mutate({ 
+                            turnoId: selectedTurnoScambio.id, 
+                            richiestoA: collega.id 
+                          });
+                        }
+                      }}
                     >
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-start justify-between mb-2">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm">
                             {(collega.nome_cognome || collega.full_name || '?').substring(0, 2).toUpperCase()}
@@ -1991,20 +2025,61 @@ export default function TurniDipendente() {
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-1">
-                          {collega.staGiaLavorando && (
-                            <span className="flex items-center gap-1 text-xs text-yellow-700 bg-yellow-200 px-2 py-0.5 rounded-full">
-                              <AlertTriangle className="w-3 h-3" />
-                              Lavora già ({collega.turnoEsistente?.ora_inizio}-{collega.turnoEsistente?.ora_fine})
+                          {collega.haConflitti ? (
+                            <span className="flex items-center gap-1 text-xs text-red-700 bg-red-200 px-2 py-1 rounded-full font-medium">
+                              <X className="w-3 h-3" />
+                              Non disponibile
                             </span>
-                          )}
-                          {!collega.isAssegnatoStore && (
-                            <span className="flex items-center gap-1 text-xs text-orange-700 bg-orange-200 px-2 py-0.5 rounded-full">
-                              <StoreIcon className="w-3 h-3" />
-                              Non assegnato a questo store
+                          ) : (
+                            <span className="flex items-center gap-1 text-xs text-green-700 bg-green-200 px-2 py-1 rounded-full font-medium">
+                              <Check className="w-3 h-3" />
+                              Disponibile
                             </span>
                           )}
                         </div>
                       </div>
+                      
+                      {/* Mostra turni del collega in quel giorno */}
+                      {collega.tuttiTurniGiorno.length > 0 && (
+                        <div className="mt-2 pt-2 border-t border-slate-200">
+                          <p className="text-xs font-medium text-slate-600 mb-1">Turni del collega in questo giorno:</p>
+                          <div className="space-y-1">
+                            {collega.tuttiTurniGiorno.map(turno => {
+                              const isSovrapposto = collega.turniSovrapposti.some(t => t.id === turno.id);
+                              return (
+                                <div 
+                                  key={turno.id}
+                                  className={`text-xs p-2 rounded-lg flex items-center justify-between ${
+                                    isSovrapposto ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-700'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <Clock className="w-3 h-3" />
+                                    <span>{turno.ora_inizio} - {turno.ora_fine}</span>
+                                    <span>•</span>
+                                    <span>{getStoreName(turno.store_id)}</span>
+                                  </div>
+                                  {isSovrapposto && (
+                                    <span className="flex items-center gap-1 text-xs text-red-600 font-medium">
+                                      <AlertTriangle className="w-3 h-3" />
+                                      Sovrapposto
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {collega.tuttiTurniGiorno.length === 0 && !collega.haConflitti && (
+                        <div className="mt-2 pt-2 border-t border-green-200">
+                          <p className="text-xs text-green-700 flex items-center gap-1">
+                            <CheckCircle className="w-3 h-3" />
+                            Nessun altro turno in questo giorno - completamente libero
+                          </p>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
