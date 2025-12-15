@@ -347,30 +347,39 @@ export default function TurniDipendente() {
 
   const richiestaScambioMutation = useMutation({
     mutationFn: async ({ mioTurnoId, suoTurnoId, richiestoA }) => {
-      // Aggiorna il mio turno con la richiesta
+      // Carica i turni esistenti
+      const [mioTurnoList, suoTurnoList] = await Promise.all([
+        base44.entities.TurnoPlanday.filter({ id: mioTurnoId }),
+        base44.entities.TurnoPlanday.filter({ id: suoTurnoId })
+      ]);
+
+      const mioTurno = mioTurnoList[0];
+      const suoTurno = suoTurnoList[0];
+
+      if (!mioTurno || !suoTurno) {
+        throw new Error('Turni non trovati');
+      }
+
+      const richiestaData = {
+        richiesto_da: currentUser.id,
+        richiesto_da_nome: currentUser.nome_cognome || currentUser.full_name,
+        richiesto_a: richiestoA,
+        mio_turno_id: mioTurnoId,
+        suo_turno_id: suoTurnoId,
+        stato: 'pending',
+        data_richiesta: new Date().toISOString()
+      };
+
+      // Aggiorna il mio turno con tutti i dati esistenti + la richiesta
       await base44.entities.TurnoPlanday.update(mioTurnoId, {
-        richiesta_scambio: {
-          richiesto_da: currentUser.id,
-          richiesto_da_nome: currentUser.nome_cognome || currentUser.full_name,
-          richiesto_a: richiestoA,
-          mio_turno_id: mioTurnoId,
-          suo_turno_id: suoTurnoId,
-          stato: 'pending',
-          data_richiesta: new Date().toISOString()
-        }
+        ...mioTurno,
+        richiesta_scambio: richiestaData
       });
 
-      // Aggiorna il suo turno con la richiesta inversa
+      // Aggiorna il suo turno con tutti i dati esistenti + la richiesta
       await base44.entities.TurnoPlanday.update(suoTurnoId, {
-        richiesta_scambio: {
-          richiesto_da: currentUser.id,
-          richiesto_da_nome: currentUser.nome_cognome || currentUser.full_name,
-          richiesto_a: richiestoA,
-          mio_turno_id: mioTurnoId,
-          suo_turno_id: suoTurnoId,
-          stato: 'pending',
-          data_richiesta: new Date().toISOString()
-        }
+        ...suoTurno,
+        richiesta_scambio: richiestaData
       });
     },
     onSuccess: () => {
