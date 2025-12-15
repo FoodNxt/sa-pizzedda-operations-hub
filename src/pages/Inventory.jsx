@@ -748,10 +748,17 @@ Sa Pizzedda`
                         const isSending = sendingEmail[emailKey];
                         const wasSent = emailSent[emailKey];
                         
+                        // Calcola totale ordine in €
+                        const totaleOrdine = orders.reduce((sum, order) => {
+                          return sum + (order.product.prezzo_unitario || 0) * order.quantita_ordine;
+                        }, 0);
+                        const ordineMinimo = fornitore?.ordine_minimo || 0;
+                        const superaMinimo = totaleOrdine >= ordineMinimo;
+                        
                         return (
                           <div key={supplier} className="neumorphic-pressed p-4 rounded-xl">
                             <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <Truck className="w-5 h-5 text-slate-600" />
                                 <h3 className="font-bold text-slate-700">{supplier}</h3>
                                 <span className="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700">
@@ -802,6 +809,39 @@ Sa Pizzedda`
                               )}
                             </div>
 
+                            {/* Totale ordine vs ordine minimo */}
+                            <div className="mb-3 p-3 rounded-lg bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200">
+                              <div className="flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium text-slate-700">Totale Ordine:</span>
+                                  <span className="text-lg font-bold text-blue-600">€{totaleOrdine.toFixed(2)}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium text-slate-700">Min. Fornitore:</span>
+                                  <span className="text-lg font-bold text-slate-600">€{ordineMinimo.toFixed(2)}</span>
+                                </div>
+                                {ordineMinimo > 0 && (
+                                  <div className={`px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1 ${
+                                    superaMinimo 
+                                      ? 'bg-green-100 text-green-700' 
+                                      : 'bg-red-100 text-red-700'
+                                  }`}>
+                                    {superaMinimo ? (
+                                      <>
+                                        <CheckCircle className="w-4 h-4" />
+                                        Supera minimo
+                                      </>
+                                    ) : (
+                                      <>
+                                        <AlertTriangle className="w-4 h-4" />
+                                        Sotto minimo (€{(ordineMinimo - totaleOrdine).toFixed(2)})
+                                      </>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
                             <div className="overflow-x-auto">
                               <table className="w-full min-w-[500px]">
                                 <thead>
@@ -810,10 +850,15 @@ Sa Pizzedda`
                                     <th className="text-right p-2 text-slate-600 font-medium text-xs">Attuale</th>
                                     <th className="text-right p-2 text-slate-600 font-medium text-xs">Critica</th>
                                     <th className="text-right p-2 text-slate-600 font-medium text-xs">Da Ordinare</th>
+                                    <th className="text-right p-2 text-slate-600 font-medium text-xs">Prezzo Unit.</th>
+                                    <th className="text-right p-2 text-slate-600 font-medium text-xs">Totale</th>
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {orders.map((order, idx) => (
+                                  {orders.map((order, idx) => {
+                                    const prezzoUnitario = order.product.prezzo_unitario || 0;
+                                    const totaleRiga = prezzoUnitario * order.quantita_ordine;
+                                    return (
                                     <tr key={idx} className="border-b border-slate-200">
                                       <td className="p-2 text-sm text-slate-700">
                                         {order.nome_prodotto}
@@ -827,8 +872,15 @@ Sa Pizzedda`
                                       <td className="p-2 text-sm text-right font-bold text-green-600">
                                         {order.quantita_ordine} {order.unita_misura}
                                       </td>
+                                      <td className="p-2 text-sm text-right text-slate-600">
+                                        {prezzoUnitario > 0 ? `€${prezzoUnitario.toFixed(2)}` : '-'}
+                                      </td>
+                                      <td className="p-2 text-sm text-right font-bold text-blue-600">
+                                        {totaleRiga > 0 ? `€${totaleRiga.toFixed(2)}` : '-'}
+                                      </td>
                                     </tr>
-                                  ))}
+                                    );
+                                  })}
                                 </tbody>
                               </table>
                             </div>
