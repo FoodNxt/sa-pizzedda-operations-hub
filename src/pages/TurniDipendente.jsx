@@ -164,7 +164,7 @@ export default function TurniDipendente() {
       });
       return allTurni.filter(t => 
         t.richiesta_scambio?.richiesto_a === currentUser.id && 
-        t.richiesta_scambio?.stato === 'pending'
+        ['pending', 'accepted_by_colleague'].includes(t.richiesta_scambio?.stato)
       );
     },
     enabled: !!currentUser?.id,
@@ -381,6 +381,27 @@ export default function TurniDipendente() {
       setSelectedCollegaScambio(null);
       setSelectedTurnoCollegaScambio(null);
       setTimbraturaMessage({ type: 'success', text: 'Richiesta di scambio inviata!' });
+      setTimeout(() => setTimbraturaMessage(null), 3000);
+    }
+  });
+
+  const cancellaScambioMutation = useMutation({
+    mutationFn: async ({ mioTurnoId, suoTurnoId }) => {
+      await Promise.all([
+        base44.entities.TurnoPlanday.update(mioTurnoId, {
+          richiesta_scambio: null
+        }),
+        base44.entities.TurnoPlanday.update(suoTurnoId, {
+          richiesta_scambio: null
+        })
+      ]);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['turni-dipendente'] });
+      queryClient.invalidateQueries({ queryKey: ['turni-futuri'] });
+      queryClient.invalidateQueries({ queryKey: ['scambi-per-me'] });
+      queryClient.invalidateQueries({ queryKey: ['scambi-da-me'] });
+      setTimbraturaMessage({ type: 'success', text: 'Richiesta di scambio cancellata' });
       setTimeout(() => setTimbraturaMessage(null), 3000);
     }
   });
@@ -2070,17 +2091,33 @@ export default function TurniDipendente() {
                               );
                             })()}
                           </div>
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ml-3 ${
-                            statoScambio === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                            statoScambio === 'accepted_by_colleague' ? 'bg-blue-100 text-blue-700' :
-                            'bg-slate-100 text-slate-700'
-                          }`}>
-                            {statoScambio === 'pending' ? 'In attesa collega' : 'In attesa manager'}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
+                          <div className="flex flex-col gap-2 ml-3">
+                            {statoScambio === 'pending' ? (
+                              <>
+                                <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium text-center">
+                                  In attesa collega
+                                </span>
+                                <button
+                                  onClick={() => cancellaScambioMutation.mutate({
+                                    mioTurnoId: mioTurno.id,
+                                    suoTurnoId: suoTurnoId
+                                  })}
+                                  disabled={cancellaScambioMutation.isPending}
+                                  className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs font-medium hover:bg-red-600"
+                                >
+                                  Cancella
+                                </button>
+                              </>
+                            ) : (
+                              <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium text-center">
+                                In attesa manager
+                              </span>
+                            )}
+                          </div>
+                          </div>
+                          </div>
+                          );
+                          })}
                 </div>
               )}
             </NeumorphicCard>
@@ -2102,6 +2139,7 @@ export default function TurniDipendente() {
                 {scambiPerMe.map(turno => {
                   const mioTurnoId = turno.richiesta_scambio?.mio_turno_id;
                   const mioTurno = turniFuturi.find(t => t.id === mioTurnoId);
+                  const statoScambio = turno.richiesta_scambio?.stato;
 
                   return (
                   <div key={turno.id} className="neumorphic-pressed p-4 rounded-xl">
@@ -2150,20 +2188,29 @@ export default function TurniDipendente() {
                         )}
                       </div>
                       <div className="flex flex-col gap-2 ml-3">
-                        <button
-                          onClick={() => rispondiScambioMutation.mutate({ suoTurnoId: turno.id, accetta: true })}
-                          disabled={rispondiScambioMutation.isPending}
-                          className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 flex items-center gap-1"
-                        >
-                          <Check className="w-3 h-3" /> Accetta
-                        </button>
-                        <button
-                          onClick={() => rispondiScambioMutation.mutate({ suoTurnoId: turno.id, accetta: false })}
-                          disabled={rispondiScambioMutation.isPending}
-                          className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 flex items-center gap-1"
-                        >
-                          <X className="w-3 h-3" /> Rifiuta
-                        </button>
+                        {statoScambio === 'pending' ? (
+                          <>
+                            <button
+                              onClick={() => rispondiScambioMutation.mutate({ suoTurnoId: turno.id, accetta: true })}
+                              disabled={rispondiScambioMutation.isPending}
+                              className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 flex items-center gap-1"
+                            >
+                              <Check className="w-3 h-3" /> Accetta
+                            </button>
+                            <button
+                              onClick={() => rispondiScambioMutation.mutate({ suoTurnoId: turno.id, accetta: false })}
+                              disabled={rispondiScambioMutation.isPending}
+                              className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 flex items-center gap-1"
+                            >
+                              <X className="w-3 h-3" /> Rifiuta
+                            </button>
+                          </>
+                        ) : (
+                          <div className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium text-center">
+                            ✓ Accettato<br/>
+                            In attesa approvazione Store Manager
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
