@@ -32,6 +32,8 @@ export default function TurniDipendente() {
   const [timbraturaMessage, setTimbraturaMessage] = useState(null);
   const [showScambioModal, setShowScambioModal] = useState(false);
   const [selectedTurnoScambio, setSelectedTurnoScambio] = useState(null);
+  const [selectedCollegaScambio, setSelectedCollegaScambio] = useState(null);
+  const [selectedTurnoCollegaScambio, setSelectedTurnoCollegaScambio] = useState(null);
   const [showFerieModal, setShowFerieModal] = useState(false);
   const [showMalattiaModal, setShowMalattiaModal] = useState(false);
   const [ferieForm, setFerieForm] = useState({ data_inizio: '', data_fine: '', motivo: '' });
@@ -252,6 +254,20 @@ export default function TurniDipendente() {
     enabled: !!currentUser?.id,
   });
 
+  // Turni futuri del collega selezionato per scambio
+  const { data: turniFuturiCollega = [] } = useQuery({
+    queryKey: ['turni-futuri-collega', selectedCollegaScambio?.id],
+    queryFn: async () => {
+      if (!selectedCollegaScambio?.id) return [];
+      const oggi = moment().format('YYYY-MM-DD');
+      return base44.entities.TurnoPlanday.filter({
+        dipendente_id: selectedCollegaScambio.id,
+        data: { $gte: oggi }
+      });
+    },
+    enabled: !!selectedCollegaScambio?.id,
+  });
+
   // Tutti i turni del giorno del turno selezionato (per vedere sovrapposizioni orarie)
   const { data: tuttiTurniGiornoScambio = [] } = useQuery({
     queryKey: ['tutti-turni-giorno-scambio', selectedTurnoScambio?.data],
@@ -299,11 +315,28 @@ export default function TurniDipendente() {
   });
 
   const richiestaScambioMutation = useMutation({
-    mutationFn: async ({ turnoId, richiestoA }) => {
-      return base44.entities.TurnoPlanday.update(turnoId, {
+    mutationFn: async ({ mioTurnoId, suoTurnoId, richiestoA }) => {
+      // Aggiorna il mio turno con la richiesta
+      await base44.entities.TurnoPlanday.update(mioTurnoId, {
         richiesta_scambio: {
           richiesto_da: currentUser.id,
+          richiesto_da_nome: currentUser.nome_cognome || currentUser.full_name,
           richiesto_a: richiestoA,
+          mio_turno_id: mioTurnoId,
+          suo_turno_id: suoTurnoId,
+          stato: 'pending',
+          data_richiesta: new Date().toISOString()
+        }
+      });
+
+      // Aggiorna il suo turno con la richiesta inversa
+      await base44.entities.TurnoPlanday.update(suoTurnoId, {
+        richiesta_scambio: {
+          richiesto_da: currentUser.id,
+          richiesto_da_nome: currentUser.nome_cognome || currentUser.full_name,
+          richiesto_a: richiestoA,
+          mio_turno_id: mioTurnoId,
+          suo_turno_id: suoTurnoId,
           stato: 'pending',
           data_richiesta: new Date().toISOString()
         }
@@ -312,8 +345,11 @@ export default function TurniDipendente() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['turni-dipendente'] });
       queryClient.invalidateQueries({ queryKey: ['turni-futuri'] });
+      queryClient.invalidateQueries({ queryKey: ['scambi-per-me'] });
       setShowScambioModal(false);
       setSelectedTurnoScambio(null);
+      setSelectedCollegaScambio(null);
+      setSelectedTurnoCollegaScambio(null);
       setTimbraturaMessage({ type: 'success', text: 'Richiesta di scambio inviata!' });
       setTimeout(() => setTimbraturaMessage(null), 3000);
     }
@@ -426,20 +462,67 @@ export default function TurniDipendente() {
 
   // Rispondi a scambio turno
   const rispondiScambioMutation = useMutation({
-    mutationFn: async ({ turnoId, accetta }) => {
-      const turno = scambiPerMe.find(t => t.id === turnoId);
-      if (!turno) throw new Error('Turno non trovato');
+    mutationFn: async ({ suoTurnoId, accetta }) => {
+      const suoTurno = scambiPerMe.find(t => t.id === suoTurnoId);
+      if (!suoTurno) throw new Error('Turno non trovato');
       
-      return base44.entities.TurnoPlanday.update(turnoId, {
-        richiesta_scambio: {
-          ...turno.richiesta_scambio,
-          stato: accetta ? 'accepted' : 'rejected',
-          data_risposta: new Date().toISOString()
+      const mioTurnoId = suoTurno.richiesta_scambio.mio_turno_id;
+      const newStatus = accetta ? 'accepted' : 'rejected';
+
+      // Se accettato, scambia i dipendenti tra i turni
+      if (accetta) {
+        const mioTurno = await base44.entities.TurnoPlanday.filter({ id: mioTurnoId });
+        if (mioTurno.length > 0) {
+          const turno1 = mioTurno[0];
+          const turno2 = suoTurno;
+
+          // Scambia i dati dei dipendenti
+          await base44.entities.TurnoPlanday.update(turno1.id, {
+            dipendente_id: turno2.dipendente_id,
+            dipendente_nome: turno2.dipendente_nome,
+            richiesta_scambio: {
+              ...turno1.richiesta_scambio,
+              stato: 'completed',
+              data_risposta: new Date().toISOString()
+            }
+          });
+
+          await base44.entities.TurnoPlanday.update(turno2.id, {
+            dipendente_id: turno1.dipendente_id,
+            dipendente_nome: turno1.dipendente_nome,
+            richiesta_scambio: {
+              ...turno2.richiesta_scambio,
+              stato: 'completed',
+              data_risposta: new Date().toISOString()
+            }
+          });
         }
-      });
+      } else {
+        // Se rifiutato, aggiorna entrambi i turni
+        await base44.entities.TurnoPlanday.update(suoTurnoId, {
+          richiesta_scambio: {
+            ...suoTurno.richiesta_scambio,
+            stato: newStatus,
+            data_risposta: new Date().toISOString()
+          }
+        });
+
+        const mioTurno = await base44.entities.TurnoPlanday.filter({ id: mioTurnoId });
+        if (mioTurno.length > 0) {
+          await base44.entities.TurnoPlanday.update(mioTurnoId, {
+            richiesta_scambio: {
+              ...mioTurno[0].richiesta_scambio,
+              stato: newStatus,
+              data_risposta: new Date().toISOString()
+            }
+          });
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['scambi-per-me'] });
+      queryClient.invalidateQueries({ queryKey: ['turni-dipendente'] });
+      queryClient.invalidateQueries({ queryKey: ['turni-futuri'] });
       setTimbraturaMessage({ 
         type: 'success', 
         text: 'Risposta inviata!' 
@@ -790,6 +873,8 @@ export default function TurniDipendente() {
 
   const openScambioModal = (turno) => {
     setSelectedTurnoScambio(turno);
+    setSelectedCollegaScambio(null);
+    setSelectedTurnoCollegaScambio(null);
     setShowScambioModal(true);
   };
 
@@ -1865,37 +1950,66 @@ export default function TurniDipendente() {
               <p className="text-slate-500 text-center py-8">Nessuna richiesta di scambio</p>
             ) : (
               <div className="space-y-3">
-                {scambiPerMe.map(turno => (
+                {scambiPerMe.map(turno => {
+                  const mioTurnoId = turno.richiesta_scambio?.mio_turno_id;
+                  const mioTurno = turniFuturi.find(t => t.id === mioTurnoId);
+
+                  return (
                   <div key={turno.id} className="neumorphic-pressed p-4 rounded-xl">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-bold text-slate-800 mb-1">
-                          {turno.dipendente_nome} vuole scambiare
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <p className="font-bold text-slate-800 mb-2">
+                          {turno.richiesta_scambio?.richiesto_da_nome} vuole scambiare
                         </p>
-                        <p className="font-medium text-slate-700">
-                          {moment(turno.data).format('dddd DD MMMM')}
-                        </p>
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
-                          <Clock className="w-4 h-4" />
-                          <span>{turno.ora_inizio} - {turno.ora_fine}</span>
-                          <span>•</span>
-                          <span>{turno.ruolo}</span>
+
+                        {/* Il suo turno (che vorrebbe darti) */}
+                        <div className="p-3 bg-blue-50 rounded-lg mb-2">
+                          <p className="text-xs text-blue-600 font-medium mb-1">Ti offre questo turno:</p>
+                          <p className="font-medium text-slate-700">
+                            {moment(turno.data).format('dddd DD MMMM')}
+                          </p>
+                          <div className="flex items-center gap-2 text-sm text-slate-600">
+                            <Clock className="w-4 h-4" />
+                            <span>{turno.ora_inizio} - {turno.ora_fine}</span>
+                            <span>•</span>
+                            <span>{turno.ruolo}</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
+                            <MapPin className="w-3 h-3" />
+                            {getStoreName(turno.store_id)}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
-                          <MapPin className="w-3 h-3" />
-                          {getStoreName(turno.store_id)}
-                        </div>
+
+                        {/* Il mio turno (che vuole prendere) */}
+                        {mioTurno && (
+                          <div className="p-3 bg-orange-50 rounded-lg">
+                            <p className="text-xs text-orange-600 font-medium mb-1">In cambio del tuo turno:</p>
+                            <p className="font-medium text-slate-700">
+                              {moment(mioTurno.data).format('dddd DD MMMM')}
+                            </p>
+                            <div className="flex items-center gap-2 text-sm text-slate-600">
+                              <Clock className="w-4 h-4" />
+                              <span>{mioTurno.ora_inizio} - {mioTurno.ora_fine}</span>
+                              <span>•</span>
+                              <span>{mioTurno.ruolo}</span>
+                            </div>
+                            <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
+                              <MapPin className="w-3 h-3" />
+                              {getStoreName(mioTurno.store_id)}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-2 ml-3">
                         <button
-                          onClick={() => rispondiScambioMutation.mutate({ turnoId: turno.id, accetta: true })}
+                          onClick={() => rispondiScambioMutation.mutate({ suoTurnoId: turno.id, accetta: true })}
                           disabled={rispondiScambioMutation.isPending}
                           className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 flex items-center gap-1"
                         >
                           <Check className="w-3 h-3" /> Accetta
                         </button>
                         <button
-                          onClick={() => rispondiScambioMutation.mutate({ turnoId: turno.id, accetta: false })}
+                          onClick={() => rispondiScambioMutation.mutate({ suoTurnoId: turno.id, accetta: false })}
                           disabled={rispondiScambioMutation.isPending}
                           className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 flex items-center gap-1"
                         >
@@ -1904,7 +2018,8 @@ export default function TurniDipendente() {
                       </div>
                     </div>
                   </div>
-                ))}
+                );
+                })}
               </div>
             )}
           </NeumorphicCard>
@@ -2025,19 +2140,20 @@ export default function TurniDipendente() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {colleghiPerScambio.map(collega => (
+                  {colleghiPerScambio.map(collega => {
+                    const isSelected = selectedCollegaScambio?.id === collega.id;
+                    return (
                     <div 
                       key={collega.id}
                       className={`p-4 rounded-xl border transition-all ${
                         collega.haConflitti ? 'border-red-300 bg-red-50 cursor-not-allowed opacity-60' :
+                        isSelected ? 'border-blue-500 bg-blue-100' :
                         'border-green-300 bg-green-50 cursor-pointer hover:bg-green-100'
                       }`}
                       onClick={() => {
                         if (!collega.haConflitti) {
-                          richiestaScambioMutation.mutate({ 
-                            turnoId: selectedTurnoScambio.id, 
-                            richiestoA: collega.id 
-                          });
+                          setSelectedCollegaScambio(collega);
+                          setSelectedTurnoCollegaScambio(null);
                         }
                       }}
                     >
@@ -2112,16 +2228,93 @@ export default function TurniDipendente() {
                             Nessun altro turno in questo giorno - completamente libero
                           </p>
                         </div>
-                      )}
-                    </div>
-                  ))}
+                        )}
+                        </div>
+                        );
+                        })}
                 </div>
               )}
 
-              <div className="mt-4">
-                <NeumorphicButton onClick={() => { setShowScambioModal(false); setSelectedTurnoScambio(null); }} className="w-full">
+              {/* Selezione turno del collega */}
+              {selectedCollegaScambio && (
+                <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                  <h3 className="font-medium text-blue-800 mb-3">
+                    Seleziona il turno di {selectedCollegaScambio.nome_cognome || selectedCollegaScambio.full_name} da scambiare:
+                  </h3>
+                  {turniFuturiCollega.length === 0 ? (
+                    <p className="text-sm text-slate-500 text-center py-4">
+                      Nessun turno futuro disponibile per questo collega
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {turniFuturiCollega.map(turnoC => {
+                        const isSelectedTurno = selectedTurnoCollegaScambio?.id === turnoC.id;
+                        return (
+                          <div
+                            key={turnoC.id}
+                            className={`p-3 rounded-lg border transition-all cursor-pointer ${
+                              isSelectedTurno 
+                                ? 'border-blue-500 bg-blue-100' 
+                                : 'border-slate-200 bg-white hover:bg-slate-50'
+                            }`}
+                            onClick={() => setSelectedTurnoCollegaScambio(turnoC)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium text-slate-800">
+                                  {moment(turnoC.data).format('dddd DD MMMM YYYY')}
+                                </p>
+                                <div className="text-sm text-slate-600 flex items-center gap-2">
+                                  <Clock className="w-3 h-3" />
+                                  <span>{turnoC.ora_inizio} - {turnoC.ora_fine}</span>
+                                  <span>•</span>
+                                  <span>{turnoC.ruolo}</span>
+                                </div>
+                                <div className="text-xs text-slate-500 flex items-center gap-1 mt-1">
+                                  <MapPin className="w-3 h-3" />
+                                  {getStoreName(turnoC.store_id)}
+                                </div>
+                              </div>
+                              {isSelectedTurno && (
+                                <Check className="w-5 h-5 text-blue-600" />
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="mt-4 flex gap-3">
+                <NeumorphicButton 
+                  onClick={() => { 
+                    setShowScambioModal(false); 
+                    setSelectedTurnoScambio(null);
+                    setSelectedCollegaScambio(null);
+                    setSelectedTurnoCollegaScambio(null);
+                  }} 
+                  className="flex-1"
+                >
                   Annulla
                 </NeumorphicButton>
+                {selectedCollegaScambio && selectedTurnoCollegaScambio && (
+                  <NeumorphicButton
+                    onClick={() => {
+                      richiestaScambioMutation.mutate({
+                        mioTurnoId: selectedTurnoScambio.id,
+                        suoTurnoId: selectedTurnoCollegaScambio.id,
+                        richiestoA: selectedCollegaScambio.id
+                      });
+                    }}
+                    disabled={richiestaScambioMutation.isPending}
+                    variant="primary"
+                    className="flex-1"
+                  >
+                    {richiestaScambioMutation.isPending ? 'Invio...' : 'Conferma Scambio'}
+                  </NeumorphicButton>
+                )}
               </div>
             </NeumorphicCard>
           </div>
