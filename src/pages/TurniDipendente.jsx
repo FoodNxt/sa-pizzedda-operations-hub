@@ -715,7 +715,7 @@ export default function TurniDipendente() {
 
   // Colleghi disponibili per scambio
   const colleghiPerScambio = useMemo(() => {
-    if (!selectedTurnoScambio || !allUsers.length || !tuttiTurniGiornoScambio.length) return [];
+    if (!selectedTurnoScambio || !allUsers.length) return [];
     
     return allUsers
       .filter(u => {
@@ -723,17 +723,11 @@ export default function TurniDipendente() {
         
         // Deve avere il ruolo giusto
         const ruoli = u.ruoli_dipendente || [];
-        if (!ruoli.includes(selectedTurnoScambio.ruolo)) return false;
-        
-        // Deve poter lavorare nello store del turno
-        const storesAssegnati = u.store_assegnati || [];
-        const puoLavorareNelloStore = storesAssegnati.length === 0 || storesAssegnati.includes(selectedTurnoScambio.store_id);
-        
-        return puoLavorareNelloStore;
+        return ruoli.includes(selectedTurnoScambio.ruolo);
       })
       .map(u => {
         const storesAssegnati = u.store_assegnati || [];
-        const isAssegnatoStore = storesAssegnati.includes(selectedTurnoScambio.store_id) || storesAssegnati.length === 0;
+        const isAssegnatoStore = storesAssegnati.length === 0 || storesAssegnati.includes(selectedTurnoScambio.store_id);
         
         // Trova TUTTI i turni del dipendente in quel giorno
         const turniDipendente = tuttiTurniGiornoScambio.filter(t => t.dipendente_id === u.id);
@@ -2022,13 +2016,19 @@ export default function TurniDipendente() {
                           <div>
                             <div className="font-medium text-slate-800">{collega.nome_cognome || collega.full_name}</div>
                             <div className="text-xs text-slate-500">{(collega.ruoli_dipendente || []).join(', ')}</div>
+                            {!collega.isAssegnatoStore && (
+                              <div className="text-xs text-orange-600 flex items-center gap-1 mt-0.5">
+                                <AlertTriangle className="w-3 h-3" />
+                                Non assegnato a questo store
+                              </div>
+                            )}
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-1">
                           {collega.haConflitti ? (
                             <span className="flex items-center gap-1 text-xs text-red-700 bg-red-200 px-2 py-1 rounded-full font-medium">
                               <X className="w-3 h-3" />
-                              Non disponibile
+                              Conflitto orario
                             </span>
                           ) : (
                             <span className="flex items-center gap-1 text-xs text-green-700 bg-green-200 px-2 py-1 rounded-full font-medium">
