@@ -2191,6 +2191,7 @@ export default function TurniDipendente() {
               </div>
             )}
           </NeumorphicCard>
+        </div>
         )}
 
         {/* Modal Scambio Turno */}
