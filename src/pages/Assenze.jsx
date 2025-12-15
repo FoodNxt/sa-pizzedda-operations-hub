@@ -467,9 +467,10 @@ export default function Assenze() {
                             <span className="font-bold text-slate-800">{getUserName(scambio.richiesto_a)}</span>
                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                               scambio.stato === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                              scambio.stato === 'accepted' ? 'bg-blue-100 text-blue-800' :
-                              scambio.stato === 'rejected' ? 'bg-red-100 text-red-800' :
-                              scambio.stato === 'approved' ? 'bg-green-100 text-green-800' :
+                              scambio.stato === 'accepted_by_colleague' ? 'bg-blue-100 text-blue-800' :
+                              scambio.stato === 'rejected_by_colleague' ? 'bg-red-100 text-red-800' :
+                              scambio.stato === 'approved_by_manager' ? 'bg-green-100 text-green-800' :
+                              scambio.stato === 'rejected_by_manager' ? 'bg-red-100 text-red-800' :
                               'bg-slate-100 text-slate-800'
                             }`}>
                               {scambio.stato === 'pending' ? 'In attesa collega' :
