@@ -1986,7 +1986,7 @@ export default function TurniDipendente() {
                     const suoTurnoId = mioTurno.richiesta_scambio?.suo_turno_id;
                     const richiestoANome = mioTurno.richiesta_scambio?.richiesto_a;
 
-                    // Trova il nome del collega
+                    // Trova il nome del collega e il suo turno
                     const collegaNome = allEmployees.find(e => e.employee_id_external === richiestoANome)?.full_name || 'Collega';
 
                     return (
@@ -2014,6 +2014,32 @@ export default function TurniDipendente() {
                                 {getStoreName(mioTurno.store_id)}
                               </div>
                             </div>
+
+                            {/* Il turno del collega che voglio prendere */}
+                            {suoTurnoId && (() => {
+                              // Cerca il turno del collega nei dati disponibili
+                              const suoTurno = turniFuturi.find(t => t.id === suoTurnoId);
+                              if (!suoTurno) return null;
+                              
+                              return (
+                                <div className="p-3 bg-green-50 rounded-lg">
+                                  <p className="text-xs text-green-600 font-medium mb-1">In cambio prendi questo:</p>
+                                  <p className="font-medium text-slate-700">
+                                    {moment(suoTurno.data).format('dddd DD MMMM')}
+                                  </p>
+                                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                                    <Clock className="w-4 h-4" />
+                                    <span>{suoTurno.ora_inizio} - {suoTurno.ora_fine}</span>
+                                    <span>•</span>
+                                    <span>{suoTurno.ruolo}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
+                                    <MapPin className="w-3 h-3" />
+                                    {getStoreName(suoTurno.store_id)}
+                                  </div>
+                                </div>
+                              );
+                            })()}
                           </div>
                           <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium whitespace-nowrap ml-3">
                             In attesa
