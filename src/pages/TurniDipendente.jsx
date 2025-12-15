@@ -700,13 +700,19 @@ export default function TurniDipendente() {
   const colleghiPerScambio = useMemo(() => {
     if (!selectedTurnoScambio || !allUsers.length) return [];
     
-    const store = storesData.find(s => s.id === selectedTurnoScambio.store_id);
-    
     return allUsers
       .filter(u => {
         if (u.id === currentUser?.id) return false;
+        
+        // Deve avere il ruolo giusto
         const ruoli = u.ruoli_dipendente || [];
-        return ruoli.includes(selectedTurnoScambio.ruolo);
+        if (!ruoli.includes(selectedTurnoScambio.ruolo)) return false;
+        
+        // Deve poter lavorare nello store del turno
+        const storesAssegnati = u.store_assegnati || [];
+        const puoLavorareNelloStore = storesAssegnati.length === 0 || storesAssegnati.includes(selectedTurnoScambio.store_id);
+        
+        return puoLavorareNelloStore;
       })
       .map(u => {
         const storesAssegnati = u.store_assegnati || [];
@@ -723,12 +729,11 @@ export default function TurniDipendente() {
         };
       })
       .sort((a, b) => {
-        // Prima chi non sta già lavorando e è assegnato allo store
+        // Prima chi non sta già lavorando
         if (a.staGiaLavorando !== b.staGiaLavorando) return a.staGiaLavorando ? 1 : -1;
-        if (a.isAssegnatoStore !== b.isAssegnatoStore) return a.isAssegnatoStore ? -1 : 1;
         return 0;
       });
-  }, [selectedTurnoScambio, allUsers, turniGiornoScambio, currentUser]);
+  }, [selectedTurnoScambio, allUsers, turniGiornoScambio, currentUser, storesData]);
 
   const openScambioModal = (turno) => {
     setSelectedTurnoScambio(turno);
