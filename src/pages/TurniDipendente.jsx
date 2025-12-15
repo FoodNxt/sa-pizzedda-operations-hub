@@ -377,6 +377,7 @@ export default function TurniDipendente() {
       queryClient.invalidateQueries({ queryKey: ['turni-dipendente'] });
       queryClient.invalidateQueries({ queryKey: ['turni-futuri'] });
       queryClient.invalidateQueries({ queryKey: ['scambi-per-me'] });
+      queryClient.invalidateQueries({ queryKey: ['scambi-da-me'] });
       setShowScambioModal(false);
       setSelectedTurnoScambio(null);
       setSelectedCollegaScambio(null);
@@ -1264,23 +1265,31 @@ export default function TurniDipendente() {
                     </div>
                   )}
                 </div>
-                {!prossimoTurnoStatus.inCorso && !prossimoTurno.timbrata_entrata && !prossimoTurno.timbrata_uscita && (
-                  <div>
-                    {prossimoTurno.richiesta_scambio?.stato === 'pending' ? (
-                      <span className="px-3 py-1 bg-yellow-200 text-yellow-800 rounded-full text-xs font-medium">
-                        Scambio richiesto
-                      </span>
-                    ) : (
-                      <NeumorphicButton
-                        onClick={() => openScambioModal(prossimoTurno)}
-                        className="text-sm px-3 py-2 flex items-center gap-1"
-                      >
-                        <Users className="w-4 h-4" />
-                        Scambia
-                      </NeumorphicButton>
-                    )}
-                  </div>
-                )}
+                {!prossimoTurnoStatus.inCorso && !prossimoTurno.timbrata_entrata && !prossimoTurno.timbrata_uscita && (() => {
+                  // Verifica che il turno non sia già iniziato
+                  const turnoStart = moment(`${prossimoTurno.data} ${prossimoTurno.ora_inizio}`);
+                  const turnoNonIniziato = turnoStart.isAfter(moment());
+                  
+                  if (!turnoNonIniziato) return null;
+                  
+                  return (
+                    <div>
+                      {prossimoTurno.richiesta_scambio?.stato === 'pending' ? (
+                        <span className="px-3 py-1 bg-yellow-200 text-yellow-800 rounded-full text-xs font-medium">
+                          Scambio richiesto
+                        </span>
+                      ) : (
+                        <NeumorphicButton
+                          onClick={() => openScambioModal(prossimoTurno)}
+                          className="text-sm px-3 py-2 flex items-center gap-1"
+                        >
+                          <Users className="w-4 h-4" />
+                          Scambia
+                        </NeumorphicButton>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Timer turno in corso */}
@@ -1665,9 +1674,9 @@ export default function TurniDipendente() {
                     <div className="space-y-2 ml-13">
                       {dayTurni.map(turno => {
                         const hasTimbrato = turno.timbrata_entrata || turno.timbrata_uscita;
-                        const isFuturo = moment(turno.data).isAfter(moment(), 'day') || 
-                          (moment(turno.data).isSame(moment(), 'day') && !turno.timbrata_uscita);
-                        const canScambio = isFuturo && !turno.timbrata_entrata && 
+                        const turnoStart = moment(`${turno.data} ${turno.ora_inizio}`);
+                        const turnoNonIniziato = turnoStart.isAfter(moment());
+                        const canScambio = turnoNonIniziato && !turno.timbrata_entrata && 
                           (!turno.richiesta_scambio || !['pending', 'accepted'].includes(turno.richiesta_scambio?.stato));
                         
                         return (
