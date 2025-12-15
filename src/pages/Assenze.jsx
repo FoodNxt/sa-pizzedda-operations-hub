@@ -45,6 +45,9 @@ function TurnoAltroDisplay({ turnoId, richiestoANome, getStoreName }) {
       <div className="text-xs text-slate-500">
         📍 {getStoreName(turnoAltro.store_id)}
       </div>
+      <div className="text-xs text-slate-400 mt-1 pt-1 border-t border-green-200">
+        Originale: {turnoAltro.dipendente_nome}
+      </div>
     </div>
   );
 }
@@ -505,9 +508,6 @@ export default function Assenze() {
                 {turniConScambio.sort((a, b) => new Date(b.richiesta_scambio?.data_richiesta) - new Date(a.richiesta_scambio?.data_richiesta)).map(turnoRichiedente => {
                   const scambio = turnoRichiedente.richiesta_scambio;
                   
-                  // Trova il turno dell'altro dipendente
-                  const turnoAltroList = stores.length > 0 ? [] : []; // Placeholder per caricare dopo
-                  
                   return (
                     <div key={turnoRichiedente.id} className="neumorphic-pressed p-4 rounded-xl">
                       <div className="flex items-start justify-between mb-3">
@@ -551,6 +551,9 @@ export default function Assenze() {
                               </div>
                               <div className="text-xs text-slate-500">
                                 📍 {getStoreName(turnoRichiedente.store_id)}
+                              </div>
+                              <div className="text-xs text-slate-400 mt-1 pt-1 border-t border-red-200">
+                                Originale: {turnoRichiedente.dipendente_nome}
                               </div>
                             </div>
 

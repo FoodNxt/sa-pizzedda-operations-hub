@@ -162,9 +162,11 @@ export default function TurniDipendente() {
       const allTurni = await base44.entities.TurnoPlanday.filter({
         data: { $gte: oggi }
       });
+      // Mostra solo il mio turno (suo_turno_id) per evitare duplicati
       return allTurni.filter(t => 
         t.richiesta_scambio?.richiesto_a === currentUser.id && 
-        ['pending', 'accepted_by_colleague'].includes(t.richiesta_scambio?.stato)
+        ['pending', 'accepted_by_colleague'].includes(t.richiesta_scambio?.stato) &&
+        t.id === t.richiesta_scambio?.suo_turno_id
       );
     },
     enabled: !!currentUser?.id,
