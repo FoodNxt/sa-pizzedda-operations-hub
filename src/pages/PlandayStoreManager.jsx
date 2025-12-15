@@ -646,11 +646,17 @@ export default function PlandayStoreManager() {
                     <div key={turnoRichiedente.id} className="neumorphic-pressed p-4 rounded-xl">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-3">
+                          <div className="flex items-center gap-2 mb-3 flex-wrap">
                             <ArrowRightLeft className="w-5 h-5 text-purple-500" />
-                            <span className="font-bold text-slate-800">{scambio.richiesto_da_nome}</span>
-                            <span className="text-slate-500">↔</span>
-                            <span className="font-bold text-slate-800">{scambio.richiesto_a_nome}</span>
+                            <div className="flex items-center gap-2 bg-blue-50 px-3 py-1 rounded-lg">
+                              <span className="text-xs text-blue-600 font-medium">CEDE:</span>
+                              <span className="font-bold text-slate-800">{scambio.richiesto_da_nome || turnoRichiedente.dipendente_nome}</span>
+                            </div>
+                            <span className="text-slate-400">→</span>
+                            <div className="flex items-center gap-2 bg-green-50 px-3 py-1 rounded-lg">
+                              <span className="text-xs text-green-600 font-medium">RICEVE:</span>
+                              <span className="font-bold text-slate-800">{scambio.richiesto_a_nome}</span>
+                            </div>
                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                               scambio.stato === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                               scambio.stato === 'accepted_by_colleague' ? 'bg-blue-100 text-blue-800' :
