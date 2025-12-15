@@ -54,8 +54,11 @@ export default function PlandayStoreView({
   }, [weekStart]);
 
   const dipendentiConTurni = useMemo(() => {
-    const allDipendenti = users.filter(u => u.ruoli_dipendente && u.ruoli_dipendente.length > 0);
-    return allDipendenti.map(u => ({
+    // Trova tutti i dipendenti che hanno turni questa settimana nello store selezionato
+    const dipendentiIds = new Set(turni.filter(t => t.dipendente_id).map(t => t.dipendente_id));
+    const dipendentiConTurniAttivi = users.filter(u => dipendentiIds.has(u.id));
+    
+    return dipendentiConTurniAttivi.map(u => ({
       ...u,
       turniSettimana: turni.filter(t => t.dipendente_id === u.id)
     }));
