@@ -88,7 +88,6 @@ import Attrezzature from './pages/Attrezzature';
 import Segnalazioni from './pages/Segnalazioni';
 import FormSpostamenti from './pages/FormSpostamenti';
 import ValutazionePulizie from './pages/ValutazionePulizie';
-import PlandayStoreManager from './pages/PlandayStoreManager';
 import __Layout from './Layout.jsx';
 
 
@@ -183,7 +182,6 @@ export const PAGES = {
     "Segnalazioni": Segnalazioni,
     "FormSpostamenti": FormSpostamenti,
     "ValutazionePulizie": ValutazionePulizie,
-    "PlandayStoreManager": PlandayStoreManager,
 }
 
 export const pagesConfig = {
