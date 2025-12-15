@@ -205,7 +205,7 @@ export default function PlandayStoreManager() {
     if (!turno) return [];
     
     const tipoTurno = turno.tipo_turno || 'Normale';
-    const tipoConfig = tipoTurnoConfigs.find(tc => tc.tipo_turno === tipoTurno);
+    const tipoConfig = tipiTurnoConfigs.find(tc => tc.tipo_turno === tipoTurno);
     if (tipoConfig && tipoConfig.richiede_form === false) return [];
     
     const turnoRuolo = turno.ruolo;
