@@ -643,145 +643,172 @@ export default function PlandayStoreManager() {
                   const scambio = turnoRichiedente.richiesta_scambio;
                   
                   return (
-                    <div key={turnoRichiedente.id} className="neumorphic-pressed p-4 rounded-xl">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-3 flex-wrap">
-                            <ArrowRightLeft className="w-5 h-5 text-purple-500" />
-                            <div className="flex items-center gap-2 bg-blue-50 px-3 py-1 rounded-lg">
-                              <span className="text-xs text-blue-600 font-medium">CEDE:</span>
-                              <span className="font-bold text-slate-800">{scambio.richiesto_da_nome || turnoRichiedente.dipendente_nome}</span>
-                            </div>
-                            <span className="text-slate-400">→</span>
-                            <div className="flex items-center gap-2 bg-green-50 px-3 py-1 rounded-lg">
-                              <span className="text-xs text-green-600 font-medium">RICEVE:</span>
-                              <span className="font-bold text-slate-800">{scambio.richiesto_a_nome}</span>
-                            </div>
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                              scambio.stato === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                              scambio.stato === 'accepted_by_colleague' ? 'bg-blue-100 text-blue-800' :
-                              'bg-slate-100 text-slate-800'
-                            }`}>
-                              {scambio.stato === 'pending' ? 'In attesa collega' : 'Da approvare'}
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {/* Turno CEDUTO */}
-                            <div className="p-3 bg-red-50 rounded-lg border-2 border-red-200">
-                              <p className="text-xs font-bold text-red-600 mb-2 flex items-center gap-1">
-                                <X className="w-3 h-3" />
-                                {scambio.richiesto_da_nome} CEDE:
-                              </p>
-                              <p className="font-medium text-slate-700 text-sm">
-                                {moment(turnoRichiedente.data).format('ddd DD/MM')}
-                              </p>
-                              <div className="text-xs text-slate-600 mt-1">
-                                🕐 {turnoRichiedente.ora_inizio} - {turnoRichiedente.ora_fine}
-                              </div>
-                              <div className="text-xs text-slate-600">
-                                👤 {turnoRichiedente.ruolo}
-                              </div>
-                              <div className="text-xs text-slate-500">
-                                📍 {getStoreName(turnoRichiedente.store_id)}
-                              </div>
-                            </div>
-
-                            {/* Turno RICHIESTO */}
-                            <TurnoAltroDisplay 
-                              turnoId={scambio.suo_turno_id}
-                              richiestoANome={scambio.richiesto_a_nome}
-                              getStoreName={getStoreName}
-                            />
-                          </div>
-
-                          <p className="text-xs text-slate-400 mt-2">
-                            Richiesto il {moment(scambio.data_richiesta).format('DD/MM/YYYY HH:mm')}
-                          </p>
-                        </div>
-                        
-                        {scambio.stato === 'accepted_by_colleague' && (
-                          <div className="flex flex-col gap-2 ml-3">
-                            <button
-                              onClick={async () => {
-                                const [turno1List, turno2List] = await Promise.all([
-                                  base44.entities.TurnoPlanday.filter({ id: scambio.mio_turno_id }),
-                                  base44.entities.TurnoPlanday.filter({ id: scambio.suo_turno_id })
-                                ]);
-                                
-                                const turno1 = turno1List[0];
-                                const turno2 = turno2List[0];
-                                
-                                if (!turno1 || !turno2) {
-                                  alert('Errore: turni non trovati');
-                                  return;
-                                }
-                                
-                                const updatedRichiesta = {
-                                  ...scambio,
-                                  stato: 'approved_by_manager',
-                                  data_approvazione_manager: new Date().toISOString(),
-                                  approvato_da: currentUser?.id,
-                                  approvato_da_nome: currentUser?.nome_cognome || currentUser?.full_name
-                                };
-                                
-                                await Promise.all([
-                                  base44.entities.TurnoPlanday.update(turno1.id, {
-                                    dipendente_id: turno2.dipendente_id,
-                                    dipendente_nome: turno2.dipendente_nome,
-                                    richiesta_scambio: updatedRichiesta
-                                  }),
-                                  base44.entities.TurnoPlanday.update(turno2.id, {
-                                    dipendente_id: turno1.dipendente_id,
-                                    dipendente_nome: turno1.dipendente_nome,
-                                    richiesta_scambio: updatedRichiesta
-                                  })
-                                ]);
-                                
-                                queryClient.invalidateQueries({ queryKey: ['scambi-turni-sm'] });
-                                queryClient.invalidateQueries({ queryKey: ['turni-store-manager'] });
-                              }}
-                              className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 flex items-center gap-1"
-                            >
-                              <Check className="w-3 h-3" /> Approva
-                            </button>
-                            <button
-                              onClick={async () => {
-                                const updatedRichiesta = {
-                                  ...scambio,
-                                  stato: 'rejected_by_manager',
-                                  data_approvazione_manager: new Date().toISOString(),
-                                  approvato_da: currentUser?.id,
-                                  approvato_da_nome: currentUser?.nome_cognome || currentUser?.full_name
-                                };
-                                
-                                await Promise.all([
-                                  base44.entities.TurnoPlanday.update(scambio.mio_turno_id, {
-                                    richiesta_scambio: updatedRichiesta
-                                  }),
-                                  base44.entities.TurnoPlanday.update(scambio.suo_turno_id, {
-                                    richiesta_scambio: updatedRichiesta
-                                  })
-                                ]);
-                                
-                                queryClient.invalidateQueries({ queryKey: ['scambi-turni-sm'] });
-                              }}
-                              className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 flex items-center gap-1"
-                            >
-                              <X className="w-3 h-3" /> Rifiuta
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                    <ScambioTurnoCard 
+                      key={turnoRichiedente.id}
+                      turnoRichiedente={turnoRichiedente}
+                      scambio={scambio}
+                      currentUser={currentUser}
+                      queryClient={queryClient}
+                      getStoreName={getStoreName}
+                    />
                   );
                 })}
+
+
               </div>
             )}
           </NeumorphicCard>
         )}
       </div>
     </ProtectedPage>
+  );
+}
+
+// Componente per gestire l'intera card di scambio
+function ScambioTurnoCard({ turnoRichiedente, scambio, currentUser, queryClient, getStoreName }) {
+  const { data: turnoAltro } = useQuery({
+    queryKey: ['turno-altro-sm', scambio.suo_turno_id],
+    queryFn: async () => {
+      const turni = await base44.entities.TurnoPlanday.filter({ id: scambio.suo_turno_id });
+      return turni[0] || null;
+    },
+    enabled: !!scambio.suo_turno_id,
+  });
+
+  const nomeRicevente = turnoAltro?.dipendente_nome || scambio.richiesto_a_nome || 'Caricamento...';
+
+  return (
+    <div className="neumorphic-pressed p-4 rounded-xl">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <ArrowRightLeft className="w-5 h-5 text-purple-500" />
+            <div className="flex items-center gap-2 bg-blue-50 px-3 py-1 rounded-lg">
+              <span className="text-xs text-blue-600 font-medium">CEDE:</span>
+              <span className="font-bold text-slate-800">{scambio.richiesto_da_nome || turnoRichiedente.dipendente_nome}</span>
+            </div>
+            <span className="text-slate-400">→</span>
+            <div className="flex items-center gap-2 bg-green-50 px-3 py-1 rounded-lg">
+              <span className="text-xs text-green-600 font-medium">RICEVE:</span>
+              <span className="font-bold text-slate-800">{nomeRicevente}</span>
+            </div>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+              scambio.stato === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+              scambio.stato === 'accepted_by_colleague' ? 'bg-blue-100 text-blue-800' :
+              'bg-slate-100 text-slate-800'
+            }`}>
+              {scambio.stato === 'pending' ? 'In attesa collega' : 'Da approvare'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Turno CEDUTO */}
+            <div className="p-3 bg-red-50 rounded-lg border-2 border-red-200">
+              <p className="text-xs font-bold text-red-600 mb-2 flex items-center gap-1">
+                <X className="w-3 h-3" />
+                {scambio.richiesto_da_nome || turnoRichiedente.dipendente_nome} CEDE:
+              </p>
+              <p className="font-medium text-slate-700 text-sm">
+                {moment(turnoRichiedente.data).format('ddd DD/MM')}
+              </p>
+              <div className="text-xs text-slate-600 mt-1">
+                🕐 {turnoRichiedente.ora_inizio} - {turnoRichiedente.ora_fine}
+              </div>
+              <div className="text-xs text-slate-600">
+                👤 {turnoRichiedente.ruolo}
+              </div>
+              <div className="text-xs text-slate-500">
+                📍 {getStoreName(turnoRichiedente.store_id)}
+              </div>
+            </div>
+
+            {/* Turno RICHIESTO */}
+            <TurnoAltroDisplay 
+              turnoId={scambio.suo_turno_id}
+              richiestoANome={nomeRicevente}
+              getStoreName={getStoreName}
+            />
+          </div>
+
+          <p className="text-xs text-slate-400 mt-2">
+            Richiesto il {moment(scambio.data_richiesta).format('DD/MM/YYYY HH:mm')}
+          </p>
+        </div>
+        
+        {scambio.stato === 'accepted_by_colleague' && (
+          <div className="flex flex-col gap-2 ml-3">
+            <button
+              onClick={async () => {
+                const [turno1List, turno2List] = await Promise.all([
+                  base44.entities.TurnoPlanday.filter({ id: scambio.mio_turno_id }),
+                  base44.entities.TurnoPlanday.filter({ id: scambio.suo_turno_id })
+                ]);
+                
+                const turno1 = turno1List[0];
+                const turno2 = turno2List[0];
+                
+                if (!turno1 || !turno2) {
+                  alert('Errore: turni non trovati');
+                  return;
+                }
+                
+                const updatedRichiesta = {
+                  ...scambio,
+                  stato: 'approved_by_manager',
+                  data_approvazione_manager: new Date().toISOString(),
+                  approvato_da: currentUser?.id,
+                  approvato_da_nome: currentUser?.nome_cognome || currentUser?.full_name
+                };
+                
+                await Promise.all([
+                  base44.entities.TurnoPlanday.update(turno1.id, {
+                    dipendente_id: turno2.dipendente_id,
+                    dipendente_nome: turno2.dipendente_nome,
+                    richiesta_scambio: updatedRichiesta
+                  }),
+                  base44.entities.TurnoPlanday.update(turno2.id, {
+                    dipendente_id: turno1.dipendente_id,
+                    dipendente_nome: turno1.dipendente_nome,
+                    richiesta_scambio: updatedRichiesta
+                  })
+                ]);
+                
+                queryClient.invalidateQueries({ queryKey: ['scambi-turni-sm'] });
+                queryClient.invalidateQueries({ queryKey: ['turni-store-manager'] });
+              }}
+              className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 flex items-center gap-1"
+            >
+              <Check className="w-3 h-3" /> Approva
+            </button>
+            <button
+              onClick={async () => {
+                const updatedRichiesta = {
+                  ...scambio,
+                  stato: 'rejected_by_manager',
+                  data_approvazione_manager: new Date().toISOString(),
+                  approvato_da: currentUser?.id,
+                  approvato_da_nome: currentUser?.nome_cognome || currentUser?.full_name
+                };
+                
+                await Promise.all([
+                  base44.entities.TurnoPlanday.update(scambio.mio_turno_id, {
+                    richiesta_scambio: updatedRichiesta
+                  }),
+                  base44.entities.TurnoPlanday.update(scambio.suo_turno_id, {
+                    richiesta_scambio: updatedRichiesta
+                  })
+                ]);
+                
+                queryClient.invalidateQueries({ queryKey: ['scambi-turni-sm'] });
+              }}
+              className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 flex items-center gap-1"
+            >
+              <X className="w-3 h-3" /> Rifiuta
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
