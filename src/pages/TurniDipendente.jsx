@@ -1958,11 +1958,11 @@ export default function TurniDipendente() {
                     </div>
                   );
                   })}
-                </div>
-              )}
-            </NeumorphicCard>
-          </div>
-        )}
+                  </div>
+                  )}
+                  </NeumorphicCard>
+                  </div>
+                  )}
 
         {/* VISTA: SCAMBI */}
         {activeView === 'scambi' && (
