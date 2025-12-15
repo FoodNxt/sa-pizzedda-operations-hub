@@ -473,9 +473,10 @@ export default function Assenze() {
                               'bg-slate-100 text-slate-800'
                             }`}>
                               {scambio.stato === 'pending' ? 'In attesa collega' :
-                               scambio.stato === 'accepted' ? 'Da approvare' :
-                               scambio.stato === 'rejected' ? 'Rifiutato' :
-                               scambio.stato === 'approved' ? 'Approvato' : scambio.stato}
+                               scambio.stato === 'accepted_by_colleague' ? 'Da approvare' :
+                               scambio.stato === 'rejected_by_colleague' ? 'Rifiutato' :
+                               scambio.stato === 'approved_by_manager' ? 'Approvato' :
+                               scambio.stato === 'rejected_by_manager' ? 'Rifiutato da manager' : scambio.stato}
                             </span>
                           </div>
                           <div className="text-sm text-slate-600 space-y-1">
@@ -486,17 +487,46 @@ export default function Assenze() {
                           </div>
                         </div>
                         
-                        {scambio.stato === 'accepted' && (
+                        {scambio.stato === 'accepted_by_colleague' && (
                           <div className="flex flex-col gap-2">
                             <button
                               onClick={async () => {
-                                // Approva lo scambio: cambia dipendente
-                                const nuovoDipendente = allUsers.find(u => u.id === scambio.richiesto_a);
-                                await base44.entities.TurnoPlanday.update(turno.id, {
-                                  dipendente_id: scambio.richiesto_a,
-                                  dipendente_nome: nuovoDipendente?.nome_cognome || nuovoDipendente?.full_name || '',
-                                  richiesta_scambio: { ...scambio, stato: 'approved' }
-                                });
+                                // Approva lo scambio: scambia i dipendenti
+                                const [turno1List, turno2List] = await Promise.all([
+                                  base44.entities.TurnoPlanday.filter({ id: scambio.mio_turno_id }),
+                                  base44.entities.TurnoPlanday.filter({ id: scambio.suo_turno_id })
+                                ]);
+                                
+                                const turno1 = turno1List[0];
+                                const turno2 = turno2List[0];
+                                
+                                if (!turno1 || !turno2) {
+                                  alert('Errore: turni non trovati');
+                                  return;
+                                }
+                                
+                                const updatedRichiesta = {
+                                  ...scambio,
+                                  stato: 'approved_by_manager',
+                                  data_approvazione_manager: new Date().toISOString(),
+                                  approvato_da: user?.id,
+                                  approvato_da_nome: user?.nome_cognome || user?.full_name
+                                };
+                                
+                                // Scambia i dipendenti e aggiorna la richiesta
+                                await Promise.all([
+                                  base44.entities.TurnoPlanday.update(turno1.id, {
+                                    dipendente_id: turno2.dipendente_id,
+                                    dipendente_nome: turno2.dipendente_nome,
+                                    richiesta_scambio: updatedRichiesta
+                                  }),
+                                  base44.entities.TurnoPlanday.update(turno2.id, {
+                                    dipendente_id: turno1.dipendente_id,
+                                    dipendente_nome: turno1.dipendente_nome,
+                                    richiesta_scambio: updatedRichiesta
+                                  })
+                                ]);
+                                
                                 queryClient.invalidateQueries({ queryKey: ['turni-con-scambio'] });
                               }}
                               className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 flex items-center gap-1"
@@ -505,9 +535,23 @@ export default function Assenze() {
                             </button>
                             <button
                               onClick={async () => {
-                                await base44.entities.TurnoPlanday.update(turno.id, {
-                                  richiesta_scambio: { ...scambio, stato: 'rejected' }
-                                });
+                                const updatedRichiesta = {
+                                  ...scambio,
+                                  stato: 'rejected_by_manager',
+                                  data_approvazione_manager: new Date().toISOString(),
+                                  approvato_da: user?.id,
+                                  approvato_da_nome: user?.nome_cognome || user?.full_name
+                                };
+                                
+                                await Promise.all([
+                                  base44.entities.TurnoPlanday.update(scambio.mio_turno_id, {
+                                    richiesta_scambio: updatedRichiesta
+                                  }),
+                                  base44.entities.TurnoPlanday.update(scambio.suo_turno_id, {
+                                    richiesta_scambio: updatedRichiesta
+                                  })
+                                ]);
+                                
                                 queryClient.invalidateQueries({ queryKey: ['turni-con-scambio'] });
                               }}
                               className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 flex items-center gap-1"

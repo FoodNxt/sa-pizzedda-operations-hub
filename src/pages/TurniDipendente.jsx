@@ -170,18 +170,17 @@ export default function TurniDipendente() {
     enabled: !!currentUser?.id,
   });
 
-  // Scambi turno richiesti da me (i miei turni con richiesta_scambio pending dove io sono richiesto_da)
+  // Scambi turno richiesti da me (i miei turni con richiesta_scambio dove io sono richiesto_da)
   const { data: scambiDaMe = [] } = useQuery({
     queryKey: ['scambi-da-me', currentUser?.id],
     queryFn: async () => {
       if (!currentUser?.id) return [];
       const oggi = moment().format('YYYY-MM-DD');
-      const mieiTurni = await base44.entities.TurnoPlanday.filter({
-        dipendente_id: currentUser.id,
+      const allTurni = await base44.entities.TurnoPlanday.filter({
         data: { $gte: oggi }
       });
       // Filtra solo quelli con richiesta_scambio dove io sono il richiedente
-      return mieiTurni.filter(t => 
+      return allTurni.filter(t => 
         t.richiesta_scambio?.richiesto_da === currentUser.id
       );
     },
@@ -190,10 +189,9 @@ export default function TurniDipendente() {
 
   const scambiDaMePending = useMemo(() => {
     return scambiDaMe.filter(t => 
-      t.richiesta_scambio?.stato === 'pending' &&
-      t.richiesta_scambio?.richiesto_da === currentUser?.id
+      ['pending', 'accepted_by_colleague'].includes(t.richiesta_scambio?.stato)
     );
-  }, [scambiDaMe, currentUser?.id]);
+  }, [scambiDaMe]);
 
   const { data: formTrackerConfigs = [] } = useQuery({
     queryKey: ['form-tracker-configs'],
@@ -499,65 +497,55 @@ export default function TurniDipendente() {
       if (!suoTurno) throw new Error('Turno non trovato');
       
       const mioTurnoId = suoTurno.richiesta_scambio.mio_turno_id;
-      const newStatus = accetta ? 'accepted' : 'rejected';
 
-      // Se accettato, scambia i dipendenti tra i turni
+      const mioTurno = await base44.entities.TurnoPlanday.filter({ id: mioTurnoId });
+      if (mioTurno.length === 0) throw new Error('Turno del richiedente non trovato');
+
+      const turno1 = mioTurno[0];
+      const turno2 = suoTurno;
+
       if (accetta) {
-        const mioTurno = await base44.entities.TurnoPlanday.filter({ id: mioTurnoId });
-        if (mioTurno.length > 0) {
-          const turno1 = mioTurno[0];
-          const turno2 = suoTurno;
+        // Aggiorna stato a "accepted_by_colleague" senza scambiare dipendenti
+        const updatedRichiesta = {
+          ...suoTurno.richiesta_scambio,
+          stato: 'accepted_by_colleague',
+          data_risposta_collega: new Date().toISOString()
+        };
 
-          // Scambia i dati dei dipendenti
-          await base44.entities.TurnoPlanday.update(turno1.id, {
-            dipendente_id: turno2.dipendente_id,
-            dipendente_nome: turno2.dipendente_nome,
-            richiesta_scambio: {
-              ...turno1.richiesta_scambio,
-              stato: 'completed',
-              data_risposta: new Date().toISOString()
-            }
-          });
-
-          await base44.entities.TurnoPlanday.update(turno2.id, {
-            dipendente_id: turno1.dipendente_id,
-            dipendente_nome: turno1.dipendente_nome,
-            richiesta_scambio: {
-              ...turno2.richiesta_scambio,
-              stato: 'completed',
-              data_risposta: new Date().toISOString()
-            }
-          });
-        }
+        await Promise.all([
+          base44.entities.TurnoPlanday.update(turno1.id, {
+            richiesta_scambio: updatedRichiesta
+          }),
+          base44.entities.TurnoPlanday.update(turno2.id, {
+            richiesta_scambio: updatedRichiesta
+          })
+        ]);
       } else {
-        // Se rifiutato, aggiorna entrambi i turni
-        await base44.entities.TurnoPlanday.update(suoTurnoId, {
-          richiesta_scambio: {
-            ...suoTurno.richiesta_scambio,
-            stato: newStatus,
-            data_risposta: new Date().toISOString()
-          }
-        });
+        // Se rifiutato
+        const updatedRichiesta = {
+          ...suoTurno.richiesta_scambio,
+          stato: 'rejected_by_colleague',
+          data_risposta_collega: new Date().toISOString()
+        };
 
-        const mioTurno = await base44.entities.TurnoPlanday.filter({ id: mioTurnoId });
-        if (mioTurno.length > 0) {
-          await base44.entities.TurnoPlanday.update(mioTurnoId, {
-            richiesta_scambio: {
-              ...mioTurno[0].richiesta_scambio,
-              stato: newStatus,
-              data_risposta: new Date().toISOString()
-            }
-          });
-        }
+        await Promise.all([
+          base44.entities.TurnoPlanday.update(turno1.id, {
+            richiesta_scambio: updatedRichiesta
+          }),
+          base44.entities.TurnoPlanday.update(turno2.id, {
+            richiesta_scambio: updatedRichiesta
+          })
+        ]);
       }
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['scambi-per-me'] });
+      queryClient.invalidateQueries({ queryKey: ['scambi-da-me'] });
       queryClient.invalidateQueries({ queryKey: ['turni-dipendente'] });
       queryClient.invalidateQueries({ queryKey: ['turni-futuri'] });
       setTimbraturaMessage({ 
         type: 'success', 
-        text: 'Risposta inviata!' 
+        text: variables.accetta ? 'Scambio accettato! In attesa approvazione manager.' : 'Scambio rifiutato.'
       });
       setTimeout(() => setTimbraturaMessage(null), 3000);
     }
@@ -1677,7 +1665,7 @@ export default function TurniDipendente() {
                         const turnoStart = moment(`${turno.data} ${turno.ora_inizio}`);
                         const turnoNonIniziato = turnoStart.isAfter(moment());
                         const canScambio = turnoNonIniziato && !turno.timbrata_entrata && 
-                          (!turno.richiesta_scambio || !['pending', 'accepted'].includes(turno.richiesta_scambio?.stato));
+                          (!turno.richiesta_scambio || !['pending', 'accepted_by_colleague'].includes(turno.richiesta_scambio?.stato));
                         
                         return (
                         <div key={turno.id} className={`p-3 rounded-lg border ${COLORI_RUOLO[turno.ruolo]} ${turno.is_prova ? 'ring-2 ring-purple-500' : ''}`}>
@@ -1708,9 +1696,24 @@ export default function TurniDipendente() {
                                   {turno.richiesta_scambio?.richiesto_da === currentUser?.id ? 'Richiesto' : 'Da rispondere'}
                                 </span>
                               )}
-                              {turno.richiesta_scambio?.stato === 'accepted' && (
+                              {turno.richiesta_scambio?.stato === 'accepted_by_colleague' && (
                                 <span className="px-2 py-0.5 bg-blue-200 text-blue-800 rounded-full text-xs">
                                   Da approvare
+                                </span>
+                              )}
+                              {turno.richiesta_scambio?.stato === 'approved_by_manager' && (
+                                <span className="px-2 py-0.5 bg-green-200 text-green-800 rounded-full text-xs">
+                                  Approvato
+                                </span>
+                              )}
+                              {turno.richiesta_scambio?.stato === 'rejected_by_colleague' && (
+                                <span className="px-2 py-0.5 bg-red-200 text-red-800 rounded-full text-xs">
+                                  Rifiutato
+                                </span>
+                              )}
+                              {turno.richiesta_scambio?.stato === 'rejected_by_manager' && (
+                                <span className="px-2 py-0.5 bg-red-200 text-red-800 rounded-full text-xs">
+                                  Negato
                                 </span>
                               )}
                             </div>
@@ -2010,6 +2013,7 @@ export default function TurniDipendente() {
                   {scambiDaMePending.map(mioTurno => {
                     const suoTurnoId = mioTurno.richiesta_scambio?.suo_turno_id;
                     const richiestoANome = mioTurno.richiesta_scambio?.richiesto_a;
+                    const statoScambio = mioTurno.richiesta_scambio?.stato;
 
                     // Trova il nome del collega e il suo turno
                     const collegaNome = allEmployees.find(e => e.employee_id_external === richiestoANome)?.full_name || 'Collega';
@@ -2045,7 +2049,7 @@ export default function TurniDipendente() {
                               // Cerca il turno del collega nei dati disponibili
                               const suoTurno = turniFuturi.find(t => t.id === suoTurnoId);
                               if (!suoTurno) return null;
-                              
+
                               return (
                                 <div className="p-3 bg-green-50 rounded-lg">
                                   <p className="text-xs text-green-600 font-medium mb-1">In cambio prendi questo:</p>
@@ -2066,8 +2070,12 @@ export default function TurniDipendente() {
                               );
                             })()}
                           </div>
-                          <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium whitespace-nowrap ml-3">
-                            In attesa
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ml-3 ${
+                            statoScambio === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                            statoScambio === 'accepted_by_colleague' ? 'bg-blue-100 text-blue-700' :
+                            'bg-slate-100 text-slate-700'
+                          }`}>
+                            {statoScambio === 'pending' ? 'In attesa collega' : 'In attesa manager'}
                           </span>
                         </div>
                       </div>
