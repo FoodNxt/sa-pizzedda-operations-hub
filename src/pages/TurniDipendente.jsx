@@ -903,6 +903,17 @@ export default function TurniDipendente() {
   }, [selectedTurnoScambio, allEmployees, accessoStoreData, tuttiTurniGiornoScambio, currentUser]);
 
   const openScambioModal = (turno) => {
+    // Controlla se il turno è già iniziato
+    const turnoStart = moment(`${turno.data} ${turno.ora_inizio}`);
+    if (turnoStart.isSameOrBefore(moment())) {
+      setTimbraturaMessage({ 
+        type: 'error', 
+        text: 'Non puoi richiedere uno scambio per un turno già iniziato' 
+      });
+      setTimeout(() => setTimbraturaMessage(null), 3000);
+      return;
+    }
+
     setSelectedTurnoScambio(turno);
     setSelectedCollegaScambio(null);
     setSelectedTurnoCollegaScambio(null);
