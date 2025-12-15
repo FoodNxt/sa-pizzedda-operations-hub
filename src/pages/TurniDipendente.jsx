@@ -1966,6 +1966,7 @@ export default function TurniDipendente() {
 
         {/* VISTA: SCAMBI */}
         {activeView === 'scambi' && (
+          <>
           <div className="space-y-4">
             {/* Sezione 1: Scambi richiesti DA ME */}
             <NeumorphicCard className="p-6">
