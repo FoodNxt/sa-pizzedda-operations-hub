@@ -715,22 +715,55 @@ export default function TurniDipendente() {
 
   // Colleghi disponibili per scambio
   const colleghiPerScambio = useMemo(() => {
-    if (!selectedTurnoScambio || !allUsers.length) return [];
+    if (!selectedTurnoScambio) return [];
     
-    return allUsers
-      .filter(u => {
-        if (u.id === currentUser?.id) return false;
-        
-        // Deve avere il ruolo giusto
-        const ruoli = u.ruoli_dipendente || [];
-        return ruoli.includes(selectedTurnoScambio.ruolo);
-      })
-      .map(u => {
+    console.log('=== DEBUG SCAMBIO TURNO ===');
+    console.log('Turno selezionato:', selectedTurnoScambio);
+    console.log('Ruolo richiesto:', selectedTurnoScambio.ruolo);
+    console.log('Store ID:', selectedTurnoScambio.store_id);
+    console.log('Totale utenti:', allUsers.length);
+    console.log('Current user ID:', currentUser?.id);
+    
+    if (!allUsers.length) {
+      console.log('PROBLEMA: allUsers è vuoto!');
+      return [];
+    }
+    
+    // Log di tutti gli utenti con ruoli
+    allUsers.forEach(u => {
+      console.log(`User: ${u.nome_cognome || u.full_name}, ID: ${u.id}, Ruoli: ${(u.ruoli_dipendente || []).join(', ')}, Stores: ${(u.store_assegnati || []).join(', ')}`);
+    });
+    
+    const filtered = allUsers.filter(u => {
+      if (u.id === currentUser?.id) {
+        console.log(`Escludo ${u.nome_cognome || u.full_name} - è il current user`);
+        return false;
+      }
+      
+      const ruoli = u.ruoli_dipendente || [];
+      const hasRole = ruoli.includes(selectedTurnoScambio.ruolo);
+      
+      if (!hasRole) {
+        console.log(`Escludo ${u.nome_cognome || u.full_name} - non ha ruolo ${selectedTurnoScambio.ruolo} (ha: ${ruoli.join(', ')})`);
+      } else {
+        console.log(`✓ ${u.nome_cognome || u.full_name} ha ruolo ${selectedTurnoScambio.ruolo}`);
+      }
+      
+      return hasRole;
+    });
+    
+    console.log('Utenti dopo filtro ruolo:', filtered.length);
+    
+    return filtered.map(u => {
         const storesAssegnati = u.store_assegnati || [];
         const isAssegnatoStore = storesAssegnati.length === 0 || storesAssegnati.includes(selectedTurnoScambio.store_id);
         
+        console.log(`${u.nome_cognome || u.full_name} - Stores assegnati: ${storesAssegnati.join(', ') || 'tutti'}, isAssegnatoStore: ${isAssegnatoStore}`);
+        
         // Trova TUTTI i turni del dipendente in quel giorno
         const turniDipendente = tuttiTurniGiornoScambio.filter(t => t.dipendente_id === u.id);
+        
+        console.log(`${u.nome_cognome || u.full_name} - Turni in giorno: ${turniDipendente.length}`);
         
         // Controlla sovrapposizioni orarie
         const turniSovrapposti = turniDipendente.filter(t => 
@@ -744,6 +777,8 @@ export default function TurniDipendente() {
         
         const haConflitti = turniSovrapposti.length > 0;
         
+        console.log(`${u.nome_cognome || u.full_name} - Ha conflitti: ${haConflitti}`);
+        
         return {
           ...u,
           isAssegnatoStore,
@@ -753,7 +788,6 @@ export default function TurniDipendente() {
         };
       })
       .sort((a, b) => {
-        // Prima chi non ha conflitti e è assegnato allo store
         if (a.haConflitti !== b.haConflitti) return a.haConflitti ? 1 : -1;
         if (a.isAssegnatoStore !== b.isAssegnatoStore) return a.isAssegnatoStore ? -1 : 1;
         return 0;
@@ -1987,9 +2021,14 @@ export default function TurniDipendente() {
               <h3 className="font-medium text-slate-700 mb-3">Seleziona un collega:</h3>
 
               {colleghiPerScambio.length === 0 ? (
-                <p className="text-slate-500 text-center py-4">
-                  Nessun collega disponibile con il ruolo {selectedTurnoScambio.ruolo} per questo store
-                </p>
+                <div className="text-center py-4">
+                  <p className="text-slate-500 mb-2">
+                    Nessun collega disponibile con il ruolo {selectedTurnoScambio.ruolo}
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    Totale utenti: {allUsers.length} | Apri console browser (F12) per debug
+                  </p>
+                </div>
               ) : (
                 <div className="space-y-3">
                   {colleghiPerScambio.map(collega => (
