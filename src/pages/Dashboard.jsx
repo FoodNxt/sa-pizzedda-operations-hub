@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
-import { Store, TrendingUp, Users, DollarSign, Star, AlertTriangle, Filter, Calendar, X } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Store, TrendingUp, Users, DollarSign, Star, AlertTriangle, Filter, Calendar, X, RefreshCw } from "lucide-react";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
+import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, subDays, isAfter, isBefore, parseISO, isValid } from 'date-fns';
@@ -11,6 +12,7 @@ export default function Dashboard() {
   const [dateRange, setDateRange] = useState('30');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [syncMessage, setSyncMessage] = useState(null);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -139,15 +141,60 @@ export default function Dashboard() {
     setDateRange('30');
   };
 
+  const syncEmployeesMutation = useMutation({
+    mutationFn: async () => {
+      const response = await base44.functions.invoke('syncEmployeesFromUsers');
+      return response.data;
+    },
+    onSuccess: (data) => {
+      setSyncMessage({ 
+        type: 'success', 
+        text: `Sincronizzati ${data.summary.created} dipendenti (${data.summary.skipped} già esistenti)`
+      });
+      setTimeout(() => setSyncMessage(null), 5000);
+    },
+    onError: (error) => {
+      setSyncMessage({ type: 'error', text: error.message });
+      setTimeout(() => setSyncMessage(null), 5000);
+    }
+  });
+
   return (
     <ProtectedPage pageName="Dashboard">
       <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
         <div className="mb-4 lg:mb-6">
-          <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
-            Dashboard
-          </h1>
-          <p className="text-sm text-slate-500">Monitor business performance</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
+                Dashboard
+              </h1>
+              <p className="text-sm text-slate-500">Monitor business performance</p>
+            </div>
+            {employees.length === 0 && (
+              <NeumorphicButton
+                onClick={() => syncEmployeesMutation.mutate()}
+                disabled={syncEmployeesMutation.isPending}
+                variant="primary"
+                className="flex items-center gap-2"
+              >
+                {syncEmployeesMutation.isPending ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+                Sincronizza Dipendenti
+              </NeumorphicButton>
+            )}
+          </div>
         </div>
+
+        {syncMessage && (
+          <NeumorphicCard className={`p-4 ${syncMessage.type === 'success' ? 'bg-green-50' : 'bg-red-50'}`}>
+            <p className={`text-sm ${syncMessage.type === 'success' ? 'text-green-700' : 'text-red-700'}`}>
+              {syncMessage.text}
+            </p>
+          </NeumorphicCard>
+        )}
 
         <NeumorphicCard className="p-4 lg:p-6">
           <div className="flex items-center gap-2 mb-4">
