@@ -724,6 +724,9 @@ export default function TurniDipendente() {
     const allTurni = [...turni, ...turniFuturi];
     const futuri = allTurni
       .filter(t => {
+        // Filtra SOLO turni assegnati al dipendente corrente
+        if (t.dipendente_id !== currentUser?.id) return false;
+        
         // Escludi turni completati
         if (t.stato === 'completato') return false;
         
@@ -745,7 +748,7 @@ export default function TurniDipendente() {
         return aStart.diff(bStart);
       });
     return futuri[0] || null;
-  }, [turni, turniFuturi, now]);
+  }, [turni, turniFuturi, now, currentUser]);
 
   // Colleghi che lavorano nello stesso turno del prossimo turno
   const { data: colleghiProssimoTurno = [] } = useQuery({
