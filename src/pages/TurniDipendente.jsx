@@ -347,19 +347,6 @@ export default function TurniDipendente() {
 
   const richiestaScambioMutation = useMutation({
     mutationFn: async ({ mioTurnoId, suoTurnoId, richiestoA }) => {
-      // Carica i turni esistenti
-      const [mioTurnoList, suoTurnoList] = await Promise.all([
-        base44.entities.TurnoPlanday.filter({ id: mioTurnoId }),
-        base44.entities.TurnoPlanday.filter({ id: suoTurnoId })
-      ]);
-
-      const mioTurno = mioTurnoList[0];
-      const suoTurno = suoTurnoList[0];
-
-      if (!mioTurno || !suoTurno) {
-        throw new Error('Turni non trovati');
-      }
-
       const richiestaData = {
         richiesto_da: currentUser.id,
         richiesto_da_nome: currentUser.nome_cognome || currentUser.full_name,
@@ -370,17 +357,21 @@ export default function TurniDipendente() {
         data_richiesta: new Date().toISOString()
       };
 
-      // Aggiorna il mio turno con tutti i dati esistenti + la richiesta
-      await base44.entities.TurnoPlanday.update(mioTurnoId, {
-        ...mioTurno,
-        richiesta_scambio: richiestaData
-      });
+      console.log('Salvando richiesta scambio:', richiestaData);
 
-      // Aggiorna il suo turno con tutti i dati esistenti + la richiesta
-      await base44.entities.TurnoPlanday.update(suoTurnoId, {
-        ...suoTurno,
+      // Aggiorna il mio turno con la richiesta
+      const update1 = await base44.entities.TurnoPlanday.update(mioTurnoId, {
         richiesta_scambio: richiestaData
       });
+      console.log('Aggiornato mio turno:', update1);
+
+      // Aggiorna il suo turno con la richiesta
+      const update2 = await base44.entities.TurnoPlanday.update(suoTurnoId, {
+        richiesta_scambio: richiestaData
+      });
+      console.log('Aggiornato suo turno:', update2);
+
+      return { update1, update2 };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['turni-dipendente'] });
