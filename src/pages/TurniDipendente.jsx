@@ -722,6 +722,28 @@ export default function TurniDipendente() {
   const prossimoTurno = useMemo(() => {
     const now = moment();
     const allTurni = [...turni, ...turniFuturi];
+    const oreMancataUscita = config?.ore_mancata_uscita || 2;
+    
+    // Prima controlla se c'è un turno finito che attende timbratura uscita
+    const turnoAttendeUscita = allTurni.find(t => {
+      if (t.dipendente_id !== currentUser?.id) return false;
+      if (t.stato === 'completato') return false;
+      if (!t.timbrata_entrata) return false;
+      if (t.timbrata_uscita) return false;
+      
+      let turnoEnd = moment(`${t.data} ${t.ora_fine}`);
+      const [endHour] = t.ora_fine.split(':').map(Number);
+      if (endHour >= 0 && endHour < 6) {
+        turnoEnd = turnoEnd.add(1, 'day');
+      }
+      
+      // Il turno è finito ma non sono passate più di X ore
+      const oreDallaFine = now.diff(turnoEnd, 'hours', true);
+      return turnoEnd.isBefore(now) && oreDallaFine < oreMancataUscita;
+    });
+    
+    if (turnoAttendeUscita) return turnoAttendeUscita;
+    
     const futuri = allTurni
       .filter(t => {
         // Filtra SOLO turni assegnati al dipendente corrente
@@ -748,7 +770,7 @@ export default function TurniDipendente() {
         return aStart.diff(bStart);
       });
     return futuri[0] || null;
-  }, [turni, turniFuturi, now, currentUser]);
+  }, [turni, turniFuturi, now, currentUser, config]);
 
   // Colleghi che lavorano nello stesso turno del prossimo turno
   const { data: colleghiProssimoTurno = [] } = useQuery({
