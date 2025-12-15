@@ -154,7 +154,7 @@ export default function TurniDipendente() {
     enabled: !!currentUser?.id,
   });
 
-  // Scambi turno richiesti a me
+  // Scambi turno richiesti a me (turni dove io sono "richiesto_a")
   const { data: scambiPerMe = [] } = useQuery({
     queryKey: ['scambi-per-me', currentUser?.id],
     queryFn: async () => {
@@ -169,6 +169,26 @@ export default function TurniDipendente() {
     },
     enabled: !!currentUser?.id,
   });
+
+  // Scambi turno richiesti da me (i miei turni con richiesta_scambio pending)
+  const { data: scambiDaMe = [] } = useQuery({
+    queryKey: ['scambi-da-me', currentUser?.id],
+    queryFn: async () => {
+      const oggi = moment().format('YYYY-MM-DD');
+      return base44.entities.TurnoPlanday.filter({
+        dipendente_id: currentUser.id,
+        data: { $gte: oggi }
+      });
+    },
+    enabled: !!currentUser?.id,
+  });
+
+  const scambiDaMePending = useMemo(() => {
+    return scambiDaMe.filter(t => 
+      t.richiesta_scambio?.stato === 'pending' &&
+      t.richiesta_scambio?.richiesto_da === currentUser?.id
+    );
+  }, [scambiDaMe, currentUser?.id]);
 
   const { data: formTrackerConfigs = [] } = useQuery({
     queryKey: ['form-tracker-configs'],
@@ -254,15 +274,21 @@ export default function TurniDipendente() {
     enabled: !!currentUser?.id,
   });
 
-  // Turni futuri del collega selezionato per scambio
+  // Turni futuri del collega selezionato per scambio (filtrati per non passati)
   const { data: turniFuturiCollega = [] } = useQuery({
     queryKey: ['turni-futuri-collega', selectedCollegaScambio?.id],
     queryFn: async () => {
       if (!selectedCollegaScambio?.id) return [];
       const oggi = moment().format('YYYY-MM-DD');
-      return base44.entities.TurnoPlanday.filter({
+      const allTurni = await base44.entities.TurnoPlanday.filter({
         dipendente_id: selectedCollegaScambio.id,
         data: { $gte: oggi }
+      });
+      // Filtra turni con ora di inizio non ancora passata
+      const now = moment();
+      return allTurni.filter(t => {
+        const turnoStart = moment(`${t.data} ${t.ora_inizio}`);
+        return turnoStart.isAfter(now);
       });
     },
     enabled: !!selectedCollegaScambio?.id,
@@ -1104,10 +1130,12 @@ export default function TurniDipendente() {
               variant={activeView === 'scambi' ? 'primary' : 'default'}
               className="flex items-center gap-2"
             >
-              <Users className="w-4 h-4" />
+              <ArrowRightLeft className="w-4 h-4" />
               Scambi
-              {scambiPerMe.length > 0 && (
-                <span className="bg-purple-500 text-white text-xs px-1.5 py-0.5 rounded-full">{scambiPerMe.length}</span>
+              {(scambiPerMe.length > 0 || scambiDaMePending.length > 0) && (
+                <span className="bg-purple-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                  {scambiPerMe.length + scambiDaMePending.length}
+                </span>
               )}
             </NeumorphicButton>
           </div>
@@ -1650,8 +1678,9 @@ export default function TurniDipendente() {
                                 </button>
                               )}
                               {turno.richiesta_scambio?.stato === 'pending' && (
-                                <span className="px-2 py-0.5 bg-yellow-200 text-yellow-800 rounded-full text-xs">
-                                  In attesa
+                                <span className="px-2 py-0.5 bg-yellow-200 text-yellow-800 rounded-full text-xs font-medium flex items-center gap-1">
+                                  <AlertCircle className="w-3 h-3" />
+                                  {turno.richiesta_scambio?.richiesto_da === currentUser?.id ? 'Richiesto' : 'Da rispondere'}
                                 </span>
                               )}
                               {turno.richiesta_scambio?.stato === 'accepted' && (
@@ -1937,19 +1966,79 @@ export default function TurniDipendente() {
 
         {/* VISTA: SCAMBI */}
         {activeView === 'scambi' && (
-          <NeumorphicCard className="p-6">
-            <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-              <Users className="w-5 h-5 text-purple-500" />
-              Richieste di Scambio
-            </h2>
-            <p className="text-sm text-slate-500 mb-4">
-              Colleghi che vogliono scambiare il loro turno con te
-            </p>
-            
-            {scambiPerMe.length === 0 ? (
-              <p className="text-slate-500 text-center py-8">Nessuna richiesta di scambio</p>
-            ) : (
-              <div className="space-y-3">
+          <div className="space-y-4">
+            {/* Sezione 1: Scambi richiesti DA ME */}
+            <NeumorphicCard className="p-6">
+              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <ArrowRightLeft className="w-5 h-5 text-blue-500" />
+                Scambi Richiesti da Me
+              </h2>
+              <p className="text-sm text-slate-500 mb-4">
+                Richieste di scambio che hai inviato ai tuoi colleghi
+              </p>
+
+              {scambiDaMePending.length === 0 ? (
+                <p className="text-slate-500 text-center py-8">Nessuna richiesta in corso</p>
+              ) : (
+                <div className="space-y-3">
+                  {scambiDaMePending.map(mioTurno => {
+                    const suoTurnoId = mioTurno.richiesta_scambio?.suo_turno_id;
+                    const richiestoANome = mioTurno.richiesta_scambio?.richiesto_a;
+
+                    // Trova il nome del collega
+                    const collegaNome = allEmployees.find(e => e.employee_id_external === richiestoANome)?.full_name || 'Collega';
+
+                    return (
+                      <div key={mioTurno.id} className="neumorphic-pressed p-4 rounded-xl">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <p className="font-bold text-slate-800 mb-2">
+                              Richiesta inviata a {collegaNome}
+                            </p>
+
+                            {/* Il mio turno che voglio dare */}
+                            <div className="p-3 bg-orange-50 rounded-lg mb-2">
+                              <p className="text-xs text-orange-600 font-medium mb-1">Dai via questo turno:</p>
+                              <p className="font-medium text-slate-700">
+                                {moment(mioTurno.data).format('dddd DD MMMM')}
+                              </p>
+                              <div className="flex items-center gap-2 text-sm text-slate-600">
+                                <Clock className="w-4 h-4" />
+                                <span>{mioTurno.ora_inizio} - {mioTurno.ora_fine}</span>
+                                <span>•</span>
+                                <span>{mioTurno.ruolo}</span>
+                              </div>
+                              <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
+                                <MapPin className="w-3 h-3" />
+                                {getStoreName(mioTurno.store_id)}
+                              </div>
+                            </div>
+                          </div>
+                          <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium whitespace-nowrap ml-3">
+                            In attesa
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </NeumorphicCard>
+
+            {/* Sezione 2: Scambi richiesti A ME */}
+            <NeumorphicCard className="p-6">
+              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <Users className="w-5 h-5 text-purple-500" />
+                Richieste Ricevute
+              </h2>
+              <p className="text-sm text-slate-500 mb-4">
+                Colleghi che vogliono scambiare il loro turno con te
+              </p>
+
+              {scambiPerMe.length === 0 ? (
+                <p className="text-slate-500 text-center py-8">Nessuna richiesta ricevuta</p>
+              ) : (
+                <div className="space-y-3">
                 {scambiPerMe.map(turno => {
                   const mioTurnoId = turno.richiesta_scambio?.mio_turno_id;
                   const mioTurno = turniFuturi.find(t => t.id === mioTurnoId);
