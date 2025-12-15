@@ -3,8 +3,51 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
-import { Calendar, Thermometer, Check, X, Clock, FileText, User, AlertCircle, Copy, Loader2, Users, ArrowRightLeft, CheckCircle } from "lucide-react";
+import { Calendar, Thermometer, Check, X, Clock, FileText, User, AlertCircle, Copy, Loader2, Users, ArrowRightLeft, CheckCircle, MapPin } from "lucide-react";
 import moment from "moment";
+
+// Componente per mostrare il turno dell'altro dipendente
+function TurnoAltroDisplay({ turnoId, richiestoANome, getStoreName }) {
+  const { data: turnoAltro, isLoading } = useQuery({
+    queryKey: ['turno-altro', turnoId],
+    queryFn: async () => {
+      const turni = await base44.entities.TurnoPlanday.filter({ id: turnoId });
+      return turni[0] || null;
+    },
+    enabled: !!turnoId,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="p-3 bg-green-50 rounded-lg border-2 border-green-200">
+        <Loader2 className="w-4 h-4 animate-spin text-green-600" />
+      </div>
+    );
+  }
+
+  if (!turnoAltro) return null;
+
+  return (
+    <div className="p-3 bg-green-50 rounded-lg border-2 border-green-200">
+      <p className="text-xs font-bold text-green-600 mb-2 flex items-center gap-1">
+        <Check className="w-3 h-3" />
+        {richiestoANome} RICEVE:
+      </p>
+      <p className="font-medium text-slate-700 text-sm">
+        {moment(turnoAltro.data).format('ddd DD/MM')}
+      </p>
+      <div className="text-xs text-slate-600 mt-1">
+        🕐 {turnoAltro.ora_inizio} - {turnoAltro.ora_fine}
+      </div>
+      <div className="text-xs text-slate-600">
+        👤 {turnoAltro.ruolo}
+      </div>
+      <div className="text-xs text-slate-500">
+        📍 {getStoreName(turnoAltro.store_id)}
+      </div>
+    </div>
+  );
+}
 
 export default function Assenze() {
   const [activeTab, setActiveTab] = useState('ferie');
@@ -52,7 +95,12 @@ export default function Assenze() {
     queryKey: ['turni-con-scambio'],
     queryFn: async () => {
       const allTurni = await base44.entities.TurnoPlanday.list('-data', 500);
-      return allTurni.filter(t => t.richiesta_scambio && t.richiesta_scambio.stato);
+      // Mostra solo il turno del richiedente (mio_turno_id) per evitare duplicati
+      return allTurni.filter(t => 
+        t.richiesta_scambio && 
+        t.richiesta_scambio.stato &&
+        t.id === t.richiesta_scambio.mio_turno_id
+      );
     },
   });
 
@@ -454,17 +502,21 @@ export default function Assenze() {
               <p className="text-slate-500 text-center py-8">Nessuna richiesta di scambio</p>
             ) : (
               <div className="space-y-3">
-                {turniConScambio.sort((a, b) => new Date(b.richiesta_scambio?.data_richiesta) - new Date(a.richiesta_scambio?.data_richiesta)).map(turno => {
-                  const scambio = turno.richiesta_scambio;
+                {turniConScambio.sort((a, b) => new Date(b.richiesta_scambio?.data_richiesta) - new Date(a.richiesta_scambio?.data_richiesta)).map(turnoRichiedente => {
+                  const scambio = turnoRichiedente.richiesta_scambio;
+                  
+                  // Trova il turno dell'altro dipendente
+                  const turnoAltroList = stores.length > 0 ? [] : []; // Placeholder per caricare dopo
+                  
                   return (
-                    <div key={turno.id} className="neumorphic-pressed p-4 rounded-xl">
-                      <div className="flex items-start justify-between">
+                    <div key={turnoRichiedente.id} className="neumorphic-pressed p-4 rounded-xl">
+                      <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <ArrowRightLeft className="w-4 h-4 text-purple-500" />
-                            <span className="font-bold text-slate-800">{turno.dipendente_nome}</span>
-                            <span className="text-slate-500">→</span>
-                            <span className="font-bold text-slate-800">{getUserName(scambio.richiesto_a)}</span>
+                          <div className="flex items-center gap-2 mb-3">
+                            <ArrowRightLeft className="w-5 h-5 text-purple-500" />
+                            <span className="font-bold text-slate-800">{scambio.richiesto_da_nome}</span>
+                            <span className="text-slate-500">↔</span>
+                            <span className="font-bold text-slate-800">{scambio.richiesto_a_nome}</span>
                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                               scambio.stato === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                               scambio.stato === 'accepted_by_colleague' ? 'bg-blue-100 text-blue-800' :
@@ -480,19 +532,45 @@ export default function Assenze() {
                                scambio.stato === 'rejected_by_manager' ? 'Rifiutato da manager' : scambio.stato}
                             </span>
                           </div>
-                          <div className="text-sm text-slate-600 space-y-1">
-                            <p>📅 {moment(turno.data).format('dddd DD/MM/YYYY')}</p>
-                            <p>🕐 {turno.ora_inizio} - {turno.ora_fine} • {turno.ruolo}</p>
-                            <p>📍 {getStoreName(turno.store_id)}</p>
-                            <p className="text-xs text-slate-400">Richiesto il {moment(scambio.data_richiesta).format('DD/MM/YYYY HH:mm')}</p>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {/* Turno CEDUTO (del richiedente) */}
+                            <div className="p-3 bg-red-50 rounded-lg border-2 border-red-200">
+                              <p className="text-xs font-bold text-red-600 mb-2 flex items-center gap-1">
+                                <X className="w-3 h-3" />
+                                {scambio.richiesto_da_nome} CEDE:
+                              </p>
+                              <p className="font-medium text-slate-700 text-sm">
+                                {moment(turnoRichiedente.data).format('ddd DD/MM')}
+                              </p>
+                              <div className="text-xs text-slate-600 mt-1">
+                                🕐 {turnoRichiedente.ora_inizio} - {turnoRichiedente.ora_fine}
+                              </div>
+                              <div className="text-xs text-slate-600">
+                                👤 {turnoRichiedente.ruolo}
+                              </div>
+                              <div className="text-xs text-slate-500">
+                                📍 {getStoreName(turnoRichiedente.store_id)}
+                              </div>
+                            </div>
+
+                            {/* Turno RICHIESTO (dell'altro dipendente) */}
+                            <TurnoAltroDisplay 
+                              turnoId={scambio.suo_turno_id}
+                              richiestoANome={scambio.richiesto_a_nome}
+                              getStoreName={getStoreName}
+                            />
                           </div>
+
+                          <p className="text-xs text-slate-400 mt-2">
+                            Richiesto il {moment(scambio.data_richiesta).format('DD/MM/YYYY HH:mm')}
+                          </p>
                         </div>
                         
                         {scambio.stato === 'accepted_by_colleague' && (
-                          <div className="flex flex-col gap-2">
+                          <div className="flex flex-col gap-2 ml-3">
                             <button
                               onClick={async () => {
-                                // Approva lo scambio: scambia i dipendenti
                                 const [turno1List, turno2List] = await Promise.all([
                                   base44.entities.TurnoPlanday.filter({ id: scambio.mio_turno_id }),
                                   base44.entities.TurnoPlanday.filter({ id: scambio.suo_turno_id })
@@ -514,7 +592,6 @@ export default function Assenze() {
                                   approvato_da_nome: user?.nome_cognome || user?.full_name
                                 };
                                 
-                                // Scambia i dipendenti e aggiorna la richiesta
                                 await Promise.all([
                                   base44.entities.TurnoPlanday.update(turno1.id, {
                                     dipendente_id: turno2.dipendente_id,

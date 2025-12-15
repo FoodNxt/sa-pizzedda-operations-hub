@@ -188,9 +188,12 @@ export default function TurniDipendente() {
   });
 
   const scambiDaMePending = useMemo(() => {
-    return scambiDaMe.filter(t => 
-      ['pending', 'accepted_by_colleague'].includes(t.richiesta_scambio?.stato)
+    // Mostra solo il turno del richiedente (mio_turno_id) per evitare duplicati
+    const uniqueSwaps = scambiDaMe.filter(t => 
+      ['pending', 'accepted_by_colleague'].includes(t.richiesta_scambio?.stato) &&
+      t.id === t.richiesta_scambio?.mio_turno_id
     );
+    return uniqueSwaps;
   }, [scambiDaMe]);
 
   const { data: formTrackerConfigs = [] } = useQuery({
@@ -2032,64 +2035,71 @@ export default function TurniDipendente() {
               ) : (
                 <div className="space-y-3">
                   {scambiDaMePending.map(mioTurno => {
-                    const suoTurnoId = mioTurno.richiesta_scambio?.suo_turno_id;
-                    const richiestoANome = mioTurno.richiesta_scambio?.richiesto_a;
-                    const statoScambio = mioTurno.richiesta_scambio?.stato;
+                    const scambio = mioTurno.richiesta_scambio;
+                    const suoTurnoId = scambio?.suo_turno_id;
+                    const statoScambio = scambio?.stato;
 
-                    // Trova il nome del collega e il suo turno
-                    const collegaNome = allEmployees.find(e => e.employee_id_external === richiestoANome)?.full_name || 'Collega';
+                    // Trova il turno del collega
+                    const suoTurno = turniFuturi.find(t => t.id === suoTurnoId);
 
                     return (
                       <div key={mioTurno.id} className="neumorphic-pressed p-4 rounded-xl">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
-                            <p className="font-bold text-slate-800 mb-2">
-                              Richiesta inviata a {collegaNome}
-                            </p>
-
-                            {/* Il mio turno che voglio dare */}
-                            <div className="p-3 bg-orange-50 rounded-lg mb-2">
-                              <p className="text-xs text-orange-600 font-medium mb-1">Dai via questo turno:</p>
-                              <p className="font-medium text-slate-700">
-                                {moment(mioTurno.data).format('dddd DD MMMM')}
-                              </p>
-                              <div className="flex items-center gap-2 text-sm text-slate-600">
-                                <Clock className="w-4 h-4" />
-                                <span>{mioTurno.ora_inizio} - {mioTurno.ora_fine}</span>
-                                <span>•</span>
-                                <span>{mioTurno.ruolo}</span>
-                              </div>
-                              <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
-                                <MapPin className="w-3 h-3" />
-                                {getStoreName(mioTurno.store_id)}
-                              </div>
+                            <div className="flex items-center gap-2 mb-3">
+                              <ArrowRightLeft className="w-5 h-5 text-purple-500" />
+                              <span className="font-bold text-slate-800">{scambio.richiesto_da_nome}</span>
+                              <span className="text-slate-500">↔</span>
+                              <span className="font-bold text-slate-800">{scambio.richiesto_a_nome}</span>
                             </div>
 
-                            {/* Il turno del collega che voglio prendere */}
-                            {suoTurnoId && (() => {
-                              // Cerca il turno del collega nei dati disponibili
-                              const suoTurno = turniFuturi.find(t => t.id === suoTurnoId);
-                              if (!suoTurno) return null;
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {/* Turno CEDUTO */}
+                              <div className="p-3 bg-red-50 rounded-lg border-2 border-red-200">
+                                <p className="text-xs font-bold text-red-600 mb-2 flex items-center gap-1">
+                                  <X className="w-3 h-3" />
+                                  Cedi questo:
+                                </p>
+                                <p className="font-medium text-slate-700 text-sm">
+                                  {moment(mioTurno.data).format('ddd DD/MM')}
+                                </p>
+                                <div className="text-xs text-slate-600 mt-1">
+                                  🕐 {mioTurno.ora_inizio} - {mioTurno.ora_fine}
+                                </div>
+                                <div className="text-xs text-slate-600">
+                                  👤 {mioTurno.ruolo}
+                                </div>
+                                <div className="text-xs text-slate-500">
+                                  📍 {getStoreName(mioTurno.store_id)}
+                                </div>
+                              </div>
 
-                              return (
-                                <div className="p-3 bg-green-50 rounded-lg">
-                                  <p className="text-xs text-green-600 font-medium mb-1">In cambio prendi questo:</p>
-                                  <p className="font-medium text-slate-700">
-                                    {moment(suoTurno.data).format('dddd DD MMMM')}
+                              {/* Turno RICHIESTO */}
+                              {suoTurno && (
+                                <div className="p-3 bg-green-50 rounded-lg border-2 border-green-200">
+                                  <p className="text-xs font-bold text-green-600 mb-2 flex items-center gap-1">
+                                    <Check className="w-3 h-3" />
+                                    Prendi questo:
                                   </p>
-                                  <div className="flex items-center gap-2 text-sm text-slate-600">
-                                    <Clock className="w-4 h-4" />
-                                    <span>{suoTurno.ora_inizio} - {suoTurno.ora_fine}</span>
-                                    <span>•</span>
-                                    <span>{suoTurno.ruolo}</span>
+                                  <p className="font-medium text-slate-700 text-sm">
+                                    {moment(suoTurno.data).format('ddd DD/MM')}
+                                  </p>
+                                  <div className="text-xs text-slate-600 mt-1">
+                                    🕐 {suoTurno.ora_inizio} - {suoTurno.ora_fine}
                                   </div>
-                                  <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
-                                    <MapPin className="w-3 h-3" />
-                                    {getStoreName(suoTurno.store_id)}
+                                  <div className="text-xs text-slate-600">
+                                    👤 {suoTurno.ruolo}
+                                  </div>
+                                  <div className="text-xs text-slate-500">
+                                    📍 {getStoreName(suoTurno.store_id)}
                                   </div>
                                 </div>
-                              );
-                            })()}
+                              )}
+                            </div>
+
+                            <p className="text-xs text-slate-400 mt-2">
+                              Richiesto il {moment(scambio.data_richiesta).format('DD/MM/YYYY HH:mm')}
+                            </p>
                           </div>
                           <div className="flex flex-col gap-2 ml-3">
                             {statoScambio === 'pending' ? (
@@ -2103,21 +2113,23 @@ export default function TurniDipendente() {
                                     suoTurnoId: suoTurnoId
                                   })}
                                   disabled={cancellaScambioMutation.isPending}
-                                  className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs font-medium hover:bg-red-600"
+                                  className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs font-medium hover:bg-red-600 flex items-center gap-1"
                                 >
-                                  Cancella
+                                  <X className="w-3 h-3" /> Cancella
                                 </button>
                               </>
                             ) : (
-                              <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium text-center">
-                                In attesa manager
-                              </span>
+                              <div className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium text-center">
+                                <CheckCircle className="w-4 h-4 mx-auto mb-1" />
+                                Accettato<br/>
+                                <span className="text-[10px]">In attesa manager</span>
+                              </div>
                             )}
                           </div>
-                          </div>
-                          </div>
-                          );
-                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </NeumorphicCard>
@@ -2137,55 +2149,69 @@ export default function TurniDipendente() {
               ) : (
                 <div className="space-y-3">
                 {scambiPerMe.map(turno => {
-                  const mioTurnoId = turno.richiesta_scambio?.mio_turno_id;
+                  const scambio = turno.richiesta_scambio;
+                  const mioTurnoId = scambio?.mio_turno_id;
                   const mioTurno = turniFuturi.find(t => t.id === mioTurnoId);
-                  const statoScambio = turno.richiesta_scambio?.stato;
+                  const statoScambio = scambio?.stato;
 
                   return (
                   <div key={turno.id} className="neumorphic-pressed p-4 rounded-xl">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
-                        <p className="font-bold text-slate-800 mb-2">
-                          {turno.richiesta_scambio?.richiesto_da_nome} vuole scambiare
-                        </p>
+                        <div className="flex items-center gap-2 mb-3">
+                          <ArrowRightLeft className="w-5 h-5 text-purple-500" />
+                          <span className="font-bold text-slate-800">{scambio.richiesto_da_nome}</span>
+                          <span className="text-slate-500">↔</span>
+                          <span className="font-bold text-slate-800">Tu</span>
+                        </div>
 
-                        {/* Il suo turno (che vorrebbe darti) */}
-                        <div className="p-3 bg-blue-50 rounded-lg mb-2">
-                          <p className="text-xs text-blue-600 font-medium mb-1">Ti offre questo turno:</p>
-                          <p className="font-medium text-slate-700">
-                            {moment(turno.data).format('dddd DD MMMM')}
-                          </p>
-                          <div className="flex items-center gap-2 text-sm text-slate-600">
-                            <Clock className="w-4 h-4" />
-                            <span>{turno.ora_inizio} - {turno.ora_fine}</span>
-                            <span>•</span>
-                            <span>{turno.ruolo}</span>
-                          </div>
-                          <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
-                            <MapPin className="w-3 h-3" />
-                            {getStoreName(turno.store_id)}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {/* Turno che il RICHIEDENTE cede (e tu prenderesti) */}
+                          {mioTurno && (
+                            <div className="p-3 bg-green-50 rounded-lg border-2 border-green-200">
+                              <p className="text-xs font-bold text-green-600 mb-2 flex items-center gap-1">
+                                <Check className="w-3 h-3" />
+                                Prendi questo:
+                              </p>
+                              <p className="font-medium text-slate-700 text-sm">
+                                {moment(mioTurno.data).format('ddd DD/MM')}
+                              </p>
+                              <div className="text-xs text-slate-600 mt-1">
+                                🕐 {mioTurno.ora_inizio} - {mioTurno.ora_fine}
+                              </div>
+                              <div className="text-xs text-slate-600">
+                                👤 {mioTurno.ruolo}
+                              </div>
+                              <div className="text-xs text-slate-500">
+                                📍 {getStoreName(mioTurno.store_id)}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Il TUO turno che cedi */}
+                          <div className="p-3 bg-red-50 rounded-lg border-2 border-red-200">
+                            <p className="text-xs font-bold text-red-600 mb-2 flex items-center gap-1">
+                              <X className="w-3 h-3" />
+                              Cedi questo:
+                            </p>
+                            <p className="font-medium text-slate-700 text-sm">
+                              {moment(turno.data).format('ddd DD/MM')}
+                            </p>
+                            <div className="text-xs text-slate-600 mt-1">
+                              🕐 {turno.ora_inizio} - {turno.ora_fine}
+                            </div>
+                            <div className="text-xs text-slate-600">
+                              👤 {turno.ruolo}
+                            </div>
+                            <div className="text-xs text-slate-500">
+                              📍 {getStoreName(turno.store_id)}
+                            </div>
                           </div>
                         </div>
 
-                        {/* Il mio turno (che vuole prendere) */}
-                        {mioTurno && (
-                          <div className="p-3 bg-orange-50 rounded-lg">
-                            <p className="text-xs text-orange-600 font-medium mb-1">In cambio del tuo turno:</p>
-                            <p className="font-medium text-slate-700">
-                              {moment(mioTurno.data).format('dddd DD MMMM')}
-                            </p>
-                            <div className="flex items-center gap-2 text-sm text-slate-600">
-                              <Clock className="w-4 h-4" />
-                              <span>{mioTurno.ora_inizio} - {mioTurno.ora_fine}</span>
-                              <span>•</span>
-                              <span>{mioTurno.ruolo}</span>
-                            </div>
-                            <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
-                              <MapPin className="w-3 h-3" />
-                              {getStoreName(mioTurno.store_id)}
-                            </div>
-                          </div>
-                        )}
+                        <p className="text-xs text-slate-400 mt-2">
+                          Richiesto il {moment(scambio.data_richiesta).format('DD/MM/YYYY HH:mm')}
+                        </p>
                       </div>
                       <div className="flex flex-col gap-2 ml-3">
                         {statoScambio === 'pending' ? (
@@ -2207,8 +2233,9 @@ export default function TurniDipendente() {
                           </>
                         ) : (
                           <div className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium text-center">
-                            ✓ Accettato<br/>
-                            In attesa approvazione Store Manager
+                            <CheckCircle className="w-4 h-4 mx-auto mb-1" />
+                            Accettato<br/>
+                            <span className="text-[10px]">In attesa approvazione Store Manager</span>
                           </div>
                         )}
                       </div>
