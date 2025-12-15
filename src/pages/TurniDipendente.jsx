@@ -170,15 +170,20 @@ export default function TurniDipendente() {
     enabled: !!currentUser?.id,
   });
 
-  // Scambi turno richiesti da me (i miei turni con richiesta_scambio pending)
+  // Scambi turno richiesti da me (i miei turni con richiesta_scambio pending dove io sono richiesto_da)
   const { data: scambiDaMe = [] } = useQuery({
     queryKey: ['scambi-da-me', currentUser?.id],
     queryFn: async () => {
+      if (!currentUser?.id) return [];
       const oggi = moment().format('YYYY-MM-DD');
-      return base44.entities.TurnoPlanday.filter({
+      const mieiTurni = await base44.entities.TurnoPlanday.filter({
         dipendente_id: currentUser.id,
         data: { $gte: oggi }
       });
+      // Filtra solo quelli con richiesta_scambio dove io sono il richiedente
+      return mieiTurni.filter(t => 
+        t.richiesta_scambio?.richiesto_da === currentUser.id
+      );
     },
     enabled: !!currentUser?.id,
   });
