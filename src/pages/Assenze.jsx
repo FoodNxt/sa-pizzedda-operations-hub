@@ -52,6 +52,43 @@ function TurnoAltroDisplay({ turnoId, richiestoANome, getStoreName }) {
   );
 }
 
+// Componente per mostrare turni coinvolti
+function TurniCoinvoltiDisplay({ turniIds, getStoreName }) {
+  const { data: turni = [], isLoading } = useQuery({
+    queryKey: ['turni-coinvolti', turniIds],
+    queryFn: async () => {
+      if (!turniIds || turniIds.length === 0) return [];
+      const allTurni = await base44.entities.TurnoPlanday.list();
+      return allTurni.filter(t => turniIds.includes(t.id));
+    },
+    enabled: !!turniIds && turniIds.length > 0,
+  });
+
+  if (isLoading) {
+    return <Loader2 className="w-4 h-4 animate-spin text-blue-600" />;
+  }
+
+  if (turni.length === 0) return <p className="text-xs text-slate-500">Nessun turno trovato</p>;
+
+  return (
+    <div className="space-y-2">
+      {turni.map(turno => (
+        <div key={turno.id} className="text-xs bg-white rounded p-2 border border-blue-100">
+          <div className="font-medium text-slate-700">
+            {moment(turno.data).format('ddd DD/MM/YYYY')}
+          </div>
+          <div className="text-slate-600 mt-1">
+            🕐 {turno.ora_inizio} - {turno.ora_fine} • {turno.ruolo}
+          </div>
+          <div className="text-slate-500">
+            📍 {getStoreName(turno.store_id)}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function Assenze() {
   const [activeTab, setActiveTab] = useState('ferie');
   const [selectedRequest, setSelectedRequest] = useState(null);
