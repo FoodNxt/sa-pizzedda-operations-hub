@@ -439,26 +439,60 @@ export default function Layout({ children, currentPageName }) {
       try {
         const user = await base44.auth.me();
         const newNotifications = {};
+        const normalizedUserType = getNormalizedUserType(user.user_type);
 
-        // Segnalazioni aperte
-        const segnalazioni = await base44.entities.Segnalazione.filter({ stato: 'aperta' });
-        if (segnalazioni.length > 0) {
-          newNotifications.Segnalazioni = segnalazioni.length;
-        }
+        if (normalizedUserType === 'admin' || normalizedUserType === 'manager') {
+          // Segnalazioni aperte
+          const segnalazioni = await base44.entities.Segnalazione.filter({ stato: 'aperta' });
+          if (segnalazioni.length > 0) {
+            newNotifications.Segnalazioni = segnalazioni.length;
+          }
 
-        // Richieste ferie/malattia in pending
-        const ferie = await base44.entities.RichiestaFerie.filter({ stato: 'pending' });
-        const malattie = await base44.entities.RichiestaMalattia.filter({ stato: 'pending' });
-        const turniLiberi = await base44.entities.RichiestaTurnoLibero.filter({ stato: 'pending' });
-        const totalRichieste = ferie.length + malattie.length + turniLiberi.length;
-        if (totalRichieste > 0) {
-          newNotifications.Assenze = totalRichieste;
-        }
+          // Richieste ferie/malattia in pending
+          const ferie = await base44.entities.RichiestaFerie.filter({ stato: 'pending' });
+          const malattie = await base44.entities.RichiestaMalattia.filter({ stato: 'pending' });
+          const turniLiberi = await base44.entities.RichiestaTurnoLibero.filter({ stato: 'pending' });
+          const totalRichieste = ferie.length + malattie.length + turniLiberi.length;
+          if (totalRichieste > 0) {
+            newNotifications.Richieste = totalRichieste;
+          }
 
-        // Candidati nuovi
-        const candidati = await base44.entities.Candidato.filter({ stato: 'nuovo' });
-        if (candidati.length > 0) {
-          newNotifications.ATS = candidati.length;
+          // Candidati nuovi
+          const candidati = await base44.entities.Candidato.filter({ stato: 'nuovo' });
+          if (candidati.length > 0) {
+            newNotifications.ATS = candidati.length;
+          }
+
+          // Scambi turni da approvare
+          const oggi = new Date().toISOString().split('T')[0];
+          const turniConScambi = await base44.entities.TurnoPlanday.filter({
+            data: { $gte: oggi },
+            'richiesta_scambio.stato': 'accepted_by_colleague'
+          });
+          if (turniConScambi.length > 0) {
+            newNotifications.Planday = turniConScambi.length;
+          }
+        } else if (normalizedUserType === 'dipendente') {
+          // Turni di oggi non timbrati
+          const oggi = new Date().toISOString().split('T')[0];
+          const turniOggi = await base44.entities.TurnoPlanday.filter({
+            dipendente_id: user.id,
+            data: oggi,
+            stato: 'programmato'
+          });
+          if (turniOggi.length > 0) {
+            newNotifications.Turni = turniOggi.length;
+          }
+
+          // Richieste scambio turno in attesa della mia risposta
+          const turniDaRispondere = await base44.entities.TurnoPlanday.filter({
+            data: { $gte: oggi },
+            'richiesta_scambio.richiesto_a': user.id,
+            'richiesta_scambio.stato': 'pending'
+          });
+          if (turniDaRispondere.length > 0) {
+            newNotifications.Turni = (newNotifications.Turni || 0) + turniDaRispondere.length;
+          }
         }
 
         setNotifications(newNotifications);
