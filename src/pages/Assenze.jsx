@@ -496,7 +496,15 @@ export default function Assenze() {
                         <div className="text-sm text-slate-600 space-y-1">
                           <p>📅 Dal {moment(request.data_inizio).format('DD/MM/YYYY')} {request.data_fine && `al ${moment(request.data_fine).format('DD/MM/YYYY')}`}</p>
                           {request.descrizione && <p>💬 {request.descrizione}</p>}
-                          <p className="text-xs text-slate-400">Turni coinvolti: {request.turni_coinvolti?.length || 0}</p>
+
+                          {/* Turni coinvolti */}
+                          {request.turni_coinvolti && request.turni_coinvolti.length > 0 && (
+                            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                              <p className="text-xs font-bold text-blue-700 mb-2">Turni coinvolti:</p>
+                              <TurniCoinvoltiDisplay turniIds={request.turni_coinvolti} getStoreName={getStoreName} />
+                            </div>
+                          )}
+
                           {request.certificato_url && (
                             <a href={request.certificato_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-xs flex items-center gap-1">
                               <FileText className="w-3 h-3" /> Vedi Certificato
