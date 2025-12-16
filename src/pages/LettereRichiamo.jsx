@@ -107,13 +107,13 @@ export default function LettereRichiamo() {
         l.tipo_lettera === 'lettera_richiamo' && 
         l.status === 'firmata' && 
         !l.chiusura_procedura_schedulata &&
-        l.data_firma
+        l.data_visualizzazione
       );
 
       for (const richiamo of richiamiDaChiudere) {
-        const dataFirma = new Date(richiamo.data_firma);
+        const dataVisualizzazione = new Date(richiamo.data_visualizzazione);
         const oggi = new Date();
-        const differenzaGiorni = Math.floor((oggi - dataFirma) / (1000 * 60 * 60 * 24));
+        const differenzaGiorni = Math.floor((oggi - dataVisualizzazione) / (1000 * 60 * 60 * 24));
 
         if (differenzaGiorni >= 5) {
           const templateChiusura = templates.find(t => t.tipo_lettera === 'chiusura_procedura' && t.attivo);
@@ -278,10 +278,14 @@ export default function LettereRichiamo() {
                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                           lettera.status === 'firmata' 
                             ? 'bg-green-100 text-green-700' 
+                            : lettera.status === 'visualizzata'
+                            ? 'bg-blue-100 text-blue-700'
                             : 'bg-yellow-100 text-yellow-700'
                         }`}>
                           {lettera.status === 'firmata' ? (
                             <><CheckCircle className="w-3 h-3 inline mr-1" />Firmata</>
+                          ) : lettera.status === 'visualizzata' ? (
+                            <><Clock className="w-3 h-3 inline mr-1" />Visualizzata</>
                           ) : (
                             <><Clock className="w-3 h-3 inline mr-1" />In Attesa</>
                           )}
@@ -290,7 +294,17 @@ export default function LettereRichiamo() {
                       <p className="text-sm font-medium text-slate-800 mb-1">{lettera.user_name}</p>
                       <p className="text-xs text-slate-500">
                         Inviata il {new Date(lettera.data_invio || lettera.created_date).toLocaleDateString('it-IT')}
+                        {lettera.data_visualizzazione && ` • Visualizzata il ${new Date(lettera.data_visualizzazione).toLocaleDateString('it-IT')}`}
                         {lettera.data_firma && ` • Firmata il ${new Date(lettera.data_firma).toLocaleDateString('it-IT')}`}
+                        {lettera.tipo_lettera === 'lettera_richiamo' && lettera.data_visualizzazione && !lettera.chiusura_procedura_schedulata && (() => {
+                          const dataVis = new Date(lettera.data_visualizzazione);
+                          const oggi = new Date();
+                          const giorniPassati = Math.floor((oggi - dataVis) / (1000 * 60 * 60 * 24));
+                          const giorniRimanenti = Math.max(0, 5 - giorniPassati);
+                          return giorniRimanenti > 0 
+                            ? ` • ${giorniRimanenti} giorni alla chiusura automatica`
+                            : ` • Chiusura in elaborazione`;
+                        })()}
                       </p>
                     </div>
                     <button
