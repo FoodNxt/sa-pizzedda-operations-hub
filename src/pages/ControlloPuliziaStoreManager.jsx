@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Camera, Upload, CheckCircle, AlertCircle, Loader2, ClipboardCheck } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
+import VoiceButton from "../components/VoiceButton";
 
 export default function ControlloPuliziaStoreManager() {
   const navigate = useNavigate();
@@ -445,10 +446,13 @@ export default function ControlloPuliziaStoreManager() {
                     </div>
                   ) : (
                     <div>
-                      <label className="text-sm font-medium text-[#6b6b6b] mb-3 block">
-                        {index + 1}. {domanda.domanda_testo}
-                        {(domanda.obbligatoria !== false && domanda.richiesto !== false) && <span className="text-red-600 ml-1">*</span>}
-                      </label>
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <label className="text-sm font-medium text-[#6b6b6b] flex-1">
+                          {index + 1}. {domanda.domanda_testo}
+                          {(domanda.obbligatoria !== false && domanda.richiesto !== false) && <span className="text-red-600 ml-1">*</span>}
+                        </label>
+                        <VoiceButton text={domanda.domanda_testo} />
+                      </div>
                       <div className="space-y-2">
                         {domanda.opzioni_risposta?.map((opzione, idx) => (
                           <label

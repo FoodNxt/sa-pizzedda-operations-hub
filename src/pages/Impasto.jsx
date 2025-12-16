@@ -6,6 +6,7 @@ import { createPageUrl } from "@/utils";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
+import VoiceButton from "../components/VoiceButton";
 import { ChefHat, Calculator, AlertCircle, CheckCircle, Loader2, BookOpen, Plus, Edit, Save, X, Trash2 } from "lucide-react";
 
 const giorni = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
@@ -399,9 +400,12 @@ export default function Impasto() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Numero Barelle in frigo
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-slate-700">
+                    Numero Barelle in frigo
+                  </label>
+                  <VoiceButton text="Inserisci il numero di barelle in frigo" />
+                </div>
                 <input
                   type="number"
                   min="0"

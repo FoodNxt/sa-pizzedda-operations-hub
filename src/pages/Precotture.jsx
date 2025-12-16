@@ -6,6 +6,7 @@ import { createPageUrl } from "@/utils";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import ProtectedPage from "../components/ProtectedPage";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
+import VoiceButton from "../components/VoiceButton";
 import { Pizza, Clock, AlertCircle, CheckCircle } from "lucide-react";
 
 const giorni = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
@@ -163,9 +164,12 @@ export default function Precotture() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Precotture Rosse Presenti
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-slate-700">
+                Precotture Rosse Presenti
+              </label>
+              <VoiceButton text="Inserisci il numero di precotture rosse presenti" />
+            </div>
             <input
               type="number"
               min="0"
