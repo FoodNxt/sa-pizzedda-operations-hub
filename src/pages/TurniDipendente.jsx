@@ -336,6 +336,7 @@ export default function TurniDipendente() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['turni-dipendente'] });
+      queryClient.invalidateQueries({ queryKey: ['turni-futuri'] });
       setTimbraturaMessage({
         type: 'success',
         text: variables.tipo === 'entrata' ? 'Entrata timbrata con successo!' : 'Uscita timbrata con successo!'
