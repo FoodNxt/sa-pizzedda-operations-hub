@@ -816,10 +816,10 @@ export default function OrdiniSbagliati() {
       {activeTab === 'list' && (
         <NeumorphicCard className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-[#6b6b6b]">Ordini Importati ({filteredOrders.length})</h2>
+            <h2 className="text-xl font-bold text-[#6b6b6b]">Ordini Importati ({wrongOrders.length})</h2>
           </div>
 
-          {filteredOrders.length === 0 ? (
+          {wrongOrders.length === 0 ? (
             <div className="text-center py-12">
               <Package className="w-16 h-16 text-[#9b9b9b] mx-auto mb-4 opacity-50" />
               <p className="text-[#6b6b6b] font-medium">Nessun ordine trovato</p>
