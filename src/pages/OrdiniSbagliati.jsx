@@ -411,14 +411,14 @@ export default function OrdiniSbagliati() {
   }, [wrongOrders, selectedStore, dateRange]);
 
   const stats = {
-    total: filteredOrders.length,
-    glovo: filteredOrders.filter(o => o.platform === 'glovo').length,
-    deliveroo: filteredOrders.filter(o => o.platform === 'deliveroo').length,
-    totalRefunds: filteredOrders.reduce((sum, o) => sum + (o.refund_value || 0), 0),
-    lastGlovoOrder: filteredOrders.filter(o => o.platform === 'glovo').sort((a, b) => 
+    total: wrongOrders.length,
+    glovo: wrongOrders.filter(o => o.platform === 'glovo').length,
+    deliveroo: wrongOrders.filter(o => o.platform === 'deliveroo').length,
+    totalRefunds: wrongOrders.reduce((sum, o) => sum + (o.refund_value || 0), 0),
+    lastGlovoOrder: wrongOrders.filter(o => o.platform === 'glovo').sort((a, b) => 
       new Date(b.order_date) - new Date(a.order_date)
     )[0],
-    lastDeliverooOrder: filteredOrders.filter(o => o.platform === 'deliveroo').sort((a, b) => 
+    lastDeliverooOrder: wrongOrders.filter(o => o.platform === 'deliveroo').sort((a, b) => 
       new Date(b.order_date) - new Date(a.order_date)
     )[0]
   };
