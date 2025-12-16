@@ -772,7 +772,29 @@ export default function OrdiniSbagliati() {
           </NeumorphicCard>
 
           <NeumorphicCard className="p-6 mb-6">
-            <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Trend Rimborsi nel Tempo</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-[#6b6b6b]">Trend nel Tempo</h3>
+              <div className="flex gap-2">
+                <label className="flex items-center gap-2 text-sm text-[#6b6b6b] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showCount}
+                    onChange={(e) => setShowCount(e.target.checked)}
+                    className="w-4 h-4"
+                  />
+                  Numero Ordini
+                </label>
+                <label className="flex items-center gap-2 text-sm text-[#6b6b6b] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showRefunds}
+                    onChange={(e) => setShowRefunds(e.target.checked)}
+                    className="w-4 h-4"
+                  />
+                  € Rimborsi
+                </label>
+              </div>
+            </div>
             {analyticsData.byDate.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={analyticsData.byDate}>
@@ -781,8 +803,8 @@ export default function OrdiniSbagliati() {
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Line type="monotone" dataKey="count" stroke="#8b7355" name="Ordini" strokeWidth={2} />
-                  <Line type="monotone" dataKey="refunds" stroke="#dc2626" name="Rimborsi (€)" strokeWidth={2} />
+                  {showCount && <Line type="monotone" dataKey="count" stroke="#8b7355" name="Ordini" strokeWidth={2} />}
+                  {showRefunds && <Line type="monotone" dataKey="refunds" stroke="#dc2626" name="Rimborsi (€)" strokeWidth={2} />}
                 </LineChart>
               </ResponsiveContainer>
             ) : (
