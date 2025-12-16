@@ -1580,6 +1580,9 @@ export default function TurniDipendente() {
                 const formDovuti = getFormDovutiPerTurno(prossimoTurno);
                 const attivita = getAttivitaTurno(prossimoTurno);
                 
+                // Se non ci sono attività da fare, permetti sempre timbratura
+                const haAttivita = attivita.length > 0;
+                
                 const allAttivitaComplete = attivita.every(att => {
                   const isFormActivity = att.form_page || att.richiede_form;
                   const isCorsoActivity = att.corsi_ids?.length > 0;
@@ -1592,7 +1595,7 @@ export default function TurniDipendente() {
                 const formNonAssociatiComplete = formDovuti
                   .filter(form => !attivita.some(a => a.form_page === form.page))
                   .every(f => f.completato);
-                const tuttoCompleto = allAttivitaComplete && formNonAssociatiComplete;
+                const tuttoCompleto = !haAttivita || (allAttivitaComplete && formNonAssociatiComplete);
                 const canTimbraUscita = prossimoTurnoStatus.canTimbra && tuttoCompleto;
                 
                 return (
@@ -1614,7 +1617,7 @@ export default function TurniDipendente() {
                     </NeumorphicButton>
                     {!canTimbraUscita && (
                       <p className="text-sm text-center mt-2 text-orange-600 font-medium">
-                        {!tuttoCompleto 
+                        {haAttivita && !tuttoCompleto 
                           ? '⚠️ Completa tutte le attività prima di timbrare l\'uscita'
                           : prossimoTurnoStatus.reason}
                       </p>
