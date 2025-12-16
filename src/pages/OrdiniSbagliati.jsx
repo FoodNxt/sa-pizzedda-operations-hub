@@ -681,21 +681,143 @@ export default function OrdiniSbagliati() {
         </div>
       )}
 
-      {/* Orders List */}
-      <NeumorphicCard className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-[#6b6b6b]">Ultimi Ordini Importati</h2>
-          
-          {/* NEW: Toggle button to show all orders */}
-          {wrongOrders.length > 20 && (
-            <button
-              onClick={() => setShowAllOrders(!showAllOrders)}
-              className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors"
-            >
-              {showAllOrders ? `Mostra ultimi 20` : `Mostra tutti (${wrongOrders.length})`}
-            </button>
-          )}
-        </div>
+      {/* Tabs */}
+      <div className="flex gap-2 mb-6">
+        <NeumorphicButton
+          onClick={() => setActiveTab('list')}
+          className={`flex items-center gap-2 ${activeTab === 'list' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' : ''}`}
+        >
+          <Package className="w-4 h-4" />
+          Lista Ordini
+        </NeumorphicButton>
+        <NeumorphicButton
+          onClick={() => setActiveTab('analytics')}
+          className={`flex items-center gap-2 ${activeTab === 'analytics' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' : ''}`}
+        >
+          <BarChart3 className="w-4 h-4" />
+          Analisi
+        </NeumorphicButton>
+      </div>
+
+      {/* Analytics Tab */}
+      {activeTab === 'analytics' && (
+        <>
+          {/* Filters */}
+          <NeumorphicCard className="p-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                  Negozio
+                </label>
+                <select
+                  value={selectedStore}
+                  onChange={(e) => setSelectedStore(e.target.value)}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                >
+                  <option value="all">Tutti i negozi</option>
+                  {stores.map(store => (
+                    <option key={store.id} value={store.id}>{store.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                  Periodo
+                </label>
+                <select
+                  value={dateRange}
+                  onChange={(e) => setDateRange(e.target.value)}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                >
+                  <option value="week">Questa settimana</option>
+                  <option value="month">Questo mese</option>
+                  <option value="all">Tutti i periodi</option>
+                </select>
+              </div>
+            </div>
+          </NeumorphicCard>
+
+          {/* Charts */}
+          <NeumorphicCard className="p-6 mb-6">
+            <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Ordini Sbagliati per Negozio</h3>
+            {analyticsData.byStore.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={analyticsData.byStore}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="glovo" fill="#ea580c" name="Glovo" />
+                  <Bar dataKey="deliveroo" fill="#14b8a6" name="Deliveroo" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
+            )}
+          </NeumorphicCard>
+
+          <NeumorphicCard className="p-6 mb-6">
+            <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Trend Rimborsi nel Tempo</h3>
+            {analyticsData.byDate.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={analyticsData.byDate}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="count" stroke="#8b7355" name="Ordini" strokeWidth={2} />
+                  <Line type="monotone" dataKey="refunds" stroke="#dc2626" name="Rimborsi (€)" strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
+            )}
+          </NeumorphicCard>
+
+          {/* Store Breakdown Table */}
+          <NeumorphicCard className="p-6">
+            <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Dettaglio per Negozio</h3>
+            {analyticsData.byStore.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b-2 border-[#8b7355]">
+                      <th className="text-left p-3 text-[#9b9b9b] font-medium">Negozio</th>
+                      <th className="text-right p-3 text-[#9b9b9b] font-medium">Totale</th>
+                      <th className="text-right p-3 text-[#9b9b9b] font-medium">Glovo</th>
+                      <th className="text-right p-3 text-[#9b9b9b] font-medium">Deliveroo</th>
+                      <th className="text-right p-3 text-[#9b9b9b] font-medium">Rimborsi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {analyticsData.byStore.sort((a, b) => b.count - a.count).map((store, idx) => (
+                      <tr key={idx} className="border-b border-[#d1d1d1]">
+                        <td className="p-3 text-[#6b6b6b] font-medium">{store.name}</td>
+                        <td className="p-3 text-right font-bold text-[#6b6b6b]">{store.count}</td>
+                        <td className="p-3 text-right text-orange-600">{store.glovo}</td>
+                        <td className="p-3 text-right text-teal-600">{store.deliveroo}</td>
+                        <td className="p-3 text-right font-bold text-red-600">€{store.refunds.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
+            )}
+          </NeumorphicCard>
+        </>
+      )}
+
+      {/* Orders List Tab */}
+      {activeTab === 'list' && (
+        <NeumorphicCard className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-[#6b6b6b]">Ordini Importati ({filteredOrders.length})</h2>
+          </div>
 
         {wrongOrders.length === 0 ? (
           <div className="text-center py-12">
