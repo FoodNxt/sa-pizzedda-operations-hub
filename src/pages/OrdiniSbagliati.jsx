@@ -309,12 +309,20 @@ export default function OrdiniSbagliati() {
         return;
       }
 
-      // Import all records
+      // Check for duplicates and import records
       let successCount = 0;
       let errorCount = 0;
+      let duplicateCount = 0;
 
       for (const record of records) {
         try {
+          // Check if order_id already exists
+          const existing = wrongOrders.find(o => o.order_id === record.order_id && o.platform === record.platform);
+          if (existing) {
+            duplicateCount++;
+            continue;
+          }
+          
           await base44.entities.WrongOrder.create(record);
           successCount++;
         } catch (error) {
