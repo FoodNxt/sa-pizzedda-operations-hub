@@ -601,6 +601,11 @@ export default function OrdiniSbagliati() {
                       {importResult.errorCount} ordini non sono stati importati per errori
                     </p>
                   )}
+                  {importResult.unmappedCount > 0 && (
+                    <p className="text-yellow-600">
+                      ⚠️ {importResult.unmappedCount} negozi non sono abbinati - completa gli abbinamenti nel modal
+                    </p>
+                  )}
                 </div>
               ) : (
                 <p className="text-red-700">{importResult.error}</p>
