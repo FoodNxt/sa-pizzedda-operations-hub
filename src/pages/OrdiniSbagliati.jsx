@@ -264,6 +264,10 @@ export default function OrdiniSbagliati() {
                 suggestedMatch: autoMatch
               });
             }
+            skippedOrders.push({
+              orderId: record[orderIdField],
+              storeName: platformStoreName
+            });
             continue;
           }
         }
