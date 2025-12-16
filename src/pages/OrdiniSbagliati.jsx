@@ -235,8 +235,7 @@ export default function OrdiniSbagliati() {
           statusField = 'Customer refund status';
         }
 
-        const platformStoreName = record[storeNameField];
-        if (!platformStoreName) continue;
+        const platformStoreName = record[storeNameField] || 'Store Unknown';
 
         // Check existing mapping
         let storeMatch = storeMappings.find(
