@@ -351,7 +351,9 @@ export default function OrdiniSbagliati() {
         successCount,
         errorCount,
         duplicateCount,
-        unmappedCount: unmapped.length
+        unmappedCount: unmapped.length,
+        skippedLinesCount: skippedLines.length,
+        totalCsvLines: lines.length - 1
       });
 
       // Show mapping modal if there are unmapped stores
