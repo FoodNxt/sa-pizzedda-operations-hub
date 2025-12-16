@@ -311,6 +311,12 @@ export default function OrdiniSbagliati() {
         setShowMappingModal(true);
         setUploading(false);
         event.target.value = '';
+        
+        // Show info about skipped orders
+        setImportResult({
+          success: false,
+          error: `${skippedOrders.length} ordini non possono essere importati perché ${unmapped.length} negozi non sono stati abbinati. Completa gli abbinamenti e ricarica il file.`
+        });
         return;
       }
 
