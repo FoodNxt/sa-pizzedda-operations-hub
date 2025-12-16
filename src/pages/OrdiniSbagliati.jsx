@@ -338,6 +338,7 @@ export default function OrdiniSbagliati() {
         total: records.length,
         successCount,
         errorCount,
+        duplicateCount,
         unmappedCount: 0
       });
 
