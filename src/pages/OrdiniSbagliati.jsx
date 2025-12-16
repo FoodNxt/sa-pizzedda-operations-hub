@@ -41,7 +41,21 @@ export default function OrdiniSbagliati() {
 
   const { data: wrongOrders = [] } = useQuery({
     queryKey: ['wrong-orders'],
-    queryFn: () => base44.entities.WrongOrder.list('-order_date', 100),
+    queryFn: async () => {
+      const allOrders = await base44.entities.WrongOrder.list('-order_date', 1000);
+      // Remove duplicates by order_id
+      const uniqueOrders = [];
+      const seenOrderIds = new Set();
+      
+      for (const order of allOrders) {
+        if (!seenOrderIds.has(order.order_id)) {
+          seenOrderIds.add(order.order_id);
+          uniqueOrders.push(order);
+        }
+      }
+      
+      return uniqueOrders;
+    },
   });
 
   const { data: storeMappings = [] } = useQuery({
