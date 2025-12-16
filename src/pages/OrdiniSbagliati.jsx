@@ -605,21 +605,29 @@ export default function OrdiniSbagliati() {
               {importResult.success ? (
                 <div className="space-y-2">
                   <p className="text-green-700">
-                    Importati <strong>{importResult.successCount}</strong> ordini su <strong>{importResult.total}</strong>
+                    <strong>CSV processato: {importResult.totalCsvLines} righe totali</strong>
+                  </p>
+                  <p className="text-green-700">
+                    ✅ Importati <strong>{importResult.successCount}</strong> ordini
                   </p>
                   {importResult.duplicateCount > 0 && (
                     <p className="text-blue-600">
-                      {importResult.duplicateCount} ordini duplicati saltati
+                      🔁 {importResult.duplicateCount} ordini già esistenti (duplicati)
+                    </p>
+                  )}
+                  {importResult.skippedLinesCount > 0 && (
+                    <p className="text-orange-600">
+                      ⚠️ {importResult.skippedLinesCount} righe saltate (dati mancanti)
                     </p>
                   )}
                   {importResult.errorCount > 0 && (
-                    <p className="text-orange-600">
-                      {importResult.errorCount} ordini non sono stati importati per errori
+                    <p className="text-red-600">
+                      ❌ {importResult.errorCount} ordini non importati per errori
                     </p>
                   )}
                   {importResult.unmappedCount > 0 && (
                     <p className="text-yellow-600">
-                      ⚠️ {importResult.unmappedCount} negozi non sono abbinati - completa gli abbinamenti nel modal
+                      🏪 {importResult.unmappedCount} negozi non abbinati - completa gli abbinamenti nel modal
                     </p>
                   )}
                 </div>
