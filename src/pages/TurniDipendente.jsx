@@ -1705,63 +1705,63 @@ export default function TurniDipendente() {
 
               {/* Gestione Pause - solo se turno in corso */}
               {prossimoTurnoStatus.inCorso && pauseConfig && (
-                  <div className="mb-4">
-                    {pausaInCorso ? (
-                      <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <Coffee className="w-5 h-5 text-amber-600" />
-                            <span className="font-bold text-amber-800">Pausa in Corso</span>
-                          </div>
-                          <span className="text-lg font-bold text-amber-700 font-mono">
-                            {(() => {
-                              const inizioPausa = moment(pausaInCorso.inizio_pausa);
-                              const finePausaPrevista = inizioPausa.clone().add(pauseConfig.durata_pausa_minuti, 'minutes');
-                              const diffMs = finePausaPrevista.diff(now);
-                              if (diffMs <= 0) return '00:00';
-                              const minuti = Math.floor(diffMs / 60000);
-                              const secondi = Math.floor((diffMs % 60000) / 1000);
-                              return `${String(minuti).padStart(2, '0')}:${String(secondi).padStart(2, '0')}`;
-                            })()}
-                          </span>
+                <div className="mb-4">
+                  {pausaInCorso ? (
+                    <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Coffee className="w-5 h-5 text-amber-600" />
+                          <span className="font-bold text-amber-800">Pausa in Corso</span>
                         </div>
-                        <p className="text-sm text-amber-700 mb-3">
-                          Durata prevista: {pauseConfig.durata_pausa_minuti} minuti
-                        </p>
-                        <NeumorphicButton
-                          onClick={() => finisciPausaMutation.mutate(pausaInCorso)}
-                          disabled={finisciPausaMutation.isPending}
-                          className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-white"
-                        >
-                          {finisciPausaMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Termina Pausa'}
-                        </NeumorphicButton>
+                        <span className="text-lg font-bold text-amber-700 font-mono">
+                          {(() => {
+                            const inizioPausa = moment(pausaInCorso.inizio_pausa);
+                            const finePausaPrevista = inizioPausa.clone().add(pauseConfig.durata_pausa_minuti, 'minutes');
+                            const diffMs = finePausaPrevista.diff(now);
+                            if (diffMs <= 0) return '00:00';
+                            const minuti = Math.floor(diffMs / 60000);
+                            const secondi = Math.floor((diffMs % 60000) / 1000);
+                            return `${String(minuti).padStart(2, '0')}:${String(secondi).padStart(2, '0')}`;
+                          })()}
+                        </span>
                       </div>
-                    ) : (
-                      <div>
-                        <NeumorphicButton
-                          onClick={() => iniziaPausaMutation.mutate(prossimoTurno)}
-                          disabled={!condizioniPausa.canPause || iniziaPausaMutation.isPending}
-                          className={`w-full flex items-center justify-center gap-2 py-3 ${
-                            !condizioniPausa.canPause ? 'opacity-50 cursor-not-allowed' : ''
-                          }`}
-                        >
-                          {iniziaPausaMutation.isPending ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                          ) : (
-                            <>
-                              <Coffee className="w-5 h-5" />
-                              Inizia Pausa
-                            </>
-                          )}
-                        </NeumorphicButton>
-                        {!condizioniPausa.canPause && condizioniPausa.reason && (
-                          <p className="text-xs text-center mt-2 text-slate-500">
-                            {condizioniPausa.reason}
-                          </p>
+                      <p className="text-sm text-amber-700 mb-3">
+                        Durata prevista: {pauseConfig.durata_pausa_minuti} minuti
+                      </p>
+                      <NeumorphicButton
+                        onClick={() => finisciPausaMutation.mutate(pausaInCorso)}
+                        disabled={finisciPausaMutation.isPending}
+                        className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-white"
+                      >
+                        {finisciPausaMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Termina Pausa'}
+                      </NeumorphicButton>
+                    </div>
+                  ) : (
+                    <div>
+                      <NeumorphicButton
+                        onClick={() => iniziaPausaMutation.mutate(prossimoTurno)}
+                        disabled={!condizioniPausa.canPause || iniziaPausaMutation.isPending}
+                        className={`w-full flex items-center justify-center gap-2 py-3 ${
+                          !condizioniPausa.canPause ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                      >
+                        {iniziaPausaMutation.isPending ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <>
+                            <Coffee className="w-5 h-5" />
+                            Inizia Pausa
+                          </>
                         )}
-                      </div>
-                    )}
-                  </div>
+                      </NeumorphicButton>
+                      {!condizioniPausa.canPause && condizioniPausa.reason && (
+                        <p className="text-xs text-center mt-2 text-slate-500">
+                          {condizioniPausa.reason}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
 
               {/* Bottone Timbra Uscita - solo se turno in corso */}
