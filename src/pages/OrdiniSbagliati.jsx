@@ -210,11 +210,11 @@ export default function OrdiniSbagliati() {
 
       for (let i = 1; i < lines.length; i++) {
         const values = parseCsvLine(lines[i]);
-        if (values.length !== headers.length) continue;
+        // Rimuovo il controllo rigido - accetto righe con colonne diverse
 
         const record = {};
         headers.forEach((header, idx) => {
-          record[header] = values[idx];
+          record[header] = values[idx] || ''; // Usa stringa vuota se il valore non esiste
         });
 
         let storeNameField, orderIdField, orderDateField, orderTotalField, refundField, statusField;
