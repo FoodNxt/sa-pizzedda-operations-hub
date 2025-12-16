@@ -1474,13 +1474,16 @@ export default function AcademyAdmin() {
                           );
                         })}
                       </div>
-                      );
-                      })}
-                      </div>
-                      );
-                      })()}
-                      </NeumorphicCard>
-                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+        </NeumorphicCard>
+      )}
+
+      {/* Store Progress View */}
 
                       {/* Store Progress View */}
       {activeView === 'stores' && (
