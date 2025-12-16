@@ -204,6 +204,33 @@ export default function FormTracker() {
     { name: 'Precotture', page: 'Precotture' }
   ];
 
+  // Helper to normalize names for matching
+  const normalizeNameForMatch = (name) => {
+    if (!name) return '';
+    return name.toLowerCase().trim().replace(/\s+/g, ' ');
+  };
+
+  // Check if two names match (exact or partial)
+  const namesMatch = (name1, name2) => {
+    const n1 = normalizeNameForMatch(name1);
+    const n2 = normalizeNameForMatch(name2);
+    
+    if (n1 === n2) return true;
+    
+    // Check if one contains the other
+    if (n1.includes(n2) || n2.includes(n1)) return true;
+    
+    // Check word-by-word match (first name, last name)
+    const words1 = n1.split(' ');
+    const words2 = n2.split(' ');
+    
+    // If at least 2 words match, consider it a match
+    const matchingWords = words1.filter(w => words2.includes(w) && w.length > 2);
+    if (matchingWords.length >= 2) return true;
+    
+    return false;
+  };
+
   // Check if a specific form was completed
   const checkFormCompletion = (formPage, employeeName, storeName, date, shift) => {
     const dateStart = new Date(date);
@@ -223,7 +250,7 @@ export default function FormTracker() {
         const inspection = cleaningInspections.find(i => {
           const inspDate = new Date(i.inspection_date);
           return i.store_name === storeName &&
-                 i.inspector_name === employeeName &&
+                 namesMatch(i.inspector_name, employeeName) &&
                  inspDate >= dateStart && inspDate <= nextDayEnd;
         });
         return { completed: !!inspection, data: inspection };
@@ -233,7 +260,7 @@ export default function FormTracker() {
         const rilevazione = inventarioRilevazioni.find(r => {
           const rilDate = new Date(r.data_rilevazione);
           return r.store_name === storeName &&
-                 r.rilevato_da === employeeName &&
+                 namesMatch(r.rilevato_da, employeeName) &&
                  rilDate >= dateStart && rilDate <= nextDayEnd;
         });
         return { completed: !!rilevazione, data: rilevazione };
@@ -243,7 +270,7 @@ export default function FormTracker() {
         const conteggio = conteggiCassa.find(c => {
           const contDate = new Date(c.data_conteggio);
           return c.store_name === storeName &&
-                 c.rilevato_da === employeeName &&
+                 namesMatch(c.rilevato_da, employeeName) &&
                  contDate >= dateStart && contDate <= nextDayEnd;
         });
         return { completed: !!conteggio, data: conteggio };
@@ -253,7 +280,7 @@ export default function FormTracker() {
         const teglie = teglieButtate.find(t => {
           const tegDate = new Date(t.data_rilevazione);
           return t.store_name === storeName &&
-                 t.rilevato_da === employeeName &&
+                 namesMatch(t.rilevato_da, employeeName) &&
                  tegDate >= dateStart && tegDate <= nextDayEnd;
         });
         return { completed: !!teglie, data: teglie };
@@ -263,7 +290,7 @@ export default function FormTracker() {
         const prep = preparazioni.find(p => {
           const prepDate = new Date(p.data_rilevazione);
           return p.store_name === storeName &&
-                 p.rilevato_da === employeeName &&
+                 namesMatch(p.rilevato_da, employeeName) &&
                  prepDate >= dateStart && prepDate <= nextDayEnd;
         });
         return { completed: !!prep, data: prep };
@@ -286,6 +313,8 @@ export default function FormTracker() {
     // Get shifts for selected date, excluding malattia, ferie, assenza, non-programmato
     const shiftsForDate = turniPlanday.filter(s => {
       if (s.data !== selectedDate) return false;
+      // Exclude shifts without valid store name
+      if (!s.store_name || s.store_name.trim() === '') return false;
       const stato = (s.stato || '').toLowerCase();
       const tipoTurno = (s.tipo_turno || '').toLowerCase();
       // Exclude if not "programmato" or if tipo_turno contains malattia/ferie/assenza
