@@ -1201,7 +1201,7 @@ export default function TurniDipendente() {
     }
   }, [pauseAttive]);
 
-  const verificaCondizioniPausa = (turno) => {
+  const verificaCondizioniPausa = async (turno) => {
     if (!pauseConfig || !turno.timbrata_entrata) return { canPause: false, reason: 'Configurazione non disponibile' };
     
     const durataMinimaTurnoMs = pauseConfig.durata_minima_turno_minuti * 60000;
@@ -1222,6 +1222,18 @@ export default function TurniDipendente() {
         const slots = pauseConfig.slot_orari.map(s => `${s.orario_inizio}-${s.orario_fine}`).join(', ');
         return { canPause: false, reason: `Pause consentite: ${slots}` };
       }
+    }
+    
+    // Verifica numero pause già fatte
+    const pauseFatteTurno = await base44.entities.Pausa.filter({
+      turno_id: turno.id,
+      dipendente_id: currentUser?.id
+    });
+    const numeroPauseFatte = pauseFatteTurno.length;
+    const maxPause = pauseConfig.numero_pause_per_turno || 1;
+    
+    if (numeroPauseFatte >= maxPause) {
+      return { canPause: false, reason: `Hai già fatto ${numeroPauseFatte} pausa${numeroPauseFatte > 1 ? 'e' : ''} (max ${maxPause})` };
     }
     
     const colleghiInCorso = colleghiProssimoTurno.filter(c => 
@@ -1686,7 +1698,11 @@ export default function TurniDipendente() {
 
               {/* Gestione Pause - solo se turno in corso */}
               {prossimoTurnoStatus.inCorso && pauseConfig && (() => {
-                const condizioniPausa = verificaCondizioniPausa(prossimoTurno);
+                const [condizioniPausa, setCondizioniPausa] = React.useState({ canPause: false, reason: 'Verifica in corso...' });
+                
+                React.useEffect(() => {
+                  verificaCondizioniPausa(prossimoTurno).then(setCondizioniPausa);
+                }, [prossimoTurno?.id, pauseAttive, now]);
                 
                 return (
                   <div className="mb-4">

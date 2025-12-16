@@ -14,6 +14,7 @@ export default function Pause() {
   const [formData, setFormData] = useState({
     durata_minima_turno_minuti: 240,
     durata_pausa_minuti: 15,
+    numero_pause_per_turno: 1,
     slot_orari: [{ orario_inizio: '11:00', orario_fine: '15:00' }],
     numero_minimo_colleghi: 2,
     attivo: true
@@ -67,6 +68,7 @@ export default function Pause() {
     setFormData({
       durata_minima_turno_minuti: 240,
       durata_pausa_minuti: 15,
+      numero_pause_per_turno: 1,
       slot_orari: [{ orario_inizio: '11:00', orario_fine: '15:00' }],
       numero_minimo_colleghi: 2,
       attivo: true
@@ -78,6 +80,7 @@ export default function Pause() {
     setFormData({
       durata_minima_turno_minuti: config.durata_minima_turno_minuti,
       durata_pausa_minuti: config.durata_pausa_minuti,
+      numero_pause_per_turno: config.numero_pause_per_turno || 1,
       slot_orari: config.slot_orari || [{ orario_inizio: '11:00', orario_fine: '15:00' }],
       numero_minimo_colleghi: config.numero_minimo_colleghi,
       attivo: config.attivo
