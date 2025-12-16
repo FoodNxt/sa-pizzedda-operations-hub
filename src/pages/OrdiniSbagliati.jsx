@@ -840,7 +840,7 @@ export default function OrdiniSbagliati() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredOrders.map((order) => (
+                  {wrongOrders.map((order) => (
                     <tr key={order.id} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
                       <td className="p-3">
                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${
