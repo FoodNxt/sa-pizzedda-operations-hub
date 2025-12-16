@@ -1700,10 +1700,12 @@ export default function TurniDipendente() {
                           <span className="text-lg font-bold text-amber-700 font-mono">
                             {(() => {
                               const inizioPausa = moment(pausaInCorso.inizio_pausa);
-                              const diffMs = now.diff(inizioPausa);
+                              const finePausaPrevista = inizioPausa.clone().add(pauseConfig.durata_pausa_minuti, 'minutes');
+                              const diffMs = finePausaPrevista.diff(now);
+                              if (diffMs <= 0) return '00:00';
                               const minuti = Math.floor(diffMs / 60000);
                               const secondi = Math.floor((diffMs % 60000) / 1000);
-                              return `${minuti}:${String(secondi).padStart(2, '0')}`;
+                              return `${String(minuti).padStart(2, '0')}:${String(secondi).padStart(2, '0')}`;
                             })()}
                           </span>
                         </div>
