@@ -1762,8 +1762,7 @@ export default function TurniDipendente() {
                       </div>
                     )}
                   </div>
-                );
-              })()}
+              )}
 
               {/* Bottone Timbra Uscita - solo se turno in corso */}
               {prossimoTurnoStatus.inCorso && (() => {
