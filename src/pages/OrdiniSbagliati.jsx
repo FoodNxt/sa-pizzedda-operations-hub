@@ -337,8 +337,14 @@ export default function OrdiniSbagliati() {
         successCount,
         errorCount,
         duplicateCount,
-        unmappedCount: 0
+        unmappedCount: unmapped.length
       });
+
+      // Show mapping modal if there are unmapped stores
+      if (unmapped.length > 0) {
+        setUnmappedStores(unmapped);
+        setShowMappingModal(true);
+      }
 
     } catch (error) {
       console.error('Error processing CSV:', error);
