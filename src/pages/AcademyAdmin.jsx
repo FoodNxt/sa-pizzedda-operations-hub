@@ -1474,16 +1474,15 @@ export default function AcademyAdmin() {
                           );
                         })}
                       </div>
-                    );
-                  })}
-                </div>
-              );
-            })()}
-          )}
-        </NeumorphicCard>
-      )}
+                      );
+                      })}
+                      </div>
+                      );
+                      })()}
+                      </NeumorphicCard>
+                      )}
 
-      {/* Store Progress View */}
+                      {/* Store Progress View */}
       {activeView === 'stores' && (
         <NeumorphicCard className="p-6">
           <h2 className="text-xl font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
