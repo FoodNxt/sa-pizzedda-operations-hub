@@ -11,10 +11,9 @@ import ProtectedPage from "../components/ProtectedPage";
 export default function FormTracker() {
   const [activeTab, setActiveTab] = useState('tracking');
   const [selectedDate, setSelectedDate] = useState(() => {
-    // Default: yesterday (since shifts are loaded at 1am the next day)
+    // Default: today (shifts are now loaded from Planday directly)
     const now = new Date();
-    const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-    return yesterday.toISOString().split('T')[0];
+    return now.toISOString().split('T')[0];
   });
   const [selectedStore, setSelectedStore] = useState('');
   const [showConfigForm, setShowConfigForm] = useState(false);
@@ -46,9 +45,9 @@ export default function FormTracker() {
     queryFn: () => base44.entities.Store.list(),
   });
 
-  const { data: shifts = [] } = useQuery({
-    queryKey: ['shifts'],
-    queryFn: () => base44.entities.Shift.list('-shift_date'),
+  const { data: turniPlanday = [] } = useQuery({
+    queryKey: ['turni-planday'],
+    queryFn: () => base44.entities.TurnoPlanday.list('-data', 1000),
   });
 
   const { data: users = [] } = useQuery({
@@ -284,11 +283,14 @@ export default function FormTracker() {
     let totalExpected = 0;
     let totalCompleted = 0;
 
-    // Get shifts for selected date, excluding malattia, ferie, assenza
-    const shiftsForDate = shifts.filter(s => {
-      if (s.shift_date !== selectedDate) return false;
-      const shiftType = (s.shift_type || '').toLowerCase();
-      if (shiftType.includes('malattia') || shiftType.includes('ferie') || shiftType.includes('assenza')) {
+    // Get shifts for selected date, excluding malattia, ferie, assenza, non-programmato
+    const shiftsForDate = turniPlanday.filter(s => {
+      if (s.data !== selectedDate) return false;
+      const stato = (s.stato || '').toLowerCase();
+      const tipoTurno = (s.tipo_turno || '').toLowerCase();
+      // Exclude if not "programmato" or if tipo_turno contains malattia/ferie/assenza
+      if (stato !== 'programmato') return false;
+      if (tipoTurno.includes('malattia') || tipoTurno.includes('ferie') || tipoTurno.includes('assenza')) {
         return false;
       }
       return true;
@@ -297,10 +299,11 @@ export default function FormTracker() {
     // Group shifts by store
     const shiftsByStore = {};
     shiftsForDate.forEach(shift => {
-      if (!shiftsByStore[shift.store_name]) {
-        shiftsByStore[shift.store_name] = [];
+      const storeName = shift.store_name || '';
+      if (!shiftsByStore[storeName]) {
+        shiftsByStore[storeName] = [];
       }
-      shiftsByStore[shift.store_name].push(shift);
+      shiftsByStore[storeName].push(shift);
     });
 
     // Also include all stores even if no shifts (to show expected forms based on config)
@@ -319,25 +322,26 @@ export default function FormTracker() {
       // Group by employee and sort their shifts by start time
       const shiftsByEmployee = {};
       storeShifts.forEach(shift => {
-        if (!shiftsByEmployee[shift.employee_name]) {
-          shiftsByEmployee[shift.employee_name] = [];
+        const empName = shift.dipendente_nome || '';
+        if (!shiftsByEmployee[empName]) {
+          shiftsByEmployee[empName] = [];
         }
-        shiftsByEmployee[shift.employee_name].push(shift);
+        shiftsByEmployee[empName].push(shift);
       });
       
       // Sort each employee's shifts by start time
       Object.keys(shiftsByEmployee).forEach(emp => {
         shiftsByEmployee[emp].sort((a, b) => {
-          const aStart = new Date(a.scheduled_start);
-          const bStart = new Date(b.scheduled_start);
+          const aStart = new Date(a.orario_inizio);
+          const bStart = new Date(b.orario_inizio);
           return aStart - bStart;
         });
       });
 
-      // Group shifts by role (employee_group_name) to determine morning/evening
+      // Group shifts by role (ruolo) to determine morning/evening
       const shiftsByRole = {};
       storeShifts.forEach(shift => {
-        const role = shift.employee_group_name?.trim() || 'Unknown';
+        const role = shift.ruolo?.trim() || 'Unknown';
         if (!shiftsByRole[role]) {
           shiftsByRole[role] = [];
         }
@@ -347,15 +351,15 @@ export default function FormTracker() {
       // Sort each role's shifts by start time and determine which are morning vs evening
       Object.keys(shiftsByRole).forEach(role => {
         shiftsByRole[role].sort((a, b) => {
-          const aStart = new Date(a.scheduled_start);
-          const bStart = new Date(b.scheduled_start);
+          const aStart = new Date(a.orario_inizio);
+          const bStart = new Date(b.orario_inizio);
           return aStart - bStart;
         });
       });
 
       // Helper function to determine if a shift is morning or evening based on role comparison
       const getShiftSequence = (shift) => {
-        const role = shift.employee_group_name?.trim() || 'Unknown';
+        const role = shift.ruolo?.trim() || 'Unknown';
         const roleShifts = shiftsByRole[role] || [];
         
         if (roleShifts.length <= 1) {
@@ -364,7 +368,7 @@ export default function FormTracker() {
         }
         
         // Find distinct time slots for this role
-        const uniqueStartTimes = [...new Set(roleShifts.map(s => new Date(s.scheduled_start).getTime()))].sort((a, b) => a - b);
+        const uniqueStartTimes = [...new Set(roleShifts.map(s => new Date(s.orario_inizio).getTime()))].sort((a, b) => a - b);
         
         if (uniqueStartTimes.length <= 1) {
           // All shifts start at the same time - all are "first"
@@ -372,7 +376,7 @@ export default function FormTracker() {
         }
         
         // Get the start time of this shift
-        const shiftStartTime = new Date(shift.scheduled_start).getTime();
+        const shiftStartTime = new Date(shift.orario_inizio).getTime();
         
         // If this shift starts at the earliest time, it's morning (first)
         // Otherwise it's evening (second)
@@ -463,7 +467,7 @@ export default function FormTracker() {
           );
           
           // Try to get role from shift data if user not found
-          const shiftRole = employeeShifts[0]?.employee_group_name;
+          const shiftRole = employeeShifts[0]?.ruolo;
           const userRoles = user?.ruoli_dipendente || [];
           
           // If config requires specific roles, check if user/shift has that role
@@ -532,7 +536,7 @@ export default function FormTracker() {
         missing: totalExpected - totalCompleted
       }
     };
-  }, [selectedDate, selectedStore, configs, shifts, users, stores, cleaningInspections, inventarioRilevazioni, conteggiCassa, teglieButtate, preparazioni]);
+  }, [selectedDate, selectedStore, configs, turniPlanday, users, stores, cleaningInspections, inventarioRilevazioni, conteggiCassa, teglieButtate, preparazioni]);
 
   const toggleFormExpand = (formName) => {
     setExpandedForms(prev => ({
@@ -631,8 +635,8 @@ export default function FormTracker() {
                     ))}
                   </div>
                   {selectedDate === new Date().toISOString().split('T')[0] && (
-                    <p className="text-xs text-orange-600 mt-2">
-                      ⚠️ Oggi: i turni vengono caricati all'1:00 del giorno successivo, quindi potresti non vedere tutti i turni
+                    <p className="text-xs text-blue-600 mt-2">
+                      ℹ️ I turni sono ora caricati direttamente da Planday in tempo reale
                     </p>
                   )}
                 </div>
@@ -688,9 +692,6 @@ export default function FormTracker() {
               <NeumorphicCard className="p-12 text-center">
                 <ClipboardCheck className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                 <p className="text-slate-500">Nessun turno trovato per questa data</p>
-                <p className="text-xs text-slate-400 mt-2">
-                  Ricorda: i turni vengono caricati all'1:00 del giorno successivo
-                </p>
               </NeumorphicCard>
             ) : (
               Object.entries(formStatus.byStore).map(([storeName, storeData]) => (
@@ -766,7 +767,7 @@ export default function FormTracker() {
                                           {form.noShift ? (
                                             `Turno ${form.shiftSequence === 'first' ? 'mattina' : 'sera'}: Nessun turno assegnato`
                                           ) : (
-                                            `Turno ${form.shiftSequence === 'first' ? 'mattina' : 'sera'}: ${formatShiftTime(form.shift?.scheduled_start)} - ${formatShiftTime(form.shift?.scheduled_end)}`
+                                            `Turno ${form.shiftSequence === 'first' ? 'mattina' : 'sera'}: ${formatShiftTime(form.shift?.orario_inizio)} - ${formatShiftTime(form.shift?.orario_fine)}`
                                           )}
                                         </p>
                                         <p className="text-xs text-slate-500">
@@ -1257,7 +1258,7 @@ export default function FormTracker() {
                     <div className="neumorphic-pressed p-4 rounded-xl">
                       <p className="text-xs text-slate-500">Turno</p>
                       <p className="font-bold text-slate-800">
-                        {formatShiftTime(viewingCompletion.form.shift?.scheduled_start)} - {formatShiftTime(viewingCompletion.form.shift?.scheduled_end)}
+                        {formatShiftTime(viewingCompletion.form.shift?.orario_inizio)} - {formatShiftTime(viewingCompletion.form.shift?.orario_fine)}
                       </p>
                     </div>
                   </div>
