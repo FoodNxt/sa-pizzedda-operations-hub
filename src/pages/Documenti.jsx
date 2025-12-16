@@ -1530,6 +1530,14 @@ function LettereSection() {
     },
   });
 
+  const deleteLetteraMutation = useMutation({
+    mutationFn: (id) => base44.entities.LetteraRichiamo.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lettere-richiamo'] });
+      alert('Lettera eliminata');
+    },
+  });
+
   const generateLetteraContent = (templateId, userId, richiamoData = null) => {
     const template = templates.find(t => t.id === templateId);
     const user = users.find(u => u.id === userId);
@@ -1836,6 +1844,17 @@ function LettereSection() {
                             )}
                           </button>
                         )}
+                        <button
+                          onClick={() => {
+                            if (confirm(`Confermi l'eliminazione della lettera di richiamo per ${richiamo.user_name}? Questa azione è irreversibile.`)) {
+                              deleteLetteraMutation.mutate(richiamo.id);
+                            }
+                          }}
+                          className="nav-button p-1.5 rounded-lg"
+                          title="Elimina lettera"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                        </button>
                         {getStatusBadge(richiamo.status === 'firmata' ? 'firmato' : 'inviato')}
                       </div>
                     </div>
