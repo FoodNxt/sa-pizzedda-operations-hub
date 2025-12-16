@@ -34,6 +34,7 @@ export default function UsersManagement() {
     user_type: 'dipendente',
     ruoli_dipendente: [],
     assigned_stores: [],
+    primary_stores: [],
     employee_group: '',
     phone: '',
     data_nascita: '',
@@ -47,7 +48,6 @@ export default function UsersManagement() {
     tipo_contratto: 'determinato',
     durata_contratto_mesi: 0,
     data_fine_contratto: '',
-    planday: false,
     abilitato_prove: false,
     status: 'active'
   });
@@ -94,6 +94,7 @@ export default function UsersManagement() {
       user_type: user.user_type || 'dipendente',
       ruoli_dipendente: user.ruoli_dipendente || [],
       assigned_stores: user.assigned_stores || [],
+      primary_stores: user.primary_stores || [],
       employee_group: user.employee_group || '',
       phone: user.phone || '',
       data_nascita: user.data_nascita || '',
@@ -107,7 +108,6 @@ export default function UsersManagement() {
       tipo_contratto: user.tipo_contratto || 'determinato',
       durata_contratto_mesi: user.durata_contratto_mesi || 0,
       data_fine_contratto: user.data_fine_contratto || '',
-      planday: user.planday || false,
       abilitato_prove: user.abilitato_prove || false,
       status: user.status || 'active'
     });
@@ -139,6 +139,7 @@ export default function UsersManagement() {
       user_type: 'dipendente',
       ruoli_dipendente: [],
       assigned_stores: [],
+      primary_stores: [],
       employee_group: '',
       phone: '',
       data_nascita: '',
@@ -152,38 +153,41 @@ export default function UsersManagement() {
       tipo_contratto: 'determinato',
       durata_contratto_mesi: 0,
       data_fine_contratto: '',
-      planday: false,
       abilitato_prove: false,
       status: 'active'
     });
     setSelectedTemplate('');
   };
 
-  const handleStoreToggle = (storeName) => {
+  const handleStoreToggle = (storeId) => {
     setFormData(prev => {
-      const isCurrentlyAssigned = prev.assigned_stores.includes(storeName);
-      let newAssignedStores;
+      const isCurrentlyAssigned = prev.assigned_stores.includes(storeId);
+      const newAssignedStores = isCurrentlyAssigned
+        ? prev.assigned_stores.filter(id => id !== storeId)
+        : [...prev.assigned_stores, storeId];
 
-      // If no stores are assigned, it means 'All stores'. Toggling one means assigning only that one.
-      // If 'All stores' implicitly, and we toggle one, we should create an explicit list with all *but* the toggled one.
-      if (prev.assigned_stores.length === 0) { // Currently assigned to all
-        if (stores.length === 1 && stores[0].name === storeName) { // Only one store exists and it's the one we're toggling
-            newAssignedStores = []; // Effectively unassign from all, or keep it empty meaning 'all'
-        } else {
-            newAssignedStores = stores.filter(s => s.name !== storeName).map(s => s.name);
-        }
-      } else if (isCurrentlyAssigned) { // Assigned to specific stores, and this one is in the list
-        const filtered = prev.assigned_stores.filter(name => name !== storeName);
-        if (filtered.length === 0) { // If filtering makes it empty, revert to 'all' (empty array)
-            newAssignedStores = [];
-        } else {
-            newAssignedStores = filtered;
-        }
-      } else { // Assigned to specific stores, and this one is not in the list
-        newAssignedStores = [...prev.assigned_stores, storeName];
-      }
+      // Se rimuovo uno store, rimuovo anche dai primary se presente
+      const newPrimaryStores = isCurrentlyAssigned
+        ? prev.primary_stores.filter(id => id !== storeId)
+        : prev.primary_stores;
 
-      return { ...prev, assigned_stores: newAssignedStores };
+      return { 
+        ...prev, 
+        assigned_stores: newAssignedStores,
+        primary_stores: newPrimaryStores
+      };
+    });
+  };
+
+  const handleTogglePrimaryStore = (storeId) => {
+    setFormData(prev => {
+      const isPrimary = prev.primary_stores.includes(storeId);
+      return {
+        ...prev,
+        primary_stores: isPrimary
+          ? prev.primary_stores.filter(id => id !== storeId)
+          : [...prev.primary_stores, storeId]
+      };
     });
   };
 
@@ -733,22 +737,25 @@ export default function UsersManagement() {
                       </div>
                     )}
                     <div className="col-span-2">
-                      <p className="text-[#9b9b9b]">Locali Assegnati</p>
-                      <p className="text-[#6b6b6b] font-medium">
-                        {!viewingUser.assigned_stores || viewingUser.assigned_stores.length === 0
-                          ? 'Tutti i locali'
-                          : viewingUser.assigned_stores.join(', ')}
-                      </p>
-                    </div>
-                    <div className="col-span-2">
-                      <p className="text-[#9b9b9b]">Planday</p>
-                      <div className="flex items-center gap-2 text-[#6b6b6b] font-medium">
-                        {viewingUser.planday ? (
-                            <CheckCircle className="w-5 h-5 text-green-600" />
-                          ) : (
-                            <X className="w-5 h-5 text-gray-400" />
-                          )}
-                          {viewingUser.planday ? 'Abilitato' : 'Non Abilitato'}
+                      <p className="text-[#9b9b9b] mb-2">Locali Assegnati</p>
+                      <div className="flex flex-wrap gap-2">
+                        {viewingUser.assigned_stores && viewingUser.assigned_stores.length > 0 ? (
+                          viewingUser.assigned_stores.map(storeId => {
+                            const store = stores.find(s => s.id === storeId);
+                            const isPrimary = (viewingUser.primary_stores || []).includes(storeId);
+                            return store ? (
+                              <span key={storeId} className={`text-xs px-2 py-1 rounded-full ${
+                                isPrimary 
+                                  ? 'bg-blue-100 text-blue-700 font-bold' 
+                                  : 'bg-slate-100 text-slate-600'
+                              }`}>
+                                {isPrimary && '⭐ '}{store.name}
+                              </span>
+                            ) : null;
+                          })
+                        ) : (
+                          <span className="text-[#6b6b6b]">Nessun locale assegnato</span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1069,18 +1076,6 @@ export default function UsersManagement() {
                       </select>
                     </div>
 
-                    <div className="neumorphic-pressed p-3 rounded-lg">
-                      <label className="flex items-center gap-3 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={formData.planday}
-                          onChange={(e) => setFormData({ ...formData, planday: e.target.checked })}
-                          className="w-5 h-5 rounded"
-                        />
-                        <span className="text-[#6b6b6b] font-medium">Abilitato Planday</span>
-                      </label>
-                    </div>
-
                     <div className="neumorphic-pressed p-3 rounded-lg bg-purple-50">
                       <label className="flex items-center gap-3 cursor-pointer">
                         <input
@@ -1106,27 +1101,58 @@ export default function UsersManagement() {
                   </div>
                   <p className="text-sm text-[#9b9b9b] mb-4">
                     {formData.assigned_stores.length === 0
-                      ? '✓ Utente assegnato a TUTTI i locali'
-                      : `Utente assegnato a ${formData.assigned_stores.length} locale/i su ${stores.length}`}
+                      ? '⚠️ Nessun locale assegnato'
+                      : `Utente assegnato a ${formData.assigned_stores.length} locale/i`}
                   </p>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {stores.map(store => (
-                      <div key={store.id} className="neumorphic-pressed p-3 rounded-lg">
-                        <label className="flex items-center gap-3 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={formData.assigned_stores.length === 0 || formData.assigned_stores.includes(store.name)}
-                            onChange={() => handleStoreToggle(store.name)}
-                            className="w-5 h-5 rounded"
-                          />
-                          <div className="flex-1">
-                            <p className="font-medium text-[#6b6b6b]">{store.name}</p>
-                            <p className="text-xs text-[#9b9b9b]">{store.address}</p>
-                          </div>
-                        </label>
-                      </div>
-                    ))}
+                  <div className="mb-4">
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Locali Principali (⭐):</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
+                      {stores.map(store => (
+                        <button
+                          key={store.id}
+                          type="button"
+                          onClick={() => handleTogglePrimaryStore(store.id)}
+                          disabled={!formData.assigned_stores.includes(store.id)}
+                          className={`px-3 py-2 rounded-lg font-medium transition-all text-sm flex items-center gap-2 ${
+                            formData.primary_stores.includes(store.id)
+                              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md'
+                              : 'neumorphic-pressed text-[#6b6b6b] disabled:opacity-40'
+                          }`}
+                        >
+                          {formData.primary_stores.includes(store.id) && <span>⭐</span>}
+                          <span className="flex-1 text-left">{store.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      I locali principali vengono usati come default nei form
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Locali Abilitati:</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {stores.map(store => (
+                        <div key={store.id} className="neumorphic-pressed p-3 rounded-lg">
+                          <label className="flex items-center gap-3 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={formData.assigned_stores.includes(store.id)}
+                              onChange={() => handleStoreToggle(store.id)}
+                              className="w-5 h-5 rounded"
+                            />
+                            <div className="flex-1">
+                              <p className="font-medium text-[#6b6b6b]">{store.name}</p>
+                              <p className="text-xs text-[#9b9b9b]">{store.address}</p>
+                            </div>
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-slate-500 mt-2">
+                      Locali in cui il dipendente può lavorare
+                    </p>
                   </div>
                 </div>
 
@@ -1261,17 +1287,12 @@ export default function UsersManagement() {
                   <th className="text-left p-3 text-[#9b9b9b] font-medium">Tipo</th>
                   <th className="text-left p-3 text-[#9b9b9b] font-medium">Locali</th>
                   <th className="text-center p-3 text-[#9b9b9b] font-medium">Registrato</th>
-                  <th className="text-center p-3 text-[#9b9b9b] font-medium">Planday</th>
                   <th className="text-center p-3 text-[#9b9b9b] font-medium">Stato</th>
                   <th className="text-center p-3 text-[#9b9b9b] font-medium">Azioni</th>
                 </tr>
               </thead>
               <tbody>
                 {users.map((user) => {
-                  const assignedStoresCount = !user.assigned_stores || user.assigned_stores.length === 0
-                    ? stores.length
-                    : user.assigned_stores.length;
-
                   return (
                     <tr key={user.id} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
                       <td className="p-3">
@@ -1303,11 +1324,25 @@ export default function UsersManagement() {
                         </span>
                       </td>
                       <td className="p-3">
-                        <span className="text-sm text-[#6b6b6b]">
-                          {assignedStoresCount === stores.length
-                            ? 'Tutti'
-                            : `${assignedStoresCount}/${stores.length}`}
-                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {user.assigned_stores && user.assigned_stores.length > 0 ? (
+                            user.assigned_stores.map(storeId => {
+                              const store = stores.find(s => s.id === storeId);
+                              const isPrimary = (user.primary_stores || []).includes(storeId);
+                              return store ? (
+                                <span key={storeId} className={`text-xs px-2 py-1 rounded-full ${
+                                  isPrimary 
+                                    ? 'bg-blue-100 text-blue-700 font-bold' 
+                                    : 'bg-slate-100 text-slate-600'
+                                }`}>
+                                  {isPrimary && '⭐ '}{store.name}
+                                </span>
+                              ) : null;
+                            })
+                          ) : (
+                            <span className="text-xs text-orange-600">Nessuno</span>
+                          )}
+                        </div>
                       </td>
                       <td className="p-3 text-center">
                         <span className="text-xs text-[#6b6b6b]">
@@ -1319,15 +1354,6 @@ export default function UsersManagement() {
                             }
                           })() : 'N/A'}
                         </span>
-                      </td>
-                      <td className="p-3">
-                        <div className="flex justify-center">
-                          {user.planday ? (
-                            <CheckCircle className="w-5 h-5 text-green-600" />
-                          ) : (
-                            <X className="w-5 h-5 text-gray-400" />
-                          )}
-                        </div>
                       </td>
                       <td className="p-3">
                         <div className="flex justify-center">
