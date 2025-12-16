@@ -225,7 +225,21 @@ export default function Pause() {
                   />
                 </div>
 
-                <div className="md:col-span-2">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                    Numero Pause per Turno
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    value={formData.numero_pause_per_turno}
+                    onChange={(e) => setFormData({ ...formData, numero_pause_per_turno: parseInt(e.target.value) })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                  />
+                </div>
+
+                <div>
                   <label className="text-sm font-medium text-slate-700 mb-2 block">
                     Numero Minimo Colleghi Presenti
                   </label>
