@@ -1859,11 +1859,17 @@ function LettereSection() {
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                    <div className="grid grid-cols-3 gap-2 text-xs mb-3">
                       <div className="neumorphic-pressed p-2 rounded-lg">
                         <p className="text-slate-500">Inviata</p>
                         <p className="font-medium text-slate-700">
                           {richiamo.data_invio ? new Date(richiamo.data_invio).toLocaleDateString('it-IT') : 'N/A'}
+                        </p>
+                      </div>
+                      <div className="neumorphic-pressed p-2 rounded-lg">
+                        <p className="text-slate-500">Visualizzata</p>
+                        <p className="font-medium text-slate-700">
+                          {richiamo.data_visualizzazione ? new Date(richiamo.data_visualizzazione).toLocaleDateString('it-IT') : 'In attesa'}
                         </p>
                       </div>
                       <div className="neumorphic-pressed p-2 rounded-lg">
@@ -1914,7 +1920,7 @@ function LettereSection() {
                             </p>
                           ) : (
                             <p className="text-xs text-slate-500">
-                              Sarà disponibile dopo la firma del richiamo
+                              Sarà disponibile dopo la visualizzazione del richiamo
                             </p>
                           )}
                         </div>
