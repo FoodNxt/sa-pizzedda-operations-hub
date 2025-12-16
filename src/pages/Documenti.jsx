@@ -1429,6 +1429,7 @@ function LettereSection() {
   const [viewingChiusura, setViewingChiusura] = useState(null);
   const [chiusuraPreviewContent, setChiusuraPreviewContent] = useState('');
   const [downloadingPdfAdmin, setDownloadingPdfAdmin] = useState(null);
+  const [viewingRichiamo, setViewingRichiamo] = useState(null);
 
   const downloadLetteraPDFAdmin = async (lettera) => {
     setDownloadingPdfAdmin(lettera.id);
@@ -1830,6 +1831,13 @@ function LettereSection() {
                         <p className="text-xs text-orange-600 font-medium">Lettera di Richiamo</p>
                       </div>
                       <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setViewingRichiamo(richiamo)}
+                          className="nav-button p-1.5 rounded-lg"
+                          title="Visualizza lettera di richiamo"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-purple-600" />
+                        </button>
                         {richiamo.status === 'firmata' && (
                           <button
                             onClick={() => downloadLetteraPDFAdmin(richiamo)}
@@ -1925,48 +1933,48 @@ function LettereSection() {
                           )}
                         </div>
                         <div className="flex gap-1">
-                          {richiamo.status === 'firmata' && !chiusura && (
-                            <button
-                              onClick={() => {
-                                if (defaultChiusuraTemplate) {
-                                  const content = generateLetteraContent(defaultChiusuraTemplate.id, richiamo.user_id, richiamo);
-                                  setViewingChiusura({ 
-                                    tipo: 'edit', 
-                                    richiamo,
-                                    selectedTemplateId: defaultChiusuraTemplate.id,
-                                    editableContent: content
-                                  });
-                                } else {
-                                  alert('Nessun template di chiusura procedura disponibile');
-                                }
-                              }}
-                              className="nav-button p-1.5 rounded-lg"
-                              title="Seleziona e modifica chiusura"
-                            >
-                              <Edit className="w-3.5 h-3.5 text-orange-600" />
-                            </button>
-                          )}
-                          {(chiusura || (richiamo.status === 'firmata' && currentConfig?.template_chiusura_id)) && (
-                            <button
-                              onClick={() => {
-                                if (chiusura) {
-                                  setViewingChiusura({ tipo: 'inviata', chiusura });
-                                } else {
-                                  generateChiusuraPreview(richiamo);
-                                  setViewingChiusura({ tipo: 'preview', richiamo });
-                                }
-                              }}
-                              className="nav-button p-1.5 rounded-lg"
-                              title="Visualizza"
-                            >
-                              <Eye className="w-3.5 h-3.5 text-blue-600" />
-                            </button>
-                          )}
+                         {!chiusura && (
+                           <button
+                             onClick={() => {
+                               if (defaultChiusuraTemplate) {
+                                 const content = generateLetteraContent(defaultChiusuraTemplate.id, richiamo.user_id, richiamo);
+                                 setViewingChiusura({ 
+                                   tipo: 'edit', 
+                                   richiamo,
+                                   selectedTemplateId: defaultChiusuraTemplate.id,
+                                   editableContent: content
+                                 });
+                               } else {
+                                 alert('Nessun template di chiusura procedura disponibile');
+                               }
+                             }}
+                             className="nav-button p-1.5 rounded-lg"
+                             title="Seleziona e modifica chiusura"
+                           >
+                             <Edit className="w-3.5 h-3.5 text-orange-600" />
+                           </button>
+                         )}
+                         {(chiusura || currentConfig?.template_chiusura_id) && (
+                           <button
+                             onClick={() => {
+                               if (chiusura) {
+                                 setViewingChiusura({ tipo: 'inviata', chiusura });
+                               } else {
+                                 generateChiusuraPreview(richiamo);
+                                 setViewingChiusura({ tipo: 'preview', richiamo });
+                               }
+                             }}
+                             className="nav-button p-1.5 rounded-lg"
+                             title="Visualizza anteprima chiusura"
+                           >
+                             <Eye className="w-3.5 h-3.5 text-blue-600" />
+                           </button>
+                         )}
                         </div>
                       </div>
                       
                       {/* Template selector for chiusura */}
-                      {richiamo.status === 'firmata' && !chiusura && chiusuraTemplates.length > 0 && (
+                      {!chiusura && chiusuraTemplates.length > 0 && (
                         <div className="mt-2 pt-2 border-t border-green-200">
                           <select
                             className="w-full text-xs neumorphic-pressed px-2 py-1.5 rounded-lg outline-none bg-white"
