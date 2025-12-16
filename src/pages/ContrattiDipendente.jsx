@@ -839,7 +839,7 @@ export default function ContrattiDipendente() {
               <div className="max-w-4xl mx-auto">
                 <div className="neumorphic-pressed p-6 rounded-xl mb-6">
                   <pre className="whitespace-pre-wrap text-sm lg:text-base text-slate-700 font-sans leading-relaxed">
-                    {viewingLetter.contenuto}
+                    {viewingLetter.contenuto_lettera}
                   </pre>
                 </div>
               </div>
