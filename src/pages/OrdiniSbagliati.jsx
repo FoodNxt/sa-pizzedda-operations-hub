@@ -587,6 +587,11 @@ export default function OrdiniSbagliati() {
                   <p className="text-green-700">
                     Importati <strong>{importResult.successCount}</strong> ordini su <strong>{importResult.total}</strong>
                   </p>
+                  {importResult.duplicateCount > 0 && (
+                    <p className="text-blue-600">
+                      {importResult.duplicateCount} ordini duplicati saltati
+                    </p>
+                  )}
                   {importResult.errorCount > 0 && (
                     <p className="text-orange-600">
                       {importResult.errorCount} ordini non sono stati importati per errori
