@@ -28,7 +28,9 @@ export default function OrdiniSbagliati() {
   const [showMappingModal, setShowMappingModal] = useState(false);
   const [unmappedStores, setUnmappedStores] = useState([]);
   const [storeMapping, setStoreMapping] = useState({});
-  const [showAllOrders, setShowAllOrders] = useState(false); // NEW: state for showing all orders
+  const [activeTab, setActiveTab] = useState('list'); // 'list' or 'analytics'
+  const [selectedStore, setSelectedStore] = useState('all');
+  const [dateRange, setDateRange] = useState('month'); // 'week', 'month', 'all'
 
   const queryClient = useQueryClient();
 
