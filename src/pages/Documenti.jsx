@@ -1676,7 +1676,7 @@ function LettereSection() {
                 className="w-5 h-5"
               />
               <label htmlFor="invio-auto" className="text-sm font-medium text-slate-700">
-                Invia automaticamente chiusura procedura dopo la firma della lettera di richiamo
+                Invia automaticamente chiusura procedura dopo la visualizzazione della lettera di richiamo
               </label>
             </div>
 
@@ -1684,7 +1684,7 @@ function LettereSection() {
               <>
                 <div>
                   <label className="text-sm font-medium text-slate-700 mb-2 block">
-                    Giorni di attesa dopo la firma (0 = immediato)
+                    Giorni di attesa dopo la visualizzazione (0 = immediato)
                   </label>
                   <input
                     type="number"
@@ -1726,8 +1726,8 @@ function LettereSection() {
 
             <div className="neumorphic-flat p-3 rounded-lg bg-blue-50">
               <p className="text-xs text-blue-800">
-                <strong>ℹ️ Come funziona:</strong> Quando un dipendente firma una lettera di richiamo, 
-                il sistema invierà automaticamente la chiusura procedura (se configurata).
+                <strong>ℹ️ Come funziona:</strong> Quando un dipendente visualizza per la prima volta una lettera di richiamo, 
+                il sistema invierà automaticamente la chiusura procedura dopo i giorni di attesa impostati.
               </p>
             </div>
           </div>
@@ -1803,11 +1803,11 @@ function LettereSection() {
                 const autoSendEnabled = currentConfig?.invio_automatico_chiusura;
                 const giorniAttesa = currentConfig?.giorni_attesa_chiusura || 0;
                 
-                // Calculate when chiusura will be sent (if richiamo is signed and no chiusura yet)
+                // Calculate when chiusura will be sent (if richiamo is visualized and no chiusura yet)
                 let chiusuraScheduled = null;
-                if (richiamo.status === 'firmata' && !chiusura && autoSendEnabled && richiamo.data_firma) {
-                  const dataFirma = new Date(richiamo.data_firma);
-                  chiusuraScheduled = new Date(dataFirma);
+                if (richiamo.status === 'firmata' && !chiusura && autoSendEnabled && richiamo.data_visualizzazione) {
+                  const dataVis = new Date(richiamo.data_visualizzazione);
+                  chiusuraScheduled = new Date(dataVis);
                   chiusuraScheduled.setDate(chiusuraScheduled.getDate() + giorniAttesa);
                 }
 
