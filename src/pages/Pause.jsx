@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Coffee, Clock, Users, Settings, Calendar, TrendingUp, AlertCircle, Plus, Trash2 } from 'lucide-react';
+import { Coffee, Clock, Users, Settings, Calendar, TrendingUp, AlertCircle, Plus, Trash2, X } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { format, parseISO, differenceInMinutes } from 'date-fns';
