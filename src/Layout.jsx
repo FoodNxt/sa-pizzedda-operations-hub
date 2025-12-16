@@ -244,6 +244,11 @@ const navigationStructure = [
         icon: Calendar,
       },
       {
+        title: "Pause",
+        url: createPageUrl("Pause"),
+        icon: Clock,
+      },
+      {
         title: "Assegnazione Locali",
         url: createPageUrl("HRAdmin"),
         icon: MapPin,

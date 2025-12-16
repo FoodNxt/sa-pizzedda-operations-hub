@@ -8,7 +8,8 @@ import {
   Calendar, Clock, MapPin, CheckCircle, AlertCircle, 
   Loader2, LogIn, LogOut, ChevronLeft, ChevronRight,
   RefreshCw, X, AlertTriangle, Users, Store as StoreIcon, Navigation, Timer, ClipboardList,
-  Palmtree, Thermometer, Upload, FileText, ExternalLink, GraduationCap, Check, Square, CheckSquare, ArrowRightLeft
+  Palmtree, Thermometer, Upload, FileText, ExternalLink, GraduationCap, Check, Square, CheckSquare, ArrowRightLeft,
+  Coffee
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -44,6 +45,7 @@ export default function TurniDipendente() {
   const [userPosition, setUserPosition] = useState(null);
   const [distanceToStore, setDistanceToStore] = useState(null);
   const [now, setNow] = useState(moment());
+  const [pausaInCorso, setPausaInCorso] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -222,6 +224,23 @@ export default function TurniDipendente() {
   const { data: tipoTurnoConfigs = [] } = useQuery({
     queryKey: ['tipo-turno-configs'],
     queryFn: () => base44.entities.TipoTurnoConfig.list(),
+  });
+
+  const { data: pauseConfig = null } = useQuery({
+    queryKey: ['pause-config'],
+    queryFn: async () => {
+      const configs = await base44.entities.PauseConfig.list();
+      return configs.find(c => c.attivo) || null;
+    },
+  });
+
+  const { data: pauseAttive = [] } = useQuery({
+    queryKey: ['pause-attive', prossimoTurno?.id],
+    queryFn: () => base44.entities.Pausa.filter({
+      turno_id: prossimoTurno.id,
+      stato: 'in_corso'
+    }),
+    enabled: !!prossimoTurno?.id,
   });
 
   const { data: allFormData = {} } = useQuery({
@@ -514,6 +533,53 @@ export default function TurniDipendente() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attivita-completate'] });
+    }
+  });
+
+  const iniziaPausaMutation = useMutation({
+    mutationFn: async (turno) => {
+      const colleghi = colleghiProssimoTurno.filter(c => 
+        c.dipendente_id !== currentUser?.id && 
+        c.stato === 'in_corso'
+      );
+      return base44.entities.Pausa.create({
+        turno_id: turno.id,
+        dipendente_id: currentUser.id,
+        dipendente_nome: currentUser.nome_cognome || currentUser.full_name,
+        store_id: turno.store_id,
+        store_name: getStoreName(turno.store_id),
+        data_turno: turno.data,
+        inizio_pausa: new Date().toISOString(),
+        stato: 'in_corso',
+        colleghi_presenti_al_momento: colleghi.length
+      });
+    },
+    onSuccess: (pausa) => {
+      queryClient.invalidateQueries({ queryKey: ['pause-attive'] });
+      setPausaInCorso(pausa);
+      setTimbraturaMessage({ type: 'success', text: 'Pausa iniziata!' });
+      setTimeout(() => setTimbraturaMessage(null), 2000);
+    }
+  });
+
+  const finisciPausaMutation = useMutation({
+    mutationFn: async (pausa) => {
+      const finepausa = new Date().toISOString();
+      const inizio = new Date(pausa.inizio_pausa);
+      const fine = new Date(finepausa);
+      const durataMinuti = Math.floor((fine - inizio) / 60000);
+      
+      return base44.entities.Pausa.update(pausa.id, {
+        fine_pausa: finepausa,
+        durata_effettiva_minuti: durataMinuti,
+        stato: 'completata'
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pause-attive'] });
+      setPausaInCorso(null);
+      setTimbraturaMessage({ type: 'success', text: 'Pausa terminata!' });
+      setTimeout(() => setTimbraturaMessage(null), 2000);
     }
   });
 
@@ -1127,6 +1193,45 @@ export default function TurniDipendente() {
     return corsi.find(c => c.id === corsoId)?.nome_corso || '';
   };
 
+  useEffect(() => {
+    if (pauseAttive.length > 0) {
+      setPausaInCorso(pauseAttive[0]);
+    } else {
+      setPausaInCorso(null);
+    }
+  }, [pauseAttive]);
+
+  const verificaCondizioniPausa = (turno) => {
+    if (!pauseConfig || !turno.timbrata_entrata) return { canPause: false, reason: 'Configurazione non disponibile' };
+    
+    const durataMinimaTurnoMs = pauseConfig.durata_minima_turno_minuti * 60000;
+    const turnoStart = new Date(`${turno.data} ${turno.ora_inizio}`);
+    const turnoEnd = new Date(`${turno.data} ${turno.ora_fine}`);
+    const durataTurnoMs = turnoEnd - turnoStart;
+    
+    if (durataTurnoMs < durataMinimaTurnoMs) {
+      return { canPause: false, reason: `Turno troppo breve (min ${pauseConfig.durata_minima_turno_minuti}min)` };
+    }
+    
+    if (pauseConfig.orario_inizio_consentito && pauseConfig.orario_fine_consentito) {
+      const nowTime = now.format('HH:mm');
+      if (nowTime < pauseConfig.orario_inizio_consentito || nowTime > pauseConfig.orario_fine_consentito) {
+        return { canPause: false, reason: `Pause consentite ${pauseConfig.orario_inizio_consentito}-${pauseConfig.orario_fine_consentito}` };
+      }
+    }
+    
+    const colleghiInCorso = colleghiProssimoTurno.filter(c => 
+      c.dipendente_id !== currentUser?.id && 
+      c.stato === 'in_corso'
+    );
+    
+    if (colleghiInCorso.length < pauseConfig.numero_minimo_colleghi) {
+      return { canPause: false, reason: `Servono almeno ${pauseConfig.numero_minimo_colleghi} colleghi presenti` };
+    }
+    
+    return { canPause: true, reason: null };
+  };
+
   return (
     <ProtectedPage pageName="TurniDipendente">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -1569,6 +1674,69 @@ export default function TurniDipendente() {
                           <AlertTriangle className="w-4 h-4" />
                           Completa tutte le attività prima di timbrare l'uscita
                         </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Gestione Pause - solo se turno in corso */}
+              {prossimoTurnoStatus.inCorso && pauseConfig && (() => {
+                const condizioniPausa = verificaCondizioniPausa(prossimoTurno);
+                
+                return (
+                  <div className="mb-4">
+                    {pausaInCorso ? (
+                      <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <Coffee className="w-5 h-5 text-amber-600" />
+                            <span className="font-bold text-amber-800">Pausa in Corso</span>
+                          </div>
+                          <span className="text-lg font-bold text-amber-700 font-mono">
+                            {(() => {
+                              const inizioPausa = moment(pausaInCorso.inizio_pausa);
+                              const diffMs = now.diff(inizioPausa);
+                              const minuti = Math.floor(diffMs / 60000);
+                              const secondi = Math.floor((diffMs % 60000) / 1000);
+                              return `${minuti}:${String(secondi).padStart(2, '0')}`;
+                            })()}
+                          </span>
+                        </div>
+                        <p className="text-sm text-amber-700 mb-3">
+                          Durata prevista: {pauseConfig.durata_pausa_minuti} minuti
+                        </p>
+                        <NeumorphicButton
+                          onClick={() => finisciPausaMutation.mutate(pausaInCorso)}
+                          disabled={finisciPausaMutation.isPending}
+                          className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-white"
+                        >
+                          {finisciPausaMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Termina Pausa'}
+                        </NeumorphicButton>
+                      </div>
+                    ) : (
+                      <div>
+                        <NeumorphicButton
+                          onClick={() => iniziaPausaMutation.mutate(prossimoTurno)}
+                          disabled={!condizioniPausa.canPause || iniziaPausaMutation.isPending}
+                          className={`w-full flex items-center justify-center gap-2 py-3 ${
+                            !condizioniPausa.canPause ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                        >
+                          {iniziaPausaMutation.isPending ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <>
+                              <Coffee className="w-5 h-5" />
+                              Inizia Pausa
+                            </>
+                          )}
+                        </NeumorphicButton>
+                        {!condizioniPausa.canPause && condizioniPausa.reason && (
+                          <p className="text-xs text-center mt-2 text-slate-500">
+                            {condizioniPausa.reason}
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
