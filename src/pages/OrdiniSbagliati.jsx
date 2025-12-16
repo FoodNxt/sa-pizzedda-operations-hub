@@ -204,6 +204,7 @@ export default function OrdiniSbagliati() {
       const headers = parseCsvLine(lines[0]);
       const records = [];
       const unmapped = [];
+      const skippedOrders = [];
 
       for (let i = 1; i < lines.length; i++) {
         const values = parseCsvLine(lines[i]);
