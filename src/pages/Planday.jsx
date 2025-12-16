@@ -269,6 +269,7 @@ export default function Planday() {
     distanza_massima_metri: 100,
     tolleranza_ritardo_minuti: 0,
     abilita_timbratura_gps: true,
+    ruoli_gps_abilitati: [],
     arrotonda_ritardo: false,
     arrotondamento_tipo: 'eccesso',
     arrotondamento_minuti: 15,
@@ -372,6 +373,7 @@ export default function Planday() {
         distanza_massima_metri: config.distanza_massima_metri || 100,
         tolleranza_ritardo_minuti: config.tolleranza_ritardo_minuti ?? 0,
         abilita_timbratura_gps: config.abilita_timbratura_gps !== false,
+        ruoli_gps_abilitati: config.ruoli_gps_abilitati || [],
         arrotonda_ritardo: config.arrotonda_ritardo || false,
         arrotondamento_tipo: config.arrotondamento_tipo || 'eccesso',
         arrotondamento_minuti: config.arrotondamento_minuti || 15,
@@ -2827,6 +2829,7 @@ export default function Planday() {
                       distanza_massima_metri: config.distanza_massima_metri || 100,
                       tolleranza_ritardo_minuti: config.tolleranza_ritardo_minuti ?? 0,
                       abilita_timbratura_gps: config.abilita_timbratura_gps !== false,
+                      ruoli_gps_abilitati: config.ruoli_gps_abilitati || [],
                       arrotonda_ritardo: config.arrotonda_ritardo || false,
                       arrotondamento_tipo: config.arrotondamento_tipo || 'eccesso',
                       arrotondamento_minuti: config.arrotondamento_minuti || 15,
@@ -3242,6 +3245,45 @@ export default function Planday() {
                         Abilita verifica GPS per timbratura
                       </label>
                     </div>
+
+                    {configForm.abilita_timbratura_gps && (
+                      <div className="ml-7 neumorphic-flat p-3 rounded-xl">
+                        <label className="text-sm font-medium text-slate-700 mb-2 block">
+                          Ruoli con verifica GPS obbligatoria
+                        </label>
+                        <div className="space-y-2">
+                          {RUOLI.map(ruolo => (
+                            <label key={ruolo} className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={configForm.ruoli_gps_abilitati.includes(ruolo)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setConfigForm({
+                                      ...configForm,
+                                      ruoli_gps_abilitati: [...configForm.ruoli_gps_abilitati, ruolo]
+                                    });
+                                  } else {
+                                    setConfigForm({
+                                      ...configForm,
+                                      ruoli_gps_abilitati: configForm.ruoli_gps_abilitati.filter(r => r !== ruolo)
+                                    });
+                                  }
+                                }}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-sm text-slate-700">{ruolo}</span>
+                            </label>
+                          ))}
+                        </div>
+                        <p className="text-xs text-slate-500 mt-2">
+                          {configForm.ruoli_gps_abilitati.length === 0 
+                            ? 'Nessun ruolo selezionato = GPS richiesto per tutti i ruoli'
+                            : `GPS richiesto solo per: ${configForm.ruoli_gps_abilitati.join(', ')}`
+                          }
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
