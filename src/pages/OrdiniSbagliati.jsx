@@ -249,17 +249,17 @@ export default function OrdiniSbagliati() {
 
         // Check existing mapping
         let storeMatch = storeMappings.find(
-          m => m.platform === selectedPlatform && m.platform_store_name === platformStoreName
+          m => m.platform === selectedPlatform && m.platform_store_name === finalStoreName
         );
 
-        if (!storeMatch) {
+        if (!storeMatch && finalStoreName !== 'Negozio Sconosciuto') {
           // Try auto-match
-          const autoMatch = findBestMatch(platformStoreName, stores);
+          const autoMatch = findBestMatch(finalStoreName, stores);
           if (autoMatch && autoMatch.confidence >= 70) {
             // Auto-create mapping
             const mappingData = {
               platform: selectedPlatform,
-              platform_store_name: platformStoreName,
+              platform_store_name: finalStoreName,
               store_id: autoMatch.store.id,
               store_name: autoMatch.store.name,
               auto_matched: true,
@@ -269,34 +269,39 @@ export default function OrdiniSbagliati() {
             storeMatch = mappingData;
           } else {
             // Add to unmapped but don't skip the order
-            if (!unmapped.find(u => u.platformStoreName === platformStoreName)) {
+            if (!unmapped.find(u => u.platformStoreName === finalStoreName)) {
               unmapped.push({
-                platformStoreName,
+                platformStoreName: finalStoreName,
                 suggestedMatch: autoMatch
               });
             }
-            // Don't skip - we'll import anyway with store_matched: false
           }
         }
 
-        // UPDATED: Handle date parsing based on platform
+        // Handle date parsing
         let parsedDate;
-        if (selectedPlatform === 'deliveroo') {
-          parsedDate = parseDeliverooDate(record[orderDateField]);
-        } else {
-          parsedDate = record[orderDateField] ? new Date(record[orderDateField]).toISOString() : new Date().toISOString();
-        }
-
-        if (!parsedDate) {
-          console.error('Failed to parse date:', record[orderDateField]);
-          continue; // Skip this record if date parsing fails
+        try {
+          if (selectedPlatform === 'deliveroo') {
+            parsedDate = parseDeliverooDate(record[orderDateField]);
+          } else {
+            parsedDate = record[orderDateField] ? new Date(record[orderDateField]).toISOString() : null;
+          }
+          
+          // Se il parsing fallisce, usa la data corrente
+          if (!parsedDate || parsedDate === 'Invalid Date') {
+            console.warn(`Data non valida alla riga ${i + 1}, uso data corrente`);
+            parsedDate = new Date().toISOString();
+          }
+        } catch (error) {
+          console.warn(`Errore parsing data alla riga ${i + 1}:`, error);
+          parsedDate = new Date().toISOString();
         }
 
         const wrongOrder = {
           platform: selectedPlatform,
-          order_id: record[orderIdField],
+          order_id: finalOrderId,
           order_date: parsedDate,
-          store_name: platformStoreName,
+          store_name: finalStoreName,
           store_id: storeMatch ? storeMatch.store_id : null,
           store_matched: !!storeMatch,
           order_total: parseFloat(record[orderTotalField]?.replace(/[^0-9.-]/g, '') || '0'),
