@@ -382,19 +382,91 @@ export default function OrdiniSbagliati() {
     alert('Mapping salvati! Riprova il caricamento del CSV.');
   };
 
+  // Filter orders by date range
+  const filteredOrders = useMemo(() => {
+    let filtered = wrongOrders;
+
+    if (selectedStore !== 'all') {
+      filtered = filtered.filter(o => o.store_id === selectedStore);
+    }
+
+    const now = new Date();
+    if (dateRange === 'week') {
+      const weekStart = startOfWeek(now, { locale: it });
+      const weekEnd = endOfWeek(now, { locale: it });
+      filtered = filtered.filter(o => {
+        const date = parseISO(o.order_date);
+        return date >= weekStart && date <= weekEnd;
+      });
+    } else if (dateRange === 'month') {
+      const monthStart = startOfMonth(now);
+      const monthEnd = endOfMonth(now);
+      filtered = filtered.filter(o => {
+        const date = parseISO(o.order_date);
+        return date >= monthStart && date <= monthEnd;
+      });
+    }
+
+    return filtered;
+  }, [wrongOrders, selectedStore, dateRange]);
+
   const stats = {
-    total: wrongOrders.length,
-    glovo: wrongOrders.filter(o => o.platform === 'glovo').length,
-    deliveroo: wrongOrders.filter(o => o.platform === 'deliveroo').length,
-    totalRefunds: wrongOrders.reduce((sum, o) => sum + (o.refund_value || 0), 0),
-    // NEW: Last order dates
-    lastGlovoOrder: wrongOrders.filter(o => o.platform === 'glovo').sort((a, b) => 
+    total: filteredOrders.length,
+    glovo: filteredOrders.filter(o => o.platform === 'glovo').length,
+    deliveroo: filteredOrders.filter(o => o.platform === 'deliveroo').length,
+    totalRefunds: filteredOrders.reduce((sum, o) => sum + (o.refund_value || 0), 0),
+    lastGlovoOrder: filteredOrders.filter(o => o.platform === 'glovo').sort((a, b) => 
       new Date(b.order_date) - new Date(a.order_date)
     )[0],
-    lastDeliverooOrder: wrongOrders.filter(o => o.platform === 'deliveroo').sort((a, b) => 
+    lastDeliverooOrder: filteredOrders.filter(o => o.platform === 'deliveroo').sort((a, b) => 
       new Date(b.order_date) - new Date(a.order_date)
     )[0]
   };
+
+  // Analytics data
+  const analyticsData = useMemo(() => {
+    // Group by store
+    const byStore = {};
+    filteredOrders.forEach(order => {
+      const storeName = stores.find(s => s.id === order.store_id)?.name || order.store_name;
+      if (!byStore[storeName]) {
+        byStore[storeName] = {
+          count: 0,
+          refunds: 0,
+          glovo: 0,
+          deliveroo: 0
+        };
+      }
+      byStore[storeName].count++;
+      byStore[storeName].refunds += order.refund_value || 0;
+      if (order.platform === 'glovo') byStore[storeName].glovo++;
+      if (order.platform === 'deliveroo') byStore[storeName].deliveroo++;
+    });
+
+    // Group by date
+    const byDate = {};
+    filteredOrders.forEach(order => {
+      const date = format(parseISO(order.order_date), 'dd/MM', { locale: it });
+      if (!byDate[date]) {
+        byDate[date] = {
+          date,
+          count: 0,
+          refunds: 0
+        };
+      }
+      byDate[date].count++;
+      byDate[date].refunds += order.refund_value || 0;
+    });
+
+    return {
+      byStore: Object.entries(byStore).map(([name, data]) => ({ name, ...data })),
+      byDate: Object.values(byDate).sort((a, b) => {
+        const [dayA, monthA] = a.date.split('/').map(Number);
+        const [dayB, monthB] = b.date.split('/').map(Number);
+        return monthA !== monthB ? monthA - monthB : dayA - dayB;
+      })
+    };
+  }, [filteredOrders, stores]);
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
