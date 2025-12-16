@@ -833,58 +833,141 @@ export default function AcademyAdmin() {
           <p className="text-center text-[#9b9b9b] py-8">Caricamento...</p>
         ) : corsi.length === 0 ? (
           <p className="text-center text-[#9b9b9b] py-8">Nessun corso creato</p>
-        ) : (
-          <div className="space-y-3">
-            {corsi.map((corso) => (
-              <div key={corso.id} className="neumorphic-pressed p-4 rounded-xl flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-bold text-[#6b6b6b]">{corso.nome_corso}</h3>
-                    {!corso.attivo && (
-                      <span className="px-2 py-1 rounded-full text-xs bg-gray-200 text-gray-600">
-                        Non attivo
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-4 text-sm text-[#9b9b9b]">
-                    {corso.categoria && (
-                      <span className="flex items-center gap-1">
-                        <Tag className="w-4 h-4" />
-                        {corso.categoria}
-                      </span>
-                    )}
-                    <span className="flex items-center gap-1">
-                      <Users className="w-4 h-4" />
-                      {(corso.ruoli || []).join(', ') || 'Nessun ruolo'}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      {formatDuration(corso.durata_lezione)}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <HelpCircle className="w-4 h-4" />
-                      {corso.domande?.length || 0} domande
-                    </span>
+        ) : (() => {
+          // Raggruppa corsi per categoria
+          const corsiPerCategoria = {};
+          const corsiSenzaCategoria = [];
+          
+          corsi.forEach(corso => {
+            if (corso.categoria) {
+              if (!corsiPerCategoria[corso.categoria]) {
+                corsiPerCategoria[corso.categoria] = [];
+              }
+              corsiPerCategoria[corso.categoria].push(corso);
+            } else {
+              corsiSenzaCategoria.push(corso);
+            }
+          });
+          
+          return (
+            <div className="space-y-6">
+              {/* Corsi senza categoria */}
+              {corsiSenzaCategoria.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-bold text-slate-700 mb-3 flex items-center gap-2">
+                    <Tag className="w-5 h-5 text-slate-400" />
+                    Senza Categoria
+                  </h3>
+                  <div className="space-y-3">
+                    {corsiSenzaCategoria.map((corso) => (
+                      <div key={corso.id} className="neumorphic-pressed p-4 rounded-xl flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-bold text-[#6b6b6b]">{corso.nome_corso}</h3>
+                            {!corso.attivo && (
+                              <span className="px-2 py-1 rounded-full text-xs bg-gray-200 text-gray-600">
+                                Non attivo
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4 text-sm text-[#9b9b9b]">
+                            <span className="flex items-center gap-1">
+                              <Users className="w-4 h-4" />
+                              {(corso.ruoli || []).join(', ') || 'Nessun ruolo'}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-4 h-4" />
+                              {formatDuration(corso.durata_lezione)}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <HelpCircle className="w-4 h-4" />
+                              {corso.domande?.length || 0} domande
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleEdit(corso)}
+                            className="neumorphic-flat p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                          >
+                            <Edit className="w-4 h-4 text-blue-600" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(corso.id)}
+                            className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4 text-red-600" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleEdit(corso)}
-                    className="neumorphic-flat p-2 rounded-lg hover:bg-blue-50 transition-colors"
-                  >
-                    <Edit className="w-4 h-4 text-blue-600" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(corso.id)}
-                    className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4 text-red-600" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+              )}
+              
+              {/* Corsi per categoria */}
+              {Object.keys(corsiPerCategoria).sort().map(categoria => {
+                const corsiCategoria = corsiPerCategoria[categoria];
+                const catConfig = categorie.find(c => c.nome === categoria);
+                const colore = catConfig?.colore || 'blue';
+                
+                return (
+                  <div key={categoria}>
+                    <h3 className="text-lg font-bold text-slate-700 mb-3 flex items-center gap-2">
+                      <span className={`w-4 h-4 rounded-full bg-${colore}-500`}></span>
+                      {categoria}
+                      <span className="text-sm text-slate-500 font-normal">({corsiCategoria.length})</span>
+                    </h3>
+                    <div className="space-y-3">
+                      {corsiCategoria.map((corso) => (
+                        <div key={corso.id} className="neumorphic-pressed p-4 rounded-xl flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="font-bold text-[#6b6b6b]">{corso.nome_corso}</h3>
+                              {!corso.attivo && (
+                                <span className="px-2 py-1 rounded-full text-xs bg-gray-200 text-gray-600">
+                                  Non attivo
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-4 text-sm text-[#9b9b9b]">
+                              <span className="flex items-center gap-1">
+                                <Users className="w-4 h-4" />
+                                {(corso.ruoli || []).join(', ') || 'Nessun ruolo'}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-4 h-4" />
+                                {formatDuration(corso.durata_lezione)}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <HelpCircle className="w-4 h-4" />
+                                {corso.domande?.length || 0} domande
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleEdit(corso)}
+                              className="neumorphic-flat p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                            >
+                              <Edit className="w-4 h-4 text-blue-600" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(corso.id)}
+                              className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
       </NeumorphicCard>
       )}
 
@@ -1176,99 +1259,226 @@ export default function AcademyAdmin() {
               <p className="text-slate-500">Nessun corso da creare</p>
               <p className="text-sm text-slate-400 mt-1">Clicca "Nuovo Corso" per aggiungerne uno</p>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {corsiTemplates.map((template) => {
-                const storeNames = template.stores_target?.map(storeId => {
-                  const store = stores.find(s => s.id === storeId);
-                  return store?.name || storeId;
-                }).join(', ');
+          ) : (() => {
+            // Raggruppa template per categoria
+            const templatesPerCategoria = {};
+            const templatesSenzaCategoria = [];
+            
+            corsiTemplates.forEach(template => {
+              if (template.categoria) {
+                if (!templatesPerCategoria[template.categoria]) {
+                  templatesPerCategoria[template.categoria] = [];
+                }
+                templatesPerCategoria[template.categoria].push(template);
+              } else {
+                templatesSenzaCategoria.push(template);
+              }
+            });
+            
+            return (
+              <div className="space-y-6">
+                {/* Templates senza categoria */}
+                {templatesSenzaCategoria.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-700 mb-3 flex items-center gap-2">
+                      <Tag className="w-5 h-5 text-slate-400" />
+                      Senza Categoria
+                    </h3>
+                    <div className="space-y-3">
+                      {templatesSenzaCategoria.map((template) => {
+                        const storeNames = template.stores_target?.map(storeId => {
+                          const store = stores.find(s => s.id === storeId);
+                          return store?.name || storeId;
+                        }).join(', ');
 
-                return (
-                  <div key={template.id} className="neumorphic-pressed p-4 rounded-xl">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-bold text-slate-800">{template.titolo}</h3>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            template.status === 'completato' 
-                              ? 'bg-green-100 text-green-700'
-                              : template.status === 'in_lavorazione'
-                              ? 'bg-yellow-100 text-yellow-700'
-                              : 'bg-orange-100 text-orange-700'
-                          }`}>
-                            {template.status === 'completato' ? 'Completato' 
-                              : template.status === 'in_lavorazione' ? 'In lavorazione' 
-                              : 'Da creare'}
-                          </span>
-                        </div>
-                        
-                        {template.descrizione && (
-                          <p className="text-sm text-slate-600 mb-2">{template.descrizione}</p>
-                        )}
-                        
-                        <div className="flex flex-wrap gap-2">
-                          {template.categoria && (
-                            <span className="px-2 py-0.5 rounded-full text-xs bg-purple-100 text-purple-700">
-                              {template.categoria}
-                            </span>
-                          )}
-                          {template.ruoli_target?.map(ruolo => (
-                            <span key={ruolo} className="px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-700">
-                              {ruolo}
-                            </span>
-                          ))}
-                          {storeNames && (
-                            <span className="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700">
-                              {storeNames}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => {
-                            setEditingTemplate(template);
-                            setTemplateFormData({
-                              titolo: template.titolo,
-                              descrizione: template.descrizione || '',
-                              categoria: template.categoria || '',
-                              ruoli_target: template.ruoli_target || [],
-                              stores_target: template.stores_target || [],
-                              sessioni: template.sessioni || []
-                            });
-                            setShowTemplateForm(true);
-                          }}
-                          className="nav-button px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors"
-                        >
-                          <Edit className="w-4 h-4 text-slate-600" />
-                        </button>
-                        {template.status !== 'completato' && (
-                          <Link
-                            to={createPageUrl('CreaCorso') + `?templateId=${template.id}`}
-                            className="nav-button px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-50 transition-colors"
-                          >
-                            <PlayCircle className="w-4 h-4 text-blue-600" />
-                            <span className="text-sm font-medium text-blue-600">Crea Corso</span>
-                          </Link>
-                        )}
-                        <button
-                          onClick={() => {
-                            if (confirm('Eliminare questo corso da creare?')) {
-                              deleteTemplateMutation.mutate(template.id);
-                            }
-                          }}
-                          className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4 text-red-600" />
-                        </button>
-                      </div>
+                        return (
+                          <div key={template.id} className="neumorphic-pressed p-4 rounded-xl">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <h3 className="font-bold text-slate-800">{template.titolo}</h3>
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    template.status === 'completato' 
+                                      ? 'bg-green-100 text-green-700'
+                                      : template.status === 'in_lavorazione'
+                                      ? 'bg-yellow-100 text-yellow-700'
+                                      : 'bg-orange-100 text-orange-700'
+                                  }`}>
+                                    {template.status === 'completato' ? 'Completato' 
+                                      : template.status === 'in_lavorazione' ? 'In lavorazione' 
+                                      : 'Da creare'}
+                                  </span>
+                                </div>
+                                
+                                {template.descrizione && (
+                                  <p className="text-sm text-slate-600 mb-2">{template.descrizione}</p>
+                                )}
+                                
+                                <div className="flex flex-wrap gap-2">
+                                  {template.ruoli_target?.map(ruolo => (
+                                    <span key={ruolo} className="px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-700">
+                                      {ruolo}
+                                    </span>
+                                  ))}
+                                  {storeNames && (
+                                    <span className="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700">
+                                      {storeNames}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => {
+                                    setEditingTemplate(template);
+                                    setTemplateFormData({
+                                      titolo: template.titolo,
+                                      descrizione: template.descrizione || '',
+                                      categoria: template.categoria || '',
+                                      ruoli_target: template.ruoli_target || [],
+                                      stores_target: template.stores_target || [],
+                                      sessioni: template.sessioni || []
+                                    });
+                                    setShowTemplateForm(true);
+                                  }}
+                                  className="nav-button px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors"
+                                >
+                                  <Edit className="w-4 h-4 text-slate-600" />
+                                </button>
+                                {template.status !== 'completato' && (
+                                  <Link
+                                    to={createPageUrl('CreaCorso') + `?templateId=${template.id}`}
+                                    className="nav-button px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-50 transition-colors"
+                                  >
+                                    <PlayCircle className="w-4 h-4 text-blue-600" />
+                                    <span className="text-sm font-medium text-blue-600">Crea Corso</span>
+                                  </Link>
+                                )}
+                                <button
+                                  onClick={() => {
+                                    if (confirm('Eliminare questo corso da creare?')) {
+                                      deleteTemplateMutation.mutate(template.id);
+                                    }
+                                  }}
+                                  className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4 text-red-600" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                )}
+                
+                {/* Templates per categoria */}
+                {Object.keys(templatesPerCategoria).sort().map(categoria => {
+                  const templatesCategoria = templatesPerCategoria[categoria];
+                  const catConfig = categorie.find(c => c.nome === categoria);
+                  const colore = catConfig?.colore || 'blue';
+                  
+                  return (
+                    <div key={categoria}>
+                      <h3 className="text-lg font-bold text-slate-700 mb-3 flex items-center gap-2">
+                        <span className={`w-4 h-4 rounded-full bg-${colore}-500`}></span>
+                        {categoria}
+                        <span className="text-sm text-slate-500 font-normal">({templatesCategoria.length})</span>
+                      </h3>
+                      <div className="space-y-3">
+                        {templatesCategoria.map((template) => {
+                          const storeNames = template.stores_target?.map(storeId => {
+                            const store = stores.find(s => s.id === storeId);
+                            return store?.name || storeId;
+                          }).join(', ');
+
+                          return (
+                            <div key={template.id} className="neumorphic-pressed p-4 rounded-xl">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-3 mb-2">
+                                    <h3 className="font-bold text-slate-800">{template.titolo}</h3>
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                      template.status === 'completato' 
+                                        ? 'bg-green-100 text-green-700'
+                                        : template.status === 'in_lavorazione'
+                                        ? 'bg-yellow-100 text-yellow-700'
+                                        : 'bg-orange-100 text-orange-700'
+                                    }`}>
+                                      {template.status === 'completato' ? 'Completato' 
+                                        : template.status === 'in_lavorazione' ? 'In lavorazione' 
+                                        : 'Da creare'}
+                                    </span>
+                                  </div>
+                                  
+                                  {template.descrizione && (
+                                    <p className="text-sm text-slate-600 mb-2">{template.descrizione}</p>
+                                  )}
+                                  
+                                  <div className="flex flex-wrap gap-2">
+                                    {template.ruoli_target?.map(ruolo => (
+                                      <span key={ruolo} className="px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-700">
+                                        {ruolo}
+                                      </span>
+                                    ))}
+                                    {storeNames && (
+                                      <span className="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700">
+                                        {storeNames}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => {
+                                      setEditingTemplate(template);
+                                      setTemplateFormData({
+                                        titolo: template.titolo,
+                                        descrizione: template.descrizione || '',
+                                        categoria: template.categoria || '',
+                                        ruoli_target: template.ruoli_target || [],
+                                        stores_target: template.stores_target || [],
+                                        sessioni: template.sessioni || []
+                                      });
+                                      setShowTemplateForm(true);
+                                    }}
+                                    className="nav-button px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors"
+                                  >
+                                    <Edit className="w-4 h-4 text-slate-600" />
+                                  </button>
+                                  {template.status !== 'completato' && (
+                                    <Link
+                                      to={createPageUrl('CreaCorso') + `?templateId=${template.id}`}
+                                      className="nav-button px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-50 transition-colors"
+                                    >
+                                      <PlayCircle className="w-4 h-4 text-blue-600" />
+                                      <span className="text-sm font-medium text-blue-600">Crea Corso</span>
+                                    </Link>
+                                  )}
+                                  <button
+                                    onClick={() => {
+                                      if (confirm('Eliminare questo corso da creare?')) {
+                                        deleteTemplateMutation.mutate(template.id);
+                                      }
+                                    }}
+                                    className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
+                                  >
+                                    <Trash2 className="w-4 h-4 text-red-600" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           )}
         </NeumorphicCard>
       )}
