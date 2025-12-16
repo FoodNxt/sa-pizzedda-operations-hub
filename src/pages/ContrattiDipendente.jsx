@@ -486,7 +486,7 @@ export default function ContrattiDipendente() {
                           : 'nav-button text-blue-600'
                       }`}
                     >
-                      {lettera.status === 'inviata' ? (
+                      {lettera.status === 'inviata' || lettera.status === 'visualizzata' ? (
                         <>
                           <Edit className="w-4 h-4" />
                           Visualizza e Firma
@@ -565,7 +565,7 @@ export default function ContrattiDipendente() {
                           : 'nav-button text-blue-600'
                       }`}
                     >
-                      {lettera.status === 'inviata' ? (
+                      {lettera.status === 'inviata' || lettera.status === 'visualizzata' ? (
                         <>
                           <Edit className="w-4 h-4" />
                           Visualizza e Firma
