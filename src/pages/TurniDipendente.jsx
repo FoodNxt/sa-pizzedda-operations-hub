@@ -1203,10 +1203,10 @@ export default function TurniDipendente() {
   }, [pauseAttive]);
 
   useEffect(() => {
-    if (prossimoTurno) {
+    if (prossimoTurno && prossimoTurnoStatus.inCorso && pauseConfig) {
       verificaCondizioniPausa(prossimoTurno).then(setCondizioniPausa);
     }
-  }, [prossimoTurno?.id, pauseAttive, now]);
+  }, [prossimoTurno?.id, pauseAttive?.length, prossimoTurnoStatus.inCorso, pauseConfig]);
 
   const verificaCondizioniPausa = async (turno) => {
     if (!pauseConfig || !turno.timbrata_entrata) return { canPause: false, reason: 'Configurazione non disponibile' };
