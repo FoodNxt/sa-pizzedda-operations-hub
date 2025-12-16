@@ -1213,10 +1213,14 @@ export default function TurniDipendente() {
       return { canPause: false, reason: `Turno troppo breve (min ${pauseConfig.durata_minima_turno_minuti}min)` };
     }
     
-    if (pauseConfig.orario_inizio_consentito && pauseConfig.orario_fine_consentito) {
+    if (pauseConfig.slot_orari && pauseConfig.slot_orari.length > 0) {
       const nowTime = now.format('HH:mm');
-      if (nowTime < pauseConfig.orario_inizio_consentito || nowTime > pauseConfig.orario_fine_consentito) {
-        return { canPause: false, reason: `Pause consentite ${pauseConfig.orario_inizio_consentito}-${pauseConfig.orario_fine_consentito}` };
+      const inSlot = pauseConfig.slot_orari.some(slot => 
+        nowTime >= slot.orario_inizio && nowTime <= slot.orario_fine
+      );
+      if (!inSlot) {
+        const slots = pauseConfig.slot_orari.map(s => `${s.orario_inizio}-${s.orario_fine}`).join(', ');
+        return { canPause: false, reason: `Pause consentite: ${slots}` };
       }
     }
     
