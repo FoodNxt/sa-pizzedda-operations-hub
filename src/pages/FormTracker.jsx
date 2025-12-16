@@ -9,37 +9,19 @@ import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
 
 export default function FormTracker() {
-  const [activeTab, setActiveTab] = useState('tracking');
   const [selectedDate, setSelectedDate] = useState(() => {
     // Default: today (shifts are now loaded from Planday directly)
     const now = new Date();
     return now.toISOString().split('T')[0];
   });
   const [selectedStore, setSelectedStore] = useState('');
-  const [showConfigForm, setShowConfigForm] = useState(false);
-  const [editingConfig, setEditingConfig] = useState(null);
   const [viewingCompletion, setViewingCompletion] = useState(null);
   const [expandedForms, setExpandedForms] = useState({});
   const [expandedStores, setExpandedStores] = useState({});
 
-  const [configForm, setConfigForm] = useState({
-    form_name: '',
-    form_page: '',
-    assigned_roles: [],
-    shift_timing: 'end', // 'start' or 'end'
-    shift_sequences: ['first'], // array: 'first', 'second' or both
-    days_of_week: [], // empty = all days, or array of 0-6 (0=Sunday)
-    is_active: true
-  });
-
   const queryClient = useQueryClient();
 
   // Fetch data
-  const { data: configs = [] } = useQuery({
-    queryKey: ['form-tracker-configs'],
-    queryFn: () => base44.entities.FormTrackerConfig.list(),
-  });
-
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
     queryFn: () => base44.entities.Store.list(),
@@ -50,159 +32,41 @@ export default function FormTracker() {
     queryFn: () => base44.entities.TurnoPlanday.list('-data', 1000),
   });
 
-  const { data: users = [] } = useQuery({
-    queryKey: ['users'],
-    queryFn: async () => {
-      const allUsers = await base44.entities.User.list();
-      return allUsers.filter(u => u.user_type === 'dipendente' || u.user_type === 'user');
-    },
+  const { data: strutturaSchemi = [] } = useQuery({
+    queryKey: ['struttura-turno'],
+    queryFn: () => base44.entities.StrutturaTurno.filter({ is_active: true }),
   });
 
-  // Fetch form-specific data for viewing completions
+  // Fetch form completions data
   const { data: cleaningInspections = [] } = useQuery({
     queryKey: ['cleaning-inspections'],
-    queryFn: () => base44.entities.CleaningInspection.list('-inspection_date'),
+    queryFn: () => base44.entities.CleaningInspection.list('-inspection_date', 500),
   });
 
   const { data: inventarioRilevazioni = [] } = useQuery({
     queryKey: ['inventario-rilevazioni'],
-    queryFn: () => base44.entities.RilevazioneInventario.list('-data_rilevazione'),
+    queryFn: () => base44.entities.RilevazioneInventario.list('-data_rilevazione', 500),
   });
 
   const { data: conteggiCassa = [] } = useQuery({
     queryKey: ['conteggi-cassa'],
-    queryFn: () => base44.entities.ConteggioCassa.list('-data_conteggio'),
+    queryFn: () => base44.entities.ConteggioCassa.list('-data_conteggio', 500),
   });
 
   const { data: teglieButtate = [] } = useQuery({
     queryKey: ['teglie-buttate'],
-    queryFn: () => base44.entities.TeglieButtate.list('-data_rilevazione'),
+    queryFn: () => base44.entities.TeglieButtate.list('-data_rilevazione', 500),
   });
 
   const { data: preparazioni = [] } = useQuery({
     queryKey: ['preparazioni'],
-    queryFn: () => base44.entities.Preparazioni.list('-data_rilevazione'),
+    queryFn: () => base44.entities.Preparazioni.list('-data_rilevazione', 500),
   });
 
-  // Mutations
-  const createConfigMutation = useMutation({
-    mutationFn: (data) => base44.entities.FormTrackerConfig.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['form-tracker-configs'] });
-      resetConfigForm();
-    },
+  const { data: gestioneImpasti = [] } = useQuery({
+    queryKey: ['gestione-impasti'],
+    queryFn: () => base44.entities.GestioneImpasti.list('-data_creazione', 500),
   });
-
-  const updateConfigMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.FormTrackerConfig.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['form-tracker-configs'] });
-      resetConfigForm();
-    },
-  });
-
-  const deleteConfigMutation = useMutation({
-    mutationFn: (id) => base44.entities.FormTrackerConfig.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['form-tracker-configs'] });
-    },
-  });
-
-  const resetConfigForm = () => {
-    setConfigForm({
-      form_name: '',
-      form_page: '',
-      assigned_roles: [],
-      assigned_stores: [],
-      shift_timing: 'end',
-      shift_based_timing: ['end'],
-      shift_sequences: ['first'],
-      days_of_week: [],
-      is_active: true
-    });
-    setEditingConfig(null);
-    setShowConfigForm(false);
-  };
-
-  const handleEditConfig = (config) => {
-    setEditingConfig(config);
-    // Handle backward compatibility for shift_sequence
-    let sequences = config.shift_sequences || [];
-    if (sequences.length === 0 && config.shift_sequence) {
-      sequences = [config.shift_sequence];
-    }
-    if (sequences.length === 0) {
-      sequences = ['first'];
-    }
-    
-    const timings = config.shift_based_timing || [config.shift_timing || 'end'];
-    
-    setConfigForm({
-      form_name: config.form_name,
-      form_page: config.form_page,
-      assigned_roles: config.assigned_roles || [],
-      assigned_stores: config.assigned_stores || [],
-      shift_timing: timings[0] || 'end',
-      shift_based_timing: timings,
-      shift_sequences: sequences,
-      days_of_week: config.days_of_week || [],
-      is_active: config.is_active !== false
-    });
-    setShowConfigForm(true);
-  };
-
-  const handleSubmitConfig = (e) => {
-    e.preventDefault();
-    
-    // Validate at least one shift sequence is selected
-    if (!configForm.shift_sequences || configForm.shift_sequences.length === 0) {
-      alert('Seleziona almeno un turno (mattina o sera)');
-      return;
-    }
-    
-    const dataToSave = {
-      form_name: configForm.form_name,
-      form_page: configForm.form_page,
-      assigned_roles: configForm.assigned_roles,
-      assigned_stores: configForm.assigned_stores || [],
-      shift_timing: configForm.shift_timing,
-      shift_based_timing: configForm.shift_based_timing || [configForm.shift_timing],
-      shift_sequences: configForm.shift_sequences,
-      days_of_week: configForm.days_of_week,
-      is_active: configForm.is_active,
-      frequency_type: 'shift_based',
-      shift_sequence: configForm.shift_sequences[0] // backward compatibility
-    };
-    
-    if (editingConfig) {
-      updateConfigMutation.mutate({ id: editingConfig.id, data: dataToSave });
-    } else {
-      createConfigMutation.mutate(dataToSave);
-    }
-  };
-
-  const toggleRole = (role) => {
-    const roles = configForm.assigned_roles || [];
-    if (roles.includes(role)) {
-      setConfigForm({ ...configForm, assigned_roles: roles.filter(r => r !== role) });
-    } else {
-      setConfigForm({ ...configForm, assigned_roles: [...roles, role] });
-    }
-  };
-
-  // Available forms
-  const availableForms = [
-    { name: 'Form Inventario', page: 'FormInventario' },
-    { name: 'Form Cantina', page: 'FormCantina' },
-    { name: 'Teglie Buttate', page: 'FormTeglieButtate' },
-    { name: 'Form Preparazioni', page: 'FormPreparazioni' },
-    { name: 'Conteggio Cassa', page: 'ConteggioCassa' },
-    { name: 'Controllo Pulizia Cassiere', page: 'ControlloPuliziaCassiere' },
-    { name: 'Controllo Pulizia Pizzaiolo', page: 'ControlloPuliziaPizzaiolo' },
-    { name: 'Controllo Pulizia Store Manager', page: 'ControlloPuliziaStoreManager' },
-    { name: 'Impasto', page: 'Impasto' },
-    { name: 'Precotture', page: 'Precotture' }
-  ];
 
   // Helper to normalize names for matching
   const normalizeNameForMatch = (name) => {
@@ -296,32 +160,38 @@ export default function FormTracker() {
         return { completed: !!prep, data: prep };
       }
 
+      case 'Impasto': {
+        const impasto = gestioneImpasti.find(i => {
+          const impDate = new Date(i.data_creazione);
+          return i.store_name === storeName &&
+                 namesMatch(i.creato_da, employeeName) &&
+                 impDate >= dateStart && impDate <= nextDayEnd;
+        });
+        return { completed: !!impasto, data: impasto };
+      }
+
       default:
         return { completed: false, data: null };
     }
   };
 
-  // Calculate expected vs completed forms for selected date and store
+  // Calculate expected vs completed forms based on StrutturaTurno
   const formStatus = useMemo(() => {
     if (!selectedDate) return { byStore: {}, summary: { total: 0, completed: 0, missing: 0 } };
 
-    const activeConfigs = configs.filter(c => c.is_active);
     const byStore = {};
     let totalExpected = 0;
     let totalCompleted = 0;
+    const selectedDayOfWeek = new Date(selectedDate).getDay();
 
-    // Get shifts for selected date, excluding malattia, ferie, assenza
+    // Get shifts for selected date
     const shiftsForDate = turniPlanday.filter(s => {
       if (s.data !== selectedDate) return false;
-      // Exclude shifts without valid store name
       if (!s.store_name || s.store_name.trim() === '') return false;
-      // Exclude shifts without employee name
       if (!s.dipendente_nome || s.dipendente_nome.trim() === '') return false;
       const stato = (s.stato || '').toLowerCase();
       const tipoTurno = (s.tipo_turno || '').toLowerCase();
-      // Exclude cancelled shifts
       if (stato === 'cancellato' || stato === 'cancelled') return false;
-      // Exclude malattia/ferie/assenza by tipo_turno
       if (tipoTurno.includes('malattia') || tipoTurno.includes('ferie') || tipoTurno.includes('assenza')) {
         return false;
       }
@@ -338,222 +208,76 @@ export default function FormTracker() {
       shiftsByStore[storeName].push(shift);
     });
 
-    // Also include all stores even if no shifts (to show expected forms based on config)
-    stores.forEach(store => {
-      if (!shiftsByStore[store.name]) {
-        shiftsByStore[store.name] = [];
-      }
-    });
-
-    // For each store
+    // For each store with shifts
     Object.entries(shiftsByStore).forEach(([storeName, storeShifts]) => {
       if (selectedStore && selectedStore !== storeName) return;
 
       byStore[storeName] = { forms: [], completed: 0, missing: 0 };
 
-      // Group by employee and sort their shifts by start time
-      const shiftsByEmployee = {};
+      // Process each shift
       storeShifts.forEach(shift => {
-        const empName = shift.dipendente_nome || '';
-        if (!shiftsByEmployee[empName]) {
-          shiftsByEmployee[empName] = [];
-        }
-        shiftsByEmployee[empName].push(shift);
-      });
-      
-      // Sort each employee's shifts by start time
-      Object.keys(shiftsByEmployee).forEach(emp => {
-        shiftsByEmployee[emp].sort((a, b) => {
-          const aStart = new Date(a.orario_inizio);
-          const bStart = new Date(b.orario_inizio);
-          return aStart - bStart;
-        });
-      });
-
-      // Group shifts by role (ruolo) to determine morning/evening
-      const shiftsByRole = {};
-      storeShifts.forEach(shift => {
-        const role = shift.ruolo?.trim() || 'Unknown';
-        if (!shiftsByRole[role]) {
-          shiftsByRole[role] = [];
-        }
-        shiftsByRole[role].push(shift);
-      });
-      
-      // Sort each role's shifts by start time and determine which are morning vs evening
-      Object.keys(shiftsByRole).forEach(role => {
-        shiftsByRole[role].sort((a, b) => {
-          const aStart = new Date(a.orario_inizio);
-          const bStart = new Date(b.orario_inizio);
-          return aStart - bStart;
-        });
-      });
-
-      // Helper function to determine if a shift is morning or evening based on role comparison
-      const getShiftSequence = (shift) => {
-        const role = shift.ruolo?.trim() || 'Unknown';
-        const roleShifts = shiftsByRole[role] || [];
-        
-        if (roleShifts.length <= 1) {
-          // Only one shift for this role - it's the "first" (morning)
-          return 'first';
-        }
-        
-        // Find distinct time slots for this role
-        const uniqueStartTimes = [...new Set(roleShifts.map(s => new Date(s.orario_inizio).getTime()))].sort((a, b) => a - b);
-        
-        if (uniqueStartTimes.length <= 1) {
-          // All shifts start at the same time - all are "first"
-          return 'first';
-        }
-        
-        // Get the start time of this shift
-        const shiftStartTime = new Date(shift.orario_inizio).getTime();
-        
-        // If this shift starts at the earliest time, it's morning (first)
-        // Otherwise it's evening (second)
-        return shiftStartTime === uniqueStartTimes[0] ? 'first' : 'second';
-      };
-
-      // For each config
-      activeConfigs.forEach(config => {
-        const configRoles = config.assigned_roles || [];
-        // Handle backward compatibility for shift sequences
-        let shiftSequences = config.shift_sequences || [];
-        if (shiftSequences.length === 0 && config.shift_sequence) {
-          shiftSequences = [config.shift_sequence];
-        }
-        // Default to both if nothing specified
-        if (shiftSequences.length === 0) {
-          shiftSequences = ['first', 'second'];
-        }
-        const shiftTiming = config.shift_based_timing?.[0] || config.shift_timing || 'end';
-        const daysOfWeek = config.days_of_week || [];
-        
-        // Check if this config applies to the selected date's day of week
-        const selectedDayOfWeek = new Date(selectedDate).getDay();
-        if (daysOfWeek.length > 0 && !daysOfWeek.includes(selectedDayOfWeek)) {
-          return; // Skip this config for this day
-        }
-
-        // Check if config applies to this store
-        const configStores = config.assigned_stores || [];
+        const employeeName = shift.dipendente_nome;
+        const ruolo = shift.ruolo;
         const storeEntity = stores.find(s => s.name === storeName);
-        if (configStores.length > 0 && storeEntity && !configStores.includes(storeEntity.id)) {
-          return; // Skip this config for this store
-        }
 
-        // If no shifts for this store, still show expected forms for each role/sequence combo
-        if (Object.keys(shiftsByEmployee).length === 0) {
-          // Show expected form entries without specific employee
-          shiftSequences.forEach(shiftSequence => {
-            if (configRoles.length === 0) {
-              // No specific role required - show generic entry
+        // Find applicable struttura schemas for this shift
+        const applicableSchemas = strutturaSchemi.filter(schema => {
+          // Check day of week
+          if (schema.giorno_settimana !== selectedDayOfWeek) return false;
+          
+          // Check role
+          if (schema.ruolo !== ruolo) return false;
+          
+          // Check store assignment
+          const assignedStores = schema.assigned_stores || [];
+          if (assignedStores.length > 0 && storeEntity && !assignedStores.includes(storeEntity.id)) {
+            return false;
+          }
+          
+          // Check tipo turno
+          const tipiTurno = schema.tipi_turno || [];
+          if (tipiTurno.length > 0 && !tipiTurno.includes(shift.tipo_turno)) {
+            return false;
+          }
+          
+          return true;
+        });
+
+        // For each schema, extract slots that require forms
+        applicableSchemas.forEach(schema => {
+          const slots = schema.slots || [];
+          slots.forEach(slot => {
+            if (slot.richiede_form && slot.form_page) {
               totalExpected++;
               
+              // Check if form was completed
+              const isCompleted = checkFormCompletion(
+                slot.form_page,
+                employeeName,
+                storeName,
+                selectedDate,
+                shift
+              );
+
               const formEntry = {
-                config,
-                employeeName: `(Nessun turno assegnato)`,
-                user: null,
-                shift: null,
-                shiftTiming,
-                shiftSequence,
-                completed: false,
-                completionData: null,
-                noShift: true
+                formName: slot.attivita || slot.form_page,
+                formPage: slot.form_page,
+                employeeName,
+                shift,
+                slot,
+                schema,
+                completed: isCompleted.completed,
+                completionData: isCompleted.data
               };
 
               byStore[storeName].forms.push(formEntry);
-              byStore[storeName].missing++;
-            } else {
-              configRoles.forEach(role => {
-                totalExpected++;
-                
-                const formEntry = {
-                  config,
-                  employeeName: `(${role} - nessun turno)`,
-                  user: null,
-                  shift: null,
-                  shiftTiming,
-                  shiftSequence,
-                  completed: false,
-                  completionData: null,
-                  noShift: true
-                };
 
-                byStore[storeName].forms.push(formEntry);
+              if (isCompleted.completed) {
+                byStore[storeName].completed++;
+                totalCompleted++;
+              } else {
                 byStore[storeName].missing++;
-              });
-            }
-          });
-          return;
-        }
-
-        // Find employees who should complete this form
-        Object.entries(shiftsByEmployee).forEach(([employeeName, employeeShifts]) => {
-          // Get the user to check their role
-          const user = users.find(u => 
-            (u.nome_cognome === employeeName || u.full_name === employeeName) ||
-            (u.nome_cognome && employeeName.includes(u.nome_cognome)) ||
-            (u.full_name && employeeName.includes(u.full_name))
-          );
-          
-          // Try to get role from shift data if user not found
-          const shiftRole = employeeShifts[0]?.ruolo;
-          const userRoles = user?.ruoli_dipendente || [];
-          
-          // If config requires specific roles, check if user/shift has that role
-          if (configRoles.length > 0) {
-            const hasMatchingRole = configRoles.some(r => 
-              userRoles.includes(r) || 
-              (shiftRole && shiftRole.toLowerCase().includes(r.toLowerCase())) ||
-              (shiftRole && r.toLowerCase().includes(shiftRole.toLowerCase()))
-            );
-            if (!hasMatchingRole) {
-              return;
-            }
-          }
-
-          // Process each shift sequence
-          shiftSequences.forEach(shiftSequence => {
-            // Find the shift that matches this sequence based on role comparison
-            const matchingShifts = employeeShifts.filter(shift => {
-              return getShiftSequence(shift) === shiftSequence;
-            });
-            
-            let targetShift = matchingShifts.length > 0 ? matchingShifts[0] : null;
-
-            if (!targetShift) return;
-
-            totalExpected++;
-
-            // Check if form was completed
-            const isCompleted = checkFormCompletion(
-              config.form_page,
-              employeeName,
-              storeName,
-              selectedDate,
-              targetShift
-            );
-
-            const formEntry = {
-              config,
-              employeeName,
-              user: user || { nome_cognome: employeeName },
-              shift: targetShift,
-              shiftTiming,
-              shiftSequence,
-              completed: isCompleted.completed,
-              completionData: isCompleted.data
-            };
-
-            byStore[storeName].forms.push(formEntry);
-
-            if (isCompleted.completed) {
-              byStore[storeName].completed++;
-              totalCompleted++;
-            } else {
-              byStore[storeName].missing++;
+              }
             }
           });
         });
@@ -568,7 +292,7 @@ export default function FormTracker() {
         missing: totalExpected - totalCompleted
       }
     };
-  }, [selectedDate, selectedStore, configs, turniPlanday, users, stores, cleaningInspections, inventarioRilevazioni, conteggiCassa, teglieButtate, preparazioni]);
+  }, [selectedDate, selectedStore, strutturaSchemi, turniPlanday, stores, cleaningInspections, inventarioRilevazioni, conteggiCassa, teglieButtate, preparazioni, gestioneImpasti]);
 
   const toggleFormExpand = (formName) => {
     setExpandedForms(prev => ({
@@ -598,34 +322,7 @@ export default function FormTracker() {
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2">
-          <button
-            onClick={() => setActiveTab('tracking')}
-            className={`px-6 py-3 rounded-xl font-medium transition-all ${
-              activeTab === 'tracking' 
-                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' 
-                : 'nav-button text-slate-700'
-            }`}
-          >
-            <ClipboardCheck className="w-5 h-5 inline mr-2" />
-            Monitoraggio
-          </button>
-          <button
-            onClick={() => setActiveTab('config')}
-            className={`px-6 py-3 rounded-xl font-medium transition-all ${
-              activeTab === 'config' 
-                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' 
-                : 'nav-button text-slate-700'
-            }`}
-          >
-            <Edit className="w-5 h-5 inline mr-2" />
-            Configurazione
-          </button>
-        </div>
 
-        {activeTab === 'tracking' && (
-          <>
             {/* Filters */}
             <NeumorphicCard className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -760,78 +457,76 @@ export default function FormTracker() {
                         });
 
                         return Object.entries(formsByName).map(([formName, forms]) => {
-                          const completedCount = forms.filter(f => f.completed).length;
-                          const isExpanded = expandedForms[`${storeName}-${formName}`];
+                        const completedCount = forms.filter(f => f.completed).length;
+                        const isExpanded = expandedForms[`${storeName}-${formName}`];
 
-                          return (
-                            <div key={formName} className="mb-3">
-                              <button
-                                onClick={(e) => { e.stopPropagation(); toggleFormExpand(`${storeName}-${formName}`); }}
-                                className={`w-full neumorphic-pressed p-4 rounded-xl flex items-center justify-between ${
-                                  completedCount === forms.length ? 'border-2 border-green-200' : 'border-2 border-orange-200'
-                                }`}
-                              >
-                                <div className="flex items-center gap-3">
-                                  <span className="font-medium text-slate-800">{formName}</span>
-                                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                                    completedCount === forms.length 
-                                      ? 'bg-green-100 text-green-700' 
-                                      : 'bg-orange-100 text-orange-700'
-                                  }`}>
-                                    {completedCount}/{forms.length}
-                                  </span>
-                                </div>
-                                {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                              </button>
+                        return (
+                        <div key={formName} className="mb-3">
+                        <button
+                        onClick={(e) => { e.stopPropagation(); toggleFormExpand(`${storeName}-${formName}`); }}
+                        className={`w-full neumorphic-pressed p-4 rounded-xl flex items-center justify-between ${
+                        completedCount === forms.length ? 'border-2 border-green-200' : 'border-2 border-orange-200'
+                        }`}
+                        >
+                        <div className="flex items-center gap-3">
+                        <span className="font-medium text-slate-800">{formName}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                        completedCount === forms.length 
+                        ? 'bg-green-100 text-green-700' 
+                        : 'bg-orange-100 text-orange-700'
+                        }`}>
+                        {completedCount}/{forms.length}
+                        </span>
+                        </div>
+                        {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                        </button>
 
-                              {isExpanded && (
-                                <div className="mt-2 ml-4 space-y-2">
-                                  {forms.map((form, idx) => (
-                                    <div 
-                                      key={idx} 
-                                      className={`p-3 rounded-lg flex items-center justify-between ${
-                                        form.completed ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
-                                      }`}
-                                    >
-                                      <div>
-                                        <p className="font-medium text-slate-800">{form.employeeName}</p>
-                                        <p className="text-xs text-slate-500">
-                                          {form.noShift ? (
-                                            `Turno ${form.shiftSequence === 'first' ? 'mattina' : 'sera'}: Nessun turno assegnato`
-                                          ) : (
-                                            `Turno ${form.shiftSequence === 'first' ? 'mattina' : 'sera'}: ${formatShiftTime(form.shift?.orario_inizio)} - ${formatShiftTime(form.shift?.orario_fine)}`
-                                          )}
-                                        </p>
-                                        <p className="text-xs text-slate-500">
-                                          Compilazione: {form.shiftTiming === 'start' ? 'Inizio turno' : 'Fine turno'}
-                                        </p>
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        {form.completed ? (
-                                          <>
-                                            <span className="px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 flex items-center gap-1">
-                                              <CheckCircle className="w-3 h-3" /> Completato
-                                            </span>
-                                            <button
-                                              onClick={(e) => { e.stopPropagation(); setViewingCompletion({ form, storeName }); }}
-                                              className="nav-button p-2 rounded-lg"
-                                              title="Visualizza dettagli"
-                                            >
-                                              <Eye className="w-4 h-4 text-blue-600" />
-                                            </button>
-                                          </>
-                                        ) : (
-                                          <span className="px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 flex items-center gap-1">
-                                            <AlertTriangle className="w-3 h-3" /> Mancante
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          );
+                        {isExpanded && (
+                        <div className="mt-2 ml-4 space-y-2">
+                        {forms.map((form, idx) => (
+                        <div 
+                        key={idx} 
+                        className={`p-3 rounded-lg flex items-center justify-between ${
+                        form.completed ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+                        }`}
+                        >
+                        <div className="flex-1">
+                        <p className="font-medium text-slate-800">{form.employeeName}</p>
+                        <p className="text-xs text-slate-500">
+                          {form.shift?.ruolo} - {formatShiftTime(form.shift?.orario_inizio)} - {formatShiftTime(form.shift?.orario_fine)}
+                        </p>
+                        {form.slot && (
+                          <p className="text-xs text-slate-400">
+                            {form.slot.attivita} {form.slot.ora_inizio && `(${form.slot.ora_inizio})`}
+                          </p>
+                        )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                        {form.completed ? (
+                          <>
+                            <span className="px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 flex items-center gap-1">
+                              <CheckCircle className="w-3 h-3" /> Completato
+                            </span>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setViewingCompletion({ form, storeName }); }}
+                              className="nav-button p-2 rounded-lg"
+                              title="Visualizza dettagli"
+                            >
+                              <Eye className="w-4 h-4 text-blue-600" />
+                            </button>
+                          </>
+                        ) : (
+                          <span className="px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3" /> Mancante
+                          </span>
+                        )}
+                        </div>
+                        </div>
+                        ))}
+                        </div>
+                        )}
+                        </div>
+                        );
                         });
                       })()}
                     </div>
@@ -839,425 +534,6 @@ export default function FormTracker() {
                 </NeumorphicCard>
               ))
             )}
-          </>
-        )}
-
-        {activeTab === 'config' && (
-          <>
-            <div className="flex justify-end">
-              <NeumorphicButton
-                onClick={() => setShowConfigForm(true)}
-                variant="primary"
-                className="flex items-center gap-2"
-              >
-                <Plus className="w-5 h-5" />
-                Nuova Assegnazione
-              </NeumorphicButton>
-            </div>
-
-            <NeumorphicCard className="p-6">
-              <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Assegnazioni Form
-              </h2>
-              
-              <p className="text-sm text-slate-600 mb-4 p-3 bg-blue-50 rounded-lg">
-                ℹ️ Configura quali form devono compilare i dipendenti in base al loro ruolo, 
-                al momento del turno (inizio/fine) e se è il primo o secondo turno della giornata.
-              </p>
-
-              {configs.length === 0 ? (
-                <div className="text-center py-12">
-                  <ClipboardCheck className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                  <p className="text-slate-500">Nessuna assegnazione configurata</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {configs.map(config => (
-                    <NeumorphicCard key={config.id} className={`p-4 ${!config.is_active ? 'opacity-50' : ''}`}>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-bold text-slate-800">{config.form_name}</h3>
-                            <Link 
-                              to={createPageUrl(config.form_page)}
-                              className="nav-button p-1 rounded-lg hover:bg-blue-50"
-                              title="Vai alla configurazione del form"
-                            >
-                              <Settings className="w-3.5 h-3.5 text-blue-600" />
-                            </Link>
-                          </div>
-                          <div className="grid grid-cols-2 md:grid-cols-6 gap-2 text-xs">
-                            <div className="neumorphic-pressed p-2 rounded-lg">
-                              <p className="text-slate-500">Ruoli</p>
-                              <p className="font-medium text-slate-700">
-                                {config.assigned_roles?.length > 0 
-                                  ? config.assigned_roles.join(', ') 
-                                  : 'Tutti'}
-                              </p>
-                            </div>
-                            <div className="neumorphic-pressed p-2 rounded-lg">
-                              <p className="text-slate-500">Momento</p>
-                              <p className="font-medium text-slate-700">
-                                {(() => {
-                                  const timings = config.shift_based_timing || [config.shift_timing || 'end'];
-                                  if (timings.includes('start') && timings.includes('end')) return '🔵🟢 Entrambi';
-                                  if (timings.includes('start')) return '🔵 Inizio turno';
-                                  return '🟢 Fine turno';
-                                })()}
-                              </p>
-                            </div>
-                            <div className="neumorphic-pressed p-2 rounded-lg">
-                              <p className="text-slate-500">Turno</p>
-                              <p className="font-medium text-slate-700">
-                                {(() => {
-                                  const seqs = config.shift_sequences || (config.shift_sequence ? [config.shift_sequence] : ['first']);
-                                  if (seqs.includes('first') && seqs.includes('second')) return '☀️🌙 Entrambi';
-                                  if (seqs.includes('second')) return '🌙 Sera';
-                                  return '☀️ Mattina';
-                                })()}
-                              </p>
-                            </div>
-                            <div className="neumorphic-pressed p-2 rounded-lg">
-                              <p className="text-slate-500">Giorni</p>
-                              <p className="font-medium text-slate-700 text-xs">
-                                {(() => {
-                                  const days = config.days_of_week || [];
-                                  if (days.length === 0) return 'Tutti';
-                                  const dayNames = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'];
-                                  return days.map(d => dayNames[d]).join(', ');
-                                })()}
-                              </p>
-                            </div>
-                            <div className="neumorphic-pressed p-2 rounded-lg">
-                              <p className="text-slate-500">Locali</p>
-                              <p className="font-medium text-slate-700 text-xs">
-                                {(() => {
-                                  const storeIds = config.assigned_stores || [];
-                                  if (storeIds.length === 0) return 'Tutti';
-                                  return storeIds.map(id => stores.find(s => s.id === id)?.name || id).join(', ');
-                                })()}
-                              </p>
-                            </div>
-                            <div className="neumorphic-pressed p-2 rounded-lg">
-                              <p className="text-slate-500">Stato</p>
-                              <p className={`font-medium ${config.is_active ? 'text-green-600' : 'text-red-600'}`}>
-                                {config.is_active ? '✓ Attivo' : '✗ Disattivo'}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex gap-2 ml-4">
-                        <button
-                        onClick={() => handleEditConfig(config)}
-                        className="nav-button p-2 rounded-lg"
-                        title="Modifica"
-                        >
-                        <Edit className="w-4 h-4 text-blue-600" />
-                        </button>
-                        <button
-                        onClick={() => {
-                        // Quick save toggle active
-                        updateConfigMutation.mutate({ 
-                        id: config.id, 
-                        data: { ...config, is_active: !config.is_active }
-                        });
-                        }}
-                        className={`nav-button p-2 rounded-lg ${config.is_active ? 'hover:bg-orange-50' : 'hover:bg-green-50'}`}
-                        title={config.is_active ? 'Disattiva' : 'Attiva'}
-                        >
-                        {config.is_active ? (
-                        <X className="w-4 h-4 text-orange-600" />
-                        ) : (
-                        <CheckCircle className="w-4 h-4 text-green-600" />
-                        )}
-                        </button>
-                        <button
-                        onClick={() => {
-                        if (confirm('Eliminare questa assegnazione?')) {
-                        deleteConfigMutation.mutate(config.id);
-                        }
-                        }}
-                        className="nav-button p-2 rounded-lg"
-                        title="Elimina"
-                        >
-                        <Trash2 className="w-4 h-4 text-red-600" />
-                        </button>
-                        </div>
-                      </div>
-                    </NeumorphicCard>
-                  ))}
-                </div>
-              )}
-            </NeumorphicCard>
-          </>
-        )}
-
-        {/* Config Form Modal */}
-        {showConfigForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="max-w-lg w-full max-h-[90vh] overflow-y-auto">
-              <NeumorphicCard className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold text-slate-800">
-                    {editingConfig ? 'Modifica Assegnazione' : 'Nuova Assegnazione'}
-                  </h2>
-                  <button onClick={resetConfigForm} className="nav-button p-2 rounded-lg">
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                <form onSubmit={handleSubmitConfig} className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 mb-2 block">
-                      Form da assegnare
-                    </label>
-                    <select
-                      value={configForm.form_page}
-                      onChange={(e) => {
-                        const selected = availableForms.find(f => f.page === e.target.value);
-                        setConfigForm({
-                          ...configForm,
-                          form_page: e.target.value,
-                          form_name: selected?.name || ''
-                        });
-                      }}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                      required
-                    >
-                      <option value="">Seleziona form...</option>
-                      {availableForms.map(form => (
-                        <option key={form.page} value={form.page}>{form.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 mb-2 block">
-                      Ruoli che devono compilare (vuoto = tutti)
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {['Pizzaiolo', 'Cassiere', 'Store Manager'].map(role => (
-                        <button
-                          key={role}
-                          type="button"
-                          onClick={() => toggleRole(role)}
-                          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                            configForm.assigned_roles?.includes(role)
-                              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                              : 'nav-button text-slate-700'
-                          }`}
-                        >
-                          {role}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 mb-2 block">
-                      Momento del turno (puoi selezionare entrambi)
-                    </label>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const timings = configForm.shift_based_timing || [configForm.shift_timing];
-                          if (timings.includes('start')) {
-                            const newTimings = timings.filter(t => t !== 'start');
-                            setConfigForm({ 
-                              ...configForm, 
-                              shift_timing: newTimings[0] || 'end',
-                              shift_based_timing: newTimings.length > 0 ? newTimings : ['end']
-                            });
-                          } else {
-                            const newTimings = [...timings, 'start'];
-                            setConfigForm({ 
-                              ...configForm, 
-                              shift_timing: 'start',
-                              shift_based_timing: newTimings
-                            });
-                          }
-                        }}
-                        className={`flex-1 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                          (configForm.shift_based_timing || [configForm.shift_timing]).includes('start')
-                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                            : 'nav-button text-slate-700'
-                        }`}
-                      >
-                        🔵 Inizio Turno
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const timings = configForm.shift_based_timing || [configForm.shift_timing];
-                          if (timings.includes('end')) {
-                            const newTimings = timings.filter(t => t !== 'end');
-                            setConfigForm({ 
-                              ...configForm, 
-                              shift_timing: newTimings[0] || 'start',
-                              shift_based_timing: newTimings.length > 0 ? newTimings : ['start']
-                            });
-                          } else {
-                            const newTimings = [...timings, 'end'];
-                            setConfigForm({ 
-                              ...configForm, 
-                              shift_timing: 'end',
-                              shift_based_timing: newTimings
-                            });
-                          }
-                        }}
-                        className={`flex-1 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                          (configForm.shift_based_timing || [configForm.shift_timing]).includes('end')
-                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                            : 'nav-button text-slate-700'
-                        }`}
-                      >
-                        🟢 Fine Turno
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 mb-2 block">
-                      Quale turno della giornata (puoi selezionare entrambi)
-                    </label>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const seqs = configForm.shift_sequences || [];
-                          if (seqs.includes('first')) {
-                            setConfigForm({ ...configForm, shift_sequences: seqs.filter(s => s !== 'first') });
-                          } else {
-                            setConfigForm({ ...configForm, shift_sequences: [...seqs, 'first'] });
-                          }
-                        }}
-                        className={`flex-1 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                          configForm.shift_sequences?.includes('first')
-                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                            : 'nav-button text-slate-700'
-                        }`}
-                      >
-                        ☀️ Primo Turno (Mattina)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const seqs = configForm.shift_sequences || [];
-                          if (seqs.includes('second')) {
-                            setConfigForm({ ...configForm, shift_sequences: seqs.filter(s => s !== 'second') });
-                          } else {
-                            setConfigForm({ ...configForm, shift_sequences: [...seqs, 'second'] });
-                          }
-                        }}
-                        className={`flex-1 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                          configForm.shift_sequences?.includes('second')
-                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                            : 'nav-button text-slate-700'
-                        }`}
-                      >
-                        🌙 Secondo Turno (Sera)
-                      </button>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-2">
-                      Per ogni dipendente, il primo turno è quello che inizia prima nella giornata
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 mb-2 block">
-                      Giorni della settimana (vuoto = tutti i giorni)
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        { value: 1, label: 'Lun' },
-                        { value: 2, label: 'Mar' },
-                        { value: 3, label: 'Mer' },
-                        { value: 4, label: 'Gio' },
-                        { value: 5, label: 'Ven' },
-                        { value: 6, label: 'Sab' },
-                        { value: 0, label: 'Dom' }
-                      ].map(day => (
-                        <button
-                          key={day.value}
-                          type="button"
-                          onClick={() => {
-                            const days = configForm.days_of_week || [];
-                            if (days.includes(day.value)) {
-                              setConfigForm({ ...configForm, days_of_week: days.filter(d => d !== day.value) });
-                            } else {
-                              setConfigForm({ ...configForm, days_of_week: [...days, day.value] });
-                            }
-                          }}
-                          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                            configForm.days_of_week?.includes(day.value)
-                              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                              : 'nav-button text-slate-700'
-                          }`}
-                        >
-                          {day.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 mb-2 block">
-                      Locali (vuoto = tutti i locali)
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {stores.map(store => (
-                        <button
-                          key={store.id}
-                          type="button"
-                          onClick={() => {
-                            const storeIds = configForm.assigned_stores || [];
-                            if (storeIds.includes(store.id)) {
-                              setConfigForm({ ...configForm, assigned_stores: storeIds.filter(s => s !== store.id) });
-                            } else {
-                              setConfigForm({ ...configForm, assigned_stores: [...storeIds, store.id] });
-                            }
-                          }}
-                          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                            configForm.assigned_stores?.includes(store.id)
-                              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                              : 'nav-button text-slate-700'
-                          }`}
-                        >
-                          {store.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      id="config-active"
-                      checked={configForm.is_active}
-                      onChange={(e) => setConfigForm({ ...configForm, is_active: e.target.checked })}
-                      className="w-5 h-5"
-                    />
-                    <label htmlFor="config-active" className="text-sm font-medium text-slate-700">
-                      Assegnazione attiva
-                    </label>
-                  </div>
-
-                  <div className="flex gap-3 pt-4">
-                    <NeumorphicButton type="button" onClick={resetConfigForm} className="flex-1">
-                      Annulla
-                    </NeumorphicButton>
-                    <NeumorphicButton type="submit" variant="primary" className="flex-1 flex items-center justify-center gap-2">
-                      <Save className="w-5 h-5" />
-                      {editingConfig ? 'Aggiorna' : 'Crea'}
-                    </NeumorphicButton>
-                  </div>
-                </form>
-              </NeumorphicCard>
-            </div>
-          </div>
-        )}
 
         {/* View Completion Modal */}
         {viewingCompletion && (
@@ -1277,7 +553,7 @@ export default function FormTracker() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="neumorphic-pressed p-4 rounded-xl">
                       <p className="text-xs text-slate-500">Form</p>
-                      <p className="font-bold text-slate-800">{viewingCompletion.form.config.form_name}</p>
+                      <p className="font-bold text-slate-800">{viewingCompletion.form.formName}</p>
                     </div>
                     <div className="neumorphic-pressed p-4 rounded-xl">
                       <p className="text-xs text-slate-500">Dipendente</p>
