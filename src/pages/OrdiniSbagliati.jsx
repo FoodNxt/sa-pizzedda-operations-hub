@@ -314,10 +314,13 @@ export default function OrdiniSbagliati() {
         setUploading(false);
         event.target.value = '';
         
-        // Show info about skipped orders
+        // Show warning about unmapped stores
+        const unmappedStoreNames = unmapped.map(u => u.platformStoreName).join(', ');
+        alert(`⚠️ ATTENZIONE: Trovati ${unmapped.length} negozi non abbinati nel file CSV.\n\n${skippedOrders.length} ordini non verranno importati fino a quando non completerai gli abbinamenti.\n\nNegozi da abbinare:\n${unmappedStoreNames}\n\nDopo aver abbinato i negozi, ricarica nuovamente il file CSV.`);
+        
         setImportResult({
           success: false,
-          error: `${skippedOrders.length} ordini non possono essere importati perché ${unmapped.length} negozi non sono stati abbinati. Completa gli abbinamenti e ricarica il file.`
+          error: `${skippedOrders.length} ordini su ${lines.length - 1} righe non possono essere importati. ${unmapped.length} negozi necessitano abbinamento.`
         });
         return;
       }
