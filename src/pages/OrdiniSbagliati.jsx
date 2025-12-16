@@ -206,15 +206,14 @@ export default function OrdiniSbagliati() {
       const headers = parseCsvLine(lines[0]);
       const records = [];
       const unmapped = [];
-      const skippedOrders = [];
+      const skippedLines = [];
 
       for (let i = 1; i < lines.length; i++) {
         const values = parseCsvLine(lines[i]);
-        // Rimuovo il controllo rigido - accetto righe con colonne diverse
-
+        
         const record = {};
         headers.forEach((header, idx) => {
-          record[header] = values[idx] || ''; // Usa stringa vuota se il valore non esiste
+          record[header] = values[idx] || '';
         });
 
         let storeNameField, orderIdField, orderDateField, orderTotalField, refundField, statusField;
@@ -235,7 +234,18 @@ export default function OrdiniSbagliati() {
           statusField = 'Customer refund status';
         }
 
-        const platformStoreName = record[storeNameField] || 'Store Unknown';
+        const platformStoreName = record[storeNameField];
+        const orderId = record[orderIdField];
+        
+        // Skip solo se ENTRAMBI mancano
+        if (!platformStoreName && !orderId) {
+          skippedLines.push(i + 1);
+          continue;
+        }
+        
+        // Usa valori di fallback
+        const finalStoreName = platformStoreName || 'Negozio Sconosciuto';
+        const finalOrderId = orderId || `MISSING_ID_${Date.now()}_${i}`;
 
         // Check existing mapping
         let storeMatch = storeMappings.find(
