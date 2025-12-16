@@ -448,13 +448,14 @@ export default function FormTracker() {
                   {expandedStores[storeName] && (
                     <div className="mt-4">
                       {(() => {
-                        const formsByName = {};
-                        storeData.forms.forEach(f => {
-                          if (!formsByName[f.config.form_name]) {
-                            formsByName[f.config.form_name] = [];
-                          }
-                          formsByName[f.config.form_name].push(f);
-                        });
+                       const formsByName = {};
+                       storeData.forms.forEach(f => {
+                         const name = f.formName || 'Form senza nome';
+                         if (!formsByName[name]) {
+                           formsByName[name] = [];
+                         }
+                         formsByName[name].push(f);
+                       });
 
                         return Object.entries(formsByName).map(([formName, forms]) => {
                         const completedCount = forms.filter(f => f.completed).length;
