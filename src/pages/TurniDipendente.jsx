@@ -234,15 +234,6 @@ export default function TurniDipendente() {
     },
   });
 
-  const { data: pauseAttive = [] } = useQuery({
-    queryKey: ['pause-attive', prossimoTurno?.id],
-    queryFn: () => base44.entities.Pausa.filter({
-      turno_id: prossimoTurno.id,
-      stato: 'in_corso'
-    }),
-    enabled: !!prossimoTurno?.id,
-  });
-
   const { data: allFormData = {} } = useQuery({
     queryKey: ['all-form-data-dipendente'],
     queryFn: async () => {
@@ -838,6 +829,15 @@ export default function TurniDipendente() {
       });
     return futuri[0] || null;
   }, [turni, turniFuturi, now, currentUser, config]);
+
+  const { data: pauseAttive = [] } = useQuery({
+    queryKey: ['pause-attive', prossimoTurno?.id],
+    queryFn: () => base44.entities.Pausa.filter({
+      turno_id: prossimoTurno.id,
+      stato: 'in_corso'
+    }),
+    enabled: !!prossimoTurno?.id,
+  });
 
   // Colleghi che lavorano nello stesso turno del prossimo turno
   const { data: colleghiProssimoTurno = [] } = useQuery({
