@@ -10,6 +10,7 @@ import ProtectedPage from "../components/ProtectedPage";
 
 export default function Pause() {
   const [showConfigForm, setShowConfigForm] = useState(false);
+  const [editingConfig, setEditingConfig] = useState(null);
   const [formData, setFormData] = useState({
     durata_minima_turno_minuti: 240,
     durata_pausa_minuti: 15,
@@ -39,14 +40,7 @@ export default function Pause() {
     mutationFn: (data) => base44.entities.PauseConfig.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pause-config'] });
-      setShowConfigForm(false);
-      setFormData({
-        durata_minima_turno_minuti: 240,
-        durata_pausa_minuti: 15,
-        slot_orari: [{ orario_inizio: '11:00', orario_fine: '15:00' }],
-        numero_minimo_colleghi: 2,
-        attivo: true
-      });
+      resetForm();
     },
   });
 
@@ -54,14 +48,56 @@ export default function Pause() {
     mutationFn: ({ id, data }) => base44.entities.PauseConfig.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pause-config'] });
+      resetForm();
+    },
+  });
+
+  const deleteConfigMutation = useMutation({
+    mutationFn: (id) => base44.entities.PauseConfig.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pause-config'] });
     },
   });
 
   const activeConfig = configs.find(c => c.attivo);
 
+  const resetForm = () => {
+    setShowConfigForm(false);
+    setEditingConfig(null);
+    setFormData({
+      durata_minima_turno_minuti: 240,
+      durata_pausa_minuti: 15,
+      slot_orari: [{ orario_inizio: '11:00', orario_fine: '15:00' }],
+      numero_minimo_colleghi: 2,
+      attivo: true
+    });
+  };
+
+  const handleEdit = (config) => {
+    setEditingConfig(config);
+    setFormData({
+      durata_minima_turno_minuti: config.durata_minima_turno_minuti,
+      durata_pausa_minuti: config.durata_pausa_minuti,
+      slot_orari: config.slot_orari || [{ orario_inizio: '11:00', orario_fine: '15:00' }],
+      numero_minimo_colleghi: config.numero_minimo_colleghi,
+      attivo: config.attivo
+    });
+    setShowConfigForm(true);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    createConfigMutation.mutate(formData);
+    if (editingConfig) {
+      updateConfigMutation.mutate({ id: editingConfig.id, data: formData });
+    } else {
+      createConfigMutation.mutate(formData);
+    }
+  };
+
+  const handleDelete = (id) => {
+    if (confirm('Sei sicuro di voler eliminare questa configurazione?')) {
+      deleteConfigMutation.mutate(id);
+    }
   };
 
   const toggleConfigStatus = (config) => {
@@ -144,10 +180,15 @@ export default function Pause() {
         {/* Form configurazione */}
         {showConfigForm && (
           <NeumorphicCard className="p-6">
-            <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-              <Settings className="w-6 h-6 text-amber-600" />
-              Nuova Configurazione Pause
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <Settings className="w-6 h-6 text-amber-600" />
+                {editingConfig ? 'Modifica Configurazione' : 'Nuova Configurazione Pause'}
+              </h2>
+              <button onClick={resetForm} className="text-slate-500 hover:text-slate-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -252,11 +293,11 @@ export default function Pause() {
               </div>
 
               <div className="flex justify-end gap-3">
-                <NeumorphicButton type="button" onClick={() => setShowConfigForm(false)}>
+                <NeumorphicButton type="button" onClick={resetForm}>
                   Annulla
                 </NeumorphicButton>
                 <NeumorphicButton type="submit" variant="primary">
-                  Salva Configurazione
+                  {editingConfig ? 'Aggiorna' : 'Salva'} Configurazione
                 </NeumorphicButton>
               </div>
             </form>
@@ -303,10 +344,16 @@ export default function Pause() {
                 <p className="font-bold text-slate-800">{activeConfig.numero_minimo_colleghi}</p>
               </div>
 
-              <div className="neumorphic-pressed p-4 rounded-xl text-center flex items-center justify-center">
+              <div className="neumorphic-pressed p-4 rounded-xl text-center flex flex-col gap-2 items-center justify-center">
+                <NeumorphicButton
+                  onClick={() => handleEdit(activeConfig)}
+                  className="text-sm w-full"
+                >
+                  Modifica
+                </NeumorphicButton>
                 <NeumorphicButton
                   onClick={() => toggleConfigStatus(activeConfig)}
-                  className="text-sm"
+                  className="text-sm w-full"
                 >
                   Disattiva
                 </NeumorphicButton>
@@ -344,9 +391,23 @@ export default function Pause() {
                       <p className="font-medium text-slate-700">{config.numero_minimo_colleghi}</p>
                     </div>
                   </div>
-                  <NeumorphicButton onClick={() => toggleConfigStatus(config)} className="text-sm">
-                    Attiva
-                  </NeumorphicButton>
+                  <div className="flex gap-2">
+                    <NeumorphicButton 
+                      onClick={() => handleEdit(config)} 
+                      className="text-sm flex items-center gap-1"
+                    >
+                      <Settings className="w-4 h-4" /> Modifica
+                    </NeumorphicButton>
+                    <NeumorphicButton onClick={() => toggleConfigStatus(config)} className="text-sm">
+                      Attiva
+                    </NeumorphicButton>
+                    <button
+                      onClick={() => handleDelete(config.id)}
+                      className="text-red-500 hover:text-red-700 p-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
