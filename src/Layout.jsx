@@ -55,6 +55,11 @@ const navigationStructure = [
         icon: LayoutDashboard,
       },
       {
+        title: "Presenze",
+        url: createPageUrl("Presenze"),
+        icon: Users,
+      },
+      {
         title: "Summary AI",
         url: createPageUrl("SummaryAI"),
         icon: Zap,

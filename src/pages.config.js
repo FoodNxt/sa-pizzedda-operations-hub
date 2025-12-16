@@ -90,6 +90,7 @@ import FormSpostamenti from './pages/FormSpostamenti';
 import ValutazionePulizie from './pages/ValutazionePulizie';
 import PlandayStoreManager from './pages/PlandayStoreManager';
 import Pause from './pages/Pause';
+import Presenze from './pages/Presenze';
 import __Layout from './Layout.jsx';
 
 
@@ -186,6 +187,7 @@ export const PAGES = {
     "ValutazionePulizie": ValutazionePulizie,
     "PlandayStoreManager": PlandayStoreManager,
     "Pause": Pause,
+    "Presenze": Presenze,
 }
 
 export const pagesConfig = {
