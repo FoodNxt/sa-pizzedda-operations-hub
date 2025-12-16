@@ -310,15 +310,18 @@ export default function FormTracker() {
     let totalExpected = 0;
     let totalCompleted = 0;
 
-    // Get shifts for selected date, excluding malattia, ferie, assenza, non-programmato
+    // Get shifts for selected date, excluding malattia, ferie, assenza
     const shiftsForDate = turniPlanday.filter(s => {
       if (s.data !== selectedDate) return false;
       // Exclude shifts without valid store name
       if (!s.store_name || s.store_name.trim() === '') return false;
+      // Exclude shifts without employee name
+      if (!s.dipendente_nome || s.dipendente_nome.trim() === '') return false;
       const stato = (s.stato || '').toLowerCase();
       const tipoTurno = (s.tipo_turno || '').toLowerCase();
-      // Exclude if not "programmato" or if tipo_turno contains malattia/ferie/assenza
-      if (stato !== 'programmato') return false;
+      // Exclude cancelled shifts
+      if (stato === 'cancellato' || stato === 'cancelled') return false;
+      // Exclude malattia/ferie/assenza by tipo_turno
       if (tipoTurno.includes('malattia') || tipoTurno.includes('ferie') || tipoTurno.includes('assenza')) {
         return false;
       }
