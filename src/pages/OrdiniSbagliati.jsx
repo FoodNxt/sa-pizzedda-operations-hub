@@ -259,18 +259,14 @@ export default function OrdiniSbagliati() {
             await createMappingMutation.mutateAsync(mappingData);
             storeMatch = mappingData;
           } else {
-            // Add to unmapped
+            // Add to unmapped but don't skip the order
             if (!unmapped.find(u => u.platformStoreName === platformStoreName)) {
               unmapped.push({
                 platformStoreName,
                 suggestedMatch: autoMatch
               });
             }
-            skippedOrders.push({
-              orderId: record[orderIdField],
-              storeName: platformStoreName
-            });
-            continue;
+            // Don't skip - we'll import anyway with store_matched: false
           }
         }
 
