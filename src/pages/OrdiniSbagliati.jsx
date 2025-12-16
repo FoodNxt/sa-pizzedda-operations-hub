@@ -819,68 +819,69 @@ export default function OrdiniSbagliati() {
             <h2 className="text-xl font-bold text-[#6b6b6b]">Ordini Importati ({filteredOrders.length})</h2>
           </div>
 
-        {wrongOrders.length === 0 ? (
-          <div className="text-center py-12">
-            <Package className="w-16 h-16 text-[#9b9b9b] mx-auto mb-4 opacity-50" />
-            <p className="text-[#6b6b6b] font-medium">Nessun ordine importato</p>
-            <p className="text-sm text-[#9b9b9b] mt-1">Carica un CSV per iniziare</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b-2 border-[#8b7355]">
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Piattaforma</th>
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Order ID</th>
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Data</th>
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Negozio</th>
-                  <th className="text-right p-3 text-[#9b9b9b] font-medium">Totale</th>
-                  <th className="text-right p-3 text-[#9b9b9b] font-medium">Rimborso</th>
-                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Stato</th>
-                </tr>
-              </thead>
-              <tbody>
-                {wrongOrders.slice(0, showAllOrders ? undefined : 20).map((order) => (
-                  <tr key={order.id} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
-                    <td className="p-3">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                        order.platform === 'glovo' 
-                          ? 'bg-orange-100 text-orange-700' 
-                          : 'bg-teal-100 text-teal-700'
-                      }`}>
-                        {order.platform}
-                      </span>
-                    </td>
-                    <td className="p-3">
-                      <span className="font-mono text-sm text-[#6b6b6b]">{order.order_id}</span>
-                    </td>
-                    <td className="p-3 text-sm text-[#6b6b6b]">
-                      {new Date(order.order_date).toLocaleDateString('it-IT')}
-                    </td>
-                    <td className="p-3">
-                      <div>
-                        <p className="text-sm text-[#6b6b6b]">{order.store_name}</p>
-                        {order.store_matched && (
-                          <span className="text-xs text-green-600">✓ Abbinato</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-3 text-right font-medium text-[#6b6b6b]">
-                      €{order.order_total?.toFixed(2) || '0.00'}
-                    </td>
-                    <td className="p-3 text-right font-bold text-red-600">
-                      €{order.refund_value?.toFixed(2) || '0.00'}
-                    </td>
-                    <td className="p-3 text-sm text-[#6b6b6b]">
-                      {order.customer_refund_status || order.order_status || '-'}
-                    </td>
+          {filteredOrders.length === 0 ? (
+            <div className="text-center py-12">
+              <Package className="w-16 h-16 text-[#9b9b9b] mx-auto mb-4 opacity-50" />
+              <p className="text-[#6b6b6b] font-medium">Nessun ordine trovato</p>
+              <p className="text-sm text-[#9b9b9b] mt-1">Carica un CSV per iniziare</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b-2 border-[#8b7355]">
+                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Piattaforma</th>
+                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Order ID</th>
+                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Data</th>
+                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Negozio</th>
+                    <th className="text-right p-3 text-[#9b9b9b] font-medium">Totale</th>
+                    <th className="text-right p-3 text-[#9b9b9b] font-medium">Rimborso</th>
+                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Stato</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </NeumorphicCard>
+                </thead>
+                <tbody>
+                  {filteredOrders.map((order) => (
+                    <tr key={order.id} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
+                      <td className="p-3">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          order.platform === 'glovo' 
+                            ? 'bg-orange-100 text-orange-700' 
+                            : 'bg-teal-100 text-teal-700'
+                        }`}>
+                          {order.platform}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <span className="font-mono text-sm text-[#6b6b6b]">{order.order_id}</span>
+                      </td>
+                      <td className="p-3 text-sm text-[#6b6b6b]">
+                        {new Date(order.order_date).toLocaleDateString('it-IT')}
+                      </td>
+                      <td className="p-3">
+                        <div>
+                          <p className="text-sm text-[#6b6b6b]">{order.store_name}</p>
+                          {order.store_matched && (
+                            <span className="text-xs text-green-600">✓ Abbinato</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-3 text-right font-medium text-[#6b6b6b]">
+                        €{order.order_total?.toFixed(2) || '0.00'}
+                      </td>
+                      <td className="p-3 text-right font-bold text-red-600">
+                        €{order.refund_value?.toFixed(2) || '0.00'}
+                      </td>
+                      <td className="p-3 text-sm text-[#6b6b6b]">
+                        {order.customer_refund_status || order.order_status || '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </NeumorphicCard>
+      )}
 
       {/* Info Box */}
       <NeumorphicCard className="p-6 bg-blue-50">
