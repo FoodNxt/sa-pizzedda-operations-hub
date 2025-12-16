@@ -46,6 +46,7 @@ export default function TurniDipendente() {
   const [distanceToStore, setDistanceToStore] = useState(null);
   const [now, setNow] = useState(moment());
   const [pausaInCorso, setPausaInCorso] = useState(null);
+  const [condizioniPausa, setCondizioniPausa] = useState({ canPause: false, reason: 'Verifica in corso...' });
 
   const queryClient = useQueryClient();
 
@@ -1201,6 +1202,12 @@ export default function TurniDipendente() {
     }
   }, [pauseAttive]);
 
+  useEffect(() => {
+    if (prossimoTurno) {
+      verificaCondizioniPausa(prossimoTurno).then(setCondizioniPausa);
+    }
+  }, [prossimoTurno?.id, pauseAttive, now]);
+
   const verificaCondizioniPausa = async (turno) => {
     if (!pauseConfig || !turno.timbrata_entrata) return { canPause: false, reason: 'Configurazione non disponibile' };
     
@@ -1697,14 +1704,7 @@ export default function TurniDipendente() {
               })()}
 
               {/* Gestione Pause - solo se turno in corso */}
-              {prossimoTurnoStatus.inCorso && pauseConfig && (() => {
-                const [condizioniPausa, setCondizioniPausa] = React.useState({ canPause: false, reason: 'Verifica in corso...' });
-                
-                React.useEffect(() => {
-                  verificaCondizioniPausa(prossimoTurno).then(setCondizioniPausa);
-                }, [prossimoTurno?.id, pauseAttive, now]);
-                
-                return (
+              {prossimoTurnoStatus.inCorso && pauseConfig && (
                   <div className="mb-4">
                     {pausaInCorso ? (
                       <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
