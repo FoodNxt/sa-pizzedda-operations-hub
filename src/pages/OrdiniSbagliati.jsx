@@ -31,6 +31,8 @@ export default function OrdiniSbagliati() {
   const [activeTab, setActiveTab] = useState('list'); // 'list' or 'analytics'
   const [selectedStore, setSelectedStore] = useState('all');
   const [dateRange, setDateRange] = useState('month'); // 'week', 'month', 'all'
+  const [showCount, setShowCount] = useState(true);
+  const [showRefunds, setShowRefunds] = useState(true);
 
   const queryClient = useQueryClient();
 
