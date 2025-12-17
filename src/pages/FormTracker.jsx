@@ -27,9 +27,28 @@ export default function FormTracker() {
     queryFn: () => base44.entities.Store.list(),
   });
 
-  const { data: turniPlanday = [] } = useQuery({
-    queryKey: ['turni-planday'],
-    queryFn: () => base44.entities.TurnoPlanday.list('-data', 1000),
+  const { data: turniPlanday = [], isLoading: loadingTurni } = useQuery({
+    queryKey: ['turni-planday', selectedDate],
+    queryFn: async () => {
+      // Get all shifts around the selected date (7 days before and after for safety)
+      const date = new Date(selectedDate);
+      const weekBefore = new Date(date);
+      weekBefore.setDate(weekBefore.getDate() - 7);
+      const weekAfter = new Date(date);
+      weekAfter.setDate(weekAfter.getDate() + 7);
+      
+      const shifts = await base44.entities.TurnoPlanday.filter({
+        data: {
+          $gte: weekBefore.toISOString().split('T')[0],
+          $lte: weekAfter.toISOString().split('T')[0]
+        }
+      });
+      
+      console.log('Loaded shifts from Planday:', shifts.length);
+      console.log('Sample shifts:', shifts.slice(0, 3));
+      
+      return shifts;
+    },
   });
 
   const { data: strutturaSchemi = [] } = useQuery({
@@ -429,13 +448,35 @@ export default function FormTracker() {
               </NeumorphicCard>
             </div>
 
+            {/* Debug info */}
+            {loadingTurni && (
+              <NeumorphicCard className="p-6 text-center">
+                <p className="text-slate-500">Caricamento turni...</p>
+              </NeumorphicCard>
+            )}
+
+            {!loadingTurni && (
+              <NeumorphicCard className="p-4 bg-blue-50">
+                <p className="text-xs text-slate-600">
+                  <strong>Debug Info:</strong><br/>
+                  Turni totali caricati: {turniPlanday.length}<br/>
+                  Turni per {selectedDate}: {turniPlanday.filter(s => s.data?.split('T')[0] === selectedDate.split('T')[0]).length}<br/>
+                  Schemi StrutturaTurno attivi: {strutturaSchemi.length}<br/>
+                  Form trovati: {formStatus.summary.total}
+                </p>
+              </NeumorphicCard>
+            )}
+
             {/* Results by Store */}
-            {Object.keys(formStatus.byStore).length === 0 ? (
+            {!loadingTurni && Object.keys(formStatus.byStore).length === 0 ? (
               <NeumorphicCard className="p-12 text-center">
                 <ClipboardCheck className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                 <p className="text-slate-500">Nessun turno trovato per questa data</p>
+                <p className="text-xs text-slate-400 mt-2">
+                  Verifica che ci siano turni in Planday per il {selectedDate} e che esistano schemi in StrutturaTurno
+                </p>
               </NeumorphicCard>
-            ) : (
+            ) : !loadingTurni && (
               Object.entries(formStatus.byStore).map(([storeName, storeData]) => (
                 <NeumorphicCard key={storeName} className="p-4">
                   <button
