@@ -184,9 +184,17 @@ export default function FormTracker() {
     let totalCompleted = 0;
     const selectedDayOfWeek = new Date(selectedDate).getDay();
 
+    console.log('FormTracker - Selected date:', selectedDate);
+    console.log('FormTracker - Total shifts in Planday:', turniPlanday.length);
+    console.log('FormTracker - Sample shift:', turniPlanday[0]);
+
     // Get shifts for selected date
     const shiftsForDate = turniPlanday.filter(s => {
-      if (s.data !== selectedDate) return false;
+      // Normalize both dates to YYYY-MM-DD format for comparison
+      const shiftDate = s.data ? s.data.split('T')[0] : null;
+      const normalizedSelectedDate = selectedDate.split('T')[0];
+      
+      if (shiftDate !== normalizedSelectedDate) return false;
       if (!s.store_name || s.store_name.trim() === '') return false;
       if (!s.dipendente_nome || s.dipendente_nome.trim() === '') return false;
       const stato = (s.stato || '').toLowerCase();
@@ -197,6 +205,9 @@ export default function FormTracker() {
       }
       return true;
     });
+
+    console.log('FormTracker - Filtered shifts for date:', shiftsForDate.length);
+    console.log('FormTracker - Sample filtered shift:', shiftsForDate[0]);
 
     // Group shifts by store
     const shiftsByStore = {};
@@ -234,14 +245,16 @@ export default function FormTracker() {
             return false;
           }
           
-          // Check tipo turno
+          // Check tipo turno (if specified in schema)
           const tipiTurno = schema.tipi_turno || [];
-          if (tipiTurno.length > 0 && !tipiTurno.includes(shift.tipo_turno)) {
+          if (tipiTurno.length > 0 && shift.tipo_turno && !tipiTurno.includes(shift.tipo_turno)) {
             return false;
           }
           
           return true;
         });
+
+        console.log(`FormTracker - Shift ${employeeName} (${ruolo}): ${applicableSchemas.length} applicable schemas`);
 
         // For each schema, extract slots that require forms
         applicableSchemas.forEach(schema => {
