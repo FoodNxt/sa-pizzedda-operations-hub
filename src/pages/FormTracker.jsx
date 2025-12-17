@@ -250,36 +250,65 @@ export default function FormTracker() {
         const ruolo = shift.ruolo;
         const storeEntity = stores.find(s => s.name === storeName);
 
+        console.log(`\n=== Analyzing shift ===`);
+        console.log('Employee:', employeeName);
+        console.log('Role:', ruolo);
+        console.log('Store:', storeName, 'Store ID:', storeEntity?.id);
+        console.log('Day of week:', selectedDayOfWeek, '(0=Sunday)');
+        console.log('Tipo turno:', shift.tipo_turno);
+
         // Find applicable struttura schemas for this shift
         const applicableSchemas = strutturaSchemi.filter(schema => {
+          console.log('\nChecking schema:', schema.nome_schema);
+          console.log('  Schema day:', schema.giorno_settimana, 'vs Shift day:', selectedDayOfWeek);
+          
           // Check day of week
-          if (schema.giorno_settimana !== selectedDayOfWeek) return false;
+          if (schema.giorno_settimana !== selectedDayOfWeek) {
+            console.log('  ❌ Day mismatch');
+            return false;
+          }
+          
+          console.log('  Schema role:', schema.ruolo, 'vs Shift role:', ruolo);
           
           // Check role
-          if (schema.ruolo !== ruolo) return false;
+          if (schema.ruolo !== ruolo) {
+            console.log('  ❌ Role mismatch');
+            return false;
+          }
           
           // Check store assignment
           const assignedStores = schema.assigned_stores || [];
+          console.log('  Schema stores:', assignedStores.length === 0 ? 'ALL' : assignedStores);
           if (assignedStores.length > 0 && storeEntity && !assignedStores.includes(storeEntity.id)) {
+            console.log('  ❌ Store not assigned');
             return false;
           }
           
           // Check tipo turno (if specified in schema)
           const tipiTurno = schema.tipi_turno || [];
+          console.log('  Schema tipo turni:', tipiTurno.length === 0 ? 'ALL' : tipiTurno);
           if (tipiTurno.length > 0 && shift.tipo_turno && !tipiTurno.includes(shift.tipo_turno)) {
+            console.log('  ❌ Tipo turno mismatch');
             return false;
           }
           
+          console.log('  ✅ Schema matches!');
           return true;
         });
 
-        console.log(`FormTracker - Shift ${employeeName} (${ruolo}): ${applicableSchemas.length} applicable schemas`);
+        console.log(`\n➡️ Found ${applicableSchemas.length} matching schemas for ${employeeName}`);
 
         // For each schema, extract slots that require forms
         applicableSchemas.forEach(schema => {
           const slots = schema.slots || [];
+          console.log(`  Schema ${schema.nome_schema} has ${slots.length} slots`);
+          
+          const formSlots = slots.filter(s => s.richiede_form && s.form_page);
+          console.log(`    ${formSlots.length} slots require forms`);
+          
           slots.forEach(slot => {
             if (slot.richiede_form && slot.form_page) {
+              console.log(`    📋 Form required: ${slot.form_page} (${slot.attivita})`);
               totalExpected++;
               
               // Check if form was completed
