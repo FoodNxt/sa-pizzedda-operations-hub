@@ -193,18 +193,71 @@ export default function FormTracker() {
     }
   };
 
+  const timeToMinutes = (timeStr) => {
+    if (!timeStr) return 0;
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return hours * 60 + minutes;
+  };
+
   const getRequiredFormsForShift = (shift) => {
-    if (!shift.ruolo || !shift.tipo_turno || !shift.momento_turno) return [];
+    if (!shift.ruolo) return [];
     
-    const schema = strutturaSchemi.find(s => 
-      s.ruolo === shift.ruolo && 
-      s.tipo_turno === shift.tipo_turno && 
-      s.momento_turno === shift.momento_turno
-    );
+    const shiftStart = timeToMinutes(shift.ora_inizio);
+    const shiftEnd = timeToMinutes(shift.ora_fine);
+    const shiftDate = new Date(selectedDate);
+    const dayOfWeek = shiftDate.getDay();
     
-    if (!schema || !schema.forms_richiesti) return [];
+    // Find all schemas matching this shift's role and day
+    const matchingSchemas = strutturaSchemi.filter(schema => {
+      if (schema.ruolo !== shift.ruolo) return false;
+      if (schema.giorno_settimana !== undefined && schema.giorno_settimana !== dayOfWeek) return false;
+      
+      // Check store assignment
+      if (schema.assigned_stores && schema.assigned_stores.length > 0) {
+        if (!shift.store_id || !schema.assigned_stores.includes(shift.store_id)) return false;
+      }
+      
+      // Check tipo_turno
+      if (schema.tipi_turno && schema.tipi_turno.length > 0) {
+        if (!shift.tipo_turno || !schema.tipi_turno.includes(shift.tipo_turno)) return false;
+      }
+      
+      return true;
+    });
     
-    return schema.forms_richiesti.map(formPage => {
+    const formsSet = new Set();
+    
+    matchingSchemas.forEach(schema => {
+      if (!schema.slots) return;
+      
+      schema.slots.forEach(slot => {
+        if (!slot.richiede_form || !slot.form_page) return;
+        
+        // Check if slot overlaps with shift time
+        if (schema.usa_minuti_relativi) {
+          // For relative minutes, always include if it's within shift duration
+          if (slot.necessario_in_ogni_turno) {
+            formsSet.add(slot.form_page);
+          }
+        } else {
+          // For absolute times, check overlap
+          const slotStart = timeToMinutes(slot.ora_inizio);
+          const slotEnd = timeToMinutes(slot.ora_fine);
+          
+          // Check if there's overlap
+          if (slotStart < shiftEnd && slotEnd > shiftStart) {
+            formsSet.add(slot.form_page);
+          }
+        }
+        
+        // Always include if necessary in every shift
+        if (slot.necessario_in_ogni_turno) {
+          formsSet.add(slot.form_page);
+        }
+      });
+    });
+    
+    return Array.from(formsSet).map(formPage => {
       const completion = checkFormCompletion(formPage, shift.dipendente_nome, shift.store_name, selectedDate);
       return {
         formPage,
