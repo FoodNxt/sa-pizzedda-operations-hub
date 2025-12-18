@@ -10,13 +10,11 @@ import ProtectedPage from "../components/ProtectedPage";
 
 export default function FormTracker() {
   const [selectedDate, setSelectedDate] = useState(() => {
-    // Default: today (shifts are now loaded from Planday directly)
     const now = new Date();
     return now.toISOString().split('T')[0];
   });
   const [selectedStore, setSelectedStore] = useState('');
-  const [viewingCompletion, setViewingCompletion] = useState(null);
-  const [expandedForms, setExpandedForms] = useState({});
+  const [activeView, setActiveView] = useState('stores');
   const [expandedStores, setExpandedStores] = useState({});
 
   const queryClient = useQueryClient();
@@ -81,7 +79,6 @@ export default function FormTracker() {
     const grouped = {};
 
     shiftsForDate.forEach(shift => {
-      // Try to get store name from shift, otherwise lookup by store_id
       let storeName = shift.store_name;
       
       if (!storeName && shift.store_id) {
@@ -101,9 +98,47 @@ export default function FormTracker() {
       grouped[storeName].push({ ...shift, store_name: storeName });
     });
 
-    console.log('Shifts grouped by store:', grouped);
     return grouped;
   }, [shiftsForDate, selectedStore, stores]);
+
+  const formsByStore = useMemo(() => {
+    const grouped = {};
+
+    shiftsForDate.forEach(shift => {
+      let storeName = shift.store_name;
+      
+      if (!storeName && shift.store_id) {
+        const store = stores.find(s => s.id === shift.store_id);
+        storeName = store?.name || 'Senza Store';
+      }
+      
+      if (!storeName) storeName = 'Senza Store';
+      if (selectedStore && selectedStore !== storeName) return;
+
+      const requiredForms = getRequiredFormsForShift(shift);
+      
+      if (!grouped[storeName]) {
+        grouped[storeName] = {};
+      }
+
+      requiredForms.forEach(form => {
+        if (!grouped[storeName][form.formPage]) {
+          grouped[storeName][form.formPage] = {
+            formPage: form.formPage,
+            formName: form.formName,
+            completions: []
+          };
+        }
+        grouped[storeName][form.formPage].completions.push({
+          employeeName: shift.dipendente_nome,
+          completed: form.completed,
+          data: form.data
+        });
+      });
+    });
+
+    return grouped;
+  }, [shiftsForDate, selectedStore, stores, strutturaSchemi, cleaningInspections, inventarioRilevazioni, conteggiCassa, teglieButtate, preparazioni, gestioneImpasti, selectedDate]);
 
   const normalizeNameForMatch = (name) => {
     if (!name) return '';
@@ -404,28 +439,40 @@ export default function FormTracker() {
               </NeumorphicCard>
             </div>
 
-            {/* Debug Info */}
-            {!loadingTurni && (
-              <NeumorphicCard className="p-4 bg-blue-50 border-2 border-blue-200">
-                <p className="text-sm font-bold text-blue-900 mb-2">📊 Statistiche</p>
-                <div className="space-y-1 text-xs text-blue-800">
-                  <p>• Turni trovati per il <strong>{selectedDate}</strong>: <strong>{turniPlanday.length}</strong></p>
-                  <p>• Locali: <strong>{Object.keys(shiftsByStore).length}</strong></p>
-                  {turniPlanday.length > 0 && (
-                    <p className="mt-2 pt-2 border-t border-blue-300">
-                      ✅ Turni caricati correttamente dalla tabella TurnoPlanday
-                    </p>
-                  )}
-                </div>
-              </NeumorphicCard>
-            )}
+            {/* View Tabs */}
+            <NeumorphicCard className="p-2">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setActiveView('stores')}
+                  className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all ${
+                    activeView === 'stores'
+                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <Store className="w-4 h-4 inline mr-2" />
+                  Stores
+                </button>
+                <button
+                  onClick={() => setActiveView('forms')}
+                  className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all ${
+                    activeView === 'forms'
+                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <ClipboardCheck className="w-4 h-4 inline mr-2" />
+                  Forms
+                </button>
+              </div>
+            </NeumorphicCard>
 
-            {/* Shifts List by Store */}
-            {loadingTurni ? (
+            {/* Content based on active view */}
+            {activeView === 'stores' && loadingTurni ? (
               <NeumorphicCard className="p-6 text-center">
-                <p className="text-slate-500">Caricamento turni...</p>
+                <p className="text-slate-500">Caricamento...</p>
               </NeumorphicCard>
-            ) : Object.keys(shiftsByStore).length === 0 ? (
+            ) : activeView === 'stores' && Object.keys(shiftsByStore).length === 0 ? (
               <NeumorphicCard className="p-12 text-center">
                 <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                 <p className="text-slate-500">Nessun turno trovato per questa data</p>
@@ -433,10 +480,10 @@ export default function FormTracker() {
                   Verifica che ci siano turni in Planday per il {selectedDate}
                 </p>
                 <p className="text-xs text-blue-600 mt-4">
-                  💡 Apri la console del browser (F12) per vedere i log di debug dettagliati
+                  💡 Seleziona una data diversa o verifica che ci siano turni in Planday
                 </p>
               </NeumorphicCard>
-            ) : (
+            ) : activeView === 'stores' ? (
               Object.entries(shiftsByStore).map(([storeName, storeShifts]) => (
                 <NeumorphicCard key={storeName} className="p-4">
                   <button
@@ -559,6 +606,92 @@ export default function FormTracker() {
                   )}
                 </NeumorphicCard>
               ))
+            ) : (
+              /* Forms View */
+              Object.keys(formsByStore).length === 0 ? (
+                <NeumorphicCard className="p-12 text-center">
+                  <ClipboardCheck className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <p className="text-slate-500">Nessun form richiesto per questa data</p>
+                </NeumorphicCard>
+              ) : (
+                Object.entries(formsByStore).map(([storeName, forms]) => {
+                  const formEntries = Object.values(forms);
+                  const totalCompletions = formEntries.reduce((sum, f) => sum + f.completions.length, 0);
+                  const completedCount = formEntries.reduce((sum, f) => 
+                    sum + f.completions.filter(c => c.completed).length, 0
+                  );
+                  
+                  return (
+                    <NeumorphicCard key={storeName} className="p-4">
+                      <button
+                        onClick={() => setExpandedStores(prev => ({ ...prev, [storeName]: !prev[storeName] }))}
+                        className="w-full flex items-center justify-between"
+                      >
+                        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                          <Store className="w-5 h-5 text-blue-600" />
+                          {storeName}
+                        </h2>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                            completedCount === totalCompletions
+                              ? 'bg-green-100 text-green-700'
+                              : completedCount > 0
+                              ? 'bg-yellow-100 text-yellow-700'
+                              : 'bg-red-100 text-red-700'
+                          }`}>
+                            {completedCount}/{totalCompletions} completati
+                          </span>
+                          {expandedStores[storeName] ? <ChevronUp className="w-5 h-5 text-slate-500" /> : <ChevronDown className="w-5 h-5 text-slate-500" />}
+                        </div>
+                      </button>
+
+                      {expandedStores[storeName] && (
+                        <div className="mt-4 space-y-3">
+                          {formEntries.map((form, idx) => {
+                            const completed = form.completions.filter(c => c.completed).length;
+                            const total = form.completions.length;
+                            
+                            return (
+                              <div key={idx} className="neumorphic-pressed p-4 rounded-xl">
+                                <div className="flex items-center justify-between mb-2">
+                                  <h3 className="font-bold text-slate-800">{form.formName}</h3>
+                                  <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                    completed === total
+                                      ? 'bg-green-100 text-green-700'
+                                      : completed > 0
+                                      ? 'bg-yellow-100 text-yellow-700'
+                                      : 'bg-red-100 text-red-700'
+                                  }`}>
+                                    {completed}/{total}
+                                  </span>
+                                </div>
+                                <div className="space-y-1">
+                                  {form.completions.map((comp, cIdx) => (
+                                    <div key={cIdx} className="flex items-center justify-between text-sm">
+                                      <span className="text-slate-600">{comp.employeeName}</span>
+                                      {comp.completed ? (
+                                        <span className="text-green-600 flex items-center gap-1">
+                                          <CheckCircle className="w-4 h-4" />
+                                          Completato
+                                        </span>
+                                      ) : (
+                                        <span className="text-red-600 flex items-center gap-1">
+                                          <AlertTriangle className="w-4 h-4" />
+                                          Mancante
+                                        </span>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </NeumorphicCard>
+                  );
+                })
+              )
             )}
 
 
