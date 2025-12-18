@@ -212,16 +212,38 @@ export default function FormTracker() {
       // Normalize both dates to YYYY-MM-DD format for comparison
       const shiftDate = s.data ? s.data.split('T')[0] : null;
       const normalizedSelectedDate = selectedDate.split('T')[0];
-      
+
+      console.log('Checking shift:', {
+        data: s.data,
+        shiftDate,
+        normalizedSelectedDate,
+        match: shiftDate === normalizedSelectedDate,
+        store_name: s.store_name,
+        dipendente_nome: s.dipendente_nome,
+        stato: s.stato,
+        tipo_turno: s.tipo_turno
+      });
+
       if (shiftDate !== normalizedSelectedDate) return false;
-      if (!s.store_name || s.store_name.trim() === '') return false;
-      if (!s.dipendente_nome || s.dipendente_nome.trim() === '') return false;
-      const stato = (s.stato || '').toLowerCase();
-      const tipoTurno = (s.tipo_turno || '').toLowerCase();
-      if (stato === 'cancellato' || stato === 'cancelled') return false;
-      if (tipoTurno.includes('malattia') || tipoTurno.includes('ferie') || tipoTurno.includes('assenza')) {
+      if (!s.store_name || s.store_name.trim() === '') {
+        console.log('  ❌ No store_name');
         return false;
       }
+      if (!s.dipendente_nome || s.dipendente_nome.trim() === '') {
+        console.log('  ❌ No dipendente_nome');
+        return false;
+      }
+      const stato = (s.stato || '').toLowerCase();
+      const tipoTurno = (s.tipo_turno || '').toLowerCase();
+      if (stato === 'cancellato' || stato === 'cancelled') {
+        console.log('  ❌ Cancelled shift');
+        return false;
+      }
+      if (tipoTurno.includes('malattia') || tipoTurno.includes('ferie') || tipoTurno.includes('assenza')) {
+        console.log('  ❌ Leave/absence shift');
+        return false;
+      }
+      console.log('  ✅ Shift valid');
       return true;
     });
 
