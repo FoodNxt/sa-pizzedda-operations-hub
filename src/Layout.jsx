@@ -341,11 +341,6 @@ const navigationStructure = [
         icon: Zap,
       },
       {
-        title: "Zapier Inventory",
-        url: createPageUrl("InventorySetup"),
-        icon: Zap,
-      },
-      {
         title: "Zapier iPratico",
         url: createPageUrl("IPraticoSetup"),
         icon: Zap,
