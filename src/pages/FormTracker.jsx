@@ -260,9 +260,13 @@ export default function FormTracker() {
       shiftsByStore[storeName].push(shift);
     });
 
+    console.log('Shifts by store:', Object.keys(shiftsByStore));
+
     // For each store with shifts
     Object.entries(shiftsByStore).forEach(([storeName, storeShifts]) => {
       if (selectedStore && selectedStore !== storeName) return;
+
+      console.log(`\n=== Processing store: ${storeName} with ${storeShifts.length} shifts ===`);
 
       byStore[storeName] = { forms: [], completed: 0, missing: 0 };
 
