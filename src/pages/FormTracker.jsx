@@ -52,23 +52,34 @@ export default function FormTracker() {
   // Just use all shifts from the query (already filtered by date)
   const shiftsForDate = turniPlanday;
 
-  // Group shifts by store
+  // Group shifts by store (lookup store name from store_id if needed)
   const shiftsByStore = useMemo(() => {
     const grouped = {};
 
     shiftsForDate.forEach(shift => {
-      const storeName = shift.store_name || 'Senza Store';
+      // Try to get store name from shift, otherwise lookup by store_id
+      let storeName = shift.store_name;
+      
+      if (!storeName && shift.store_id) {
+        const store = stores.find(s => s.id === shift.store_id);
+        storeName = store?.name || 'Senza Store';
+      }
+      
+      if (!storeName) {
+        storeName = 'Senza Store';
+      }
+      
       if (selectedStore && selectedStore !== storeName) return;
 
       if (!grouped[storeName]) {
         grouped[storeName] = [];
       }
-      grouped[storeName].push(shift);
+      grouped[storeName].push({ ...shift, store_name: storeName });
     });
 
     console.log('Shifts grouped by store:', grouped);
     return grouped;
-  }, [shiftsForDate, selectedStore]);
+  }, [shiftsForDate, selectedStore, stores]);
 
   const toggleFormExpand = (formName) => {
     setExpandedForms(prev => ({
