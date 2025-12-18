@@ -30,12 +30,20 @@ export default function FormTracker() {
   const { data: turniPlanday = [], isLoading: loadingTurni } = useQuery({
     queryKey: ['turni-planday', selectedDate],
     queryFn: async () => {
+      console.log('=== FETCHING SHIFTS FOR DATE:', selectedDate);
+      
       // Get all shifts around the selected date (7 days before and after for safety)
       const date = new Date(selectedDate);
       const weekBefore = new Date(date);
       weekBefore.setDate(weekBefore.getDate() - 7);
       const weekAfter = new Date(date);
       weekAfter.setDate(weekAfter.getDate() + 7);
+      
+      console.log('Date range:', {
+        from: weekBefore.toISOString().split('T')[0],
+        to: weekAfter.toISOString().split('T')[0],
+        selectedDate: selectedDate
+      });
       
       const shifts = await base44.entities.TurnoPlanday.filter({
         data: {
@@ -44,8 +52,9 @@ export default function FormTracker() {
         }
       });
       
-      console.log('Loaded shifts from Planday:', shifts.length);
-      console.log('Sample shifts:', shifts.slice(0, 3));
+      console.log('=== LOADED SHIFTS FROM PLANDAY:', shifts.length);
+      console.log('First 5 shifts:', shifts.slice(0, 5));
+      console.log('Shifts for selected date:', shifts.filter(s => s.data?.split('T')[0] === selectedDate).length);
       
       return shifts;
     },
@@ -196,28 +205,62 @@ export default function FormTracker() {
 
   // Get shifts for selected date - simplified to just show all shifts
   const shiftsForDate = useMemo(() => {
-    if (!selectedDate) return [];
+    if (!selectedDate) {
+      console.log('❌ No selectedDate');
+      return [];
+    }
+
+    console.log('\n=== FILTERING SHIFTS FOR DATE:', selectedDate);
+    console.log('Total shifts available:', turniPlanday.length);
 
     const shifts = turniPlanday.filter(s => {
       const shiftDate = s.data ? s.data.split('T')[0] : null;
       const normalizedSelectedDate = selectedDate.split('T')[0];
 
-      if (shiftDate !== normalizedSelectedDate) return false;
-      if (!s.store_name || s.store_name.trim() === '') return false;
-      if (!s.dipendente_nome || s.dipendente_nome.trim() === '') return false;
+      console.log('Checking shift:', {
+        shiftDate,
+        normalizedSelectedDate,
+        match: shiftDate === normalizedSelectedDate,
+        store_name: s.store_name,
+        dipendente_nome: s.dipendente_nome,
+        stato: s.stato,
+        tipo_turno: s.tipo_turno
+      });
 
-      const stato = (s.stato || '').toLowerCase();
-      if (stato === 'cancellato' || stato === 'cancelled') return false;
-
-      const tipoTurno = (s.tipo_turno || '').toLowerCase();
-      if (tipoTurno.includes('malattia') || tipoTurno.includes('ferie') || tipoTurno.includes('assenza')) {
+      if (shiftDate !== normalizedSelectedDate) {
+        console.log('  ❌ Date mismatch');
+        return false;
+      }
+      if (!s.store_name || s.store_name.trim() === '') {
+        console.log('  ❌ No store_name');
+        return false;
+      }
+      if (!s.dipendente_nome || s.dipendente_nome.trim() === '') {
+        console.log('  ❌ No dipendente_nome');
         return false;
       }
 
+      const stato = (s.stato || '').toLowerCase();
+      if (stato === 'cancellato' || stato === 'cancelled') {
+        console.log('  ❌ Cancelled');
+        return false;
+      }
+
+      const tipoTurno = (s.tipo_turno || '').toLowerCase();
+      if (tipoTurno.includes('malattia') || tipoTurno.includes('ferie') || tipoTurno.includes('assenza')) {
+        console.log('  ❌ Leave/absence');
+        return false;
+      }
+
+      console.log('  ✅ Valid shift');
       return true;
     });
 
-    console.log('Shifts for date:', shifts.length);
+    console.log('=== FILTERED SHIFTS:', shifts.length);
+    if (shifts.length > 0) {
+      console.log('Sample filtered shifts:', shifts.slice(0, 3));
+    }
+    
     return shifts;
   }, [selectedDate, turniPlanday]);
 
@@ -360,6 +403,22 @@ export default function FormTracker() {
               </NeumorphicCard>
             </div>
 
+            {/* Debug Info */}
+            <NeumorphicCard className="p-4 bg-yellow-50 border-2 border-yellow-200">
+              <p className="text-sm font-bold text-yellow-900 mb-2">🔍 Debug Info (apri la console per più dettagli)</p>
+              <div className="space-y-1 text-xs text-yellow-800">
+                <p>• Turni caricati da Planday: <strong>{turniPlanday.length}</strong></p>
+                <p>• Data selezionata: <strong>{selectedDate}</strong></p>
+                <p>• Turni dopo filtro: <strong>{shiftsForDate.length}</strong></p>
+                <p>• Locali con turni: <strong>{Object.keys(shiftsByStore).length}</strong></p>
+                {turniPlanday.length > 0 && (
+                  <p className="mt-2 pt-2 border-t border-yellow-300">
+                    📋 Esempio turno: {turniPlanday[0]?.dipendente_nome} - {turniPlanday[0]?.store_name} - {turniPlanday[0]?.data}
+                  </p>
+                )}
+              </div>
+            </NeumorphicCard>
+
             {/* Shifts List by Store */}
             {loadingTurni ? (
               <NeumorphicCard className="p-6 text-center">
@@ -371,6 +430,9 @@ export default function FormTracker() {
                 <p className="text-slate-500">Nessun turno trovato per questa data</p>
                 <p className="text-xs text-slate-400 mt-2">
                   Verifica che ci siano turni in Planday per il {selectedDate}
+                </p>
+                <p className="text-xs text-blue-600 mt-4">
+                  💡 Apri la console del browser (F12) per vedere i log di debug dettagliati
                 </p>
               </NeumorphicCard>
             ) : (
