@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -74,18 +74,18 @@ export default function FormTracker() {
   // Just use all shifts from the query (already filtered by date)
   const shiftsForDate = turniPlanday;
 
-  const timeToMinutes = (timeStr) => {
+  const timeToMinutes = useCallback((timeStr) => {
     if (!timeStr) return 0;
     const [hours, minutes] = timeStr.split(':').map(Number);
     return hours * 60 + minutes;
-  };
+  }, []);
 
-  const normalizeNameForMatch = (name) => {
+  const normalizeNameForMatch = useCallback((name) => {
     if (!name) return '';
     return name.toLowerCase().trim().replace(/\s+/g, ' ');
-  };
+  }, []);
 
-  const namesMatch = (name1, name2) => {
+  const namesMatch = useCallback((name1, name2) => {
     const n1 = normalizeNameForMatch(name1);
     const n2 = normalizeNameForMatch(name2);
     if (n1 === n2) return true;
@@ -95,9 +95,9 @@ export default function FormTracker() {
     const matchingWords = words1.filter(w => words2.includes(w) && w.length > 2);
     if (matchingWords.length >= 2) return true;
     return false;
-  };
+  }, [normalizeNameForMatch]);
 
-  const checkFormCompletion = (formPage, employeeName, storeName, date) => {
+  const checkFormCompletion = useCallback((formPage, employeeName, storeName, date) => {
     const dateStart = new Date(date);
     dateStart.setHours(0, 0, 0, 0);
     const dateEnd = new Date(date);
@@ -166,9 +166,23 @@ export default function FormTracker() {
       default:
         return { completed: false, data: null };
     }
-  };
+  }, [cleaningInspections, inventarioRilevazioni, conteggiCassa, teglieButtate, preparazioni, gestioneImpasti, namesMatch]);
 
-  const getRequiredFormsForShift = (shift) => {
+  const getFormName = useCallback((formPage) => {
+    const names = {
+      'ControlloPuliziaCassiere': 'Pulizia Cassiere',
+      'ControlloPuliziaPizzaiolo': 'Pulizia Pizzaiolo',
+      'ControlloPuliziaStoreManager': 'Pulizia SM',
+      'FormInventario': 'Inventario',
+      'ConteggioCassa': 'Conteggio Cassa',
+      'FormTeglieButtate': 'Teglie Buttate',
+      'FormPreparazioni': 'Preparazioni',
+      'Impasto': 'Impasto'
+    };
+    return names[formPage] || formPage;
+  }, []);
+
+  const getRequiredFormsForShift = useCallback((shift) => {
     if (!shift.ruolo) return [];
     
     const shiftStart = timeToMinutes(shift.ora_inizio);
@@ -234,21 +248,7 @@ export default function FormTracker() {
         ...completion
       };
     });
-  };
-
-  const getFormName = (formPage) => {
-    const names = {
-      'ControlloPuliziaCassiere': 'Pulizia Cassiere',
-      'ControlloPuliziaPizzaiolo': 'Pulizia Pizzaiolo',
-      'ControlloPuliziaStoreManager': 'Pulizia SM',
-      'FormInventario': 'Inventario',
-      'ConteggioCassa': 'Conteggio Cassa',
-      'FormTeglieButtate': 'Teglie Buttate',
-      'FormPreparazioni': 'Preparazioni',
-      'Impasto': 'Impasto'
-    };
-    return names[formPage] || formPage;
-  };
+  }, [strutturaSchemi, timeToMinutes, checkFormCompletion, getFormName, selectedDate]);
 
   // Group shifts by store (lookup store name from store_id if needed)
   const shiftsByStore = useMemo(() => {
@@ -314,7 +314,7 @@ export default function FormTracker() {
     });
 
     return grouped;
-  }, [shiftsForDate, selectedStore, stores, strutturaSchemi, cleaningInspections, inventarioRilevazioni, conteggiCassa, teglieButtate, preparazioni, gestioneImpasti, selectedDate]);
+  }, [shiftsForDate, selectedStore, stores, getRequiredFormsForShift]);
 
   const formatShiftTime = (timeStr) => {
     if (!timeStr) return 'N/A';
