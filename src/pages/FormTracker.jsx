@@ -28,35 +28,24 @@ export default function FormTracker() {
   });
 
   const { data: turniPlanday = [], isLoading: loadingTurni } = useQuery({
-    queryKey: ['turni-planday', selectedDate],
+    queryKey: ['turni-planday-all'],
     queryFn: async () => {
-      console.log('=== FETCHING SHIFTS FOR DATE:', selectedDate);
+      console.log('=== FETCHING ALL SHIFTS FROM TurnoPlanday');
       
-      // Get all shifts around the selected date (7 days before and after for safety)
-      const date = new Date(selectedDate);
-      const weekBefore = new Date(date);
-      weekBefore.setDate(weekBefore.getDate() - 7);
-      const weekAfter = new Date(date);
-      weekAfter.setDate(weekAfter.getDate() + 7);
+      // Fetch ALL shifts to see what's in the database
+      const allShifts = await base44.entities.TurnoPlanday.list('-data', 100);
       
-      console.log('Date range:', {
-        from: weekBefore.toISOString().split('T')[0],
-        to: weekAfter.toISOString().split('T')[0],
-        selectedDate: selectedDate
-      });
+      console.log('=== TOTAL SHIFTS IN DATABASE:', allShifts.length);
+      console.log('First 10 shifts:', allShifts.slice(0, 10));
       
-      const shifts = await base44.entities.TurnoPlanday.filter({
-        data: {
-          $gte: weekBefore.toISOString().split('T')[0],
-          $lte: weekAfter.toISOString().split('T')[0]
-        }
-      });
+      if (allShifts.length > 0) {
+        console.log('Sample shift structure:', allShifts[0]);
+        console.log('Dates found:', allShifts.map(s => s.data).slice(0, 20));
+      } else {
+        console.error('❌ NO SHIFTS FOUND IN TurnoPlanday TABLE');
+      }
       
-      console.log('=== LOADED SHIFTS FROM PLANDAY:', shifts.length);
-      console.log('First 5 shifts:', shifts.slice(0, 5));
-      console.log('Shifts for selected date:', shifts.filter(s => s.data?.split('T')[0] === selectedDate).length);
-      
-      return shifts;
+      return allShifts;
     },
   });
 
