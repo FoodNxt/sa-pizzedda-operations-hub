@@ -30,23 +30,47 @@ export default function FormTracker() {
   const { data: turniPlanday = [], isLoading: loadingTurni } = useQuery({
     queryKey: ['turni-planday', selectedDate],
     queryFn: async () => {
-      console.log('=== FETCHING SHIFTS FROM TurnoPlanday FOR DATE:', selectedDate);
-      
-      // Fetch shifts for selected date
       const shifts = await base44.entities.TurnoPlanday.filter({
         data: selectedDate
       });
-      
-      console.log('=== LOADED SHIFTS:', shifts.length);
-      if (shifts.length > 0) {
-        console.log('Shifts:', shifts);
-      } else {
-        console.warn('❌ NO SHIFTS FOUND FOR DATE:', selectedDate);
-      }
-      
       return shifts;
     },
     enabled: !!selectedDate
+  });
+
+  const { data: strutturaSchemi = [] } = useQuery({
+    queryKey: ['struttura-turno'],
+    queryFn: () => base44.entities.StrutturaTurno.filter({ is_active: true }),
+  });
+
+  const { data: cleaningInspections = [] } = useQuery({
+    queryKey: ['cleaning-inspections', selectedDate],
+    queryFn: () => base44.entities.CleaningInspection.list('-inspection_date', 200),
+  });
+
+  const { data: inventarioRilevazioni = [] } = useQuery({
+    queryKey: ['inventario-rilevazioni', selectedDate],
+    queryFn: () => base44.entities.RilevazioneInventario.list('-data_rilevazione', 200),
+  });
+
+  const { data: conteggiCassa = [] } = useQuery({
+    queryKey: ['conteggi-cassa', selectedDate],
+    queryFn: () => base44.entities.ConteggioCassa.list('-data_conteggio', 200),
+  });
+
+  const { data: teglieButtate = [] } = useQuery({
+    queryKey: ['teglie-buttate', selectedDate],
+    queryFn: () => base44.entities.TeglieButtate.list('-data_rilevazione', 200),
+  });
+
+  const { data: preparazioni = [] } = useQuery({
+    queryKey: ['preparazioni', selectedDate],
+    queryFn: () => base44.entities.Preparazioni.list('-data_rilevazione', 200),
+  });
+
+  const { data: gestioneImpasti = [] } = useQuery({
+    queryKey: ['gestione-impasti', selectedDate],
+    queryFn: () => base44.entities.GestioneImpasti.list('-data_creazione', 200),
   });
 
   // Just use all shifts from the query (already filtered by date)
@@ -81,6 +105,129 @@ export default function FormTracker() {
     return grouped;
   }, [shiftsForDate, selectedStore, stores]);
 
+  const normalizeNameForMatch = (name) => {
+    if (!name) return '';
+    return name.toLowerCase().trim().replace(/\s+/g, ' ');
+  };
+
+  const namesMatch = (name1, name2) => {
+    const n1 = normalizeNameForMatch(name1);
+    const n2 = normalizeNameForMatch(name2);
+    if (n1 === n2) return true;
+    if (n1.includes(n2) || n2.includes(n1)) return true;
+    const words1 = n1.split(' ');
+    const words2 = n2.split(' ');
+    const matchingWords = words1.filter(w => words2.includes(w) && w.length > 2);
+    if (matchingWords.length >= 2) return true;
+    return false;
+  };
+
+  const checkFormCompletion = (formPage, employeeName, storeName, date) => {
+    const dateStart = new Date(date);
+    dateStart.setHours(0, 0, 0, 0);
+    const dateEnd = new Date(date);
+    dateEnd.setHours(23, 59, 59, 999);
+    const nextDayEnd = new Date(dateEnd);
+    nextDayEnd.setDate(nextDayEnd.getDate() + 1);
+    nextDayEnd.setHours(6, 0, 0, 0);
+
+    switch (formPage) {
+      case 'ControlloPuliziaCassiere':
+      case 'ControlloPuliziaPizzaiolo':
+      case 'ControlloPuliziaStoreManager': {
+        const inspection = cleaningInspections.find(i => {
+          const inspDate = new Date(i.inspection_date);
+          return i.store_name === storeName &&
+                 namesMatch(i.inspector_name, employeeName) &&
+                 inspDate >= dateStart && inspDate <= nextDayEnd;
+        });
+        return { completed: !!inspection, data: inspection };
+      }
+      case 'FormInventario': {
+        const rilevazione = inventarioRilevazioni.find(r => {
+          const rilDate = new Date(r.data_rilevazione);
+          return r.store_name === storeName &&
+                 namesMatch(r.rilevato_da, employeeName) &&
+                 rilDate >= dateStart && rilDate <= nextDayEnd;
+        });
+        return { completed: !!rilevazione, data: rilevazione };
+      }
+      case 'ConteggioCassa': {
+        const conteggio = conteggiCassa.find(c => {
+          const contDate = new Date(c.data_conteggio);
+          return c.store_name === storeName &&
+                 namesMatch(c.rilevato_da, employeeName) &&
+                 contDate >= dateStart && contDate <= nextDayEnd;
+        });
+        return { completed: !!conteggio, data: conteggio };
+      }
+      case 'FormTeglieButtate': {
+        const teglie = teglieButtate.find(t => {
+          const tegDate = new Date(t.data_rilevazione);
+          return t.store_name === storeName &&
+                 namesMatch(t.rilevato_da, employeeName) &&
+                 tegDate >= dateStart && tegDate <= nextDayEnd;
+        });
+        return { completed: !!teglie, data: teglie };
+      }
+      case 'FormPreparazioni': {
+        const prep = preparazioni.find(p => {
+          const prepDate = new Date(p.data_rilevazione);
+          return p.store_name === storeName &&
+                 namesMatch(p.rilevato_da, employeeName) &&
+                 prepDate >= dateStart && prepDate <= nextDayEnd;
+        });
+        return { completed: !!prep, data: prep };
+      }
+      case 'Impasto': {
+        const impasto = gestioneImpasti.find(i => {
+          const impDate = new Date(i.data_creazione);
+          return i.store_name === storeName &&
+                 namesMatch(i.creato_da, employeeName) &&
+                 impDate >= dateStart && impDate <= nextDayEnd;
+        });
+        return { completed: !!impasto, data: impasto };
+      }
+      default:
+        return { completed: false, data: null };
+    }
+  };
+
+  const getRequiredFormsForShift = (shift) => {
+    if (!shift.ruolo || !shift.tipo_turno || !shift.momento_turno) return [];
+    
+    const schema = strutturaSchemi.find(s => 
+      s.ruolo === shift.ruolo && 
+      s.tipo_turno === shift.tipo_turno && 
+      s.momento_turno === shift.momento_turno
+    );
+    
+    if (!schema || !schema.forms_richiesti) return [];
+    
+    return schema.forms_richiesti.map(formPage => {
+      const completion = checkFormCompletion(formPage, shift.dipendente_nome, shift.store_name, selectedDate);
+      return {
+        formPage,
+        formName: getFormName(formPage),
+        ...completion
+      };
+    });
+  };
+
+  const getFormName = (formPage) => {
+    const names = {
+      'ControlloPuliziaCassiere': 'Pulizia Cassiere',
+      'ControlloPuliziaPizzaiolo': 'Pulizia Pizzaiolo',
+      'ControlloPuliziaStoreManager': 'Pulizia SM',
+      'FormInventario': 'Inventario',
+      'ConteggioCassa': 'Conteggio Cassa',
+      'FormTeglieButtate': 'Teglie Buttate',
+      'FormPreparazioni': 'Preparazioni',
+      'Impasto': 'Impasto'
+    };
+    return names[formPage] || formPage;
+  };
+
   const toggleFormExpand = (formName) => {
     setExpandedForms(prev => ({
       ...prev,
@@ -90,9 +237,7 @@ export default function FormTracker() {
 
   const formatShiftTime = (timeStr) => {
     if (!timeStr) return 'N/A';
-    // If it's already in HH:MM format, return it
     if (timeStr.match(/^\d{2}:\d{2}$/)) return timeStr;
-    // If it's a date-time string, extract time
     try {
       return new Date(timeStr).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
     } catch {
@@ -259,58 +404,104 @@ export default function FormTracker() {
 
                   {/* Show shifts when expanded */}
                   {expandedStores[storeName] && (
-                    <div className="mt-4 space-y-2">
-                      {storeShifts.map((shift, idx) => (
-                        <div 
-                          key={idx} 
-                          className="neumorphic-pressed p-4 rounded-xl"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1 min-w-0">
-                              <p className="font-bold text-slate-800 mb-1">{shift.dipendente_nome || 'Nessun nome'}</p>
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                                    {shift.ruolo || 'Nessun ruolo'}
-                                  </span>
-                                  {shift.tipo_turno && (
-                                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
-                                      {shift.tipo_turno}
+                    <div className="mt-4 space-y-3">
+                      {storeShifts.map((shift, idx) => {
+                        const requiredForms = getRequiredFormsForShift(shift);
+                        const completedForms = requiredForms.filter(f => f.completed).length;
+                        const totalForms = requiredForms.length;
+                        
+                        return (
+                          <div 
+                            key={idx} 
+                            className="neumorphic-pressed p-4 rounded-xl"
+                          >
+                            <div className="flex items-start justify-between gap-3 mb-3">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-slate-800 mb-1">{shift.dipendente_nome || 'Nessun nome'}</p>
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                                      {shift.ruolo || 'Nessun ruolo'}
                                     </span>
-                                  )}
-                                  {shift.momento_turno && (
-                                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
-                                      {shift.momento_turno}
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="text-xs text-slate-600 flex items-center gap-2">
-                                  <span className="font-mono">{formatShiftTime(shift.ora_inizio)} - {formatShiftTime(shift.ora_fine)}</span>
+                                    {shift.tipo_turno && (
+                                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                                        {shift.tipo_turno}
+                                      </span>
+                                    )}
+                                    {shift.momento_turno && (
+                                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                                        {shift.momento_turno}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-xs text-slate-600 flex items-center gap-2">
+                                    <span className="font-mono">{formatShiftTime(shift.ora_inizio)} - {formatShiftTime(shift.ora_fine)}</span>
+                                  </div>
                                 </div>
                               </div>
+                              <div className="flex flex-col items-end gap-1">
+                                <span className={`px-2 py-1 rounded-full text-xs font-bold whitespace-nowrap ${
+                                  shift.stato === 'completato' 
+                                    ? 'bg-green-100 text-green-700'
+                                    : shift.stato === 'in_corso'
+                                    ? 'bg-blue-100 text-blue-700'
+                                    : shift.stato === 'annullato'
+                                    ? 'bg-red-100 text-red-700'
+                                    : 'bg-gray-100 text-gray-700'
+                                }`}>
+                                  {shift.stato || 'programmato'}
+                                </span>
+                                {shift.timbrata_entrata && (
+                                  <span className="text-xs text-green-600">✓ Entrata</span>
+                                )}
+                                {shift.timbrata_uscita && (
+                                  <span className="text-xs text-green-600">✓ Uscita</span>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex flex-col items-end gap-1">
-                              <span className={`px-2 py-1 rounded-full text-xs font-bold whitespace-nowrap ${
-                                shift.stato === 'completato' 
-                                  ? 'bg-green-100 text-green-700'
-                                  : shift.stato === 'in_corso'
-                                  ? 'bg-blue-100 text-blue-700'
-                                  : shift.stato === 'annullato'
-                                  ? 'bg-red-100 text-red-700'
-                                  : 'bg-gray-100 text-gray-700'
-                              }`}>
-                                {shift.stato || 'programmato'}
-                              </span>
-                              {shift.timbrata_entrata && (
-                                <span className="text-xs text-green-600">✓ Entrata</span>
-                              )}
-                              {shift.timbrata_uscita && (
-                                <span className="text-xs text-green-600">✓ Uscita</span>
-                              )}
-                            </div>
+
+                            {/* Required Forms */}
+                            {totalForms > 0 && (
+                              <div className="pt-3 border-t border-slate-200">
+                                <div className="flex items-center justify-between mb-2">
+                                  <p className="text-xs font-medium text-slate-600">
+                                    Form richiesti: {completedForms}/{totalForms}
+                                  </p>
+                                  <div className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                                    completedForms === totalForms 
+                                      ? 'bg-green-100 text-green-700' 
+                                      : completedForms > 0
+                                      ? 'bg-yellow-100 text-yellow-700'
+                                      : 'bg-red-100 text-red-700'
+                                  }`}>
+                                    {completedForms === totalForms ? '✓ Completati' : `${completedForms}/${totalForms}`}
+                                  </div>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {requiredForms.map((form, fIdx) => (
+                                    <div
+                                      key={fIdx}
+                                      className={`px-2 py-1 rounded-lg text-xs font-medium flex items-center gap-1 ${
+                                        form.completed
+                                          ? 'bg-green-50 text-green-700 border border-green-200'
+                                          : 'bg-gray-50 text-gray-600 border border-gray-200'
+                                      }`}
+                                    >
+                                      {form.completed ? <CheckCircle className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
+                                      {form.formName}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {totalForms === 0 && (
+                              <div className="pt-3 border-t border-slate-200">
+                                <p className="text-xs text-slate-500 italic">Nessun form richiesto per questo turno</p>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </NeumorphicCard>
