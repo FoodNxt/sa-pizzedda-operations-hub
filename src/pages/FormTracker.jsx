@@ -194,192 +194,49 @@ export default function FormTracker() {
     }
   };
 
-  // Calculate expected vs completed forms based on StrutturaTurno
-  const formStatus = useMemo(() => {
-    if (!selectedDate) return { byStore: {}, summary: { total: 0, completed: 0, missing: 0 } };
+  // Get shifts for selected date - simplified to just show all shifts
+  const shiftsForDate = useMemo(() => {
+    if (!selectedDate) return [];
 
-    const byStore = {};
-    let totalExpected = 0;
-    let totalCompleted = 0;
-    const selectedDayOfWeek = new Date(selectedDate).getDay();
-
-    console.log('FormTracker - Selected date:', selectedDate);
-    console.log('FormTracker - Total shifts in Planday:', turniPlanday.length);
-    console.log('FormTracker - Sample shift:', turniPlanday[0]);
-
-    // Get shifts for selected date
-    const shiftsForDate = turniPlanday.filter(s => {
-      // Normalize both dates to YYYY-MM-DD format for comparison
+    const shifts = turniPlanday.filter(s => {
       const shiftDate = s.data ? s.data.split('T')[0] : null;
       const normalizedSelectedDate = selectedDate.split('T')[0];
 
-      console.log('Checking shift:', {
-        data: s.data,
-        shiftDate,
-        normalizedSelectedDate,
-        match: shiftDate === normalizedSelectedDate,
-        store_name: s.store_name,
-        dipendente_nome: s.dipendente_nome,
-        stato: s.stato,
-        tipo_turno: s.tipo_turno
-      });
-
       if (shiftDate !== normalizedSelectedDate) return false;
-      if (!s.store_name || s.store_name.trim() === '') {
-        console.log('  ❌ No store_name');
-        return false;
-      }
-      if (!s.dipendente_nome || s.dipendente_nome.trim() === '') {
-        console.log('  ❌ No dipendente_nome');
-        return false;
-      }
+      if (!s.store_name || s.store_name.trim() === '') return false;
+      if (!s.dipendente_nome || s.dipendente_nome.trim() === '') return false;
+
       const stato = (s.stato || '').toLowerCase();
+      if (stato === 'cancellato' || stato === 'cancelled') return false;
+
       const tipoTurno = (s.tipo_turno || '').toLowerCase();
-      if (stato === 'cancellato' || stato === 'cancelled') {
-        console.log('  ❌ Cancelled shift');
-        return false;
-      }
       if (tipoTurno.includes('malattia') || tipoTurno.includes('ferie') || tipoTurno.includes('assenza')) {
-        console.log('  ❌ Leave/absence shift');
         return false;
       }
-      console.log('  ✅ Shift valid');
+
       return true;
     });
 
-    console.log('FormTracker - Filtered shifts for date:', shiftsForDate.length);
-    console.log('FormTracker - Sample filtered shift:', shiftsForDate[0]);
+    console.log('Shifts for date:', shifts.length);
+    return shifts;
+  }, [selectedDate, turniPlanday]);
 
-    // Group shifts by store
-    const shiftsByStore = {};
+  // Group shifts by store
+  const shiftsByStore = useMemo(() => {
+    const grouped = {};
+
     shiftsForDate.forEach(shift => {
       const storeName = shift.store_name || '';
-      if (!shiftsByStore[storeName]) {
-        shiftsByStore[storeName] = [];
-      }
-      shiftsByStore[storeName].push(shift);
-    });
-
-    console.log('Shifts by store:', Object.keys(shiftsByStore));
-
-    // For each store with shifts
-    Object.entries(shiftsByStore).forEach(([storeName, storeShifts]) => {
       if (selectedStore && selectedStore !== storeName) return;
 
-      console.log(`\n=== Processing store: ${storeName} with ${storeShifts.length} shifts ===`);
-
-      byStore[storeName] = { forms: [], completed: 0, missing: 0 };
-
-      // Process each shift
-      storeShifts.forEach(shift => {
-        const employeeName = shift.dipendente_nome;
-        const ruolo = shift.ruolo;
-        const storeEntity = stores.find(s => s.name === storeName);
-
-        console.log(`\n=== Analyzing shift ===`);
-        console.log('Employee:', employeeName);
-        console.log('Role:', ruolo);
-        console.log('Store:', storeName, 'Store ID:', storeEntity?.id);
-        console.log('Day of week:', selectedDayOfWeek, '(0=Sunday)');
-        console.log('Tipo turno:', shift.tipo_turno);
-
-        // Find applicable struttura schemas for this shift
-        const applicableSchemas = strutturaSchemi.filter(schema => {
-          console.log('\nChecking schema:', schema.nome_schema);
-          console.log('  Schema day:', schema.giorno_settimana, 'vs Shift day:', selectedDayOfWeek);
-          
-          // Check day of week
-          if (schema.giorno_settimana !== selectedDayOfWeek) {
-            console.log('  ❌ Day mismatch');
-            return false;
-          }
-          
-          console.log('  Schema role:', schema.ruolo, 'vs Shift role:', ruolo);
-          
-          // Check role
-          if (schema.ruolo !== ruolo) {
-            console.log('  ❌ Role mismatch');
-            return false;
-          }
-          
-          // Check store assignment
-          const assignedStores = schema.assigned_stores || [];
-          console.log('  Schema stores:', assignedStores.length === 0 ? 'ALL' : assignedStores);
-          if (assignedStores.length > 0 && storeEntity && !assignedStores.includes(storeEntity.id)) {
-            console.log('  ❌ Store not assigned');
-            return false;
-          }
-          
-          // Check tipo turno (if specified in schema)
-          const tipiTurno = schema.tipi_turno || [];
-          console.log('  Schema tipo turni:', tipiTurno.length === 0 ? 'ALL' : tipiTurno);
-          if (tipiTurno.length > 0 && shift.tipo_turno && !tipiTurno.includes(shift.tipo_turno)) {
-            console.log('  ❌ Tipo turno mismatch');
-            return false;
-          }
-          
-          console.log('  ✅ Schema matches!');
-          return true;
-        });
-
-        console.log(`\n➡️ Found ${applicableSchemas.length} matching schemas for ${employeeName}`);
-
-        // For each schema, extract slots that require forms
-        applicableSchemas.forEach(schema => {
-          const slots = schema.slots || [];
-          console.log(`  Schema ${schema.nome_schema} has ${slots.length} slots`);
-          
-          const formSlots = slots.filter(s => s.richiede_form && s.form_page);
-          console.log(`    ${formSlots.length} slots require forms`);
-          
-          slots.forEach(slot => {
-            if (slot.richiede_form && slot.form_page) {
-              console.log(`    📋 Form required: ${slot.form_page} (${slot.attivita})`);
-              totalExpected++;
-              
-              // Check if form was completed
-              const isCompleted = checkFormCompletion(
-                slot.form_page,
-                employeeName,
-                storeName,
-                selectedDate,
-                shift
-              );
-
-              const formEntry = {
-                formName: slot.attivita || slot.form_page,
-                formPage: slot.form_page,
-                employeeName,
-                shift,
-                slot,
-                schema,
-                completed: isCompleted.completed,
-                completionData: isCompleted.data
-              };
-
-              byStore[storeName].forms.push(formEntry);
-
-              if (isCompleted.completed) {
-                byStore[storeName].completed++;
-                totalCompleted++;
-              } else {
-                byStore[storeName].missing++;
-              }
-            }
-          });
-        });
-      });
+      if (!grouped[storeName]) {
+        grouped[storeName] = [];
+      }
+      grouped[storeName].push(shift);
     });
 
-    return {
-      byStore,
-      summary: {
-        total: totalExpected,
-        completed: totalCompleted,
-        missing: totalExpected - totalCompleted
-      }
-    };
-  }, [selectedDate, selectedStore, strutturaSchemi, turniPlanday, stores, cleaningInspections, inventarioRilevazioni, conteggiCassa, teglieButtate, preparazioni, gestioneImpasti]);
+    return grouped;
+  }, [shiftsForDate, selectedStore]);
 
   const toggleFormExpand = (formName) => {
     setExpandedForms(prev => ({
@@ -480,59 +337,44 @@ export default function FormTracker() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <NeumorphicCard className="p-6 text-center">
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 mx-auto mb-3 flex items-center justify-center shadow-lg">
-                  <ClipboardCheck className="w-7 h-7 text-white" />
+                  <Users className="w-7 h-7 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold text-slate-800">{formStatus.summary.total}</h3>
-                <p className="text-xs text-slate-500">Form Attesi</p>
+                <h3 className="text-2xl font-bold text-slate-800">{shiftsForDate.length}</h3>
+                <p className="text-xs text-slate-500">Turni Totali</p>
               </NeumorphicCard>
 
               <NeumorphicCard className="p-6 text-center">
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 mx-auto mb-3 flex items-center justify-center shadow-lg">
-                  <CheckCircle className="w-7 h-7 text-white" />
+                  <Store className="w-7 h-7 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold text-green-600">{formStatus.summary.completed}</h3>
-                <p className="text-xs text-slate-500">Completati</p>
+                <h3 className="text-2xl font-bold text-green-600">{Object.keys(shiftsByStore).length}</h3>
+                <p className="text-xs text-slate-500">Locali</p>
               </NeumorphicCard>
 
               <NeumorphicCard className="p-6 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-500 to-pink-600 mx-auto mb-3 flex items-center justify-center shadow-lg">
-                  <AlertTriangle className="w-7 h-7 text-white" />
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 mx-auto mb-3 flex items-center justify-center shadow-lg">
+                  <ClipboardCheck className="w-7 h-7 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold text-red-600">{formStatus.summary.missing}</h3>
-                <p className="text-xs text-slate-500">Mancanti</p>
+                <h3 className="text-2xl font-bold text-purple-600">{strutturaSchemi.length}</h3>
+                <p className="text-xs text-slate-500">Schemi Attivi</p>
               </NeumorphicCard>
             </div>
 
-            {/* Debug info */}
-            {loadingTurni && (
+            {/* Shifts List by Store */}
+            {loadingTurni ? (
               <NeumorphicCard className="p-6 text-center">
                 <p className="text-slate-500">Caricamento turni...</p>
               </NeumorphicCard>
-            )}
-
-            {!loadingTurni && (
-              <NeumorphicCard className="p-4 bg-blue-50">
-                <p className="text-xs text-slate-600">
-                  <strong>Debug Info:</strong><br/>
-                  Turni totali caricati: {turniPlanday.length}<br/>
-                  Turni per {selectedDate}: {turniPlanday.filter(s => s.data?.split('T')[0] === selectedDate.split('T')[0]).length}<br/>
-                  Schemi StrutturaTurno attivi: {strutturaSchemi.length}<br/>
-                  Form trovati: {formStatus.summary.total}
-                </p>
-              </NeumorphicCard>
-            )}
-
-            {/* Results by Store */}
-            {!loadingTurni && Object.keys(formStatus.byStore).length === 0 ? (
+            ) : Object.keys(shiftsByStore).length === 0 ? (
               <NeumorphicCard className="p-12 text-center">
-                <ClipboardCheck className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                 <p className="text-slate-500">Nessun turno trovato per questa data</p>
                 <p className="text-xs text-slate-400 mt-2">
-                  Verifica che ci siano turni in Planday per il {selectedDate} e che esistano schemi in StrutturaTurno
+                  Verifica che ci siano turni in Planday per il {selectedDate}
                 </p>
               </NeumorphicCard>
-            ) : !loadingTurni && (
-              Object.entries(formStatus.byStore).map(([storeName, storeData]) => (
+            ) : (
+              Object.entries(shiftsByStore).map(([storeName, storeShifts]) => (
                 <NeumorphicCard key={storeName} className="p-4">
                   <button
                     onClick={() => setExpandedStores(prev => ({ ...prev, [storeName]: !prev[storeName] }))}
@@ -543,102 +385,54 @@ export default function FormTracker() {
                       {storeName}
                     </h2>
                     <div className="flex items-center gap-2">
-                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
-                        ✓ {storeData.completed}
-                      </span>
-                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">
-                        ✗ {storeData.missing}
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700">
+                        {storeShifts.length} turni
                       </span>
                       {expandedStores[storeName] ? <ChevronUp className="w-5 h-5 text-slate-500" /> : <ChevronDown className="w-5 h-5 text-slate-500" />}
                     </div>
                   </button>
 
-                  {/* Group by form - only show when expanded */}
+                  {/* Show shifts when expanded */}
                   {expandedStores[storeName] && (
-                    <div className="mt-4">
-                      {(() => {
-                       const formsByName = {};
-                       storeData.forms.forEach(f => {
-                         const name = f.formName || 'Form senza nome';
-                         if (!formsByName[name]) {
-                           formsByName[name] = [];
-                         }
-                         formsByName[name].push(f);
-                       });
-
-                        return Object.entries(formsByName).map(([formName, forms]) => {
-                        const completedCount = forms.filter(f => f.completed).length;
-                        const isExpanded = expandedForms[`${storeName}-${formName}`];
-
-                        return (
-                        <div key={formName} className="mb-3">
-                        <button
-                        onClick={(e) => { e.stopPropagation(); toggleFormExpand(`${storeName}-${formName}`); }}
-                        className={`w-full neumorphic-pressed p-4 rounded-xl flex items-center justify-between ${
-                        completedCount === forms.length ? 'border-2 border-green-200' : 'border-2 border-orange-200'
-                        }`}
-                        >
-                        <div className="flex items-center gap-3">
-                        <span className="font-medium text-slate-800">{formName}</span>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                        completedCount === forms.length 
-                        ? 'bg-green-100 text-green-700' 
-                        : 'bg-orange-100 text-orange-700'
-                        }`}>
-                        {completedCount}/{forms.length}
-                        </span>
-                        </div>
-                        {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                        </button>
-
-                        {isExpanded && (
-                        <div className="mt-2 ml-4 space-y-2">
-                        {forms.map((form, idx) => (
+                    <div className="mt-4 space-y-2">
+                      {storeShifts.map((shift, idx) => (
                         <div 
-                        key={idx} 
-                        className={`p-3 rounded-lg flex items-center justify-between ${
-                        form.completed ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
-                        }`}
+                          key={idx} 
+                          className="neumorphic-pressed p-4 rounded-xl"
                         >
-                        <div className="flex-1">
-                        <p className="font-medium text-slate-800">{form.employeeName}</p>
-                        <p className="text-xs text-slate-500">
-                          {form.shift?.ruolo} - {formatShiftTime(form.shift?.orario_inizio)} - {formatShiftTime(form.shift?.orario_fine)}
-                        </p>
-                        {form.slot && (
-                          <p className="text-xs text-slate-400">
-                            {form.slot.attivita} {form.slot.ora_inizio && `(${form.slot.ora_inizio})`}
-                          </p>
-                        )}
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <p className="font-medium text-slate-800">{shift.dipendente_nome}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs text-slate-500">
+                                  {shift.ruolo || 'Nessun ruolo'}
+                                </span>
+                                <span className="text-xs text-slate-400">•</span>
+                                <span className="text-xs text-slate-500">
+                                  {formatShiftTime(shift.orario_inizio)} - {formatShiftTime(shift.orario_fine)}
+                                </span>
+                                {shift.tipo_turno && (
+                                  <>
+                                    <span className="text-xs text-slate-400">•</span>
+                                    <span className="text-xs text-slate-500">{shift.tipo_turno}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                shift.stato === 'completato' 
+                                  ? 'bg-green-100 text-green-700'
+                                  : shift.stato === 'in_corso'
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : 'bg-gray-100 text-gray-700'
+                              }`}>
+                                {shift.stato || 'programmato'}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                        {form.completed ? (
-                          <>
-                            <span className="px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 flex items-center gap-1">
-                              <CheckCircle className="w-3 h-3" /> Completato
-                            </span>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setViewingCompletion({ form, storeName }); }}
-                              className="nav-button p-2 rounded-lg"
-                              title="Visualizza dettagli"
-                            >
-                              <Eye className="w-4 h-4 text-blue-600" />
-                            </button>
-                          </>
-                        ) : (
-                          <span className="px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 flex items-center gap-1">
-                            <AlertTriangle className="w-3 h-3" /> Mancante
-                          </span>
-                        )}
-                        </div>
-                        </div>
-                        ))}
-                        </div>
-                        )}
-                        </div>
-                        );
-                        });
-                      })()}
+                      ))}
                     </div>
                   )}
                 </NeumorphicCard>
