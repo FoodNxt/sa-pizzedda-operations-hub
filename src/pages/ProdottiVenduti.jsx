@@ -14,44 +14,6 @@ import {
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 
-// Product display names mapping
-const PRODUCT_DISPLAY_NAMES = {
-  acqua_frizzante: 'Acqua Frizzante',
-  acqua_naturale: 'Acqua Naturale',
-  baione_cannonau: 'Baione Cannonau',
-  bottarga: 'Bottarga',
-  capperi_olive_acciughe: 'Capperi, olive e acciughe',
-  cipolle_caramellate_gorgonzola: 'Cipolle caramellate e Gorgonzola',
-  coca_cola_33cl: 'Coca Cola 33cl',
-  coca_cola_zero_33cl: 'Coca Cola Zero 33cl',
-  contissa_vermentino: 'Contissa Vermentino',
-  estathe_33cl: 'Estathe 33cl',
-  fanta_33cl: 'Fanta 33cl',
-  fregola: 'Fregola',
-  friarielli_olive: 'Friarielli e Olive',
-  gorgonzola_radicchio: 'Gorgonzola e Radicchio',
-  guttiau_70gr: 'Guttiau 70gr',
-  guttiau_snack: 'Guttiau Snack',
-  ichnusa_ambra_limpida: 'Ichnusa Ambra Limpida',
-  ichnusa_classica: 'Ichnusa Classica',
-  ichnusa_non_filtrata: 'Ichnusa Non Filtrata',
-  malloreddus: 'Malloreddus',
-  malloreddus_4_sapori: 'Malloreddus 4 sapori',
-  margherita: 'Margherita',
-  nduja_stracciatella: 'Nduja e stracciatella',
-  nutella: 'Nutella',
-  pabassinos_anice: 'Pabassinos Anice',
-  pabassinos_noci: 'Pabassinos Noci',
-  pane_carasau: 'Pane Carasau',
-  pesca_gianduia: 'Pesca Gianduia',
-  pistacchio: 'Pistacchio',
-  pomodori_stracciatella: 'Pomodori e stracciatella',
-  salsiccia_patate: 'Salsiccia e Patate',
-  salsiccia_sarda_pecorino: 'Salsiccia Sarda e Pecorino'
-};
-
-const PRODUCT_FIELDS = Object.keys(PRODUCT_DISPLAY_NAMES);
-
 export default function ProdottiVenduti() {
   const [selectedStore, setSelectedStore] = useState('all');
   const [dateRange, setDateRange] = useState('week');
@@ -105,20 +67,25 @@ export default function ProdottiVenduti() {
     return filtered;
   }, [prodottiVenduti, selectedStore, dateRange, startDate, endDate]);
 
-  // Calculate totals by product
+  // Calculate totals by product (aggregate by flavor)
   const productTotals = useMemo(() => {
     const totals = {};
     
-    PRODUCT_FIELDS.forEach(field => {
-      totals[field] = filteredData.reduce((sum, record) => sum + (record[field] || 0), 0);
+    filteredData.forEach(record => {
+      const flavor = record.flavor;
+      if (!flavor) return;
+      
+      if (!totals[flavor]) {
+        totals[flavor] = {
+          name: flavor,
+          total: 0,
+          category: record.category || 'altro'
+        };
+      }
+      totals[flavor].total += record.total_pizzas_sold || 0;
     });
 
-    return Object.entries(totals)
-      .map(([field, total]) => ({
-        field,
-        name: PRODUCT_DISPLAY_NAMES[field],
-        total
-      }))
+    return Object.values(totals)
       .sort((a, b) => b.total - a.total);
   }, [filteredData]);
 
@@ -129,15 +96,17 @@ export default function ProdottiVenduti() {
   const dailyTrend = useMemo(() => {
     if (top10Products.length === 0) return [];
 
-    const topProductField = top10Products[0].field;
+    const topProductName = top10Products[0].name;
     const dailyData = {};
 
     filteredData.forEach(record => {
+      if (record.flavor !== topProductName) return;
+      
       const date = record.data_vendita;
       if (!dailyData[date]) {
         dailyData[date] = 0;
       }
-      dailyData[date] += record[topProductField] || 0;
+      dailyData[date] += record.total_pizzas_sold || 0;
     });
 
     return Object.entries(dailyData)
@@ -351,10 +320,15 @@ export default function ProdottiVenduti() {
             </thead>
             <tbody>
               {searchFilteredProducts.map((product, index) => (
-                <tr key={product.field} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
+                <tr key={product.name} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
                   <td className="p-3 text-[#9b9b9b]">{index + 1}</td>
                   <td className="p-3">
-                    <span className="font-medium text-[#6b6b6b]">{product.name}</span>
+                    <div>
+                      <span className="font-medium text-[#6b6b6b]">{product.name}</span>
+                      <span className="ml-2 text-xs text-[#9b9b9b] px-2 py-0.5 rounded-full bg-slate-100">
+                        {product.category}
+                      </span>
+                    </div>
                   </td>
                   <td className="p-3 text-right">
                     <span className="font-bold text-[#8b7355]">{product.total}</span>
