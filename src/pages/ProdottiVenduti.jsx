@@ -31,7 +31,7 @@ export default function ProdottiVenduti() {
 
   const { data: prodottiVenduti = [], isLoading } = useQuery({
     queryKey: ['prodotti-venduti'],
-    queryFn: () => base44.entities.ProdottiVenduti.list('-data_vendita'),
+    queryFn: () => base44.entities.ProdottiVenduti.list('-data_vendita', 5000),
   });
 
   // Filter data
