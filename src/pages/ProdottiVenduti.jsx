@@ -20,6 +20,9 @@ export default function ProdottiVenduti() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedTrendProduct, setSelectedTrendProduct] = useState(null);
+  const [trendView, setTrendView] = useState('chart'); // 'chart' or 'table'
+  const [selectedCategories, setSelectedCategories] = useState([]);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -92,15 +95,17 @@ export default function ProdottiVenduti() {
   // Top 10 products
   const top10Products = productTotals.slice(0, 10);
 
-  // Daily trend for top product
+  // Daily trend for selected or top product
   const dailyTrend = useMemo(() => {
-    if (top10Products.length === 0) return [];
+    if (productTotals.length === 0) return [];
 
-    const topProductName = top10Products[0].name;
+    const productName = selectedTrendProduct || (top10Products.length > 0 ? top10Products[0].name : null);
+    if (!productName) return [];
+
     const dailyData = {};
 
     filteredData.forEach(record => {
-      if (record.flavor !== topProductName) return;
+      if (record.flavor !== productName) return;
       
       const date = record.data_vendita;
       if (!dailyData[date]) {
@@ -112,7 +117,22 @@ export default function ProdottiVenduti() {
     return Object.entries(dailyData)
       .map(([date, quantity]) => ({ date, quantity }))
       .sort((a, b) => a.date.localeCompare(b.date));
-  }, [filteredData, top10Products]);
+  }, [filteredData, productTotals, selectedTrendProduct, top10Products]);
+
+  // Get unique categories
+  const availableCategories = useMemo(() => {
+    const cats = new Set(productTotals.map(p => p.category).filter(Boolean));
+    return Array.from(cats).sort();
+  }, [productTotals]);
+
+  // Filter by selected categories
+  const categoryFilteredProducts = useMemo(() => {
+    if (selectedCategories.length === 0) return searchFilteredProducts;
+    return searchFilteredProducts.filter(p => selectedCategories.includes(p.category));
+  }, [searchFilteredProducts, selectedCategories]);
+
+  // Recalculate total for category-filtered products
+  const categoryFilteredTotal = categoryFilteredProducts.reduce((sum, p) => sum + p.total, 0);
 
   // Search filtered products
   const searchFilteredProducts = useMemo(() => {
@@ -258,36 +278,95 @@ export default function ProdottiVenduti() {
       )}
 
       {/* Daily Trend */}
-      {dailyTrend.length > 0 && top10Products.length > 0 && (
+      {productTotals.length > 0 && (
         <NeumorphicCard className="p-6">
-          <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">
-            📈 Trend Giornaliero - {top10Products[0].name}
-          </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={dailyTrend}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e0e5ec" />
-              <XAxis 
-                dataKey="date" 
-                tick={{ fill: '#6b6b6b', fontSize: 12 }}
-              />
-              <YAxis tick={{ fill: '#6b6b6b' }} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#e0e5ec', 
-                  border: 'none',
-                  borderRadius: '12px',
-                  boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
-                }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="quantity" 
-                stroke="#8b7355" 
-                strokeWidth={2}
-                dot={{ fill: '#8b7355', r: 4 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <h2 className="text-xl font-bold text-[#6b6b6b]">
+              📈 Trend Giornaliero
+            </h2>
+            <div className="flex items-center gap-3">
+              <select
+                value={selectedTrendProduct || (top10Products.length > 0 ? top10Products[0].name : '')}
+                onChange={(e) => setSelectedTrendProduct(e.target.value)}
+                className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none text-sm"
+              >
+                {productTotals.slice(0, 20).map(product => (
+                  <option key={product.name} value={product.name}>{product.name}</option>
+                ))}
+              </select>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setTrendView('chart')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    trendView === 'chart' 
+                      ? 'bg-[#8b7355] text-white' 
+                      : 'bg-[#e0e5ec] text-[#6b6b6b]'
+                  }`}
+                >
+                  📊 Grafico
+                </button>
+                <button
+                  onClick={() => setTrendView('table')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    trendView === 'table' 
+                      ? 'bg-[#8b7355] text-white' 
+                      : 'bg-[#e0e5ec] text-[#6b6b6b]'
+                  }`}
+                >
+                  📋 Tabella
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {trendView === 'chart' ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={dailyTrend}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e0e5ec" />
+                <XAxis 
+                  dataKey="date" 
+                  tick={{ fill: '#6b6b6b', fontSize: 12 }}
+                />
+                <YAxis tick={{ fill: '#6b6b6b' }} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#e0e5ec', 
+                    border: 'none',
+                    borderRadius: '12px',
+                    boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
+                  }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="quantity" 
+                  stroke="#8b7355" 
+                  strokeWidth={2}
+                  dot={{ fill: '#8b7355', r: 4 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b-2 border-[#8b7355]">
+                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Data</th>
+                    <th className="text-right p-3 text-[#9b9b9b] font-medium">Quantità</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dailyTrend.map((item) => (
+                    <tr key={item.date} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
+                      <td className="p-3 text-[#6b6b6b]">{item.date}</td>
+                      <td className="p-3 text-right">
+                        <span className="font-bold text-[#8b7355]">{item.quantity}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </NeumorphicCard>
       )}
 
@@ -307,7 +386,40 @@ export default function ProdottiVenduti() {
 
       {/* All Products Table */}
       <NeumorphicCard className="p-6">
-        <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Tutti i Prodotti</h2>
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+          <h2 className="text-xl font-bold text-[#6b6b6b]">Tutti i Prodotti</h2>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setSelectedCategories([])}
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                selectedCategories.length === 0
+                  ? 'bg-[#8b7355] text-white'
+                  : 'bg-[#e0e5ec] text-[#6b6b6b]'
+              }`}
+            >
+              Tutte
+            </button>
+            {availableCategories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => {
+                  if (selectedCategories.includes(cat)) {
+                    setSelectedCategories(selectedCategories.filter(c => c !== cat));
+                  } else {
+                    setSelectedCategories([...selectedCategories, cat]);
+                  }
+                }}
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                  selectedCategories.includes(cat)
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-[#e0e5ec] text-[#6b6b6b]'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -319,7 +431,7 @@ export default function ProdottiVenduti() {
               </tr>
             </thead>
             <tbody>
-              {searchFilteredProducts.map((product, index) => (
+              {categoryFilteredProducts.map((product, index) => (
                 <tr key={product.name} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
                   <td className="p-3 text-[#9b9b9b]">{index + 1}</td>
                   <td className="p-3">
@@ -335,7 +447,7 @@ export default function ProdottiVenduti() {
                   </td>
                   <td className="p-3 text-right">
                     <span className="text-[#6b6b6b]">
-                      {totalSales > 0 ? ((product.total / totalSales) * 100).toFixed(1) : 0}%
+                      {categoryFilteredTotal > 0 ? ((product.total / categoryFilteredTotal) * 100).toFixed(1) : 0}%
                     </span>
                   </td>
                 </tr>
