@@ -119,6 +119,15 @@ export default function ProdottiVenduti() {
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [filteredData, productTotals, selectedTrendProduct, top10Products]);
 
+  // Search filtered products
+  const searchFilteredProducts = useMemo(() => {
+    if (!searchTerm) return productTotals;
+    
+    return productTotals.filter(p => 
+      p.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [productTotals, searchTerm]);
+
   // Get unique categories
   const availableCategories = useMemo(() => {
     const cats = new Set(productTotals.map(p => p.category).filter(Boolean));
@@ -133,15 +142,6 @@ export default function ProdottiVenduti() {
 
   // Recalculate total for category-filtered products
   const categoryFilteredTotal = categoryFilteredProducts.reduce((sum, p) => sum + p.total, 0);
-
-  // Search filtered products
-  const searchFilteredProducts = useMemo(() => {
-    if (!searchTerm) return productTotals;
-    
-    return productTotals.filter(p => 
-      p.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [productTotals, searchTerm]);
 
   // Calculate stats
   const totalSales = productTotals.reduce((sum, p) => sum + p.total, 0);
