@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { ShoppingCart, Copy, CheckCircle, AlertCircle, Store, FileSpreadsheet, Key } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
@@ -52,12 +51,10 @@ export default function ZapierProdottiVenduti() {
     try {
       const testData = {
         store_name: stores[0].name,
-        data_vendita: '2025-01-15',
-        'Margherita': '5',
-        'Coca Cola 33cl': '3',
-        'Acqua Naturale': '2',
-        'Fregola': '1',
-        'Ichnusa Classica': '4'
+        date: '2025-01-15',
+        category: 'pizza',
+        flavor: 'Margherita',
+        total_pizzas_sold: '45'
       };
 
       const response = await fetch(webhookUrl, {
@@ -379,7 +376,7 @@ export default function ZapierProdottiVenduti() {
               <div className="flex-1">
                 <h3 className="font-bold text-[#6b6b6b] mb-3">🗺️ Mappa i Campi (Data)</h3>
                 <p className="text-[#6b6b6b] mb-3">
-                  Nel campo <strong>Data</strong>, aggiungi questi campi:
+                  Nel campo <strong>Data</strong>, aggiungi questi campi per ogni riga:
                 </p>
                 
                 <div className="space-y-2 mb-4">
@@ -399,59 +396,36 @@ export default function ZapierProdottiVenduti() {
 
                   <div className="neumorphic-pressed p-3 rounded-lg bg-blue-50">
                     <div className="text-sm">
-                      <span className="font-bold text-[#8b7355] block mb-1">data_vendita</span>
-                      <span className="text-[#6b6b6b]">→ Mappa alla colonna Data del Google Sheet</span>
+                      <span className="font-bold text-[#8b7355] block mb-1">date</span>
+                      <span className="text-[#6b6b6b]">→ Mappa alla colonna <strong>date</strong> del Google Sheet</span>
                     </div>
                   </div>
-                </div>
 
-                <div className="neumorphic-pressed p-4 rounded-lg bg-purple-50 mb-4">
-                  <p className="text-sm font-bold text-purple-800 mb-3">🍕 Prodotti (mappa alle colonne del Google Sheet):</p>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
-                    <div>• Acqua Frizzante</div>
-                    <div>• Acqua Naturale</div>
-                    <div>• Baione Cannonau</div>
-                    <div>• Bottarga</div>
-                    <div>• Capperi, olive e acciughe</div>
-                    <div>• Cipolle caramellate e Gorgonzola</div>
-                    <div>• Coca Cola 33cl</div>
-                    <div>• Coca Cola Zero 33cl</div>
-                    <div>• Contissa Vermentino</div>
-                    <div>• Estathe 33cl</div>
-                    <div>• Fanta 33cl</div>
-                    <div>• Fregola</div>
-                    <div>• Friarielli e Olive</div>
-                    <div>• Gorgonzola e Radicchio</div>
-                    <div>• Guttiau 70gr</div>
-                    <div>• Guttiau Snack</div>
-                    <div>• Ichnusa Ambra Limpida</div>
-                    <div>• Ichnusa Classica</div>
-                    <div>• Ichnusa Non Filtrata</div>
-                    <div>• Malloreddus</div>
-                    <div>• Malloreddus 4 sapori</div>
-                    <div>• Margherita</div>
-                    <div>• Nduja e stracciatella</div>
-                    <div>• Nutella</div>
-                    <div>• Pabassinos Anice</div>
-                    <div>• Pabassinos Noci</div>
-                    <div>• Pane Carasau</div>
-                    <div>• Pesca Gianduia</div>
-                    <div>• Pistacchio</div>
-                    <div>• Pomodori e stracciatella</div>
-                    <div>• Salsiccia e Patate</div>
-                    <div>• Salsiccia Sarda e Pecorino</div>
+                  <div className="neumorphic-pressed p-3 rounded-lg bg-green-50">
+                    <div className="text-sm">
+                      <span className="font-bold text-[#8b7355] block mb-1">category</span>
+                      <span className="text-[#6b6b6b]">→ Mappa alla colonna <strong>category</strong> del Google Sheet</span>
+                    </div>
+                  </div>
+
+                  <div className="neumorphic-pressed p-3 rounded-lg bg-purple-50">
+                    <div className="text-sm">
+                      <span className="font-bold text-[#8b7355] block mb-1">flavor</span>
+                      <span className="text-[#6b6b6b]">→ Mappa alla colonna <strong>flavor</strong> del Google Sheet</span>
+                    </div>
+                  </div>
+
+                  <div className="neumorphic-pressed p-3 rounded-lg bg-orange-50">
+                    <div className="text-sm">
+                      <span className="font-bold text-[#8b7355] block mb-1">total_pizzas_sold</span>
+                      <span className="text-[#6b6b6b]">→ Mappa alla colonna <strong>total_pizzas_sold</strong> del Google Sheet</span>
+                    </div>
                   </div>
                 </div>
 
                 <div className="neumorphic-flat p-3 rounded-lg mt-4 bg-yellow-50">
                   <p className="text-sm text-yellow-800">
-                    ⚠️ <strong>Importante:</strong> I nomi dei prodotti devono corrispondere ESATTAMENTE (maiuscole, spazi, accentazione)
-                  </p>
-                </div>
-
-                <div className="neumorphic-flat p-3 rounded-lg mt-4 bg-blue-50">
-                  <p className="text-sm text-blue-800">
-                    💡 Se un prodotto non è stato venduto, lascia il valore vuoto o metti 0
+                    ⚠️ <strong>Importante:</strong> Ogni riga del Google Sheet rappresenta un prodotto venduto. Zapier invierà un webhook per ogni riga aggiunta.
                   </p>
                 </div>
               </div>
@@ -489,26 +463,36 @@ export default function ZapierProdottiVenduti() {
         
         <div className="neumorphic-pressed p-4 rounded-xl mb-4">
           <p className="text-[#6b6b6b] mb-3">
-            Il tuo Google Sheet deve avere queste colonne (nell'ordine che preferisci):
+            Il tuo Google Sheet deve avere queste colonne:
           </p>
           <div className="bg-white rounded-lg p-4 overflow-x-auto">
             <table className="w-full text-xs border-collapse">
               <thead>
                 <tr className="border-b-2 border-[#8b7355]">
-                  <th className="text-left p-2 text-[#8b7355] font-bold">data_vendita</th>
-                  <th className="text-left p-2 text-[#8b7355] font-bold">Margherita</th>
-                  <th className="text-left p-2 text-[#8b7355] font-bold">Coca Cola 33cl</th>
-                  <th className="text-left p-2 text-[#8b7355] font-bold">Acqua Naturale</th>
-                  <th className="text-left p-2 text-[#8b7355] font-bold">...</th>
+                  <th className="text-left p-2 text-[#8b7355] font-bold">date</th>
+                  <th className="text-left p-2 text-[#8b7355] font-bold">category</th>
+                  <th className="text-left p-2 text-[#8b7355] font-bold">flavor</th>
+                  <th className="text-left p-2 text-[#8b7355] font-bold">total_pizzas_sold</th>
                 </tr>
               </thead>
               <tbody>
                 <tr className="border-b border-gray-200">
-                  <td className="p-2 text-[#6b6b6b]">2025-01-15</td>
-                  <td className="p-2 text-[#6b6b6b]">45</td>
-                  <td className="p-2 text-[#6b6b6b]">23</td>
-                  <td className="p-2 text-[#6b6b6b]">15</td>
-                  <td className="p-2 text-[#6b6b6b]">...</td>
+                  <td className="p-2 text-[#6b6b6b]">2025-01-03</td>
+                  <td className="p-2 text-[#6b6b6b]">pizza</td>
+                  <td className="p-2 text-[#6b6b6b]">Margherita</td>
+                  <td className="p-2 text-[#6b6b6b]">90</td>
+                </tr>
+                <tr className="border-b border-gray-200">
+                  <td className="p-2 text-[#6b6b6b]">2025-01-03</td>
+                  <td className="p-2 text-[#6b6b6b]">bibita</td>
+                  <td className="p-2 text-[#6b6b6b]">Coca Cola 33cl</td>
+                  <td className="p-2 text-[#6b6b6b]">8</td>
+                </tr>
+                <tr className="border-b border-gray-200">
+                  <td className="p-2 text-[#6b6b6b]">2025-01-03</td>
+                  <td className="p-2 text-[#6b6b6b]">pizza</td>
+                  <td className="p-2 text-[#6b6b6b]">Salsiccia Sarda e Pecorino</td>
+                  <td className="p-2 text-[#6b6b6b]">72</td>
                 </tr>
               </tbody>
             </table>
@@ -517,16 +501,19 @@ export default function ZapierProdottiVenduti() {
 
         <div className="neumorphic-flat p-4 rounded-xl space-y-2">
           <p className="text-sm text-[#6b6b6b]">
-            📅 <strong>Formato Data:</strong> YYYY-MM-DD (esempio: 2025-01-15)
+            📅 <strong>Formato Data:</strong> YYYY-MM-DD (esempio: 2025-01-03)
           </p>
           <p className="text-sm text-[#6b6b6b]">
-            🔢 <strong>Formato Quantità:</strong> Numeri interi (esempio: 45)
+            🔢 <strong>Formato Quantità:</strong> Numeri interi (esempio: 90)
           </p>
           <p className="text-sm text-[#6b6b6b]">
-            📊 <strong>Ogni Tab:</strong> Rappresenta un locale diverso
+            📊 <strong>Ogni Riga:</strong> Rappresenta un singolo prodotto venduto in una data
           </p>
           <p className="text-sm text-[#6b6b6b]">
-            🔄 <strong>Aggiornamenti:</strong> Se importi la stessa data per lo stesso locale, il record verrà <strong>aggiornato</strong> (non duplicato)
+            📑 <strong>Ogni Tab:</strong> Rappresenta un locale diverso (crea uno Zap per ogni tab)
+          </p>
+          <p className="text-sm text-[#6b6b6b]">
+            🔄 <strong>Aggiornamenti:</strong> Se importi lo stesso prodotto per la stessa data e locale, verrà <strong>aggiornato</strong> (non duplicato)
           </p>
         </div>
       </NeumorphicCard>
@@ -548,11 +535,11 @@ export default function ZapierProdottiVenduti() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="font-bold">3.</span>
-                <span><strong>Formato data:</strong> Usa YYYY-MM-DD (es. 2025-01-15)</span>
+                <span><strong>Formato data:</strong> Usa YYYY-MM-DD (es. 2025-01-03)</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="font-bold">4.</span>
-                <span><strong>Nomi prodotti:</strong> Devono corrispondere ESATTAMENTE (maiuscole, spazi, virgole)</span>
+                <span><strong>Colonne richieste:</strong> date, category, flavor, total_pizzas_sold</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="font-bold">5.</span>

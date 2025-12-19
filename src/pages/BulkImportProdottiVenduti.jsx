@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -84,9 +83,13 @@ export default function BulkImportProdottiVenduti() {
   };
 
   const downloadTemplate = () => {
-    const csvContent = `data_vendita,Acqua Frizzante,Acqua Naturale,Baione Cannonau,Bottarga,Capperi, olive e acciughe,Cipolle caramellate e Gorgonzola,Coca Cola 33cl,Coca Cola Zero 33cl,Contissa Vermentino,Estathe 33cl,Fanta 33cl,Fregola,Friarielli e Olive,Gorgonzola e Radicchio,Guttiau 70gr,Guttiau Snack,Ichnusa Ambra Limpida,Ichnusa Classica,Ichnusa Non Filtrata,Malloreddus,Malloreddus 4 sapori,Margherita,Nduja e stracciatella,Nutella,Pabassinos Anice,Pabassinos Noci,Pane Carasau,Pesca Gianduia,Pistacchio,Pomodori e stracciatella,Salsiccia e Patate,Salsiccia Sarda e Pecorino
-15/01/2025,5,8,2,1,3,4,12,8,3,6,5,2,4,3,6,4,2,10,8,3,2,45,5,8,4,3,2,6,4,5,6,4
-16/01/2025,6,7,1,2,4,3,10,9,2,5,6,3,5,2,5,5,3,12,9,4,3,50,6,7,5,4,3,7,5,6,7,5`;
+    const csvContent = `date,category,flavor,total_pizzas_sold
+2025-01-03,pizza,Margherita,90
+2025-01-03,bibita,Coca Cola 33cl,8
+2025-01-03,pizza,Salsiccia Sarda e Pecorino,72
+2025-01-03,bibita,Acqua Frizzante,5
+2025-01-03,bibita,Coca Cola Zero 33cl,4
+2025-01-03,pizza,Capperi olive e acciughe,6`;
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -290,22 +293,22 @@ export default function BulkImportProdottiVenduti() {
           <div className="neumorphic-flat p-4 rounded-xl bg-blue-50">
             <h3 className="font-bold text-blue-700 mb-2">📝 Formato CSV</h3>
             <ul className="text-sm text-blue-700 space-y-1">
-              <li>• Prima colonna: <code className="bg-blue-200 px-1 rounded">data_vendita</code> (formato <strong>DD/MM/YYYY</strong>, es. 15/01/2025)</li>
-              <li>• Altre colonne: nomi prodotti esatti come nel template</li>
-              <li>• I nomi delle colonne devono corrispondere ESATTAMENTE</li>
-              <li>• Usa la virgola (,) come separatore</li>
-              <li>• Lascia vuote le celle per prodotti non venduti</li>
+              <li>• <code className="bg-blue-200 px-1 rounded">date</code>: Data vendita (formato <strong>YYYY-MM-DD</strong>, es. 2025-01-03)</li>
+              <li>• <code className="bg-blue-200 px-1 rounded">category</code>: Categoria prodotto (es. pizza, bibita)</li>
+              <li>• <code className="bg-blue-200 px-1 rounded">flavor</code>: Nome prodotto venduto</li>
+              <li>• <code className="bg-blue-200 px-1 rounded">total_pizzas_sold</code>: Quantità venduta</li>
+              <li>• Ogni riga rappresenta un prodotto venduto in una data specifica</li>
             </ul>
           </div>
 
           <div className="neumorphic-flat p-4 rounded-xl bg-yellow-50">
             <h3 className="font-bold text-yellow-700 mb-2">⚠️ Note Importanti</h3>
             <ul className="text-sm text-yellow-700 space-y-1">
-              <li>• La data deve essere nel formato <strong>DD/MM/YYYY</strong> (es. 13/09/2025)</li>
-              <li>• Se esiste già un record per la stessa data e negozio, verrà aggiornato</li>
+              <li>• La data deve essere nel formato <strong>YYYY-MM-DD</strong> (es. 2025-01-03)</li>
+              <li>• Ogni riga del CSV rappresenta un singolo prodotto venduto</li>
+              <li>• Puoi avere più righe per la stessa data (un prodotto per riga)</li>
               <li>• Seleziona sempre il negozio prima di caricare il file</li>
-              <li>• Puoi importare più date in un unico file</li>
-              <li>• I dati verranno validati prima dell'importazione</li>
+              <li>• Se esiste già un record per lo stesso prodotto, data e negozio, verrà aggiornato</li>
             </ul>
           </div>
         </div>

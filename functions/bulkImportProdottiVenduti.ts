@@ -1,41 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
-
-// Mapping from CSV column names to field names
-const COLUMN_MAPPING = {
-  'data_vendita': 'data_vendita',
-  'Acqua Frizzante': 'acqua_frizzante',
-  'Acqua Naturale': 'acqua_naturale',
-  'Baione Cannonau': 'baione_cannonau',
-  'Bottarga': 'bottarga',
-  'Capperi, olive e acciughe': 'capperi_olive_acciughe',
-  'Cipolle caramellate e Gorgonzola': 'cipolle_caramellate_gorgonzola',
-  'Coca Cola 33cl': 'coca_cola_33cl',
-  'Coca Cola Zero 33cl': 'coca_cola_zero_33cl',
-  'Contissa Vermentino': 'contissa_vermentino',
-  'Estathe 33cl': 'estathe_33cl',
-  'Fanta 33cl': 'fanta_33cl',
-  'Fregola': 'fregola',
-  'Friarielli e Olive': 'friarielli_olive',
-  'Gorgonzola e Radicchio': 'gorgonzola_radicchio',
-  'Guttiau 70gr': 'guttiau_70gr',
-  'Guttiau Snack': 'guttiau_snack',
-  'Ichnusa Ambra Limpida': 'ichnusa_ambra_limpida',
-  'Ichnusa Classica': 'ichnusa_classica',
-  'Ichnusa Non Filtrata': 'ichnusa_non_filtrata',
-  'Malloreddus': 'malloreddus',
-  'Malloreddus 4 sapori': 'malloreddus_4_sapori',
-  'Margherita': 'margherita',
-  'Nduja e stracciatella': 'nduja_stracciatella',
-  'Nutella': 'nutella',
-  'Pabassinos Anice': 'pabassinos_anice',
-  'Pabassinos Noci': 'pabassinos_noci',
-  'Pane Carasau': 'pane_carasau',
-  'Pesca Gianduia': 'pesca_gianduia',
-  'Pistacchio': 'pistacchio',
-  'Pomodori e stracciatella': 'pomodori_stracciatella',
-  'Salsiccia e Patate': 'salsiccia_patate',
-  'Salsiccia Sarda e Pecorino': 'salsiccia_sarda_pecorino'
-};
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 function parseCSV(csvText) {
   const lines = csvText.trim().split('\n');
@@ -58,27 +21,6 @@ function parseCSV(csvText) {
   }
 
   return rows;
-}
-
-// Convert DD/MM/YYYY to YYYY-MM-DD
-function convertDateFormat(dateString) {
-  if (!dateString) return null;
-  
-  // Check if already in YYYY-MM-DD format
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-    return dateString;
-  }
-  
-  // Convert from DD/MM/YYYY to YYYY-MM-DD
-  const parts = dateString.split('/');
-  if (parts.length === 3) {
-    const day = parts[0].padStart(2, '0');
-    const month = parts[1].padStart(2, '0');
-    const year = parts[2];
-    return `${year}-${month}-${day}`;
-  }
-  
-  return null;
 }
 
 Deno.serve(async (req) => {
@@ -124,15 +66,24 @@ Deno.serve(async (req) => {
       const row = rows[i];
       
       try {
-        // Validate and convert data_vendita
-        if (!row.data_vendita) {
-          errors.push(`Row ${i + 1}: Missing data_vendita`);
+        // Validate required fields
+        if (!row.date) {
+          errors.push(`Row ${i + 1}: Missing date`);
           continue;
         }
 
-        const convertedDate = convertDateFormat(row.data_vendita);
-        if (!convertedDate) {
-          errors.push(`Row ${i + 1}: Invalid date format "${row.data_vendita}". Expected DD/MM/YYYY or YYYY-MM-DD`);
+        if (!row.category) {
+          errors.push(`Row ${i + 1}: Missing category`);
+          continue;
+        }
+
+        if (!row.flavor) {
+          errors.push(`Row ${i + 1}: Missing flavor`);
+          continue;
+        }
+
+        if (!row.total_pizzas_sold) {
+          errors.push(`Row ${i + 1}: Missing total_pizzas_sold`);
           continue;
         }
 
@@ -140,26 +91,17 @@ Deno.serve(async (req) => {
         const recordData = {
           store_name: store_name,
           store_id: store_id,
-          data_vendita: convertedDate
+          data_vendita: row.date,
+          category: row.category,
+          flavor: row.flavor,
+          total_pizzas_sold: parseFloat(row.total_pizzas_sold) || 0
         };
 
-        // Map product columns
-        Object.keys(COLUMN_MAPPING).forEach(columnName => {
-          if (columnName === 'data_vendita') return;
-          
-          const fieldName = COLUMN_MAPPING[columnName];
-          if (row[columnName] !== undefined && row[columnName] !== null && row[columnName] !== '') {
-            const value = parseFloat(row[columnName]);
-            if (!isNaN(value)) {
-              recordData[fieldName] = value;
-            }
-          }
-        });
-
-        // Check if record exists
+        // Check if record exists (same store, date, and flavor)
         const existing = await base44.asServiceRole.entities.ProdottiVenduti.filter({
           store_id: store_id,
-          data_vendita: convertedDate
+          data_vendita: row.date,
+          flavor: row.flavor
         });
 
         if (existing.length > 0) {
@@ -168,8 +110,8 @@ Deno.serve(async (req) => {
           results.push({
             row: i + 1,
             action: 'updated',
-            data_vendita: convertedDate,
-            original_date: row.data_vendita
+            date: row.date,
+            flavor: row.flavor
           });
         } else {
           // Create
@@ -177,8 +119,8 @@ Deno.serve(async (req) => {
           results.push({
             row: i + 1,
             action: 'created',
-            data_vendita: convertedDate,
-            original_date: row.data_vendita
+            date: row.date,
+            flavor: row.flavor
           });
         }
       } catch (error) {

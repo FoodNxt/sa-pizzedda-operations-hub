@@ -1,40 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
-
-// Mapping from display names to field names
-const PRODUCT_NAME_MAPPING = {
-  'Acqua Frizzante': 'acqua_frizzante',
-  'Acqua Naturale': 'acqua_naturale',
-  'Baione Cannonau': 'baione_cannonau',
-  'Bottarga': 'bottarga',
-  'Capperi, olive e acciughe': 'capperi_olive_acciughe',
-  'Cipolle caramellate e Gorgonzola': 'cipolle_caramellate_gorgonzola',
-  'Coca Cola 33cl': 'coca_cola_33cl',
-  'Coca Cola Zero 33cl': 'coca_cola_zero_33cl',
-  'Contissa Vermentino': 'contissa_vermentino',
-  'Estathe 33cl': 'estathe_33cl',
-  'Fanta 33cl': 'fanta_33cl',
-  'Fregola': 'fregola',
-  'Friarielli e Olive': 'friarielli_olive',
-  'Gorgonzola e Radicchio': 'gorgonzola_radicchio',
-  'Guttiau 70gr': 'guttiau_70gr',
-  'Guttiau Snack': 'guttiau_snack',
-  'Ichnusa Ambra Limpida': 'ichnusa_ambra_limpida',
-  'Ichnusa Classica': 'ichnusa_classica',
-  'Ichnusa Non Filtrata': 'ichnusa_non_filtrata',
-  'Malloreddus': 'malloreddus',
-  'Malloreddus 4 sapori': 'malloreddus_4_sapori',
-  'Margherita': 'margherita',
-  'Nduja e stracciatella': 'nduja_stracciatella',
-  'Nutella': 'nutella',
-  'Pabassinos Anice': 'pabassinos_anice',
-  'Pabassinos Noci': 'pabassinos_noci',
-  'Pane Carasau': 'pane_carasau',
-  'Pesca Gianduia': 'pesca_gianduia',
-  'Pistacchio': 'pistacchio',
-  'Pomodori e stracciatella': 'pomodori_stracciatella',
-  'Salsiccia e Patate': 'salsiccia_patate',
-  'Salsiccia Sarda e Pecorino': 'salsiccia_sarda_pecorino'
-};
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 Deno.serve(async (req) => {
   // Set CORS headers for all responses
@@ -79,11 +43,11 @@ Deno.serve(async (req) => {
     const data = await req.json();
 
     // Validate required fields
-    if (!data.store_name || !data.data_vendita) {
+    if (!data.store_name || !data.date || !data.category || !data.flavor || !data.total_pizzas_sold) {
       return new Response(
         JSON.stringify({ 
           error: 'Missing required fields', 
-          message: 'store_name and data_vendita are required'
+          message: 'store_name, date, category, flavor, and total_pizzas_sold are required'
         }), 
         { status: 400, headers }
       );
@@ -105,21 +69,17 @@ Deno.serve(async (req) => {
     const recordData = {
       store_name: data.store_name,
       store_id: stores[0].id,
-      data_vendita: data.data_vendita
+      data_vendita: data.date,
+      category: data.category,
+      flavor: data.flavor,
+      total_pizzas_sold: parseFloat(data.total_pizzas_sold) || 0
     };
 
-    // Add product quantities
-    Object.keys(PRODUCT_NAME_MAPPING).forEach(displayName => {
-      const fieldName = PRODUCT_NAME_MAPPING[displayName];
-      if (data[displayName] !== undefined && data[displayName] !== null && data[displayName] !== '') {
-        recordData[fieldName] = parseFloat(data[displayName]) || 0;
-      }
-    });
-
-    // Check if record already exists for this store and date
+    // Check if record already exists for this store, date, and flavor
     const existing = await base44.asServiceRole.entities.ProdottiVenduti.filter({
       store_name: data.store_name,
-      data_vendita: data.data_vendita
+      data_vendita: data.date,
+      flavor: data.flavor
     });
 
     let result;
