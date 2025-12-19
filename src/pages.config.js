@@ -91,6 +91,7 @@ import ValutazionePulizie from './pages/ValutazionePulizie';
 import PlandayStoreManager from './pages/PlandayStoreManager';
 import Pause from './pages/Pause';
 import Presenze from './pages/Presenze';
+import Meteo from './pages/Meteo';
 import __Layout from './Layout.jsx';
 
 
@@ -188,6 +189,7 @@ export const PAGES = {
     "PlandayStoreManager": PlandayStoreManager,
     "Pause": Pause,
     "Presenze": Presenze,
+    "Meteo": Meteo,
 }
 
 export const pagesConfig = {
