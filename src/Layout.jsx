@@ -68,9 +68,14 @@ const navigationStructure = [
         title: "Form Tracker",
         url: createPageUrl("FormTracker"),
         icon: ClipboardCheck,
+      },
+      {
+        title: "Meteo",
+        url: createPageUrl("Meteo"),
+        icon: Cloud,
       }
-    ]
-  },
+      ]
+      },
   {
     title: "Reviews",
     icon: Star,
