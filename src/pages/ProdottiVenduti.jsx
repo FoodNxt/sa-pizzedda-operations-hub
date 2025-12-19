@@ -53,17 +53,29 @@ export default function ProdottiVenduti() {
 
     if (dateRange === 'today') {
       const todayStr = today.toISOString().split('T')[0];
-      filtered = filtered.filter(p => p.data_vendita === todayStr);
+      filtered = filtered.filter(p => {
+        const dataStr = p.data_vendita?.split('T')[0] || p.data_vendita;
+        return dataStr === todayStr;
+      });
     } else if (dateRange === 'week') {
       const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
       const weekAgoStr = weekAgo.toISOString().split('T')[0];
-      filtered = filtered.filter(p => p.data_vendita >= weekAgoStr);
+      filtered = filtered.filter(p => {
+        const dataStr = p.data_vendita?.split('T')[0] || p.data_vendita;
+        return dataStr >= weekAgoStr;
+      });
     } else if (dateRange === 'month') {
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       const monthStartStr = monthStart.toISOString().split('T')[0];
-      filtered = filtered.filter(p => p.data_vendita >= monthStartStr);
+      filtered = filtered.filter(p => {
+        const dataStr = p.data_vendita?.split('T')[0] || p.data_vendita;
+        return dataStr >= monthStartStr;
+      });
     } else if (dateRange === 'custom' && startDate && endDate) {
-      filtered = filtered.filter(p => p.data_vendita >= startDate && p.data_vendita <= endDate);
+      filtered = filtered.filter(p => {
+        const dataStr = p.data_vendita?.split('T')[0] || p.data_vendita;
+        return dataStr >= startDate && dataStr <= endDate;
+      });
     }
 
     return filtered;
