@@ -36,12 +36,6 @@ export default function Ricette() {
   const [customNomeProdotto, setCustomNomeProdotto] = useState('');
   const [addingNewProduct, setAddingNewProduct] = useState(false);
 
-  // Get unique product names from ProdottiVenduti
-  const VALID_PRODUCT_NAMES = React.useMemo(() => {
-    const uniqueFlavors = [...new Set(prodottiVenduti.map(p => p.flavor).filter(Boolean))];
-    return uniqueFlavors.sort();
-  }, [prodottiVenduti]);
-
   // Ingredient form state
   const [selectedIngredient, setSelectedIngredient] = useState('');
   const [ingredientQuantity, setIngredientQuantity] = useState('');
