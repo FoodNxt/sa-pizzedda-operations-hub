@@ -87,6 +87,12 @@ export default function Ricette() {
     },
   });
 
+  // Get unique product names from ProdottiVenduti
+  const VALID_PRODUCT_NAMES = React.useMemo(() => {
+    const uniqueFlavors = [...new Set(prodottiVenduti.map(p => p.flavor).filter(Boolean))];
+    return uniqueFlavors.sort();
+  }, [prodottiVenduti]);
+
   const resetForm = () => {
     setFormData({
       nome_prodotto: '',
