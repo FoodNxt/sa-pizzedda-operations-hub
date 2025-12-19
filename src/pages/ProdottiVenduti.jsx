@@ -44,27 +44,26 @@ export default function ProdottiVenduti() {
     }
 
     // Date filter
-    const now = new Date();
-    let startFilterDate = null;
-
-    if (dateRange === 'today') {
-      startFilterDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    } else if (dateRange === 'week') {
-      startFilterDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    } else if (dateRange === 'month') {
-      startFilterDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    } else if (dateRange === 'custom' && startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      filtered = filtered.filter(p => {
-        const date = new Date(p.data_vendita);
-        return date >= start && date <= end;
-      });
+    if (dateRange === 'all') {
       return filtered;
     }
 
-    if (startFilterDate) {
-      filtered = filtered.filter(p => new Date(p.data_vendita) >= startFilterDate);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    if (dateRange === 'today') {
+      const todayStr = today.toISOString().split('T')[0];
+      filtered = filtered.filter(p => p.data_vendita === todayStr);
+    } else if (dateRange === 'week') {
+      const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const weekAgoStr = weekAgo.toISOString().split('T')[0];
+      filtered = filtered.filter(p => p.data_vendita >= weekAgoStr);
+    } else if (dateRange === 'month') {
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthStartStr = monthStart.toISOString().split('T')[0];
+      filtered = filtered.filter(p => p.data_vendita >= monthStartStr);
+    } else if (dateRange === 'custom' && startDate && endDate) {
+      filtered = filtered.filter(p => p.data_vendita >= startDate && p.data_vendita <= endDate);
     }
 
     return filtered;
