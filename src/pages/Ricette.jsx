@@ -36,41 +36,11 @@ export default function Ricette() {
   const [customNomeProdotto, setCustomNomeProdotto] = useState('');
   const [addingNewProduct, setAddingNewProduct] = useState(false);
 
-  // NEW: Define valid product names (all columns except data_vendita)
-  const VALID_PRODUCT_NAMES = [
-    'Acqua Frizzante',
-    'Acqua Naturale',
-    'Baione Cannonau',
-    'Bottarga',
-    'Capperi, olive e acciughe',
-    'Cipolle caramellate e Gorgonzola',
-    'Coca Cola 33cl',
-    'Coca Cola Zero 33cl',
-    'Contissa Vermentino',
-    'Estathe 33cl',
-    'Fanta 33cl',
-    'Fregola',
-    'Friarielli e Olive',
-    'Gorgonzola e Radicchio',
-    'Guttiau 70gr',
-    'Guttiau Snack',
-    'Ichnusa Ambra Limpida',
-    'Ichnusa Classica',
-    'Ichnusa Non Filtrata',
-    'Malloreddus',
-    'Malloreddus 4 sapori',
-    'Margherita',
-    'Nduja e stracciatella',
-    'Nutella',
-    'Pabassinos Anice',
-    'Pabassinos Noci',
-    'Pane Carasau',
-    'Pesca Gianduia',
-    'Pistacchio',
-    'Pomodori e stracciatella',
-    'Salsiccia e Patate',
-    'Salsiccia Sarda e Pecorino'
-  ];
+  // Get unique product names from ProdottiVenduti
+  const VALID_PRODUCT_NAMES = React.useMemo(() => {
+    const uniqueFlavors = [...new Set(prodottiVenduti.map(p => p.flavor).filter(Boolean))];
+    return uniqueFlavors.sort();
+  }, [prodottiVenduti]);
 
   // Ingredient form state
   const [selectedIngredient, setSelectedIngredient] = useState('');
@@ -87,6 +57,11 @@ export default function Ricette() {
   const { data: materiePrime = [] } = useQuery({
     queryKey: ['materie-prime'],
     queryFn: () => base44.entities.MateriePrime.list(),
+  });
+
+  const { data: prodottiVenduti = [] } = useQuery({
+    queryKey: ['prodotti-venduti'],
+    queryFn: () => base44.entities.ProdottiVenduti.list(),
   });
 
   const createMutation = useMutation({
