@@ -31,7 +31,7 @@ export default function ProdottiVenduti() {
 
   const { data: prodottiVenduti = [], isLoading } = useQuery({
     queryKey: ['prodotti-venduti'],
-    queryFn: () => base44.entities.ProdottiVenduti.list('-data_vendita', 5000),
+    queryFn: () => base44.entities.ProdottiVenduti.list('-data_vendita', 10000),
   });
 
   // Filter data
@@ -255,7 +255,8 @@ export default function ProdottiVenduti() {
             <Store className="w-8 h-8 text-purple-600" />
           </div>
           <h3 className="text-3xl font-bold text-purple-600 mb-1">{filteredData.length}</h3>
-          <p className="text-sm text-[#9b9b9b]">Record Totali</p>
+          <p className="text-sm text-[#9b9b9b]">Record Filtrati</p>
+          <p className="text-xs text-slate-400 mt-1">({prodottiVenduti.length} totali caricati)</p>
         </NeumorphicCard>
       </div>
 
