@@ -98,6 +98,11 @@ export default function MateriePrime() {
     queryFn: () => base44.entities.Fornitore.filter({ attivo: true }),
   });
 
+  const { data: prodottiVenduti = [] } = useQuery({
+    queryKey: ['prodotti-venduti'],
+    queryFn: () => base44.entities.ProdottiVenduti.list(),
+  });
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.MateriePrime.create(data),
     onSuccess: () => {
@@ -308,8 +313,13 @@ export default function MateriePrime() {
     p.categoria?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Nomi interni unici e ordinati
-  const nomiInterniUnici = [...new Set(products.map(p => p.nome_interno).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'it'));
+  // Nomi interni unici e ordinati (da MateriePrime + flavor da ProdottiVenduti)
+  const nomiInterniUnici = [
+    ...new Set([
+      ...products.map(p => p.nome_interno).filter(Boolean),
+      ...prodottiVenduti.map(p => p.flavor).filter(Boolean)
+    ])
+  ].sort((a, b) => a.localeCompare(b, 'it'));
 
   // Fornitori ordinati alfabeticamente
   const suppliersOrdered = [...suppliers].sort((a, b) => (a.ragione_sociale || '').localeCompare(b.ragione_sociale || '', 'it'));
