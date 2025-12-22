@@ -20,6 +20,17 @@ export default function PrecottureAdmin() {
     categorie: ['pizza'],
     unita_per_teglia: 8
   });
+
+  // Carica configurazione salvata
+  React.useEffect(() => {
+    const activeConfig = configTeglieData.find(c => c.is_active);
+    if (activeConfig) {
+      setTeglieConfig({
+        categorie: activeConfig.categorie || ['pizza'],
+        unita_per_teglia: activeConfig.unita_per_teglia || 8
+      });
+    }
+  }, [configTeglieData]);
   const [showTeglieConfig, setShowTeglieConfig] = useState(false);
   const [teglieStartDate, setTeglieStartDate] = useState(moment().subtract(30, 'days').format('YYYY-MM-DD'));
   const [teglieEndDate, setTeglieEndDate] = useState(moment().format('YYYY-MM-DD'));
@@ -46,7 +57,12 @@ export default function PrecottureAdmin() {
   const { data: prodottiVenduti = [] } = useQuery({
     queryKey: ['prodotti-venduti-teglie'],
     queryFn: () => base44.entities.ProdottiVenduti.list(),
-    enabled: activeTab === 'teglie-vendute'
+    enabled: activeTab === 'teglie-vendute' || activeTab === 'configurazione'
+  });
+
+  const { data: configTeglieData = [] } = useQuery({
+    queryKey: ['config-teglie'],
+    queryFn: () => base44.entities.ConfigurazioneTeglieCalcolo.list(),
   });
 
   const createMutation = useMutation({
@@ -69,6 +85,22 @@ export default function PrecottureAdmin() {
     mutationFn: (id) => base44.entities.Preparazioni.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['preparazioni-storico'] });
+    },
+  });
+
+  const saveConfigTeglieeMutation = useMutation({
+    mutationFn: async (configData) => {
+      // Disattiva tutte le configurazioni esistenti
+      const existing = await base44.entities.ConfigurazioneTeglieCalcolo.list();
+      for (const config of existing) {
+        await base44.entities.ConfigurazioneTeglieCalcolo.update(config.id, { is_active: false });
+      }
+      // Crea la nuova configurazione attiva
+      return base44.entities.ConfigurazioneTeglieCalcolo.create({ ...configData, is_active: true });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['config-teglie'] });
+      alert('Configurazione salvata con successo!');
     },
   });
 
@@ -716,6 +748,18 @@ export default function PrecottureAdmin() {
                     <p className="text-xs text-slate-500 mt-1">
                       Numero di unità che compongono una teglia
                     </p>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-200">
+                    <NeumorphicButton
+                      onClick={() => saveConfigTeglieeMutation.mutate(teglieConfig)}
+                      disabled={saveConfigTeglieeMutation.isPending || teglieConfig.categorie.length === 0}
+                      variant="primary"
+                      className="flex items-center gap-2"
+                    >
+                      <Save className="w-4 h-4" />
+                      {saveConfigTeglieeMutation.isPending ? 'Salvataggio...' : 'Salva Configurazione'}
+                    </NeumorphicButton>
                   </div>
                 </div>
               )}
