@@ -378,19 +378,35 @@ export default function PrecottureAdmin() {
     const thirtyDaysAgo = moment().subtract(30, 'days').format('YYYY-MM-DD');
     const today = moment().format('YYYY-MM-DD');
     
-    const filtered = allTeglieVendute.filter(t => {
-      return t.store_id === selectedStore && 
-             t.data >= thirtyDaysAgo && 
-             t.data <= today;
+    // Calcola teglie per ogni giorno negli ultimi 30 giorni
+    const filtered = prodottiVenduti.filter(p => {
+      if (p.store_id !== selectedStore) return false;
+      if (p.data_vendita < thirtyDaysAgo || p.data_vendita > today) return false;
+      if (!teglieConfig.categorie.includes(p.category)) return false;
+      return true;
     });
 
-    const byDay = {};
-    filtered.forEach(t => {
-      if (!byDay[t.day_of_week]) {
-        byDay[t.day_of_week] = { count: 0, total: 0 };
+    // Raggruppa per data e calcola teglie
+    const dailyData = {};
+    filtered.forEach(p => {
+      if (!dailyData[p.data_vendita]) {
+        dailyData[p.data_vendita] = 0;
       }
-      byDay[t.day_of_week].count++;
-      byDay[t.day_of_week].total += parseFloat(t.teglie);
+      dailyData[p.data_vendita] += p.total_pizzas_sold || 0;
+    });
+
+    // Converti in teglie e raggruppa per giorno della settimana
+    const byDay = {};
+    Object.entries(dailyData).forEach(([data, totale_unita]) => {
+      const teglie = totale_unita / teglieConfig.unita_per_teglia;
+      const dayName = moment(data).locale('it').format('dddd'); // Lunedì, Martedì, etc.
+      const capitalizedDay = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+      
+      if (!byDay[capitalizedDay]) {
+        byDay[capitalizedDay] = { count: 0, total: 0 };
+      }
+      byDay[capitalizedDay].count++;
+      byDay[capitalizedDay].total += teglie;
     });
 
     const result = {};
@@ -399,7 +415,7 @@ export default function PrecottureAdmin() {
     });
 
     return result;
-  }, [allTeglieVendute, selectedStore]);
+  }, [prodottiVenduti, selectedStore, teglieConfig]);
 
   return (
     <ProtectedPage pageName="PrecottureAdmin" requiredUserTypes={['admin']}>
