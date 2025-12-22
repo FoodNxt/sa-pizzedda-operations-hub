@@ -16,6 +16,11 @@ export default function PrecottureAdmin() {
   const [editingRow, setEditingRow] = useState(null);
   const [editData, setEditData] = useState({});
   const [dateRange, setDateRange] = useState('week');
+  const { data: configTeglieData = [] } = useQuery({
+    queryKey: ['config-teglie'],
+    queryFn: () => base44.entities.ConfigurazioneTeglieCalcolo.list(),
+  });
+
   const [teglieConfig, setTeglieConfig] = useState({
     categorie: ['pizza'],
     unita_per_teglia: 8
@@ -58,11 +63,6 @@ export default function PrecottureAdmin() {
     queryKey: ['prodotti-venduti-teglie'],
     queryFn: () => base44.entities.ProdottiVenduti.list(),
     enabled: activeTab === 'teglie-vendute' || activeTab === 'configurazione'
-  });
-
-  const { data: configTeglieData = [] } = useQuery({
-    queryKey: ['config-teglie'],
-    queryFn: () => base44.entities.ConfigurazioneTeglieCalcolo.list(),
   });
 
   const createMutation = useMutation({
