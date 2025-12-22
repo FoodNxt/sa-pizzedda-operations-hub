@@ -1,195 +1,199 @@
-import Dashboard from './pages/Dashboard';
-import StoreReviews from './pages/StoreReviews';
-import Financials from './pages/Financials';
-import Employees from './pages/Employees';
-import ImportReviews from './pages/ImportReviews';
-import ZapierSetup from './pages/ZapierSetup';
+import ATS from './pages/ATS';
+import Academy from './pages/Academy';
+import AcademyAdmin from './pages/AcademyAdmin';
+import Alerts from './pages/Alerts';
+import AnalisiSprechi from './pages/AnalisiSprechi';
+import Assenze from './pages/Assenze';
 import AssignReviews from './pages/AssignReviews';
-import EmployeeReviewsPerformance from './pages/EmployeeReviewsPerformance';
-import OrderItemsSetup from './pages/OrderItemsSetup';
+import AssistenteDipendente from './pages/AssistenteDipendente';
+import Attrezzature from './pages/Attrezzature';
+import BulkImportProdottiVenduti from './pages/BulkImportProdottiVenduti';
 import ChannelComparison from './pages/ChannelComparison';
-import RecalculateShifts from './pages/RecalculateShifts';
 import CleanupDuplicateShifts from './pages/CleanupDuplicateShifts';
-import Inventory from './pages/Inventory';
-import RealTime from './pages/RealTime';
-import Payroll from './pages/Payroll';
-import FotoLocale from './pages/FotoLocale';
-import SummaryAI from './pages/SummaryAI';
-import IPraticoSetup from './pages/IPraticoSetup';
-import IPraticoBulkImport from './pages/IPraticoBulkImport';
-import Valutazione from './pages/Valutazione';
-import ProfiloDipendente from './pages/ProfiloDipendente';
-import QuantitaMinime from './pages/QuantitaMinime';
-import FormInventario from './pages/FormInventario';
-import UsersManagement from './pages/UsersManagement';
+import Compliance from './pages/Compliance';
+import ConfrontoListini from './pages/ConfrontoListini';
 import ConteggioCassa from './pages/ConteggioCassa';
-import TeglieButtate from './pages/TeglieButtate';
-import Preparazioni from './pages/Preparazioni';
-import StoricoCassa from './pages/StoricoCassa';
-import FormCantina from './pages/FormCantina';
+import Contratti from './pages/Contratti';
+import ContrattiDipendente from './pages/ContrattiDipendente';
 import ControlloPuliziaCassiere from './pages/ControlloPuliziaCassiere';
 import ControlloPuliziaPizzaiolo from './pages/ControlloPuliziaPizzaiolo';
 import ControlloPuliziaStoreManager from './pages/ControlloPuliziaStoreManager';
-import Ricette from './pages/Ricette';
 import ControlloPulizieMaster from './pages/ControlloPulizieMaster';
-import GestioneAccessoPagine from './pages/GestioneAccessoPagine';
-import OrdiniSbagliati from './pages/OrdiniSbagliati';
-import MatchingOrdiniSbagliati from './pages/MatchingOrdiniSbagliati';
-import InventarioAdmin from './pages/InventarioAdmin';
-import ElencoFornitori from './pages/ElencoFornitori';
-import UploadFattureXML from './pages/UploadFattureXML';
-import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
-import BulkImportProdottiVenduti from './pages/BulkImportProdottiVenduti';
-import ProdottiVenduti from './pages/ProdottiVenduti';
-import AcademyAdmin from './pages/AcademyAdmin';
-import Academy from './pages/Academy';
-import Contratti from './pages/Contratti';
-import FunzionamentoApp from './pages/FunzionamentoApp';
-import HRAdmin from './pages/HRAdmin';
-import ContrattiDipendente from './pages/ContrattiDipendente';
-import MateriePrime from './pages/MateriePrime';
-import FormTeglieButtate from './pages/FormTeglieButtate';
-import FormPreparazioni from './pages/FormPreparazioni';
-import AnalisiSprechi from './pages/AnalisiSprechi';
-import InventoryForms from './pages/InventoryForms';
-import FormPrelievi from './pages/FormPrelievi';
-import FormDeposito from './pages/FormDeposito';
-import FinancialForms from './pages/FinancialForms';
-import Impasto from './pages/Impasto';
-import Precotture from './pages/Precotture';
-import ConfrontoListini from './pages/ConfrontoListini';
-import ResetAdmin from './pages/ResetAdmin';
-import LettereRichiamo from './pages/LettereRichiamo';
-import RegolamentoDipendenti from './pages/RegolamentoDipendenti';
-import InventarioStoreManager from './pages/InventarioStoreManager';
-import FeedbackP2P from './pages/FeedbackP2P';
-import FormTracker from './pages/FormTracker';
-import Documenti from './pages/Documenti';
-import FormsDipendente from './pages/FormsDipendente';
-import OreLavorate from './pages/OreLavorate';
-import Alerts from './pages/Alerts';
 import ControlloStoreManager from './pages/ControlloStoreManager';
-import StrutturaTurno from './pages/StrutturaTurno';
-import StoricoImpasti from './pages/StoricoImpasti';
-import GestioneAssistente from './pages/GestioneAssistente';
-import AssistenteDipendente from './pages/AssistenteDipendente';
-import PrecottureAdmin from './pages/PrecottureAdmin';
-import Planday from './pages/Planday';
-import TurniDipendente from './pages/TurniDipendente';
-import FormPulizia from './pages/FormPulizia';
-import Assenze from './pages/Assenze';
 import CreaCorso from './pages/CreaCorso';
+import DailyRevenueAggregation from './pages/DailyRevenueAggregation';
+import Dashboard from './pages/Dashboard';
 import DashboardStoreManager from './pages/DashboardStoreManager';
-import StoreManagerAdmin from './pages/StoreManagerAdmin';
-import ATS from './pages/ATS';
-import ValutazioneProvaForm from './pages/ValutazioneProvaForm';
-import Compliance from './pages/Compliance';
-import Attrezzature from './pages/Attrezzature';
-import Segnalazioni from './pages/Segnalazioni';
+import Documenti from './pages/Documenti';
+import ElencoFornitori from './pages/ElencoFornitori';
+import EmployeeReviewsPerformance from './pages/EmployeeReviewsPerformance';
+import Employees from './pages/Employees';
+import FeedbackP2P from './pages/FeedbackP2P';
+import FinancialForms from './pages/FinancialForms';
+import Financials from './pages/Financials';
+import FormCantina from './pages/FormCantina';
+import FormDeposito from './pages/FormDeposito';
+import FormInventario from './pages/FormInventario';
+import FormPrelievi from './pages/FormPrelievi';
+import FormPreparazioni from './pages/FormPreparazioni';
+import FormPulizia from './pages/FormPulizia';
 import FormSpostamenti from './pages/FormSpostamenti';
-import ValutazionePulizie from './pages/ValutazionePulizie';
-import PlandayStoreManager from './pages/PlandayStoreManager';
-import Pause from './pages/Pause';
-import Presenze from './pages/Presenze';
+import FormTeglieButtate from './pages/FormTeglieButtate';
+import FormTracker from './pages/FormTracker';
+import FormsDipendente from './pages/FormsDipendente';
+import FotoLocale from './pages/FotoLocale';
+import FunzionamentoApp from './pages/FunzionamentoApp';
+import GestioneAccessoPagine from './pages/GestioneAccessoPagine';
+import GestioneAssistente from './pages/GestioneAssistente';
+import HRAdmin from './pages/HRAdmin';
+import Home from './pages/Home';
+import IPraticoBulkImport from './pages/IPraticoBulkImport';
+import IPraticoSetup from './pages/IPraticoSetup';
+import Impasto from './pages/Impasto';
+import ImportReviews from './pages/ImportReviews';
+import InventarioAdmin from './pages/InventarioAdmin';
+import InventarioStoreManager from './pages/InventarioStoreManager';
+import Inventory from './pages/Inventory';
+import InventoryForms from './pages/InventoryForms';
+import LettereRichiamo from './pages/LettereRichiamo';
+import MatchingOrdiniSbagliati from './pages/MatchingOrdiniSbagliati';
+import MateriePrime from './pages/MateriePrime';
 import Meteo from './pages/Meteo';
+import OrderItemsSetup from './pages/OrderItemsSetup';
+import OrdiniSbagliati from './pages/OrdiniSbagliati';
+import OreLavorate from './pages/OreLavorate';
+import Pause from './pages/Pause';
+import Payroll from './pages/Payroll';
+import Planday from './pages/Planday';
+import PlandayStoreManager from './pages/PlandayStoreManager';
+import Precotture from './pages/Precotture';
+import PrecottureAdmin from './pages/PrecottureAdmin';
+import Preparazioni from './pages/Preparazioni';
+import Presenze from './pages/Presenze';
+import ProdottiVenduti from './pages/ProdottiVenduti';
+import ProfiloDipendente from './pages/ProfiloDipendente';
+import QuantitaMinime from './pages/QuantitaMinime';
+import RealTime from './pages/RealTime';
+import RecalculateShifts from './pages/RecalculateShifts';
+import RegolamentoDipendenti from './pages/RegolamentoDipendenti';
+import ResetAdmin from './pages/ResetAdmin';
+import Ricette from './pages/Ricette';
+import Segnalazioni from './pages/Segnalazioni';
+import StoreManagerAdmin from './pages/StoreManagerAdmin';
+import StoreReviews from './pages/StoreReviews';
+import StoricoCassa from './pages/StoricoCassa';
+import StoricoImpasti from './pages/StoricoImpasti';
+import StrutturaTurno from './pages/StrutturaTurno';
+import SummaryAI from './pages/SummaryAI';
+import TeglieButtate from './pages/TeglieButtate';
+import TurniDipendente from './pages/TurniDipendente';
+import UploadFattureXML from './pages/UploadFattureXML';
+import UsersManagement from './pages/UsersManagement';
+import Valutazione from './pages/Valutazione';
+import ValutazioneProvaForm from './pages/ValutazioneProvaForm';
+import ValutazionePulizie from './pages/ValutazionePulizie';
+import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
+import ZapierSetup from './pages/ZapierSetup';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
-    "Dashboard": Dashboard,
-    "StoreReviews": StoreReviews,
-    "Financials": Financials,
-    "Employees": Employees,
-    "ImportReviews": ImportReviews,
-    "ZapierSetup": ZapierSetup,
+    "ATS": ATS,
+    "Academy": Academy,
+    "AcademyAdmin": AcademyAdmin,
+    "Alerts": Alerts,
+    "AnalisiSprechi": AnalisiSprechi,
+    "Assenze": Assenze,
     "AssignReviews": AssignReviews,
-    "EmployeeReviewsPerformance": EmployeeReviewsPerformance,
-    "OrderItemsSetup": OrderItemsSetup,
+    "AssistenteDipendente": AssistenteDipendente,
+    "Attrezzature": Attrezzature,
+    "BulkImportProdottiVenduti": BulkImportProdottiVenduti,
     "ChannelComparison": ChannelComparison,
-    "RecalculateShifts": RecalculateShifts,
     "CleanupDuplicateShifts": CleanupDuplicateShifts,
-    "Inventory": Inventory,
-    "RealTime": RealTime,
-    "Payroll": Payroll,
-    "FotoLocale": FotoLocale,
-    "SummaryAI": SummaryAI,
-    "IPraticoSetup": IPraticoSetup,
-    "IPraticoBulkImport": IPraticoBulkImport,
-    "Valutazione": Valutazione,
-    "ProfiloDipendente": ProfiloDipendente,
-    "QuantitaMinime": QuantitaMinime,
-    "FormInventario": FormInventario,
-    "UsersManagement": UsersManagement,
+    "Compliance": Compliance,
+    "ConfrontoListini": ConfrontoListini,
     "ConteggioCassa": ConteggioCassa,
-    "TeglieButtate": TeglieButtate,
-    "Preparazioni": Preparazioni,
-    "StoricoCassa": StoricoCassa,
-    "FormCantina": FormCantina,
+    "Contratti": Contratti,
+    "ContrattiDipendente": ContrattiDipendente,
     "ControlloPuliziaCassiere": ControlloPuliziaCassiere,
     "ControlloPuliziaPizzaiolo": ControlloPuliziaPizzaiolo,
     "ControlloPuliziaStoreManager": ControlloPuliziaStoreManager,
-    "Ricette": Ricette,
     "ControlloPulizieMaster": ControlloPulizieMaster,
-    "GestioneAccessoPagine": GestioneAccessoPagine,
-    "OrdiniSbagliati": OrdiniSbagliati,
-    "MatchingOrdiniSbagliati": MatchingOrdiniSbagliati,
-    "InventarioAdmin": InventarioAdmin,
-    "ElencoFornitori": ElencoFornitori,
-    "UploadFattureXML": UploadFattureXML,
-    "ZapierProdottiVenduti": ZapierProdottiVenduti,
-    "BulkImportProdottiVenduti": BulkImportProdottiVenduti,
-    "ProdottiVenduti": ProdottiVenduti,
-    "AcademyAdmin": AcademyAdmin,
-    "Academy": Academy,
-    "Contratti": Contratti,
-    "FunzionamentoApp": FunzionamentoApp,
-    "HRAdmin": HRAdmin,
-    "ContrattiDipendente": ContrattiDipendente,
-    "MateriePrime": MateriePrime,
-    "FormTeglieButtate": FormTeglieButtate,
-    "FormPreparazioni": FormPreparazioni,
-    "AnalisiSprechi": AnalisiSprechi,
-    "InventoryForms": InventoryForms,
-    "FormPrelievi": FormPrelievi,
-    "FormDeposito": FormDeposito,
-    "FinancialForms": FinancialForms,
-    "Impasto": Impasto,
-    "Precotture": Precotture,
-    "ConfrontoListini": ConfrontoListini,
-    "ResetAdmin": ResetAdmin,
-    "LettereRichiamo": LettereRichiamo,
-    "RegolamentoDipendenti": RegolamentoDipendenti,
-    "InventarioStoreManager": InventarioStoreManager,
-    "FeedbackP2P": FeedbackP2P,
-    "FormTracker": FormTracker,
-    "Documenti": Documenti,
-    "FormsDipendente": FormsDipendente,
-    "OreLavorate": OreLavorate,
-    "Alerts": Alerts,
     "ControlloStoreManager": ControlloStoreManager,
-    "StrutturaTurno": StrutturaTurno,
-    "StoricoImpasti": StoricoImpasti,
-    "GestioneAssistente": GestioneAssistente,
-    "AssistenteDipendente": AssistenteDipendente,
-    "PrecottureAdmin": PrecottureAdmin,
-    "Planday": Planday,
-    "TurniDipendente": TurniDipendente,
-    "FormPulizia": FormPulizia,
-    "Assenze": Assenze,
     "CreaCorso": CreaCorso,
+    "DailyRevenueAggregation": DailyRevenueAggregation,
+    "Dashboard": Dashboard,
     "DashboardStoreManager": DashboardStoreManager,
-    "StoreManagerAdmin": StoreManagerAdmin,
-    "ATS": ATS,
-    "ValutazioneProvaForm": ValutazioneProvaForm,
-    "Compliance": Compliance,
-    "Attrezzature": Attrezzature,
-    "Segnalazioni": Segnalazioni,
+    "Documenti": Documenti,
+    "ElencoFornitori": ElencoFornitori,
+    "EmployeeReviewsPerformance": EmployeeReviewsPerformance,
+    "Employees": Employees,
+    "FeedbackP2P": FeedbackP2P,
+    "FinancialForms": FinancialForms,
+    "Financials": Financials,
+    "FormCantina": FormCantina,
+    "FormDeposito": FormDeposito,
+    "FormInventario": FormInventario,
+    "FormPrelievi": FormPrelievi,
+    "FormPreparazioni": FormPreparazioni,
+    "FormPulizia": FormPulizia,
     "FormSpostamenti": FormSpostamenti,
-    "ValutazionePulizie": ValutazionePulizie,
-    "PlandayStoreManager": PlandayStoreManager,
-    "Pause": Pause,
-    "Presenze": Presenze,
+    "FormTeglieButtate": FormTeglieButtate,
+    "FormTracker": FormTracker,
+    "FormsDipendente": FormsDipendente,
+    "FotoLocale": FotoLocale,
+    "FunzionamentoApp": FunzionamentoApp,
+    "GestioneAccessoPagine": GestioneAccessoPagine,
+    "GestioneAssistente": GestioneAssistente,
+    "HRAdmin": HRAdmin,
+    "Home": Home,
+    "IPraticoBulkImport": IPraticoBulkImport,
+    "IPraticoSetup": IPraticoSetup,
+    "Impasto": Impasto,
+    "ImportReviews": ImportReviews,
+    "InventarioAdmin": InventarioAdmin,
+    "InventarioStoreManager": InventarioStoreManager,
+    "Inventory": Inventory,
+    "InventoryForms": InventoryForms,
+    "LettereRichiamo": LettereRichiamo,
+    "MatchingOrdiniSbagliati": MatchingOrdiniSbagliati,
+    "MateriePrime": MateriePrime,
     "Meteo": Meteo,
+    "OrderItemsSetup": OrderItemsSetup,
+    "OrdiniSbagliati": OrdiniSbagliati,
+    "OreLavorate": OreLavorate,
+    "Pause": Pause,
+    "Payroll": Payroll,
+    "Planday": Planday,
+    "PlandayStoreManager": PlandayStoreManager,
+    "Precotture": Precotture,
+    "PrecottureAdmin": PrecottureAdmin,
+    "Preparazioni": Preparazioni,
+    "Presenze": Presenze,
+    "ProdottiVenduti": ProdottiVenduti,
+    "ProfiloDipendente": ProfiloDipendente,
+    "QuantitaMinime": QuantitaMinime,
+    "RealTime": RealTime,
+    "RecalculateShifts": RecalculateShifts,
+    "RegolamentoDipendenti": RegolamentoDipendenti,
+    "ResetAdmin": ResetAdmin,
+    "Ricette": Ricette,
+    "Segnalazioni": Segnalazioni,
+    "StoreManagerAdmin": StoreManagerAdmin,
+    "StoreReviews": StoreReviews,
+    "StoricoCassa": StoricoCassa,
+    "StoricoImpasti": StoricoImpasti,
+    "StrutturaTurno": StrutturaTurno,
+    "SummaryAI": SummaryAI,
+    "TeglieButtate": TeglieButtate,
+    "TurniDipendente": TurniDipendente,
+    "UploadFattureXML": UploadFattureXML,
+    "UsersManagement": UsersManagement,
+    "Valutazione": Valutazione,
+    "ValutazioneProvaForm": ValutazioneProvaForm,
+    "ValutazionePulizie": ValutazionePulizie,
+    "ZapierProdottiVenduti": ZapierProdottiVenduti,
+    "ZapierSetup": ZapierSetup,
 }
 
 export const pagesConfig = {

@@ -4,8 +4,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
-import { ChefHat, Plus, Edit, Save, X, Calendar, History, Store, User, Trash2 } from "lucide-react";
+import { ChefHat, Plus, Edit, Save, X, Calendar, History, Store, User, Trash2, Pizza, TrendingUp, Settings } from "lucide-react";
 import moment from "moment";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const giorni = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"];
 
@@ -15,6 +16,13 @@ export default function PrecottureAdmin() {
   const [editingRow, setEditingRow] = useState(null);
   const [editData, setEditData] = useState({});
   const [dateRange, setDateRange] = useState('week');
+  const [teglieConfig, setTeglieConfig] = useState({
+    categorie: ['pizza'],
+    unita_per_teglia: 8
+  });
+  const [showTeglieConfig, setShowTeglieConfig] = useState(false);
+  const [teglieStartDate, setTeglieStartDate] = useState(moment().subtract(30, 'days').format('YYYY-MM-DD'));
+  const [teglieEndDate, setTeglieEndDate] = useState(moment().format('YYYY-MM-DD'));
   const queryClient = useQueryClient();
 
   const { data: stores = [] } = useQuery({
@@ -31,6 +39,12 @@ export default function PrecottureAdmin() {
     queryKey: ['preparazioni-storico'],
     queryFn: () => base44.entities.Preparazioni.list('-created_date', 500),
     enabled: activeTab === 'storico'
+  });
+
+  const { data: prodottiVenduti = [] } = useQuery({
+    queryKey: ['prodotti-venduti-teglie'],
+    queryFn: () => base44.entities.ProdottiVenduti.list(),
+    enabled: activeTab === 'teglie-vendute'
   });
 
   const createMutation = useMutation({
@@ -146,6 +160,84 @@ export default function PrecottureAdmin() {
     return stores.find(s => s.id === storeId)?.name || storeId;
   };
 
+  // Teglie vendute calculations
+  const teglieVendute = useMemo(() => {
+    const filtered = prodottiVenduti.filter(p => {
+      // Filter by date range
+      if (p.data_vendita < teglieStartDate || p.data_vendita > teglieEndDate) return false;
+      // Filter by store
+      if (selectedStore && p.store_id !== selectedStore) return false;
+      // Filter by category
+      if (!teglieConfig.categorie.includes(p.category)) return false;
+      return true;
+    });
+
+    // Group by store and date
+    const dailyData = {};
+    filtered.forEach(p => {
+      const key = `${p.store_id}_${p.data_vendita}`;
+      if (!dailyData[key]) {
+        dailyData[key] = {
+          store_id: p.store_id,
+          store_name: p.store_name,
+          data: p.data_vendita,
+          totale_unita: 0
+        };
+      }
+      dailyData[key].totale_unita += p.total_pizzas_sold || 0;
+    });
+
+    // Calculate teglie
+    const result = Object.values(dailyData).map(d => ({
+      ...d,
+      teglie: (d.totale_unita / teglieConfig.unita_per_teglia).toFixed(2),
+      day_of_week: moment(d.data).format('dddd')
+    }));
+
+    return result.sort((a, b) => a.data.localeCompare(b.data));
+  }, [prodottiVenduti, teglieConfig, teglieStartDate, teglieEndDate, selectedStore]);
+
+  // Media per giorno della settimana
+  const mediaPerGiorno = useMemo(() => {
+    const byDay = {};
+    teglieVendute.forEach(t => {
+      if (!byDay[t.day_of_week]) {
+        byDay[t.day_of_week] = { count: 0, total: 0 };
+      }
+      byDay[t.day_of_week].count++;
+      byDay[t.day_of_week].total += parseFloat(t.teglie);
+    });
+
+    return Object.entries(byDay).map(([day, data]) => ({
+      day,
+      media: (data.total / data.count).toFixed(2)
+    }));
+  }, [teglieVendute]);
+
+  // Trend chart data
+  const teglieChartData = useMemo(() => {
+    if (selectedStore) {
+      return teglieVendute.map(t => ({
+        date: moment(t.data).format('DD/MM'),
+        teglie: parseFloat(t.teglie)
+      }));
+    }
+
+    // Group by date for all stores
+    const byDate = {};
+    teglieVendute.forEach(t => {
+      if (!byDate[t.data]) {
+        byDate[t.data] = 0;
+      }
+      byDate[t.data] += parseFloat(t.teglie);
+    });
+
+    return Object.entries(byDate).map(([date, teglie]) => ({
+      date: moment(date).format('DD/MM'),
+      teglie: teglie.toFixed(2)
+    })).sort((a, b) => a.date.localeCompare(b.date));
+  }, [teglieVendute, selectedStore]);
+
   return (
     <ProtectedPage pageName="PrecottureAdmin" requiredUserTypes={['admin']}>
       <div className="max-w-7xl mx-auto space-y-6">
@@ -159,7 +251,7 @@ export default function PrecottureAdmin() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setActiveTab('configurazione')}
             className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
@@ -181,6 +273,17 @@ export default function PrecottureAdmin() {
           >
             <History className="w-4 h-4" />
             Storico Compilazioni
+          </button>
+          <button
+            onClick={() => setActiveTab('teglie-vendute')}
+            className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
+              activeTab === 'teglie-vendute'
+                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                : 'neumorphic-flat text-slate-700'
+            }`}
+          >
+            <Pizza className="w-4 h-4" />
+            Teglie Vendute
           </button>
         </div>
 
@@ -362,6 +465,223 @@ export default function PrecottureAdmin() {
             <Store className="w-16 h-16 mx-auto mb-4 text-slate-300" />
             <p className="text-slate-500">Seleziona un negozio per configurare le precotture</p>
           </NeumorphicCard>
+        )}
+
+        {/* Tab Teglie Vendute */}
+        {activeTab === 'teglie-vendute' && (
+          <>
+            {/* Configurazione */}
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                  <Settings className="w-5 h-5 text-blue-600" />
+                  Configurazione Calcolo Teglie
+                </h2>
+                <button
+                  onClick={() => setShowTeglieConfig(!showTeglieConfig)}
+                  className="nav-button px-4 py-2 rounded-lg text-sm"
+                >
+                  {showTeglieConfig ? 'Nascondi' : 'Mostra'} Configurazione
+                </button>
+              </div>
+
+              {showTeglieConfig && (
+                <div className="space-y-4 pt-4 border-t border-slate-200">
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">
+                      Categorie da considerare
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {['pizza', 'dolce', 'bibita', 'birra'].map(cat => (
+                        <button
+                          key={cat}
+                          onClick={() => {
+                            setTeglieConfig(prev => ({
+                              ...prev,
+                              categorie: prev.categorie.includes(cat)
+                                ? prev.categorie.filter(c => c !== cat)
+                                : [...prev.categorie, cat]
+                            }));
+                          }}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                            teglieConfig.categorie.includes(cat)
+                              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                              : 'neumorphic-flat text-slate-700'
+                          }`}
+                        >
+                          {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">
+                      Unità per teglia
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={teglieConfig.unita_per_teglia}
+                      onChange={(e) => setTeglieConfig(prev => ({ ...prev, unita_per_teglia: parseInt(e.target.value) || 1 }))}
+                      className="w-32 neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">
+                      Numero di unità che compongono una teglia
+                    </p>
+                  </div>
+                </div>
+              )}
+            </NeumorphicCard>
+
+            {/* Date Range */}
+            <NeumorphicCard className="p-6">
+              <h3 className="text-sm font-medium text-slate-700 mb-3">Periodo di analisi</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-slate-500 mb-1 block">Data inizio</label>
+                  <input
+                    type="date"
+                    value={teglieStartDate}
+                    onChange={(e) => setTeglieStartDate(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 mb-1 block">Data fine</label>
+                  <input
+                    type="date"
+                    value={teglieEndDate}
+                    onChange={(e) => setTeglieEndDate(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
+                  />
+                </div>
+              </div>
+            </NeumorphicCard>
+
+            {/* Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <NeumorphicCard className="p-6 text-center">
+                <Pizza className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+                <p className="text-3xl font-bold text-slate-800">
+                  {teglieVendute.reduce((sum, t) => sum + parseFloat(t.teglie), 0).toFixed(0)}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">Teglie Totali</p>
+              </NeumorphicCard>
+
+              <NeumorphicCard className="p-6 text-center">
+                <TrendingUp className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                <p className="text-3xl font-bold text-slate-800">
+                  {teglieVendute.length > 0 
+                    ? (teglieVendute.reduce((sum, t) => sum + parseFloat(t.teglie), 0) / teglieVendute.length).toFixed(1)
+                    : '0'}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">Media Giornaliera</p>
+              </NeumorphicCard>
+
+              <NeumorphicCard className="p-6 text-center">
+                <Calendar className="w-8 h-8 text-purple-600 mx-auto mb-2" />
+                <p className="text-3xl font-bold text-slate-800">
+                  {teglieVendute.length}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">Giorni Analizzati</p>
+              </NeumorphicCard>
+            </div>
+
+            {/* Chart */}
+            {teglieChartData.length > 0 && (
+              <NeumorphicCard className="p-6">
+                <h3 className="text-lg font-bold text-slate-800 mb-4">Trend Giornaliero</h3>
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={teglieChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis dataKey="date" stroke="#64748b" />
+                      <YAxis stroke="#64748b" label={{ value: 'Teglie', angle: -90, position: 'insideLeft' }} />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: '#f8fafc', 
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '8px'
+                        }} 
+                      />
+                      <Legend />
+                      <Line type="monotone" dataKey="teglie" stroke="#3b82f6" strokeWidth={2} name="Teglie Vendute" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </NeumorphicCard>
+            )}
+
+            {/* Media per giorno della settimana */}
+            {mediaPerGiorno.length > 0 && (
+              <NeumorphicCard className="p-6">
+                <h3 className="text-lg font-bold text-slate-800 mb-4">Media per Giorno della Settimana</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                  {mediaPerGiorno.map(d => (
+                    <div key={d.day} className="neumorphic-pressed p-4 rounded-xl text-center">
+                      <p className="text-xs text-slate-500 mb-1">{d.day}</p>
+                      <p className="text-2xl font-bold text-blue-600">{d.media}</p>
+                      <p className="text-xs text-slate-400">teglie</p>
+                    </div>
+                  ))}
+                </div>
+              </NeumorphicCard>
+            )}
+
+            {/* Tabella dettagliata */}
+            {teglieVendute.length > 0 && (
+              <NeumorphicCard className="p-6">
+                <h3 className="text-lg font-bold text-slate-800 mb-4">Dettaglio Giornaliero</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b-2 border-slate-200">
+                        <th className="text-left py-3 px-2 text-slate-700">Data</th>
+                        <th className="text-left py-3 px-2 text-slate-700">Giorno</th>
+                        {!selectedStore && <th className="text-left py-3 px-2 text-slate-700">Negozio</th>}
+                        <th className="text-right py-3 px-2 text-slate-700">Unità Vendute</th>
+                        <th className="text-right py-3 px-2 text-blue-700 bg-blue-50">Teglie</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {teglieVendute.map((t, idx) => (
+                        <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
+                          <td className="py-3 px-2 text-slate-700">
+                            {moment(t.data).format('DD/MM/YYYY')}
+                          </td>
+                          <td className="py-3 px-2 text-slate-600">
+                            {t.day_of_week}
+                          </td>
+                          {!selectedStore && (
+                            <td className="py-3 px-2 font-medium text-slate-800">
+                              {t.store_name}
+                            </td>
+                          )}
+                          <td className="py-3 px-2 text-right text-slate-700">
+                            {t.totale_unita}
+                          </td>
+                          <td className="py-3 px-2 text-right font-bold text-blue-700 bg-blue-50">
+                            {t.teglie}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </NeumorphicCard>
+            )}
+
+            {teglieVendute.length === 0 && (
+              <NeumorphicCard className="p-12 text-center">
+                <Pizza className="w-16 h-16 text-slate-300 mx-auto mb-4 opacity-50" />
+                <h3 className="text-xl font-bold text-slate-800 mb-2">Nessun dato disponibile</h3>
+                <p className="text-slate-500">
+                  Seleziona un periodo e configura le categorie per visualizzare i dati
+                </p>
+              </NeumorphicCard>
+            )}
+          </>
         )}
 
         {/* Tab Storico */}
