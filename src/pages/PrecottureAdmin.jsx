@@ -100,7 +100,18 @@ export default function PrecottureAdmin() {
 
   const handleEdit = (giorno, data) => {
     setEditingRow(giorno);
-    setEditData(data || {
+    const totale = getTotaleGiornaliero(data);
+    setEditData(data ? {
+      ...data,
+      totale_giornata: totale,
+      percentuale_pranzo: data.percentuale_pranzo || 30,
+      percentuale_pomeriggio: data.percentuale_pomeriggio || 30,
+      percentuale_cena: data.percentuale_cena || 40
+    } : {
+      totale_giornata: 0,
+      percentuale_pranzo: 30,
+      percentuale_pomeriggio: 30,
+      percentuale_cena: 40,
       pranzo_rosse: 0,
       pomeriggio_rosse: 0,
       cena_rosse: 0
@@ -111,11 +122,23 @@ export default function PrecottureAdmin() {
     const store = stores.find(s => s.id === selectedStore);
     const existing = getDataForDay(giorno);
 
+    // Calculate values based on total and percentages
+    const totale = parseFloat(editData.totale_giornata) || 0;
+    const percPranzo = parseFloat(editData.percentuale_pranzo) || 0;
+    const percPomeriggio = parseFloat(editData.percentuale_pomeriggio) || 0;
+    const percCena = parseFloat(editData.percentuale_cena) || 0;
+
     const payload = {
       store_name: store?.name,
       store_id: selectedStore,
       giorno_settimana: giorno,
-      ...editData
+      totale_giornata: totale,
+      percentuale_pranzo: percPranzo,
+      percentuale_pomeriggio: percPomeriggio,
+      percentuale_cena: percCena,
+      pranzo_rosse: Math.round(totale * (percPranzo / 100)),
+      pomeriggio_rosse: Math.round(totale * (percPomeriggio / 100)),
+      cena_rosse: Math.round(totale * (percCena / 100))
     };
 
     if (existing) {
@@ -316,6 +339,36 @@ export default function PrecottureAdmin() {
     return [0, Math.ceil(maxValue * 1.1)];
   }, [teglieChartData]);
 
+  // Media ultimi 30 giorni per giorno della settimana (per store selezionato)
+  const mediaUltimi30Giorni = useMemo(() => {
+    if (!selectedStore) return {};
+    
+    const thirtyDaysAgo = moment().subtract(30, 'days').format('YYYY-MM-DD');
+    const today = moment().format('YYYY-MM-DD');
+    
+    const filtered = allTeglieVendute.filter(t => {
+      return t.store_id === selectedStore && 
+             t.data >= thirtyDaysAgo && 
+             t.data <= today;
+    });
+
+    const byDay = {};
+    filtered.forEach(t => {
+      if (!byDay[t.day_of_week]) {
+        byDay[t.day_of_week] = { count: 0, total: 0 };
+      }
+      byDay[t.day_of_week].count++;
+      byDay[t.day_of_week].total += parseFloat(t.teglie);
+    });
+
+    const result = {};
+    Object.entries(byDay).forEach(([day, data]) => {
+      result[day] = (data.total / data.count).toFixed(2);
+    });
+
+    return result;
+  }, [allTeglieVendute, selectedStore]);
+
   return (
     <ProtectedPage pageName="PrecottureAdmin" requiredUserTypes={['admin']}>
       <div className="max-w-7xl mx-auto space-y-6">
@@ -438,10 +491,12 @@ export default function PrecottureAdmin() {
                   <thead>
                     <tr className="border-b-2 border-slate-200">
                       <th className="text-left py-3 px-2 font-semibold text-slate-700">Giorno</th>
+                      <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-blue-50">Media<br/>Ultimi 30gg</th>
                       <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-red-50">Pranzo<br/>Rosse</th>
                       <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-red-50">Pomeriggio<br/>Rosse</th>
                       <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-red-50">Cena<br/>Rosse</th>
                       <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-green-50">Totale<br/>Giornata</th>
+                      <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-purple-50">Scostamento<br/>da Media</th>
                       <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-yellow-50">Impasto<br/>3 Giorni</th>
                       <th className="text-center py-3 px-2">Azioni</th>
                     </tr>
@@ -450,7 +505,22 @@ export default function PrecottureAdmin() {
                     {giorni.map((giorno, idx) => {
                       const data = getDataForDay(giorno);
                       const isEditing = editingRow === giorno;
-                      const totaleGiorno = getTotaleGiornaliero(isEditing ? editData : data);
+                      const mediaGiorno = parseFloat(mediaUltimi30Giorni[giorno]) || 0;
+                      
+                      let totaleGiorno;
+                      if (isEditing) {
+                        const tot = parseFloat(editData.totale_giornata) || 0;
+                        const percPranzo = parseFloat(editData.percentuale_pranzo) || 0;
+                        const percPomeriggio = parseFloat(editData.percentuale_pomeriggio) || 0;
+                        const percCena = parseFloat(editData.percentuale_cena) || 0;
+                        totaleGiorno = Math.round(tot * (percPranzo / 100)) + 
+                                      Math.round(tot * (percPomeriggio / 100)) + 
+                                      Math.round(tot * (percCena / 100));
+                      } else {
+                        totaleGiorno = getTotaleGiornaliero(data);
+                      }
+                      
+                      const scostamento = totaleGiorno - mediaGiorno;
                       const impasto3Giorni = getImpastoPer3Giorni(idx);
 
                       return (
@@ -461,34 +531,68 @@ export default function PrecottureAdmin() {
                               {giorno}
                             </div>
                           </td>
+                          <td className="text-center py-2 px-2 font-medium text-blue-700 bg-blue-50">
+                            {mediaGiorno > 0 ? mediaGiorno.toFixed(1) : '-'}
+                          </td>
                           {isEditing ? (
                             <>
-                              <td className="text-center py-2 px-1">
-                                <input
-                                  type="number"
-                                  min="0"
-                                  value={editData.pranzo_rosse || 0}
-                                  onChange={(e) => setEditData({...editData, pranzo_rosse: parseInt(e.target.value) || 0})}
-                                  className="w-16 text-center neumorphic-pressed px-2 py-1 rounded-lg"
-                                />
-                              </td>
-                              <td className="text-center py-2 px-1">
-                                <input
-                                  type="number"
-                                  min="0"
-                                  value={editData.pomeriggio_rosse || 0}
-                                  onChange={(e) => setEditData({...editData, pomeriggio_rosse: parseInt(e.target.value) || 0})}
-                                  className="w-16 text-center neumorphic-pressed px-2 py-1 rounded-lg"
-                                />
-                              </td>
-                              <td className="text-center py-2 px-1">
-                                <input
-                                  type="number"
-                                  min="0"
-                                  value={editData.cena_rosse || 0}
-                                  onChange={(e) => setEditData({...editData, cena_rosse: parseInt(e.target.value) || 0})}
-                                  className="w-16 text-center neumorphic-pressed px-2 py-1 rounded-lg"
-                                />
+                              <td colSpan="3" className="py-2 px-2">
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <label className="text-xs text-slate-600 w-20">Totale:</label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={editData.totale_giornata || 0}
+                                      onChange={(e) => setEditData({...editData, totale_giornata: parseFloat(e.target.value) || 0})}
+                                      className="w-20 text-center neumorphic-pressed px-2 py-1 rounded-lg"
+                                    />
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-1 text-xs">
+                                    <div>
+                                      <label className="text-slate-500">Pranzo %</label>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        value={editData.percentuale_pranzo || 0}
+                                        onChange={(e) => setEditData({...editData, percentuale_pranzo: parseFloat(e.target.value) || 0})}
+                                        className="w-full text-center neumorphic-pressed px-1 py-1 rounded-lg mt-1"
+                                      />
+                                      <p className="text-slate-400 mt-1">
+                                        = {Math.round((editData.totale_giornata || 0) * ((editData.percentuale_pranzo || 0) / 100))}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <label className="text-slate-500">Pomeriggio %</label>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        value={editData.percentuale_pomeriggio || 0}
+                                        onChange={(e) => setEditData({...editData, percentuale_pomeriggio: parseFloat(e.target.value) || 0})}
+                                        className="w-full text-center neumorphic-pressed px-1 py-1 rounded-lg mt-1"
+                                      />
+                                      <p className="text-slate-400 mt-1">
+                                        = {Math.round((editData.totale_giornata || 0) * ((editData.percentuale_pomeriggio || 0) / 100))}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <label className="text-slate-500">Cena %</label>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        value={editData.percentuale_cena || 0}
+                                        onChange={(e) => setEditData({...editData, percentuale_cena: parseFloat(e.target.value) || 0})}
+                                        className="w-full text-center neumorphic-pressed px-1 py-1 rounded-lg mt-1"
+                                      />
+                                      <p className="text-slate-400 mt-1">
+                                        = {Math.round((editData.totale_giornata || 0) * ((editData.percentuale_cena || 0) / 100))}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
                               </td>
                             </>
                           ) : (
@@ -499,6 +603,11 @@ export default function PrecottureAdmin() {
                             </>
                           )}
                           <td className="text-center py-2 px-2 font-bold text-green-700 bg-green-50">{totaleGiorno}</td>
+                          <td className="text-center py-2 px-2 font-bold bg-purple-50">
+                            <span className={scostamento > 0 ? 'text-green-600' : scostamento < 0 ? 'text-red-600' : 'text-slate-600'}>
+                              {scostamento > 0 ? '+' : ''}{scostamento.toFixed(1)}
+                            </span>
+                          </td>
                           <td className="text-center py-2 px-2 font-bold text-yellow-700 bg-yellow-50">{impasto3Giorni}</td>
                           <td className="text-center py-2 px-2">
                             {isEditing ? (
