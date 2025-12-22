@@ -23,6 +23,8 @@ export default function PrecottureAdmin() {
   const [showTeglieConfig, setShowTeglieConfig] = useState(false);
   const [teglieStartDate, setTeglieStartDate] = useState(moment().subtract(30, 'days').format('YYYY-MM-DD'));
   const [teglieEndDate, setTeglieEndDate] = useState(moment().format('YYYY-MM-DD'));
+  const [selectedStoresForChart, setSelectedStoresForChart] = useState([]);
+  const [selectedStoreForMedia, setSelectedStoreForMedia] = useState('');
   const queryClient = useQueryClient();
 
   const { data: stores = [] } = useQuery({
@@ -165,7 +167,7 @@ export default function PrecottureAdmin() {
     const filtered = prodottiVenduti.filter(p => {
       // Filter by date range
       if (p.data_vendita < teglieStartDate || p.data_vendita > teglieEndDate) return false;
-      // Filter by store
+      // Filter by store (for table view)
       if (selectedStore && p.store_id !== selectedStore) return false;
       // Filter by category
       if (!teglieConfig.categorie.includes(p.category)) return false;
@@ -197,10 +199,45 @@ export default function PrecottureAdmin() {
     return result.sort((a, b) => a.data.localeCompare(b.data));
   }, [prodottiVenduti, teglieConfig, teglieStartDate, teglieEndDate, selectedStore]);
 
-  // Media per giorno della settimana
+  // All teglie without store filter (for chart)
+  const allTeglieVendute = useMemo(() => {
+    const filtered = prodottiVenduti.filter(p => {
+      if (p.data_vendita < teglieStartDate || p.data_vendita > teglieEndDate) return false;
+      if (!teglieConfig.categorie.includes(p.category)) return false;
+      return true;
+    });
+
+    const dailyData = {};
+    filtered.forEach(p => {
+      const key = `${p.store_id}_${p.data_vendita}`;
+      if (!dailyData[key]) {
+        dailyData[key] = {
+          store_id: p.store_id,
+          store_name: p.store_name,
+          data: p.data_vendita,
+          totale_unita: 0
+        };
+      }
+      dailyData[key].totale_unita += p.total_pizzas_sold || 0;
+    });
+
+    const result = Object.values(dailyData).map(d => ({
+      ...d,
+      teglie: parseFloat((d.totale_unita / teglieConfig.unita_per_teglia).toFixed(2)),
+      day_of_week: moment(d.data).format('dddd')
+    }));
+
+    return result.sort((a, b) => a.data.localeCompare(b.data));
+  }, [prodottiVenduti, teglieConfig, teglieStartDate, teglieEndDate]);
+
+  // Media per giorno della settimana (per singolo store)
   const mediaPerGiorno = useMemo(() => {
+    const dataToUse = selectedStoreForMedia 
+      ? allTeglieVendute.filter(t => t.store_id === selectedStoreForMedia)
+      : allTeglieVendute;
+
     const byDay = {};
-    teglieVendute.forEach(t => {
+    dataToUse.forEach(t => {
       if (!byDay[t.day_of_week]) {
         byDay[t.day_of_week] = { count: 0, total: 0 };
       }
@@ -212,31 +249,72 @@ export default function PrecottureAdmin() {
       day,
       media: (data.total / data.count).toFixed(2)
     }));
-  }, [teglieVendute]);
+  }, [allTeglieVendute, selectedStoreForMedia]);
 
-  // Trend chart data
+  // Trend chart data - multistore support
   const teglieChartData = useMemo(() => {
-    if (selectedStore) {
-      return teglieVendute.map(t => ({
-        date: moment(t.data).format('DD/MM'),
-        teglie: parseFloat(t.teglie)
-      }));
+    const storesToShow = selectedStoresForChart.length > 0 ? selectedStoresForChart : 
+                        (selectedStore ? [selectedStore] : []);
+
+    if (storesToShow.length === 0) {
+      // Show all stores combined
+      const byDate = {};
+      allTeglieVendute.forEach(t => {
+        if (!byDate[t.data]) {
+          byDate[t.data] = 0;
+        }
+        byDate[t.data] += parseFloat(t.teglie);
+      });
+
+      return Object.entries(byDate)
+        .map(([date, teglie]) => ({
+          date: moment(date).format('DD/MM'),
+          totale: parseFloat(teglie.toFixed(2))
+        }))
+        .sort((a, b) => moment(a.date, 'DD/MM').diff(moment(b.date, 'DD/MM')));
     }
 
-    // Group by date for all stores
+    // Group by date with multiple stores
     const byDate = {};
-    teglieVendute.forEach(t => {
+    allTeglieVendute.forEach(t => {
+      if (!storesToShow.includes(t.store_id)) return;
+      
       if (!byDate[t.data]) {
-        byDate[t.data] = 0;
+        byDate[t.data] = {};
       }
-      byDate[t.data] += parseFloat(t.teglie);
+      byDate[t.data][t.store_name] = parseFloat(t.teglie);
     });
 
-    return Object.entries(byDate).map(([date, teglie]) => ({
-      date: moment(date).format('DD/MM'),
-      teglie: teglie.toFixed(2)
-    })).sort((a, b) => a.date.localeCompare(b.date));
-  }, [teglieVendute, selectedStore]);
+    return Object.entries(byDate)
+      .map(([date, storeData]) => ({
+        date: moment(date).format('DD/MM'),
+        ...storeData
+      }))
+      .sort((a, b) => moment(a.date, 'DD/MM').diff(moment(b.date, 'DD/MM')));
+  }, [allTeglieVendute, selectedStoresForChart, selectedStore]);
+
+  // Get unique store names for legend
+  const chartStoreNames = useMemo(() => {
+    if (teglieChartData.length === 0) return [];
+    const firstRow = teglieChartData[0];
+    return Object.keys(firstRow).filter(k => k !== 'date' && k !== 'totale');
+  }, [teglieChartData]);
+
+  // Calculate Y-axis domain for chart
+  const chartYDomain = useMemo(() => {
+    if (teglieChartData.length === 0) return [0, 100];
+    
+    let maxValue = 0;
+    teglieChartData.forEach(row => {
+      Object.keys(row).forEach(key => {
+        if (key !== 'date') {
+          maxValue = Math.max(maxValue, parseFloat(row[key]) || 0);
+        }
+      });
+    });
+
+    return [0, Math.ceil(maxValue * 1.1)];
+  }, [teglieChartData]);
 
   return (
     <ProtectedPage pageName="PrecottureAdmin" requiredUserTypes={['admin']}>
@@ -588,6 +666,40 @@ export default function PrecottureAdmin() {
               </NeumorphicCard>
             </div>
 
+            {/* Store selection for chart */}
+            <NeumorphicCard className="p-6">
+              <h3 className="text-sm font-medium text-slate-700 mb-3">Negozi da visualizzare nel grafico</h3>
+              <div className="flex flex-wrap gap-2">
+                {stores.map(store => (
+                  <button
+                    key={store.id}
+                    onClick={() => {
+                      setSelectedStoresForChart(prev => 
+                        prev.includes(store.id)
+                          ? prev.filter(id => id !== store.id)
+                          : [...prev, store.id]
+                      );
+                    }}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      selectedStoresForChart.includes(store.id)
+                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                        : 'neumorphic-flat text-slate-700'
+                    }`}
+                  >
+                    {store.name}
+                  </button>
+                ))}
+                {selectedStoresForChart.length > 0 && (
+                  <button
+                    onClick={() => setSelectedStoresForChart([])}
+                    className="px-4 py-2 rounded-lg text-sm font-medium neumorphic-flat text-red-600"
+                  >
+                    Mostra Tutti
+                  </button>
+                )}
+              </div>
+            </NeumorphicCard>
+
             {/* Chart */}
             {teglieChartData.length > 0 && (
               <NeumorphicCard className="p-6">
@@ -597,7 +709,11 @@ export default function PrecottureAdmin() {
                     <LineChart data={teglieChartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                       <XAxis dataKey="date" stroke="#64748b" />
-                      <YAxis stroke="#64748b" label={{ value: 'Teglie', angle: -90, position: 'insideLeft' }} />
+                      <YAxis 
+                        stroke="#64748b" 
+                        label={{ value: 'Teglie', angle: -90, position: 'insideLeft' }}
+                        domain={chartYDomain}
+                      />
                       <Tooltip 
                         contentStyle={{ 
                           backgroundColor: '#f8fafc', 
@@ -606,7 +722,20 @@ export default function PrecottureAdmin() {
                         }} 
                       />
                       <Legend />
-                      <Line type="monotone" dataKey="teglie" stroke="#3b82f6" strokeWidth={2} name="Teglie Vendute" />
+                      {chartStoreNames.length > 0 ? (
+                        chartStoreNames.map((storeName, idx) => (
+                          <Line 
+                            key={storeName}
+                            type="monotone" 
+                            dataKey={storeName} 
+                            stroke={['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'][idx % 6]}
+                            strokeWidth={2} 
+                            name={storeName}
+                          />
+                        ))
+                      ) : (
+                        <Line type="monotone" dataKey="totale" stroke="#3b82f6" strokeWidth={2} name="Totale Teglie" />
+                      )}
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -616,7 +745,22 @@ export default function PrecottureAdmin() {
             {/* Media per giorno della settimana */}
             {mediaPerGiorno.length > 0 && (
               <NeumorphicCard className="p-6">
-                <h3 className="text-lg font-bold text-slate-800 mb-4">Media per Giorno della Settimana</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-slate-800">Media per Giorno della Settimana</h3>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-slate-600">Negozio:</label>
+                    <select
+                      value={selectedStoreForMedia}
+                      onChange={(e) => setSelectedStoreForMedia(e.target.value)}
+                      className="neumorphic-pressed px-3 py-2 rounded-lg text-sm text-slate-700 outline-none"
+                    >
+                      <option value="">Tutti i negozi</option>
+                      {stores.map(store => (
+                        <option key={store.id} value={store.id}>{store.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
                   {mediaPerGiorno.map(d => (
                     <div key={d.day} className="neumorphic-pressed p-4 rounded-xl text-center">
