@@ -23,7 +23,8 @@ export default function PrecottureAdmin() {
 
   const [teglieConfig, setTeglieConfig] = useState({
     categorie: ['pizza'],
-    unita_per_teglia: 8
+    unita_per_teglia: 8,
+    aggiornamento_automatico: false
   });
 
   // Carica configurazione salvata
@@ -32,7 +33,8 @@ export default function PrecottureAdmin() {
     if (activeConfig) {
       setTeglieConfig({
         categorie: activeConfig.categorie || ['pizza'],
-        unita_per_teglia: activeConfig.unita_per_teglia || 8
+        unita_per_teglia: activeConfig.unita_per_teglia || 8,
+        aggiornamento_automatico: activeConfig.aggiornamento_automatico || false
       });
     }
   }, [configTeglieData]);
@@ -171,6 +173,36 @@ export default function PrecottureAdmin() {
       pranzo_rosse: Math.round(totale * (percPranzo / 100)),
       pomeriggio_rosse: Math.round(totale * (percPomeriggio / 100)),
       cena_rosse: Math.round(totale * (percCena / 100))
+    };
+
+    if (existing) {
+      await updateMutation.mutateAsync({ id: existing.id, data: payload });
+    } else {
+      await createMutation.mutateAsync(payload);
+    }
+  };
+
+  const handleAggiornaConMedia = async (giorno) => {
+    const mediaGiorno = mediaUltimi30Giorni[giorno];
+    if (!mediaGiorno) {
+      alert(`Nessun dato disponibile per ${giorno}`);
+      return;
+    }
+
+    const store = stores.find(s => s.id === selectedStore);
+    const existing = getDataForDay(giorno);
+
+    const payload = {
+      store_name: store?.name,
+      store_id: selectedStore,
+      giorno_settimana: giorno,
+      totale_giornata: mediaGiorno,
+      percentuale_pranzo: existing?.percentuale_pranzo || 30,
+      percentuale_pomeriggio: existing?.percentuale_pomeriggio || 30,
+      percentuale_cena: existing?.percentuale_cena || 40,
+      pranzo_rosse: Math.round(mediaGiorno * ((existing?.percentuale_pranzo || 30) / 100)),
+      pomeriggio_rosse: Math.round(mediaGiorno * ((existing?.percentuale_pomeriggio || 30) / 100)),
+      cena_rosse: Math.round(mediaGiorno * ((existing?.percentuale_cena || 40) / 100))
     };
 
     if (existing) {
@@ -540,6 +572,33 @@ export default function PrecottureAdmin() {
               </div>
             </NeumorphicCard>
 
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Settings className="w-5 h-5 text-purple-600" />
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800">Aggiornamento Media</h3>
+                    <p className="text-sm text-slate-500">Gestisci l'aggiornamento automatico dei totali giornalieri</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={teglieConfig.aggiornamento_automatico}
+                      onChange={(e) => {
+                        const newConfig = { ...teglieConfig, aggiornamento_automatico: e.target.checked };
+                        setTeglieConfig(newConfig);
+                        saveConfigTeglieeMutation.mutate(newConfig);
+                      }}
+                      className="w-5 h-5 text-blue-600 rounded"
+                    />
+                    <span className="text-sm font-medium text-slate-700">Aggiornamento Automatico</span>
+                  </label>
+                </div>
+              </div>
+            </NeumorphicCard>
+
             <NeumorphicCard className="p-6 overflow-x-auto">
               <div className="flex items-center gap-2 mb-4">
                 <ChefHat className="w-5 h-5 text-blue-600" />
@@ -688,13 +747,24 @@ export default function PrecottureAdmin() {
                                 </button>
                               </div>
                             ) : (
-                              <button
-                                onClick={() => handleEdit(giorno, data)}
-                                className="nav-button p-2 rounded-lg hover:bg-blue-50"
-                                title="Modifica"
-                              >
-                                <Edit className="w-4 h-4 text-blue-600" />
-                              </button>
+                              <div className="flex items-center justify-center gap-1">
+                                <button
+                                  onClick={() => handleEdit(giorno, data)}
+                                  className="nav-button p-2 rounded-lg hover:bg-blue-50"
+                                  title="Modifica"
+                                >
+                                  <Edit className="w-4 h-4 text-blue-600" />
+                                </button>
+                                {mediaGiorno > 0 && (
+                                  <button
+                                    onClick={() => handleAggiornaConMedia(giorno)}
+                                    className="nav-button p-2 rounded-lg hover:bg-purple-50"
+                                    title="Aggiorna con media 30gg"
+                                  >
+                                    <TrendingUp className="w-4 h-4 text-purple-600" />
+                                  </button>
+                                )}
+                              </div>
                             )}
                           </td>
                         </tr>
