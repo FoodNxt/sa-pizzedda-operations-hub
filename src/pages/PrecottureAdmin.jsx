@@ -276,11 +276,14 @@ export default function PrecottureAdmin() {
       dailyData[key].totale_unita += p.total_pizzas_sold || 0;
     });
 
-    const result = Object.values(dailyData).map(d => ({
-      ...d,
-      teglie: parseFloat((d.totale_unita / teglieConfig.unita_per_teglia).toFixed(2)),
-      day_of_week: moment(d.data).format('dddd')
-    }));
+    const result = Object.values(dailyData).map(d => {
+      const dayName = moment(d.data).locale('it').format('dddd');
+      return {
+        ...d,
+        teglie: parseFloat((d.totale_unita / teglieConfig.unita_per_teglia).toFixed(2)),
+        day_of_week: dayName.charAt(0).toUpperCase() + dayName.slice(1)
+      };
+    });
 
     return result.sort((a, b) => a.data.localeCompare(b.data));
   }, [prodottiVenduti, teglieConfig, teglieStartDate, teglieEndDate]);
@@ -371,14 +374,14 @@ export default function PrecottureAdmin() {
     return [0, Math.ceil(maxValue * 1.1)];
   }, [teglieChartData]);
 
-  // Media ultimi 30 giorni per giorno della settimana (per store selezionato)
+  // Media ultimi 30 giorni per giorno della settimana (per store selezionato in configurazione)
   const mediaUltimi30Giorni = useMemo(() => {
-    if (!selectedStore) return {};
+    if (!selectedStore || activeTab !== 'configurazione') return {};
     
     const thirtyDaysAgo = moment().subtract(30, 'days').format('YYYY-MM-DD');
     const today = moment().format('YYYY-MM-DD');
     
-    // Calcola teglie per ogni giorno negli ultimi 30 giorni
+    // Usa allTeglieVendute calcolato con date range estese
     const filtered = prodottiVenduti.filter(p => {
       if (p.store_id !== selectedStore) return false;
       if (p.data_vendita < thirtyDaysAgo || p.data_vendita > today) return false;
@@ -386,7 +389,7 @@ export default function PrecottureAdmin() {
       return true;
     });
 
-    // Raggruppa per data e calcola teglie
+    // Raggruppa per data e calcola teglie giornaliere
     const dailyData = {};
     filtered.forEach(p => {
       if (!dailyData[p.data_vendita]) {
@@ -399,7 +402,7 @@ export default function PrecottureAdmin() {
     const byDay = {};
     Object.entries(dailyData).forEach(([data, totale_unita]) => {
       const teglie = totale_unita / teglieConfig.unita_per_teglia;
-      const dayName = moment(data).locale('it').format('dddd'); // Lunedì, Martedì, etc.
+      const dayName = moment(data).locale('it').format('dddd');
       const capitalizedDay = dayName.charAt(0).toUpperCase() + dayName.slice(1);
       
       if (!byDay[capitalizedDay]) {
@@ -411,11 +414,11 @@ export default function PrecottureAdmin() {
 
     const result = {};
     Object.entries(byDay).forEach(([day, data]) => {
-      result[day] = (data.total / data.count).toFixed(2);
+      result[day] = parseFloat((data.total / data.count).toFixed(2));
     });
 
     return result;
-  }, [prodottiVenduti, selectedStore, teglieConfig]);
+  }, [prodottiVenduti, selectedStore, teglieConfig, activeTab]);
 
   return (
     <ProtectedPage pageName="PrecottureAdmin" requiredUserTypes={['admin']}>
