@@ -13,7 +13,9 @@ import {
   GraduationCap,
   FileText,
   Shield,
-  CheckSquare
+  CheckSquare,
+  Copy,
+  Sparkles
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 
@@ -28,7 +30,8 @@ export default function FunzionamentoApp() {
     pulizie: false,
     delivery: false,
     academy: false,
-    contratti: false
+    contratti: false,
+    prompt: false
   });
 
   const toggleSection = (section) => {
@@ -420,6 +423,216 @@ export default function FunzionamentoApp() {
           </NeumorphicCard>
         ))}
       </div>
+
+      {/* Replication Prompt Section */}
+      <NeumorphicCard className="overflow-hidden">
+        <button
+          onClick={() => toggleSection('prompt')}
+          className="w-full p-6 flex items-center justify-between hover:bg-[#d5dae3] transition-colors"
+        >
+          <div className="flex items-center gap-4">
+            <div className="neumorphic-flat p-3 rounded-xl">
+              <Sparkles className="w-6 h-6 text-purple-600" />
+            </div>
+            <h2 className="text-xl font-bold text-[#6b6b6b]">🤖 Prompt per Replicare l'Applicazione</h2>
+          </div>
+          {expandedSections.prompt ? (
+            <ChevronDown className="w-6 h-6 text-[#9b9b9b]" />
+          ) : (
+            <ChevronRight className="w-6 h-6 text-[#9b9b9b]" />
+          )}
+        </button>
+
+        {expandedSections.prompt && (
+          <div className="px-6 pb-6">
+            <div className="neumorphic-pressed p-5 rounded-xl">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-[#6b6b6b]">Prompt Completo per Base44 AI</h3>
+                <button
+                  onClick={() => {
+                    const promptText = document.getElementById('replication-prompt').innerText;
+                    navigator.clipboard.writeText(promptText);
+                    alert('Prompt copiato negli appunti!');
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+                >
+                  <Copy className="w-4 h-4" />
+                  Copia Prompt
+                </button>
+              </div>
+              
+              <div id="replication-prompt" className="bg-white p-6 rounded-xl border-2 border-purple-200 text-sm text-[#6b6b6b] leading-relaxed space-y-4 max-h-[600px] overflow-y-auto">
+                <p className="font-bold text-lg text-purple-800">Sistema di Gestione Aziendale Completo - Sa Pizzedda Workspace</p>
+                
+                <p className="font-semibold text-purple-700">PANORAMICA GENERALE:</p>
+                <p>Crea un'applicazione web completa per la gestione di una catena di pizzerie con più locali. L'app deve supportare tre tipologie di utenti (Admin, Manager, Dipendente) con permessi differenziati e deve includere moduli integrati per gestione personale, inventario, finanze, qualità e formazione.</p>
+
+                <p className="font-semibold text-purple-700">ARCHITETTURA UTENTI:</p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li><strong>Admin:</strong> Accesso completo, gestione configurazioni, utenti, analisi cross-store</li>
+                  <li><strong>Manager:</strong> Dashboard operative, gestione dipendenti del proprio store, monitoraggio performance</li>
+                  <li><strong>Dipendente:</strong> Sistema multi-ruolo (Pizzaiolo, Cassiere, Store Manager) con accesso progressivo basato su stato contrattuale</li>
+                </ul>
+
+                <p className="font-semibold text-purple-700">MODULO 1 - GESTIONE UTENTI E AUTENTICAZIONE:</p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>Registrazione via email/Google OAuth con modale completamento profilo (Nome Cognome obbligatorio)</li>
+                  <li>Sistema PageAccessConfig per controllo dinamico accesso pagine basato su: stato registrazione, ricezione contratto, firma contratto, inizio periodo lavorativo</li>
+                  <li>Entità User con campi: nome_cognome, data_nascita, codice_fiscale, telefono, indirizzo, IBAN, ruoli_dipendente (array), gruppo_contrattuale (FT/PT/CM), data_inizio_contratto, store_assegnati</li>
+                  <li>Matching automatico case-insensitive tra nome_cognome utente e dati esterni (turni, recensioni, ordini)</li>
+                </ul>
+
+                <p className="font-semibold text-purple-700">MODULO 2 - SISTEMA RECENSIONI:</p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>Entità Review: store_id, rating (1-5), comment, customer_name, review_date, source (google/facebook/tripadvisor), employee_assigned_name, assignment_confidence (high/medium/low)</li>
+                  <li>Import automatico via webhook Zapier da piattaforme recensioni</li>
+                  <li>Algoritmo assegnazione automatica: cerca turno dipendente in orario recensione, assegna con livello confidenza basato su sovrapposizione temporale</li>
+                  <li>Pagine: StoreReviews (mappa interattiva, rating per locale), EmployeeReviewsPerformance (ranking dipendenti), AssignReviews (gestione assegnazioni manuali)</li>
+                  <li>Configurazione ReviewAssignmentConfig per includere/escludere tipi turno e ruoli dal matching</li>
+                </ul>
+
+                <p className="font-semibold text-purple-700">MODULO 3 - GESTIONE FINANZIARIA:</p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>Entità iPratico: store_id, order_date, total_revenue, total_orders, breakdown per sourceApp (glovo/deliveroo/justeat/onlineordering), sourceType (delivery/takeaway/store), moneyType (cash/card/satispay)</li>
+                  <li>Import giornaliero automatico via webhook da iPratico</li>
+                  <li>Entità ConteggioCassa: store_id, data_conteggio, rilevato_da, valore_conteggio</li>
+                  <li>Dashboard: RealTime (vendite live), Financials (analisi revenue multi-periodo), ChannelComparison (confronto canali con grafici), StoricoCassa (tracking conteggi)</li>
+                  <li>Entità ProdottiVenduti: store_id, data_vendita, category, flavor, total_pizzas_sold per analisi performance prodotti</li>
+                </ul>
+
+                <p className="font-semibold text-purple-700">MODULO 4 - GESTIONE INVENTARIO:</p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>Entità MateriePrime: nome_prodotto, nome_interno, categoria, unita_misura, quantita_critica, quantita_ordine, store_specific_quantita_critica (oggetto con override per store), peso_dimensione_unita, prezzo_unitario, fornitore, posizione (negozio/cantina), assigned_stores (array), trasportabile</li>
+                  <li>Entità Ricetta: nome_prodotto, categoria, ingredienti (array con materia_prima_id, quantita), prezzo_vendita_online, prezzo_vendita_offline, costo_unitario (auto-calcolato), food_cost_online/offline (%), margine_online/offline. Supporto semilavorati (ricette usabili come ingredienti)</li>
+                  <li>Entità RilevazioneInventario/RilevazioneInventarioCantina: store_id, data_rilevazione, rilevato_da, prodotto_id, quantita_rilevata, sotto_minimo (boolean)</li>
+                  <li>Entità Fornitore: ragione_sociale, partita_iva, categorie_fornitore (array), giorni_consegna (array), tempo_consegna_giorni, metodologia_ricezione_ordine, ordine_minimo</li>
+                  <li>Import fatture XML per aggiornamento automatico prezzi con entità MateriePrimeStoricoPrezzi</li>
+                  <li>Entità Spostamento per tracking movimentazioni prodotti tra store</li>
+                  <li>Pagine: MateriePrime (database prodotti), Ricette (food cost calculator), InventarioAdmin (form rilevazioni), AnalisiSprechi (calcolo costo teglie buttate)</li>
+                </ul>
+
+                <p className="font-semibold text-purple-700">MODULO 5 - GESTIONE PERSONALE:</p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>Entità Employee sincronizzata con User: full_name, employee_id_external (da Planday), employee_group, function_name, status</li>
+                  <li>Entità TurnoPlanday: dipendente_id, dipendente_nome, store_id, data, ora_inizio_prevista, ora_fine_prevista, ora_inizio_effettiva, ora_fine_effettiva, tipo_turno, in_ritardo (boolean), minuti_ritardo, stato (programmato/completato/assente), richiesta_scambio (oggetto con stato, richiesto_da, richiesto_a)</li>
+                  <li>Import automatico turni via webhook da Planday con calcolo automatico ritardi</li>
+                  <li>Sistema scambio turni peer-to-peer con workflow: richiesta → accettazione collega → approvazione manager</li>
+                  <li>Entità RichiestaFerie, RichiestaMalattia, RichiestaTurnoLibero con stato (pending/approved/rejected) e turni_coinvolti (array)</li>
+                  <li>Dashboard Employees con scoring combinato: recensioni positive/negative, ritardi, ordini sbagliati</li>
+                  <li>Pagina Payroll con calcolo ore lavorate, straordinari, breakdown per dipendente</li>
+                  <li>Entità BustaPaga con upload e splitting automatico PDF multi-dipendente</li>
+                </ul>
+
+                <p className="font-semibold text-purple-700">MODULO 6 - ACADEMY (FORMAZIONE):</p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>Entità CorsoTemplate: titolo, descrizione, categoria_id, video_url (YouTube), quiz (array di domande con opzioni e risposta corretta), ruoli_assegnati (array), obbligatorio (boolean)</li>
+                  <li>Entità CorsoProgresso: user_id, corso_id, video_completato, quiz_completato, punteggio_quiz, certificato_ottenuto, tentativi_quiz</li>
+                  <li>Logica: video deve essere visto completamente prima di accedere al quiz. Quiz richiede tutte risposte corrette per completamento. Reinvio automatico lezione se quiz fallito</li>
+                  <li>Admin: creazione corsi, assegnazione per ruolo, tracking progressi. Dipendente: visualizzazione corsi assegnati, player YouTube integrato, quiz interattivo</li>
+                </ul>
+
+                <p className="font-semibold text-purple-700">MODULO 7 - CONTROLLO PULIZIE:</p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>Entità CleaningInspection: store_id, inspection_date, inspector_name, inspector_role, domande_risposte (array con domanda_id, risposta, tipo_controllo)</li>
+                  <li>Per ogni attrezzatura (forno, impastatrice, frigo, etc.): foto_url, pulizia_status (pulito/medio/sporco/non_valutabile), note_ai, corrected (boolean), corrected_status, correction_note</li>
+                  <li>Entità DomandaPulizia: domanda_testo, tipo_controllo (foto/scelta_multipla), attrezzatura, prompt_ai, opzioni_risposta, ruoli_assegnati (Pizzaiolo/Cassiere/StoreManager), ordine</li>
+                  <li>Entità Attrezzatura: nome, icona_url, stores_assegnati, ruoli_responsabili</li>
+                  <li>Tre form separati per ruolo con domande specifiche configurabili. Upload foto, analisi AI automatica con modello InvokeLLM, possibilità correzione manuale valutazione</li>
+                  <li>Dashboard ValutazionePulizie con storico, score 0-100, alert problemi critici</li>
+                </ul>
+
+                <p className="font-semibold text-purple-700">MODULO 8 - DELIVERY - ORDINI SBAGLIATI:</p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>Entità WrongOrder: platform (glovo/deliveroo), order_id, order_date, store_name, store_id, order_total, refund_value, complaint_reason, cancellation_reason</li>
+                  <li>Entità StoreMapping: platform, platform_store_name, store_id, auto_matched (boolean), confidence_score</li>
+                  <li>Entità WrongOrderMatch: wrong_order_id, matched_employee_name, matched_shift_id, match_confidence (high/medium/low/manual), match_method (auto/manual)</li>
+                  <li>Import CSV da Glovo/Deliveroo. Matching automatico store names con confidence score. Algoritmo assegnazione dipendente: trova turno in orario ordine sbagliato</li>
+                  <li>Dashboard con analisi per dipendente: % ordini sbagliati, trend, confronto tra dipendenti</li>
+                </ul>
+
+                <p className="font-semibold text-purple-700">MODULO 9 - GESTIONE CONTRATTI:</p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>Entità ContrattoTemplate: nome_template, contenuto_html (con variabili {'{{nome_cognome}}, {{codice_fiscale}}, {{iban}}, {{data_inizio_contratto}}'}, etc.), attivo</li>
+                  <li>Entità Contratto: user_id, template_id, contenuto_finale (HTML con variabili sostituite), status (bozza/inviato/firmato/archiviato), data_invio, data_firma, firma_digitale</li>
+                  <li>Workflow: Admin crea template → seleziona dipendente → sistema sostituisce variabili → invia email → dipendente visualizza e firma digitalmente → cambio status a firmato</li>
+                  <li>Firma digitale semplice: inserimento nome cognome + timestamp. Privacy: solo admin e dipendente interessato vedono contenuto</li>
+                </ul>
+
+                <p className="font-semibold text-purple-700">MODULO 10 - PRECOTTURE E IMPASTI:</p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>Entità GestioneImpasti: store_id, giorno_settimana, pranzo_rosse, pomeriggio_rosse, cena_rosse, totale_giornata, percentuale_pranzo/pomeriggio/cena</li>
+                  <li>Entità ConfigurazioneTeglieCalcolo: categorie (array prodotti da considerare), unita_per_teglia, is_active, aggiornamento_automatico</li>
+                  <li>Calcolo Media Ultimi 30gg: da ProdottiVenduti, raggruppa per giorno settimana, calcola teglie = unità / unita_per_teglia, media per giorno</li>
+                  <li>Tabella pianificazione settimanale con colonne: Pranzo Rosse, Pomeriggio Rosse, Cena Rosse, Totale Giornata, Media Ultimi 30gg, Scostamento, Impasto 3 Giorni (somma prossimi 3 giorni)</li>
+                  <li>Funzioni: edit percentuali per fascia oraria, calcolo automatico rosse da percentuali, aggiornamento manuale o automatico totale giornata a media 30gg</li>
+                  <li>Form dipendente Precotture: inserimento rosse/bianche preparate per turno (pranzo/pomeriggio/cena)</li>
+                </ul>
+
+                <p className="font-semibold text-purple-700">MODULO 11 - COMPLIANCE E ALERTS:</p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>Entità RequisitoCompliance: nome, descrizione, tipo (documento/certificazione/formazione), scadenza_obbligatoria, giorni_preavviso_scadenza, stores_applicabili, ruoli_applicabili</li>
+                  <li>Entità DipendenteCompliance: user_id, requisito_id, status (completo/incompleto/scaduto), data_completamento, data_scadenza, documento_url</li>
+                  <li>Pagina Alerts con sezioni: Dipendenti in periodo prova (calcolo turni lavorati vs totale configurato), Contratti in scadenza (prossimi 30 giorni), Compliance items scaduti/in scadenza</li>
+                  <li>Entità PeriodoProvaConfig per configurare durata periodo prova in turni</li>
+                </ul>
+
+                <p className="font-semibold text-purple-700">MODULO 12 - SEGNALAZIONI:</p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>Entità Segnalazione: tipo (problema_tecnico/mancanza_materiale/altro), descrizione, priorita (bassa/media/alta), store_id, segnalato_da, stato (aperta/in_lavorazione/risolta), assegnato_a, foto_url, risoluzione_note, data_risoluzione</li>
+                  <li>Form dipendente per creare segnalazioni con upload foto opzionale. Dashboard admin/manager per gestione con filtri per store, tipo, priorità, stato</li>
+                </ul>
+
+                <p className="font-semibold text-purple-700">MODULO 13 - ATS (APPLICANT TRACKING):</p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>Entità Candidato: nome_cognome, email, telefono, posizione_desiderata, cv_url, stato (nuovo/colloquio_programmato/in_valutazione/assunto/rifiutato), store_interesse, note, colloquio_data, colloquio_store_id</li>
+                  <li>Kanban board con colonne per stato. Drag & drop tra stati. Possibilità programmare colloquio (sincronizzazione con turni disponibili). Link registrazione per assunzione automatica</li>
+                  <li>Entità ValutazioneProvaConfig con domande valutazione fine periodo prova. Form compilazione per manager con scoring</li>
+                </ul>
+
+                <p className="font-semibold text-purple-700">MODULO 14 - ASSISTENTE AI:</p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>Entità AssistenteKnowledge: categoria_id, titolo, contenuto, tipo (testo/video/immagine), ordine, visibile_a_ruoli</li>
+                  <li>Entità AssistenteCategoria: nome, icona, parent_id (per struttura gerarchica), ordine</li>
+                  <li>Entità ConversazioneAssistente: user_id, messaggi (array con ruolo user/assistant e contenuto), attiva</li>
+                  <li>Chat AI che usa knowledge base aziendale come contesto. Admin gestisce contenuti knowledge. Dipendenti chattano con assistente che risponde basandosi su KB</li>
+                </ul>
+
+                <p className="font-semibold text-purple-700">MODULO 15 - PAUSE:</p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>Entità PauseConfig: durata_pausa_minuti_per_ore_lavorate (oggetto con soglie, es. {`{4: 15, 6: 30, 8: 45}`}), pausa_obbligatoria</li>
+                  <li>Entità Pausa: turno_id, user_id, store_id, data, ora_inizio, ora_fine, durata_minuti, tipo_pausa (pranzo/sigaretta/bagno)</li>
+                  <li>Dashboard tracking pause per dipendente, analisi durata media, confronto con ore lavorate, alert pause non conformi</li>
+                </ul>
+
+                <p className="font-semibold text-purple-700">FEATURES TECNICHE IMPORTANTI:</p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>Design Neumorphic con componenti custom (NeumorphicCard, NeumorphicButton, NeumorphicInput)</li>
+                  <li>Responsive design con layout diversi per mobile/desktop</li>
+                  <li>Sistema notifiche in tempo reale per alert e scadenze</li>
+                  <li>Export dati in CSV/Excel per tutte le dashboard principali</li>
+                  <li>Sistema webhooks per integrazioni esterne (Zapier, Planday, iPratico)</li>
+                  <li>Upload e processing file: CSV, XML, PDF con parsing automatico</li>
+                  <li>Grafici interattivi con recharts per analisi trend e KPI</li>
+                  <li>Sistema di permessi granulare basato su ruoli e stato contrattuale</li>
+                  <li>Backup automatico dati e audit log per operazioni critiche</li>
+                </ul>
+
+                <p className="font-semibold text-purple-700">INTEGRAZIONI ESTERNE:</p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li><strong>Planday:</strong> Import turni dipendenti via webhook</li>
+                  <li><strong>iPratico:</strong> Import dati vendite giornaliere via webhook</li>
+                  <li><strong>Google/Facebook/TripAdvisor:</strong> Import recensioni via Zapier</li>
+                  <li><strong>Glovo/Deliveroo:</strong> Import ordini problematici via CSV</li>
+                  <li><strong>YouTube:</strong> Embed video per academy</li>
+                  <li><strong>AI/LLM:</strong> Analisi foto pulizie, assistente conversazionale</li>
+                </ul>
+
+                <p className="font-bold text-purple-800 mt-4">IMPORTANTE: Implementa TUTTE le funzionalità descritte con particolare attenzione ai sistemi di matching automatico, workflow approvazioni, calcoli automatici (food cost, ritardi, scoring), e integrazioni webhooks. L'app deve essere production-ready con gestione errori, validazioni, e UX ottimizzata.</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </NeumorphicCard>
 
       {/* Footer Info */}
       <NeumorphicCard className="p-6 bg-green-50">
