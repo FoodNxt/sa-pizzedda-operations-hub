@@ -526,6 +526,7 @@ export default function TurniDipendente() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attivita-completate'] });
+      queryClient.invalidateQueries({ queryKey: ['all-form-data-dipendente'] });
     }
   });
 
