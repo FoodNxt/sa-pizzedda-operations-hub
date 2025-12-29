@@ -1261,9 +1261,9 @@ function ContrattiSection() {
           Nuovo Contratto
         </NeumorphicButton>
         <NeumorphicButton 
-          onClick={() => {
+          onClick={async () => {
             setShowDriveSettings(true);
-            handleLoadDriveFolders();
+            await handleLoadDriveFolders();
           }} 
           className="flex items-center gap-2"
         >
@@ -1284,9 +1284,9 @@ function ContrattiSection() {
               <p className="text-xs text-green-600">I contratti firmati verranno salvati automaticamente</p>
             </div>
             <button
-              onClick={() => {
+              onClick={async () => {
                 setShowDriveSettings(true);
-                handleLoadDriveFolders();
+                await handleLoadDriveFolders();
               }}
               className="nav-button p-2 rounded-lg"
             >
@@ -1294,6 +1294,117 @@ function ContrattiSection() {
             </button>
           </div>
         </NeumorphicCard>
+      )}
+
+      {/* Drive Settings Modal */}
+      {showDriveSettings && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <NeumorphicCard className="max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between mb-4">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Settings className="w-6 h-6 text-blue-600" />
+                Impostazioni Google Drive
+              </h2>
+              <button onClick={() => setShowDriveSettings(false)}><X className="w-5 h-5" /></button>
+            </div>
+
+            {driveConfig.length > 0 && driveConfig[0].folder_id && (
+              <div className="neumorphic-flat p-4 rounded-xl mb-6 bg-green-50">
+                <div className="flex items-center gap-3">
+                  <Folder className="w-6 h-6 text-green-600" />
+                  <div>
+                    <p className="font-medium text-green-800">{driveConfig[0].folder_name}</p>
+                    <p className="text-xs text-green-600">Cartella attualmente configurata</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="neumorphic-flat p-5 rounded-xl mb-4">
+              <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
+                <FolderPlus className="w-5 h-5 text-green-600" />
+                Crea Nuova Cartella
+              </h3>
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  placeholder="Nome cartella (es. Contratti Sa Pizzedda)"
+                  className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                />
+                <NeumorphicButton
+                  onClick={handleCreateFolder}
+                  disabled={creatingFolder}
+                  variant="primary"
+                  className="flex items-center gap-2"
+                >
+                  {creatingFolder ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <FolderPlus className="w-5 h-5" />
+                  )}
+                  Crea
+                </NeumorphicButton>
+              </div>
+            </div>
+
+            <div className="neumorphic-flat p-5 rounded-xl">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                  <Folder className="w-5 h-5 text-blue-600" />
+                  Seleziona Cartella Esistente
+                </h3>
+                <NeumorphicButton
+                  onClick={handleLoadDriveFolders}
+                  disabled={loadingFolders}
+                  className="flex items-center gap-2 text-sm"
+                >
+                  {loadingFolders ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    'Carica Cartelle'
+                  )}
+                </NeumorphicButton>
+              </div>
+
+              {loadingFolders ? (
+                <div className="text-center py-8">
+                  <Loader2 className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-2" />
+                  <p className="text-sm text-slate-500">Caricamento cartelle...</p>
+                </div>
+              ) : driveFolders.length > 0 ? (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {driveFolders.map(folder => (
+                    <button
+                      key={folder.id}
+                      onClick={() => handleSelectExistingFolder(folder.id, folder.name)}
+                      className="w-full neumorphic-pressed p-3 rounded-xl hover:bg-blue-50 transition-colors text-left flex items-center gap-3"
+                    >
+                      <Folder className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-slate-800 truncate">{folder.name}</p>
+                        <p className="text-xs text-slate-500">
+                          Creata: {new Date(folder.createdTime).toLocaleDateString('it-IT')}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-slate-500 py-4 text-sm">
+                  Clicca "Carica Cartelle" per visualizzare le cartelle disponibili
+                </p>
+              )}
+            </div>
+
+            <div className="neumorphic-pressed p-4 rounded-xl bg-blue-50 mt-4">
+              <p className="text-sm text-blue-800">
+                <strong>ℹ️ Come funziona:</strong> Ogni contratto firmato verrà salvato automaticamente nella cartella Drive configurata.
+              </p>
+            </div>
+          </NeumorphicCard>
+        </div>
       )}
 
       {/* Contratti in scadenza */}
@@ -3272,7 +3383,8 @@ function RegolamentoSection() {
           user_email: user.email,
           user_name: user.nome_cognome || user.full_name || user.email,
           regolamento_id: regolamentoId,
-          versione: regolamento.versione
+          versione: regolamento.versione,
+          firmato: false
         });
       }
       return Promise.all(firme.map(f => base44.entities.RegolamentoFirmato.create(f)));
@@ -3326,12 +3438,93 @@ function RegolamentoSection() {
       </div>
 
       {regolamentoAttivo ? (
-        <NeumorphicCard className="p-6">
-          <h2 className="text-xl font-bold mb-4">Regolamento Attivo (v{regolamentoAttivo.versione})</h2>
-          <div className="neumorphic-pressed p-6 rounded-xl">
-            <pre className="whitespace-pre-wrap text-sm text-slate-700 font-sans">{regolamentoAttivo.contenuto}</pre>
-          </div>
-        </NeumorphicCard>
+        <>
+          <NeumorphicCard className="p-6 mb-6">
+            <h2 className="text-xl font-bold mb-4">Regolamento Attivo (v{regolamentoAttivo.versione})</h2>
+            <div className="neumorphic-pressed p-6 rounded-xl">
+              <pre className="whitespace-pre-wrap text-sm text-slate-700 font-sans">{regolamentoAttivo.contenuto}</pre>
+            </div>
+          </NeumorphicCard>
+
+          {/* Stato Firme per Regolamento Attivo */}
+          <NeumorphicCard className="p-6">
+            <h3 className="text-lg font-bold text-slate-800 mb-4">Stato Firme (v{regolamentoAttivo.versione})</h3>
+            {(() => {
+              const firmeVersAttiva = firme.filter(f => f.versione === regolamentoAttivo.versione);
+              const firmati = firmeVersAttiva.filter(f => f.firmato);
+              const nonFirmati = firmeVersAttiva.filter(f => !f.firmato);
+              const utentiConFirma = firmeVersAttiva.map(f => f.user_id);
+              const nonInviati = users.filter(u => !utentiConFirma.includes(u.id));
+
+              return (
+                <div className="space-y-6">
+                  {/* Firmati */}
+                  {firmati.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-bold text-green-700 mb-2 flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4" /> Firmati ({firmati.length})
+                      </h4>
+                      <div className="space-y-2">
+                        {firmati.map(f => (
+                          <div key={f.id} className="neumorphic-flat p-3 rounded-lg bg-green-50 flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-slate-800">{f.user_name}</p>
+                              <p className="text-xs text-green-600">
+                                Firmato: {f.data_firma ? new Date(f.data_firma).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                              </p>
+                            </div>
+                            <CheckCircle className="w-5 h-5 text-green-600" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Non Firmati (Inviati) */}
+                  {nonFirmati.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-bold text-orange-700 mb-2 flex items-center gap-2">
+                        <Clock className="w-4 h-4" /> In Attesa Firma ({nonFirmati.length})
+                      </h4>
+                      <div className="space-y-2">
+                        {nonFirmati.map(f => (
+                          <div key={f.id} className="neumorphic-flat p-3 rounded-lg bg-orange-50 flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-slate-800">{f.user_name}</p>
+                              <p className="text-xs text-slate-500">
+                                Inviato: {f.created_date ? new Date(f.created_date).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+                              </p>
+                            </div>
+                            <Clock className="w-5 h-5 text-orange-600" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Non Inviati */}
+                  {nonInviati.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-500 mb-2 flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4" /> Non Inviato ({nonInviati.length})
+                      </h4>
+                      <div className="space-y-2">
+                        {nonInviati.map(u => (
+                          <div key={u.id} className="neumorphic-flat p-3 rounded-lg bg-slate-50 flex items-center justify-between">
+                            <p className="text-sm font-medium text-slate-700">
+                              {u.nome_cognome || u.full_name || u.email}
+                            </p>
+                            <AlertCircle className="w-5 h-5 text-slate-400" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </NeumorphicCard>
+        </>
       ) : (
         <NeumorphicCard className="p-12 text-center">
           <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
@@ -3385,20 +3578,83 @@ function RegolamentoSection() {
 
       {showHistory && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <NeumorphicCard className="max-w-4xl w-full p-6 max-h-[90vh] overflow-y-auto">
+          <NeumorphicCard className="max-w-6xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between mb-4">
               <h2 className="text-xl font-bold">Storico Versioni</h2>
               <button onClick={() => setShowHistory(false)}><X className="w-5 h-5" /></button>
             </div>
-            <div className="space-y-3">
-              {regolamenti.filter(r => !r.attivo).map(r => (
-                <NeumorphicCard key={r.id} className="p-4">
-                  <p className="font-bold text-slate-800 mb-2">Versione {r.versione}</p>
-                  <div className="neumorphic-pressed p-4 rounded-xl">
-                    <pre className="whitespace-pre-wrap text-xs text-slate-600 font-sans line-clamp-3">{r.contenuto}</pre>
-                  </div>
-                </NeumorphicCard>
-              ))}
+            <div className="space-y-6">
+              {regolamenti.map(r => {
+                const firmeVers = firme.filter(f => f.versione === r.versione);
+                const firmati = firmeVers.filter(f => f.firmato);
+                const nonFirmati = firmeVers.filter(f => !f.firmato);
+                const utentiConFirma = firmeVers.map(f => f.user_id);
+                const nonInviati = users.filter(u => !utentiConFirma.includes(u.id));
+
+                return (
+                  <NeumorphicCard key={r.id} className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="font-bold text-slate-800">Versione {r.versione}</p>
+                      {r.attivo && <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">Attivo</span>}
+                    </div>
+                    
+                    {/* Stats */}
+                    <div className="grid grid-cols-3 gap-2 mb-3">
+                      <div className="neumorphic-pressed p-2 rounded-lg bg-green-50 text-center">
+                        <p className="text-lg font-bold text-green-700">{firmati.length}</p>
+                        <p className="text-xs text-green-600">Firmati</p>
+                      </div>
+                      <div className="neumorphic-pressed p-2 rounded-lg bg-orange-50 text-center">
+                        <p className="text-lg font-bold text-orange-700">{nonFirmati.length}</p>
+                        <p className="text-xs text-orange-600">In Attesa</p>
+                      </div>
+                      <div className="neumorphic-pressed p-2 rounded-lg bg-slate-50 text-center">
+                        <p className="text-lg font-bold text-slate-700">{nonInviati.length}</p>
+                        <p className="text-xs text-slate-600">Non Inviato</p>
+                      </div>
+                    </div>
+
+                    {/* Dettagli utenti (collapsible) */}
+                    <details className="neumorphic-pressed p-3 rounded-lg">
+                      <summary className="cursor-pointer text-sm font-medium text-slate-700">
+                        Dettaglio Dipendenti
+                      </summary>
+                      <div className="mt-3 space-y-3">
+                        {firmati.length > 0 && (
+                          <div>
+                            <p className="text-xs font-bold text-green-700 mb-1">✓ Firmati:</p>
+                            <div className="space-y-1">
+                              {firmati.map(f => (
+                                <p key={f.id} className="text-xs text-slate-600 pl-2">• {f.user_name}</p>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {nonFirmati.length > 0 && (
+                          <div>
+                            <p className="text-xs font-bold text-orange-700 mb-1">⏱ In Attesa:</p>
+                            <div className="space-y-1">
+                              {nonFirmati.map(f => (
+                                <p key={f.id} className="text-xs text-slate-600 pl-2">• {f.user_name}</p>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {nonInviati.length > 0 && (
+                          <div>
+                            <p className="text-xs font-bold text-slate-500 mb-1">✗ Non Inviato:</p>
+                            <div className="space-y-1">
+                              {nonInviati.map(u => (
+                                <p key={u.id} className="text-xs text-slate-600 pl-2">• {u.nome_cognome || u.full_name || u.email}</p>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </details>
+                  </NeumorphicCard>
+                );
+              })}
             </div>
           </NeumorphicCard>
         </div>
