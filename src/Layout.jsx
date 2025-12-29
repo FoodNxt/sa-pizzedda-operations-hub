@@ -1257,7 +1257,7 @@ export default function Layout({ children, currentPageName }) {
         {/* Main Content */}
         <main className={`
           flex-1 min-h-screen 
-          ${normalizedUserType === 'dipendente' ? 'pt-24 pb-36 lg:pt-8 lg:pb-8 lg:ml-0' : normalizedUserType !== 'admin' ? 'pt-32 lg:pt-16' : 'pt-20 lg:pt-0'} 
+          ${normalizedUserType === 'dipendente' ? 'pt-24 pb-44 lg:pt-8 lg:pb-8 lg:ml-0' : normalizedUserType !== 'admin' ? 'pt-32 lg:pt-16' : 'pt-20 lg:pt-0'} 
           px-3 py-4 lg:p-8
         `}>
           {children}
@@ -1265,8 +1265,8 @@ export default function Layout({ children, currentPageName }) {
       </div>
 
       {/* Mobile Bottom Navigation (Dipendente only) */}
-      {normalizedUserType === 'dipendente' && isFullyLoaded && bottomNavItems.length > 0 && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 safe-area-bottom bg-gradient-to-br from-slate-50 to-slate-100">
+      {normalizedUserType === 'dipendente' && bottomNavItems.length > 0 && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] safe-area-bottom bg-gradient-to-br from-slate-50 to-slate-100">
           <div className="px-2 pb-2 pt-1">
             <button
               onClick={() => setCompactMenu(!compactMenu)}
