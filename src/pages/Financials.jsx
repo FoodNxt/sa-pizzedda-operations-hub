@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
-import { DollarSign, TrendingUp, Filter, Calendar, X } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { DollarSign, TrendingUp, Filter, Calendar, X, Settings, Eye, EyeOff, Save } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, subDays, isAfter, isBefore, parseISO, isValid } from 'date-fns';
@@ -12,6 +12,15 @@ export default function Financials() {
   const [dateRange, setDateRange] = useState('30');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [showRevenue, setShowRevenue] = useState(true);
+  const [showAvgValue, setShowAvgValue] = useState(true);
+  const [selectedStoresForTrend, setSelectedStoresForTrend] = useState([]);
+  const [showChannelSettings, setShowChannelSettings] = useState(false);
+  const [showAppSettings, setShowAppSettings] = useState(false);
+  const [channelMapping, setChannelMapping] = useState({});
+  const [appMapping, setAppMapping] = useState({});
+
+  const queryClient = useQueryClient();
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -22,6 +31,33 @@ export default function Financials() {
     queryKey: ['iPratico'],
     queryFn: () => base44.entities.iPratico.list('-order_date', 1000),
   });
+
+  const { data: financeConfigs = [] } = useQuery({
+    queryKey: ['finance-configs'],
+    queryFn: () => base44.entities.FinanceConfig.list(),
+  });
+
+  const saveConfigMutation = useMutation({
+    mutationFn: async (configData) => {
+      const existing = await base44.entities.FinanceConfig.list();
+      for (const config of existing) {
+        await base44.entities.FinanceConfig.update(config.id, { is_active: false });
+      }
+      return base44.entities.FinanceConfig.create({ ...configData, is_active: true });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['finance-configs'] });
+    },
+  });
+
+  // Load configs
+  React.useEffect(() => {
+    const activeConfig = financeConfigs.find(c => c.is_active);
+    if (activeConfig) {
+      setChannelMapping(activeConfig.channel_mapping || {});
+      setAppMapping(activeConfig.app_mapping || {});
+    }
+  }, [financeConfigs]);
 
   const safeParseDate = (dateString) => {
     if (!dateString) return null;
@@ -135,16 +171,18 @@ export default function Financials() {
       const types = [
         { key: 'delivery', revenue: item.sourceType_delivery || 0, orders: item.sourceType_delivery_orders || 0 },
         { key: 'takeaway', revenue: item.sourceType_takeaway || 0, orders: item.sourceType_takeaway_orders || 0 },
+        { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0, orders: item.sourceType_takeawayOnSite_orders || 0 },
         { key: 'store', revenue: item.sourceType_store || 0, orders: item.sourceType_store_orders || 0 }
       ];
       
       types.forEach(type => {
         if (type.revenue > 0 || type.orders > 0) {
-          if (!revenueByType[type.key]) {
-            revenueByType[type.key] = { name: type.key, value: 0, orders: 0 };
+          const mappedKey = channelMapping[type.key] || type.key;
+          if (!revenueByType[mappedKey]) {
+            revenueByType[mappedKey] = { name: mappedKey, value: 0, orders: 0 };
           }
-          revenueByType[type.key].value += type.revenue;
-          revenueByType[type.key].orders += type.orders;
+          revenueByType[mappedKey].value += type.revenue;
+          revenueByType[mappedKey].orders += type.orders;
         }
       });
     });
@@ -164,17 +202,20 @@ export default function Financials() {
         { key: 'glovo', revenue: item.sourceApp_glovo || 0, orders: item.sourceApp_glovo_orders || 0 },
         { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0, orders: item.sourceApp_deliveroo_orders || 0 },
         { key: 'justeat', revenue: item.sourceApp_justeat || 0, orders: item.sourceApp_justeat_orders || 0 },
+        { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0, orders: item.sourceApp_onlineordering_orders || 0 },
+        { key: 'ordertable', revenue: item.sourceApp_ordertable || 0, orders: item.sourceApp_ordertable_orders || 0 },
         { key: 'tabesto', revenue: item.sourceApp_tabesto || 0, orders: item.sourceApp_tabesto_orders || 0 },
         { key: 'store', revenue: item.sourceApp_store || 0, orders: item.sourceApp_store_orders || 0 }
       ];
       
       apps.forEach(app => {
         if (app.revenue > 0 || app.orders > 0) {
-          if (!revenueByApp[app.key]) {
-            revenueByApp[app.key] = { name: app.key, value: 0, orders: 0 };
+          const mappedKey = appMapping[app.key] || app.key;
+          if (!revenueByApp[mappedKey]) {
+            revenueByApp[mappedKey] = { name: mappedKey, value: 0, orders: 0 };
           }
-          revenueByApp[app.key].value += app.revenue;
-          revenueByApp[app.key].orders += app.orders;
+          revenueByApp[mappedKey].value += app.revenue;
+          revenueByApp[mappedKey].orders += app.orders;
         }
       });
     });
@@ -187,16 +228,58 @@ export default function Financials() {
         orders: a.orders
       }));
 
+    // Multi-store trend data
+    const dailyRevenueByStore = {};
+    if (selectedStoresForTrend.length > 0) {
+      iPraticoData.filter(item => {
+        if (!item.order_date) return false;
+        const itemDateStart = safeParseDate(item.order_date + 'T00:00:00');
+        const itemDateEnd = safeParseDate(item.order_date + 'T23:59:59');
+        if (!itemDateStart || !itemDateEnd) return false;
+        if (cutoffDate && isBefore(itemDateEnd, cutoffDate)) return false;
+        if (endFilterDate && isAfter(itemDateStart, endFilterDate)) return false;
+        return selectedStoresForTrend.includes(item.store_id);
+      }).forEach(item => {
+        if (!dailyRevenueByStore[item.order_date]) {
+          dailyRevenueByStore[item.order_date] = {};
+        }
+        const storeName = item.store_name || 'Unknown';
+        if (!dailyRevenueByStore[item.order_date][storeName]) {
+          dailyRevenueByStore[item.order_date][storeName] = { revenue: 0, orders: 0 };
+        }
+        dailyRevenueByStore[item.order_date][storeName].revenue += item.total_revenue || 0;
+        dailyRevenueByStore[item.order_date][storeName].orders += item.total_orders || 0;
+      });
+    }
+
+    const dailyRevenueMultiStore = Object.entries(dailyRevenueByStore)
+      .map(([date, storeData]) => {
+        const parsedDate = safeParseDate(date);
+        const entry = { date: safeFormatDate(parsedDate, 'dd/MM') };
+        Object.entries(storeData).forEach(([storeName, data]) => {
+          entry[`${storeName}_revenue`] = parseFloat(data.revenue.toFixed(2));
+          entry[`${storeName}_avgValue`] = data.orders > 0 ? parseFloat((data.revenue / data.orders).toFixed(2)) : 0;
+        });
+        return entry;
+      })
+      .filter(d => d.date !== 'N/A')
+      .sort((a, b) => {
+        const dateA = safeParseDate(a.date);
+        const dateB = safeParseDate(b.date);
+        return dateA && dateB ? dateA.getTime() - dateB.getTime() : 0;
+      });
+
     return {
       totalRevenue,
       totalOrders,
       avgOrderValue,
       dailyRevenue,
+      dailyRevenueMultiStore,
       storeBreakdown,
       channelBreakdown,
       deliveryAppBreakdown
     };
-  }, [iPraticoData, selectedStore, dateRange, startDate, endDate]);
+  }, [iPraticoData, selectedStore, dateRange, startDate, endDate, selectedStoresForTrend, channelMapping, appMapping]);
 
   const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4'];
 
@@ -335,8 +418,125 @@ export default function Financials() {
 
         <div className="grid grid-cols-1 gap-4 lg:gap-6">
           <NeumorphicCard className="p-4 lg:p-6">
-            <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Trend Giornaliero</h2>
-            {processedData.dailyRevenue.length > 0 ? (
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base lg:text-lg font-bold text-slate-800">Trend Giornaliero</h2>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowRevenue(!showRevenue)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${
+                    showRevenue ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-600'
+                  }`}
+                >
+                  {showRevenue ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                  Revenue
+                </button>
+                <button
+                  onClick={() => setShowAvgValue(!showAvgValue)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${
+                    showAvgValue ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-600'
+                  }`}
+                >
+                  {showAvgValue ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                  Medio
+                </button>
+              </div>
+            </div>
+
+            {selectedStore === 'all' && (
+              <div className="mb-4">
+                <label className="text-sm text-slate-600 mb-2 block">Confronta Negozi:</label>
+                <div className="flex flex-wrap gap-2">
+                  {stores.map(store => (
+                    <button
+                      key={store.id}
+                      onClick={() => {
+                        setSelectedStoresForTrend(prev => 
+                          prev.includes(store.id)
+                            ? prev.filter(id => id !== store.id)
+                            : [...prev, store.id]
+                        );
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        selectedStoresForTrend.includes(store.id)
+                          ? 'bg-purple-500 text-white'
+                          : 'bg-slate-200 text-slate-600'
+                      }`}
+                    >
+                      {store.name}
+                    </button>
+                  ))}
+                  {selectedStoresForTrend.length > 0 && (
+                    <button
+                      onClick={() => setSelectedStoresForTrend([])}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500 text-white"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {selectedStoresForTrend.length > 0 && processedData.dailyRevenueMultiStore.length > 0 ? (
+              <div className="w-full overflow-x-auto">
+                <div style={{ minWidth: '300px' }}>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={processedData.dailyRevenueMultiStore}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                      <XAxis 
+                        dataKey="date" 
+                        stroke="#64748b"
+                        tick={{ fontSize: 11 }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={60}
+                      />
+                      <YAxis 
+                        stroke="#64748b"
+                        tick={{ fontSize: 11 }}
+                        width={60}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          background: 'rgba(248, 250, 252, 0.95)', 
+                          border: 'none',
+                          borderRadius: '12px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                          fontSize: '11px'
+                        }}
+                        formatter={(value) => `€${value.toFixed(2)}`}
+                      />
+                      <Legend wrapperStyle={{ fontSize: '10px' }} />
+                      {stores.filter(s => selectedStoresForTrend.includes(s.id)).map((store, idx) => (
+                        <React.Fragment key={store.id}>
+                          {showRevenue && (
+                            <Line 
+                              type="monotone" 
+                              dataKey={`${store.name}_revenue`}
+                              stroke={COLORS[idx % COLORS.length]} 
+                              strokeWidth={2} 
+                              name={`${store.name} Revenue`}
+                              dot={{ fill: COLORS[idx % COLORS.length], r: 2 }}
+                            />
+                          )}
+                          {showAvgValue && (
+                            <Line 
+                              type="monotone" 
+                              dataKey={`${store.name}_avgValue`}
+                              stroke={COLORS[idx % COLORS.length]} 
+                              strokeWidth={2} 
+                              strokeDasharray="5 5"
+                              name={`${store.name} Medio`}
+                              dot={{ fill: COLORS[idx % COLORS.length], r: 2 }}
+                            />
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            ) : processedData.dailyRevenue.length > 0 ? (
               <div className="w-full overflow-x-auto">
                 <div style={{ minWidth: '300px' }}>
                   <ResponsiveContainer width="100%" height={250}>
@@ -350,19 +550,23 @@ export default function Financials() {
                         textAnchor="end"
                         height={60}
                       />
-                      <YAxis 
-                        yAxisId="left"
-                        stroke="#3b82f6"
-                        tick={{ fontSize: 11 }}
-                        width={50}
-                      />
-                      <YAxis 
-                        yAxisId="right" 
-                        orientation="right"
-                        stroke="#22c55e"
-                        tick={{ fontSize: 11 }}
-                        width={50}
-                      />
+                      {showRevenue && (
+                        <YAxis 
+                          yAxisId="left"
+                          stroke="#3b82f6"
+                          tick={{ fontSize: 11 }}
+                          width={50}
+                        />
+                      )}
+                      {showAvgValue && (
+                        <YAxis 
+                          yAxisId="right" 
+                          orientation="right"
+                          stroke="#22c55e"
+                          tick={{ fontSize: 11 }}
+                          width={50}
+                        />
+                      )}
                       <Tooltip 
                         contentStyle={{ 
                           background: 'rgba(248, 250, 252, 0.95)', 
@@ -374,24 +578,28 @@ export default function Financials() {
                         formatter={(value) => `€${value.toFixed(2)}`}
                       />
                       <Legend wrapperStyle={{ fontSize: '11px' }} />
-                      <Line 
-                        yAxisId="left"
-                        type="monotone" 
-                        dataKey="revenue" 
-                        stroke="#3b82f6" 
-                        strokeWidth={2} 
-                        name="Revenue" 
-                        dot={{ fill: '#3b82f6', r: 3 }}
-                      />
-                      <Line 
-                        yAxisId="right"
-                        type="monotone" 
-                        dataKey="avgValue" 
-                        stroke="#22c55e" 
-                        strokeWidth={2} 
-                        name="Medio"
-                        dot={{ fill: '#22c55e', r: 2 }}
-                      />
+                      {showRevenue && (
+                        <Line 
+                          yAxisId="left"
+                          type="monotone" 
+                          dataKey="revenue" 
+                          stroke="#3b82f6" 
+                          strokeWidth={2} 
+                          name="Revenue" 
+                          dot={{ fill: '#3b82f6', r: 3 }}
+                        />
+                      )}
+                      {showAvgValue && (
+                        <Line 
+                          yAxisId="right"
+                          type="monotone" 
+                          dataKey="avgValue" 
+                          stroke="#22c55e" 
+                          strokeWidth={2} 
+                          name="Medio"
+                          dot={{ fill: '#22c55e', r: 2 }}
+                        />
+                      )}
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -487,7 +695,44 @@ export default function Financials() {
           </NeumorphicCard>
 
           <NeumorphicCard className="p-4 lg:p-6">
-            <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Canale Vendita</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base lg:text-lg font-bold text-slate-800">Canale Vendita</h2>
+              <button
+                onClick={() => setShowChannelSettings(!showChannelSettings)}
+                className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                <Settings className="w-4 h-4 text-slate-600" />
+              </button>
+            </div>
+
+            {showChannelSettings && (
+              <div className="mb-4 p-4 bg-blue-50 rounded-lg space-y-3">
+                <h3 className="text-sm font-bold text-blue-800 mb-2">Configurazione Categorie</h3>
+                {['delivery', 'takeaway', 'takeawayOnSite', 'store'].map(key => (
+                  <div key={key} className="flex items-center gap-2">
+                    <label className="text-xs text-slate-600 w-32">{key}:</label>
+                    <input
+                      type="text"
+                      value={channelMapping[key] || key}
+                      onChange={(e) => setChannelMapping({...channelMapping, [key]: e.target.value})}
+                      className="flex-1 px-3 py-2 rounded-lg border border-slate-300 text-sm"
+                      placeholder={key}
+                    />
+                  </div>
+                ))}
+                <button
+                  onClick={() => {
+                    saveConfigMutation.mutate({ channel_mapping: channelMapping, app_mapping: appMapping });
+                    setShowChannelSettings(false);
+                  }}
+                  className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  Salva Configurazione
+                </button>
+              </div>
+            )}
+
             <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
               <table className="w-full min-w-[450px]">
                 <thead>
@@ -517,7 +762,44 @@ export default function Financials() {
 
         {processedData.deliveryAppBreakdown.length > 0 && (
           <NeumorphicCard className="p-4 lg:p-6">
-            <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">App Delivery</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base lg:text-lg font-bold text-slate-800">App Delivery</h2>
+              <button
+                onClick={() => setShowAppSettings(!showAppSettings)}
+                className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                <Settings className="w-4 h-4 text-slate-600" />
+              </button>
+            </div>
+
+            {showAppSettings && (
+              <div className="mb-4 p-4 bg-blue-50 rounded-lg space-y-3 max-h-64 overflow-y-auto">
+                <h3 className="text-sm font-bold text-blue-800 mb-2">Configurazione App</h3>
+                {['glovo', 'deliveroo', 'justeat', 'onlineordering', 'ordertable', 'tabesto', 'store'].map(key => (
+                  <div key={key} className="flex items-center gap-2">
+                    <label className="text-xs text-slate-600 w-32">{key}:</label>
+                    <input
+                      type="text"
+                      value={appMapping[key] || key}
+                      onChange={(e) => setAppMapping({...appMapping, [key]: e.target.value})}
+                      className="flex-1 px-3 py-2 rounded-lg border border-slate-300 text-sm"
+                      placeholder={key}
+                    />
+                  </div>
+                ))}
+                <button
+                  onClick={() => {
+                    saveConfigMutation.mutate({ channel_mapping: channelMapping, app_mapping: appMapping });
+                    setShowAppSettings(false);
+                  }}
+                  className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  Salva Configurazione
+                </button>
+              </div>
+            )}
+
             <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
               <table className="w-full min-w-[600px]">
                 <thead>
