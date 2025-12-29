@@ -100,15 +100,25 @@ export default function OverviewContratti() {
     </button>
   );
 
+  const dipendentiSenzaContratto = useMemo(() => {
+    const dipendentiConContrattoIds = new Set(dipendentiConContratti.map(d => d.user_id));
+    return users.filter(u => 
+      (u.user_type === 'dipendente' || u.user_type === 'user') && 
+      u.status === 'active' &&
+      !dipendentiConContrattoIds.has(u.id)
+    );
+  }, [users, dipendentiConContratti]);
+
   const stats = useMemo(() => {
     const totale = dipendentiConContratti.length;
     const inScadenza30 = dipendentiConContratti.filter(d => d.giorni_rimanenti !== null && d.giorni_rimanenti <= 30 && d.giorni_rimanenti >= 0).length;
     const scaduti = dipendentiConContratti.filter(d => d.giorni_rimanenti !== null && d.giorni_rimanenti < 0).length;
     const fullTime = dipendentiConContratti.filter(d => d.employee_group === 'FT').length;
     const partTime = dipendentiConContratti.filter(d => d.employee_group === 'PT').length;
+    const senzaContratto = dipendentiSenzaContratto.length;
     
-    return { totale, inScadenza30, scaduti, fullTime, partTime };
-  }, [dipendentiConContratti]);
+    return { totale, inScadenza30, scaduti, fullTime, partTime, senzaContratto };
+  }, [dipendentiConContratti, dipendentiSenzaContratto]);
 
   return (
     <ProtectedPage pageName="OverviewContratti" requiredUserTypes={['admin', 'manager']}>
