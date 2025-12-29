@@ -1265,7 +1265,7 @@ export default function Layout({ children, currentPageName }) {
       </div>
 
       {/* Mobile Bottom Navigation (Dipendente only) */}
-      {normalizedUserType === 'dipendente' && bottomNavItems.length > 0 && (
+      {normalizedUserType === 'dipendente' && isFullyLoaded && bottomNavItems.length > 0 && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] safe-area-bottom bg-gradient-to-br from-slate-50 to-slate-100">
           <div className="px-2 pb-2 pt-1">
             <button

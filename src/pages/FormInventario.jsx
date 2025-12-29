@@ -294,39 +294,37 @@ export default function FormInventario() {
                 return (
                   <div 
                     key={product.id} 
-                    className="neumorphic-pressed p-3 lg:p-4 rounded-xl transition-all"
+                    className="neumorphic-pressed p-3 rounded-xl"
                   >
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
-                      <div className="md:col-span-1">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-slate-800 text-sm lg:text-base truncate">{product.nome_interno || product.nome_prodotto}</h3>
-                            <p className="text-xs lg:text-sm text-slate-500">
-                              {product.unita_misura}
-                            </p>
-                          </div>
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-slate-800 text-base">{product.nome_interno || product.nome_prodotto}</h3>
+                          <p className="text-sm text-slate-500">
+                            {product.unita_misura}
+                          </p>
                         </div>
                       </div>
 
-                      <div className="md:col-span-2">
-                        <label className="text-xs lg:text-sm font-medium text-slate-700 mb-2 block">
+                      <div>
+                        <label className="text-sm font-medium text-slate-700 mb-2 block">
                           Quantità ({product.unita_misura})
                         </label>
                         <input
                           type="number"
+                          inputMode={['kg', 'litri', 'grammi', 'ml'].includes(product.unita_misura) ? 'decimal' : 'numeric'}
                           step={['kg', 'litri', 'grammi', 'ml'].includes(product.unita_misura) ? '0.01' : '1'}
                           min="0"
                           value={quantities[product.id] || ''}
                           onChange={(e) => {
                             let value = e.target.value;
-                            // For non-weight units, force integer
                             if (!['kg', 'litri', 'grammi', 'ml'].includes(product.unita_misura) && value !== '') {
                               value = Math.floor(parseFloat(value) || 0).toString();
                             }
                             handleQuantityChange(product.id, value);
                           }}
                           placeholder="0"
-                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none text-sm lg:text-base text-slate-700"
+                          className="w-full neumorphic-pressed px-4 py-4 rounded-xl outline-none text-xl font-bold text-slate-700 text-center"
                         />
                       </div>
                     </div>

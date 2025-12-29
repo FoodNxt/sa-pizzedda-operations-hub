@@ -210,13 +210,12 @@ export default function FormCantina() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-3">
-          <ClipboardList className="w-10 h-10 text-[#8b7355]" />
-          <h1 className="text-3xl font-bold text-[#6b6b6b]">Form Cantina</h1>
-        </div>
-        <p className="text-[#9b9b9b]">Compila il questionario per registrare le giacenze in cantina</p>
+    <div className="max-w-5xl mx-auto space-y-4">
+      <div className="mb-4">
+        <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
+          Form Cantina
+        </h1>
+        <p className="text-sm text-slate-500">Compila il questionario per registrare le giacenze in cantina</p>
       </div>
 
       {saveSuccess && (
@@ -230,94 +229,58 @@ export default function FormCantina() {
         </NeumorphicCard>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <NeumorphicCard className="p-6 text-center">
-          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <Package className="w-8 h-8 text-[#8b7355]" />
-          </div>
-          <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">
-            {getCompletedProducts()} / {getTotalProducts()}
-          </h3>
-          <p className="text-sm text-[#9b9b9b]">Prodotti Compilati</p>
-        </NeumorphicCard>
-
-        <NeumorphicCard className="p-6 text-center">
-          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <TrendingDown className="w-8 h-8 text-red-600" />
-          </div>
-          <h3 className="text-3xl font-bold text-red-600 mb-1">
-            {getSottoMinimo()}
-          </h3>
-          <p className="text-sm text-[#9b9b9b]">Sotto Minimo</p>
-        </NeumorphicCard>
-
-        <NeumorphicCard className="p-6 text-center">
-          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <CheckCircle className="w-8 h-8 text-green-600" />
-          </div>
-          <h3 className="text-3xl font-bold text-green-600 mb-1">
-            {getCompletedProducts() - getSottoMinimo()}
-          </h3>
-          <p className="text-sm text-[#9b9b9b]">Sopra Minimo</p>
-        </NeumorphicCard>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <NeumorphicCard className="p-6">
-          <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Informazioni Rilevazione</h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <NeumorphicCard className="p-4 lg:p-6">
+          <h2 className="text-lg font-bold text-slate-800 mb-4">Informazioni</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <div>
-              <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
+              <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
                 <Store className="w-4 h-4" />
                 Locale <span className="text-red-600">*</span>
               </label>
-              <select
-                value={selectedStore}
-                onChange={(e) => setSelectedStore(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                required
-              >
-                <option value="">Seleziona locale...</option>
+              <div className="flex flex-wrap gap-2">
                 {stores
                   .filter(store => !currentUser?.assigned_stores || currentUser.assigned_stores.length === 0 || currentUser.assigned_stores.includes(store.id))
                   .map(store => (
-                    <option key={store.id} value={store.id}>{store.name}</option>
+                    <button
+                      key={store.id}
+                      type="button"
+                      onClick={() => setSelectedStore(store.id)}
+                      className={`px-4 py-3 rounded-xl font-medium transition-all ${
+                        selectedStore === store.id
+                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                          : 'neumorphic-flat text-slate-700 hover:shadow-md'
+                      }`}
+                    >
+                      {store.name}
+                    </button>
                   ))
                 }
-              </select>
+              </div>
             </div>
 
             <div>
-              <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
+              <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
                 <User className="w-4 h-4" />
-                Rilevato da
+                Compilato da
               </label>
               <div className="neumorphic-pressed px-4 py-3 rounded-xl">
-                <p className="text-[#6b6b6b]">
+                <p className="text-slate-700">
                   {currentUser?.nome_cognome || currentUser?.full_name || currentUser?.email || 'Caricamento...'}
                 </p>
               </div>
             </div>
           </div>
-
-          <div className="neumorphic-pressed p-3 rounded-xl mt-4 bg-blue-50">
-            <p className="text-xs text-blue-800">
-              ℹ️ La data e l'ora verranno registrate automaticamente al momento del salvataggio
-            </p>
-          </div>
         </NeumorphicCard>
 
         {Object.entries(productsByCategory).map(([categoria, categoryProducts]) => (
-          <NeumorphicCard key={categoria} className="p-6">
-            <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">
+          <NeumorphicCard key={categoria} className="p-4 lg:p-6">
+            <h2 className="text-lg font-bold text-slate-800 mb-4">
               {categoriaLabels[categoria] || categoria}
-              <span className="ml-2 text-sm font-normal text-[#9b9b9b]">
-                ({categoryProducts.length} prodotti)
-              </span>
             </h2>
 
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-3">
               {categoryProducts.map((product) => {
                 const currentQty = parseFloat(quantities[product.id]);
                 const isUnderMinimum = !isNaN(currentQty) && currentQty < product.quantita_minima;
@@ -325,48 +288,47 @@ export default function FormCantina() {
                 return (
                   <div 
                     key={product.id} 
-                    className={`neumorphic-pressed p-4 rounded-xl transition-all ${
+                    className={`neumorphic-pressed p-3 rounded-xl ${
                       isUnderMinimum ? 'border-2 border-red-300 bg-red-50' : ''
                     }`}
                   >
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="md:col-span-1">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
-                            <h3 className="font-bold text-[#6b6b6b]">{product.nome_interno || product.nome_prodotto}</h3>
-                            <p className="text-sm text-[#9b9b9b]">
-                              Min: {product.quantita_minima} {product.unita_misura}
-                            </p>
-                          </div>
-                          {isUnderMinimum && (
-                            <AlertTriangle className="w-5 h-5 text-red-600 ml-2 flex-shrink-0" />
-                          )}
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-slate-800 text-base">{product.nome_interno || product.nome_prodotto}</h3>
+                          <p className="text-sm text-slate-500">
+                            Min: {product.quantita_minima} {product.unita_misura}
+                          </p>
                         </div>
+                        {isUnderMinimum && (
+                          <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                        )}
                       </div>
 
                       <div>
-                        <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                          Quantità Attuale ({product.unita_misura})
+                        <label className="text-sm font-medium text-slate-700 mb-2 block">
+                          Quantità ({product.unita_misura})
                         </label>
                         <input
                           type="number"
+                          inputMode="decimal"
                           step="0.01"
                           value={quantities[product.id] || ''}
                           onChange={(e) => handleQuantityChange(product.id, e.target.value)}
                           placeholder="0"
-                          className={`w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none ${
-                            isUnderMinimum ? 'text-red-600 font-bold' : 'text-[#6b6b6b]'
+                          className={`w-full neumorphic-pressed px-4 py-4 rounded-xl outline-none text-xl font-bold text-center ${
+                            isUnderMinimum ? 'text-red-600' : 'text-slate-700'
                           }`}
                         />
                         {isUnderMinimum && (
-                          <p className="text-xs text-red-600 mt-1 font-medium">
+                          <p className="text-xs text-red-600 mt-2 font-medium text-center">
                             ⚠️ Sotto il minimo di {product.quantita_minima}
                           </p>
                         )}
                       </div>
 
-                      <div>
-                        <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                      <div className="lg:hidden">
+                        <label className="text-sm font-medium text-slate-700 mb-2 block">
                           Note (opzionale)
                         </label>
                         <input
@@ -374,7 +336,7 @@ export default function FormCantina() {
                           value={notes[product.id] || ''}
                           onChange={(e) => handleNoteChange(product.id, e.target.value)}
                           placeholder="es. Da ordinare..."
-                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
                         />
                       </div>
                     </div>
@@ -385,21 +347,37 @@ export default function FormCantina() {
           </NeumorphicCard>
         ))}
 
-        <NeumorphicCard className="p-6">
+        <NeumorphicCard className="p-4 lg:p-6">
+          {(() => {
+            const compiled = Object.keys(quantities).filter(k => quantities[k] !== '' && quantities[k] !== null).length;
+            const total = products.length;
+            const missing = total - compiled;
+            
+            if (missing > 0) {
+              return (
+                <div className="neumorphic-pressed p-4 rounded-xl mb-4 bg-orange-50 border-2 border-orange-300">
+                  <p className="text-sm text-orange-800 font-bold text-center">
+                    ⚠️ Mancano {missing} prodotti ({compiled}/{total})
+                  </p>
+                </div>
+              );
+            }
+          })()}
+          
           <NeumorphicButton
             type="submit"
             variant="primary"
-            className="w-full py-4 text-lg font-bold flex items-center justify-center gap-3"
+            className="w-full py-3 lg:py-4 text-base lg:text-lg font-bold flex items-center justify-center gap-3"
             disabled={saving || !selectedStore}
           >
             {saving ? (
               <>
-                <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Salvataggio in corso...
+                <div className="w-5 h-5 lg:w-6 lg:h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Salvataggio...
               </>
             ) : (
               <>
-                <Save className="w-6 h-6" />
+                <Save className="w-5 h-5 lg:w-6 lg:h-6" />
                 Salva Rilevazione Cantina
               </>
             )}

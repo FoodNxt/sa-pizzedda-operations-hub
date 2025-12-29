@@ -40,7 +40,7 @@ export default function ProtectedPage({ children, pageName, requiredUserTypes = 
           // Always allow access to admin/manager pages for these user types
           if (!allowedPages.includes(pageName)) {
             // Allow any page for admins if not explicitly restricted
-            const adminPages = ['Dashboard', 'Presenze', 'SummaryAI', 'FormTracker', 'Pulizie', 'PulizieMatch', 'FormPulizia', 'Attrezzature', 'Employees', 'Shifts', 'StoreReviews', 'Financials', 'UsersManagement', 'ATS', 'StoreManagerAdmin', 'Planday', 'GestioneAssistente', 'ValutazioneProvaForm', 'StrutturaTurno', 'Compliance', 'Documenti', 'FeedbackP2P', 'Inventory', 'MateriePrime', 'ElencoFornitori', 'ConfrontoListini', 'AnalisiSprechi', 'StoricoImpasti', 'PrecottureAdmin', 'InventarioAdmin', 'InventarioStoreManager', 'GestioneAccessoPagine', 'FunzionamentoApp', 'Alerts', 'RealTime', 'ChannelComparison', 'StoricoCassa', 'OrdiniSbagliati', 'MatchingOrdiniSbagliati', 'ProdottiVenduti', 'AcademyAdmin', 'Assenze', 'InventoryForms', 'FinancialForms', 'AssignReviews', 'EmployeeReviewsPerformance', 'Payroll', 'Segnalazioni', 'Pause'];
+            const adminPages = ['Dashboard', 'Presenze', 'SummaryAI', 'FormTracker', 'Pulizie', 'PulizieMatch', 'FormPulizia', 'Attrezzature', 'Employees', 'Shifts', 'StoreReviews', 'Financials', 'UsersManagement', 'ATS', 'StoreManagerAdmin', 'Planday', 'GestioneAssistente', 'ValutazioneProvaForm', 'StrutturaTurno', 'Compliance', 'Documenti', 'FeedbackP2P', 'Inventory', 'MateriePrime', 'ElencoFornitori', 'ConfrontoListini', 'AnalisiSprechi', 'StoricoImpasti', 'PrecottureAdmin', 'InventarioAdmin', 'InventarioStoreManager', 'GestioneAccessoPagine', 'FunzionamentoApp', 'Alerts', 'RealTime', 'ChannelComparison', 'StoricoCassa', 'OrdiniSbagliati', 'MatchingOrdiniSbagliati', 'ProdottiVenduti', 'AcademyAdmin', 'Assenze', 'InventoryForms', 'FinancialForms', 'AssignReviews', 'EmployeeReviewsPerformance', 'Payroll', 'Segnalazioni', 'Pause', 'FormInventario', 'FormCantina'];
             if (adminPages.includes(pageName)) {
               allowedPages.push(pageName);
             }
@@ -49,7 +49,7 @@ export default function ProtectedPage({ children, pageName, requiredUserTypes = 
           allowedPages = activeConfig.manager_pages || [];
           // Allow key pages for managers too
           if (!allowedPages.includes(pageName)) {
-            const managerPages = ['Dashboard', 'Presenze', 'SummaryAI', 'FormTracker', 'Pulizie', 'PulizieMatch', 'FormPulizia', 'Attrezzature', 'Employees', 'Shifts', 'StoreReviews', 'Financials', 'ATS', 'StoreManagerAdmin', 'Planday', 'ValutazioneProvaForm', 'StrutturaTurno', 'Compliance', 'Documenti', 'FeedbackP2P', 'Inventory', 'MateriePrime', 'ConfrontoListini', 'Alerts', 'InventarioStoreManager', 'AssignReviews', 'EmployeeReviewsPerformance', 'Segnalazioni', 'Pause'];
+            const managerPages = ['Dashboard', 'Presenze', 'SummaryAI', 'FormTracker', 'Pulizie', 'PulizieMatch', 'FormPulizia', 'Attrezzature', 'Employees', 'Shifts', 'StoreReviews', 'Financials', 'ATS', 'StoreManagerAdmin', 'Planday', 'ValutazioneProvaForm', 'StrutturaTurno', 'Compliance', 'Documenti', 'FeedbackP2P', 'Inventory', 'MateriePrime', 'ConfrontoListini', 'Alerts', 'InventarioStoreManager', 'AssignReviews', 'EmployeeReviewsPerformance', 'Segnalazioni', 'Pause', 'FormInventario', 'FormCantina'];
             if (managerPages.includes(pageName)) {
               allowedPages.push(pageName);
             }
@@ -143,7 +143,7 @@ export default function ProtectedPage({ children, pageName, requiredUserTypes = 
     return (
       <div className="max-w-4xl mx-auto p-8">
         <NeumorphicCard className="p-8 text-center">
-          <p className="text-[#9b9b9b]">Verifica permessi...</p>
+          <p className="text-slate-500">Verifica permessi...</p>
         </NeumorphicCard>
       </div>
     );
@@ -154,8 +154,8 @@ export default function ProtectedPage({ children, pageName, requiredUserTypes = 
       <div className="max-w-4xl mx-auto p-8">
         <NeumorphicCard className="p-8 text-center">
           <AlertTriangle className="w-16 h-16 text-orange-600 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-[#6b6b6b] mb-2">Accesso Negato</h2>
-          <p className="text-[#9b9b9b]">Non hai i permessi per visualizzare questa pagina.</p>
+          <h2 className="text-2xl font-bold text-slate-700 mb-2">Accesso Negato</h2>
+          <p className="text-slate-500">Non hai i permessi per visualizzare questa pagina.</p>
         </NeumorphicCard>
       </div>
     );
