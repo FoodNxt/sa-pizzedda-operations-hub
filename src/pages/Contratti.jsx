@@ -620,7 +620,7 @@ Genera sia l'oggetto che il corpo dell'email. L'email deve essere in italiano, p
   const availableVariables = [
     'nome_cognome', 'phone', 'data_nascita', 'citta_nascita', 'codice_fiscale', 'indirizzo_residenza', 'iban',
     'employee_group', 'function_name', 'ore_settimanali', 'data_inizio_contratto', 
-    'durata_contratto_mesi', 'data_oggi', 'data_fine_contratto', 'ruoli', 'locali'
+    'durata_contratto_mesi', 'data_oggi', 'data_fine_contratto', 'ruoli', 'locali', 'data_prima_assunzione'
   ];
 
   const handleLoadDriveFolders = async () => {
