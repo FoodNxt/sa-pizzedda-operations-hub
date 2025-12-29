@@ -674,6 +674,41 @@ export default function OrdiniSbagliati() {
             </select>
           </div>
 
+          {/* Show current mapping */}
+          {selectedPlatform && (() => {
+            const mapping = columnMappings.find(m => m.platform === selectedPlatform && m.is_active);
+            return mapping ? (
+              <div className="neumorphic-pressed p-4 rounded-xl bg-green-50">
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div>
+                    <p className="text-sm font-bold text-green-800 mb-2">✅ Mapping attivo per {selectedPlatform}</p>
+                    <div className="text-xs text-green-700 space-y-1">
+                      <p>• <strong>Order ID:</strong> {mapping.order_id_column}</p>
+                      <p>• <strong>Negozio:</strong> {mapping.store_column}</p>
+                      <p>• <strong>Data:</strong> {mapping.order_date_column}</p>
+                      <p>• <strong>Totale:</strong> {mapping.order_total_column}</p>
+                      <p>• <strong>Rimborso:</strong> {mapping.refund_column}</p>
+                      {mapping.refund_reason_column && <p>• <strong>Ragione:</strong> {mapping.refund_reason_column}</p>}
+                    </div>
+                  </div>
+                  <NeumorphicButton
+                    onClick={() => {
+                      setColumnMapping(mapping);
+                      setShowColumnMapping(true);
+                    }}
+                    className="text-xs"
+                  >
+                    Modifica
+                  </NeumorphicButton>
+                </div>
+              </div>
+            ) : (
+              <div className="neumorphic-pressed p-3 rounded-xl bg-orange-50">
+                <p className="text-sm text-orange-700">⚠️ Nessun mapping configurato per {selectedPlatform}. Al primo caricamento ti chiederemo di mappare le colonne.</p>
+              </div>
+            );
+          })()}
+
           <div>
             <input
               type="file"
