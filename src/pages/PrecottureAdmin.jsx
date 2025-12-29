@@ -275,36 +275,13 @@ export default function PrecottureAdmin() {
 
   // Teglie vendute calculations
   const teglieVendute = useMemo(() => {
-    // Debug: log raw data
-    console.log('DEBUG Teglie - Total prodottiVenduti:', prodottiVenduti.length);
-    console.log('DEBUG Teglie - Configured categories:', teglieConfig.categorie);
-    console.log('DEBUG Teglie - Date range:', teglieStartDate, 'to', teglieEndDate);
-    console.log('DEBUG Teglie - Selected store:', selectedStore);
-    
-    // Log unique categories and stores
-    const uniqueCategories = [...new Set(prodottiVenduti.map(p => p.category))];
-    const uniqueStores = [...new Set(prodottiVenduti.map(p => p.store_name))];
-    console.log('DEBUG Teglie - Available categories:', uniqueCategories);
-    console.log('DEBUG Teglie - Available stores:', uniqueStores);
-    
-    // Log Lanino specific data
-    const laninoData = prodottiVenduti.filter(p => p.store_name?.toLowerCase().includes('lanino'));
-    console.log('DEBUG Teglie - Lanino data count:', laninoData.length);
-    if (laninoData.length > 0) {
-      console.log('DEBUG Teglie - Sample Lanino record:', laninoData[0]);
-    }
-    
     const filtered = prodottiVenduti.filter(p => {
-      // Filter by date range
-      if (p.data_vendita < teglieStartDate || p.data_vendita > teglieEndDate) return false;
       // Filter by store (for table view)
       if (selectedStore && p.store_id !== selectedStore) return false;
       // Filter by category
       if (!teglieConfig.categorie.includes(p.category)) return false;
       return true;
     });
-    
-    console.log('DEBUG Teglie - Filtered count:', filtered.length);
 
     // Group by store and date
     const dailyData = {};
