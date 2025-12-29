@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DollarSign, TrendingUp, Filter, Calendar, X, Settings, Eye, EyeOff, Save } from 'lucide-react';
