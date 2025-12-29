@@ -14,7 +14,8 @@ import {
   X,
   BarChart3,
   Calendar,
-  Settings
+  Settings,
+  Eye
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
