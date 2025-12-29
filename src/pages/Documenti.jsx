@@ -2111,6 +2111,17 @@ function LettereSection() {
                                 <Eye className="w-3.5 h-3.5 text-purple-600" />
                               </button>
                               <button
+                                onClick={() => downloadLetteraPDFAdmin(richiamo)}
+                                className="nav-button p-1.5 rounded-lg"
+                                disabled={downloadingPdfAdmin === richiamo.id}
+                              >
+                                {downloadingPdfAdmin === richiamo.id ? (
+                                  <Loader2 className="w-3.5 h-3.5 text-blue-600 animate-spin" />
+                                ) : (
+                                  <Download className="w-3.5 h-3.5 text-blue-600" />
+                                )}
+                              </button>
+                              <button
                                 onClick={() => {
                                   if (confirm(`Eliminare la lettera di richiamo per ${richiamo.user_name}?`)) {
                                     deleteLetteraMutation.mutate(richiamo.id);
@@ -2187,6 +2198,17 @@ function LettereSection() {
                                 className="nav-button p-1.5 rounded-lg"
                               >
                                 <Eye className="w-3.5 h-3.5 text-blue-600" />
+                              </button>
+                              <button
+                                onClick={() => downloadLetteraPDFAdmin(chiusura)}
+                                className="nav-button p-1.5 rounded-lg"
+                                disabled={downloadingPdfAdmin === chiusura.id}
+                              >
+                                {downloadingPdfAdmin === chiusura.id ? (
+                                  <Loader2 className="w-3.5 h-3.5 text-blue-600 animate-spin" />
+                                ) : (
+                                  <Download className="w-3.5 h-3.5 text-blue-600" />
+                                )}
                               </button>
                               <button
                                 onClick={() => {
