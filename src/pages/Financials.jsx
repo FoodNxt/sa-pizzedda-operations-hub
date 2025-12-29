@@ -136,7 +136,7 @@ export default function Financials() {
         parsedDate: safeParseDate(d.date)
       }))
       .filter(d => d.parsedDate !== null)
-      .sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime())
+      .sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime())
       .map(d => ({
         date: safeFormatDate(d.parsedDate, 'dd/MM'),
         revenue: parseFloat(d.revenue.toFixed(2)),
@@ -264,7 +264,7 @@ export default function Financials() {
       })
       .filter(d => d.date !== 'N/A')
       .sort((a, b) => {
-        return b.parsedDate.getTime() - a.parsedDate.getTime();
+        return a.parsedDate.getTime() - b.parsedDate.getTime();
       });
 
     return {
