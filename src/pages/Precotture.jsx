@@ -18,6 +18,7 @@ export default function Precotture() {
   const redirectTo = urlParams.get('redirect');
   const turnoId = urlParams.get('turno_id');
   const attivitaNome = urlParams.get('attivita');
+  const preselectedStoreId = urlParams.get('store_id');
   
   const [selectedStore, setSelectedStore] = useState('');
   const [rossePresenti, setRossePresenti] = useState('');
@@ -34,6 +35,13 @@ export default function Precotture() {
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
   });
+
+  // Preselezione store da URL
+  useEffect(() => {
+    if (preselectedStoreId && !selectedStore) {
+      setSelectedStore(preselectedStoreId);
+    }
+  }, [preselectedStoreId, selectedStore]);
 
   const confermaMutation = useMutation({
     mutationFn: async () => {

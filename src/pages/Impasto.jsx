@@ -18,6 +18,7 @@ export default function Impasto() {
   const redirectTo = urlParams.get('redirect');
   const turnoId = urlParams.get('turno_id');
   const attivitaNome = urlParams.get('attivita');
+  const preselectedStoreId = urlParams.get('store_id');
   
   const [activeTab, setActiveTab] = useState('calcolo');
   const [selectedStore, setSelectedStore] = useState('');
@@ -52,6 +53,13 @@ export default function Impasto() {
     queryKey: ['ricetta-impasto'],
     queryFn: () => base44.entities.RicettaImpasto.list(),
   });
+
+  // Preselezione store da URL
+  useEffect(() => {
+    if (preselectedStoreId && !selectedStore) {
+      setSelectedStore(preselectedStoreId);
+    }
+  }, [preselectedStoreId, selectedStore]);
 
   const sortedIngredienti = [...ricettaIngredienti].filter(i => i.attivo !== false).sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
 
