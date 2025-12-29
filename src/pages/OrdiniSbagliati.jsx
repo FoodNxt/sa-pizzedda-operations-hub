@@ -33,6 +33,17 @@ export default function OrdiniSbagliati() {
   const [dateRange, setDateRange] = useState('month'); // 'week', 'month', 'all'
   const [showCount, setShowCount] = useState(true);
   const [showRefunds, setShowRefunds] = useState(true);
+  const [showColumnMapping, setShowColumnMapping] = useState(false);
+  const [csvHeaders, setCsvHeaders] = useState([]);
+  const [columnMapping, setColumnMapping] = useState({
+    order_id_column: '',
+    store_column: '',
+    order_date_column: '',
+    order_total_column: '',
+    refund_column: '',
+    refund_reason_column: ''
+  });
+  const [pendingFile, setPendingFile] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -65,10 +76,22 @@ export default function OrdiniSbagliati() {
     queryFn: () => base44.entities.StoreMapping.list(),
   });
 
+  const { data: columnMappings = [] } = useQuery({
+    queryKey: ['column-mappings'],
+    queryFn: () => base44.entities.CSVColumnMapping.list(),
+  });
+
   const createMappingMutation = useMutation({
     mutationFn: (data) => base44.entities.StoreMapping.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['store-mappings'] });
+    },
+  });
+
+  const createColumnMappingMutation = useMutation({
+    mutationFn: (data) => base44.entities.CSVColumnMapping.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['column-mappings'] });
     },
   });
 
@@ -204,6 +227,22 @@ export default function OrdiniSbagliati() {
       }
 
       const headers = parseCsvLine(lines[0]);
+
+      // Check if column mapping exists for this platform
+      const existingMapping = columnMappings.find(m => m.platform === selectedPlatform && m.is_active);
+      
+      if (!existingMapping) {
+        // Show column mapping modal
+        setCsvHeaders(headers);
+        setPendingFile({ text, headers, lines });
+        setShowColumnMapping(true);
+        setUploading(false);
+        event.target.value = '';
+        return;
+      }
+
+      // Use existing mapping
+      await processCSVWithMapping(lines, headers, existingMapping);
       const records = [];
       const unmapped = [];
       const skippedLines = [];
@@ -216,23 +255,13 @@ export default function OrdiniSbagliati() {
           record[header] = values[idx] || '';
         });
 
-        let storeNameField, orderIdField, orderDateField, orderTotalField, refundField, statusField;
-
-        if (selectedPlatform === 'glovo') {
-          storeNameField = 'Restaurant name';
-          orderIdField = 'Order ID';
-          orderDateField = 'Order received at';
-          orderTotalField = 'Subtotal';
-          refundField = 'Vendor Refunds';
-          statusField = 'Order status';
-        } else if (selectedPlatform === 'deliveroo') {
-          storeNameField = 'Site';
-          orderIdField = 'Order';
-          orderDateField = 'Time and date';
-          orderTotalField = 'Order total';
-          refundField = 'Partner refund value';
-          statusField = 'Customer refund status';
-        }
+        const mapping = existingMapping;
+        const storeNameField = mapping.store_column;
+        const orderIdField = mapping.order_id_column;
+        const orderDateField = mapping.order_date_column;
+        const orderTotalField = mapping.order_total_column;
+        const refundField = mapping.refund_column;
+        const statusField = 'Customer refund status';
 
         const platformStoreName = record[storeNameField];
         const orderId = record[orderIdField];
@@ -307,9 +336,9 @@ export default function OrdiniSbagliati() {
           order_total: parseFloat(record[orderTotalField]?.replace(/[^0-9.-]/g, '') || '0'),
           refund_value: parseFloat(record[refundField]?.replace(/[^0-9.-]/g, '') || '0'),
           customer_refund_status: record[statusField] || '',
-          complaint_reason: selectedPlatform === 'glovo' ? record['Complaint Reason'] : null,
-          cancellation_reason: selectedPlatform === 'glovo' ? record['Cancellation reason'] : null,
-          order_status: selectedPlatform === 'glovo' ? record[statusField] : null,
+          complaint_reason: selectedPlatform === 'glovo' && existingMapping.refund_reason_column ? record[existingMapping.refund_reason_column] : null,
+          cancellation_reason: null,
+          order_status: null,
           raw_data: record,
           import_date: new Date().toISOString(),
           imported_by: (await base44.auth.me()).email
