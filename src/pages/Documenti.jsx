@@ -1389,75 +1389,138 @@ function ContrattiSection() {
         )}
       </NeumorphicCard>
 
+      {/* Lista Contratti - Separati da firmare / firmati */}
       <NeumorphicCard className="p-6">
         <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">Lista Contratti</h2>
         {contratti.length === 0 ? (
           <p className="text-center text-[#9b9b9b] py-8">Nessun contratto creato</p>
         ) : (
-          <div className="space-y-3">
-            {contratti.map(c => {
-              const dataFine = c.data_inizio_contratto && c.durata_contratto_mesi
-                ? (() => {
-                    const dataInizio = new Date(c.data_inizio_contratto);
-                    const fine = new Date(dataInizio);
-                    fine.setMonth(fine.getMonth() + parseInt(c.durata_contratto_mesi));
-                    return fine.toLocaleDateString('it-IT');
-                  })()
-                : 'N/A';
-              
-              return (
-                <NeumorphicCard key={c.id} className="p-4">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <p className="font-bold text-[#6b6b6b]">{c.nome_cognome}</p>
-                      <p className="text-sm text-[#9b9b9b]">{c.employee_group} - {c.ore_settimanali}h/sett</p>
-                      <p className="text-xs text-slate-600 mt-2">
-                        <span className="font-medium">Ruolo:</span> {c.function_name || 'N/A'}
-                      </p>
-                      <p className="text-xs text-slate-600">
-                        <span className="font-medium">Inizio:</span> {c.data_inizio_contratto ? new Date(c.data_inizio_contratto).toLocaleDateString('it-IT') : 'N/A'}
-                        {' • '}
-                        <span className="font-medium">Fine:</span> {dataFine}
-                      </p>
-                    </div>
-                    <div className="flex gap-2 flex-shrink-0">
-                      {getStatusBadge(c.status)}
-                      <button onClick={() => setPreviewContratto(c)} className="nav-button p-2 rounded-lg">
-                        <Eye className="w-4 h-4 text-purple-600" />
-                      </button>
-                      {c.status === 'firmato' && (
-                        <button 
-                          onClick={() => downloadContrattoFirmato(c)} 
-                          className="nav-button p-2 rounded-lg" 
-                          title="Scarica contratto firmato PDF"
-                          disabled={downloadingPdf === c.id}
-                        >
-                          {downloadingPdf === c.id ? (
-                            <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
-                          ) : (
-                            <Download className="w-4 h-4 text-blue-600" />
-                          )}
-                        </button>
-                      )}
-                      {c.status === 'bozza' && (
-                        <button onClick={() => handleSendContract(c)} className="nav-button p-2 rounded-lg">
-                          <Send className="w-4 h-4 text-green-600" />
-                        </button>
-                      )}
-                      <button onClick={() => deleteMutation.mutate(c.id)} className="nav-button p-2 rounded-lg">
-                        <Trash2 className="w-4 h-4 text-red-600" />
-                      </button>
-                    </div>
+          <>
+            {/* Da Firmare */}
+            {(() => {
+              const daFirmare = contratti.filter(c => c.status !== 'firmato');
+              return daFirmare.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-bold text-slate-700 mb-3 flex items-center gap-2">
+                    <Edit className="w-5 h-5 text-orange-600" />
+                    Da Firmare ({daFirmare.length})
+                  </h3>
+                  <div className="space-y-3">
+                    {daFirmare.map(c => {
+                      const dataFine = c.data_inizio_contratto && c.durata_contratto_mesi
+                        ? (() => {
+                            const dataInizio = new Date(c.data_inizio_contratto);
+                            const fine = new Date(dataInizio);
+                            fine.setMonth(fine.getMonth() + parseInt(c.durata_contratto_mesi));
+                            return fine.toLocaleDateString('it-IT');
+                          })()
+                        : 'N/A';
+                      
+                      return (
+                        <NeumorphicCard key={c.id} className="p-4 border-l-4 border-orange-400">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <p className="font-bold text-[#6b6b6b]">{c.nome_cognome}</p>
+                              <p className="text-sm text-[#9b9b9b]">{c.employee_group} - {c.ore_settimanali}h/sett</p>
+                              <p className="text-xs text-slate-600 mt-2">
+                                <span className="font-medium">Ruolo:</span> {c.function_name || 'N/A'}
+                              </p>
+                              <p className="text-xs text-slate-600">
+                                <span className="font-medium">Inizio:</span> {c.data_inizio_contratto ? new Date(c.data_inizio_contratto).toLocaleDateString('it-IT') : 'N/A'}
+                                {' • '}
+                                <span className="font-medium">Fine:</span> {dataFine}
+                              </p>
+                            </div>
+                            <div className="flex gap-2 flex-shrink-0">
+                              {getStatusBadge(c.status)}
+                              <button onClick={() => setPreviewContratto(c)} className="nav-button p-2 rounded-lg">
+                                <Eye className="w-4 h-4 text-purple-600" />
+                              </button>
+                              {c.status === 'bozza' && (
+                                <button onClick={() => handleSendContract(c)} className="nav-button p-2 rounded-lg">
+                                  <Send className="w-4 h-4 text-green-600" />
+                                </button>
+                              )}
+                              <button onClick={() => deleteMutation.mutate(c.id)} className="nav-button p-2 rounded-lg">
+                                <Trash2 className="w-4 h-4 text-red-600" />
+                              </button>
+                            </div>
+                          </div>
+                        </NeumorphicCard>
+                      );
+                    })}
                   </div>
-                </NeumorphicCard>
+                </div>
               );
-            })}
-          </div>
-        );
-      })()}
-    </>
-  )}
-</NeumorphicCard>
+            })()}
+
+            {/* Firmati */}
+            {(() => {
+              const firmati = contratti.filter(c => c.status === 'firmato');
+              return firmati.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-bold text-slate-700 mb-3 flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    Firmati ({firmati.length})
+                  </h3>
+                  <div className="space-y-3">
+                    {firmati.map(c => {
+                      const dataFine = c.data_inizio_contratto && c.durata_contratto_mesi
+                        ? (() => {
+                            const dataInizio = new Date(c.data_inizio_contratto);
+                            const fine = new Date(dataInizio);
+                            fine.setMonth(fine.getMonth() + parseInt(c.durata_contratto_mesi));
+                            return fine.toLocaleDateString('it-IT');
+                          })()
+                        : 'N/A';
+                      
+                      return (
+                        <NeumorphicCard key={c.id} className="p-4">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <p className="font-bold text-[#6b6b6b]">{c.nome_cognome}</p>
+                              <p className="text-sm text-[#9b9b9b]">{c.employee_group} - {c.ore_settimanali}h/sett</p>
+                              <p className="text-xs text-slate-600 mt-2">
+                                <span className="font-medium">Ruolo:</span> {c.function_name || 'N/A'}
+                              </p>
+                              <p className="text-xs text-slate-600">
+                                <span className="font-medium">Inizio:</span> {c.data_inizio_contratto ? new Date(c.data_inizio_contratto).toLocaleDateString('it-IT') : 'N/A'}
+                                {' • '}
+                                <span className="font-medium">Fine:</span> {dataFine}
+                              </p>
+                            </div>
+                            <div className="flex gap-2 flex-shrink-0">
+                              {getStatusBadge(c.status)}
+                              <button onClick={() => setPreviewContratto(c)} className="nav-button p-2 rounded-lg">
+                                <Eye className="w-4 h-4 text-purple-600" />
+                              </button>
+                              <button 
+                                onClick={() => downloadContrattoFirmato(c)} 
+                                className="nav-button p-2 rounded-lg" 
+                                title="Scarica contratto firmato PDF"
+                                disabled={downloadingPdf === c.id}
+                              >
+                                {downloadingPdf === c.id ? (
+                                  <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                                ) : (
+                                  <Download className="w-4 h-4 text-blue-600" />
+                                )}
+                              </button>
+                              <button onClick={() => deleteMutation.mutate(c.id)} className="nav-button p-2 rounded-lg">
+                                <Trash2 className="w-4 h-4 text-red-600" />
+                              </button>
+                            </div>
+                          </div>
+                        </NeumorphicCard>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+          </>
+        )}
+      </NeumorphicCard>
 
       {showTemplateForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
