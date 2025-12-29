@@ -199,6 +199,9 @@ export default function OverviewContratti() {
                       <SortButton field="tipo_contratto_label">Tipo</SortButton>
                     </th>
                     <th className="text-center py-3 px-2 font-semibold text-slate-700">
+                      <SortButton field="durata_contratto">Durata</SortButton>
+                    </th>
+                    <th className="text-center py-3 px-2 font-semibold text-slate-700">
                       <SortButton field="ore_settimanali">Ore/sett</SortButton>
                     </th>
                     <th className="text-left py-3 px-2 font-semibold text-slate-700">
