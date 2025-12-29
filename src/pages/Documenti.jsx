@@ -2807,7 +2807,7 @@ function UnilavSection() {
   );
 }
 
-// Google Drive Settings Section
+// Google Drive Settings Section (OBSOLETE - now in Contratti tab)
 function DriveSettingsSection() {
   const [loadingFolders, setLoadingFolders] = useState(false);
   const [driveFolders, setDriveFolders] = useState([]);
