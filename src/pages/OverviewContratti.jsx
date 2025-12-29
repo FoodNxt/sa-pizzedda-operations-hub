@@ -242,6 +242,13 @@ export default function OverviewContratti() {
                             {dip.tipo_contratto_label}
                           </span>
                         </td>
+                        <td className="py-3 px-2 text-center">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            dip.durata_contratto === 'Determinato' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {dip.durata_contratto}
+                          </span>
+                        </td>
                         <td className="py-3 px-2 text-center font-medium text-slate-700">
                           {dip.ore_settimanali || 'N/A'}
                         </td>
