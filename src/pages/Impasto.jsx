@@ -5,7 +5,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
-import ProtectedPage from "../components/ProtectedPage";
 import VoiceButton from "../components/VoiceButton";
 import { ChefHat, Calculator, AlertCircle, CheckCircle, Loader2, BookOpen, Plus, Edit, Save, X, Trash2 } from "lucide-react";
 
@@ -55,7 +54,7 @@ export default function Impasto() {
   });
 
   // Preselezione store da URL
-  useEffect(() => {
+  React.useEffect(() => {
     if (preselectedStoreId && !selectedStore) {
       setSelectedStore(preselectedStoreId);
     }
@@ -229,8 +228,7 @@ export default function Impasto() {
   };
 
   return (
-    <ProtectedPage pageName="Impasto">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto space-y-6">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
             Gestione Impasto
@@ -596,6 +594,5 @@ export default function Impasto() {
           </>
         )}
       </div>
-    </ProtectedPage>
   );
 }
