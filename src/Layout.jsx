@@ -225,6 +225,11 @@ const navigationStructure = [
         icon: AlertTriangle,
       },
       {
+        title: "Overview Contratti",
+        url: createPageUrl("OverviewContratti"),
+        icon: FileText,
+      },
+      {
         title: "Academy",
         url: createPageUrl("AcademyAdmin"),
         icon: GraduationCap,
