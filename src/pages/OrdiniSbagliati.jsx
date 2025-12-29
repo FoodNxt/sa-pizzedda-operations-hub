@@ -318,7 +318,7 @@ export default function OrdiniSbagliati() {
           m => m.platform === selectedPlatform && m.platform_store_name === finalStoreName
         );
 
-        if (!storeMatch && finalStoreName !== 'Negozio Sconosciuto') {
+        if (!storeMatch) {
           const autoMatch = findBestMatch(finalStoreName, stores);
           if (autoMatch && autoMatch.confidence >= 70) {
             const mappingData = {
