@@ -12,9 +12,9 @@ Deno.serve(async (req) => {
     // Get Google Drive access token
     const accessToken = await base44.asServiceRole.connectors.getAccessToken("googledrive");
 
-    // List folders in Drive - only those created by this app or explicitly shared
+    // List ALL folders visible to the user (not restricted to owned only)
     const response = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.folder' and 'me' in owners&fields=files(id,name,createdTime)&orderBy=createdTime desc`,
+      `https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name,createdTime,ownedByMe,shared)&orderBy=createdTime desc&pageSize=100`,
       {
         headers: {
           'Authorization': `Bearer ${accessToken}`
@@ -23,8 +23,9 @@ Deno.serve(async (req) => {
     );
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to list folders: ${error}`);
+      const errorText = await response.text();
+      console.error('Drive API error:', errorText);
+      throw new Error(`Failed to list folders: ${errorText}`);
     }
 
     const data = await response.json();
