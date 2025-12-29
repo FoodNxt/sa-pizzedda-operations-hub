@@ -93,7 +93,10 @@ export default function ProtectedPage({ children, pageName, requiredUserTypes = 
           }
         }
 
-        const hasAccess = allowedPages.includes(pageName);
+        // Common forms that should always be accessible to dipendenti (without needing explicit config)
+        const commonForms = ['FormInventario', 'FormCantina', 'Impasto', 'Preparazioni', 'Precotture', 'ControlloPuliziaCassiere', 'ControlloPuliziaPizzaiolo', 'ControlloPuliziaStoreManager', 'ConteggioCassa', 'FormPreparazioni', 'FormDeposito', 'FormPrelievi'];
+        
+        const hasAccess = allowedPages.includes(pageName) || commonForms.includes(pageName);
 
         if (!hasAccess) {
           // Redirect to first allowed page
