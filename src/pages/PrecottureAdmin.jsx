@@ -161,6 +161,13 @@ export default function PrecottureAdmin() {
     const percPomeriggio = parseFloat(editData.percentuale_pomeriggio) || 0;
     const percCena = parseFloat(editData.percentuale_cena) || 0;
 
+    // Validazione: somma deve essere 100%
+    const sommaPercentuali = percPranzo + percPomeriggio + percCena;
+    if (Math.abs(sommaPercentuali - 100) > 0.1) {
+      alert(`La somma delle percentuali deve essere 100%. Attualmente: ${sommaPercentuali.toFixed(1)}%`);
+      return;
+    }
+
     const payload = {
       store_name: store?.name,
       store_id: selectedStore,
@@ -667,49 +674,62 @@ export default function PrecottureAdmin() {
                                     />
                                   </div>
                                   <div className="grid grid-cols-3 gap-1 text-xs">
-                                    <div>
-                                      <label className="text-slate-500">Pranzo %</label>
-                                      <input
-                                        type="number"
-                                        min="0"
-                                        max="100"
-                                        value={editData.percentuale_pranzo || 0}
-                                        onChange={(e) => setEditData({...editData, percentuale_pranzo: parseFloat(e.target.value) || 0})}
-                                        className="w-full text-center neumorphic-pressed px-1 py-1 rounded-lg mt-1"
-                                      />
-                                      <p className="text-slate-400 mt-1">
-                                        = {Math.round((editData.totale_giornata || 0) * ((editData.percentuale_pranzo || 0) / 100))}
-                                      </p>
-                                    </div>
-                                    <div>
-                                      <label className="text-slate-500">Pomeriggio %</label>
-                                      <input
-                                        type="number"
-                                        min="0"
-                                        max="100"
-                                        value={editData.percentuale_pomeriggio || 0}
-                                        onChange={(e) => setEditData({...editData, percentuale_pomeriggio: parseFloat(e.target.value) || 0})}
-                                        className="w-full text-center neumorphic-pressed px-1 py-1 rounded-lg mt-1"
-                                      />
-                                      <p className="text-slate-400 mt-1">
-                                        = {Math.round((editData.totale_giornata || 0) * ((editData.percentuale_pomeriggio || 0) / 100))}
-                                      </p>
-                                    </div>
-                                    <div>
-                                      <label className="text-slate-500">Cena %</label>
-                                      <input
-                                        type="number"
-                                        min="0"
-                                        max="100"
-                                        value={editData.percentuale_cena || 0}
-                                        onChange={(e) => setEditData({...editData, percentuale_cena: parseFloat(e.target.value) || 0})}
-                                        className="w-full text-center neumorphic-pressed px-1 py-1 rounded-lg mt-1"
-                                      />
-                                      <p className="text-slate-400 mt-1">
-                                        = {Math.round((editData.totale_giornata || 0) * ((editData.percentuale_cena || 0) / 100))}
-                                      </p>
-                                    </div>
+                                   <div>
+                                     <label className="text-slate-500">Pranzo %</label>
+                                     <input
+                                       type="number"
+                                       min="0"
+                                       max="100"
+                                       value={editData.percentuale_pranzo || 0}
+                                       onChange={(e) => setEditData({...editData, percentuale_pranzo: parseFloat(e.target.value) || 0})}
+                                       className="w-full text-center neumorphic-pressed px-1 py-1 rounded-lg mt-1"
+                                     />
+                                     <p className="text-slate-400 mt-1">
+                                       = {Math.round((editData.totale_giornata || 0) * ((editData.percentuale_pranzo || 0) / 100))}
+                                     </p>
+                                   </div>
+                                   <div>
+                                     <label className="text-slate-500">Pomeriggio %</label>
+                                     <input
+                                       type="number"
+                                       min="0"
+                                       max="100"
+                                       value={editData.percentuale_pomeriggio || 0}
+                                       onChange={(e) => setEditData({...editData, percentuale_pomeriggio: parseFloat(e.target.value) || 0})}
+                                       className="w-full text-center neumorphic-pressed px-1 py-1 rounded-lg mt-1"
+                                     />
+                                     <p className="text-slate-400 mt-1">
+                                       = {Math.round((editData.totale_giornata || 0) * ((editData.percentuale_pomeriggio || 0) / 100))}
+                                     </p>
+                                   </div>
+                                   <div>
+                                     <label className="text-slate-500">Cena %</label>
+                                     <input
+                                       type="number"
+                                       min="0"
+                                       max="100"
+                                       value={editData.percentuale_cena || 0}
+                                       onChange={(e) => setEditData({...editData, percentuale_cena: parseFloat(e.target.value) || 0})}
+                                       className="w-full text-center neumorphic-pressed px-1 py-1 rounded-lg mt-1"
+                                     />
+                                     <p className="text-slate-400 mt-1">
+                                       = {Math.round((editData.totale_giornata || 0) * ((editData.percentuale_cena || 0) / 100))}
+                                     </p>
+                                   </div>
                                   </div>
+                                  {(() => {
+                                   const somma = (parseFloat(editData.percentuale_pranzo) || 0) + 
+                                                 (parseFloat(editData.percentuale_pomeriggio) || 0) + 
+                                                 (parseFloat(editData.percentuale_cena) || 0);
+                                   const isValid = Math.abs(somma - 100) < 0.1;
+                                   return (
+                                     <div className={`mt-2 px-2 py-1 rounded-lg text-center text-xs font-medium ${
+                                       isValid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                     }`}>
+                                       Totale: {somma.toFixed(1)}% {isValid ? '✓' : '⚠️ Deve essere 100%'}
+                                     </div>
+                                   );
+                                  })()}
                                 </div>
                               </td>
                             </>
