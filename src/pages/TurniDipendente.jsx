@@ -715,7 +715,12 @@ export default function TurniDipendente() {
   const handleTimbra = async (turno, tipo) => {
     const store = storesData.find(s => s.id === turno.store_id);
     
-    if (config?.abilita_timbratura_gps && store?.latitude && store?.longitude) {
+    // Verifica se GPS è richiesto per questo ruolo
+    const richiedeGPS = config?.abilita_timbratura_gps && 
+                        (config.ruoli_gps_abilitati?.length === 0 || config.ruoli_gps_abilitati?.includes(turno.ruolo)) &&
+                        store?.latitude && store?.longitude;
+    
+    if (richiedeGPS) {
       setLoadingGPS(true);
       setGpsError(null);
 
@@ -869,10 +874,15 @@ export default function TurniDipendente() {
       const durataLavorata = moment.duration(now.diff(entrata));
       const canUscita = now.isSameOrAfter(turnoEnd);
       
+      // Verifica se GPS è richiesto per questo ruolo
+      const richiedeGPS = config?.abilita_timbratura_gps && 
+                          (config.ruoli_gps_abilitati?.length === 0 || config.ruoli_gps_abilitati?.includes(prossimoTurno.ruolo)) &&
+                          store?.latitude && store?.longitude;
+      
       // Controllo GPS anche per uscita
       let gpsOk = true;
       let gpsReason = null;
-      if (config?.abilita_timbratura_gps && store?.latitude && store?.longitude) {
+      if (richiedeGPS) {
         if (!userPosition) {
           gpsOk = false;
           gpsReason = 'Attiva il GPS';
@@ -907,8 +917,13 @@ export default function TurniDipendente() {
       return { canTimbra: false, reason: `Mancano ${hours}h ${mins}min al turno` };
     }
     
+    // Verifica se GPS è richiesto per questo ruolo
+    const richiedeGPS = config?.abilita_timbratura_gps && 
+                        (config.ruoli_gps_abilitati?.length === 0 || config.ruoli_gps_abilitati?.includes(prossimoTurno.ruolo)) &&
+                        store?.latitude && store?.longitude;
+    
     // Controllo GPS
-    if (config?.abilita_timbratura_gps && store?.latitude && store?.longitude) {
+    if (richiedeGPS) {
       if (!userPosition) {
         return { canTimbra: false, reason: 'Attiva il GPS', needsGPS: true };
       }
@@ -1353,7 +1368,8 @@ export default function TurniDipendente() {
         )}
 
         {/* Richiesta permesso GPS */}
-        {gpsPermissionStatus === 'prompt' && config?.abilita_timbratura_gps && (
+        {gpsPermissionStatus === 'prompt' && config?.abilita_timbratura_gps && 
+         prossimoTurno && (config.ruoli_gps_abilitati?.length === 0 || config.ruoli_gps_abilitati?.includes(prossimoTurno.ruolo)) && (
           <NeumorphicCard className="p-4 bg-yellow-50 border border-yellow-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -1367,7 +1383,8 @@ export default function TurniDipendente() {
           </NeumorphicCard>
         )}
 
-        {gpsPermissionStatus === 'denied' && config?.abilita_timbratura_gps && (
+        {gpsPermissionStatus === 'denied' && config?.abilita_timbratura_gps && 
+         prossimoTurno && (config.ruoli_gps_abilitati?.length === 0 || config.ruoli_gps_abilitati?.includes(prossimoTurno.ruolo)) && (
           <NeumorphicCard className="p-4 bg-red-50 border border-red-200">
             <div className="flex items-center gap-3">
               <AlertCircle className="w-5 h-5 text-red-600" />
