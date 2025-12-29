@@ -515,6 +515,14 @@ export default function ContrattiDipendente() {
             </div>
           )}
 
+          {/* Divider tra Lettere di Richiamo e Chiusure Procedura */}
+          {(lettereRichiamoDaFirmare.length > 0 || lettereRichiamoFirmate.length > 0) && 
+           (chiusureProceduraDaFirmare.length > 0 || chiusureProceduraFirmate.length > 0) && (
+            <div className="my-8">
+              <div className="neumorphic-pressed h-1 rounded-full bg-gradient-to-r from-orange-200 via-slate-200 to-green-200"></div>
+            </div>
+          )}
+
           {/* Chiusure Procedura Da Firmare */}
           {chiusureProceduraDaFirmare.length > 0 && (
             <div className="mt-6">
@@ -565,6 +573,18 @@ export default function ContrattiDipendente() {
                     </button>
                   </NeumorphicCard>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Divider tra Da Firmare e Firmate */}
+          {(lettereRichiamoDaFirmare.length > 0 || chiusureProceduraDaFirmare.length > 0) && 
+           (lettereRichiamoFirmate.length > 0 || chiusureProceduraFirmate.length > 0) && (
+            <div className="my-8">
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-px bg-gradient-to-r from-transparent to-slate-300"></div>
+                <span className="text-xs text-slate-400 font-medium">ARCHIVIO</span>
+                <div className="flex-1 h-px bg-gradient-to-l from-transparent to-slate-300"></div>
               </div>
             </div>
           )}
