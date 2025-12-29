@@ -637,6 +637,20 @@ Genera sia l'oggetto che il corpo dell'email. L'email deve essere in italiano, p
       window.URL.revokeObjectURL(url);
       a.remove();
 
+      // Se il contratto è firmato e non è già su Drive, salvalo
+      if (contratto.status === 'firmato' && !contratto.google_drive_file_id) {
+        try {
+          await base44.functions.invoke('saveContractToDrive', {
+            contratto_id: contratto.id,
+            pdf_base64: base64Data,
+            nome_cognome: contratto.nome_cognome
+          });
+          queryClient.invalidateQueries({ queryKey: ['contratti'] });
+        } catch (driveError) {
+          console.error('Error saving to Drive:', driveError);
+        }
+      }
+
       alert('Contratto PDF scaricato con successo!');
     } catch (error) {
       console.error('Error downloading contract:', error);
