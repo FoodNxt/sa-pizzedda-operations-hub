@@ -64,8 +64,13 @@ export default function PrecottureAdmin() {
   });
 
   const { data: prodottiVenduti = [] } = useQuery({
-    queryKey: ['prodotti-venduti-teglie'],
-    queryFn: () => base44.entities.ProdottiVenduti.list(),
+    queryKey: ['prodotti-venduti-teglie', teglieStartDate, teglieEndDate],
+    queryFn: () => base44.entities.ProdottiVenduti.filter({
+      data_vendita: { 
+        $gte: teglieStartDate, 
+        $lte: teglieEndDate 
+      }
+    }),
     enabled: activeTab === 'teglie-vendute' || activeTab === 'configurazione'
   });
 
