@@ -272,6 +272,21 @@ export default function Contratti() {
       dataFine.setMonth(dataFine.getMonth() + parseInt(data.durata_contratto_mesi));
       dataFineContratto = dataFine.toLocaleDateString('it-IT');
     }
+
+    // Calculate data_prima_assunzione - find earliest contract for this user
+    let dataPrimaAssunzione = '';
+    if (data.user_id) {
+      const userContratti = contratti.filter(c => c.user_id === data.user_id && c.data_inizio_contratto);
+      if (userContratti.length > 0) {
+        const primoContratto = userContratti.reduce((earliest, current) => {
+          return new Date(current.data_inizio_contratto) < new Date(earliest.data_inizio_contratto) ? current : earliest;
+        });
+        dataPrimaAssunzione = new Date(primoContratto.data_inizio_contratto).toLocaleDateString('it-IT');
+      } else if (data.data_inizio_contratto) {
+        // If this is the first contract being created, use its start date
+        dataPrimaAssunzione = new Date(data.data_inizio_contratto).toLocaleDateString('it-IT');
+      }
+    }
     
     const variables = {
       '{{nome_cognome}}': data.nome_cognome || '',
@@ -289,7 +304,8 @@ export default function Contratti() {
       '{{data_oggi}}': oggi,
       '{{data_fine_contratto}}': dataFineContratto,
       '{{ruoli}}': (data.ruoli_dipendente || []).join(', '),
-      '{{locali}}': (data.assigned_stores || []).join(', ') || 'Tutti i locali'
+      '{{locali}}': (data.assigned_stores || []).join(', ') || 'Tutti i locali',
+      '{{data_prima_assunzione}}': dataPrimaAssunzione
     };
 
     Object.keys(variables).forEach(key => {
