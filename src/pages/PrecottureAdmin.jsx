@@ -134,10 +134,9 @@ export default function PrecottureAdmin() {
 
   const handleEdit = (giorno, data) => {
     setEditingRow(giorno);
-    const totale = getTotaleGiornaliero(data);
     setEditData(data ? {
       ...data,
-      totale_giornata: totale,
+      totale_giornata: data.totale_giornata || getTotaleGiornaliero(data),
       percentuale_pranzo: data.percentuale_pranzo || 30,
       percentuale_pomeriggio: data.percentuale_pomeriggio || 30,
       percentuale_cena: data.percentuale_cena || 40
