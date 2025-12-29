@@ -13,7 +13,8 @@ import {
   Link as LinkIcon,
   X,
   BarChart3,
-  Calendar
+  Calendar,
+  Settings
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -399,12 +400,162 @@ export default function OrdiniSbagliati() {
       });
     }
 
-    setUploading(false);
+    } catch (error) {
+      console.error('Error processing CSV:', error);
+      setImportResult({
+        success: false,
+        error: error.message
+      });
+      setUploading(false);
+    }
+
     event.target.value = '';
   };
 
+  const processCSVWithMapping = async (lines, headers, mapping) => {
+    try {
+      const records = [];
+      const unmapped = [];
+      const skippedLines = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = parseCsvLine(lines[i]);
+        
+        const record = {};
+        headers.forEach((header, idx) => {
+          record[header] = values[idx] || '';
+        });
+
+        const storeNameField = mapping.store_column;
+        const orderIdField = mapping.order_id_column;
+        const orderDateField = mapping.order_date_column;
+        const orderTotalField = mapping.order_total_column;
+        const refundField = mapping.refund_column;
+
+        const platformStoreName = record[storeNameField];
+        const orderId = record[orderIdField];
+        
+        if (!platformStoreName && !orderId) {
+          skippedLines.push(i + 1);
+          continue;
+        }
+        
+        const finalStoreName = platformStoreName || 'Negozio Sconosciuto';
+        const finalOrderId = orderId || `MISSING_ID_${Date.now()}_${i}`;
+
+        let storeMatch = storeMappings.find(
+          m => m.platform === selectedPlatform && m.platform_store_name === finalStoreName
+        );
+
+        if (!storeMatch && finalStoreName !== 'Negozio Sconosciuto') {
+          const autoMatch = findBestMatch(finalStoreName, stores);
+          if (autoMatch && autoMatch.confidence >= 70) {
+            const mappingData = {
+              platform: selectedPlatform,
+              platform_store_name: finalStoreName,
+              store_id: autoMatch.store.id,
+              store_name: autoMatch.store.name,
+              auto_matched: true,
+              confidence_score: autoMatch.confidence
+            };
+            await createMappingMutation.mutateAsync(mappingData);
+            storeMatch = mappingData;
+          } else {
+            if (!unmapped.find(u => u.platformStoreName === finalStoreName)) {
+              unmapped.push({
+                platformStoreName: finalStoreName,
+                suggestedMatch: autoMatch
+              });
+            }
+          }
+        }
+
+        let parsedDate;
+        try {
+          if (selectedPlatform === 'deliveroo') {
+            parsedDate = parseDeliverooDate(record[orderDateField]);
+          } else {
+            parsedDate = record[orderDateField] ? new Date(record[orderDateField]).toISOString() : null;
+          }
+          
+          if (!parsedDate || parsedDate === 'Invalid Date') {
+            parsedDate = new Date().toISOString();
+          }
+        } catch (error) {
+          parsedDate = new Date().toISOString();
+        }
+
+        const wrongOrder = {
+          platform: selectedPlatform,
+          order_id: finalOrderId,
+          order_date: parsedDate,
+          store_name: finalStoreName,
+          store_id: storeMatch ? storeMatch.store_id : null,
+          store_matched: !!storeMatch,
+          order_total: parseFloat(record[orderTotalField]?.replace(/[^0-9.-]/g, '') || '0'),
+          refund_value: parseFloat(record[refundField]?.replace(/[^0-9.-]/g, '') || '0'),
+          customer_refund_status: '',
+          complaint_reason: selectedPlatform === 'glovo' && mapping.refund_reason_column ? record[mapping.refund_reason_column] : null,
+          cancellation_reason: null,
+          order_status: null,
+          raw_data: record,
+          import_date: new Date().toISOString(),
+          imported_by: (await base44.auth.me()).email
+        };
+
+        records.push(wrongOrder);
+      }
+
+      let successCount = 0;
+      let errorCount = 0;
+      let duplicateCount = 0;
+
+      for (const record of records) {
+        try {
+          const existing = wrongOrders.find(o => o.order_id === record.order_id && o.platform === record.platform);
+          if (existing) {
+            duplicateCount++;
+            continue;
+          }
+          
+          await base44.entities.WrongOrder.create(record);
+          successCount++;
+        } catch (error) {
+          console.error('Error creating order:', error);
+          errorCount++;
+        }
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['wrong-orders'] });
+
+      setImportResult({
+        success: true,
+        total: records.length,
+        successCount,
+        errorCount,
+        duplicateCount,
+        unmappedCount: unmapped.length,
+        skippedLinesCount: skippedLines.length,
+        totalCsvLines: lines.length - 1
+      });
+
+      if (unmapped.length > 0) {
+        setUnmappedStores(unmapped);
+        setShowMappingModal(true);
+      }
+
+      setUploading(false);
+    } catch (error) {
+      console.error('Error processing CSV:', error);
+      setImportResult({
+        success: false,
+        error: error.message
+      });
+      setUploading(false);
+    }
+  };
+
   const handleManualMapping = async () => {
-    // Save manual mappings
     for (const [platformStoreName, storeId] of Object.entries(storeMapping)) {
       if (!storeId) continue;
 
@@ -429,6 +580,47 @@ export default function OrdiniSbagliati() {
     queryClient.invalidateQueries({ queryKey: ['store-mappings'] });
     
     alert('Mapping salvati! Riprova il caricamento del CSV.');
+  };
+
+  const handleSaveColumnMapping = async () => {
+    if (!columnMapping.order_id_column || !columnMapping.store_column || 
+        !columnMapping.order_date_column || !columnMapping.order_total_column || 
+        !columnMapping.refund_column) {
+      alert('Compila tutti i campi obbligatori');
+      return;
+    }
+
+    try {
+      // Deactivate existing mappings for this platform
+      const existing = columnMappings.filter(m => m.platform === selectedPlatform);
+      for (const m of existing) {
+        await base44.entities.CSVColumnMapping.update(m.id, { is_active: false });
+      }
+
+      // Create new mapping
+      await createColumnMappingMutation.mutateAsync({
+        platform: selectedPlatform,
+        ...columnMapping,
+        is_active: true
+      });
+
+      setShowColumnMapping(false);
+      
+      // Now process the pending file
+      if (pendingFile) {
+        setUploading(true);
+        const newMapping = {
+          platform: selectedPlatform,
+          ...columnMapping
+        };
+        await processCSVWithMapping(pendingFile.lines, pendingFile.headers, newMapping);
+        setPendingFile(null);
+      }
+      
+      alert('✅ Mapping colonne salvato! Il file è stato importato.');
+    } catch (error) {
+      alert('Errore nel salvare il mapping: ' + error.message);
+    }
   };
 
   // Filter orders by date range
@@ -666,6 +858,156 @@ export default function OrdiniSbagliati() {
             </div>
           </div>
         </NeumorphicCard>
+      )}
+
+      {/* Column Mapping Modal */}
+      {showColumnMapping && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-[#6b6b6b] flex items-center gap-2">
+                  <Settings className="w-6 h-6 text-[#8b7355]" />
+                  Mappa Colonne CSV - {selectedPlatform}
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowColumnMapping(false);
+                    setPendingFile(null);
+                    setUploading(false);
+                  }}
+                  className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+                >
+                  <X className="w-5 h-5 text-[#9b9b9b]" />
+                </button>
+              </div>
+
+              <p className="text-[#9b9b9b] mb-6">
+                Prima importazione per {selectedPlatform}. Seleziona quali colonne del CSV corrispondono ai dati richiesti:
+              </p>
+
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                    Numero Ordine <span className="text-red-600">*</span>
+                  </label>
+                  <select
+                    value={columnMapping.order_id_column}
+                    onChange={(e) => setColumnMapping({...columnMapping, order_id_column: e.target.value})}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                  >
+                    <option value="">-- Seleziona colonna --</option>
+                    {csvHeaders.map(h => (
+                      <option key={h} value={h}>{h}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                    Negozio <span className="text-red-600">*</span>
+                  </label>
+                  <select
+                    value={columnMapping.store_column}
+                    onChange={(e) => setColumnMapping({...columnMapping, store_column: e.target.value})}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                  >
+                    <option value="">-- Seleziona colonna --</option>
+                    {csvHeaders.map(h => (
+                      <option key={h} value={h}>{h}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                    Data Ordine <span className="text-red-600">*</span>
+                  </label>
+                  <select
+                    value={columnMapping.order_date_column}
+                    onChange={(e) => setColumnMapping({...columnMapping, order_date_column: e.target.value})}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                  >
+                    <option value="">-- Seleziona colonna --</option>
+                    {csvHeaders.map(h => (
+                      <option key={h} value={h}>{h}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                    Valore Ordine <span className="text-red-600">*</span>
+                  </label>
+                  <select
+                    value={columnMapping.order_total_column}
+                    onChange={(e) => setColumnMapping({...columnMapping, order_total_column: e.target.value})}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                  >
+                    <option value="">-- Seleziona colonna --</option>
+                    {csvHeaders.map(h => (
+                      <option key={h} value={h}>{h}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                    Valore Rimborso <span className="text-red-600">*</span>
+                  </label>
+                  <select
+                    value={columnMapping.refund_column}
+                    onChange={(e) => setColumnMapping({...columnMapping, refund_column: e.target.value})}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                  >
+                    <option value="">-- Seleziona colonna --</option>
+                    {csvHeaders.map(h => (
+                      <option key={h} value={h}>{h}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {selectedPlatform === 'glovo' && (
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                      Ragione Rimborso (opzionale, solo Glovo)
+                    </label>
+                    <select
+                      value={columnMapping.refund_reason_column}
+                      onChange={(e) => setColumnMapping({...columnMapping, refund_reason_column: e.target.value})}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                    >
+                      <option value="">-- Seleziona colonna --</option>
+                      {csvHeaders.map(h => (
+                        <option key={h} value={h}>{h}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <NeumorphicButton
+                  onClick={() => {
+                    setShowColumnMapping(false);
+                    setPendingFile(null);
+                    setUploading(false);
+                  }}
+                  className="flex-1"
+                >
+                  Annulla
+                </NeumorphicButton>
+                <NeumorphicButton
+                  onClick={handleSaveColumnMapping}
+                  variant="primary"
+                  className="flex-1"
+                >
+                  Salva e Importa
+                </NeumorphicButton>
+              </div>
+            </NeumorphicCard>
+          </div>
+        </div>
       )}
 
       {/* Mapping Modal */}
