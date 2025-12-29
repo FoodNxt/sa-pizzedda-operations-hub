@@ -1450,9 +1450,13 @@ function ContrattiSection() {
                     </div>
                   </div>
                 </NeumorphicCard>
+                      );
+                    })}
+                  </div>
+                </div>
               );
-            })}
-          </div>
+            })()}
+          </>
         )}
       </NeumorphicCard>
 
@@ -1951,222 +1955,276 @@ function LettereSection() {
         )}
       </NeumorphicCard>
 
-      <NeumorphicCard className="p-6">
-        <h2 className="text-xl font-bold text-slate-800 mb-4">Lettere Inviate</h2>
-        {lettere.length === 0 ? (
-          <p className="text-center text-slate-500 py-8">Nessuna lettera inviata</p>
-        ) : (
-          <div className="space-y-3">
-            {(() => {
-              // Group letters by user to show richiamo + chiusura together
-              const lettereRichiamo = lettere.filter(l => l.tipo_lettera === 'lettera_richiamo');
-              
-              return lettereRichiamo.map(richiamo => {
-                // Find associated chiusura procedura for this user after this richiamo
-                const chiusura = lettere.find(l => 
-                  l.tipo_lettera === 'chiusura_procedura' && 
-                  l.user_id === richiamo.user_id &&
-                  new Date(l.data_invio) > new Date(richiamo.data_invio)
-                );
-                
-                // Check if auto-send is configured
-                const autoSendEnabled = currentConfig?.invio_automatico_chiusura;
-                const giorniAttesa = currentConfig?.giorni_attesa_chiusura || 0;
-                
-                // Calculate when chiusura will be sent (if richiamo is visualized and no chiusura yet)
-                let chiusuraScheduled = null;
-                if (richiamo.status === 'firmata' && !chiusura && autoSendEnabled && richiamo.data_visualizzazione) {
-                  const dataVis = new Date(richiamo.data_visualizzazione);
-                  chiusuraScheduled = new Date(dataVis);
-                  chiusuraScheduled.setDate(chiusuraScheduled.getDate() + giorniAttesa);
-                }
+      {/* Lettere di Richiamo */}
+      <NeumorphicCard className="p-6 mb-6">
+        <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <AlertTriangle className="w-5 h-5 text-orange-600" />
+          Lettere di Richiamo
+        </h2>
+        {(() => {
+          const lettereRichiamo = lettere.filter(l => l.tipo_lettera === 'lettera_richiamo');
+          const richiamiInviati = lettereRichiamo.filter(l => l.status === 'inviata' && !l.data_visualizzazione);
+          const richiamiVisualizzati = lettereRichiamo.filter(l => l.data_visualizzazione && l.status !== 'firmata');
+          const richiamiCompleti = lettereRichiamo.filter(l => l.status === 'firmata');
 
-                // Find default template for this richiamo
-                const defaultChiusuraTemplate = chiusuraTemplates.find(t => t.nome_template === 'Chiusura Procedura - Multa') || chiusuraTemplates[0];
-                
-                return (
-                  <NeumorphicCard key={richiamo.id} className="p-4">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <p className="font-bold text-slate-800">{richiamo.user_name}</p>
-                        <p className="text-xs text-orange-600 font-medium">Lettera di Richiamo</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setViewingRichiamo(richiamo)}
-                          className="nav-button p-1.5 rounded-lg"
-                          title="Visualizza lettera di richiamo"
-                        >
-                          <Eye className="w-3.5 h-3.5 text-purple-600" />
-                        </button>
-                        {richiamo.status === 'firmata' && (
-                          <button
-                            onClick={() => downloadLetteraPDFAdmin(richiamo)}
-                            className="nav-button p-1.5 rounded-lg"
-                            title="Scarica PDF"
-                            disabled={downloadingPdfAdmin === richiamo.id}
-                          >
-                            {downloadingPdfAdmin === richiamo.id ? (
-                              <Loader2 className="w-3.5 h-3.5 text-blue-600 animate-spin" />
-                            ) : (
-                              <Download className="w-3.5 h-3.5 text-blue-600" />
-                            )}
-                          </button>
-                        )}
-                        <button
-                          onClick={() => {
-                            if (confirm(`Confermi l'eliminazione della lettera di richiamo per ${richiamo.user_name}? Questa azione è irreversibile.`)) {
-                              deleteLetteraMutation.mutate(richiamo.id);
-                            }
-                          }}
-                          className="nav-button p-1.5 rounded-lg"
-                          title="Elimina lettera"
-                        >
-                          <Trash2 className="w-3.5 h-3.5 text-red-600" />
-                        </button>
-                        {getStatusBadge(richiamo.status === 'firmata' ? 'firmato' : 'inviato')}
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-3 gap-2 text-xs mb-3">
-                      <div className="neumorphic-pressed p-2 rounded-lg">
-                        <p className="text-slate-500">Inviata</p>
-                        <p className="font-medium text-slate-700">
-                          {richiamo.data_invio ? new Date(richiamo.data_invio).toLocaleDateString('it-IT') : 'N/A'}
-                        </p>
-                      </div>
-                      <div className="neumorphic-pressed p-2 rounded-lg">
-                        <p className="text-slate-500">Visualizzata</p>
-                        <p className="font-medium text-slate-700">
-                          {richiamo.data_visualizzazione ? new Date(richiamo.data_visualizzazione).toLocaleDateString('it-IT') : 'In attesa'}
-                        </p>
-                      </div>
-                      <div className="neumorphic-pressed p-2 rounded-lg">
-                        <p className="text-slate-500">Firmata</p>
-                        <p className="font-medium text-slate-700">
-                          {richiamo.data_firma ? new Date(richiamo.data_firma).toLocaleDateString('it-IT') : 'In attesa'}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    {/* Chiusura Procedura Status */}
-                    <div className="neumorphic-flat p-3 rounded-lg bg-green-50 border border-green-200">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <p className="text-xs font-bold text-green-800 mb-1 flex items-center gap-1">
-                            <CheckCircle className="w-3 h-3" />
-                            Chiusura Procedura
-                          </p>
-                          {chiusura ? (
-                            <div className="text-xs text-green-700">
-                              <p>Inviata: {new Date(chiusura.data_invio).toLocaleDateString('it-IT')}</p>
-                              <p className="flex items-center gap-2">
-                                Stato: {chiusura.status === 'firmata' ? '✓ Firmata' : 'In attesa firma'}
-                                {chiusura.status === 'firmata' && (
-                                  <button
-                                    onClick={() => downloadLetteraPDFAdmin(chiusura)}
-                                    className="nav-button p-1 rounded"
-                                    title="Scarica PDF"
-                                    disabled={downloadingPdfAdmin === chiusura.id}
-                                  >
-                                    {downloadingPdfAdmin === chiusura.id ? (
-                                      <Loader2 className="w-3 h-3 text-blue-600 animate-spin" />
-                                    ) : (
-                                      <Download className="w-3 h-3 text-blue-600" />
-                                    )}
-                                  </button>
-                                )}
-                              </p>
-                            </div>
-                          ) : chiusuraScheduled ? (
-                            <p className="text-xs text-blue-700">
-                              <Clock className="w-3 h-3 inline mr-1" />
-                              Programmata per: {chiusuraScheduled.toLocaleDateString('it-IT')}
+          return (
+            <>
+              {/* Inviate */}
+              {richiamiInviati.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-base font-bold text-slate-700 mb-3 flex items-center gap-2">
+                    <Send className="w-4 h-4 text-blue-600" />
+                    Inviate - In Attesa Visualizzazione ({richiamiInviati.length})
+                  </h3>
+                  <div className="space-y-2">
+                    {richiamiInviati.map(richiamo => (
+                      <NeumorphicCard key={richiamo.id} className="p-4 border-l-4 border-blue-400">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <p className="font-bold text-slate-800">{richiamo.user_name}</p>
+                            <p className="text-xs text-slate-500 mt-1">
+                              Inviata: {richiamo.data_invio ? new Date(richiamo.data_invio).toLocaleDateString('it-IT') : 'N/A'}
                             </p>
-                          ) : richiamo.status === 'firmata' ? (
-                            <p className="text-xs text-orange-600">
-                              ⚠️ Da inviare manualmente
-                            </p>
-                          ) : (
-                            <p className="text-xs text-slate-500">
-                              Sarà disponibile dopo la visualizzazione del richiamo
-                            </p>
-                          )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setViewingRichiamo(richiamo)}
+                              className="nav-button p-1.5 rounded-lg"
+                            >
+                              <Eye className="w-3.5 h-3.5 text-purple-600" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (confirm(`Eliminare la lettera di richiamo per ${richiamo.user_name}?`)) {
+                                  deleteLetteraMutation.mutate(richiamo.id);
+                                }
+                              }}
+                              className="nav-button p-1.5 rounded-lg"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                            </button>
+                            <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">
+                              Inviata
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex gap-1">
-                         {!chiusura && (
-                           <button
-                             onClick={() => {
-                               if (defaultChiusuraTemplate) {
-                                 const content = generateLetteraContent(defaultChiusuraTemplate.id, richiamo.user_id, richiamo);
-                                 setViewingChiusura({ 
-                                   tipo: 'edit', 
-                                   richiamo,
-                                   selectedTemplateId: defaultChiusuraTemplate.id,
-                                   editableContent: content
-                                 });
-                               } else {
-                                 alert('Nessun template di chiusura procedura disponibile');
-                               }
-                             }}
-                             className="nav-button p-1.5 rounded-lg"
-                             title="Seleziona e modifica chiusura"
-                           >
-                             <Edit className="w-3.5 h-3.5 text-orange-600" />
-                           </button>
-                         )}
-                         {(chiusura || currentConfig?.template_chiusura_id) && (
-                           <button
-                             onClick={() => {
-                               if (chiusura) {
-                                 setViewingChiusura({ tipo: 'inviata', chiusura });
-                               } else {
-                                 generateChiusuraPreview(richiamo);
-                                 setViewingChiusura({ tipo: 'preview', richiamo });
-                               }
-                             }}
-                             className="nav-button p-1.5 rounded-lg"
-                             title="Visualizza anteprima chiusura"
-                           >
-                             <Eye className="w-3.5 h-3.5 text-blue-600" />
-                           </button>
-                         )}
-                        </div>
-                      </div>
+                      </NeumorphicCard>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Visualizzate */}
+              {richiamiVisualizzati.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-base font-bold text-slate-700 mb-3 flex items-center gap-2">
+                    <Eye className="w-4 h-4 text-purple-600" />
+                    Visualizzate - In Attesa Firma ({richiamiVisualizzati.length})
+                  </h3>
+                  <div className="space-y-2">
+                    {richiamiVisualizzati.map(richiamo => {
+                      const chiusura = lettere.find(l => 
+                        l.tipo_lettera === 'chiusura_procedura' && 
+                        l.user_id === richiamo.user_id &&
+                        new Date(l.data_invio) > new Date(richiamo.data_invio)
+                      );
                       
-                      {/* Template selector for chiusura */}
-                      {!chiusura && chiusuraTemplates.length > 0 && (
-                        <div className="mt-2 pt-2 border-t border-green-200">
-                          <select
-                            className="w-full text-xs neumorphic-pressed px-2 py-1.5 rounded-lg outline-none bg-white"
-                            defaultValue={defaultChiusuraTemplate?.id || ''}
-                            onChange={(e) => {
-                              const selectedTemplate = chiusuraTemplates.find(t => t.id === e.target.value);
-                              if (selectedTemplate) {
-                                const content = generateLetteraContent(selectedTemplate.id, richiamo.user_id, richiamo);
-                                setViewingChiusura({ 
-                                  tipo: 'edit', 
-                                  richiamo,
-                                  selectedTemplateId: selectedTemplate.id,
-                                  editableContent: content
-                                });
-                              }
-                            }}
-                          >
-                            <option value="" disabled>Seleziona template...</option>
-                            {chiusuraTemplates.map(t => (
-                              <option key={t.id} value={t.id}>{t.nome_template}</option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-                    </div>
-                  </NeumorphicCard>
-                );
-              });
-            })()}
-          </div>
-        )}
+                      return (
+                        <NeumorphicCard key={richiamo.id} className="p-4 border-l-4 border-purple-400">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <p className="font-bold text-slate-800">{richiamo.user_name}</p>
+                              <div className="text-xs text-slate-500 mt-1 space-y-0.5">
+                                <p>Inviata: {richiamo.data_invio ? new Date(richiamo.data_invio).toLocaleDateString('it-IT') : 'N/A'}</p>
+                                <p className="text-purple-600 font-medium">
+                                  Visualizzata: {richiamo.data_visualizzazione ? new Date(richiamo.data_visualizzazione).toLocaleDateString('it-IT') : 'N/A'}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => setViewingRichiamo(richiamo)}
+                                className="nav-button p-1.5 rounded-lg"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-purple-600" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (confirm(`Eliminare la lettera di richiamo per ${richiamo.user_name}?`)) {
+                                    deleteLetteraMutation.mutate(richiamo.id);
+                                  }
+                                }}
+                                className="nav-button p-1.5 rounded-lg"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                              </button>
+                              <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold">
+                                Visualizzata
+                              </span>
+                            </div>
+                          </div>
+                        </NeumorphicCard>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {lettereRichiamo.length === 0 && (
+                <p className="text-center text-slate-500 py-8">Nessuna lettera di richiamo inviata</p>
+              )}
+            </>
+          );
+        })()}
+      </NeumorphicCard>
+
+      {/* Chiusure Procedura */}
+      <NeumorphicCard className="p-6">
+        <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <CheckCircle className="w-5 h-5 text-green-600" />
+          Chiusure Procedura
+        </h2>
+        {(() => {
+          const chiusureProcedura = lettere.filter(l => l.tipo_lettera === 'chiusura_procedura');
+          const chiusureInviate = chiusureProcedura.filter(l => l.status !== 'firmata');
+          const chiusureFirmate = chiusureProcedura.filter(l => l.status === 'firmata');
+
+          return (
+            <>
+              {/* Inviate - Da Firmare */}
+              {chiusureInviate.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-base font-bold text-slate-700 mb-3 flex items-center gap-2">
+                    <Send className="w-4 h-4 text-green-600" />
+                    Inviate - In Attesa Firma ({chiusureInviate.length})
+                  </h3>
+                  <div className="space-y-2">
+                    {chiusureInviate.map(chiusura => {
+                      const richiamo = lettere.find(l => 
+                        l.tipo_lettera === 'lettera_richiamo' && 
+                        l.user_id === chiusura.user_id
+                      );
+                      
+                      return (
+                        <NeumorphicCard key={chiusura.id} className="p-4 border-l-4 border-green-400">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <p className="font-bold text-slate-800">{chiusura.user_name}</p>
+                              <div className="text-xs text-slate-500 mt-1 space-y-0.5">
+                                <p>Inviata: {chiusura.data_invio ? new Date(chiusura.data_invio).toLocaleDateString('it-IT') : 'N/A'}</p>
+                                {richiamo && (
+                                  <p className="text-orange-600">
+                                    Richiamo firmato: {richiamo.data_firma ? new Date(richiamo.data_firma).toLocaleDateString('it-IT') : 'N/A'}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => setViewingChiusura({ tipo: 'inviata', chiusura })}
+                                className="nav-button p-1.5 rounded-lg"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-blue-600" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (confirm(`Eliminare la chiusura procedura per ${chiusura.user_name}?`)) {
+                                    deleteLetteraMutation.mutate(chiusura.id);
+                                  }
+                                }}
+                                className="nav-button p-1.5 rounded-lg"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                              </button>
+                              <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">
+                                Inviata
+                              </span>
+                            </div>
+                          </div>
+                        </NeumorphicCard>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Firmate */}
+              {chiusureFirmate.length > 0 && (
+                <div>
+                  <h3 className="text-base font-bold text-slate-700 mb-3 flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    Firmate - Procedura Chiusa ({chiusureFirmate.length})
+                  </h3>
+                  <div className="space-y-2">
+                    {chiusureFirmate.map(chiusura => {
+                      const richiamo = lettere.find(l => 
+                        l.tipo_lettera === 'lettera_richiamo' && 
+                        l.user_id === chiusura.user_id
+                      );
+                      
+                      return (
+                        <NeumorphicCard key={chiusura.id} className="p-4 border-l-4 border-green-600 bg-green-50">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <p className="font-bold text-slate-800">{chiusura.user_name}</p>
+                              <div className="text-xs text-slate-500 mt-1 space-y-0.5">
+                                <p>Inviata: {chiusura.data_invio ? new Date(chiusura.data_invio).toLocaleDateString('it-IT') : 'N/A'}</p>
+                                <p className="text-green-700 font-medium">
+                                  Firmata: {chiusura.data_firma ? new Date(chiusura.data_firma).toLocaleDateString('it-IT') : 'N/A'}
+                                </p>
+                                {richiamo && (
+                                  <p className="text-orange-600">
+                                    Richiamo firmato: {richiamo.data_firma ? new Date(richiamo.data_firma).toLocaleDateString('it-IT') : 'N/A'}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => setViewingChiusura({ tipo: 'inviata', chiusura })}
+                                className="nav-button p-1.5 rounded-lg"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-blue-600" />
+                              </button>
+                              <button
+                                onClick={() => downloadLetteraPDFAdmin(chiusura)}
+                                className="nav-button p-1.5 rounded-lg"
+                                disabled={downloadingPdfAdmin === chiusura.id}
+                              >
+                                {downloadingPdfAdmin === chiusura.id ? (
+                                  <Loader2 className="w-3.5 h-3.5 text-blue-600 animate-spin" />
+                                ) : (
+                                  <Download className="w-3.5 h-3.5 text-blue-600" />
+                                )}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (confirm(`Eliminare la chiusura procedura per ${chiusura.user_name}?`)) {
+                                    deleteLetteraMutation.mutate(chiusura.id);
+                                  }
+                                }}
+                                className="nav-button p-1.5 rounded-lg"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                              </button>
+                              <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">
+                                ✓ Firmata
+                              </span>
+                            </div>
+                          </div>
+                        </NeumorphicCard>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {chiusureProcedura.length === 0 && (
+                <p className="text-center text-slate-500 py-8">Nessuna chiusura procedura inviata</p>
+              )}
+            </>
+          );
+        })()}
       </NeumorphicCard>
 
       {showTemplateForm && (
