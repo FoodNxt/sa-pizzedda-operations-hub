@@ -449,9 +449,21 @@ export default function OrdiniSbagliati() {
         record[header] = values[idx] || '';
       });
 
+      const storeName = record[mapping.store_column] || '';
+      
+      // Detect suspicious store names
+      const suspicious = storeName && (
+        storeName.includes(',') || 
+        storeName.toLowerCase().includes('delivered') ||
+        storeName.toLowerCase().includes('missing') ||
+        /\d{4}-\d{2}-\d{2}/.test(storeName) || // date pattern
+        storeName.split(',').length > 2 // multiple commas
+      );
+
       preview.push({
         orderId: record[mapping.order_id_column] || '',
-        store: record[mapping.store_column] || '',
+        store: storeName,
+        storeSuspicious: suspicious,
         date: record[mapping.order_date_column] || '',
         total: record[mapping.order_total_column] || '',
         refund: record[mapping.refund_column] || '',
