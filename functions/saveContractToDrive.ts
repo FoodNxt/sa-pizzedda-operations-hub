@@ -25,12 +25,31 @@ Deno.serve(async (req) => {
       bytes[i] = binaryString.charCodeAt(i);
     }
 
+    // Get Drive folder configuration
+    let folderId = null;
+    try {
+      const driveConfigs = await base44.asServiceRole.entities.DriveConfig.filter({ 
+        config_type: 'contratti',
+        is_active: true 
+      });
+      if (driveConfigs.length > 0) {
+        folderId = driveConfigs[0].folder_id;
+      }
+    } catch (error) {
+      console.log('No Drive config found, saving to root');
+    }
+
     // Create file metadata
     const fileName = `Contratto_${nome_cognome.replace(/\s/g, '_')}_${contratto_id.substring(0, 8)}.pdf`;
     const metadata = {
       name: fileName,
       mimeType: 'application/pdf'
     };
+    
+    // Add parent folder if configured
+    if (folderId) {
+      metadata.parents = [folderId];
+    }
 
     // Upload to Google Drive
     const boundary = '-------314159265358979323846';

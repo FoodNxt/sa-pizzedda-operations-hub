@@ -28,13 +28,16 @@ import {
   AlertTriangle,
   Sparkles,
   Mail,
-  Loader2
+  Loader2,
+  Settings,
+  Folder,
+  FolderPlus
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 
 export default function Contratti() {
-  const [activeTab, setActiveTab] = useState('contratti'); // 'contratti' or 'templates'
+  const [activeTab, setActiveTab] = useState('contratti'); // 'contratti', 'templates', or 'settings'
   const [showForm, setShowForm] = useState(false);
   const [showTemplateForm, setShowTemplateForm] = useState(false);
   const [editingContratto, setEditingContratto] = useState(null);
@@ -42,6 +45,14 @@ export default function Contratti() {
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [previewContratto, setPreviewContratto] = useState(null);
   const [templateTextareaRef, setTemplateTextareaRef] = useState(null);
+  
+  // Drive settings
+  const [showDriveSettings, setShowDriveSettings] = useState(false);
+  const [loadingFolders, setLoadingFolders] = useState(false);
+  const [driveFolders, setDriveFolders] = useState([]);
+  const [selectedDriveFolder, setSelectedDriveFolder] = useState('');
+  const [newFolderName, setNewFolderName] = useState('');
+  const [creatingFolder, setCreatingFolder] = useState(false);
 
   const [formData, setFormData] = useState({
     user_id: '',
@@ -108,6 +119,11 @@ export default function Contratti() {
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
     queryFn: () => base44.entities.Store.list(),
+  });
+
+  const { data: driveConfig = [] } = useQuery({
+    queryKey: ['drive-config'],
+    queryFn: () => base44.entities.DriveConfig.filter({ config_type: 'contratti', is_active: true }),
   });
 
   const createMutation = useMutation({
@@ -607,6 +623,88 @@ Genera sia l'oggetto che il corpo dell'email. L'email deve essere in italiano, p
     'durata_contratto_mesi', 'data_oggi', 'data_fine_contratto', 'ruoli', 'locali'
   ];
 
+  const handleLoadDriveFolders = async () => {
+    setLoadingFolders(true);
+    try {
+      const response = await base44.functions.invoke('listDriveFolders', {});
+      setDriveFolders(response.data.folders || []);
+    } catch (error) {
+      console.error('Error loading folders:', error);
+      alert('Errore nel caricamento delle cartelle Drive');
+    } finally {
+      setLoadingFolders(false);
+    }
+  };
+
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) {
+      alert('Inserisci un nome per la cartella');
+      return;
+    }
+
+    setCreatingFolder(true);
+    try {
+      const response = await base44.functions.invoke('createDriveFolder', {
+        folder_name: newFolderName
+      });
+
+      // Crea o aggiorna la configurazione
+      const existing = driveConfig[0];
+      if (existing) {
+        await base44.entities.DriveConfig.update(existing.id, {
+          folder_id: response.data.folder_id,
+          folder_name: response.data.folder_name,
+          created_by: users.find(u => u.id === (await base44.auth.me()).id)?.email || ''
+        });
+      } else {
+        await base44.entities.DriveConfig.create({
+          config_type: 'contratti',
+          folder_id: response.data.folder_id,
+          folder_name: response.data.folder_name,
+          is_active: true,
+          created_by: users.find(u => u.id === (await base44.auth.me()).id)?.email || ''
+        });
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['drive-config'] });
+      setNewFolderName('');
+      setShowDriveSettings(false);
+      alert('Cartella creata e configurata con successo!');
+    } catch (error) {
+      console.error('Error creating folder:', error);
+      alert('Errore nella creazione della cartella');
+    } finally {
+      setCreatingFolder(false);
+    }
+  };
+
+  const handleSelectExistingFolder = async (folderId, folderName) => {
+    try {
+      const existing = driveConfig[0];
+      if (existing) {
+        await base44.entities.DriveConfig.update(existing.id, {
+          folder_id: folderId,
+          folder_name: folderName
+        });
+      } else {
+        await base44.entities.DriveConfig.create({
+          config_type: 'contratti',
+          folder_id: folderId,
+          folder_name: folderName,
+          is_active: true,
+          created_by: users.find(u => u.id === (await base44.auth.me()).id)?.email || ''
+        });
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['drive-config'] });
+      setShowDriveSettings(false);
+      alert('Cartella configurata con successo!');
+    } catch (error) {
+      console.error('Error saving config:', error);
+      alert('Errore nel salvataggio della configurazione');
+    }
+  };
+
   const handleDownloadPDF = async (contratto) => {
     try {
       const response = await base44.functions.invoke('generateContrattoPDF', {
@@ -705,6 +803,15 @@ Genera sia l'oggetto che il corpo dell'email. L'email deve essere in italiano, p
           }`}
         >
           Template
+        </button>
+        <button
+          onClick={() => setActiveTab('settings')}
+          className={`flex-1 px-6 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 ${
+            activeTab === 'settings' ? 'neumorphic-pressed text-[#8b7355]' : 'neumorphic-flat text-[#9b9b9b]'
+          }`}
+        >
+          <Settings className="w-4 h-4" />
+          Impostazioni Drive
         </button>
       </div>
 
@@ -1427,6 +1534,62 @@ Genera sia l'oggetto che il corpo dell'email. L'email deve essere in italiano, p
           )}
         </NeumorphicCard>
         </>
+      ) : activeTab === 'settings' ? (
+        <NeumorphicCard className="p-6">
+          <h2 className="text-xl font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
+            <Settings className="w-6 h-6 text-[#8b7355]" />
+            Impostazioni Google Drive
+          </h2>
+
+          {/* Cartella Attuale */}
+          <div className="neumorphic-flat p-5 rounded-xl mb-6">
+            <h3 className="font-bold text-[#6b6b6b] mb-3">Cartella di Salvataggio</h3>
+            {driveConfig.length > 0 && driveConfig[0].folder_id ? (
+              <div className="flex items-center justify-between gap-3 neumorphic-pressed p-4 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <Folder className="w-6 h-6 text-blue-600" />
+                  <div>
+                    <p className="font-medium text-[#6b6b6b]">{driveConfig[0].folder_name}</p>
+                    <p className="text-xs text-[#9b9b9b]">Cartella configurata</p>
+                  </div>
+                </div>
+                <NeumorphicButton
+                  onClick={() => {
+                    setShowDriveSettings(true);
+                    handleLoadDriveFolders();
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <Edit className="w-4 h-4" />
+                  Cambia
+                </NeumorphicButton>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Folder className="w-16 h-16 text-[#9b9b9b] opacity-50 mx-auto mb-4" />
+                <p className="text-[#9b9b9b] mb-4">Nessuna cartella configurata</p>
+                <p className="text-sm text-[#9b9b9b] mb-4">I contratti verranno salvati nella root del tuo Drive</p>
+                <NeumorphicButton
+                  onClick={() => {
+                    setShowDriveSettings(true);
+                    handleLoadDriveFolders();
+                  }}
+                  variant="primary"
+                  className="flex items-center gap-2 mx-auto"
+                >
+                  <FolderPlus className="w-5 h-5" />
+                  Configura Cartella
+                </NeumorphicButton>
+              </div>
+            )}
+          </div>
+
+          <div className="neumorphic-pressed p-4 rounded-xl bg-blue-50">
+            <p className="text-sm text-blue-800">
+              <strong>ℹ️ Come funziona:</strong> Ogni contratto firmato verrà salvato automaticamente nella cartella Drive configurata. Se non configuri una cartella, i file verranno salvati nella root del tuo Drive.
+            </p>
+          </div>
+        </NeumorphicCard>
       ) : (
         <NeumorphicCard className="p-6">
           <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">Template Contratti</h2>
@@ -1625,6 +1788,110 @@ Genera sia l'oggetto che il corpo dell'email. L'email deve essere in italiano, p
                     <Send className="w-4 h-4" />
                     Invia Email
                   </NeumorphicButton>
+                </div>
+              </div>
+            </NeumorphicCard>
+          </div>
+        </div>
+      )}
+
+      {/* Drive Settings Modal */}
+      {showDriveSettings && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <NeumorphicCard className="p-6 my-8">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-[#6b6b6b] flex items-center gap-2">
+                  <Folder className="w-6 h-6 text-[#8b7355]" />
+                  Configura Cartella Drive
+                </h2>
+                <button
+                  onClick={() => setShowDriveSettings(false)}
+                  className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+                >
+                  <X className="w-5 h-5 text-[#9b9b9b]" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Crea Nuova Cartella */}
+                <div className="neumorphic-flat p-5 rounded-xl">
+                  <h3 className="font-bold text-[#6b6b6b] mb-3 flex items-center gap-2">
+                    <FolderPlus className="w-5 h-5 text-green-600" />
+                    Crea Nuova Cartella
+                  </h3>
+                  <div className="flex gap-3">
+                    <input
+                      type="text"
+                      value={newFolderName}
+                      onChange={(e) => setNewFolderName(e.target.value)}
+                      placeholder="Nome cartella (es. Contratti Sa Pizzedda)"
+                      className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                    />
+                    <NeumorphicButton
+                      onClick={handleCreateFolder}
+                      disabled={creatingFolder}
+                      variant="primary"
+                      className="flex items-center gap-2"
+                    >
+                      {creatingFolder ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <FolderPlus className="w-5 h-5" />
+                      )}
+                      Crea
+                    </NeumorphicButton>
+                  </div>
+                </div>
+
+                {/* Seleziona Cartella Esistente */}
+                <div className="neumorphic-flat p-5 rounded-xl">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-bold text-[#6b6b6b] flex items-center gap-2">
+                      <Folder className="w-5 h-5 text-blue-600" />
+                      Seleziona Cartella Esistente
+                    </h3>
+                    <NeumorphicButton
+                      onClick={handleLoadDriveFolders}
+                      disabled={loadingFolders}
+                      className="flex items-center gap-2 text-sm"
+                    >
+                      {loadingFolders ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        'Carica Cartelle'
+                      )}
+                    </NeumorphicButton>
+                  </div>
+
+                  {loadingFolders ? (
+                    <div className="text-center py-8">
+                      <Loader2 className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-2" />
+                      <p className="text-sm text-[#9b9b9b]">Caricamento cartelle...</p>
+                    </div>
+                  ) : driveFolders.length > 0 ? (
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {driveFolders.map(folder => (
+                        <button
+                          key={folder.id}
+                          onClick={() => handleSelectExistingFolder(folder.id, folder.name)}
+                          className="w-full neumorphic-pressed p-3 rounded-xl hover:bg-blue-50 transition-colors text-left flex items-center gap-3"
+                        >
+                          <Folder className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-[#6b6b6b] truncate">{folder.name}</p>
+                            <p className="text-xs text-[#9b9b9b]">
+                              Creata: {new Date(folder.createdTime).toLocaleDateString('it-IT')}
+                            </p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-center text-[#9b9b9b] py-4 text-sm">
+                      Clicca "Carica Cartelle" per visualizzare le cartelle disponibili
+                    </p>
+                  )}
                 </div>
               </div>
             </NeumorphicCard>
