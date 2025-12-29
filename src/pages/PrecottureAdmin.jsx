@@ -1130,6 +1130,10 @@ export default function PrecottureAdmin() {
                 </div>
               </div>
               
+              <p className="text-xs text-slate-500 mb-3">
+                Periodo: {moment(teglieStartDate).format('DD/MM/YYYY')} - {moment(teglieEndDate).format('DD/MM/YYYY')}
+              </p>
+              
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={
@@ -1137,7 +1141,7 @@ export default function PrecottureAdmin() {
                       .filter(t => t.day_of_week === selectedDayOfWeek && (!selectedStoreForMedia || t.store_id === selectedStoreForMedia))
                       .sort((a, b) => a.data.localeCompare(b.data))
                       .map(t => ({
-                        data: moment(t.data).format('DD/MM'),
+                        data: moment(t.data).format('DD/MM/YY'),
                         teglie: parseFloat(t.teglie),
                         store: t.store_name
                       }))
@@ -1156,7 +1160,7 @@ export default function PrecottureAdmin() {
                       }} 
                     />
                     <Legend />
-                    <Line type="monotone" dataKey="teglie" stroke="#8b5cf6" strokeWidth={2} name={`Teglie ${selectedDayOfWeek}`} />
+                    <Line type="monotone" dataKey="teglie" stroke="#8b5cf6" strokeWidth={2} name={`Teglie ${selectedDayOfWeek}`} dot={{ r: 4 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
