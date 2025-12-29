@@ -437,6 +437,30 @@ export default function OrdiniSbagliati() {
     alert('Mapping salvati! Riprova il caricamento del CSV.');
   };
 
+  const generatePreview = (lines, headers, mapping) => {
+    const preview = [];
+    const maxPreview = 5;
+    
+    for (let i = 1; i < Math.min(lines.length, maxPreview + 1); i++) {
+      const values = parseCsvLine(lines[i]);
+      const record = {};
+      headers.forEach((header, idx) => {
+        record[header] = values[idx] || '';
+      });
+
+      preview.push({
+        orderId: record[mapping.order_id_column] || '',
+        store: record[mapping.store_column] || '',
+        date: record[mapping.order_date_column] || '',
+        total: record[mapping.order_total_column] || '',
+        refund: record[mapping.refund_column] || '',
+        reason: mapping.refund_reason_column ? record[mapping.refund_reason_column] || '' : ''
+      });
+    }
+    
+    setPreviewData(preview);
+  };
+
   const handleSaveColumnMapping = async () => {
     if (!columnMapping.order_id_column || !columnMapping.store_column || 
         !columnMapping.order_date_column || !columnMapping.order_total_column || 
@@ -461,20 +485,30 @@ export default function OrdiniSbagliati() {
 
       setShowColumnMapping(false);
       
-      // Now process the pending file
+      // Show preview with new mapping
       if (pendingFile) {
-        setUploading(true);
-        const newMapping = {
-          platform: selectedPlatform,
-          ...columnMapping
-        };
-        await processCSVWithMapping(pendingFile.lines, pendingFile.headers, newMapping);
-        setPendingFile(null);
+        generatePreview(pendingFile.lines, pendingFile.headers, columnMapping);
+        setShowPreview(true);
       }
       
-      alert('✅ Mapping colonne salvato! Il file è stato importato.');
+      alert('✅ Mapping colonne salvato! Controlla l\'anteprima prima di importare.');
     } catch (error) {
       alert('Errore nel salvare il mapping: ' + error.message);
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    if (!pendingFile) return;
+    
+    setShowPreview(false);
+    setUploading(true);
+    
+    try {
+      await processCSVWithMapping(pendingFile.lines, pendingFile.headers, columnMapping);
+      setPendingFile(null);
+      setPreviewData([]);
+    } catch (error) {
+      setUploading(false);
     }
   };
 
