@@ -62,6 +62,7 @@ import Meteo from './pages/Meteo';
 import OrderItemsSetup from './pages/OrderItemsSetup';
 import OrdiniSbagliati from './pages/OrdiniSbagliati';
 import OreLavorate from './pages/OreLavorate';
+import OverviewContratti from './pages/OverviewContratti';
 import Pause from './pages/Pause';
 import Payroll from './pages/Payroll';
 import Planday from './pages/Planday';
@@ -95,7 +96,6 @@ import ValutazionePulizie from './pages/ValutazionePulizie';
 import VenditeAnalytics from './pages/VenditeAnalytics';
 import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierSetup from './pages/ZapierSetup';
-import OverviewContratti from './pages/OverviewContratti';
 import __Layout from './Layout.jsx';
 
 
@@ -164,6 +164,7 @@ export const PAGES = {
     "OrderItemsSetup": OrderItemsSetup,
     "OrdiniSbagliati": OrdiniSbagliati,
     "OreLavorate": OreLavorate,
+    "OverviewContratti": OverviewContratti,
     "Pause": Pause,
     "Payroll": Payroll,
     "Planday": Planday,
@@ -197,7 +198,6 @@ export const PAGES = {
     "VenditeAnalytics": VenditeAnalytics,
     "ZapierProdottiVenduti": ZapierProdottiVenduti,
     "ZapierSetup": ZapierSetup,
-    "OverviewContratti": OverviewContratti,
 }
 
 export const pagesConfig = {

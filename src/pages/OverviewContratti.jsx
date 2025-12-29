@@ -23,7 +23,12 @@ export default function OverviewContratti() {
   const dipendentiConContratti = useMemo(() => {
     const oggi = new Date();
     
-    return contratti.map(c => {
+    // Raggruppa contratti per dipendente e prendi solo quello con scadenza più lunga
+    const contrattiPerDipendente = {};
+    contratti.forEach(c => {
+      const userId = c.user_id;
+      if (!userId) return;
+      
       const dataInizio = c.data_inizio_contratto ? new Date(c.data_inizio_contratto) : null;
       const dataFine = dataInizio && c.durata_contratto_mesi 
         ? (() => {
@@ -33,20 +38,30 @@ export default function OverviewContratti() {
           })()
         : null;
       
-      const giorniRimanenti = dataFine ? Math.ceil((dataFine - oggi) / (1000 * 60 * 60 * 24)) : null;
-      
-      return {
-        ...c,
-        data_inizio: dataInizio,
-        data_fine: dataFine,
-        giorni_rimanenti: giorniRimanenti,
-        tipo_contratto_label: c.employee_group === 'FT' ? 'Full Time' : 
-                             c.employee_group === 'PT' ? 'Part Time' : 
-                             c.employee_group === 'CM' ? 'Contratto Misto' : 
-                             c.employee_group || 'N/A',
-        ruoli: (c.ruoli_dipendente || []).join(', ') || c.function_name || 'N/A'
-      };
-    }).sort((a, b) => {
+      // Se il dipendente non ha ancora un contratto o questo ha scadenza più lunga
+      if (!contrattiPerDipendente[userId] || 
+          (dataFine && contrattiPerDipendente[userId].data_fine && dataFine > contrattiPerDipendente[userId].data_fine) ||
+          (dataFine && !contrattiPerDipendente[userId].data_fine)) {
+        
+        const giorniRimanenti = dataFine ? Math.ceil((dataFine - oggi) / (1000 * 60 * 60 * 24)) : null;
+        const tempoDeterminato = c.durata_contratto_mesi && c.durata_contratto_mesi > 0;
+        
+        contrattiPerDipendente[userId] = {
+          ...c,
+          data_inizio: dataInizio,
+          data_fine: dataFine,
+          giorni_rimanenti: giorniRimanenti,
+          tipo_contratto_label: c.employee_group === 'FT' ? 'Full Time' : 
+                               c.employee_group === 'PT' ? 'Part Time' : 
+                               c.employee_group === 'CM' ? 'Contratto Misto' : 
+                               c.employee_group || 'N/A',
+          durata_contratto: tempoDeterminato ? 'Determinato' : 'Indeterminato',
+          ruoli: (c.ruoli_dipendente || []).join(', ') || c.function_name || 'N/A'
+        };
+      }
+    });
+    
+    return Object.values(contrattiPerDipendente).sort((a, b) => {
       let aVal = a[sortField];
       let bVal = b[sortField];
       
