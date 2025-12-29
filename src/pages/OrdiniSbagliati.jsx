@@ -784,6 +784,109 @@ export default function OrdiniSbagliati() {
         </NeumorphicCard>
       )}
 
+      {/* Preview Modal */}
+      {showPreview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-[#6b6b6b] flex items-center gap-2">
+                  <Eye className="w-6 h-6 text-[#8b7355]" />
+                  Anteprima Import - {selectedPlatform}
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowPreview(false);
+                    setPendingFile(null);
+                    setPreviewData([]);
+                  }}
+                  className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+                >
+                  <X className="w-5 h-5 text-[#9b9b9b]" />
+                </button>
+              </div>
+
+              <div className="neumorphic-pressed p-4 rounded-xl bg-blue-50 mb-6">
+                <p className="text-sm font-bold text-blue-800 mb-2">📋 Mapping Colonne Attivo:</p>
+                <div className="grid grid-cols-2 gap-2 text-xs text-blue-700">
+                  <p>• <strong>Order ID:</strong> {columnMapping.order_id_column}</p>
+                  <p>• <strong>Negozio:</strong> {columnMapping.store_column}</p>
+                  <p>• <strong>Data:</strong> {columnMapping.order_date_column}</p>
+                  <p>• <strong>Totale:</strong> {columnMapping.order_total_column}</p>
+                  <p>• <strong>Rimborso:</strong> {columnMapping.refund_column}</p>
+                  {columnMapping.refund_reason_column && <p>• <strong>Ragione:</strong> {columnMapping.refund_reason_column}</p>}
+                </div>
+              </div>
+
+              <h3 className="font-bold text-[#6b6b6b] mb-3">Primi {previewData.length} ordini del file:</h3>
+              
+              <div className="overflow-x-auto mb-6">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b-2 border-[#8b7355]">
+                      <th className="text-left p-2 text-[#9b9b9b] font-medium">Order ID</th>
+                      <th className="text-left p-2 text-[#9b9b9b] font-medium">Negozio</th>
+                      <th className="text-left p-2 text-[#9b9b9b] font-medium">Data</th>
+                      <th className="text-right p-2 text-[#9b9b9b] font-medium">Totale</th>
+                      <th className="text-right p-2 text-[#9b9b9b] font-medium">Rimborso</th>
+                      {selectedPlatform === 'glovo' && <th className="text-left p-2 text-[#9b9b9b] font-medium">Ragione</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {previewData.map((row, idx) => (
+                      <tr key={idx} className="border-b border-[#d1d1d1]">
+                        <td className="p-2 text-[#6b6b6b] font-mono">{row.orderId}</td>
+                        <td className="p-2 text-[#6b6b6b] font-bold">{row.store}</td>
+                        <td className="p-2 text-[#6b6b6b]">{row.date}</td>
+                        <td className="p-2 text-right text-[#6b6b6b]">{row.total}</td>
+                        <td className="p-2 text-right font-bold text-red-600">{row.refund}</td>
+                        {selectedPlatform === 'glovo' && <td className="p-2 text-[#6b6b6b] text-xs">{row.reason}</td>}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="neumorphic-pressed p-4 rounded-xl bg-yellow-50 mb-6">
+                <p className="text-sm text-yellow-800">
+                  ⚠️ <strong>Verifica che i dati siano corretti!</strong> In particolare, controlla che la colonna "Negozio" contenga il nome corretto del negozio per ogni ordine.
+                  Se i dati non sono corretti, annulla e modifica il mapping.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <NeumorphicButton
+                  onClick={() => {
+                    setShowPreview(false);
+                    setShowColumnMapping(true);
+                  }}
+                  className="flex-1"
+                >
+                  ← Modifica Mapping
+                </NeumorphicButton>
+                <NeumorphicButton
+                  onClick={() => {
+                    setShowPreview(false);
+                    setPendingFile(null);
+                    setPreviewData([]);
+                  }}
+                  className="flex-1"
+                >
+                  Annulla
+                </NeumorphicButton>
+                <NeumorphicButton
+                  onClick={handleConfirmImport}
+                  variant="primary"
+                  className="flex-1"
+                >
+                  ✅ Conferma e Importa
+                </NeumorphicButton>
+              </div>
+            </NeumorphicCard>
+          </div>
+        </div>
+      )}
+
       {/* Column Mapping Modal */}
       {showColumnMapping && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
