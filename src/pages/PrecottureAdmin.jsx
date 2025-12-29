@@ -134,21 +134,27 @@ export default function PrecottureAdmin() {
 
   const handleEdit = (giorno, data) => {
     setEditingRow(giorno);
-    setEditData(data ? {
-      ...data,
-      totale_giornata: data.totale_giornata || getTotaleGiornaliero(data),
-      percentuale_pranzo: data.percentuale_pranzo || 30,
-      percentuale_pomeriggio: data.percentuale_pomeriggio || 30,
-      percentuale_cena: data.percentuale_cena || 40
-    } : {
-      totale_giornata: 0,
-      percentuale_pranzo: 30,
-      percentuale_pomeriggio: 30,
-      percentuale_cena: 40,
-      pranzo_rosse: 0,
-      pomeriggio_rosse: 0,
-      cena_rosse: 0
-    });
+    if (data) {
+      // If data exists, use saved percentages
+      setEditData({
+        ...data,
+        totale_giornata: data.totale_giornata || getTotaleGiornaliero(data),
+        percentuale_pranzo: data.percentuale_pranzo ?? 30,
+        percentuale_pomeriggio: data.percentuale_pomeriggio ?? 30,
+        percentuale_cena: data.percentuale_cena ?? 40
+      });
+    } else {
+      // If no data, use default percentages
+      setEditData({
+        totale_giornata: 0,
+        percentuale_pranzo: 30,
+        percentuale_pomeriggio: 30,
+        percentuale_cena: 40,
+        pranzo_rosse: 0,
+        pomeriggio_rosse: 0,
+        cena_rosse: 0
+      });
+    }
   };
 
   const handleSave = async (giorno) => {
