@@ -125,15 +125,43 @@ export default function ContrattiDipendente() {
       return;
     }
 
-    await signContractMutation.mutateAsync({
-      id: viewingContract.id,
-      data: {
-        ...viewingContract,
-        status: 'firmato',
-        data_firma: new Date().toISOString(),
-        firma_dipendente: signatureName.trim()
+    try {
+      // Firma il contratto
+      await signContractMutation.mutateAsync({
+        id: viewingContract.id,
+        data: {
+          ...viewingContract,
+          status: 'firmato',
+          data_firma: new Date().toISOString(),
+          firma_dipendente: signatureName.trim()
+        }
+      });
+
+      // Genera il PDF e salvalo su Drive
+      try {
+        const pdfResponse = await base44.functions.invoke('generateContrattoPDF', {
+          contenuto: viewingContract.contenuto_contratto,
+          nome_cognome: viewingContract.nome_cognome,
+          status: 'firmato',
+          firma_dipendente: signatureName.trim(),
+          data_firma: new Date().toISOString(),
+          contratto_id: viewingContract.id
+        });
+
+        // Salva su Google Drive
+        await base44.functions.invoke('saveContractToDrive', {
+          contratto_id: viewingContract.id,
+          pdf_base64: pdfResponse.data.pdf_base64,
+          nome_cognome: viewingContract.nome_cognome
+        });
+      } catch (driveError) {
+        console.error('Error saving to Drive:', driveError);
+        // Non bloccare il processo di firma se il salvataggio su Drive fallisce
       }
-    });
+    } catch (error) {
+      console.error('Error signing contract:', error);
+      alert('Errore durante la firma del contratto');
+    }
   };
 
   const handleSignLetter = async () => {
