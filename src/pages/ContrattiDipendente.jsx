@@ -211,6 +211,14 @@ export default function ContrattiDipendente() {
   // Lettere di richiamo e chiusura procedura
   const lettereRichiamo = lettere.filter(l => l.tipo !== 'chiusura_procedura');
   const chiusureProcedura = lettere.filter(l => l.tipo === 'chiusura_procedura');
+  
+  // Separare da firmare e firmate per entrambe le tipologie
+  const lettereRichiamoDaFirmare = lettereRichiamo.filter(l => l.status === 'inviata' || l.status === 'visualizzata');
+  const lettereRichiamoFirmate = lettereRichiamo.filter(l => l.status === 'firmata');
+  
+  const chiusureProceduraDaFirmare = chiusureProcedura.filter(l => l.status === 'inviata' || l.status === 'visualizzata');
+  const chiusureProceduraFirmate = chiusureProcedura.filter(l => l.status === 'firmata');
+  
   const lettereDaFirmare = lettere.filter(l => l.status === 'inviata' || l.status === 'visualizzata');
   const lettereFirmate = lettere.filter(l => l.status === 'firmata');
 
@@ -453,51 +461,39 @@ export default function ContrattiDipendente() {
       {/* Lettere Tab */}
       {activeTab === 'lettere' && (
         <>
-          {/* Lettere di Richiamo */}
-          <div>
-            <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-orange-600" />
-              Lettere di Richiamo
-            </h2>
-            
-            {lettereRichiamo.length === 0 ? (
-              <NeumorphicCard className="p-6 text-center">
-                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
-                <p className="text-slate-500 text-sm">Nessuna lettera di richiamo</p>
-              </NeumorphicCard>
-            ) : (
-              <div className="space-y-3">
-                {lettereRichiamo.map(lettera => (
+          {/* Lettere di Richiamo Da Firmare */}
+          {lettereRichiamoDaFirmare.length > 0 && (
+            <div>
+              <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <AlertTriangle className="w-6 h-6 text-orange-600" />
+                Lettere di Richiamo da Firmare
+              </h2>
+              
+              <div className="space-y-4">
+                {lettereRichiamoDaFirmare.map(lettera => (
                   <NeumorphicCard 
                     key={lettera.id} 
-                    className={`p-4 ${lettera.status === 'inviata' ? 'border-2 border-orange-300' : ''}`}
+                    className="p-5 border-3 border-orange-400 shadow-xl hover:shadow-2xl transition-all"
                   >
-                    <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-start justify-between gap-3 mb-4">
                       <div className="min-w-0 flex-1">
-                        <h3 className="font-bold text-slate-800 text-sm mb-1">
+                        <h3 className="font-bold text-slate-800 text-base mb-2">
                           {lettera.template_nome || 'Lettera di Richiamo'}
                         </h3>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-sm text-slate-600 mb-2">
                           {lettera.motivo || 'Motivo non specificato'}
                         </p>
-                        <p className="text-xs text-slate-400 mt-1">
+                        <p className="text-xs text-slate-400">
                           Inviata: {safeFormatDate(lettera.data_invio)}
                         </p>
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${
-                        lettera.status === 'firmata' 
-                          ? 'bg-green-100 text-green-700'
-                          : lettera.status === 'visualizzata'
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-orange-100 text-orange-700'
-                      }`}>
-                        {lettera.status === 'firmata' ? 'Firmata' : lettera.status === 'visualizzata' ? 'Visualizzata' : 'Da Firmare'}
+                      <span className="px-4 py-2 bg-orange-500 text-white rounded-full text-sm font-bold whitespace-nowrap shadow-lg">
+                        Urgente
                       </span>
                     </div>
                     
                     <button
                       onClick={async () => {
-                        // Marca come visualizzata se è la prima volta
                         if (!lettera.data_visualizzazione) {
                           await base44.entities.LetteraRichiamo.update(lettera.id, {
                             data_visualizzazione: new Date().toISOString(),
@@ -508,108 +504,159 @@ export default function ContrattiDipendente() {
                         setViewingLetter(lettera);
                         setSignatureName(currentUser?.nome_cognome || currentUser?.full_name || '');
                       }}
-                      className={`w-full px-4 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 text-sm ${
-                        lettera.status === 'inviata' || lettera.status === 'visualizzata'
-                          ? 'bg-gradient-to-r from-orange-500 to-red-600 text-white'
-                          : 'nav-button text-blue-600'
-                      }`}
+                      className="w-full bg-gradient-to-r from-orange-500 to-red-600 px-5 py-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 shadow-xl text-base hover:shadow-2xl transition-all"
                     >
-                      {lettera.status === 'inviata' || lettera.status === 'visualizzata' ? (
-                        <>
-                          <Edit className="w-4 h-4" />
-                          Visualizza e Firma
-                        </>
-                      ) : (
-                        <>
-                          <Eye className="w-4 h-4" />
-                          Visualizza
-                        </>
-                      )}
+                      <Edit className="w-5 h-5" />
+                      Visualizza e Firma Subito
                     </button>
                   </NeumorphicCard>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* Chiusura Procedura */}
-          <div className="mt-6">
-            <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
-              <CheckSquare className="w-5 h-5 text-green-600" />
-              Chiusura Procedura
-            </h2>
-            
-            {chiusureProcedura.length === 0 ? (
-              <NeumorphicCard className="p-6 text-center">
-                <Mail className="w-12 h-12 text-slate-300 mx-auto mb-2" />
-                <p className="text-slate-500 text-sm">Nessuna chiusura procedura</p>
-              </NeumorphicCard>
-            ) : (
-              <div className="space-y-3">
-                {chiusureProcedura.map(lettera => (
+          {/* Chiusure Procedura Da Firmare */}
+          {chiusureProceduraDaFirmare.length > 0 && (
+            <div className="mt-6">
+              <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <CheckSquare className="w-6 h-6 text-green-600" />
+                Chiusure Procedura da Firmare
+              </h2>
+              
+              <div className="space-y-4">
+                {chiusureProceduraDaFirmare.map(lettera => (
                   <NeumorphicCard 
                     key={lettera.id} 
-                    className={`p-4 ${lettera.status === 'inviata' ? 'border-2 border-green-300' : ''}`}
+                    className="p-5 border-3 border-green-400 shadow-xl hover:shadow-2xl transition-all"
                   >
-                    <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-start justify-between gap-3 mb-4">
                       <div className="min-w-0 flex-1">
-                        <h3 className="font-bold text-slate-800 text-sm mb-1">
+                        <h3 className="font-bold text-slate-800 text-base mb-2">
                           Chiusura Procedura
                         </h3>
-                        <p className="text-xs text-slate-500">
-                          {lettera.motivo || 'Procedura conclusa'}
+                        <p className="text-sm text-slate-600 mb-2">
+                          {lettera.motivo || 'Procedura conclusa positivamente'}
                         </p>
-                        <p className="text-xs text-slate-400 mt-1">
+                        <p className="text-xs text-slate-400">
                           Inviata: {safeFormatDate(lettera.data_invio)}
                         </p>
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${
-                        lettera.status === 'firmata' 
-                          ? 'bg-green-100 text-green-700'
-                          : lettera.status === 'visualizzata'
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-orange-100 text-orange-700'
-                      }`}>
-                        {lettera.status === 'firmata' ? 'Firmata' : lettera.status === 'visualizzata' ? 'Visualizzata' : 'Da Firmare'}
+                      <span className="px-4 py-2 bg-green-500 text-white rounded-full text-sm font-bold whitespace-nowrap shadow-lg">
+                        Da Firmare
                       </span>
                     </div>
                     
                     <button
                       onClick={async () => {
-                        // Marca come visualizzata se è la prima volta
                         if (!lettera.data_visualizzazione) {
                           await base44.entities.LetteraRichiamo.update(lettera.id, {
                             data_visualizzazione: new Date().toISOString(),
-                            status: lettera.status === 'inviata' ? 'visualizzata' : lettera.status
+                            status: 'visualizzata'
                           });
                           queryClient.invalidateQueries({ queryKey: ['mie-lettere'] });
                         }
                         setViewingLetter(lettera);
                         setSignatureName(currentUser?.nome_cognome || currentUser?.full_name || '');
                       }}
-                      className={`w-full px-4 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 text-sm ${
-                        lettera.status === 'inviata' || lettera.status === 'visualizzata'
-                          ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white'
-                          : 'nav-button text-blue-600'
-                      }`}
+                      className="w-full bg-gradient-to-r from-green-500 to-emerald-600 px-5 py-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 shadow-xl text-base hover:shadow-2xl transition-all"
                     >
-                      {lettera.status === 'inviata' || lettera.status === 'visualizzata' ? (
-                        <>
-                          <Edit className="w-4 h-4" />
-                          Visualizza e Firma
-                        </>
-                      ) : (
-                        <>
-                          <Eye className="w-4 h-4" />
-                          Visualizza
-                        </>
-                      )}
+                      <Edit className="w-5 h-5" />
+                      Visualizza e Firma
                     </button>
                   </NeumorphicCard>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* Lettere di Richiamo Firmate */}
+          {lettereRichiamoFirmate.length > 0 && (
+            <div className="mt-6">
+              <h2 className="text-base font-semibold text-slate-600 mb-3 flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                Lettere di Richiamo Firmate
+              </h2>
+              
+              <div className="space-y-2">
+                {lettereRichiamoFirmate.map(lettera => (
+                  <NeumorphicCard 
+                    key={lettera.id} 
+                    className="p-3 opacity-70 hover:opacity-100 transition-all"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-medium text-slate-700 text-xs mb-1">
+                          {lettera.template_nome || 'Lettera di Richiamo'}
+                        </h3>
+                        <p className="text-xs text-slate-400">
+                          Firmata: {safeFormatDate(lettera.data_firma)}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setViewingLetter(lettera);
+                          setSignatureName(currentUser?.nome_cognome || currentUser?.full_name || '');
+                        }}
+                        className="nav-button px-3 py-1.5 rounded-lg text-blue-600 text-xs flex items-center gap-1"
+                      >
+                        <Eye className="w-3 h-3" />
+                        Vedi
+                      </button>
+                    </div>
+                  </NeumorphicCard>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Chiusure Procedura Firmate */}
+          {chiusureProceduraFirmate.length > 0 && (
+            <div className="mt-6">
+              <h2 className="text-base font-semibold text-slate-600 mb-3 flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                Chiusure Procedura Firmate
+              </h2>
+              
+              <div className="space-y-2">
+                {chiusureProceduraFirmate.map(lettera => (
+                  <NeumorphicCard 
+                    key={lettera.id} 
+                    className="p-3 opacity-70 hover:opacity-100 transition-all"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-medium text-slate-700 text-xs mb-1">
+                          Chiusura Procedura
+                        </h3>
+                        <p className="text-xs text-slate-400">
+                          Firmata: {safeFormatDate(lettera.data_firma)}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setViewingLetter(lettera);
+                          setSignatureName(currentUser?.nome_cognome || currentUser?.full_name || '');
+                        }}
+                        className="nav-button px-3 py-1.5 rounded-lg text-blue-600 text-xs flex items-center gap-1"
+                      >
+                        <Eye className="w-3 h-3" />
+                        Vedi
+                      </button>
+                    </div>
+                  </NeumorphicCard>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {lettereRichiamo.length === 0 && chiusureProcedura.length === 0 && (
+            <NeumorphicCard className="p-8 text-center">
+              <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-3" />
+              <p className="text-slate-500 font-medium">Nessuna lettera presente</p>
+              <p className="text-xs text-slate-400 mt-1">Sei in regola!</p>
+            </NeumorphicCard>
+          )}
         </>
       )}
 
