@@ -271,14 +271,16 @@ export default function OrdiniSbagliati() {
           record[header] = values[idx] || '';
         });
 
+        // CRITICAL: Use ONLY the mapped columns
         const storeNameField = mapping.store_column;
         const orderIdField = mapping.order_id_column;
         const orderDateField = mapping.order_date_column;
         const orderTotalField = mapping.order_total_column;
         const refundField = mapping.refund_column;
 
-        const platformStoreName = record[storeNameField];
-        const orderId = record[orderIdField];
+        // Extract data ONLY from the specified mapped columns
+        const platformStoreName = record[storeNameField]?.trim() || '';
+        const orderId = record[orderIdField]?.trim() || '';
         
         if (!platformStoreName && !orderId) {
           skippedLines.push(i + 1);
