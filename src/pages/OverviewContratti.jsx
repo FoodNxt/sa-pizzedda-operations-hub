@@ -170,6 +170,31 @@ export default function OverviewContratti() {
           </NeumorphicCard>
         </div>
 
+        {/* Dipendenti Senza Contratto */}
+        {dipendentiSenzaContratto.length > 0 && (
+          <NeumorphicCard className="p-6 bg-yellow-50 border-2 border-yellow-300">
+            <h2 className="text-xl font-bold text-yellow-800 mb-4 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-yellow-600" />
+              Dipendenti Attivi Senza Contratto ({dipendentiSenzaContratto.length})
+            </h2>
+            <div className="space-y-2">
+              {dipendentiSenzaContratto.map(dip => (
+                <div key={dip.id} className="bg-white p-3 rounded-lg flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-slate-800">{dip.nome_cognome || dip.full_name}</p>
+                    <p className="text-sm text-slate-500">{dip.email}</p>
+                  </div>
+                  {dip.ruoli_dipendente && dip.ruoli_dipendente.length > 0 && (
+                    <span className="text-xs px-2 py-1 bg-slate-100 rounded">
+                      {dip.ruoli_dipendente.join(', ')}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </NeumorphicCard>
+        )}
+
         {/* Contratti Table */}
         <NeumorphicCard className="p-6">
           <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
