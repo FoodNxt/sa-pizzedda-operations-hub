@@ -16,6 +16,15 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing inspection_id or domande_risposte' }, { status: 400 });
     }
 
+    console.log(`\n=== RECEIVED REQUEST ===`);
+    console.log(`Inspection ID: ${inspection_id}`);
+    console.log(`Total domande_risposte: ${domande_risposte.length}`);
+    console.log(`All questions:`, domande_risposte.map(d => ({
+      attrezzatura: d.attrezzatura,
+      tipo: d.tipo_controllo,
+      hasPhoto: !!d.risposta
+    })));
+
     // Get inspection
     const inspections = await base44.asServiceRole.entities.CleaningInspection.filter({ id: inspection_id });
     const inspection = inspections[0];
@@ -24,8 +33,15 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Inspection not found' }, { status: 404 });
     }
 
-    // Analyze ALL photo questions
-    const fotoDomande = domande_risposte.filter(d => d.tipo_controllo === 'foto' && d.risposta);
+    // Analyze ALL photo questions - more flexible filtering
+    const fotoDomande = domande_risposte.filter(d => {
+      // Check if it's a photo question with actual photo data
+      const hasFoto = d.tipo_controllo === 'foto' && d.risposta && d.risposta.trim() !== '';
+      if (!hasFoto) {
+        console.log(`Skipping ${d.attrezzatura || d.domanda_testo}: tipo=${d.tipo_controllo}, hasRisposta=${!!d.risposta}`);
+      }
+      return hasFoto;
+    });
     
     console.log(`=== STARTING ANALYSIS ===`);
     console.log(`Found ${fotoDomande.length} photo questions to analyze`);
