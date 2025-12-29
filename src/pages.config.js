@@ -95,6 +95,7 @@ import ValutazionePulizie from './pages/ValutazionePulizie';
 import VenditeAnalytics from './pages/VenditeAnalytics';
 import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierSetup from './pages/ZapierSetup';
+import OverviewContratti from './pages/OverviewContratti';
 import __Layout from './Layout.jsx';
 
 
@@ -196,6 +197,7 @@ export const PAGES = {
     "VenditeAnalytics": VenditeAnalytics,
     "ZapierProdottiVenduti": ZapierProdottiVenduti,
     "ZapierSetup": ZapierSetup,
+    "OverviewContratti": OverviewContratti,
 }
 
 export const pagesConfig = {
