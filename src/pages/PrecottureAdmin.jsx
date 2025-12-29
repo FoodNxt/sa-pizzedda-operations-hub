@@ -43,6 +43,8 @@ export default function PrecottureAdmin() {
   const [teglieEndDate, setTeglieEndDate] = useState(moment().format('YYYY-MM-DD'));
   const [selectedStoresForChart, setSelectedStoresForChart] = useState([]);
   const [selectedStoreForMedia, setSelectedStoreForMedia] = useState('');
+  const [chartViewMode, setChartViewMode] = useState('timeline'); // 'timeline' or 'day'
+  const [selectedDayOfWeek, setSelectedDayOfWeek] = useState('Lunedì');
   const queryClient = useQueryClient();
 
   const { data: stores = [] } = useQuery({
@@ -358,15 +360,20 @@ export default function PrecottureAdmin() {
     }));
   }, [allTeglieVendute, selectedStoreForMedia]);
 
-  // Trend chart data - multistore support
+  // Trend chart data - multistore support with day-of-week filter
   const teglieChartData = useMemo(() => {
     const storesToShow = selectedStoresForChart.length > 0 ? selectedStoresForChart : 
                         (selectedStore ? [selectedStore] : []);
 
+    // Filter by day of week if in 'day' mode
+    const filteredData = chartViewMode === 'day' 
+      ? allTeglieVendute.filter(t => t.day_of_week === selectedDayOfWeek)
+      : allTeglieVendute;
+
     if (storesToShow.length === 0) {
       // Show all stores combined
       const byDate = {};
-      allTeglieVendute.forEach(t => {
+      filteredData.forEach(t => {
         if (!byDate[t.data]) {
           byDate[t.data] = 0;
         }
@@ -383,7 +390,7 @@ export default function PrecottureAdmin() {
 
     // Group by date with multiple stores
     const byDate = {};
-    allTeglieVendute.forEach(t => {
+    filteredData.forEach(t => {
       if (!storesToShow.includes(t.store_id)) return;
       
       if (!byDate[t.data]) {
@@ -398,7 +405,7 @@ export default function PrecottureAdmin() {
         ...storeData
       }))
       .sort((a, b) => moment(a.date, 'DD/MM').diff(moment(b.date, 'DD/MM')));
-  }, [allTeglieVendute, selectedStoresForChart, selectedStore]);
+  }, [allTeglieVendute, selectedStoresForChart, selectedStore, chartViewMode, selectedDayOfWeek]);
 
   // Get unique store names for legend
   const chartStoreNames = useMemo(() => {
@@ -947,44 +954,99 @@ export default function PrecottureAdmin() {
               </NeumorphicCard>
             </div>
 
-            {/* Store selection for chart */}
+            {/* Chart view mode and filters */}
             <NeumorphicCard className="p-6">
-              <h3 className="text-sm font-medium text-slate-700 mb-3">Negozi da visualizzare nel grafico</h3>
-              <div className="flex flex-wrap gap-2">
-                {stores.map(store => (
-                  <button
-                    key={store.id}
-                    onClick={() => {
-                      setSelectedStoresForChart(prev => 
-                        prev.includes(store.id)
-                          ? prev.filter(id => id !== store.id)
-                          : [...prev, store.id]
-                      );
-                    }}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      selectedStoresForChart.includes(store.id)
-                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                        : 'neumorphic-flat text-slate-700'
-                    }`}
-                  >
-                    {store.name}
-                  </button>
-                ))}
-                {selectedStoresForChart.length > 0 && (
-                  <button
-                    onClick={() => setSelectedStoresForChart([])}
-                    className="px-4 py-2 rounded-lg text-sm font-medium neumorphic-flat text-red-600"
-                  >
-                    Mostra Tutti
-                  </button>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium text-slate-700 mb-3">Vista grafico</h3>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setChartViewMode('timeline')}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        chartViewMode === 'timeline'
+                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                          : 'neumorphic-flat text-slate-700'
+                      }`}
+                    >
+                      Trend Temporale
+                    </button>
+                    <button
+                      onClick={() => setChartViewMode('day')}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        chartViewMode === 'day'
+                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                          : 'neumorphic-flat text-slate-700'
+                      }`}
+                    >
+                      Trend per Giorno Settimana
+                    </button>
+                  </div>
+                </div>
+
+                {chartViewMode === 'day' && (
+                  <div>
+                    <h3 className="text-sm font-medium text-slate-700 mb-3">Seleziona giorno della settimana</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {giorni.map(giorno => (
+                        <button
+                          key={giorno}
+                          onClick={() => setSelectedDayOfWeek(giorno)}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                            selectedDayOfWeek === giorno
+                              ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
+                              : 'neumorphic-flat text-slate-700'
+                          }`}
+                        >
+                          {giorno}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 )}
+
+                <div>
+                  <h3 className="text-sm font-medium text-slate-700 mb-3">Negozi da visualizzare nel grafico</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {stores.map(store => (
+                      <button
+                        key={store.id}
+                        onClick={() => {
+                          setSelectedStoresForChart(prev => 
+                            prev.includes(store.id)
+                              ? prev.filter(id => id !== store.id)
+                              : [...prev, store.id]
+                          );
+                        }}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                          selectedStoresForChart.includes(store.id)
+                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                            : 'neumorphic-flat text-slate-700'
+                        }`}
+                      >
+                        {store.name}
+                      </button>
+                    ))}
+                    {selectedStoresForChart.length > 0 && (
+                      <button
+                        onClick={() => setSelectedStoresForChart([])}
+                        className="px-4 py-2 rounded-lg text-sm font-medium neumorphic-flat text-red-600"
+                      >
+                        Mostra Tutti
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             </NeumorphicCard>
 
             {/* Chart */}
             {teglieChartData.length > 0 && (
               <NeumorphicCard className="p-6">
-                <h3 className="text-lg font-bold text-slate-800 mb-4">Trend Giornaliero</h3>
+                <h3 className="text-lg font-bold text-slate-800 mb-4">
+                  {chartViewMode === 'day' 
+                    ? `Trend ${selectedDayOfWeek} nel Tempo` 
+                    : 'Trend Giornaliero'}
+                </h3>
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={teglieChartData}>
