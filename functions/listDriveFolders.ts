@@ -12,9 +12,9 @@ Deno.serve(async (req) => {
     // Get Google Drive access token
     const accessToken = await base44.asServiceRole.connectors.getAccessToken("googledrive");
 
-    // List folders in Drive
+    // List folders in Drive - only those created by this app or explicitly shared
     const response = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.folder'&fields=files(id,name,createdTime)&orderBy=createdTime desc`,
+      `https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.folder' and 'me' in owners&fields=files(id,name,createdTime)&orderBy=createdTime desc`,
       {
         headers: {
           'Authorization': `Bearer ${accessToken}`
