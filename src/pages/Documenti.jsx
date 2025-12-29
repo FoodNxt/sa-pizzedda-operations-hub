@@ -354,11 +354,6 @@ function DipendenteLettereSection({ currentUser }) {
   const [downloadingPdf, setDownloadingPdf] = useState(null);
   const queryClient = useQueryClient();
 
-  const { data: lettereConfig = [] } = useQuery({
-    queryKey: ['lettere-config-dip'],
-    queryFn: () => base44.entities.LettereConfig.list(),
-  });
-
   const downloadLetteraPDF = async (lettera) => {
     setDownloadingPdf(lettera.id);
     try {
@@ -414,12 +409,9 @@ function DipendenteLettereSection({ currentUser }) {
           data_visualizzazione: new Date().toISOString()
         });
         
-        const config = lettereConfig[0];
-        if (config?.invio_automatico_chiusura) {
-          base44.functions.invoke('checkAndSendChiusuraProcedura', {
-            lettera_richiamo_id: lettera.id
-          }).catch(err => console.error('Error triggering automation:', err));
-        }
+        // Trigger automation check
+        base44.functions.invoke('processAutomaticChiusuraProcedura', {})
+          .catch(err => console.log('Background automation check:', err));
         
         queryClient.invalidateQueries({ queryKey: ['mie-lettere'] });
       } catch (error) {
