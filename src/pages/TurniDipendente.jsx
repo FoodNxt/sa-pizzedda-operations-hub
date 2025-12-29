@@ -216,10 +216,11 @@ export default function TurniDipendente() {
     queryFn: () => base44.entities.Corso.list(),
   });
 
-  const { data: attivitaCompletate = [] } = useQuery({
+  const { data: attivitaCompletate = [], refetch: refetchAttivitaCompletate } = useQuery({
     queryKey: ['attivita-completate', currentUser?.id],
     queryFn: () => base44.entities.AttivitaCompletata.filter({ dipendente_id: currentUser.id }),
     enabled: !!currentUser?.id,
+    refetchInterval: 5000, // Aggiorna ogni 5 secondi
   });
 
   const { data: tipoTurnoConfigs = [] } = useQuery({
