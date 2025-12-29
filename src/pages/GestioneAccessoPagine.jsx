@@ -195,6 +195,7 @@ export default function GestioneAccessoPagine() {
     { value: 'Compliance', label: 'Compliance', category: 'HR' },
     { value: 'Documenti', label: 'Documenti', category: 'HR' },
     { value: 'FeedbackP2P', label: 'Feedback P2P', category: 'HR' },
+    { value: 'OverviewContratti', label: 'Overview Contratti', category: 'HR' },
     { value: 'StoreManagerAdmin', label: 'Store Manager Admin', category: 'HR' },
     { value: 'GestioneAssistente', label: 'Gestione Assistente', category: 'HR' },
     { value: 'RecalculateShifts', label: 'Ricalcola Ritardi Turni', category: 'HR' },
