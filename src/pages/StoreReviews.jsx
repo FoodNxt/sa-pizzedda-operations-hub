@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { Star, Filter, MapPin, TrendingUp, TrendingDown, X, List, Calendar, Sparkles, Settings, Copy, Check } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
@@ -36,6 +36,8 @@ export default function StoreReviews() {
   const [showMoodSettings, setShowMoodSettings] = useState(false);
   const [responseMood, setResponseMood] = useState('professionale');
 
+  const queryClient = useQueryClient();
+
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
     queryFn: () => base44.entities.Store.list(),
@@ -44,6 +46,36 @@ export default function StoreReviews() {
   const { data: reviews = [] } = useQuery({
     queryKey: ['reviews'],
     queryFn: () => base44.entities.Review.list('-review_date'),
+  });
+
+  const { data: moodConfigs = [] } = useQuery({
+    queryKey: ['review-response-configs'],
+    queryFn: () => base44.entities.ReviewResponseConfig.list(),
+  });
+
+  // Load saved mood on mount
+  useEffect(() => {
+    const activeConfig = moodConfigs.find(c => c.is_active);
+    if (activeConfig) {
+      setResponseMood(activeConfig.response_mood);
+    }
+  }, [moodConfigs]);
+
+  const saveMoodMutation = useMutation({
+    mutationFn: async (mood) => {
+      // Deactivate all existing configs
+      for (const config of moodConfigs) {
+        await base44.entities.ReviewResponseConfig.update(config.id, { is_active: false });
+      }
+      // Create new active config
+      return base44.entities.ReviewResponseConfig.create({
+        response_mood: mood,
+        is_active: true
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['review-response-configs'] });
+    },
   });
 
   // Helper function to safely format dates
@@ -441,7 +473,11 @@ Genera SOLO la risposta, senza introduzioni o spiegazioni.`;
                 <button
                   key={mood.value}
                   type="button"
-                  onClick={() => setResponseMood(mood.value)}
+                  onClick={() => {
+                    setResponseMood(mood.value);
+                    saveMoodMutation.mutate(mood.value);
+                  }}
+                  disabled={saveMoodMutation.isPending}
                   className={`px-3 py-2 rounded-xl font-medium text-sm transition-all ${
                     responseMood === mood.value
                       ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
@@ -453,6 +489,12 @@ Genera SOLO la risposta, senza introduzioni o spiegazioni.`;
                 </button>
               ))}
             </div>
+            {saveMoodMutation.isPending && (
+              <p className="text-xs text-blue-600 mt-3 flex items-center gap-2">
+                <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                Salvataggio mood...
+              </p>
+            )}
           </NeumorphicCard>
         )}
 
