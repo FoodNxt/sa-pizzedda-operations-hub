@@ -366,9 +366,10 @@ export default function PrecottureAdmin() {
       byDay[t.day_of_week].total += parseFloat(t.teglie);
     });
 
-    return Object.entries(byDay).map(([day, data]) => ({
-      day,
-      media: (data.total / data.count).toFixed(2)
+    // Ritorna tutti i giorni della settimana nell'ordine corretto
+    return giorni.map(giorno => ({
+      day: giorno,
+      media: byDay[giorno] ? (byDay[giorno].total / byDay[giorno].count).toFixed(2) : '0.00'
     }));
   }, [allTeglieVendute, selectedStoreForMedia]);
 
