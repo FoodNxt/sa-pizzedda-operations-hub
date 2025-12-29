@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate, useLocation } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 import {
   Trash2,
   Save,
@@ -14,9 +16,16 @@ import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 
 export default function FormTeglieButtate() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const urlParams = new URLSearchParams(location.search);
+  const redirectTo = urlParams.get('redirect');
+  const turnoId = urlParams.get('turno_id');
+  const attivitaNome = urlParams.get('attivita');
+  const preselectedStoreId = urlParams.get('store_id');
+  
   const [selectedStore, setSelectedStore] = useState('');
   const [teglieRosse, setTeglieRosse] = useState('');
-  const [teglieBianche, setTeglieBianche] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
@@ -29,9 +38,14 @@ export default function FormTeglieButtate() {
       const user = await base44.auth.me();
       setCurrentUser(user);
       setUserType(user.user_type);
+      
+      // Preselezione store da URL parameter
+      if (preselectedStoreId) {
+        setSelectedStore(preselectedStoreId);
+      }
     };
     fetchUser();
-  }, []);
+  }, [preselectedStoreId]);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -51,8 +65,8 @@ export default function FormTeglieButtate() {
       return;
     }
 
-    if (!teglieRosse && !teglieBianche) {
-      alert('Inserisci almeno un valore');
+    if (!teglieRosse) {
+      alert('Inserisci il numero di teglie rosse buttate');
       return;
     }
 
@@ -69,17 +83,40 @@ export default function FormTeglieButtate() {
         data_rilevazione: now,
         rilevato_da: currentUser?.nome_cognome || currentUser?.full_name || currentUser?.email || 'N/A',
         teglie_rosse_buttate: teglieRosse ? parseInt(teglieRosse) : 0,
-        teglie_bianche_buttate: teglieBianche ? parseInt(teglieBianche) : 0
+        teglie_bianche_buttate: 0
       });
 
       setSaveSuccess(true);
-      setTeglieRosse('');
-      setTeglieBianche('');
-      setSelectedStore('');
       
       queryClient.invalidateQueries({ queryKey: ['teglie-buttate'] });
 
-      setTimeout(() => setSaveSuccess(false), 3000);
+      // Segna attività come completata se viene da un turno
+      if (turnoId && attivitaNome) {
+        try {
+          await base44.entities.AttivitaCompletata.create({
+            dipendente_id: currentUser.id,
+            dipendente_nome: currentUser.nome_cognome || currentUser.full_name,
+            turno_id: turnoId,
+            turno_data: new Date().toISOString().split('T')[0],
+            store_id: selectedStore,
+            attivita_nome: decodeURIComponent(attivitaNome),
+            completato_at: new Date().toISOString()
+          });
+        } catch (error) {
+          console.error('Error marking activity as completed:', error);
+        }
+      }
+
+      // Redirect dopo un breve delay
+      setTimeout(() => {
+        if (redirectTo) {
+          navigate(createPageUrl(redirectTo));
+        } else {
+          setSaveSuccess(false);
+          setTeglieRosse('');
+          setSelectedStore('');
+        }
+      }, 1500);
     } catch (error) {
       console.error('Error saving:', error);
       alert('Errore durante il salvataggio: ' + error.message);
@@ -144,36 +181,20 @@ export default function FormTeglieButtate() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-2 block">
-                  Teglie Rosse Buttate
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={teglieRosse}
-                  onChange={(e) => setTeglieRosse(e.target.value)}
-                  placeholder="0"
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-2xl font-bold"
-                  disabled={saving}
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-2 block">
-                  Teglie Bianche Buttate
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={teglieBianche}
-                  onChange={(e) => setTeglieBianche(e.target.value)}
-                  placeholder="0"
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-2xl font-bold"
-                  disabled={saving}
-                />
-              </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">
+                Teglie Rosse Buttate <span className="text-red-600">*</span>
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={teglieRosse}
+                onChange={(e) => setTeglieRosse(e.target.value)}
+                placeholder="0"
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-2xl font-bold"
+                disabled={saving}
+                required
+              />
             </div>
 
             <div>
