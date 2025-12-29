@@ -644,6 +644,7 @@ Genera sia l'oggetto che il corpo dell'email. L'email deve essere in italiano, p
 
     setCreatingFolder(true);
     try {
+      const currentUserData = await base44.auth.me();
       const response = await base44.functions.invoke('createDriveFolder', {
         folder_name: newFolderName
       });
@@ -654,7 +655,7 @@ Genera sia l'oggetto che il corpo dell'email. L'email deve essere in italiano, p
         await base44.entities.DriveConfig.update(existing.id, {
           folder_id: response.data.folder_id,
           folder_name: response.data.folder_name,
-          created_by: users.find(u => u.id === (await base44.auth.me()).id)?.email || ''
+          created_by: currentUserData?.email || ''
         });
       } else {
         await base44.entities.DriveConfig.create({
@@ -662,7 +663,7 @@ Genera sia l'oggetto che il corpo dell'email. L'email deve essere in italiano, p
           folder_id: response.data.folder_id,
           folder_name: response.data.folder_name,
           is_active: true,
-          created_by: users.find(u => u.id === (await base44.auth.me()).id)?.email || ''
+          created_by: currentUserData?.email || ''
         });
       }
 
@@ -680,6 +681,7 @@ Genera sia l'oggetto che il corpo dell'email. L'email deve essere in italiano, p
 
   const handleSelectExistingFolder = async (folderId, folderName) => {
     try {
+      const currentUserData = await base44.auth.me();
       const existing = driveConfig[0];
       if (existing) {
         await base44.entities.DriveConfig.update(existing.id, {
@@ -692,7 +694,7 @@ Genera sia l'oggetto che il corpo dell'email. L'email deve essere in italiano, p
           folder_id: folderId,
           folder_name: folderName,
           is_active: true,
-          created_by: users.find(u => u.id === (await base44.auth.me()).id)?.email || ''
+          created_by: currentUserData?.email || ''
         });
       }
 
