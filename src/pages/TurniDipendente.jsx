@@ -239,7 +239,7 @@ export default function TurniDipendente() {
   const { data: allFormData = {} } = useQuery({
     queryKey: ['all-form-data-dipendente'],
     queryFn: async () => {
-      const [inventario, cantina, cassa, teglie, prep, impasti, precotture, cleaningInspections] = await Promise.all([
+      const [inventario, cantina, cassa, teglie, prep, impasti, precotture, cleaningInspections, calcoliImpasto] = await Promise.all([
         base44.entities.RilevazioneInventario.list('-data_rilevazione'),
         base44.entities.RilevazioneInventarioCantina.list('-data_rilevazione'),
         base44.entities.ConteggioCassa.list('-data_conteggio'),
@@ -247,7 +247,8 @@ export default function TurniDipendente() {
         base44.entities.Preparazioni.list('-data_rilevazione'),
         base44.entities.GestioneImpasti.list('-data_creazione'),
         base44.entities.CalcoloImpastoLog.list('-data_calcolo'),
-        base44.entities.CleaningInspection.list('-inspection_date')
+        base44.entities.CleaningInspection.list('-inspection_date'),
+        base44.entities.CalcoloImpastoLog.list('-data_calcolo')
       ]);
       return {
         FormInventario: inventario,
@@ -257,11 +258,17 @@ export default function TurniDipendente() {
         FormPreparazioni: prep,
         Impasto: impasti,
         Precotture: precotture,
+        CalcoliImpasto: calcoliImpasto,
         ControlloPuliziaCassiere: cleaningInspections.filter(i => i.inspector_role === 'Cassiere'),
         ControlloPuliziaPizzaiolo: cleaningInspections.filter(i => i.inspector_role === 'Pizzaiolo'),
         ControlloPuliziaStoreManager: cleaningInspections.filter(i => i.inspector_role === 'Store Manager')
       };
     },
+  });
+
+  const { data: ricettaImpasto = [] } = useQuery({
+    queryKey: ['ricetta-impasto'],
+    queryFn: () => base44.entities.RicettaImpasto.list(),
   });
 
   // Turni del dipendente corrente
@@ -1661,10 +1668,80 @@ export default function TurniDipendente() {
                                   <CheckCircle className="w-4 h-4" /> Completato
                                 </span>
                               )}
-                            </div>
-                          </div>
-                        );
-                      })}
+
+                              {/* Mostra ricetta impasto se attività completata */}
+                              {isCompleted && att.form_page === 'Impasto' && (() => {
+                                const calcoliImpasto = allFormData.CalcoliImpasto || [];
+                                const calcoloRecente = calcoliImpasto
+                                  .filter(c => c.store_id === prossimoTurno.store_id)
+                                  .sort((a, b) => new Date(b.data_calcolo) - new Date(a.data_calcolo))[0];
+
+                                if (!calcoloRecente || !calcoloRecente.impasto_suggerito) return null;
+
+                                const ingredientiRicetta = ricettaImpasto
+                                  .filter(i => i.attivo !== false)
+                                  .sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
+
+                                const ingredientiNecessari = ingredientiRicetta.map(ing => {
+                                  let quantita = ing.quantita_per_pallina * calcoloRecente.impasto_suggerito;
+
+                                  if (ing.arrotondamento === 'intero') {
+                                    quantita = Math.ceil(quantita);
+                                  } else if (ing.arrotondamento === 'decine') {
+                                    quantita = Math.ceil(quantita / 10) * 10;
+                                  } else if (ing.arrotondamento === 'centinaia') {
+                                    quantita = Math.ceil(quantita / 100) * 100;
+                                  }
+
+                                  let displayValue = quantita;
+                                  let displayUnit = ing.unita_misura;
+
+                                  if (ing.unita_misura === 'kg') {
+                                    displayValue = displayValue * 1000;
+                                    displayUnit = 'g';
+                                  }
+                                  if (ing.unita_misura === 'litri') {
+                                    displayValue = displayValue * 1000;
+                                    displayUnit = 'ml';
+                                  }
+
+                                  return {
+                                    nome: ing.nome_ingrediente,
+                                    quantita: Math.round(displayValue),
+                                    unita: displayUnit
+                                  };
+                                });
+
+                                return (
+                                  <div className="mt-3 p-3 bg-blue-50 rounded-xl border border-blue-200">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <ChefHat className="w-4 h-4 text-blue-600" />
+                                      <span className="text-sm font-bold text-blue-800">
+                                        Ricetta per {calcoloRecente.impasto_suggerito} palline
+                                      </span>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                      {ingredientiNecessari.map((ing, i) => (
+                                        <div key={i} className="flex justify-between items-center text-xs bg-white p-2 rounded-lg">
+                                          <span className="text-slate-700">{ing.nome}</span>
+                                          <span className="font-bold text-slate-800">{ing.quantita} {ing.unita}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    {calcoloRecente.impasto_suggerito > 65 && (
+                                      <div className="mt-2 p-2 bg-red-100 rounded-lg">
+                                        <p className="text-xs text-red-700 font-medium">
+                                          ⚠️ Fai {Math.ceil(calcoloRecente.impasto_suggerito / 65)} impasti separati (max 65 palline ciascuno)
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
+                              </div>
+                              </div>
+                              );
+                              })}
                       {/* Form non associati a slot */}
                       {formDovuti.filter(form => !attivita.some(a => a.form_page === form.page)).map((form, idx) => (
                         <div key={`form-extra-${idx}`} className={`p-3 rounded-xl ${form.completato ? 'bg-green-100 border-2 border-green-300' : 'bg-white border-2 border-blue-200'} shadow-sm`}>
