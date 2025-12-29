@@ -752,6 +752,9 @@ export default function OrdiniSbagliati() {
                   <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
                     Negozio <span className="text-red-600">*</span>
                   </label>
+                  <p className="text-xs text-blue-600 mb-2 bg-blue-50 p-2 rounded">
+                    ⚠️ Questa colonna sarà usata per il matching automatico con i tuoi negozi nel sistema
+                  </p>
                   <select
                     value={columnMapping.store_column}
                     onChange={(e) => setColumnMapping({...columnMapping, store_column: e.target.value})}
