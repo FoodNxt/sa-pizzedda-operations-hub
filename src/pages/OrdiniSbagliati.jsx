@@ -45,6 +45,8 @@ export default function OrdiniSbagliati() {
     refund_reason_column: ''
   });
   const [pendingFile, setPendingFile] = useState(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewData, setPreviewData] = useState([]);
 
   const queryClient = useQueryClient();
 
