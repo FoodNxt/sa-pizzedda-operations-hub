@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
@@ -622,11 +622,25 @@ export default function Layout({ children, currentPageName }) {
       
       if (normalizedUserType === 'dipendente') {
         getFilteredNavigationForDipendente(currentUser).then(nav => {
-          setDipendenteNav(nav);
+          if (nav && nav.length > 0) {
+            setDipendenteNav(nav);
+          }
+        }).catch(error => {
+          console.error('Error loading dipendente navigation:', error);
+          // Fallback navigation
+          setDipendenteNav([{
+            title: "Area Dipendente",
+            icon: Users,
+            type: "section",
+            items: [
+              { title: 'Profilo', url: createPageUrl('ProfiloDipendente'), icon: User },
+              { title: 'Turni', url: createPageUrl('TurniDipendente'), icon: Clock }
+            ]
+          }]);
         });
       }
     }
-  }, [currentUser, pageAccessConfig, isLoadingConfig, isLoadingUser]);
+  }, [currentUser?.id, pageAccessConfig, isLoadingConfig, isLoadingUser]);
 
   const checkIfContractSigned = async (userId) => {
     try {
@@ -911,15 +925,14 @@ export default function Layout({ children, currentPageName }) {
 
   const isFullyLoaded = !isLoadingUser && !isLoadingConfig && currentUser;
 
-  // Get main navigation items for bottom bar (dipendente only)
-  const getBottomNavItems = () => {
+  // Get main navigation items for bottom bar (dipendente only) - STABILE
+  const bottomNavItems = useMemo(() => {
+    if (normalizedUserType !== 'dipendente') return [];
     if (!dipendenteNav || dipendenteNav.length === 0) return [];
-
+    
     const mainItems = dipendenteNav[0]?.items || [];
     return mainItems;
-  };
-
-  const bottomNavItems = normalizedUserType === 'dipendente' ? getBottomNavItems() : [];
+  }, [normalizedUserType, dipendenteNav]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -1265,7 +1278,7 @@ export default function Layout({ children, currentPageName }) {
       </div>
 
       {/* Mobile Bottom Navigation (Dipendente only) */}
-      {normalizedUserType === 'dipendente' && isFullyLoaded && bottomNavItems.length > 0 && (
+      {normalizedUserType === 'dipendente' && bottomNavItems.length > 0 && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] safe-area-bottom bg-gradient-to-br from-slate-50 to-slate-100">
           <div className="px-2 pb-2 pt-1">
             <button
