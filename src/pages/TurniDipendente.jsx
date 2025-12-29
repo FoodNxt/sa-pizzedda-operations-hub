@@ -1079,32 +1079,12 @@ export default function TurniDipendente() {
       const configSequences = config.shift_sequences || [config.shift_sequence || 'first'];
       if (!configSequences.includes(turnoSequence)) return;
       
-      // PRIORITÀ 1: Controlla AttivitaCompletata tramite form_page (più affidabile)
+      // METODO PRINCIPALE: Controlla AttivitaCompletata tramite form_page e turno_id
       const completatoInAttivita = attivitaCompletate.some(ac => 
         ac.turno_id === turno.id && ac.form_page === config.form_page
       );
       
-      // PRIORITÀ 2: Fallback sui dati del form (retrocompatibilità)
-      let completatoInFormData = false;
-      if (!completatoInAttivita) {
-        const formData = allFormData[config.form_page] || [];
-        const dateStart = new Date(turno.data);
-        dateStart.setHours(0, 0, 0, 0);
-        const nextDayEnd = new Date(turno.data);
-        nextDayEnd.setDate(nextDayEnd.getDate() + 1);
-        nextDayEnd.setHours(6, 0, 0, 0);
-        
-        completatoInFormData = formData.some(item => {
-          const itemDate = new Date(item.inspection_date || item.data_rilevazione || item.data_conteggio || item.data_creazione || item.data_calcolo);
-          return (item.store_name === storeName || item.store_id === turnoStoreId) &&
-                 (item.inspector_name === turno.dipendente_nome || item.rilevato_da === turno.dipendente_nome) &&
-                 itemDate >= dateStart && itemDate <= nextDayEnd;
-        });
-      }
-      
-      const completed = completatoInAttivita || completatoInFormData;
-      
-      formDovuti.push({ nome: config.form_name, page: config.form_page, completato: completed });
+      formDovuti.push({ nome: config.form_name, page: config.form_page, completato: completatoInAttivita });
     });
     
     return formDovuti;

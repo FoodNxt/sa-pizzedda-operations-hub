@@ -136,6 +136,7 @@ export default function FormCantina() {
             turno_data: new Date().toISOString().split('T')[0],
             store_id: store.id,
             attivita_nome: decodeURIComponent(attivitaNome),
+            form_page: 'FormCantina',
             completato_at: new Date().toISOString()
           });
         } catch (error) {
