@@ -291,13 +291,28 @@ export default function OrdiniSbagliati() {
         const platformStoreName = record[storeNameField]?.trim() || '';
         const orderId = record[orderIdField]?.trim() || '';
         
-        if (!platformStoreName && !orderId) {
+        // Skip rows with missing data
+        if (!platformStoreName || !orderId) {
           skippedLines.push(i + 1);
           continue;
         }
         
-        const finalStoreName = platformStoreName || 'Negozio Sconosciuto';
-        const finalOrderId = orderId || `MISSING_ID_${Date.now()}_${i}`;
+        // CRITICAL: Detect and skip suspicious store names (wrong column mapping)
+        const isSuspicious = platformStoreName && (
+          platformStoreName.includes(',') || 
+          platformStoreName.toLowerCase().includes('delivered') ||
+          platformStoreName.toLowerCase().includes('missing') ||
+          /\d{4}-\d{2}-\d{2}/.test(platformStoreName) || // date pattern
+          platformStoreName.split(',').length > 2 // multiple commas
+        );
+        
+        if (isSuspicious) {
+          skippedLines.push(i + 1);
+          continue;
+        }
+        
+        const finalStoreName = platformStoreName;
+        const finalOrderId = orderId;
 
         let storeMatch = storeMappings.find(
           m => m.platform === selectedPlatform && m.platform_store_name === finalStoreName
