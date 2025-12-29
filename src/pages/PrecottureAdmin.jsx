@@ -1099,59 +1099,34 @@ export default function PrecottureAdmin() {
 
             {/* Media per giorno della settimana */}
             {mediaPerGiorno.length > 0 && (
-              <>
-                <NeumorphicCard className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-slate-800">Media per Giorno della Settimana</h3>
-                    <div className="flex items-center gap-2">
-                      <label className="text-sm text-slate-600">Negozio:</label>
-                      <select
-                        value={selectedStoreForMedia}
-                        onChange={(e) => setSelectedStoreForMedia(e.target.value)}
-                        className="neumorphic-pressed px-3 py-2 rounded-lg text-sm text-slate-700 outline-none"
-                      >
-                        <option value="">Tutti i negozi</option>
-                        {stores.map(store => (
-                          <option key={store.id} value={store.id}>{store.name}</option>
-                        ))}
-                      </select>
+              <NeumorphicCard className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-slate-800">Media per Giorno della Settimana</h3>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-slate-600">Negozio:</label>
+                    <select
+                      value={selectedStoreForMedia}
+                      onChange={(e) => setSelectedStoreForMedia(e.target.value)}
+                      className="neumorphic-pressed px-3 py-2 rounded-lg text-sm text-slate-700 outline-none"
+                    >
+                      <option value="">Tutti i negozi</option>
+                      {stores.map(store => (
+                        <option key={store.id} value={store.id}>{store.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                  {mediaPerGiorno.map(d => (
+                    <div key={d.day} className="neumorphic-pressed p-4 rounded-xl text-center">
+                      <p className="text-xs text-slate-500 mb-1">{d.day}</p>
+                      <p className="text-2xl font-bold text-blue-600">{d.media}</p>
+                      <p className="text-xs text-slate-400">teglie</p>
                     </div>
-                  </div>
-                  
-                  {/* Grafico a barre */}
-                  <div className="h-80 mb-6">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={mediaPerGiorno}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                        <XAxis dataKey="day" stroke="#64748b" />
-                        <YAxis 
-                          stroke="#64748b" 
-                          label={{ value: 'Teglie (media)', angle: -90, position: 'insideLeft' }}
-                        />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: '#f8fafc', 
-                            border: '1px solid #e2e8f0',
-                            borderRadius: '8px'
-                          }} 
-                        />
-                        <Bar dataKey="media" fill="#3b82f6" name="Media Teglie" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-
-                  {/* Card riepilogative */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-                    {mediaPerGiorno.map(d => (
-                      <div key={d.day} className="neumorphic-pressed p-4 rounded-xl text-center">
-                        <p className="text-xs text-slate-500 mb-1">{d.day}</p>
-                        <p className="text-2xl font-bold text-blue-600">{d.media}</p>
-                        <p className="text-xs text-slate-400">teglie</p>
-                      </div>
-                    ))}
-                  </div>
-                </NeumorphicCard>
-              </>
+                  ))}
+                </div>
+              </NeumorphicCard>
             )}
 
             {/* Tabella dettagliata */}
