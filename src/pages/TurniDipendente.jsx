@@ -9,7 +9,7 @@ import {
   Loader2, LogIn, LogOut, ChevronLeft, ChevronRight,
   RefreshCw, X, AlertTriangle, Users, Store as StoreIcon, Navigation, Timer, ClipboardList,
   Palmtree, Thermometer, Upload, FileText, ExternalLink, GraduationCap, Check, Square, CheckSquare, ArrowRightLeft,
-  Coffee
+  Coffee, ChefHat
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
