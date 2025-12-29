@@ -831,34 +831,54 @@ export default function OrdiniSbagliati() {
                 </div>
               </div>
 
-              <h3 className="font-bold text-[#6b6b6b] mb-3">Primi {previewData.length} ordini del file:</h3>
-              
-              <div className="overflow-x-auto mb-6">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b-2 border-[#8b7355]">
-                      <th className="text-left p-2 text-[#9b9b9b] font-medium">Order ID</th>
-                      <th className="text-left p-2 text-[#9b9b9b] font-medium">Negozio</th>
-                      <th className="text-left p-2 text-[#9b9b9b] font-medium">Data</th>
-                      <th className="text-right p-2 text-[#9b9b9b] font-medium">Totale</th>
-                      <th className="text-right p-2 text-[#9b9b9b] font-medium">Rimborso</th>
-                      {selectedPlatform === 'glovo' && <th className="text-left p-2 text-[#9b9b9b] font-medium">Ragione</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {previewData.map((row, idx) => (
-                      <tr key={idx} className="border-b border-[#d1d1d1]">
-                        <td className="p-2 text-[#6b6b6b] font-mono">{row.orderId}</td>
-                        <td className="p-2 text-[#6b6b6b] font-bold">{row.store}</td>
-                        <td className="p-2 text-[#6b6b6b]">{row.date}</td>
-                        <td className="p-2 text-right text-[#6b6b6b]">{row.total}</td>
-                        <td className="p-2 text-right font-bold text-red-600">{row.refund}</td>
-                        {selectedPlatform === 'glovo' && <td className="p-2 text-[#6b6b6b] text-xs">{row.reason}</td>}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              {(() => {
+                const hasSuspiciousStores = previewData.some(row => row.storeSuspicious);
+                return (
+                  <>
+                    {hasSuspiciousStores && (
+                      <div className="neumorphic-pressed p-4 rounded-xl bg-red-50 mb-4">
+                        <p className="text-sm font-bold text-red-800 mb-2">🚨 ATTENZIONE: Nomi Negozio Sospetti!</p>
+                        <p className="text-xs text-red-700">
+                          Alcuni nomi di negozio sembrano SBAGLIATI (contengono date, virgole, "delivered", ecc.). 
+                          <strong> Probabilmente hai mappato la colonna SBAGLIATA.</strong> Clicca "Modifica Mapping" sotto per correggere!
+                        </p>
+                      </div>
+                    )}
+                    
+                    <h3 className="font-bold text-[#6b6b6b] mb-3">Primi {previewData.length} ordini del file:</h3>
+                    
+                    <div className="overflow-x-auto mb-6">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b-2 border-[#8b7355]">
+                            <th className="text-left p-2 text-[#9b9b9b] font-medium">Order ID</th>
+                            <th className="text-left p-2 text-[#9b9b9b] font-medium">Negozio ⚠️</th>
+                            <th className="text-left p-2 text-[#9b9b9b] font-medium">Data</th>
+                            <th className="text-right p-2 text-[#9b9b9b] font-medium">Totale</th>
+                            <th className="text-right p-2 text-[#9b9b9b] font-medium">Rimborso</th>
+                            {selectedPlatform === 'glovo' && <th className="text-left p-2 text-[#9b9b9b] font-medium">Ragione</th>}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {previewData.map((row, idx) => (
+                            <tr key={idx} className={`border-b ${row.storeSuspicious ? 'bg-red-50' : 'border-[#d1d1d1]'}`}>
+                              <td className="p-2 text-[#6b6b6b] font-mono">{row.orderId}</td>
+                              <td className={`p-2 font-bold ${row.storeSuspicious ? 'text-red-600' : 'text-[#6b6b6b]'}`}>
+                                {row.storeSuspicious && '⚠️ '}
+                                {row.store || '(vuoto)'}
+                              </td>
+                              <td className="p-2 text-[#6b6b6b]">{row.date}</td>
+                              <td className="p-2 text-right text-[#6b6b6b]">{row.total}</td>
+                              <td className="p-2 text-right font-bold text-red-600">{row.refund}</td>
+                              {selectedPlatform === 'glovo' && <td className="p-2 text-[#6b6b6b] text-xs">{row.reason}</td>}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                );
+              })()}
 
               <div className="neumorphic-pressed p-4 rounded-xl bg-yellow-50 mb-6">
                 <p className="text-sm text-yellow-800">
