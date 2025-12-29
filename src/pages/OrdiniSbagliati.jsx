@@ -244,8 +244,14 @@ export default function OrdiniSbagliati() {
         return;
       }
 
-      // Use existing mapping
-      await processCSVWithMapping(lines, headers, existingMapping);
+      // Show preview with existing mapping
+      setCsvHeaders(headers);
+      setPendingFile({ text, headers, lines });
+      setColumnMapping(existingMapping);
+      generatePreview(lines, headers, existingMapping);
+      setShowPreview(true);
+      setUploading(false);
+      event.target.value = '';
 
     } catch (error) {
       console.error('Error processing CSV:', error);
