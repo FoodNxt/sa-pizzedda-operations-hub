@@ -57,6 +57,11 @@ export default function FormSpostamenti() {
   const handleSubmit = (e) => {
     e.preventDefault();
     
+    if (!currentUser) {
+      alert('⚠️ Errore: utente non trovato');
+      return;
+    }
+    
     if (formData.store_origine_id === formData.store_destinazione_id) {
       alert('⚠️ Origine e destinazione devono essere diversi');
       return;
