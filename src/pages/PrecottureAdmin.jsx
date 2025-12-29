@@ -204,17 +204,22 @@ export default function PrecottureAdmin() {
     const store = stores.find(s => s.id === selectedStore);
     const existing = getDataForDay(giorno);
 
+    // Usa le percentuali esistenti se presenti, altrimenti i default
+    const percPranzo = existing?.percentuale_pranzo ?? 30;
+    const percPomeriggio = existing?.percentuale_pomeriggio ?? 30;
+    const percCena = existing?.percentuale_cena ?? 40;
+
     const payload = {
       store_name: store?.name,
       store_id: selectedStore,
       giorno_settimana: giorno,
       totale_giornata: mediaGiorno,
-      percentuale_pranzo: existing?.percentuale_pranzo || 30,
-      percentuale_pomeriggio: existing?.percentuale_pomeriggio || 30,
-      percentuale_cena: existing?.percentuale_cena || 40,
-      pranzo_rosse: Math.round(mediaGiorno * ((existing?.percentuale_pranzo || 30) / 100)),
-      pomeriggio_rosse: Math.round(mediaGiorno * ((existing?.percentuale_pomeriggio || 30) / 100)),
-      cena_rosse: Math.round(mediaGiorno * ((existing?.percentuale_cena || 40) / 100))
+      percentuale_pranzo: percPranzo,
+      percentuale_pomeriggio: percPomeriggio,
+      percentuale_cena: percCena,
+      pranzo_rosse: Math.round(mediaGiorno * (percPranzo / 100)),
+      pomeriggio_rosse: Math.round(mediaGiorno * (percPomeriggio / 100)),
+      cena_rosse: Math.round(mediaGiorno * (percCena / 100))
     };
 
     if (existing) {
