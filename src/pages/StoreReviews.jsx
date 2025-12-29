@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import { Star, Filter, MapPin, TrendingUp, TrendingDown, X, List, Calendar, Sparkles } from 'lucide-react';
+import { Star, Filter, MapPin, TrendingUp, TrendingDown, X, List, Calendar, Sparkles, Settings, Copy, Check } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
@@ -30,6 +30,11 @@ export default function StoreReviews() {
   const [dateRange, setDateRange] = useState('30');
   const [aiAnalysis, setAiAnalysis] = useState(null);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
+  const [generatingResponseFor, setGeneratingResponseFor] = useState(null);
+  const [aiResponses, setAiResponses] = useState({});
+  const [copiedReviewId, setCopiedReviewId] = useState(null);
+  const [showMoodSettings, setShowMoodSettings] = useState(false);
+  const [responseMood, setResponseMood] = useState('professionale');
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -300,6 +305,63 @@ Rispondi in italiano, in modo conciso e actionable.`;
     }
   };
 
+  // Generate AI response for a specific review
+  const generateAIResponse = async (review) => {
+    setGeneratingResponseFor(review.id);
+    
+    try {
+      const moodInstructions = {
+        professionale: 'Rispondi in modo professionale e cortese',
+        amichevole: 'Rispondi in modo amichevole e caloroso, come se stessi parlando con un amico',
+        formale: 'Rispondi in modo formale ed elegante',
+        entusiasta: 'Rispondi con entusiasmo e positività',
+        empatico: 'Rispondi mostrando empatia e comprensione per il cliente'
+      };
+
+      const prompt = `Sei il manager di una pizzeria chiamata "Sa Pizzedda". Genera una risposta alla seguente recensione di un cliente.
+
+RECENSIONE:
+Rating: ${review.rating}/5 stelle
+Cliente: ${review.customer_name || 'Cliente'}
+Commento: ${review.comment || 'Nessun commento'}
+Data: ${safeFormatDate(review.review_date, 'dd/MM/yyyy')}
+
+ISTRUZIONI:
+${moodInstructions[responseMood]}
+- Ringrazia il cliente per il feedback
+- Se il rating è alto (4-5), rinforza gli aspetti positivi
+- Se il rating è basso (1-3), mostra comprensione e volontà di migliorare
+- Mantieni un tono ${responseMood}
+- Firma con "Il Team di Sa Pizzedda"
+- Massimo 3-4 righe
+
+Genera SOLO la risposta, senza introduzioni o spiegazioni.`;
+
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt
+      });
+
+      setAiResponses(prev => ({
+        ...prev,
+        [review.id]: response
+      }));
+    } catch (error) {
+      console.error('Error generating AI response:', error);
+      setAiResponses(prev => ({
+        ...prev,
+        [review.id]: 'Errore durante la generazione della risposta'
+      }));
+    } finally {
+      setGeneratingResponseFor(null);
+    }
+  };
+
+  const copyToClipboard = (text, reviewId) => {
+    navigator.clipboard.writeText(text);
+    setCopiedReviewId(reviewId);
+    setTimeout(() => setCopiedReviewId(null), 2000);
+  };
+
   return (
     <ProtectedPage pageName="StoreReviews">
       <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
@@ -344,9 +406,55 @@ Rispondi in italiano, in modo conciso e actionable.`;
                   <option value="3.5">3.5+</option>
                 </select>
               </div>
+              <NeumorphicButton
+                onClick={() => setShowMoodSettings(!showMoodSettings)}
+                className="flex items-center gap-2"
+              >
+                <Settings className="w-4 h-4" />
+                <span className="hidden sm:inline">Mood AI</span>
+              </NeumorphicButton>
             </div>
           </div>
         </div>
+
+        {/* Mood Settings */}
+        {showMoodSettings && (
+          <NeumorphicCard className="p-4 lg:p-6 bg-blue-50 border-2 border-blue-200">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                <Settings className="w-5 h-5 text-blue-600" />
+                Impostazioni Mood Risposte AI
+              </h3>
+              <button onClick={() => setShowMoodSettings(false)} className="text-slate-500 hover:text-slate-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-slate-600 mb-4">Seleziona il tono delle risposte generate dall'AI:</p>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+              {[
+                { value: 'professionale', label: 'Professionale', emoji: '👔' },
+                { value: 'amichevole', label: 'Amichevole', emoji: '😊' },
+                { value: 'formale', label: 'Formale', emoji: '🎩' },
+                { value: 'entusiasta', label: 'Entusiasta', emoji: '🎉' },
+                { value: 'empatico', label: 'Empatico', emoji: '💙' }
+              ].map(mood => (
+                <button
+                  key={mood.value}
+                  type="button"
+                  onClick={() => setResponseMood(mood.value)}
+                  className={`px-3 py-2 rounded-xl font-medium text-sm transition-all ${
+                    responseMood === mood.value
+                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                      : 'neumorphic-flat text-slate-700 hover:shadow-md'
+                  }`}
+                >
+                  <div className="text-lg mb-1">{mood.emoji}</div>
+                  {mood.label}
+                </button>
+              ))}
+            </div>
+          </NeumorphicCard>
+        )}
 
         {/* Map */}
         <NeumorphicCard className="p-4 lg:p-6 overflow-hidden">
@@ -685,12 +793,58 @@ Rispondi in italiano, in modo conciso e actionable.`;
                       </span>
                     </div>
                     {review.comment && (
-                      <p className="text-xs lg:text-sm text-slate-700">{review.comment}</p>
+                      <p className="text-xs lg:text-sm text-slate-700 mb-2">{review.comment}</p>
                     )}
                     {review.employee_assigned_name && (
                       <p className="text-xs text-blue-600 mt-2">
                         👤 {review.employee_assigned_name}
                       </p>
+                    )}
+                    
+                    {/* AI Response Section */}
+                    {review.comment && (
+                      <div className="mt-3 pt-3 border-t border-slate-200">
+                        {!aiResponses[review.id] ? (
+                          <button
+                            onClick={() => generateAIResponse(review)}
+                            disabled={generatingResponseFor === review.id}
+                            className={`px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-2 transition-all ${
+                              generatingResponseFor === review.id
+                                ? 'bg-blue-100 text-blue-600'
+                                : 'bg-gradient-to-r from-purple-500 to-purple-600 text-white hover:from-purple-600 hover:to-purple-700'
+                            }`}
+                          >
+                            {generatingResponseFor === review.id ? (
+                              <>
+                                <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                                Generazione...
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="w-3 h-3" />
+                                Genera Risposta AI
+                              </>
+                            )}
+                          </button>
+                        ) : (
+                          <div className="neumorphic-pressed p-3 rounded-lg bg-purple-50">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs font-bold text-purple-700">Risposta AI ({responseMood})</span>
+                              <button
+                                onClick={() => copyToClipboard(aiResponses[review.id], review.id)}
+                                className="text-purple-600 hover:text-purple-700"
+                              >
+                                {copiedReviewId === review.id ? (
+                                  <Check className="w-4 h-4" />
+                                ) : (
+                                  <Copy className="w-4 h-4" />
+                                )}
+                              </button>
+                            </div>
+                            <p className="text-xs text-slate-700 whitespace-pre-line">{aiResponses[review.id]}</p>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 ))
@@ -944,12 +1098,58 @@ Rispondi in italiano, in modo conciso e actionable.`;
                       </span>
                     </div>
                     {review.comment && (
-                      <p className="text-xs lg:text-sm text-slate-700">{review.comment}</p>
+                      <p className="text-xs lg:text-sm text-slate-700 mb-2">{review.comment}</p>
                     )}
                     {review.employee_assigned_name && (
                       <p className="text-xs text-blue-600 mt-2">
                         👤 {review.employee_assigned_name}
                       </p>
+                    )}
+                    
+                    {/* AI Response Section */}
+                    {review.comment && (
+                      <div className="mt-3 pt-3 border-t border-slate-200">
+                        {!aiResponses[review.id] ? (
+                          <button
+                            onClick={() => generateAIResponse(review)}
+                            disabled={generatingResponseFor === review.id}
+                            className={`px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-2 transition-all ${
+                              generatingResponseFor === review.id
+                                ? 'bg-blue-100 text-blue-600'
+                                : 'bg-gradient-to-r from-purple-500 to-purple-600 text-white hover:from-purple-600 hover:to-purple-700'
+                            }`}
+                          >
+                            {generatingResponseFor === review.id ? (
+                              <>
+                                <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                                Generazione...
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="w-3 h-3" />
+                                Genera Risposta AI
+                              </>
+                            )}
+                          </button>
+                        ) : (
+                          <div className="neumorphic-pressed p-3 rounded-lg bg-purple-50">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs font-bold text-purple-700">Risposta AI ({responseMood})</span>
+                              <button
+                                onClick={() => copyToClipboard(aiResponses[review.id], review.id)}
+                                className="text-purple-600 hover:text-purple-700"
+                              >
+                                {copiedReviewId === review.id ? (
+                                  <Check className="w-4 h-4" />
+                                ) : (
+                                  <Copy className="w-4 h-4" />
+                                )}
+                              </button>
+                            </div>
+                            <p className="text-xs text-slate-700 whitespace-pre-line">{aiResponses[review.id]}</p>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 ))
