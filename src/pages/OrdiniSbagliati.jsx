@@ -880,11 +880,13 @@ export default function OrdiniSbagliati() {
                 );
               })()}
 
-              <div className="neumorphic-pressed p-4 rounded-xl bg-yellow-50 mb-6">
-                <p className="text-sm text-yellow-800">
-                  ⚠️ <strong>Verifica che i dati siano corretti!</strong> In particolare, controlla che la colonna "Negozio" contenga il nome corretto del negozio per ogni ordine.
-                  Se i dati non sono corretti, annulla e modifica il mapping.
-                </p>
+              <div className="neumorphic-pressed p-4 rounded-xl bg-blue-50 mb-6">
+                <p className="text-sm font-bold text-blue-800 mb-2">💡 Guida alla Verifica:</p>
+                <div className="text-xs text-blue-700 space-y-1">
+                  <p>✅ <strong>Colonna "Negozio" CORRETTA:</strong> dovrebbe contenere solo il nome del negozio (es. "Ticinese", "Lanino")</p>
+                  <p>❌ <strong>Colonna SBAGLIATA:</strong> se vedi date, indirizzi completi, "delivered", "missing", o valori con molte virgole → hai mappato la colonna sbagliata!</p>
+                  <p>🔧 <strong>Come correggere:</strong> clicca "Modifica Mapping" sotto e seleziona la colonna che contiene SOLO i nomi dei negozi</p>
+                </div>
               </div>
 
               <div className="flex gap-3">
