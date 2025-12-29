@@ -327,12 +327,24 @@ export default function PrecottureAdmin() {
       dailyData[key].totale_unita += p.total_pizzas_sold || 0;
     });
 
+    // Mapping giorni inglese -> italiano
+    const dayMapping = {
+      'monday': 'Lunedì',
+      'tuesday': 'Martedì',
+      'wednesday': 'Mercoledì',
+      'thursday': 'Giovedì',
+      'friday': 'Venerdì',
+      'saturday': 'Sabato',
+      'sunday': 'Domenica'
+    };
+
     const result = Object.values(dailyData).map(d => {
-      const dayName = moment(d.data).locale('it').format('dddd');
+      const dayNameEng = moment(d.data).format('dddd').toLowerCase();
+      const dayNameIta = dayMapping[dayNameEng] || 'Lunedì';
       return {
         ...d,
         teglie: parseFloat((d.totale_unita / teglieConfig.unita_per_teglia).toFixed(2)),
-        day_of_week: dayName.charAt(0).toUpperCase() + dayName.slice(1)
+        day_of_week: dayNameIta
       };
     });
 
