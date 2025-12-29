@@ -31,10 +31,10 @@ export default function Valutazione() {
     },
   });
 
-  // Fetch shifts
+  // Fetch Planday shifts
   const { data: shifts = [] } = useQuery({
-    queryKey: ['shifts'],
-    queryFn: () => base44.entities.Shift.list('-shift_date'),
+    queryKey: ['planday-shifts'],
+    queryFn: () => base44.entities.TurnoPlanday.list('-data'),
   });
 
   // Fetch reviews
@@ -103,12 +103,12 @@ export default function Valutazione() {
   // Filter shifts for current user with date range
   const myShifts = useMemo(() => {
     if (!user || !shifts.length) return [];
-    const userDisplayName = (user.nome_cognome || user.full_name)?.toLowerCase().trim();
     return shifts.filter(s => {
-      if (s.employee_name?.toLowerCase().trim() !== userDisplayName) return false;
+      // Match by user ID
+      if (s.dipendente_id !== user.id) return false;
       // Apply date filter
       try {
-        const shiftDate = new Date(s.shift_date);
+        const shiftDate = new Date(s.data);
         return shiftDate >= filterDate;
       } catch (e) {
         return true;
@@ -164,8 +164,8 @@ export default function Valutazione() {
       };
     }
 
-    const lateShifts = myShifts.filter(s => s.ritardo === true);
-    const missingClockIns = myShifts.filter(s => s.timbratura_mancata === true);
+    const lateShifts = myShifts.filter(s => s.in_ritardo === true);
+    const missingClockIns = myShifts.filter(s => s.timbratura_assente === true);
     const googleReviews = myReviews.filter(r => r.source === 'google');
 
     const totalShifts = myShifts.length;
@@ -174,8 +174,8 @@ export default function Valutazione() {
       : 0;
 
     return {
-      lateShifts: lateShifts.sort((a, b) => new Date(b.shift_date) - new Date(a.shift_date)),
-      missingClockIns: missingClockIns.sort((a, b) => new Date(b.shift_date) - new Date(a.shift_date)),
+      lateShifts: lateShifts.sort((a, b) => new Date(b.data) - new Date(a.data)),
+      missingClockIns: missingClockIns.sort((a, b) => new Date(b.data) - new Date(a.data)),
       googleReviews: googleReviews.sort((a, b) => new Date(b.review_date) - new Date(a.review_date)),
       wrongOrders: myWrongOrders,
       totalShifts,
@@ -333,13 +333,13 @@ export default function Valutazione() {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-[#9b9b9b]" />
-                    <span className="font-medium text-[#6b6b6b]">{safeFormatDateLocale(shift.shift_date)}</span>
+                    <span className="font-medium text-[#6b6b6b]">{safeFormatDateLocale(shift.data)}</span>
                     {shift.store_name && <span className="text-sm text-[#9b9b9b]">• {shift.store_name}</span>}
                   </div>
-                  <span className="text-lg font-bold text-red-600">+{shift.minuti_di_ritardo || 0} min</span>
+                  <span className="text-lg font-bold text-red-600">+{shift.ritardo_minuti || 0} min</span>
                 </div>
                 <div className="text-sm text-[#9b9b9b]">
-                  <strong>Previsto:</strong> {safeFormatTime(shift.scheduled_start)} → <strong>Effettivo:</strong> {safeFormatTime(shift.actual_start)}
+                  <strong>Previsto:</strong> {shift.ora_inizio || 'N/A'} → <strong>Effettivo:</strong> {shift.timbratura_entrata ? safeFormatTime(shift.timbratura_entrata) : 'N/A'}
                 </div>
               </div>
             ))}
@@ -378,13 +378,13 @@ export default function Valutazione() {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-[#9b9b9b]" />
-                    <span className="font-medium text-[#6b6b6b]">{safeFormatDateLocale(shift.shift_date)}</span>
+                    <span className="font-medium text-[#6b6b6b]">{safeFormatDateLocale(shift.data)}</span>
                     {shift.store_name && <span className="text-sm text-[#9b9b9b]">• {shift.store_name}</span>}
                   </div>
                   <span className="text-xs font-bold text-orange-600 bg-orange-100 px-3 py-1 rounded-full">NON TIMBRATO</span>
                 </div>
                 <div className="text-sm text-[#9b9b9b]">
-                  <strong>Orario Previsto:</strong> {safeFormatTime(shift.scheduled_start)} - {safeFormatTime(shift.scheduled_end)}
+                  <strong>Orario Previsto:</strong> {shift.ora_inizio || 'N/A'} - {shift.ora_fine || 'N/A'}
                 </div>
               </div>
             ))}
