@@ -132,7 +132,7 @@ export default function OverviewContratti() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
           <NeumorphicCard className="p-4 text-center">
             <User className="w-8 h-8 text-blue-600 mx-auto mb-2" />
             <p className="text-2xl font-bold text-slate-800">{stats.totale}</p>
@@ -161,6 +161,12 @@ export default function OverviewContratti() {
             <Clock className="w-8 h-8 text-purple-600 mx-auto mb-2" />
             <p className="text-2xl font-bold text-purple-700">{stats.partTime}</p>
             <p className="text-xs text-slate-500">Part Time</p>
+          </NeumorphicCard>
+
+          <NeumorphicCard className="p-4 text-center">
+            <AlertTriangle className="w-8 h-8 text-yellow-600 mx-auto mb-2" />
+            <p className="text-2xl font-bold text-yellow-700">{stats.senzaContratto}</p>
+            <p className="text-xs text-slate-500">Senza Contratto</p>
           </NeumorphicCard>
         </div>
 
