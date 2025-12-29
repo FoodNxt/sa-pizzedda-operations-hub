@@ -94,6 +94,7 @@ import ValutazioneProvaForm from './pages/ValutazioneProvaForm';
 import ValutazionePulizie from './pages/ValutazionePulizie';
 import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierSetup from './pages/ZapierSetup';
+import VenditeAnalytics from './pages/VenditeAnalytics';
 import __Layout from './Layout.jsx';
 
 
@@ -194,6 +195,7 @@ export const PAGES = {
     "ValutazionePulizie": ValutazionePulizie,
     "ZapierProdottiVenduti": ZapierProdottiVenduti,
     "ZapierSetup": ZapierSetup,
+    "VenditeAnalytics": VenditeAnalytics,
 }
 
 export const pagesConfig = {

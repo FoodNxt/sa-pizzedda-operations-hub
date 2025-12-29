@@ -117,6 +117,11 @@ const navigationStructure = [
         icon: DollarSign,
       },
       {
+        title: "Analytics Vendite",
+        url: createPageUrl("VenditeAnalytics"),
+        icon: BarChart3,
+      },
+      {
         title: "Channel Comparison",
         url: createPageUrl("ChannelComparison"),
         icon: BarChart3,
