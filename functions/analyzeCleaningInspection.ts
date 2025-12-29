@@ -27,12 +27,17 @@ Deno.serve(async (req) => {
     // Analyze ALL photo questions
     const fotoDomande = domande_risposte.filter(d => d.tipo_controllo === 'foto' && d.risposta);
     
+    console.log(`=== STARTING ANALYSIS ===`);
     console.log(`Found ${fotoDomande.length} photo questions to analyze`);
+    console.log(`Photo questions:`, fotoDomande.map(d => d.attrezzatura));
     
     const analysisResults = {};
     const updatedDomandeRisposte = [...domande_risposte];
 
-    for (const domanda of fotoDomande) {
+    for (let i = 0; i < fotoDomande.length; i++) {
+      const domanda = fotoDomande[i];
+      console.log(`\n--- Analyzing photo ${i + 1}/${fotoDomande.length}: ${domanda.attrezzatura} ---`);
+      
       try {
         const attrezzatura = domanda.attrezzatura?.toLowerCase()
           .replace(/\s+/g, '_')
@@ -42,7 +47,8 @@ Deno.serve(async (req) => {
           .replace(/[òóôõö]/g, 'o')
           .replace(/[ùúûü]/g, 'u');
         
-        console.log(`Analyzing ${domanda.attrezzatura} (field: ${attrezzatura})`);
+        console.log(`Field name: ${attrezzatura}`);
+        console.log(`Photo URL: ${domanda.risposta}`);
         
         // Build AI prompt - VERY STRICT
         let prompt = `Analizza questa foto e valuta SOLO lo stato di pulizia di: ${domanda.attrezzatura}.
@@ -60,13 +66,15 @@ ESEMPIO RISPOSTA:
 pulito
 NOTE: Superficie pulita e ordinata`;
 
+        console.log(`Calling AI for ${domanda.attrezzatura}...`);
+
         // Call AI with explicit instructions
         const aiResponse = await base44.asServiceRole.integrations.Core.InvokeLLM({
           prompt: prompt,
           file_urls: [domanda.risposta]
         });
 
-        console.log(`AI Response for ${domanda.attrezzatura}:`, aiResponse);
+        console.log(`✓ AI Response received for ${domanda.attrezzatura}:`, aiResponse);
 
         // Parse response - more robust
         const responseText = (aiResponse || '').toLowerCase().trim();
@@ -93,7 +101,7 @@ NOTE: Superficie pulita e ordinata`;
           note = aiResponse?.substring(0, 200) || 'Analisi completata';
         }
 
-        console.log(`Result for ${domanda.attrezzatura}: ${status}`);
+        console.log(`✓ Parsed result for ${domanda.attrezzatura}: ${status}`);
 
         // Store in dynamic fields
         analysisResults[`${attrezzatura}_pulizia_status`] = status;
@@ -110,8 +118,11 @@ NOTE: Superficie pulita e ordinata`;
           };
         }
 
+        console.log(`✓ Successfully processed ${domanda.attrezzatura}`);
+
       } catch (error) {
-        console.error(`ERROR analyzing ${domanda.attrezzatura}:`, error);
+        console.error(`✗ ERROR analyzing ${domanda.attrezzatura}:`, error.message);
+        console.error(`Stack trace:`, error.stack);
         const attrezzatura = domanda.attrezzatura?.toLowerCase()
           .replace(/\s+/g, '_')
           .replace(/[àáâãä]/g, 'a')
@@ -123,6 +134,10 @@ NOTE: Superficie pulita e ordinata`;
         analysisResults[`${attrezzatura}_note_ai`] = `Errore analisi: ${error.message}`;
       }
     }
+
+    console.log(`\n=== ANALYSIS COMPLETE ===`);
+    console.log(`Total photos processed: ${fotoDomande.length}`);
+    console.log(`Results:`, Object.keys(analysisResults).filter(k => k.endsWith('_pulizia_status')));
 
     console.log('Analysis results:', analysisResults);
 
