@@ -725,9 +725,10 @@ export default function Layout({ children, currentPageName }) {
   };
 
   const getFilteredNavigationForDipendente = async (user) => {
-    const normalizedUserType = getNormalizedUserType(user.user_type);
-    
-    if (normalizedUserType !== 'dipendente') return null;
+    try {
+      const normalizedUserType = getNormalizedUserType(user.user_type);
+      
+      if (normalizedUserType !== 'dipendente') return null;
 
     const userRoles = user.ruoli_dipendente || [];
 
@@ -812,6 +813,18 @@ export default function Layout({ children, currentPageName }) {
       type: "section",
       items: menuItems
     }];
+    } catch (error) {
+      console.error('Error in getFilteredNavigationForDipendente:', error);
+      return [{
+        title: "Area Dipendente",
+        icon: Users,
+        type: "section",
+        items: [
+          { title: 'Profilo', url: createPageUrl('ProfiloDipendente'), icon: User },
+          { title: 'Turni', url: createPageUrl('TurniDipendente'), icon: Clock }
+        ]
+      }];
+    }
   };
 
   const getPageTitle = (pageName) => {

@@ -93,10 +93,23 @@ export default function TurniDipendente() {
     );
   };
 
-  const { data: currentUser } = useQuery({
+  const { data: currentUser, isLoading: isLoadingUser } = useQuery({
     queryKey: ['current-user'],
     queryFn: () => base44.auth.me(),
   });
+
+  if (isLoadingUser) {
+    return (
+      <ProtectedPage pageName="TurniDipendente">
+        <div className="max-w-4xl mx-auto flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <Loader2 className="w-12 h-12 animate-spin text-blue-500 mx-auto mb-4" />
+            <p className="text-slate-500">Caricamento dati utente...</p>
+          </div>
+        </div>
+      </ProtectedPage>
+    );
+  }
 
   const { data: storesData = [] } = useQuery({
     queryKey: ['stores'],
