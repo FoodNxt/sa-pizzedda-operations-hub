@@ -242,20 +242,22 @@ function DipendenteContrattiSection({ currentUser }) {
     <>
       {toSign.length > 0 && (
         <div>
-          <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
-            <Edit className="w-5 h-5 text-orange-600" /> Da Firmare ({toSign.length})
+          <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+            <Edit className="w-4 h-4 lg:w-5 lg:h-5 text-orange-600" /> Da Firmare ({toSign.length})
           </h2>
           <div className="space-y-3">
             {toSign.map(c => (
-              <NeumorphicCard key={c.id} className="p-4 border-2 border-orange-300">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="font-bold text-slate-800">{c.template_nome}</h3>
-                    <p className="text-xs text-slate-500">{c.employee_group} - {c.ore_settimanali}h/sett</p>
+              <NeumorphicCard key={c.id} className="p-3 lg:p-4 border-2 border-orange-300">
+                <div className="flex flex-col gap-2 mb-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-slate-800 text-sm lg:text-base truncate">{c.template_nome}</h3>
+                      <p className="text-xs text-slate-500">{c.employee_group} - {c.ore_settimanali}h/sett</p>
+                    </div>
+                    <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold whitespace-nowrap flex-shrink-0">Da Firmare</span>
                   </div>
-                  <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold">Da Firmare</span>
                 </div>
-                <button onClick={() => handleViewLettera(c)} className="w-full bg-gradient-to-r from-orange-500 to-red-600 px-4 py-3 rounded-xl text-white font-medium flex items-center justify-center gap-2">
+                <button onClick={() => setViewingContract(c)} className="w-full bg-gradient-to-r from-orange-500 to-red-600 px-4 py-3 rounded-xl text-white font-medium flex items-center justify-center gap-2 text-sm">
                   <Edit className="w-4 h-4" /> Visualizza e Firma
                 </button>
               </NeumorphicCard>
@@ -266,18 +268,18 @@ function DipendenteContrattiSection({ currentUser }) {
 
       {signed.length > 0 && (
         <div>
-          <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
-            <CheckCircle className="w-5 h-5 text-green-600" /> Firmati ({signed.length})
+          <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 lg:w-5 lg:h-5 text-green-600" /> Firmati ({signed.length})
           </h2>
           <div className="space-y-3">
             {signed.map(c => (
-              <NeumorphicCard key={c.id} className="p-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-bold text-slate-800">{c.template_nome}</h3>
+              <NeumorphicCard key={c.id} className="p-3 lg:p-4">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-slate-800 text-sm lg:text-base truncate">{c.template_nome}</h3>
                     <p className="text-xs text-slate-500">Firmato: {c.data_firma ? new Date(c.data_firma).toLocaleDateString('it-IT') : 'N/A'}</p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-shrink-0">
                     <button onClick={() => setViewingContract(c)} className="nav-button p-2 rounded-lg">
                       <Eye className="w-4 h-4 text-blue-600" />
                     </button>
@@ -452,20 +454,22 @@ function DipendenteLettereSection({ currentUser }) {
     <>
       {toSign.length > 0 && (
         <div>
-          <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-orange-600" /> Da Firmare ({toSign.length})
+          <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 lg:w-5 lg:h-5 text-orange-600" /> Da Firmare ({toSign.length})
           </h2>
           <div className="space-y-3">
             {toSign.map(l => (
-              <NeumorphicCard key={l.id} className="p-4 border-2 border-orange-300">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="font-bold text-slate-800">{getTipoLabel(l.tipo_lettera)}</h3>
-                    <p className="text-xs text-slate-500">Ricevuta: {l.data_invio ? new Date(l.data_invio).toLocaleDateString('it-IT') : 'N/A'}</p>
+              <NeumorphicCard key={l.id} className="p-3 lg:p-4 border-2 border-orange-300">
+                <div className="flex flex-col gap-2 mb-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-slate-800 text-sm lg:text-base">{getTipoLabel(l.tipo_lettera)}</h3>
+                      <p className="text-xs text-slate-500">Ricevuta: {l.data_invio ? new Date(l.data_invio).toLocaleDateString('it-IT') : 'N/A'}</p>
+                    </div>
+                    <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold whitespace-nowrap flex-shrink-0">Da Firmare</span>
                   </div>
-                  <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold">Da Firmare</span>
                 </div>
-                <button onClick={() => handleViewLettera(l)} className="w-full bg-gradient-to-r from-orange-500 to-red-600 px-4 py-3 rounded-xl text-white font-medium flex items-center justify-center gap-2">
+                <button onClick={() => handleViewLettera(l)} className="w-full bg-gradient-to-r from-orange-500 to-red-600 px-4 py-3 rounded-xl text-white font-medium flex items-center justify-center gap-2 text-sm">
                   <Eye className="w-4 h-4" /> Visualizza e Firma
                 </button>
               </NeumorphicCard>
@@ -476,18 +480,18 @@ function DipendenteLettereSection({ currentUser }) {
 
       {signed.length > 0 && (
         <div>
-          <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
-            <CheckCircle className="w-5 h-5 text-green-600" /> Firmati ({signed.length})
+          <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 lg:w-5 lg:h-5 text-green-600" /> Firmati ({signed.length})
           </h2>
           <div className="space-y-3">
             {signed.map(l => (
-              <NeumorphicCard key={l.id} className="p-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-bold text-slate-800">{getTipoLabel(l.tipo_lettera)}</h3>
+              <NeumorphicCard key={l.id} className="p-3 lg:p-4">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-slate-800 text-sm lg:text-base">{getTipoLabel(l.tipo_lettera)}</h3>
                     <p className="text-xs text-slate-500">Firmato: {l.data_firma ? new Date(l.data_firma).toLocaleDateString('it-IT') : 'N/A'}</p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-shrink-0">
                     <button onClick={() => handleViewLettera(l)} className="nav-button p-2 rounded-lg">
                       <Eye className="w-4 h-4 text-blue-600" />
                     </button>
@@ -584,10 +588,10 @@ function DipendenteUnilavSection({ currentUser }) {
       ) : (
         <div className="space-y-3">
           {unilavDocs.map(doc => (
-            <NeumorphicCard key={doc.id} className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-slate-800">
+            <NeumorphicCard key={doc.id} className="p-3 lg:p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-slate-800 text-sm lg:text-base truncate">
                     {doc.descrizione || 'Documento Unilav'}
                   </h3>
                   <p className="text-xs text-slate-500 mt-1">
@@ -600,7 +604,7 @@ function DipendenteUnilavSection({ currentUser }) {
                   href={doc.pdf_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-2 rounded-xl text-white font-medium flex items-center gap-2"
+                  className="bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-2 rounded-xl text-white font-medium flex items-center justify-center gap-2 text-sm flex-shrink-0"
                 >
                   <Download className="w-4 h-4" />
                   Scarica
@@ -650,10 +654,10 @@ function DipendenteBustePagaSection({ currentUser }) {
       ) : (
         <div className="space-y-3">
           {mieBustePaga.map(busta => (
-            <NeumorphicCard key={busta.id} className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-slate-800">
+            <NeumorphicCard key={busta.id} className="p-3 lg:p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-slate-800 text-sm lg:text-base">
                     {new Date(busta.mese + '-01').toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })}
                   </h3>
                   <p className="text-xs text-slate-500 mt-1">
@@ -664,7 +668,7 @@ function DipendenteBustePagaSection({ currentUser }) {
                   href={busta.mio_pdf_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-2 rounded-xl text-white font-medium flex items-center gap-2"
+                  className="bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-2 rounded-xl text-white font-medium flex items-center justify-center gap-2 text-sm flex-shrink-0"
                 >
                   <Download className="w-4 h-4" />
                   Scarica
@@ -733,20 +737,22 @@ function DipendenteRegolamentoSection({ currentUser }) {
     <>
       {toSign.length > 0 && (
         <div>
-          <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-orange-600" /> Da Firmare ({toSign.length})
+          <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+            <BookOpen className="w-4 h-4 lg:w-5 lg:h-5 text-orange-600" /> Da Firmare ({toSign.length})
           </h2>
           <div className="space-y-3">
             {toSign.map(f => (
-              <NeumorphicCard key={f.id} className="p-4 border-2 border-orange-300">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="font-bold text-slate-800">Regolamento Dipendenti v{f.versione}</h3>
-                    <p className="text-xs text-slate-500">Ricevuto: {f.created_date ? new Date(f.created_date).toLocaleDateString('it-IT') : 'N/A'}</p>
+              <NeumorphicCard key={f.id} className="p-3 lg:p-4 border-2 border-orange-300">
+                <div className="flex flex-col gap-2 mb-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-slate-800 text-sm lg:text-base">Regolamento v{f.versione}</h3>
+                      <p className="text-xs text-slate-500">Ricevuto: {f.created_date ? new Date(f.created_date).toLocaleDateString('it-IT') : 'N/A'}</p>
+                    </div>
+                    <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold whitespace-nowrap flex-shrink-0">Da Firmare</span>
                   </div>
-                  <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold">Da Firmare</span>
                 </div>
-                <button onClick={() => setViewingRegolamento(f)} className="w-full bg-gradient-to-r from-orange-500 to-red-600 px-4 py-3 rounded-xl text-white font-medium flex items-center justify-center gap-2">
+                <button onClick={() => setViewingRegolamento(f)} className="w-full bg-gradient-to-r from-orange-500 to-red-600 px-4 py-3 rounded-xl text-white font-medium flex items-center justify-center gap-2 text-sm">
                   <Eye className="w-4 h-4" /> Visualizza e Firma
                 </button>
               </NeumorphicCard>
@@ -758,18 +764,20 @@ function DipendenteRegolamentoSection({ currentUser }) {
       {/* Latest Signed Regulation - Always visible */}
       {latestSigned && (
         <div>
-          <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
-            <CheckCircle className="w-5 h-5 text-green-600" /> Regolamento Attuale
+          <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 lg:w-5 lg:h-5 text-green-600" /> Regolamento Attuale
           </h2>
-          <NeumorphicCard className="p-4 border-2 border-green-200">
-            <div className="flex justify-between items-start mb-3">
-              <div>
-                <h3 className="font-bold text-slate-800">Regolamento v{latestSigned.versione}</h3>
-                <p className="text-xs text-green-600">✓ Firmato: {latestSigned.data_firma ? new Date(latestSigned.data_firma).toLocaleDateString('it-IT') : 'N/A'}</p>
+          <NeumorphicCard className="p-3 lg:p-4 border-2 border-green-200">
+            <div className="flex flex-col gap-2 mb-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-slate-800 text-sm lg:text-base">Regolamento v{latestSigned.versione}</h3>
+                  <p className="text-xs text-green-600">✓ Firmato: {latestSigned.data_firma ? new Date(latestSigned.data_firma).toLocaleDateString('it-IT') : 'N/A'}</p>
+                </div>
+                <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold whitespace-nowrap flex-shrink-0">Attivo</span>
               </div>
-              <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">Attivo</span>
             </div>
-            <button onClick={() => setViewingRegolamento(latestSigned)} className="w-full nav-button px-4 py-3 rounded-xl text-blue-600 font-medium flex items-center justify-center gap-2">
+            <button onClick={() => setViewingRegolamento(latestSigned)} className="w-full nav-button px-4 py-3 rounded-xl text-blue-600 font-medium flex items-center justify-center gap-2 text-sm">
               <Eye className="w-4 h-4" /> Visualizza Regolamento
             </button>
           </NeumorphicCard>
@@ -779,18 +787,18 @@ function DipendenteRegolamentoSection({ currentUser }) {
       {/* Previous versions */}
       {signed.length > 1 && (
         <div>
-          <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
-            <History className="w-5 h-5 text-slate-500" /> Versioni Precedenti ({signed.length - 1})
+          <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+            <History className="w-4 h-4 lg:w-5 lg:h-5 text-slate-500" /> Versioni Precedenti ({signed.length - 1})
           </h2>
           <div className="space-y-3">
             {signed.slice(1).map(f => (
-              <NeumorphicCard key={f.id} className="p-4 opacity-75">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-bold text-slate-600">Regolamento v{f.versione}</h3>
+              <NeumorphicCard key={f.id} className="p-3 lg:p-4 opacity-75">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-slate-600 text-sm lg:text-base">Regolamento v{f.versione}</h3>
                     <p className="text-xs text-slate-500">Firmato: {f.data_firma ? new Date(f.data_firma).toLocaleDateString('it-IT') : 'N/A'}</p>
                   </div>
-                  <button onClick={() => setViewingRegolamento(f)} className="nav-button p-2 rounded-lg">
+                  <button onClick={() => setViewingRegolamento(f)} className="nav-button p-2 rounded-lg flex-shrink-0">
                     <Eye className="w-4 h-4 text-slate-500" />
                   </button>
                 </div>
