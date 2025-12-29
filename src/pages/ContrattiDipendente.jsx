@@ -209,8 +209,14 @@ export default function ContrattiDipendente() {
   const signedContracts = contratti.filter(c => c.status === 'firmato');
 
   // Lettere di richiamo e chiusura procedura
-  const lettereRichiamo = lettere.filter(l => l.tipo !== 'chiusura_procedura');
-  const chiusureProcedura = lettere.filter(l => l.tipo === 'chiusura_procedura');
+  const chiusureProcedura = lettere.filter(l => 
+    l.tipo === 'chiusura_procedura' || 
+    l.template_nome?.toLowerCase().includes('chiusura') ||
+    l.motivo?.toLowerCase().includes('chiusura procedura')
+  );
+  const lettereRichiamo = lettere.filter(l => 
+    !chiusureProcedura.some(cp => cp.id === l.id)
+  );
   
   // Separare da firmare e firmate per entrambe le tipologie
   const lettereRichiamoDaFirmare = lettereRichiamo.filter(l => l.status === 'inviata' || l.status === 'visualizzata');
