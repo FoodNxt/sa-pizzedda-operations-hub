@@ -136,7 +136,7 @@ export default function Financials() {
         parsedDate: safeParseDate(d.date)
       }))
       .filter(d => d.parsedDate !== null)
-      .sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime())
+      .sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime())
       .map(d => ({
         date: safeFormatDate(d.parsedDate, 'dd/MM'),
         revenue: parseFloat(d.revenue.toFixed(2)),
@@ -255,7 +255,7 @@ export default function Financials() {
     const dailyRevenueMultiStore = Object.entries(dailyRevenueByStore)
       .map(([date, storeData]) => {
         const parsedDate = safeParseDate(date);
-        const entry = { date: safeFormatDate(parsedDate, 'dd/MM') };
+        const entry = { date: safeFormatDate(parsedDate, 'dd/MM'), parsedDate };
         Object.entries(storeData).forEach(([storeName, data]) => {
           entry[`${storeName}_revenue`] = parseFloat(data.revenue.toFixed(2));
           entry[`${storeName}_avgValue`] = data.orders > 0 ? parseFloat((data.revenue / data.orders).toFixed(2)) : 0;
@@ -264,9 +264,7 @@ export default function Financials() {
       })
       .filter(d => d.date !== 'N/A')
       .sort((a, b) => {
-        const dateA = safeParseDate(a.date);
-        const dateB = safeParseDate(b.date);
-        return dateA && dateB ? dateA.getTime() - dateB.getTime() : 0;
+        return b.parsedDate.getTime() - a.parsedDate.getTime();
       });
 
     return {
@@ -707,19 +705,23 @@ export default function Financials() {
 
             {showChannelSettings && (
               <div className="mb-4 p-4 bg-blue-50 rounded-lg space-y-3">
-                <h3 className="text-sm font-bold text-blue-800 mb-2">Configurazione Categorie</h3>
+                <h3 className="text-sm font-bold text-blue-800 mb-2">Configurazione Aggregazione Canali</h3>
+                <p className="text-xs text-slate-600 mb-3">Inserisci il nome della categoria finale per aggregare i dati. Più campi con lo stesso nome verranno sommati.</p>
                 {['delivery', 'takeaway', 'takeawayOnSite', 'store'].map(key => (
                   <div key={key} className="flex items-center gap-2">
-                    <label className="text-xs text-slate-600 w-32">{key}:</label>
+                    <label className="text-xs text-slate-600 w-32 font-mono">{key}:</label>
                     <input
                       type="text"
                       value={channelMapping[key] || key}
                       onChange={(e) => setChannelMapping({...channelMapping, [key]: e.target.value})}
                       className="flex-1 px-3 py-2 rounded-lg border border-slate-300 text-sm"
-                      placeholder={key}
+                      placeholder={`es. "Asporto" per aggregare`}
                     />
                   </div>
                 ))}
+                <div className="pt-2 border-t border-blue-200">
+                  <p className="text-xs text-blue-700 mb-2">💡 Esempio: Se imposti "takeaway" e "takeawayOnSite" entrambi come "Asporto", i loro dati verranno sommati nella categoria "Asporto"</p>
+                </div>
                 <button
                   onClick={() => {
                     saveConfigMutation.mutate({ channel_mapping: channelMapping, app_mapping: appMapping });
@@ -773,20 +775,24 @@ export default function Financials() {
             </div>
 
             {showAppSettings && (
-              <div className="mb-4 p-4 bg-blue-50 rounded-lg space-y-3 max-h-64 overflow-y-auto">
-                <h3 className="text-sm font-bold text-blue-800 mb-2">Configurazione App</h3>
+              <div className="mb-4 p-4 bg-blue-50 rounded-lg space-y-3 max-h-96 overflow-y-auto">
+                <h3 className="text-sm font-bold text-blue-800 mb-2">Configurazione Aggregazione App</h3>
+                <p className="text-xs text-slate-600 mb-3">Inserisci il nome della categoria finale per aggregare i dati. Più app con lo stesso nome verranno sommate.</p>
                 {['glovo', 'deliveroo', 'justeat', 'onlineordering', 'ordertable', 'tabesto', 'store'].map(key => (
                   <div key={key} className="flex items-center gap-2">
-                    <label className="text-xs text-slate-600 w-32">{key}:</label>
+                    <label className="text-xs text-slate-600 w-32 font-mono">{key}:</label>
                     <input
                       type="text"
                       value={appMapping[key] || key}
                       onChange={(e) => setAppMapping({...appMapping, [key]: e.target.value})}
                       className="flex-1 px-3 py-2 rounded-lg border border-slate-300 text-sm"
-                      placeholder={key}
+                      placeholder={`es. "Delivery" per aggregare`}
                     />
                   </div>
                 ))}
+                <div className="pt-2 border-t border-blue-200">
+                  <p className="text-xs text-blue-700 mb-2">💡 Esempio: Se imposti "glovo", "deliveroo" e "justeat" tutti come "Delivery", i loro dati verranno sommati nella categoria "Delivery"</p>
+                </div>
                 <button
                   onClick={() => {
                     saveConfigMutation.mutate({ channel_mapping: channelMapping, app_mapping: appMapping });
