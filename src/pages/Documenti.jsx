@@ -255,7 +255,7 @@ function DipendenteContrattiSection({ currentUser }) {
                   </div>
                   <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold">Da Firmare</span>
                 </div>
-                <button onClick={() => setViewingContract(c)} className="w-full bg-gradient-to-r from-orange-500 to-red-600 px-4 py-3 rounded-xl text-white font-medium flex items-center justify-center gap-2">
+                <button onClick={() => handleViewLettera(c)} className="w-full bg-gradient-to-r from-orange-500 to-red-600 px-4 py-3 rounded-xl text-white font-medium flex items-center justify-center gap-2">
                   <Edit className="w-4 h-4" /> Visualizza e Firma
                 </button>
               </NeumorphicCard>
