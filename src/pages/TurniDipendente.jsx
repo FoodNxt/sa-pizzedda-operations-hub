@@ -1079,10 +1079,9 @@ export default function TurniDipendente() {
       const configSequences = config.shift_sequences || [config.shift_sequence || 'first'];
       if (!configSequences.includes(turnoSequence)) return;
       
-      // PRIORITÀ 1: Controlla AttivitaCompletata (più affidabile)
+      // PRIORITÀ 1: Controlla AttivitaCompletata tramite form_page (più affidabile)
       const completatoInAttivita = attivitaCompletate.some(ac => 
-        ac.turno_id === turno.id && 
-        (ac.attivita_nome === config.form_name || ac.attivita_nome.toLowerCase().includes(config.form_name.toLowerCase()))
+        ac.turno_id === turno.id && ac.form_page === config.form_page
       );
       
       // PRIORITÀ 2: Fallback sui dati del form (retrocompatibilità)
@@ -1573,6 +1572,11 @@ export default function TurniDipendente() {
                   const isFormActivity = att.form_page || att.richiede_form;
                   const isCorsoActivity = att.corsi_ids?.length > 0;
                   if (isFormActivity) {
+                    // Controlla prima per form_page in AttivitaCompletata
+                    const completatoViaPagina = attivitaCompletate.some(ac => 
+                      ac.turno_id === prossimoTurno.id && ac.form_page === att.form_page
+                    );
+                    if (completatoViaPagina) return true;
                     return formDovuti.some(f => f.page === att.form_page && f.completato);
                   }
                   if (isCorsoActivity) return true; // Corsi sono opzionali
@@ -1606,7 +1610,8 @@ export default function TurniDipendente() {
                         const isFormActivity = att.form_page || att.richiede_form;
                         const isCorsoActivity = att.corsi_ids?.length > 0;
                         const isCompleted = isFormActivity 
-                          ? formDovuti.some(f => f.page === att.form_page && f.completato)
+                          ? (attivitaCompletate.some(ac => ac.turno_id === prossimoTurno.id && ac.form_page === att.form_page) || 
+                             formDovuti.some(f => f.page === att.form_page && f.completato))
                           : isAttivitaCompletata(prossimoTurno.id, att.nome);
                         
                         return (
@@ -1806,6 +1811,11 @@ export default function TurniDipendente() {
                   const isFormActivity = att.form_page || att.richiede_form;
                   const isCorsoActivity = att.corsi_ids?.length > 0;
                   if (isFormActivity) {
+                    // Controlla prima per form_page in AttivitaCompletata
+                    const completatoViaPagina = attivitaCompletate.some(ac => 
+                      ac.turno_id === prossimoTurno.id && ac.form_page === att.form_page
+                    );
+                    if (completatoViaPagina) return true;
                     return formDovuti.some(f => f.page === att.form_page && f.completato);
                   }
                   if (isCorsoActivity) return true;

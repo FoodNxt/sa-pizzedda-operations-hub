@@ -55,6 +55,7 @@ export default function Precotture() {
           turno_data: new Date().toISOString().split('T')[0],
           store_id: store.id,
           attivita_nome: decodeURIComponent(attivitaNome),
+          form_page: 'Precotture',
           completato_at: new Date().toISOString()
         });
       }

@@ -100,6 +100,7 @@ export default function FormTeglieButtate() {
             turno_data: new Date().toISOString().split('T')[0],
             store_id: selectedStore,
             attivita_nome: decodeURIComponent(attivitaNome),
+            form_page: 'FormTeglieButtate',
             completato_at: new Date().toISOString()
           });
         } catch (error) {

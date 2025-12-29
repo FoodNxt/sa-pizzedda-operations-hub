@@ -86,6 +86,7 @@ export default function FormDeposito() {
             turno_data: new Date().toISOString().split('T')[0],
             store_id: null,
             attivita_nome: decodeURIComponent(attivitaNome),
+            form_page: 'FormDeposito',
             completato_at: new Date().toISOString()
           });
         } catch (error) {

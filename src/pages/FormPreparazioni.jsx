@@ -126,6 +126,7 @@ export default function FormPreparazioni() {
             turno_data: new Date().toISOString().split('T')[0],
             store_id: selectedStore,
             attivita_nome: decodeURIComponent(attivitaNome),
+            form_page: 'FormPreparazioni',
             completato_at: new Date().toISOString()
           });
         } catch (error) {
