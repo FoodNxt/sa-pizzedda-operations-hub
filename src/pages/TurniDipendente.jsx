@@ -239,16 +239,16 @@ export default function TurniDipendente() {
   const { data: allFormData = {} } = useQuery({
     queryKey: ['all-form-data-dipendente'],
     queryFn: async () => {
-      const [inventario, cantina, cassa, teglie, prep, impasti, precotture, cleaningInspections, calcoliImpasto] = await Promise.all([
+      const [inventario, cantina, cassa, teglie, prep, impasti, calcoliImpasto, cleaningInspections, gestioneImpasti] = await Promise.all([
         base44.entities.RilevazioneInventario.list('-data_rilevazione'),
         base44.entities.RilevazioneInventarioCantina.list('-data_rilevazione'),
         base44.entities.ConteggioCassa.list('-data_conteggio'),
         base44.entities.TeglieButtate.list('-data_rilevazione'),
         base44.entities.Preparazioni.list('-data_rilevazione'),
-        base44.entities.GestioneImpasti.list('-data_creazione'),
+        base44.entities.CalcoloImpastoLog.list('-data_calcolo'),
         base44.entities.CalcoloImpastoLog.list('-data_calcolo'),
         base44.entities.CleaningInspection.list('-inspection_date'),
-        base44.entities.CalcoloImpastoLog.list('-data_calcolo')
+        base44.entities.GestioneImpasti.list('-data_creazione')
       ]);
       return {
         FormInventario: inventario,
@@ -257,8 +257,8 @@ export default function TurniDipendente() {
         FormTeglieButtate: teglie,
         FormPreparazioni: prep,
         Impasto: impasti,
-        Precotture: precotture,
         CalcoliImpasto: calcoliImpasto,
+        GestioneImpasti: gestioneImpasti,
         ControlloPuliziaCassiere: cleaningInspections.filter(i => i.inspector_role === 'Cassiere'),
         ControlloPuliziaPizzaiolo: cleaningInspections.filter(i => i.inspector_role === 'Pizzaiolo'),
         ControlloPuliziaStoreManager: cleaningInspections.filter(i => i.inspector_role === 'Store Manager')
@@ -1748,6 +1748,63 @@ export default function TurniDipendente() {
                                         </p>
                                       </div>
                                     )}
+                                  </div>
+                                );
+                              })()}
+
+                              {/* Mostra precotture se attività completata */}
+                              {isCompleted && att.form_page === 'Precotture' && (() => {
+                                const gestioneImpasti = allFormData.GestioneImpasti || [];
+                                
+                                const ora = new Date().getHours();
+                                const minuti = new Date().getMinutes();
+                                const oraDecimale = ora + minuti / 60;
+                                
+                                let turno;
+                                if (oraDecimale >= 9.5 && oraDecimale <= 13) {
+                                  turno = 'pranzo';
+                                } else if (oraDecimale > 13 && oraDecimale <= 16.5) {
+                                  turno = 'pomeriggio';
+                                } else if (oraDecimale > 16.5 && oraDecimale <= 22) {
+                                  turno = 'cena';
+                                } else {
+                                  return null;
+                                }
+
+                                const giorni = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
+                                const oggi = new Date().getDay();
+                                const giornoNome = giorni[oggi];
+                                
+                                const storeImpasti = gestioneImpasti.filter(i => i.store_id === prossimoTurno.store_id);
+                                const datiOggi = storeImpasti.find(imp => imp.giorno_settimana === giornoNome);
+
+                                if (!datiOggi) return null;
+
+                                let rosseRichieste = 0;
+                                if (turno === 'pranzo') {
+                                  rosseRichieste = datiOggi.pranzo_rosse || 0;
+                                } else if (turno === 'pomeriggio') {
+                                  rosseRichieste = datiOggi.pomeriggio_rosse || 0;
+                                } else if (turno === 'cena') {
+                                  rosseRichieste = datiOggi.cena_rosse || 0;
+                                }
+
+                                if (rosseRichieste === 0) return null;
+
+                                return (
+                                  <div className="mt-3 p-3 bg-orange-50 rounded-xl border border-orange-200">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <Pizza className="w-4 h-4 text-orange-600" />
+                                      <span className="text-sm font-bold text-orange-800">
+                                        Precotture da preparare
+                                      </span>
+                                    </div>
+                                    <div className="bg-white p-3 rounded-lg">
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-sm text-slate-700">Teglie Rosse</span>
+                                        <span className="text-2xl font-bold text-orange-600">{rosseRichieste}</span>
+                                      </div>
+                                    </div>
                                   </div>
                                 );
                               })()}
