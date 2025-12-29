@@ -154,15 +154,6 @@ export default function Documenti() {
           >
             Unilav
           </button>
-          <button
-            onClick={() => setActiveTab('drive_settings')}
-            className={`flex-1 px-6 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 ${
-              activeTab === 'drive_settings' ? 'neumorphic-pressed text-[#8b7355]' : 'neumorphic-flat text-[#9b9b9b]'
-            }`}
-          >
-            <Settings className="w-4 h-4" />
-            Google Drive
-          </button>
         </div>
 
         {activeTab === 'contratti' && <ContrattiSection />}
@@ -170,7 +161,6 @@ export default function Documenti() {
         {activeTab === 'regolamento' && <RegolamentoSection />}
         {activeTab === 'buste_paga' && <BustePagaSection />}
         {activeTab === 'unilav' && <UnilavSection />}
-        {activeTab === 'drive_settings' && <DriveSettingsSection />}
       </div>
     </ProtectedPage>
   );
@@ -843,6 +833,13 @@ function ContrattiSection() {
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [previewContratto, setPreviewContratto] = useState(null);
   const [templateTextareaRef, setTemplateTextareaRef] = useState(null);
+  
+  // Drive settings
+  const [showDriveSettings, setShowDriveSettings] = useState(false);
+  const [loadingFolders, setLoadingFolders] = useState(false);
+  const [driveFolders, setDriveFolders] = useState([]);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [creatingFolder, setCreatingFolder] = useState(false);
   const [formData, setFormData] = useState({
     user_id: '', user_email: '', user_nome_cognome: '', template_id: '', nome_cognome: '',
     phone: '', data_nascita: '', citta_nascita: '', codice_fiscale: '', indirizzo_residenza: '',
@@ -866,6 +863,11 @@ function ContrattiSection() {
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
     queryFn: () => base44.entities.User.list(),
+  });
+
+  const { data: driveConfig = [] } = useQuery({
+    queryKey: ['drive-config-contratti'],
+    queryFn: () => base44.entities.DriveConfig.filter({ config_type: 'contratti', is_active: true }),
   });
 
   const createMutation = useMutation({
@@ -1130,9 +1132,92 @@ function ContrattiSection() {
     'durata_contratto_mesi', 'data_oggi', 'data_fine_contratto', 'ruoli', 'locali'
   ];
 
+  const handleLoadDriveFolders = async () => {
+    setLoadingFolders(true);
+    try {
+      const response = await base44.functions.invoke('listDriveFolders', {});
+      setDriveFolders(response.data.folders || []);
+    } catch (error) {
+      console.error('Error loading folders:', error);
+      alert('Errore nel caricamento delle cartelle Drive');
+    } finally {
+      setLoadingFolders(false);
+    }
+  };
+
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) {
+      alert('Inserisci un nome per la cartella');
+      return;
+    }
+
+    setCreatingFolder(true);
+    try {
+      const currentUserData = await base44.auth.me();
+      const response = await base44.functions.invoke('createDriveFolder', {
+        folder_name: newFolderName
+      });
+
+      const existing = driveConfig[0];
+      if (existing) {
+        await base44.entities.DriveConfig.update(existing.id, {
+          folder_id: response.data.folder_id,
+          folder_name: response.data.folder_name,
+          created_by: currentUserData?.email || ''
+        });
+      } else {
+        await base44.entities.DriveConfig.create({
+          config_type: 'contratti',
+          folder_id: response.data.folder_id,
+          folder_name: response.data.folder_name,
+          is_active: true,
+          created_by: currentUserData?.email || ''
+        });
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['drive-config-contratti'] });
+      setNewFolderName('');
+      setShowDriveSettings(false);
+      alert('Cartella creata e configurata con successo!');
+    } catch (error) {
+      console.error('Error creating folder:', error);
+      alert('Errore nella creazione della cartella');
+    } finally {
+      setCreatingFolder(false);
+    }
+  };
+
+  const handleSelectExistingFolder = async (folderId, folderName) => {
+    try {
+      const currentUserData = await base44.auth.me();
+      const existing = driveConfig[0];
+      if (existing) {
+        await base44.entities.DriveConfig.update(existing.id, {
+          folder_id: folderId,
+          folder_name: folderName
+        });
+      } else {
+        await base44.entities.DriveConfig.create({
+          config_type: 'contratti',
+          folder_id: folderId,
+          folder_name: folderName,
+          is_active: true,
+          created_by: currentUserData?.email || ''
+        });
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['drive-config-contratti'] });
+      setShowDriveSettings(false);
+      alert('Cartella configurata con successo!');
+    } catch (error) {
+      console.error('Error saving config:', error);
+      alert('Errore nel salvataggio della configurazione');
+    }
+  };
+
   return (
     <>
-      <div className="flex gap-3 mb-6">
+      <div className="flex gap-3 mb-6 flex-wrap">
         <NeumorphicButton onClick={() => setShowTemplateForm(true)} className="flex items-center gap-2">
           <FileEdit className="w-5 h-5" />
           Nuovo Template
@@ -1141,7 +1226,41 @@ function ContrattiSection() {
           <Plus className="w-5 h-5" />
           Nuovo Contratto
         </NeumorphicButton>
+        <NeumorphicButton 
+          onClick={() => {
+            setShowDriveSettings(true);
+            handleLoadDriveFolders();
+          }} 
+          className="flex items-center gap-2"
+        >
+          <Folder className="w-5 h-5" />
+          Impostazioni Drive
+        </NeumorphicButton>
       </div>
+
+      {/* Drive Settings Section */}
+      {driveConfig.length > 0 && driveConfig[0].folder_id && (
+        <NeumorphicCard className="p-4 bg-green-50 mb-6">
+          <div className="flex items-center gap-3">
+            <Folder className="w-5 h-5 text-green-600" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-green-800">
+                Cartella Drive configurata: <strong>{driveConfig[0].folder_name}</strong>
+              </p>
+              <p className="text-xs text-green-600">I contratti firmati verranno salvati automaticamente</p>
+            </div>
+            <button
+              onClick={() => {
+                setShowDriveSettings(true);
+                handleLoadDriveFolders();
+              }}
+              className="nav-button p-2 rounded-lg"
+            >
+              <Edit className="w-4 h-4 text-blue-600" />
+            </button>
+          </div>
+        </NeumorphicCard>
+      )}
 
       {/* Contratti in scadenza */}
       {(() => {

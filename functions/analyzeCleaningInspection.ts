@@ -50,24 +50,30 @@ Deno.serve(async (req) => {
     const analysisResults = {};
     const updatedDomandeRisposte = [...domande_risposte];
 
-    for (let i = 0; i < fotoDomande.length; i++) {
-      const domanda = fotoDomande[i];
-      console.log(`\n--- Analyzing photo ${i + 1}/${fotoDomande.length}: ${domanda.attrezzatura} ---`);
+    // Process photos in parallel batches for speed
+    const batchSize = 3;
+    for (let batchStart = 0; batchStart < fotoDomande.length; batchStart += batchSize) {
+      const batch = fotoDomande.slice(batchStart, batchStart + batchSize);
+      console.log(`\n=== Processing batch ${Math.floor(batchStart/batchSize) + 1} (${batch.length} photos) ===`);
       
-      try {
-        const attrezzatura = domanda.attrezzatura?.toLowerCase()
-          .replace(/\s+/g, '_')
-          .replace(/[àáâãä]/g, 'a')
-          .replace(/[èéêë]/g, 'e')
-          .replace(/[ìíîï]/g, 'i')
-          .replace(/[òóôõö]/g, 'o')
-          .replace(/[ùúûü]/g, 'u');
+      await Promise.all(batch.map(async (domanda, batchIdx) => {
+        const i = batchStart + batchIdx;
+        console.log(`\n--- Analyzing photo ${i + 1}/${fotoDomande.length}: ${domanda.attrezzatura} ---`);
         
-        console.log(`Field name: ${attrezzatura}`);
-        console.log(`Photo URL: ${domanda.risposta}`);
-        
-        // Build AI prompt - VERY STRICT
-        let prompt = `Analizza questa foto e valuta SOLO lo stato di pulizia di: ${domanda.attrezzatura}.
+        try {
+          const attrezzatura = domanda.attrezzatura?.toLowerCase()
+            .replace(/\s+/g, '_')
+            .replace(/[àáâãä]/g, 'a')
+            .replace(/[èéêë]/g, 'e')
+            .replace(/[ìíîï]/g, 'i')
+            .replace(/[òóôõö]/g, 'o')
+            .replace(/[ùúûü]/g, 'u');
+          
+          console.log(`Field name: ${attrezzatura}`);
+          console.log(`Photo URL: ${domanda.risposta}`);
+          
+          // Build AI prompt - VERY STRICT
+          let prompt = `Analizza questa foto e valuta SOLO lo stato di pulizia di: ${domanda.attrezzatura}.
 
 REGOLE CRITICHE:
 1. Rispondi OBBLIGATORIAMENTE con UNA SOLA parola: "pulito" o "sporco"
@@ -82,15 +88,15 @@ ESEMPIO RISPOSTA:
 pulito
 NOTE: Superficie pulita e ordinata`;
 
-        console.log(`Calling AI for ${domanda.attrezzatura}...`);
+          console.log(`Calling AI for ${domanda.attrezzatura}...`);
 
-        // Call AI with explicit instructions
-        const aiResponse = await base44.asServiceRole.integrations.Core.InvokeLLM({
-          prompt: prompt,
-          file_urls: [domanda.risposta]
-        });
+          // Call AI with explicit instructions
+          const aiResponse = await base44.asServiceRole.integrations.Core.InvokeLLM({
+            prompt: prompt,
+            file_urls: [domanda.risposta]
+          });
 
-        console.log(`✓ AI Response received for ${domanda.attrezzatura}:`, aiResponse);
+          console.log(`✓ AI Response received for ${domanda.attrezzatura}:`, aiResponse);
 
         // Parse response - more robust
         const responseText = (aiResponse || '').toLowerCase().trim();
@@ -134,21 +140,22 @@ NOTE: Superficie pulita e ordinata`;
           };
         }
 
-        console.log(`✓ Successfully processed ${domanda.attrezzatura}`);
+          console.log(`✓ Successfully processed ${domanda.attrezzatura}`);
 
-      } catch (error) {
-        console.error(`✗ ERROR analyzing ${domanda.attrezzatura}:`, error.message);
-        console.error(`Stack trace:`, error.stack);
-        const attrezzatura = domanda.attrezzatura?.toLowerCase()
-          .replace(/\s+/g, '_')
-          .replace(/[àáâãä]/g, 'a')
-          .replace(/[èéêë]/g, 'e')
-          .replace(/[ìíîï]/g, 'i')
-          .replace(/[òóôõö]/g, 'o')
-          .replace(/[ùúûü]/g, 'u');
-        analysisResults[`${attrezzatura}_pulizia_status`] = 'sporco';
-        analysisResults[`${attrezzatura}_note_ai`] = `Errore analisi: ${error.message}`;
-      }
+        } catch (error) {
+          console.error(`✗ ERROR analyzing ${domanda.attrezzatura}:`, error.message);
+          console.error(`Stack trace:`, error.stack);
+          const attrezzatura = domanda.attrezzatura?.toLowerCase()
+            .replace(/\s+/g, '_')
+            .replace(/[àáâãä]/g, 'a')
+            .replace(/[èéêë]/g, 'e')
+            .replace(/[ìíîï]/g, 'i')
+            .replace(/[òóôõö]/g, 'o')
+            .replace(/[ùúûü]/g, 'u');
+          analysisResults[`${attrezzatura}_pulizia_status`] = 'sporco';
+          analysisResults[`${attrezzatura}_note_ai`] = `Errore analisi: ${error.message}`;
+        }
+      }));
     }
 
     console.log(`\n=== ANALYSIS COMPLETE ===`);
