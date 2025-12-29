@@ -1099,8 +1099,7 @@ export default function PrecottureAdmin() {
             )}
 
             {/* Media per giorno della settimana */}
-            {mediaPerGiorno.length > 0 && (
-              <NeumorphicCard className="p-6">
+            <NeumorphicCard className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-slate-800">Media per Giorno della Settimana</h3>
                   <div className="flex items-center gap-2">
