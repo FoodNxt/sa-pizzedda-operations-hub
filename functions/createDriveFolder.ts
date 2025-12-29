@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
       mimeType: 'application/vnd.google-apps.folder'
     };
 
-    const response = await fetch('https://www.googleapis.com/drive/v3/files', {
+    const createResponse = await fetch('https://www.googleapis.com/drive/v3/files', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -33,12 +33,31 @@ Deno.serve(async (req) => {
       body: JSON.stringify(metadata)
     });
 
-    if (!response.ok) {
-      const error = await response.text();
+    if (!createResponse.ok) {
+      const error = await createResponse.text();
+      console.error('Drive API error:', error);
       throw new Error(`Failed to create folder: ${error}`);
     }
 
-    const result = await response.json();
+    const result = await createResponse.json();
+
+    // Share the folder with the user to make it visible
+    const permissionResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${result.id}/permissions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        role: 'writer',
+        type: 'user',
+        emailAddress: user.email
+      })
+    });
+
+    if (!permissionResponse.ok) {
+      console.warn('Failed to set permissions, but folder was created:', await permissionResponse.text());
+    }
 
     return Response.json({ 
       success: true,

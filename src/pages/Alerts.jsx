@@ -31,8 +31,8 @@ function PeriodoProvaTab() {
   });
 
   const { data: shifts = [] } = useQuery({
-    queryKey: ['shifts'],
-    queryFn: () => base44.entities.Shift.list(),
+    queryKey: ['shifts-planday'],
+    queryFn: () => base44.entities.TurnoPlanday.list(),
   });
 
   const { data: configs = [], isLoading: isLoadingConfig } = useQuery({
@@ -81,11 +81,10 @@ function PeriodoProvaTab() {
       const turniProvaTotali = contractDuration * turniProvaPerMese;
 
       const shiftsFromContractStart = shifts.filter(shift => {
-        const employeeNameMatch = shift.employee_name === nomeCompleto;
-        if (!employeeNameMatch) return false;
+        if (shift.dipendente_id !== user.id) return false;
         
         try {
-          const shiftDate = new Date(shift.shift_date);
+          const shiftDate = new Date(shift.data);
           return shiftDate >= dataInizio;
         } catch(e) { return false; }
       });
