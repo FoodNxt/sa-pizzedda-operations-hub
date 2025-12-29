@@ -3505,16 +3505,42 @@ function RegolamentoSection() {
                   {/* Non Inviati */}
                   {nonInviati.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-bold text-slate-500 mb-2 flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4" /> Non Inviato ({nonInviati.length})
-                      </h4>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-bold text-slate-500 flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4" /> Non Inviato ({nonInviati.length})
+                        </h4>
+                        <button
+                          onClick={async () => {
+                            if (!confirm(`Inviare il regolamento a ${nonInviati.length} dipendenti?`)) return;
+                            await sendToEmployeesMutation.mutateAsync({ 
+                              regolamentoId: regolamentoAttivo.id, 
+                              userIds: nonInviati.map(u => u.id)
+                            });
+                          }}
+                          className="nav-button px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 bg-blue-50 hover:bg-blue-100"
+                        >
+                          <Send className="w-3.5 h-3.5 text-blue-600" />
+                          Invia a Tutti
+                        </button>
+                      </div>
                       <div className="space-y-2">
                         {nonInviati.map(u => (
                           <div key={u.id} className="neumorphic-flat p-3 rounded-lg bg-slate-50 flex items-center justify-between">
                             <p className="text-sm font-medium text-slate-700">
                               {u.nome_cognome || u.full_name || u.email}
                             </p>
-                            <AlertCircle className="w-5 h-5 text-slate-400" />
+                            <button
+                              onClick={async () => {
+                                if (!confirm(`Inviare il regolamento a ${u.nome_cognome || u.full_name || u.email}?`)) return;
+                                await sendToEmployeesMutation.mutateAsync({ 
+                                  regolamentoId: regolamentoAttivo.id, 
+                                  userIds: [u.id]
+                                });
+                              }}
+                              className="nav-button p-1.5 rounded-lg hover:bg-blue-50"
+                            >
+                              <Send className="w-4 h-4 text-blue-600" />
+                            </button>
                           </div>
                         ))}
                       </div>
