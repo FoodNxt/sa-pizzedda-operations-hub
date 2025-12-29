@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   FileText, Plus, Edit, Save, X, Trash2, Send, CheckCircle, Clock, Eye, Download,
   AlertCircle, User, Briefcase, FileEdit, AlertTriangle, BookOpen, History, Settings, Loader2,
-  Upload, DollarSign
+  Upload, DollarSign, Folder, FolderPlus
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -154,6 +154,15 @@ export default function Documenti() {
           >
             Unilav
           </button>
+          <button
+            onClick={() => setActiveTab('drive_settings')}
+            className={`flex-1 px-6 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 ${
+              activeTab === 'drive_settings' ? 'neumorphic-pressed text-[#8b7355]' : 'neumorphic-flat text-[#9b9b9b]'
+            }`}
+          >
+            <Settings className="w-4 h-4" />
+            Google Drive
+          </button>
         </div>
 
         {activeTab === 'contratti' && <ContrattiSection />}
@@ -161,6 +170,7 @@ export default function Documenti() {
         {activeTab === 'regolamento' && <RegolamentoSection />}
         {activeTab === 'buste_paga' && <BustePagaSection />}
         {activeTab === 'unilav' && <UnilavSection />}
+        {activeTab === 'drive_settings' && <DriveSettingsSection />}
       </div>
     </ProtectedPage>
   );
@@ -2675,6 +2685,234 @@ function UnilavSection() {
         )}
       </NeumorphicCard>
     </>
+  );
+}
+
+// Google Drive Settings Section
+function DriveSettingsSection() {
+  const [loadingFolders, setLoadingFolders] = useState(false);
+  const [driveFolders, setDriveFolders] = useState([]);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [creatingFolder, setCreatingFolder] = useState(false);
+  const [selectedConfigType, setSelectedConfigType] = useState('contratti');
+
+  const queryClient = useQueryClient();
+
+  const { data: driveConfigs = [] } = useQuery({
+    queryKey: ['drive-configs-all'],
+    queryFn: () => base44.entities.DriveConfig.filter({ is_active: true }),
+  });
+
+  const handleLoadDriveFolders = async () => {
+    setLoadingFolders(true);
+    try {
+      const response = await base44.functions.invoke('listDriveFolders', {});
+      setDriveFolders(response.data.folders || []);
+    } catch (error) {
+      console.error('Error loading folders:', error);
+      alert('Errore nel caricamento delle cartelle Drive');
+    } finally {
+      setLoadingFolders(false);
+    }
+  };
+
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) {
+      alert('Inserisci un nome per la cartella');
+      return;
+    }
+
+    setCreatingFolder(true);
+    try {
+      const currentUserData = await base44.auth.me();
+      const response = await base44.functions.invoke('createDriveFolder', {
+        folder_name: newFolderName
+      });
+
+      const existing = driveConfigs.find(c => c.config_type === selectedConfigType);
+      if (existing) {
+        await base44.entities.DriveConfig.update(existing.id, {
+          folder_id: response.data.folder_id,
+          folder_name: response.data.folder_name,
+          created_by: currentUserData?.email || ''
+        });
+      } else {
+        await base44.entities.DriveConfig.create({
+          config_type: selectedConfigType,
+          folder_id: response.data.folder_id,
+          folder_name: response.data.folder_name,
+          is_active: true,
+          created_by: currentUserData?.email || ''
+        });
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['drive-configs-all'] });
+      setNewFolderName('');
+      alert('Cartella creata e configurata con successo!');
+    } catch (error) {
+      console.error('Error creating folder:', error);
+      alert('Errore nella creazione della cartella');
+    } finally {
+      setCreatingFolder(false);
+    }
+  };
+
+  const handleSelectExistingFolder = async (folderId, folderName) => {
+    try {
+      const currentUserData = await base44.auth.me();
+      const existing = driveConfigs.find(c => c.config_type === selectedConfigType);
+      
+      if (existing) {
+        await base44.entities.DriveConfig.update(existing.id, {
+          folder_id: folderId,
+          folder_name: folderName
+        });
+      } else {
+        await base44.entities.DriveConfig.create({
+          config_type: selectedConfigType,
+          folder_id: folderId,
+          folder_name: folderName,
+          is_active: true,
+          created_by: currentUserData?.email || ''
+        });
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['drive-configs-all'] });
+      alert('Cartella configurata con successo!');
+    } catch (error) {
+      console.error('Error saving config:', error);
+      alert('Errore nel salvataggio della configurazione');
+    }
+  };
+
+  const currentConfig = driveConfigs.find(c => c.config_type === selectedConfigType);
+
+  return (
+    <div className="space-y-6">
+      <NeumorphicCard className="p-6">
+        <h2 className="text-xl font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
+          <Settings className="w-6 h-6 text-[#8b7355]" />
+          Configurazione Google Drive
+        </h2>
+
+        <div className="mb-6">
+          <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+            Tipo Documento
+          </label>
+          <select
+            value={selectedConfigType}
+            onChange={(e) => setSelectedConfigType(e.target.value)}
+            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+          >
+            <option value="contratti">Contratti</option>
+          </select>
+        </div>
+
+        <div className="neumorphic-flat p-5 rounded-xl mb-6">
+          <h3 className="font-bold text-[#6b6b6b] mb-3">Cartella di Salvataggio per {selectedConfigType}</h3>
+          {currentConfig?.folder_id ? (
+            <div className="flex items-center justify-between gap-3 neumorphic-pressed p-4 rounded-xl">
+              <div className="flex items-center gap-3">
+                <Folder className="w-6 h-6 text-blue-600" />
+                <div>
+                  <p className="font-medium text-[#6b6b6b]">{currentConfig.folder_name}</p>
+                  <p className="text-xs text-[#9b9b9b]">Cartella configurata</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <Folder className="w-12 h-12 text-[#9b9b9b] opacity-50 mx-auto mb-3" />
+              <p className="text-[#9b9b9b] text-sm">Nessuna cartella configurata - i file andranno nella root</p>
+            </div>
+          )}
+        </div>
+
+        <div className="neumorphic-flat p-5 rounded-xl mb-4">
+          <h3 className="font-bold text-[#6b6b6b] mb-3 flex items-center gap-2">
+            <FolderPlus className="w-5 h-5 text-green-600" />
+            Crea Nuova Cartella
+          </h3>
+          <div className="flex gap-3">
+            <input
+              type="text"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              placeholder="Nome cartella (es. Contratti Sa Pizzedda)"
+              className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+            />
+            <NeumorphicButton
+              onClick={handleCreateFolder}
+              disabled={creatingFolder}
+              variant="primary"
+              className="flex items-center gap-2"
+            >
+              {creatingFolder ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <FolderPlus className="w-5 h-5" />
+              )}
+              Crea
+            </NeumorphicButton>
+          </div>
+        </div>
+
+        <div className="neumorphic-flat p-5 rounded-xl">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-bold text-[#6b6b6b] flex items-center gap-2">
+              <Folder className="w-5 h-5 text-blue-600" />
+              Seleziona Cartella Esistente
+            </h3>
+            <NeumorphicButton
+              onClick={handleLoadDriveFolders}
+              disabled={loadingFolders}
+              className="flex items-center gap-2 text-sm"
+            >
+              {loadingFolders ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                'Carica Cartelle'
+              )}
+            </NeumorphicButton>
+          </div>
+
+          {loadingFolders ? (
+            <div className="text-center py-8">
+              <Loader2 className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-2" />
+              <p className="text-sm text-[#9b9b9b]">Caricamento cartelle...</p>
+            </div>
+          ) : driveFolders.length > 0 ? (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {driveFolders.map(folder => (
+                <button
+                  key={folder.id}
+                  onClick={() => handleSelectExistingFolder(folder.id, folder.name)}
+                  className="w-full neumorphic-pressed p-3 rounded-xl hover:bg-blue-50 transition-colors text-left flex items-center gap-3"
+                >
+                  <Folder className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-[#6b6b6b] truncate">{folder.name}</p>
+                    <p className="text-xs text-[#9b9b9b]">
+                      Creata: {new Date(folder.createdTime).toLocaleDateString('it-IT')}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-[#9b9b9b] py-4 text-sm">
+              Clicca "Carica Cartelle" per visualizzare le cartelle disponibili
+            </p>
+          )}
+        </div>
+
+        <div className="neumorphic-pressed p-4 rounded-xl bg-blue-50 mt-4">
+          <p className="text-sm text-blue-800">
+            <strong>ℹ️ Come funziona:</strong> Ogni documento firmato verrà salvato automaticamente nella cartella Drive configurata. Se non configuri una cartella, i file verranno salvati nella root del tuo Drive.
+          </p>
+        </div>
+      </NeumorphicCard>
+    </div>
   );
 }
 
