@@ -311,7 +311,6 @@ export default function PrecottureAdmin() {
   // All teglie without store filter (for chart)
   const allTeglieVendute = useMemo(() => {
     const filtered = prodottiVenduti.filter(p => {
-      if (p.data_vendita < teglieStartDate || p.data_vendita > teglieEndDate) return false;
       if (!teglieConfig.categorie.includes(p.category)) return false;
       return true;
     });
