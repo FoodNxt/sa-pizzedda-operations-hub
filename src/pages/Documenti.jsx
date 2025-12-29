@@ -1634,7 +1634,13 @@ function LettereSection() {
   });
   const { data: lettere = [] } = useQuery({
     queryKey: ['lettere-richiamo'],
-    queryFn: () => base44.entities.LetteraRichiamo.list('-created_date'),
+    queryFn: async () => {
+      const data = await base44.entities.LetteraRichiamo.list('-created_date');
+      base44.functions.invoke('processAutomaticChiusuraProcedura', {}).catch(err => 
+        console.log('Background automation check:', err)
+      );
+      return data;
+    },
   });
   const { data: users = [] } = useQuery({
     queryKey: ['users-dipendenti'],
