@@ -1079,20 +1079,31 @@ export default function TurniDipendente() {
       const configSequences = config.shift_sequences || [config.shift_sequence || 'first'];
       if (!configSequences.includes(turnoSequence)) return;
       
-      // Check if completed
-      const formData = allFormData[config.form_page] || [];
-      const dateStart = new Date(turno.data);
-      dateStart.setHours(0, 0, 0, 0);
-      const nextDayEnd = new Date(turno.data);
-      nextDayEnd.setDate(nextDayEnd.getDate() + 1);
-      nextDayEnd.setHours(6, 0, 0, 0);
+      // PRIORITÀ 1: Controlla AttivitaCompletata (più affidabile)
+      const completatoInAttivita = attivitaCompletate.some(ac => 
+        ac.turno_id === turno.id && 
+        (ac.attivita_nome === config.form_name || ac.attivita_nome.toLowerCase().includes(config.form_name.toLowerCase()))
+      );
       
-      const completed = formData.some(item => {
-        const itemDate = new Date(item.inspection_date || item.data_rilevazione || item.data_conteggio || item.data_creazione || item.data_calcolo);
-        return (item.store_name === storeName || item.store_id === turnoStoreId) &&
-               (item.inspector_name === turno.dipendente_nome || item.rilevato_da === turno.dipendente_nome) &&
-               itemDate >= dateStart && itemDate <= nextDayEnd;
-      });
+      // PRIORITÀ 2: Fallback sui dati del form (retrocompatibilità)
+      let completatoInFormData = false;
+      if (!completatoInAttivita) {
+        const formData = allFormData[config.form_page] || [];
+        const dateStart = new Date(turno.data);
+        dateStart.setHours(0, 0, 0, 0);
+        const nextDayEnd = new Date(turno.data);
+        nextDayEnd.setDate(nextDayEnd.getDate() + 1);
+        nextDayEnd.setHours(6, 0, 0, 0);
+        
+        completatoInFormData = formData.some(item => {
+          const itemDate = new Date(item.inspection_date || item.data_rilevazione || item.data_conteggio || item.data_creazione || item.data_calcolo);
+          return (item.store_name === storeName || item.store_id === turnoStoreId) &&
+                 (item.inspector_name === turno.dipendente_nome || item.rilevato_da === turno.dipendente_nome) &&
+                 itemDate >= dateStart && itemDate <= nextDayEnd;
+        });
+      }
+      
+      const completed = completatoInAttivita || completatoInFormData;
       
       formDovuti.push({ nome: config.form_name, page: config.form_page, completato: completed });
     });

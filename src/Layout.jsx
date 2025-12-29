@@ -1026,7 +1026,7 @@ export default function Layout({ children, currentPageName }) {
       `}</style>
 
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 mx-2 mt-2">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-[60] mx-2 mt-2">
         <div className="neumorphic-card p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
