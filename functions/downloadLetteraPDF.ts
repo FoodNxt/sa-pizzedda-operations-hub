@@ -52,24 +52,36 @@ Deno.serve(async (req) => {
 
     yPos = 50;
 
-    // Letter info box
+    // Letter info box - height depends on whether visualizzazione is available
+    const hasVisualizzazione = lettera.data_visualizzazione;
+    const infoBoxHeight = hasVisualizzazione ? 33 : 25;
+    
     doc.setFillColor(248, 250, 252);
     doc.setDrawColor(226, 232, 240);
-    doc.roundedRect(margin, yPos, contentWidth, 25, 3, 3, 'FD');
+    doc.roundedRect(margin, yPos, contentWidth, infoBoxHeight, 3, 3, 'FD');
 
     doc.setTextColor(71, 85, 105);
     doc.setFontSize(9);
     doc.text('Destinatario:', margin + 5, yPos + 10);
     doc.text('Data Invio:', margin + 5, yPos + 18);
     doc.text('Stato:', pageWidth / 2, yPos + 10);
+    
+    if (hasVisualizzazione) {
+      doc.text('Visualizzata:', pageWidth / 2, yPos + 18);
+    }
 
     doc.setTextColor(30, 41, 59);
     doc.setFont('helvetica', 'bold');
     doc.text(lettera.user_name || 'N/A', margin + 35, yPos + 10);
     doc.text(lettera.data_invio ? new Date(lettera.data_invio).toLocaleDateString('it-IT') : 'N/A', margin + 35, yPos + 18);
     doc.text(lettera.status === 'firmata' ? 'Firmata' : 'In attesa firma', pageWidth / 2 + 20, yPos + 10);
+    
+    if (hasVisualizzazione) {
+      doc.setTextColor(147, 51, 234);
+      doc.text(new Date(lettera.data_visualizzazione).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }), pageWidth / 2 + 20, yPos + 18);
+    }
 
-    yPos += 35;
+    yPos += infoBoxHeight + 10;
 
     // Letter content
     doc.setFont('helvetica', 'normal');

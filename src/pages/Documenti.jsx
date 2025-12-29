@@ -1796,6 +1796,10 @@ function LettereSection() {
         const mesi = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
         contenuto = contenuto.replace(/{{mese_firma_richiamo}}/g, mesi[dataFirma.getMonth()] + ' ' + dataFirma.getFullYear());
       }
+      // Data visualizzazione richiamo
+      if (richiamoData.data_visualizzazione) {
+        contenuto = contenuto.replace(/{{data_visualizzazione_richiamo}}/g, new Date(richiamoData.data_visualizzazione).toLocaleDateString('it-IT'));
+      }
       // Testo lettera richiamo
       if (richiamoData.contenuto_lettera) {
         contenuto = contenuto.replace(/{{testo_lettera_richiamo}}/g, richiamoData.contenuto_lettera);
@@ -2349,7 +2353,7 @@ function LettereSection() {
               <div className="neumorphic-pressed p-3 rounded-xl mb-2">
                 <p className="text-xs text-slate-600 mb-2">Variabili disponibili:</p>
                 <div className="flex flex-wrap gap-2">
-                  {['nome_dipendente', 'data_oggi', ...(templateForm.tipo_lettera === 'chiusura_procedura' ? ['data_invio_richiamo', 'data_firma_richiamo', 'mese_firma_richiamo', 'testo_lettera_richiamo'] : [])].map(v => (
+                  {['nome_dipendente', 'data_oggi', ...(templateForm.tipo_lettera === 'chiusura_procedura' ? ['data_invio_richiamo', 'data_firma_richiamo', 'data_visualizzazione_richiamo', 'mese_firma_richiamo', 'testo_lettera_richiamo'] : [])].map(v => (
                     <button key={v} type="button" 
                       onClick={() => setTemplateForm({ ...templateForm, contenuto: (templateForm.contenuto || '') + ` {{${v}}} ` })}
                       className="neumorphic-flat px-2 py-1 rounded text-xs hover:bg-blue-50">
