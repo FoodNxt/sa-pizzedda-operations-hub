@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate, useLocation } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 import {
   ClipboardList,
   Save,
@@ -12,6 +14,14 @@ import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 
 export default function FormInventario() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const urlParams = new URLSearchParams(location.search);
+  const redirectTo = urlParams.get('redirect');
+  const turnoId = urlParams.get('turno_id');
+  const attivitaNome = urlParams.get('attivita');
+  const preselectedStoreId = urlParams.get('store_id');
+  
   const [selectedStore, setSelectedStore] = useState('');
   const [quantities, setQuantities] = useState({});
   
@@ -25,9 +35,14 @@ export default function FormInventario() {
     const fetchUser = async () => {
       const user = await base44.auth.me();
       setCurrentUser(user);
+      
+      // Preselezione store da URL parameter
+      if (preselectedStoreId) {
+        setSelectedStore(preselectedStoreId);
+      }
     };
     fetchUser();
-  }, []);
+  }, [preselectedStoreId]);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -114,12 +129,35 @@ export default function FormInventario() {
       await base44.entities.RilevazioneInventario.bulkCreate(rilevazioni);
 
       setSaveSuccess(true);
-      setQuantities({});
-      
       
       queryClient.invalidateQueries({ queryKey: ['rilevazioni-inventario'] });
 
-      setTimeout(() => setSaveSuccess(false), 3000);
+      // Segna attività come completata se viene da un turno
+      if (turnoId && attivitaNome) {
+        try {
+          await base44.entities.AttivitaCompletata.create({
+            dipendente_id: currentUser.id,
+            dipendente_nome: currentUser.nome_cognome || currentUser.full_name,
+            turno_id: turnoId,
+            turno_data: new Date().toISOString().split('T')[0],
+            store_id: selectedStore,
+            attivita_nome: decodeURIComponent(attivitaNome),
+            completato_at: new Date().toISOString()
+          });
+        } catch (error) {
+          console.error('Error marking activity as completed:', error);
+        }
+      }
+
+      // Redirect dopo un breve delay
+      setTimeout(() => {
+        if (redirectTo) {
+          navigate(createPageUrl(redirectTo));
+        } else {
+          setSaveSuccess(false);
+          setQuantities({});
+        }
+      }, 1500);
     } catch (error) {
       console.error('Error saving inventory:', error);
       alert('Errore durante il salvataggio: ' + error.message);

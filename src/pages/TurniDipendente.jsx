@@ -1635,7 +1635,7 @@ export default function TurniDipendente() {
                                  )}
                                  {isFormActivity && (
                                    <Link 
-                                     to={createPageUrl(att.form_page) + '?redirect=TurniDipendente&turno_id=' + prossimoTurno.id + '&attivita=' + encodeURIComponent(att.nome)}
+                                     to={createPageUrl(att.form_page) + '?redirect=TurniDipendente&turno_id=' + prossimoTurno.id + '&attivita=' + encodeURIComponent(att.nome) + '&store_id=' + prossimoTurno.store_id}
                                      className="flex-1 px-4 py-2.5 bg-blue-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-blue-600 shadow-sm"
                                    >
                                      <FileText className="w-4 h-4" /> Compila Form
@@ -1691,7 +1691,7 @@ export default function TurniDipendente() {
                               </span>
                             ) : prossimoTurno.timbrata_entrata ? (
                               <Link 
-                                to={createPageUrl(form.page) + '?redirect=TurniDipendente&turno_id=' + prossimoTurno.id + '&attivita=' + encodeURIComponent(form.nome)}
+                                to={createPageUrl(form.page) + '?redirect=TurniDipendente&turno_id=' + prossimoTurno.id + '&attivita=' + encodeURIComponent(form.nome) + '&store_id=' + prossimoTurno.store_id}
                                 className="px-4 py-2.5 bg-blue-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-blue-600 shadow-sm"
                               >
                                 <FileText className="w-4 h-4" /> Compila Form

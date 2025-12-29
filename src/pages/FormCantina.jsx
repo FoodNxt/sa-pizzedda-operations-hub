@@ -23,6 +23,7 @@ export default function FormCantina() {
   const redirectTo = urlParams.get('redirect');
   const turnoId = urlParams.get('turno_id');
   const attivitaNome = urlParams.get('attivita');
+  const preselectedStoreId = urlParams.get('store_id');
   
   const [selectedStore, setSelectedStore] = useState('');
   const [quantities, setQuantities] = useState({});
@@ -38,12 +39,17 @@ export default function FormCantina() {
       try {
         const user = await base44.auth.me();
         setCurrentUser(user);
+        
+        // Preselezione store da URL parameter
+        if (preselectedStoreId) {
+          setSelectedStore(preselectedStoreId);
+        }
       } catch (error) {
         console.error('Error fetching user:', error);
       }
     };
     fetchUser();
-  }, []);
+  }, [preselectedStoreId]);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],

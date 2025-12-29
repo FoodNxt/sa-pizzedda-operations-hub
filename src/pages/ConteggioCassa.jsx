@@ -24,6 +24,7 @@ export default function ConteggioCassa() {
   const redirectTo = urlParams.get('redirect');
   const turnoId = urlParams.get('turno_id');
   const attivitaNome = urlParams.get('attivita');
+  const preselectedStoreId = urlParams.get('store_id');
   
   const [selectedStore, setSelectedStore] = useState('');
   const [valoreConteggio, setValoreConteggio] = useState('');
@@ -39,13 +40,18 @@ export default function ConteggioCassa() {
       try {
         const user = await base44.auth.me();
         setCurrentUser(user);
-        setUserType(user.user_type); // Set userType here
+        setUserType(user.user_type);
+        
+        // Preselezione store da URL parameter
+        if (preselectedStoreId) {
+          setSelectedStore(preselectedStoreId);
+        }
       } catch (error) {
         console.error('Error fetching user:', error);
       }
     };
     fetchUser();
-  }, []);
+  }, [preselectedStoreId]);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],

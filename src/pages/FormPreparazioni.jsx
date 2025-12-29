@@ -16,6 +16,14 @@ import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 
 export default function FormPreparazioni() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const urlParams = new URLSearchParams(location.search);
+  const redirectTo = urlParams.get('redirect');
+  const turnoId = urlParams.get('turno_id');
+  const attivitaNome = urlParams.get('attivita');
+  const preselectedStoreId = urlParams.get('store_id');
+  
   const [selectedStore, setSelectedStore] = useState('');
   const [preparazioni, setPreparazioni] = useState([
     { tipo: '', peso: '' }
@@ -32,9 +40,14 @@ export default function FormPreparazioni() {
       const user = await base44.auth.me();
       setCurrentUser(user);
       setUserType(user.user_type);
+      
+      // Preselezione store da URL parameter
+      if (preselectedStoreId) {
+        setSelectedStore(preselectedStoreId);
+      }
     };
     fetchUser();
-  }, []);
+  }, [preselectedStoreId]);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -100,12 +113,36 @@ export default function FormPreparazioni() {
       await base44.entities.Preparazioni.bulkCreate(records);
 
       setSaveSuccess(true);
-      setPreparazioni([{ tipo: '', peso: '' }]);
-      setSelectedStore('');
       
       queryClient.invalidateQueries({ queryKey: ['preparazioni'] });
 
-      setTimeout(() => setSaveSuccess(false), 3000);
+      // Segna attività come completata se viene da un turno
+      if (turnoId && attivitaNome) {
+        try {
+          await base44.entities.AttivitaCompletata.create({
+            dipendente_id: currentUser.id,
+            dipendente_nome: currentUser.nome_cognome || currentUser.full_name,
+            turno_id: turnoId,
+            turno_data: new Date().toISOString().split('T')[0],
+            store_id: selectedStore,
+            attivita_nome: decodeURIComponent(attivitaNome),
+            completato_at: new Date().toISOString()
+          });
+        } catch (error) {
+          console.error('Error marking activity as completed:', error);
+        }
+      }
+
+      // Redirect dopo un breve delay
+      setTimeout(() => {
+        if (redirectTo) {
+          navigate(createPageUrl(redirectTo));
+        } else {
+          setSaveSuccess(false);
+          setPreparazioni([{ tipo: '', peso: '' }]);
+          setSelectedStore('');
+        }
+      }, 1500);
     } catch (error) {
       console.error('Error saving:', error);
       alert('Errore durante il salvataggio: ' + error.message);
@@ -144,21 +181,26 @@ export default function FormPreparazioni() {
                 <Store className="w-4 h-4" />
                 Locale <span className="text-red-600">*</span>
               </label>
-              <select
-                value={selectedStore}
-                onChange={(e) => setSelectedStore(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                required
-                disabled={saving}
-              >
-                <option value="">Seleziona locale...</option>
+              <div className="flex flex-wrap gap-2">
                 {stores
                   .filter(store => !currentUser?.assigned_stores || currentUser.assigned_stores.length === 0 || currentUser.assigned_stores.includes(store.id))
                   .map(store => (
-                    <option key={store.id} value={store.id}>{store.name}</option>
+                    <button
+                      key={store.id}
+                      type="button"
+                      onClick={() => setSelectedStore(store.id)}
+                      disabled={saving}
+                      className={`px-4 py-3 rounded-xl font-medium transition-all ${
+                        selectedStore === store.id
+                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                          : 'neumorphic-flat text-slate-700 hover:shadow-md'
+                      }`}
+                    >
+                      {store.name}
+                    </button>
                   ))
                 }
-              </select>
+              </div>
             </div>
 
             <div>
