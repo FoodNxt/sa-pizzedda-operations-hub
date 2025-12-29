@@ -12,7 +12,7 @@ export default function ControlloPuliziaStoreManager() {
   const location = useLocation();
   const urlParams = new URLSearchParams(location.search);
   const redirectTo = urlParams.get('redirect');
-  const storeIdFromUrl = urlParams.get('storeId');
+  const storeIdFromUrl = urlParams.get('storeId') || urlParams.get('store_id');
   const turnoId = urlParams.get('turno_id');
   const attivitaNome = urlParams.get('attivita');
   
