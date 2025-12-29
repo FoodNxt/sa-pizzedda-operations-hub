@@ -354,6 +354,11 @@ function DipendenteLettereSection({ currentUser }) {
   const [downloadingPdf, setDownloadingPdf] = useState(null);
   const queryClient = useQueryClient();
 
+  const { data: lettereConfig = [] } = useQuery({
+    queryKey: ['lettere-config-dip'],
+    queryFn: () => base44.entities.LettereConfig.list(),
+  });
+
   const downloadLetteraPDF = async (lettera) => {
     setDownloadingPdf(lettera.id);
     try {
@@ -400,6 +405,29 @@ function DipendenteLettereSection({ currentUser }) {
     },
   });
 
+  const handleViewLettera = async (lettera) => {
+    setViewingLettera(lettera);
+    
+    if (lettera.tipo_lettera === 'lettera_richiamo' && !lettera.data_visualizzazione) {
+      try {
+        await base44.entities.LetteraRichiamo.update(lettera.id, {
+          data_visualizzazione: new Date().toISOString()
+        });
+        
+        const config = lettereConfig[0];
+        if (config?.invio_automatico_chiusura) {
+          base44.functions.invoke('checkAndSendChiusuraProcedura', {
+            lettera_richiamo_id: lettera.id
+          }).catch(err => console.error('Error triggering automation:', err));
+        }
+        
+        queryClient.invalidateQueries({ queryKey: ['mie-lettere'] });
+      } catch (error) {
+        console.error('Error marking as viewed:', error);
+      }
+    }
+  };
+
   const handleSign = () => {
     if (!signatureName.trim()) {
       alert('Inserisci il tuo nome per firmare');
@@ -439,7 +467,7 @@ function DipendenteLettereSection({ currentUser }) {
                   </div>
                   <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold">Da Firmare</span>
                 </div>
-                <button onClick={() => setViewingLettera(l)} className="w-full bg-gradient-to-r from-orange-500 to-red-600 px-4 py-3 rounded-xl text-white font-medium flex items-center justify-center gap-2">
+                <button onClick={() => handleViewLettera(l)} className="w-full bg-gradient-to-r from-orange-500 to-red-600 px-4 py-3 rounded-xl text-white font-medium flex items-center justify-center gap-2">
                   <Eye className="w-4 h-4" /> Visualizza e Firma
                 </button>
               </NeumorphicCard>
@@ -462,7 +490,7 @@ function DipendenteLettereSection({ currentUser }) {
                     <p className="text-xs text-slate-500">Firmato: {l.data_firma ? new Date(l.data_firma).toLocaleDateString('it-IT') : 'N/A'}</p>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => setViewingLettera(l)} className="nav-button p-2 rounded-lg">
+                    <button onClick={() => handleViewLettera(l)} className="nav-button p-2 rounded-lg">
                       <Eye className="w-4 h-4 text-blue-600" />
                     </button>
                     <button 
