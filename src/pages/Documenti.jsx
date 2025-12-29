@@ -387,7 +387,13 @@ function DipendenteLettereSection({ currentUser }) {
 
   const { data: lettere = [], isLoading } = useQuery({
     queryKey: ['mie-lettere', currentUser?.id],
-    queryFn: () => base44.entities.LetteraRichiamo.filter({ user_id: currentUser.id }),
+    queryFn: async () => {
+      const data = await base44.entities.LetteraRichiamo.filter({ user_id: currentUser.id });
+      base44.functions.invoke('processAutomaticChiusuraProcedura', {}).catch(err => 
+        console.log('Background automation check:', err)
+      );
+      return data;
+    },
     enabled: !!currentUser,
   });
 
