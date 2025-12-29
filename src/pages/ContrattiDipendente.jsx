@@ -461,13 +461,25 @@ export default function ContrattiDipendente() {
       {/* Lettere Tab */}
       {activeTab === 'lettere' && (
         <>
+          {/* Sezione Lettere di Richiamo */}
+          <NeumorphicCard className="p-6 bg-gradient-to-br from-orange-50 to-red-50 border-2 border-orange-200">
+            <div className="mb-4">
+              <h2 className="text-2xl font-bold text-orange-800 mb-2 flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg">
+                  <AlertTriangle className="w-6 h-6 text-white" />
+                </div>
+                Lettere di Richiamo
+              </h2>
+              <p className="text-sm text-orange-700 ml-15">Documenti disciplinari che richiedono la tua firma per presa visione</p>
+            </div>
+
           {/* Lettere di Richiamo Da Firmare */}
           {lettereRichiamoDaFirmare.length > 0 && (
-            <div>
-              <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <AlertTriangle className="w-6 h-6 text-orange-600" />
-                Lettere di Richiamo da Firmare
-              </h2>
+            <div className="mb-4">
+              <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+                <Edit className="w-5 h-5 text-orange-600" />
+                Da Firmare
+              </h3>
               
               <div className="space-y-4">
                 {lettereRichiamoDaFirmare.map(lettera => (
@@ -515,21 +527,85 @@ export default function ContrattiDipendente() {
             </div>
           )}
 
-          {/* Divider tra Lettere di Richiamo e Chiusure Procedura */}
-          {(lettereRichiamoDaFirmare.length > 0 || lettereRichiamoFirmate.length > 0) && 
-           (chiusureProceduraDaFirmare.length > 0 || chiusureProceduraFirmate.length > 0) && (
-            <div className="my-8">
-              <div className="neumorphic-pressed h-1 rounded-full bg-gradient-to-r from-orange-200 via-slate-200 to-green-200"></div>
+          {/* Lettere di Richiamo Firmate */}
+          {lettereRichiamoFirmate.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-base font-semibold text-slate-600 mb-3 flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                Firmate
+              </h3>
+              
+              <div className="space-y-2">
+                {lettereRichiamoFirmate.map(lettera => (
+                  <NeumorphicCard 
+                    key={lettera.id} 
+                    className="p-3 opacity-70 hover:opacity-100 transition-all"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-medium text-slate-700 text-xs mb-1">
+                          {lettera.template_nome || 'Lettera di Richiamo'}
+                        </h3>
+                        <p className="text-xs text-slate-400">
+                          Firmata: {safeFormatDate(lettera.data_firma)}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setViewingLetter(lettera);
+                          setSignatureName(currentUser?.nome_cognome || currentUser?.full_name || '');
+                        }}
+                        className="nav-button px-3 py-1.5 rounded-lg text-blue-600 text-xs flex items-center gap-1"
+                      >
+                        <Eye className="w-3 h-3" />
+                        Vedi
+                      </button>
+                    </div>
+                  </NeumorphicCard>
+                ))}
+              </div>
             </div>
           )}
 
+          {lettereRichiamo.length === 0 && (
+            <div className="text-center py-8">
+              <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-3" />
+              <p className="text-slate-500 font-medium">Nessuna lettera di richiamo</p>
+              <p className="text-xs text-slate-400 mt-1">Sei in regola!</p>
+            </div>
+          )}
+          </NeumorphicCard>
+
+          {/* Divider tra Lettere di Richiamo e Chiusure Procedura */}
+          {(lettereRichiamo.length > 0 || chiusureProcedura.length > 0) && (
+            <div className="my-8 flex items-center gap-3">
+              <div className="flex-1 h-1 bg-gradient-to-r from-orange-200 to-transparent rounded-full"></div>
+              <div className="neumorphic-pressed px-4 py-2 rounded-full">
+                <span className="text-xs font-bold text-slate-500">•••</span>
+              </div>
+              <div className="flex-1 h-1 bg-gradient-to-l from-green-200 to-transparent rounded-full"></div>
+            </div>
+          )}
+
+          {/* Sezione Chiusure Procedura */}
+          <NeumorphicCard className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200">
+            <div className="mb-4">
+              <h2 className="text-2xl font-bold text-green-800 mb-2 flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg">
+                  <CheckSquare className="w-6 h-6 text-white" />
+                </div>
+                Chiusura Procedura
+              </h2>
+              <p className="text-sm text-green-700 ml-15">Documenti positivi che certificano il superamento del periodo disciplinare</p>
+            </div>
+
           {/* Chiusure Procedura Da Firmare */}
           {chiusureProceduraDaFirmare.length > 0 && (
-            <div className="mt-6">
-              <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <CheckSquare className="w-6 h-6 text-green-600" />
-                Chiusure Procedura da Firmare
-              </h2>
+            <div className="mb-4">
+              <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+                <Edit className="w-5 h-5 text-green-600" />
+                Da Firmare
+              </h3>
               
               <div className="space-y-4">
                 {chiusureProceduraDaFirmare.map(lettera => (
@@ -577,65 +653,13 @@ export default function ContrattiDipendente() {
             </div>
           )}
 
-          {/* Divider tra Da Firmare e Firmate */}
-          {(lettereRichiamoDaFirmare.length > 0 || chiusureProceduraDaFirmare.length > 0) && 
-           (lettereRichiamoFirmate.length > 0 || chiusureProceduraFirmate.length > 0) && (
-            <div className="my-8">
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-gradient-to-r from-transparent to-slate-300"></div>
-                <span className="text-xs text-slate-400 font-medium">ARCHIVIO</span>
-                <div className="flex-1 h-px bg-gradient-to-l from-transparent to-slate-300"></div>
-              </div>
-            </div>
-          )}
-
-          {/* Lettere di Richiamo Firmate */}
-          {lettereRichiamoFirmate.length > 0 && (
-            <div className="mt-6">
-              <h2 className="text-base font-semibold text-slate-600 mb-3 flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                Lettere di Richiamo Firmate
-              </h2>
-              
-              <div className="space-y-2">
-                {lettereRichiamoFirmate.map(lettera => (
-                  <NeumorphicCard 
-                    key={lettera.id} 
-                    className="p-3 opacity-70 hover:opacity-100 transition-all"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <h3 className="font-medium text-slate-700 text-xs mb-1">
-                          {lettera.template_nome || 'Lettera di Richiamo'}
-                        </h3>
-                        <p className="text-xs text-slate-400">
-                          Firmata: {safeFormatDate(lettera.data_firma)}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => {
-                          setViewingLetter(lettera);
-                          setSignatureName(currentUser?.nome_cognome || currentUser?.full_name || '');
-                        }}
-                        className="nav-button px-3 py-1.5 rounded-lg text-blue-600 text-xs flex items-center gap-1"
-                      >
-                        <Eye className="w-3 h-3" />
-                        Vedi
-                      </button>
-                    </div>
-                  </NeumorphicCard>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Chiusure Procedura Firmate */}
           {chiusureProceduraFirmate.length > 0 && (
             <div className="mt-6">
-              <h2 className="text-base font-semibold text-slate-600 mb-3 flex items-center gap-2">
+              <h3 className="text-base font-semibold text-slate-600 mb-3 flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-green-500" />
-                Chiusure Procedura Firmate
-              </h2>
+                Firmate
+              </h3>
               
               <div className="space-y-2">
                 {chiusureProceduraFirmate.map(lettera => (
@@ -669,12 +693,21 @@ export default function ContrattiDipendente() {
             </div>
           )}
 
-          {/* Empty State */}
+          {chiusureProcedura.length === 0 && (
+            <div className="text-center py-8">
+              <Mail className="w-16 h-16 text-slate-300 mx-auto mb-3" />
+              <p className="text-slate-500 font-medium">Nessuna chiusura procedura</p>
+              <p className="text-xs text-slate-400 mt-1">Nessun documento disponibile</p>
+            </div>
+          )}
+          </NeumorphicCard>
+
+          {/* Empty State Globale */}
           {lettereRichiamo.length === 0 && chiusureProcedura.length === 0 && (
             <NeumorphicCard className="p-8 text-center">
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-3" />
-              <p className="text-slate-500 font-medium">Nessuna lettera presente</p>
-              <p className="text-xs text-slate-400 mt-1">Sei in regola!</p>
+              <p className="text-slate-500 font-medium">Nessun documento presente</p>
+              <p className="text-xs text-slate-400 mt-1">Tutto in regola!</p>
             </NeumorphicCard>
           )}
         </>
