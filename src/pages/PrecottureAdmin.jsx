@@ -1127,7 +1127,6 @@ export default function PrecottureAdmin() {
                   ))}
                 </div>
               </NeumorphicCard>
-            )}
 
             {/* Tabella dettagliata */}
             {teglieVendute.length > 0 && (
