@@ -182,6 +182,7 @@ export default function GestioneAccessoPagine() {
     { value: 'Preparazioni', label: 'Preparazioni', category: 'Inventory' },
     { value: 'InventoryForms', label: 'Inventory Forms', category: 'Inventory' },
     { value: 'OrdiniAdmin', label: 'Ordini Fornitori Admin', category: 'Inventory' },
+    { value: 'Ordini', label: 'Ordini Fornitori (Dipendente)', category: 'Inventory' },
     { value: 'Employees', label: 'Employees', category: 'HR' },
     { value: 'Shifts', label: 'Shifts', category: 'HR' },
     { value: 'Payroll', label: 'Payroll', category: 'HR' },

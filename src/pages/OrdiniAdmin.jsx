@@ -250,7 +250,7 @@ Sa Pizzedda`
   ];
 
   return (
-    <ProtectedPage pageName="OrdiniAdmin">
+    <ProtectedPage pageName="Inventory">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">📦 Gestione Ordini Fornitori</h1>
