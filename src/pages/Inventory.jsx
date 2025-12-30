@@ -71,6 +71,27 @@ export default function Inventory() {
     subject: '',
     body: ''
   });
+  const [editingOrder, setEditingOrder] = useState(null);
+
+  const { data: ordiniInviati = [] } = useQuery({
+    queryKey: ['ordini-inviati'],
+    queryFn: () => base44.entities.OrdineFornitore.filter({ status: 'inviato' }),
+  });
+
+  const { data: ordiniCompletati = [] } = useQuery({
+    queryKey: ['ordini-completati'],
+    queryFn: () => base44.entities.OrdineFornitore.filter({ status: 'completato' }),
+  });
+
+  const createOrderMutation = useMutation({
+    mutationFn: (order) => base44.entities.OrdineFornitore.create(order),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ordini-inviati'] });
+      queryClient.invalidateQueries({ queryKey: ['ordini-completati'] });
+      setEditingOrder(null);
+      alert('✅ Ordine segnato come inviato!');
+    },
+  });
 
   const { data: inventoryCantina = [] } = useQuery({
     queryKey: ['rilevazione-inventario-cantina'],
@@ -360,10 +381,50 @@ Sa Pizzedda`
     );
   };
 
+  // Open order editor
+  const openOrderEditor = (storeName, storeId, supplierName, orders) => {
+    const fornitore = getFornitoreByName(supplierName);
+    const prodotti = orders.map(order => ({
+      prodotto_id: order.product.id,
+      nome_prodotto: order.nome_prodotto,
+      quantita_ordinata: order.quantita_ordine,
+      quantita_ricevuta: 0,
+      unita_misura: order.unita_misura,
+      prezzo_unitario: order.product.prezzo_unitario || 0
+    }));
+
+    const totaleOrdine = prodotti.reduce((sum, p) => sum + (p.prezzo_unitario * p.quantita_ordinata), 0);
+
+    setEditingOrder({
+      store_id: storeId,
+      store_name: storeName,
+      fornitore: supplierName,
+      fornitore_email: fornitore?.contatto_email || '',
+      prodotti,
+      totale_ordine: totaleOrdine,
+      note: ''
+    });
+  };
+
+  // Save order as sent
+  const saveOrderAsSent = async () => {
+    if (!editingOrder) return;
+
+    const orderData = {
+      ...editingOrder,
+      status: 'inviato',
+      data_invio: new Date().toISOString()
+    };
+
+    await createOrderMutation.mutateAsync(orderData);
+  };
+
   const tabs = [
     { id: 'overview', label: 'Panoramica', icon: Package },
     { id: 'history', label: 'Storico', icon: History },
-    { id: 'orders', label: 'Ordini', icon: ShoppingCart }
+    { id: 'orders', label: 'Ordini', icon: ShoppingCart },
+    { id: 'ordini-inviati', label: 'Ordini Inviati', icon: Send },
+    { id: 'ordini-completati', label: 'Ordini Arrivati', icon: CheckCircle }
   ];
 
   return (
@@ -397,6 +458,16 @@ Sa Pizzedda`
               {tab.id === 'orders' && ordersNeeded.length > 0 && (
                 <span className="px-2 py-0.5 rounded-full text-xs bg-red-500 text-white">
                   {ordersNeeded.length}
+                </span>
+              )}
+              {tab.id === 'ordini-inviati' && ordiniInviati.length > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-xs bg-blue-500 text-white">
+                  {ordiniInviati.length}
+                </span>
+              )}
+              {tab.id === 'ordini-completati' && ordiniCompletati.length > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-xs bg-green-500 text-white">
+                  {ordiniCompletati.length}
                 </span>
               )}
             </button>
@@ -772,34 +843,44 @@ Sa Pizzedda`
                                 )}
                               </div>
                               
-                              {fornitore?.contatto_email && (
+                              <div className="flex gap-2">
                                 <button
-                                  onClick={() => openEmailCustomization(storeData.store.name, supplier, orders)}
-                                  disabled={isSending || wasSent}
-                                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                                    wasSent
-                                      ? 'bg-green-100 text-green-700'
-                                      : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700'
-                                  } disabled:opacity-50`}
+                                  onClick={() => openOrderEditor(storeData.store.name, storeId, supplier, orders)}
+                                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 transition-all"
                                 >
-                                  {isSending ? (
-                                    <>
-                                      <Loader2 className="w-4 h-4 animate-spin" />
-                                      Invio...
-                                    </>
-                                  ) : wasSent ? (
-                                    <>
-                                      <CheckCircle className="w-4 h-4" />
-                                      Inviata!
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Edit className="w-4 h-4" />
-                                      Prepara Ordine
-                                    </>
-                                  )}
+                                  <Send className="w-4 h-4" />
+                                  Segna Inviato
                                 </button>
-                              )}
+                                
+                                {fornitore?.contatto_email && (
+                                  <button
+                                    onClick={() => openEmailCustomization(storeData.store.name, supplier, orders)}
+                                    disabled={isSending || wasSent}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                                      wasSent
+                                        ? 'bg-green-100 text-green-700'
+                                        : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700'
+                                    } disabled:opacity-50`}
+                                  >
+                                    {isSending ? (
+                                      <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Invio...
+                                      </>
+                                    ) : wasSent ? (
+                                      <>
+                                        <CheckCircle className="w-4 h-4" />
+                                        Inviata!
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Mail className="w-4 h-4" />
+                                        Invia Email
+                                      </>
+                                    )}
+                                  </button>
+                                )}
+                              </div>
                               
                               {!fornitore?.contatto_email && (
                                 <span className="text-xs text-orange-600 flex items-center gap-1">
@@ -891,6 +972,211 @@ Sa Pizzedda`
                   </NeumorphicCard>
                 ))
             )}
+          </div>
+        )}
+
+        {/* Ordini Inviati Tab */}
+        {activeTab === 'ordini-inviati' && (
+          <div className="space-y-4">
+            <NeumorphicCard className="p-6">
+              <h2 className="text-xl font-bold text-slate-800 mb-4">Ordini Inviati ({ordiniInviati.length})</h2>
+              {ordiniInviati.length === 0 ? (
+                <p className="text-center text-slate-500 py-8">Nessun ordine inviato</p>
+              ) : (
+                <div className="space-y-3">
+                  {ordiniInviati
+                    .filter(o => selectedStore === 'all' || o.store_id === selectedStore)
+                    .map(ordine => (
+                      <div key={ordine.id} className="neumorphic-pressed p-4 rounded-xl">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h3 className="font-bold text-slate-800">{ordine.store_name}</h3>
+                            <p className="text-sm text-slate-500">{ordine.fornitore}</p>
+                            <p className="text-xs text-slate-400">
+                              Inviato: {format(parseISO(ordine.data_invio), 'dd/MM/yyyy HH:mm', { locale: it })}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xl font-bold text-blue-600">€{ordine.totale_ordine.toFixed(2)}</p>
+                            <p className="text-xs text-slate-500">{ordine.prodotti.length} prodotti</p>
+                          </div>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-slate-300">
+                                <th className="text-left p-2 text-slate-600 font-medium text-xs">Prodotto</th>
+                                <th className="text-right p-2 text-slate-600 font-medium text-xs">Quantità</th>
+                                <th className="text-right p-2 text-slate-600 font-medium text-xs">Prezzo</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {ordine.prodotti.map((prod, idx) => (
+                                <tr key={idx} className="border-b border-slate-200">
+                                  <td className="p-2 text-slate-700">{prod.nome_prodotto}</td>
+                                  <td className="p-2 text-right text-slate-700">
+                                    {prod.quantita_ordinata} {prod.unita_misura}
+                                  </td>
+                                  <td className="p-2 text-right text-slate-600">
+                                    €{(prod.prezzo_unitario * prod.quantita_ordinata).toFixed(2)}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </NeumorphicCard>
+          </div>
+        )}
+
+        {/* Ordini Completati Tab */}
+        {activeTab === 'ordini-completati' && (
+          <div className="space-y-4">
+            <NeumorphicCard className="p-6">
+              <h2 className="text-xl font-bold text-slate-800 mb-4">Ordini Arrivati ({ordiniCompletati.length})</h2>
+              {ordiniCompletati.length === 0 ? (
+                <p className="text-center text-slate-500 py-8">Nessun ordine completato</p>
+              ) : (
+                <div className="space-y-3">
+                  {ordiniCompletati
+                    .filter(o => selectedStore === 'all' || o.store_id === selectedStore)
+                    .map(ordine => (
+                      <div key={ordine.id} className="neumorphic-pressed p-4 rounded-xl border-2 border-green-200">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h3 className="font-bold text-slate-800">{ordine.store_name}</h3>
+                            <p className="text-sm text-slate-500">{ordine.fornitore}</p>
+                            <p className="text-xs text-slate-400">
+                              Completato: {format(parseISO(ordine.data_completamento), 'dd/MM/yyyy HH:mm', { locale: it })}
+                            </p>
+                            <p className="text-xs text-slate-400">Da: {ordine.completato_da}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xl font-bold text-green-600">€{ordine.totale_ordine.toFixed(2)}</p>
+                            <p className="text-xs text-slate-500">{ordine.prodotti.length} prodotti</p>
+                          </div>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-slate-300">
+                                <th className="text-left p-2 text-slate-600 font-medium text-xs">Prodotto</th>
+                                <th className="text-right p-2 text-slate-600 font-medium text-xs">Ordinato</th>
+                                <th className="text-right p-2 text-slate-600 font-medium text-xs">Ricevuto</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {ordine.prodotti.map((prod, idx) => (
+                                <tr key={idx} className="border-b border-slate-200">
+                                  <td className="p-2 text-slate-700">{prod.nome_prodotto}</td>
+                                  <td className="p-2 text-right text-slate-700">
+                                    {prod.quantita_ordinata} {prod.unita_misura}
+                                  </td>
+                                  <td className={`p-2 text-right font-bold ${
+                                    prod.quantita_ricevuta === prod.quantita_ordinata 
+                                      ? 'text-green-600' 
+                                      : 'text-orange-600'
+                                  }`}>
+                                    {prod.quantita_ricevuta} {prod.unita_misura}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        {ordine.note && (
+                          <div className="mt-3 p-2 bg-yellow-50 rounded-lg">
+                            <p className="text-xs text-slate-600"><strong>Note:</strong> {ordine.note}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              )}
+            </NeumorphicCard>
+          </div>
+        )}
+
+        {/* Order Editor Modal */}
+        {editingOrder && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800">Conferma Ordine - {editingOrder.store_name}</h2>
+                <button onClick={() => setEditingOrder(null)} className="nav-button p-2 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="neumorphic-flat p-4 rounded-xl">
+                  <p className="text-sm text-slate-600"><strong>Fornitore:</strong> {editingOrder.fornitore}</p>
+                  <p className="text-sm text-slate-600"><strong>Totale:</strong> €{editingOrder.totale_ordine.toFixed(2)}</p>
+                </div>
+
+                <div>
+                  <h3 className="font-bold text-slate-800 mb-2">Prodotti Ordinati</h3>
+                  <div className="space-y-2">
+                    {editingOrder.prodotti.map((prod, idx) => (
+                      <div key={idx} className="neumorphic-pressed p-3 rounded-xl grid grid-cols-3 gap-2 items-center">
+                        <div>
+                          <p className="text-sm font-medium text-slate-800">{prod.nome_prodotto}</p>
+                        </div>
+                        <div>
+                          <label className="text-xs text-slate-500">Quantità</label>
+                          <input
+                            type="number"
+                            value={prod.quantita_ordinata}
+                            onChange={(e) => {
+                              const newProdotti = [...editingOrder.prodotti];
+                              newProdotti[idx].quantita_ordinata = parseFloat(e.target.value) || 0;
+                              const newTotale = newProdotti.reduce((sum, p) => sum + (p.prezzo_unitario * p.quantita_ordinata), 0);
+                              setEditingOrder({ ...editingOrder, prodotti: newProdotti, totale_ordine: newTotale });
+                            }}
+                            className="w-full neumorphic-pressed px-2 py-1 rounded-lg text-sm text-slate-700 outline-none"
+                          />
+                          <p className="text-xs text-slate-500">{prod.unita_misura}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-slate-500">€{prod.prezzo_unitario.toFixed(2)}/u</p>
+                          <p className="text-sm font-bold text-blue-600">
+                            €{(prod.prezzo_unitario * prod.quantita_ordinata).toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Note (opzionale)</label>
+                  <textarea
+                    value={editingOrder.note}
+                    onChange={(e) => setEditingOrder({ ...editingOrder, note: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none h-20 resize-none"
+                    placeholder="Aggiungi note sull'ordine..."
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <NeumorphicButton onClick={() => setEditingOrder(null)} className="flex-1">
+                    Annulla
+                  </NeumorphicButton>
+                  <NeumorphicButton
+                    onClick={saveOrderAsSent}
+                    variant="primary"
+                    className="flex-1 flex items-center justify-center gap-2"
+                  >
+                    <Send className="w-5 h-5" />
+                    Segna Come Inviato
+                  </NeumorphicButton>
+                </div>
+              </div>
+            </NeumorphicCard>
           </div>
         )}
 
