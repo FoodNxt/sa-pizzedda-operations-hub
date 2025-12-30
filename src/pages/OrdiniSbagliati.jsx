@@ -352,6 +352,16 @@ export default function OrdiniSbagliati() {
           continue;
         }
         
+        // Parse and validate numeric values
+        const orderTotal = parseNumericValue(record[orderTotalField]);
+        const refundValue = parseNumericValue(record[refundField]);
+        
+        // Skip if both total and refund are 0 or missing
+        if (orderTotal === 0 && refundValue === 0) {
+          skippedLines.push(i + 1);
+          continue;
+        }
+        
         const finalStoreName = platformStoreName;
         const finalOrderId = orderId;
 
