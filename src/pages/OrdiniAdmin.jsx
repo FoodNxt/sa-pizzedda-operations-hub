@@ -287,11 +287,6 @@ Sa Pizzedda`
                   {ordiniInviati.length}
                 </span>
               )}
-              {tab.id === 'inviati' && ordiniInviati.length > 0 && (
-                <span className="px-2 py-0.5 rounded-full text-xs bg-blue-500 text-white">
-                  {ordiniInviati.length}
-                </span>
-              )}
             </button>
           ))}
         </div>
