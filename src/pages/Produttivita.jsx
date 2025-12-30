@@ -11,6 +11,8 @@ import ProtectedPage from "../components/ProtectedPage";
 export default function Produttivita() {
   const [selectedStore, setSelectedStore] = useState('all');
   const [dateRange, setDateRange] = useState('month');
+  const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
+  const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [timeSlotView, setTimeSlotView] = useState('30min'); // '30min' or '1hour'
   const [showRevenue, setShowRevenue] = useState(true);
@@ -47,10 +49,17 @@ export default function Produttivita() {
         const date = parseISO(r.date);
         return date >= monthStart && date <= monthEnd;
       });
+    } else if (dateRange === 'custom') {
+      const start = parseISO(startDate);
+      const end = parseISO(endDate);
+      filtered = filtered.filter(r => {
+        const date = parseISO(r.date);
+        return date >= start && date <= end;
+      });
     }
 
     return filtered;
-  }, [revenueData, selectedStore, dateRange]);
+  }, [revenueData, selectedStore, dateRange, startDate, endDate]);
 
   // Calculate hours worked by time slot
   const hoursWorkedBySlot = useMemo(() => {
@@ -118,7 +127,7 @@ export default function Produttivita() {
         slot: item.slot,
         avgRevenue: item.revenue / item.count,
         totalHours: item.hours,
-        revenuePerHour: item.hours > 0 ? (item.revenue / item.count) / item.hours : 0
+        revenuePerHour: item.hours > 0 ? item.revenue / item.hours : 0
       }))
       .sort((a, b) => a.slot.localeCompare(b.slot));
   }, [filteredData, timeSlotView, hoursWorkedBySlot]);
@@ -295,9 +304,33 @@ export default function Produttivita() {
                 className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
               >
                 <option value="month">Questo mese</option>
+                <option value="custom">Personalizzato</option>
                 <option value="all">Tutti i periodi</option>
               </select>
             </div>
+
+            {dateRange === 'custom' && (
+              <>
+                <div>
+                  <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Data Inizio</label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Data Fine</label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                  />
+                </div>
+              </>
+            )}
           </div>
         </NeumorphicCard>
 
