@@ -16,6 +16,7 @@ export default function ZapierProduttivita() {
   };
 
   const examplePayload = {
+    secret: "IL_TUO_SECRET_QUI",
     date: "2025-01-15",
     store: "Ticinese",
     "00:00-00:30": "0",
@@ -120,6 +121,7 @@ export default function ZapierProduttivita() {
                 Mappa le colonne del tuo file ai seguenti campi JSON:
               </p>
               <div className="bg-white p-3 rounded-lg space-y-1 text-xs font-mono">
+                <p><strong>secret:</strong> Il webhook secret configurato (ZAPIER_PRODUTTIVITA_WEBHOOK_SECRET)</p>
                 <p><strong>date:</strong> Data nel formato YYYY-MM-DD</p>
                 <p><strong>store:</strong> Nome del negozio (deve corrispondere esattamente)</p>
                 <p><strong>00:00-00:30:</strong> Revenue per slot (e così via per tutti i 48 slot)</p>
@@ -146,6 +148,7 @@ export default function ZapierProduttivita() {
         <NeumorphicCard className="p-6 bg-blue-50">
           <h2 className="text-xl font-bold text-blue-800 mb-4">📝 Note Importanti</h2>
           <ul className="space-y-2 text-sm text-blue-700">
+            <li>🔒 <strong>IMPORTANTE:</strong> Aggiungi il campo "secret" con il valore ZAPIER_PRODUTTIVITA_WEBHOOK_SECRET configurato nel sistema</li>
             <li>✅ Il nome del negozio deve corrispondere ESATTAMENTE a quello configurato nel sistema</li>
             <li>✅ La data deve essere nel formato YYYY-MM-DD (es. 2025-01-15)</li>
             <li>✅ I valori di revenue possono essere decimali (usa il punto, non la virgola)</li>

@@ -6,10 +6,19 @@ Deno.serve(async (req) => {
     
     const body = await req.json();
     
+    // Validate webhook secret
+    const expectedSecret = Deno.env.get('ZAPIER_PRODUTTIVITA_WEBHOOK_SECRET');
+    if (!expectedSecret || body.secret !== expectedSecret) {
+      return Response.json({ 
+        error: 'Unauthorized: Invalid or missing webhook secret' 
+      }, { status: 401 });
+    }
+    
     const {
       date,
       store,
       total_sum_all_slots,
+      secret,
       ...slots
     } = body;
 
