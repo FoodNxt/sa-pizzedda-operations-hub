@@ -196,6 +196,54 @@ export default function Produttivita() {
     return data;
   }, [filteredData, selectedDate, allShifts, selectedStore, timeSlotView]);
 
+  // Heatmap data: day of week x time slot
+  const heatmapData = useMemo(() => {
+    const daySlotMap = {};
+    const daysOfWeek = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
+    
+    filteredData.forEach(record => {
+      const date = parseISO(record.date);
+      const dayIndex = date.getDay(); // 0=Sunday, 1=Monday, etc.
+      const adjustedIndex = dayIndex === 0 ? 6 : dayIndex - 1; // Convert to 0=Monday
+      const dayName = daysOfWeek[adjustedIndex];
+      
+      Object.entries(record.slots || {}).forEach(([slot, revenue]) => {
+        let key;
+        if (timeSlotView === '1hour') {
+          const hour = slot.split(':')[0] + ':00';
+          key = hour;
+        } else {
+          key = slot;
+        }
+        
+        const mapKey = `${dayName}|${key}`;
+        if (!daySlotMap[mapKey]) {
+          daySlotMap[mapKey] = { revenue: 0, hours: 0, count: 0 };
+        }
+        daySlotMap[mapKey].revenue += revenue || 0;
+        daySlotMap[mapKey].hours += hoursWorkedBySlot[slot] || 0;
+        daySlotMap[mapKey].count += 1;
+      });
+    });
+    
+    // Convert to structured format
+    const result = daysOfWeek.map(day => {
+      const dayData = { day };
+      Object.keys(daySlotMap)
+        .filter(k => k.startsWith(day + '|'))
+        .forEach(k => {
+          const slot = k.split('|')[1];
+          const data = daySlotMap[k];
+          const avgRevenue = data.revenue / data.count;
+          const avgHours = data.hours / data.count;
+          dayData[slot] = avgHours > 0 ? avgRevenue / avgHours : 0;
+        });
+      return dayData;
+    });
+    
+    return result;
+  }, [filteredData, timeSlotView, hoursWorkedBySlot]);
+
   const stats = {
     totalRevenue: filteredData.reduce((sum, r) => sum + (r.total_revenue || 0), 0),
     avgDailyRevenue: filteredData.length > 0 ? filteredData.reduce((sum, r) => sum + (r.total_revenue || 0), 0) / filteredData.length : 0,
@@ -387,6 +435,93 @@ export default function Produttivita() {
           ) : (
             <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
           )}
+        </NeumorphicCard>
+
+        {/* Heatmap - Produttività per Giorno e Slot */}
+        <NeumorphicCard className="p-6">
+          <div className="mb-4">
+            <h3 className="text-lg font-bold text-[#6b6b6b]">Heatmap Produttività per Giorno e Slot</h3>
+            <p className="text-sm text-[#9b9b9b]">Produttività media (€/ora) per giorno della settimana e fascia oraria</p>
+          </div>
+          {heatmapData.length > 0 && (() => {
+            // Get all unique slots from data
+            const allSlots = new Set();
+            heatmapData.forEach(row => {
+              Object.keys(row).forEach(key => {
+                if (key !== 'day') allSlots.add(key);
+              });
+            });
+            const slots = Array.from(allSlots).sort();
+            
+            // Find min/max for color scaling
+            const allValues = heatmapData.flatMap(row => 
+              slots.map(slot => row[slot] || 0).filter(v => v > 0)
+            );
+            const maxValue = allValues.length > 0 ? Math.max(...allValues) : 100;
+            const minValue = allValues.length > 0 ? Math.min(...allValues) : 0;
+            
+            const getColor = (value) => {
+              if (!value || value === 0) return 'bg-gray-100';
+              const normalized = (value - minValue) / (maxValue - minValue);
+              if (normalized >= 0.8) return 'bg-green-600 text-white';
+              if (normalized >= 0.6) return 'bg-green-500 text-white';
+              if (normalized >= 0.4) return 'bg-yellow-500 text-gray-900';
+              if (normalized >= 0.2) return 'bg-orange-400 text-gray-900';
+              return 'bg-red-400 text-white';
+            };
+            
+            return (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr>
+                      <th className="p-2 text-left text-[#9b9b9b] font-medium sticky left-0 bg-white z-10">Giorno</th>
+                      {slots.map(slot => (
+                        <th key={slot} className="p-2 text-center text-[#9b9b9b] font-medium min-w-[60px]">
+                          {slot}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {heatmapData.map(row => (
+                      <tr key={row.day} className="border-t border-gray-200">
+                        <td className="p-2 font-medium text-[#6b6b6b] sticky left-0 bg-white z-10">
+                          {row.day}
+                        </td>
+                        {slots.map(slot => {
+                          const value = row[slot] || 0;
+                          return (
+                            <td
+                              key={slot}
+                              className={`p-2 text-center font-semibold transition-all hover:scale-110 cursor-pointer ${getColor(value)}`}
+                              title={value > 0 ? `€${value.toFixed(2)}/ora` : 'Nessun dato'}
+                            >
+                              {value > 0 ? `€${value.toFixed(0)}` : '-'}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="mt-4 flex items-center justify-center gap-4 text-xs">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-red-400 rounded"></div>
+                    <span className="text-[#9b9b9b]">Bassa</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+                    <span className="text-[#9b9b9b]">Media</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-green-600 rounded"></div>
+                    <span className="text-[#9b9b9b]">Alta</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </NeumorphicCard>
 
         {/* Revenue per Hour Chart - NEW */}
