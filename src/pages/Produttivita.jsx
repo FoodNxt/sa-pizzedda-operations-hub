@@ -126,7 +126,7 @@ export default function Produttivita() {
       .map(item => ({
         slot: item.slot,
         avgRevenue: item.revenue / item.count,
-        totalHours: item.hours,
+        avgHours: item.hours / item.count,
         revenuePerHour: item.hours > 0 ? item.revenue / item.hours : 0
       }))
       .sort((a, b) => a.slot.localeCompare(b.slot));
@@ -375,13 +375,13 @@ export default function Produttivita() {
                 <Tooltip 
                   formatter={(value, name) => {
                     if (name === 'avgRevenue') return `€${value.toFixed(2)}`;
-                    if (name === 'totalHours') return `${value.toFixed(1)}h`;
+                    if (name === 'avgHours') return `${value.toFixed(1)}h`;
                     return value;
                   }}
                 />
                 <Legend />
                 {showRevenue && <Bar yAxisId="left" dataKey="avgRevenue" fill="#3b82f6" name="Revenue Media (€)" />}
-                {showHours && <Bar yAxisId="right" dataKey="totalHours" fill="#f59e0b" name="Ore Lavorate" />}
+                {showHours && <Bar yAxisId="right" dataKey="avgHours" fill="#f59e0b" name="Ore Medie Lavorate" />}
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -419,8 +419,26 @@ export default function Produttivita() {
                 />
                 <YAxis />
                 <Tooltip 
-                  formatter={(value) => `€${value.toFixed(2)}/ora`}
-                  labelFormatter={(label) => `Slot: ${label}`}
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      return (
+                        <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
+                          <p className="font-bold text-gray-800 mb-2">{label}</p>
+                          <p className="text-sm text-gray-700">
+                            <span className="font-semibold">€/ora:</span> €{data.revenuePerHour.toFixed(2)}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            <span className="font-semibold">Revenue media:</span> €{data.avgRevenue.toFixed(2)}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            <span className="font-semibold">Ore medie:</span> {data.avgHours.toFixed(1)}h
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
                 />
                 <Legend />
                 <Line 
