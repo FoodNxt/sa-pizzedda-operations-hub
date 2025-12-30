@@ -16,6 +16,7 @@ export default function OverviewContratti() {
     data_inizio: '',
     durata_mesi: 12
   });
+  const [viewingHistory, setViewingHistory] = useState(null);
 
   const queryClient = useQueryClient();
 
