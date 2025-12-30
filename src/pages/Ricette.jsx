@@ -22,6 +22,7 @@ export default function Ricette() {
   const [showForm, setShowForm] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewingRecipe, setViewingRecipe] = useState(null);
   const [formData, setFormData] = useState({
     nome_prodotto: '',
     categoria: 'pizza',
@@ -122,6 +123,55 @@ export default function Ricette() {
       attivo: ricetta.attivo !== false
     });
     setShowForm(true);
+  };
+
+  const calculateIngredientCost = (ing) => {
+    if (ing.is_semilavorato) {
+      return ing.quantita * (ing.prezzo_unitario || 0);
+    }
+
+    const materiaPrima = materiePrime.find(m => m.id === ing.materia_prima_id);
+    if (!materiaPrima || !materiaPrima.prezzo_unitario) return 0;
+
+    let pricePerBaseUnit = materiaPrima.prezzo_unitario;
+    
+    if (materiaPrima.peso_dimensione_unita && materiaPrima.unita_misura_peso) {
+      pricePerBaseUnit = materiaPrima.prezzo_unitario / materiaPrima.peso_dimensione_unita;
+    }
+
+    let quantityInBaseUnit = ing.quantita;
+    
+    if (materiaPrima.peso_dimensione_unita && materiaPrima.unita_misura_peso) {
+      const baseUnit = materiaPrima.unita_misura_peso;
+      
+      if (ing.unita_misura === 'g' && baseUnit === 'kg') {
+        quantityInBaseUnit = ing.quantita / 1000;
+      } else if (ing.unita_misura === 'kg' && baseUnit === 'kg') {
+        quantityInBaseUnit = ing.quantita;
+      } else if (ing.unita_misura === 'ml' && baseUnit === 'litri') {
+        quantityInBaseUnit = ing.quantita / 1000;
+      } else if (ing.unita_misura === 'litri' && baseUnit === 'litri') {
+        quantityInBaseUnit = ing.quantita;
+      } else if (ing.unita_misura === 'g' && baseUnit === 'g') {
+        quantityInBaseUnit = ing.quantita;
+      } else if (ing.unita_misura === 'ml' && baseUnit === 'ml') {
+        quantityInBaseUnit = ing.quantita;
+      } else {
+        quantityInBaseUnit = ing.quantita;
+      }
+    } else {
+      if (ing.unita_misura === 'g' && materiaPrima.unita_misura === 'kg') {
+        quantityInBaseUnit = ing.quantita / 1000;
+      } else if (ing.unita_misura === 'ml' && materiaPrima.unita_misura === 'litri') {
+        quantityInBaseUnit = ing.quantita / 1000;
+      } else if (ing.unita_misura === materiaPrima.unita_misura) {
+        quantityInBaseUnit = ing.quantita;
+      } else {
+        quantityInBaseUnit = ing.quantita;
+      }
+    }
+
+    return quantityInBaseUnit * pricePerBaseUnit;
   };
 
   const addIngredient = () => {
@@ -1022,6 +1072,100 @@ export default function Ricette() {
             </NeumorphicCard>
           )}
         </>
+      )}
+
+      {/* Recipe Detail Modal */}
+      {viewingRecipe && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <NeumorphicCard className="max-w-4xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-[#6b6b6b]">{viewingRecipe.nome_prodotto}</h2>
+              <button
+                onClick={() => setViewingRecipe(null)}
+                className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+              >
+                <X className="w-5 h-5 text-[#9b9b9b]" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                  <p className="text-xs text-[#9b9b9b] mb-1">Costo Unitario</p>
+                  <p className="text-xl font-bold text-blue-600">€{viewingRecipe.costo_unitario?.toFixed(2)}</p>
+                </div>
+                <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                  <p className="text-xs text-[#9b9b9b] mb-1">Prezzo Online</p>
+                  <p className="text-xl font-bold text-green-600">€{viewingRecipe.prezzo_vendita_online?.toFixed(2)}</p>
+                </div>
+                <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                  <p className="text-xs text-[#9b9b9b] mb-1">FC Online</p>
+                  <p className="text-xl font-bold text-purple-600">{viewingRecipe.food_cost_online?.toFixed(1)}%</p>
+                </div>
+                <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                  <p className="text-xs text-[#9b9b9b] mb-1">Margine Online</p>
+                  <p className="text-xl font-bold text-green-600">€{viewingRecipe.margine_online?.toFixed(2)}</p>
+                </div>
+              </div>
+
+              {/* Ingredients */}
+              <div className="neumorphic-flat p-6 rounded-xl">
+                <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Ingredienti ({viewingRecipe.ingredienti?.length || 0})</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b-2 border-blue-600">
+                        <th className="text-left p-3 text-slate-600 font-medium text-sm">Ingrediente</th>
+                        <th className="text-right p-3 text-slate-600 font-medium text-sm">Quantità</th>
+                        <th className="text-right p-3 text-slate-600 font-medium text-sm">Prezzo/Unità</th>
+                        <th className="text-right p-3 text-slate-600 font-medium text-sm">Costo</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {viewingRecipe.ingredienti?.map((ing, idx) => {
+                        const costoIngrediente = calculateIngredientCost(ing);
+                        return (
+                          <tr key={idx} className="border-b border-slate-200">
+                            <td className="p-3">
+                              <div>
+                                <p className="text-sm font-medium text-slate-800">{ing.nome_prodotto}</p>
+                                {ing.is_semilavorato && (
+                                  <span className="text-xs text-purple-600">Semilavorato</span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="p-3 text-right text-slate-700 text-sm">
+                              {ing.quantita} {ing.unita_misura}
+                            </td>
+                            <td className="p-3 text-right text-slate-600 text-sm">
+                              €{ing.prezzo_unitario?.toFixed(2)}
+                            </td>
+                            <td className="p-3 text-right font-bold text-blue-600 text-sm">
+                              €{costoIngrediente.toFixed(2)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      <tr className="border-t-2 border-blue-600 font-bold">
+                        <td colSpan="3" className="p-3 text-right text-slate-800">TOTALE COSTO:</td>
+                        <td className="p-3 text-right text-blue-600 text-lg">
+                          €{viewingRecipe.costo_unitario?.toFixed(2)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {viewingRecipe.note && (
+                <div className="neumorphic-pressed p-4 rounded-xl bg-yellow-50">
+                  <p className="text-sm text-slate-700"><strong>Note:</strong> {viewingRecipe.note}</p>
+                </div>
+              )}
+            </div>
+          </NeumorphicCard>
+        </div>
       )}
     </div>
   );
