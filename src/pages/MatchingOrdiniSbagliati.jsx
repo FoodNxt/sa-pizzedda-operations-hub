@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -56,10 +55,24 @@ export default function MatchingOrdiniSbagliati() {
     queryFn: () => base44.entities.Store.list(),
   });
 
-  // FIXED: Load ALL shifts without limit
+  // Load shifts from TurnoPlanday (Planday integration)
   const { data: shifts = [] } = useQuery({
-    queryKey: ['shifts'],
-    queryFn: () => base44.entities.Shift.list('-shift_date'),
+    queryKey: ['planday-shifts-matching'],
+    queryFn: async () => {
+      const turni = await base44.entities.TurnoPlanday.list('-data', 3000);
+      // Transform TurnoPlanday to match expected Shift structure
+      return turni.map(turno => ({
+        id: turno.id,
+        shift_date: turno.data,
+        scheduled_start: turno.data && turno.ora_inizio ? `${turno.data}T${turno.ora_inizio}:00` : null,
+        scheduled_end: turno.data && turno.ora_fine ? `${turno.data}T${turno.ora_fine}:00` : null,
+        employee_name: turno.dipendente_nome,
+        store_id: turno.store_id,
+        shift_type: turno.turno_tipo,
+        employee_group_name: turno.employee_group_name,
+        created_date: turno.created_date
+      }));
+    },
   });
 
   const createMatchMutation = useMutation({
