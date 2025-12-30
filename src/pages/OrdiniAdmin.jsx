@@ -844,6 +844,21 @@ Sa Pizzedda`
                   bySupplier[order.fornitore].total += order.totale_ordine;
                 });
 
+                // Group by month for table
+                const byMonth = {};
+                filteredOrders.forEach(order => {
+                  const date = order.data_invio || order.created_date;
+                  const month = format(parseISO(date), 'MMM yyyy', { locale: it });
+                  if (!byMonth[month]) {
+                    byMonth[month] = {
+                      count: 0,
+                      total: 0
+                    };
+                  }
+                  byMonth[month].count++;
+                  byMonth[month].total += order.totale_ordine;
+                });
+
                 // Group by date for timeline
                 const byDate = {};
                 filteredOrders.forEach(order => {
