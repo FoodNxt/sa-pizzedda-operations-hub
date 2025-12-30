@@ -930,7 +930,7 @@ export default function OrdiniSbagliati() {
                         <thead>
                           <tr className="border-b-2 border-[#8b7355]">
                             <th className="text-left p-2 text-[#9b9b9b] font-medium">Order ID</th>
-                            <th className="text-left p-2 text-[#9b9b9b] font-medium">Negozio ⚠️</th>
+                            <th className="text-left p-2 text-[#9b9b9b] font-medium">Negozio</th>
                             <th className="text-left p-2 text-[#9b9b9b] font-medium">Data</th>
                             <th className="text-right p-2 text-[#9b9b9b] font-medium">Totale</th>
                             <th className="text-right p-2 text-[#9b9b9b] font-medium">Rimborso</th>
@@ -939,15 +939,23 @@ export default function OrdiniSbagliati() {
                         </thead>
                         <tbody>
                           {previewData.map((row, idx) => (
-                            <tr key={idx} className={`border-b ${row.storeSuspicious ? 'bg-red-50' : 'border-[#d1d1d1]'}`}>
+                            <tr key={idx} className={`border-b ${row.storeSuspicious || row.totalSuspicious || row.refundSuspicious ? 'bg-red-50' : 'border-[#d1d1d1]'}`}>
                               <td className="p-2 text-[#6b6b6b] font-mono">{row.orderId}</td>
                               <td className={`p-2 font-bold ${row.storeSuspicious ? 'text-red-600' : 'text-[#6b6b6b]'}`}>
                                 {row.storeSuspicious && '⚠️ '}
                                 {row.store || '(vuoto)'}
                               </td>
                               <td className="p-2 text-[#6b6b6b]">{row.date}</td>
-                              <td className="p-2 text-right text-[#6b6b6b]">{row.total}</td>
-                              <td className="p-2 text-right font-bold text-red-600">{row.refund}</td>
+                              <td className={`p-2 text-right ${row.totalSuspicious ? 'text-red-600 font-bold' : 'text-[#6b6b6b]'}`}>
+                                {row.totalSuspicious && '⚠️ '}
+                                {row.total || '(vuoto)'} 
+                                {row.totalParsed > 0 && <span className="text-xs text-green-600 ml-1">→ €{row.totalParsed.toFixed(2)}</span>}
+                              </td>
+                              <td className={`p-2 text-right font-bold ${row.refundSuspicious ? 'text-orange-600' : 'text-red-600'}`}>
+                                {row.refundSuspicious && '⚠️ '}
+                                {row.refund || '(vuoto)'}
+                                {row.refundParsed > 0 && <span className="text-xs text-green-600 ml-1">→ €{row.refundParsed.toFixed(2)}</span>}
+                              </td>
                               {selectedPlatform === 'glovo' && <td className="p-2 text-[#6b6b6b] text-xs">{row.reason}</td>}
                             </tr>
                           ))}
