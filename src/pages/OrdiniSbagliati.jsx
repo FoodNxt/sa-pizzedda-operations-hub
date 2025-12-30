@@ -524,11 +524,13 @@ export default function OrdiniSbagliati() {
 
       // Detect suspicious store names
       const storeSuspicious = storeName && (
-        storeName.includes(',') || 
+        (storeName.split(',').length >= 3) || // multiple commas (2+ commas)
         storeName.toLowerCase().includes('delivered') ||
         storeName.toLowerCase().includes('missing') ||
-        /\d{4}-\d{2}-\d{2}/.test(storeName) || // date pattern
-        storeName.split(',').length > 2 // multiple commas
+        storeName.toLowerCase().includes('cancelled') ||
+        /\d{4}-\d{2}-\d{2}/.test(storeName) || // date pattern YYYY-MM-DD
+        /^\d{2}\/\d{2}\/\d{4}/.test(storeName) || // date pattern DD/MM/YYYY
+        storeName.length > 100 // unreasonably long
       );
 
       // Parse and validate numeric values
