@@ -146,11 +146,11 @@ export default function OrdiniSbagliati() {
     const values = [];
     let currentValue = '';
     let insideQuotes = false;
-    
+
     for (let i = 0; i < line.length; i++) {
       const char = line[i];
       const nextChar = line[i + 1];
-      
+
       if (char === '"') {
         if (insideQuotes && nextChar === '"') {
           currentValue += '"';
@@ -167,6 +167,47 @@ export default function OrdiniSbagliati() {
     }
     values.push(currentValue.trim());
     return values;
+  };
+
+  const parseNumericValue = (value) => {
+    if (!value || value.trim() === '') return 0;
+
+    // Remove currency symbols and spaces
+    let cleaned = value.replace(/[€$£\s]/g, '');
+
+    // Handle European format (1.234,56) vs US format (1,234.56)
+    const hasComma = cleaned.includes(',');
+    const hasDot = cleaned.includes('.');
+
+    if (hasComma && hasDot) {
+      // Both present - determine which is decimal separator
+      const lastComma = cleaned.lastIndexOf(',');
+      const lastDot = cleaned.lastIndexOf('.');
+      if (lastComma > lastDot) {
+        // European: 1.234,56
+        cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+      } else {
+        // US: 1,234.56
+        cleaned = cleaned.replace(/,/g, '');
+      }
+    } else if (hasComma) {
+      // Only comma - check if it's thousands or decimal
+      const commaPos = cleaned.indexOf(',');
+      const afterComma = cleaned.substring(commaPos + 1);
+      if (afterComma.length === 2) {
+        // Likely decimal: 12,50
+        cleaned = cleaned.replace(',', '.');
+      } else {
+        // Likely thousands: 1,234
+        cleaned = cleaned.replace(',', '');
+      }
+    }
+
+    // Remove any remaining non-numeric characters except dot and minus
+    cleaned = cleaned.replace(/[^0-9.-]/g, '');
+
+    const parsed = parseFloat(cleaned);
+    return isNaN(parsed) ? 0 : parsed;
   };
 
   const findBestMatch = (platformStoreName, stores) => {
