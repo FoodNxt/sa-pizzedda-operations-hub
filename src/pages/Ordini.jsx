@@ -11,6 +11,7 @@ import ProtectedPage from "../components/ProtectedPage";
 export default function Ordini() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [receivedQuantities, setReceivedQuantities] = useState({});
+  const [confirmedProducts, setConfirmedProducts] = useState({});
   const queryClient = useQueryClient();
 
   const { data: currentUser } = useQuery({
@@ -51,10 +52,13 @@ export default function Ordini() {
   const openOrderDetail = (order) => {
     setSelectedOrder(order);
     const initialQuantities = {};
+    const initialConfirmed = {};
     order.prodotti.forEach(prod => {
       initialQuantities[prod.prodotto_id] = prod.quantita_ordinata;
+      initialConfirmed[prod.prodotto_id] = false;
     });
     setReceivedQuantities(initialQuantities);
+    setConfirmedProducts(initialConfirmed);
   };
 
   const handleCompleteOrder = async () => {
@@ -66,10 +70,7 @@ export default function Ordini() {
     );
 
     if (!allMatch) {
-      const confirm = window.confirm(
-        'ATTENZIONE: Le quantità ricevute non corrispondono a quelle ordinate. Vuoi comunque completare l\'ordine?'
-      );
-      if (!confirm) return;
+      alert('ATTENZIONE: Le quantità ricevute non corrispondono a quelle ordinate.');
     }
 
     const updatedProdotti = selectedOrder.prodotti.map(prod => ({
@@ -87,6 +88,10 @@ export default function Ordini() {
       }
     });
   };
+
+  const allProductsConfirmed = selectedOrder 
+    ? selectedOrder.prodotti.every(prod => confirmedProducts[prod.prodotto_id])
+    : false;
 
   return (
     <ProtectedPage pageName="Ordini">
@@ -183,10 +188,13 @@ export default function Ordini() {
                 {selectedOrder.prodotti.map((prod) => {
                   const receivedQty = receivedQuantities[prod.prodotto_id] || 0;
                   const isMatch = receivedQty === prod.quantita_ordinata;
+                  const isConfirmed = confirmedProducts[prod.prodotto_id];
                   
                   return (
-                    <div key={prod.prodotto_id} className="neumorphic-pressed p-4 rounded-xl">
-                      <div className="flex items-start justify-between mb-2">
+                    <div key={prod.prodotto_id} className={`neumorphic-pressed p-4 rounded-xl transition-all ${
+                      isConfirmed ? 'border-2 border-green-500' : ''
+                    }`}>
+                      <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
                           <p className="font-bold text-[#6b6b6b]">{prod.nome_prodotto}</p>
                           <p className="text-sm text-[#9b9b9b]">
@@ -200,33 +208,35 @@ export default function Ordini() {
                         )}
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-xs text-[#9b9b9b] mb-1 block">Quantità Ricevuta</label>
-                          <input
-                            type="number"
-                            step="0.1"
-                            value={receivedQty}
-                            onChange={(e) => setReceivedQuantities({
-                              ...receivedQuantities,
-                              [prod.prodotto_id]: parseFloat(e.target.value) || 0
-                            })}
-                            className={`w-full neumorphic-pressed px-3 py-2 rounded-lg text-[#6b6b6b] outline-none ${
-                              !isMatch ? 'border-2 border-orange-300' : ''
-                            }`}
-                          />
-                        </div>
-                        <div className="flex items-end">
-                          <button
-                            onClick={() => setReceivedQuantities({
-                              ...receivedQuantities,
-                              [prod.prodotto_id]: prod.quantita_ordinata
-                            })}
-                            className="w-full neumorphic-flat px-3 py-2 rounded-lg text-sm text-[#6b6b6b] hover:bg-blue-50 transition-colors"
-                          >
-                            Usa Ordinato
-                          </button>
-                        </div>
+                      <div className="mb-3">
+                        <label className="text-xs text-[#9b9b9b] mb-1 block">Quantità Ricevuta</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={receivedQty}
+                          onChange={(e) => setReceivedQuantities({
+                            ...receivedQuantities,
+                            [prod.prodotto_id]: parseFloat(e.target.value) || 0
+                          })}
+                          className={`w-full neumorphic-pressed px-3 py-2 rounded-lg text-[#6b6b6b] outline-none ${
+                            !isMatch ? 'border-2 border-orange-300' : ''
+                          }`}
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
+                        <input
+                          type="checkbox"
+                          checked={isConfirmed}
+                          onChange={(e) => setConfirmedProducts({
+                            ...confirmedProducts,
+                            [prod.prodotto_id]: e.target.checked
+                          })}
+                          className="w-5 h-5"
+                        />
+                        <label className="text-sm font-medium text-blue-800 cursor-pointer">
+                          Ho verificato questo prodotto
+                        </label>
                       </div>
                     </div>
                   );
@@ -240,12 +250,18 @@ export default function Ordini() {
                 <NeumorphicButton
                   onClick={handleCompleteOrder}
                   variant="primary"
-                  className="flex-1 flex items-center justify-center gap-2"
+                  disabled={!allProductsConfirmed}
+                  className="flex-1 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <CheckCircle className="w-5 h-5" />
                   Completa Ordine
                 </NeumorphicButton>
               </div>
+              {!allProductsConfirmed && (
+                <p className="text-center text-sm text-orange-600 mt-2">
+                  ⚠️ Devi confermare tutti i prodotti prima di completare l'ordine
+                </p>
+              )}
             </NeumorphicCard>
           </div>
         )}
