@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
-import { FileText, Calendar, Clock, Briefcase, User, ArrowUpDown, AlertTriangle, RefreshCw, X } from "lucide-react";
+import { FileText, Calendar, Clock, Briefcase, User, ArrowUpDown, AlertTriangle, RefreshCw, X, History } from "lucide-react";
 import moment from "moment";
 
 export default function OverviewContratti() {
@@ -48,45 +48,55 @@ export default function OverviewContratti() {
   const dipendentiConContratti = useMemo(() => {
     const oggi = new Date();
     
-    // Raggruppa contratti per dipendente e prendi solo quello con scadenza più lunga
+    // Raggruppa contratti per dipendente
     const contrattiPerDipendente = {};
     contratti.forEach(c => {
       const userId = c.user_id;
       if (!userId) return;
       
-      const dataInizio = c.data_inizio_contratto ? new Date(c.data_inizio_contratto) : null;
-      const dataFine = dataInizio && c.durata_contratto_mesi 
-        ? (() => {
-            const fine = new Date(dataInizio);
-            fine.setMonth(fine.getMonth() + parseInt(c.durata_contratto_mesi));
-            return fine;
-          })()
-        : null;
-      
-      // Se il dipendente non ha ancora un contratto o questo ha scadenza più lunga
-      if (!contrattiPerDipendente[userId] || 
-          (dataFine && contrattiPerDipendente[userId].data_fine && dataFine > contrattiPerDipendente[userId].data_fine) ||
-          (dataFine && !contrattiPerDipendente[userId].data_fine)) {
-        
-        const giorniRimanenti = dataFine ? Math.ceil((dataFine - oggi) / (1000 * 60 * 60 * 24)) : null;
-        const tempoDeterminato = c.durata_contratto_mesi && c.durata_contratto_mesi > 0;
-        
-        contrattiPerDipendente[userId] = {
-          ...c,
-          data_inizio: dataInizio,
-          data_fine: dataFine,
-          giorni_rimanenti: giorniRimanenti,
-          tipo_contratto_label: c.employee_group === 'FT' ? 'Full Time' : 
-                               c.employee_group === 'PT' ? 'Part Time' : 
-                               c.employee_group === 'CM' ? 'Contratto Misto' : 
-                               c.employee_group || 'N/A',
-          durata_contratto: tempoDeterminato ? 'Determinato' : 'Indeterminato',
-          ruoli: (c.ruoli_dipendente || []).join(', ') || c.function_name || 'N/A'
-        };
+      if (!contrattiPerDipendente[userId]) {
+        contrattiPerDipendente[userId] = [];
       }
+      contrattiPerDipendente[userId].push(c);
     });
     
-    return Object.values(contrattiPerDipendente).sort((a, b) => {
+    return Object.entries(contrattiPerDipendente).map(([userId, userContracts]) => {
+      // Sort by start date (most recent first)
+      const sortedContracts = userContracts.sort((a, b) => {
+        const dateA = new Date(a.data_inizio_contratto);
+        const dateB = new Date(b.data_inizio_contratto);
+        return dateB - dateA;
+      });
+
+      const currentContract = sortedContracts[0];
+      const dataInizio = new Date(currentContract.data_inizio_contratto);
+      const dataFine = new Date(dataInizio);
+      dataFine.setMonth(dataFine.getMonth() + parseInt(currentContract.durata_contratto_mesi || 0));
+
+      const giorniRimanenti = Math.ceil((dataFine - oggi) / (1000 * 60 * 60 * 24));
+
+      // Calculate tenure from first contract
+      const primoContratto = userContracts.sort((a, b) => 
+        new Date(a.data_inizio_contratto) - new Date(b.data_inizio_contratto)
+      )[0];
+      const dataPrimaAssunzione = new Date(primoContratto.data_inizio_contratto);
+      const mesiTenure = Math.floor((oggi - dataPrimaAssunzione) / (1000 * 60 * 60 * 24 * 30.44));
+
+      return {
+        ...currentContract,
+        data_inizio: dataInizio,
+        data_fine: dataFine,
+        giorni_rimanenti: giorniRimanenti,
+        tipo_contratto_label: currentContract.employee_group === 'FT' ? 'Full Time' : 
+                             currentContract.employee_group === 'PT' ? 'Part Time' : 
+                             currentContract.employee_group === 'CM' ? 'Contratto Misto' : 
+                             currentContract.employee_group || 'N/A',
+        durata_contratto: currentContract.durata_contratto_mesi && currentContract.durata_contratto_mesi > 0 ? 'Determinato' : 'Indeterminato',
+        ruoli: (currentContract.ruoli_dipendente || []).join(', ') || currentContract.function_name || 'N/A',
+        tenure_mesi: mesiTenure,
+        tutti_contratti: sortedContracts
+      };
+    }).sort((a, b) => {
       let aVal = a[sortField];
       let bVal = b[sortField];
       
@@ -365,6 +375,12 @@ export default function OverviewContratti() {
                       <SortButton field="giorni_rimanenti">Giorni a Fine</SortButton>
                     </th>
                     <th className="text-center py-3 px-2 font-semibold text-slate-700">
+                      <SortButton field="tenure_mesi">Tenure</SortButton>
+                    </th>
+                    <th className="text-center py-3 px-2 font-semibold text-slate-700">
+                      Storico
+                    </th>
+                    <th className="text-center py-3 px-2 font-semibold text-slate-700">
                       Azioni
                     </th>
                   </tr>
@@ -425,6 +441,20 @@ export default function OverviewContratti() {
                           ) : (
                             <span className="text-slate-400">N/A</span>
                           )}
+                        </td>
+                        <td className="py-3 px-2 text-center">
+                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700">
+                            {dip.tenure_mesi} {dip.tenure_mesi === 1 ? 'mese' : 'mesi'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-2 text-center">
+                          <button
+                            onClick={() => setViewingHistory(dip)}
+                            className="nav-button p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                            title="Vedi storico contratti"
+                          >
+                            <History className="w-4 h-4 text-blue-600" />
+                          </button>
                         </td>
                         <td className="py-3 px-2 text-center">
                           <button
