@@ -15,6 +15,7 @@ export default function Produttivita() {
   const [timeSlotView, setTimeSlotView] = useState('30min'); // '30min' or '1hour'
   const [showRevenue, setShowRevenue] = useState(true);
   const [showHours, setShowHours] = useState(true);
+  const [showRevenuePerHour, setShowRevenuePerHour] = useState(true);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -116,7 +117,8 @@ export default function Produttivita() {
       .map(item => ({
         slot: item.slot,
         avgRevenue: item.revenue / item.count,
-        totalHours: item.hours
+        totalHours: item.hours,
+        revenuePerHour: item.hours > 0 ? (item.revenue / item.count) / item.hours : 0
       }))
       .sort((a, b) => a.slot.localeCompare(b.slot));
   }, [filteredData, timeSlotView, hoursWorkedBySlot]);
@@ -158,7 +160,8 @@ export default function Produttivita() {
       .map(([slot, revenue]) => ({ 
         slot, 
         revenue,
-        hours: dayHoursSlot[slot] || 0
+        hours: dayHoursSlot[slot] || 0,
+        revenuePerHour: (dayHoursSlot[slot] || 0) > 0 ? revenue / (dayHoursSlot[slot] || 0) : 0
       }))
       .sort((a, b) => a.slot.localeCompare(b.slot));
 
@@ -173,7 +176,12 @@ export default function Produttivita() {
         hourlyAgg[hour].revenue += item.revenue;
         hourlyAgg[hour].hours += item.hours;
       });
-      return Object.values(hourlyAgg).sort((a, b) => a.slot.localeCompare(b.slot));
+      return Object.values(hourlyAgg)
+        .map(item => ({
+          ...item,
+          revenuePerHour: item.hours > 0 ? item.revenue / item.hours : 0
+        }))
+        .sort((a, b) => a.slot.localeCompare(b.slot));
     }
 
     return data;
@@ -348,6 +356,57 @@ export default function Produttivita() {
           )}
         </NeumorphicCard>
 
+        {/* Revenue per Hour Chart - NEW */}
+        <NeumorphicCard className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-bold text-[#6b6b6b]">Revenue per Ora Lavorata</h3>
+              <p className="text-sm text-[#9b9b9b]">Analisi produttività oraria (€/ora)</p>
+            </div>
+            <label className="flex items-center gap-2 text-sm text-[#6b6b6b] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showRevenuePerHour}
+                onChange={(e) => setShowRevenuePerHour(e.target.checked)}
+                className="w-4 h-4"
+              />
+              Mostra grafico
+            </label>
+          </div>
+          {showRevenuePerHour && aggregatedData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart data={aggregatedData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="slot" 
+                  angle={timeSlotView === '30min' ? -45 : 0}
+                  textAnchor={timeSlotView === '30min' ? 'end' : 'middle'}
+                  height={timeSlotView === '30min' ? 100 : 50}
+                  interval={timeSlotView === '30min' ? 1 : 0}
+                />
+                <YAxis />
+                <Tooltip 
+                  formatter={(value) => `€${value.toFixed(2)}/ora`}
+                  labelFormatter={(label) => `Slot: ${label}`}
+                />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="revenuePerHour" 
+                  stroke="#10b981" 
+                  strokeWidth={3} 
+                  name="€/ora" 
+                  dot={{ fill: '#10b981', r: 4 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : !showRevenuePerHour ? (
+            <p className="text-center text-[#9b9b9b] py-8">Grafico nascosto</p>
+          ) : (
+            <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
+          )}
+        </NeumorphicCard>
+
         {/* Daily Slot View */}
         <NeumorphicCard className="p-6">
           <div className="flex items-center justify-between mb-4">
@@ -376,12 +435,14 @@ export default function Produttivita() {
                   formatter={(value, name) => {
                     if (name === 'Revenue') return `€${value.toFixed(2)}`;
                     if (name === 'Ore Lavorate') return `${value.toFixed(1)}h`;
+                    if (name === 'Revenue per Ora') return `€${value.toFixed(2)}/ora`;
                     return value;
                   }}
                 />
                 <Legend />
                 {showRevenue && <Line yAxisId="left" type="monotone" dataKey="revenue" stroke="#8b7355" strokeWidth={2} name="Revenue" />}
                 {showHours && <Line yAxisId="right" type="monotone" dataKey="hours" stroke="#f59e0b" strokeWidth={2} name="Ore Lavorate" />}
+                {showRevenuePerHour && <Line yAxisId="left" type="monotone" dataKey="revenuePerHour" stroke="#10b981" strokeWidth={2} name="Revenue per Ora" dot={{ fill: '#10b981', r: 3 }} />}
               </LineChart>
             </ResponsiveContainer>
           ) : (
