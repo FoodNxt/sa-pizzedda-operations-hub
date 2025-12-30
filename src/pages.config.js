@@ -8,6 +8,7 @@ import AssignReviews from './pages/AssignReviews';
 import AssistenteDipendente from './pages/AssistenteDipendente';
 import Attrezzature from './pages/Attrezzature';
 import BulkImportProdottiVenduti from './pages/BulkImportProdottiVenduti';
+import BulkImportProduttivita from './pages/BulkImportProduttivita';
 import ChannelComparison from './pages/ChannelComparison';
 import CleanupDuplicateShifts from './pages/CleanupDuplicateShifts';
 import Compliance from './pages/Compliance';
@@ -72,6 +73,7 @@ import PrecottureAdmin from './pages/PrecottureAdmin';
 import Preparazioni from './pages/Preparazioni';
 import Presenze from './pages/Presenze';
 import ProdottiVenduti from './pages/ProdottiVenduti';
+import Produttivita from './pages/Produttivita';
 import ProfiloDipendente from './pages/ProfiloDipendente';
 import QuantitaMinime from './pages/QuantitaMinime';
 import RealTime from './pages/RealTime';
@@ -95,10 +97,8 @@ import ValutazioneProvaForm from './pages/ValutazioneProvaForm';
 import ValutazionePulizie from './pages/ValutazionePulizie';
 import VenditeAnalytics from './pages/VenditeAnalytics';
 import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
-import ZapierSetup from './pages/ZapierSetup';
-import Produttivita from './pages/Produttivita';
 import ZapierProduttivita from './pages/ZapierProduttivita';
-import BulkImportProduttivita from './pages/BulkImportProduttivita';
+import ZapierSetup from './pages/ZapierSetup';
 import __Layout from './Layout.jsx';
 
 
@@ -113,6 +113,7 @@ export const PAGES = {
     "AssistenteDipendente": AssistenteDipendente,
     "Attrezzature": Attrezzature,
     "BulkImportProdottiVenduti": BulkImportProdottiVenduti,
+    "BulkImportProduttivita": BulkImportProduttivita,
     "ChannelComparison": ChannelComparison,
     "CleanupDuplicateShifts": CleanupDuplicateShifts,
     "Compliance": Compliance,
@@ -177,6 +178,7 @@ export const PAGES = {
     "Preparazioni": Preparazioni,
     "Presenze": Presenze,
     "ProdottiVenduti": ProdottiVenduti,
+    "Produttivita": Produttivita,
     "ProfiloDipendente": ProfiloDipendente,
     "QuantitaMinime": QuantitaMinime,
     "RealTime": RealTime,
@@ -200,10 +202,8 @@ export const PAGES = {
     "ValutazionePulizie": ValutazionePulizie,
     "VenditeAnalytics": VenditeAnalytics,
     "ZapierProdottiVenduti": ZapierProdottiVenduti,
-    "ZapierSetup": ZapierSetup,
-    "Produttivita": Produttivita,
     "ZapierProduttivita": ZapierProduttivita,
-    "BulkImportProduttivita": BulkImportProduttivita,
+    "ZapierSetup": ZapierSetup,
 }
 
 export const pagesConfig = {

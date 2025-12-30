@@ -12,6 +12,9 @@ export default function Produttivita() {
   const [selectedStore, setSelectedStore] = useState('all');
   const [dateRange, setDateRange] = useState('month');
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [timeSlotView, setTimeSlotView] = useState('30min'); // '30min' or '1hour'
+  const [showRevenue, setShowRevenue] = useState(true);
+  const [showHours, setShowHours] = useState(true);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -21,6 +24,11 @@ export default function Produttivita() {
   const { data: revenueData = [] } = useQuery({
     queryKey: ['revenue-by-time-slot'],
     queryFn: () => base44.entities.RevenueByTimeSlot.list('-date', 1000),
+  });
+
+  const { data: allShifts = [] } = useQuery({
+    queryKey: ['planday-shifts'],
+    queryFn: () => base44.entities.TurnoPlanday.list('-data', 2000),
   });
 
   const filteredData = useMemo(() => {
@@ -43,46 +51,140 @@ export default function Produttivita() {
     return filtered;
   }, [revenueData, selectedStore, dateRange]);
 
-  // Aggregate by hour
-  const hourlyData = useMemo(() => {
+  // Calculate hours worked by time slot
+  const hoursWorkedBySlot = useMemo(() => {
+    const slotHours = {};
+
+    allShifts.forEach(shift => {
+      if (!shift.ora_inizio || !shift.ora_fine) return;
+      if (selectedStore !== 'all' && shift.store_id !== selectedStore) return;
+
+      const shiftDate = shift.data;
+      const startTime = shift.ora_inizio; // e.g. "09:00"
+      const endTime = shift.ora_fine; // e.g. "17:00"
+
+      // Generate all 30-min slots for this shift
+      const [startHour, startMin] = startTime.split(':').map(Number);
+      const [endHour, endMin] = endTime.split(':').map(Number);
+      
+      let currentMin = startHour * 60 + startMin;
+      const endMinTotal = endHour * 60 + endMin;
+
+      while (currentMin < endMinTotal) {
+        const h = Math.floor(currentMin / 60);
+        const m = currentMin % 60;
+        const slot = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}-${String(Math.floor((currentMin + 30) / 60)).padStart(2, '0')}:${String((currentMin + 30) % 60).padStart(2, '0')}`;
+        
+        if (!slotHours[slot]) {
+          slotHours[slot] = 0;
+        }
+        slotHours[slot] += 0.5; // 30 minutes = 0.5 hours
+        
+        currentMin += 30;
+      }
+    });
+
+    return slotHours;
+  }, [allShifts, selectedStore]);
+
+  // Aggregate by time slot (30min or 1hour)
+  const aggregatedData = useMemo(() => {
     if (filteredData.length === 0) return [];
 
-    const hourAggregation = {};
+    const aggregation = {};
     
     filteredData.forEach(record => {
       Object.entries(record.slots || {}).forEach(([slot, revenue]) => {
-        const hour = slot.split(':')[0] + ':00';
-        if (!hourAggregation[hour]) {
-          hourAggregation[hour] = { hour, revenue: 0, count: 0 };
+        let key;
+        if (timeSlotView === '1hour') {
+          const hour = slot.split(':')[0] + ':00';
+          key = hour;
+        } else {
+          key = slot;
         }
-        hourAggregation[hour].revenue += revenue || 0;
-        hourAggregation[hour].count += 1;
+
+        if (!aggregation[key]) {
+          aggregation[key] = { slot: key, revenue: 0, hours: 0, count: 0 };
+        }
+        aggregation[key].revenue += revenue || 0;
+        aggregation[key].hours += hoursWorkedBySlot[slot] || 0;
+        aggregation[key].count += 1;
       });
     });
 
-    return Object.values(hourAggregation)
-      .map(h => ({
-        hour: h.hour,
-        avgRevenue: h.revenue / h.count
+    return Object.values(aggregation)
+      .map(item => ({
+        slot: item.slot,
+        avgRevenue: item.revenue / item.count,
+        totalHours: item.hours
       }))
-      .sort((a, b) => a.hour.localeCompare(b.hour));
-  }, [filteredData]);
+      .sort((a, b) => a.slot.localeCompare(b.slot));
+  }, [filteredData, timeSlotView, hoursWorkedBySlot]);
 
   // Daily data for selected date
   const dailySlotData = useMemo(() => {
     const dayData = filteredData.find(r => r.date === selectedDate);
     if (!dayData || !dayData.slots) return [];
 
-    return Object.entries(dayData.slots)
-      .map(([slot, revenue]) => ({ slot, revenue }))
+    // Get shifts for this specific date
+    const dayShifts = allShifts.filter(s => s.data === selectedDate);
+    const dayHoursSlot = {};
+
+    dayShifts.forEach(shift => {
+      if (!shift.ora_inizio || !shift.ora_fine) return;
+      if (selectedStore !== 'all' && shift.store_id !== selectedStore) return;
+
+      const [startHour, startMin] = shift.ora_inizio.split(':').map(Number);
+      const [endHour, endMin] = shift.ora_fine.split(':').map(Number);
+      
+      let currentMin = startHour * 60 + startMin;
+      const endMinTotal = endHour * 60 + endMin;
+
+      while (currentMin < endMinTotal) {
+        const h = Math.floor(currentMin / 60);
+        const m = currentMin % 60;
+        const slot = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}-${String(Math.floor((currentMin + 30) / 60)).padStart(2, '0')}:${String((currentMin + 30) % 60).padStart(2, '0')}`;
+        
+        if (!dayHoursSlot[slot]) {
+          dayHoursSlot[slot] = 0;
+        }
+        dayHoursSlot[slot] += 0.5;
+        
+        currentMin += 30;
+      }
+    });
+
+    const data = Object.entries(dayData.slots)
+      .map(([slot, revenue]) => ({ 
+        slot, 
+        revenue,
+        hours: dayHoursSlot[slot] || 0
+      }))
       .sort((a, b) => a.slot.localeCompare(b.slot));
-  }, [filteredData, selectedDate]);
+
+    // Aggregate by view type
+    if (timeSlotView === '1hour') {
+      const hourlyAgg = {};
+      data.forEach(item => {
+        const hour = item.slot.split(':')[0] + ':00';
+        if (!hourlyAgg[hour]) {
+          hourlyAgg[hour] = { slot: hour, revenue: 0, hours: 0 };
+        }
+        hourlyAgg[hour].revenue += item.revenue;
+        hourlyAgg[hour].hours += item.hours;
+      });
+      return Object.values(hourlyAgg).sort((a, b) => a.slot.localeCompare(b.slot));
+    }
+
+    return data;
+  }, [filteredData, selectedDate, allShifts, selectedStore, timeSlotView]);
 
   const stats = {
     totalRevenue: filteredData.reduce((sum, r) => sum + (r.total_revenue || 0), 0),
     avgDailyRevenue: filteredData.length > 0 ? filteredData.reduce((sum, r) => sum + (r.total_revenue || 0), 0) / filteredData.length : 0,
     daysTracked: filteredData.length,
-    peakHour: hourlyData.length > 0 ? hourlyData.reduce((max, h) => h.avgRevenue > max.avgRevenue ? h : max, hourlyData[0]).hour : '-'
+    totalHours: Object.values(hoursWorkedBySlot).reduce((sum, h) => sum + h, 0),
+    peakHour: aggregatedData.length > 0 ? aggregatedData.reduce((max, h) => h.avgRevenue > max.avgRevenue ? h : max, aggregatedData[0]).slot : '-'
   };
 
   return (
@@ -123,10 +225,42 @@ export default function Produttivita() {
             <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
               <Clock className="w-8 h-8 text-orange-600" />
             </div>
-            <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">{stats.peakHour}</h3>
-            <p className="text-sm text-[#9b9b9b]">Ora di Punta</p>
+            <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">{stats.totalHours.toFixed(1)}h</h3>
+            <p className="text-sm text-[#9b9b9b]">Ore Lavorate Totali</p>
           </NeumorphicCard>
         </div>
+
+        {/* View Toggle */}
+        <NeumorphicCard className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-[#6b6b6b] mb-1">Vista Temporale</h3>
+              <p className="text-sm text-[#9b9b9b]">Seleziona la granularità dei dati</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setTimeSlotView('30min')}
+                className={`px-4 py-2 rounded-xl font-medium transition-all ${
+                  timeSlotView === '30min'
+                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                    : 'neumorphic-flat text-[#6b6b6b]'
+                }`}
+              >
+                30 minuti
+              </button>
+              <button
+                onClick={() => setTimeSlotView('1hour')}
+                className={`px-4 py-2 rounded-xl font-medium transition-all ${
+                  timeSlotView === '1hour'
+                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                    : 'neumorphic-flat text-[#6b6b6b]'
+                }`}
+              >
+                1 ora
+              </button>
+            </div>
+          </div>
+        </NeumorphicCard>
 
         {/* Filters */}
         <NeumorphicCard className="p-6">
@@ -159,18 +293,54 @@ export default function Produttivita() {
           </div>
         </NeumorphicCard>
 
-        {/* Hourly Average Chart */}
+        {/* Time Slot Analysis Chart */}
         <NeumorphicCard className="p-6">
-          <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Revenue Media per Ora</h3>
-          {hourlyData.length > 0 ? (
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-[#6b6b6b]">Analisi per {timeSlotView === '30min' ? 'Slot (30 min)' : 'Ora'}</h3>
+            <div className="flex gap-3">
+              <label className="flex items-center gap-2 text-sm text-[#6b6b6b] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showRevenue}
+                  onChange={(e) => setShowRevenue(e.target.checked)}
+                  className="w-4 h-4"
+                />
+                Revenue
+              </label>
+              <label className="flex items-center gap-2 text-sm text-[#6b6b6b] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showHours}
+                  onChange={(e) => setShowHours(e.target.checked)}
+                  className="w-4 h-4"
+                />
+                Ore Lavorate
+              </label>
+            </div>
+          </div>
+          {aggregatedData.length > 0 ? (
             <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={hourlyData}>
+              <BarChart data={aggregatedData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="hour" />
-                <YAxis />
-                <Tooltip formatter={(value) => `€${value.toFixed(2)}`} />
+                <XAxis 
+                  dataKey="slot" 
+                  angle={timeSlotView === '30min' ? -45 : 0}
+                  textAnchor={timeSlotView === '30min' ? 'end' : 'middle'}
+                  height={timeSlotView === '30min' ? 100 : 50}
+                  interval={timeSlotView === '30min' ? 1 : 0}
+                />
+                <YAxis yAxisId="left" orientation="left" stroke="#3b82f6" />
+                <YAxis yAxisId="right" orientation="right" stroke="#f59e0b" />
+                <Tooltip 
+                  formatter={(value, name) => {
+                    if (name === 'avgRevenue') return `€${value.toFixed(2)}`;
+                    if (name === 'totalHours') return `${value.toFixed(1)}h`;
+                    return value;
+                  }}
+                />
                 <Legend />
-                <Bar dataKey="avgRevenue" fill="#3b82f6" name="Revenue Media" />
+                {showRevenue && <Bar yAxisId="left" dataKey="avgRevenue" fill="#3b82f6" name="Revenue Media (€)" />}
+                {showHours && <Bar yAxisId="right" dataKey="totalHours" fill="#f59e0b" name="Ore Lavorate" />}
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -195,15 +365,23 @@ export default function Produttivita() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
                   dataKey="slot" 
-                  angle={-45} 
-                  textAnchor="end" 
-                  height={100}
-                  interval={1}
+                  angle={timeSlotView === '30min' ? -45 : 0}
+                  textAnchor={timeSlotView === '30min' ? 'end' : 'middle'}
+                  height={timeSlotView === '30min' ? 100 : 50}
+                  interval={timeSlotView === '30min' ? 1 : 0}
                 />
-                <YAxis />
-                <Tooltip formatter={(value) => `€${value.toFixed(2)}`} />
+                <YAxis yAxisId="left" orientation="left" stroke="#8b7355" />
+                <YAxis yAxisId="right" orientation="right" stroke="#f59e0b" />
+                <Tooltip 
+                  formatter={(value, name) => {
+                    if (name === 'Revenue') return `€${value.toFixed(2)}`;
+                    if (name === 'Ore Lavorate') return `${value.toFixed(1)}h`;
+                    return value;
+                  }}
+                />
                 <Legend />
-                <Line type="monotone" dataKey="revenue" stroke="#8b7355" strokeWidth={2} name="Revenue" />
+                {showRevenue && <Line yAxisId="left" type="monotone" dataKey="revenue" stroke="#8b7355" strokeWidth={2} name="Revenue" />}
+                {showHours && <Line yAxisId="right" type="monotone" dataKey="hours" stroke="#f59e0b" strokeWidth={2} name="Ore Lavorate" />}
               </LineChart>
             </ResponsiveContainer>
           ) : (
