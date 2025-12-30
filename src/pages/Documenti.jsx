@@ -965,7 +965,7 @@ function ContrattiSection() {
     setShowTemplateForm(false);
   };
 
-  const replaceVariables = (templateContent, data) => {
+  const replaceVariables = async (templateContent, data) => {
     let result = templateContent;
     const oggi = new Date().toLocaleDateString('it-IT');
     let dataFineContratto = '';
@@ -976,28 +976,49 @@ function ContrattiSection() {
       dataFineContratto = dataFine.toLocaleDateString('it-IT');
     }
     
+    // Find first contract date for this user
+    let dataInizioPrimoContratto = '';
+    if (data.user_id) {
+      const tuttiContratti = await base44.entities.Contratto.filter({ user_id: data.user_id, status: 'firmato' });
+      if (tuttiContratti.length > 0) {
+        const contrattoPiuVecchio = tuttiContratti.sort((a, b) => 
+          new Date(a.data_inizio_contratto) - new Date(b.data_inizio_contratto)
+        )[0];
+        if (contrattoPiuVecchio.data_inizio_contratto) {
+          dataInizioPrimoContratto = new Date(contrattoPiuVecchio.data_inizio_contratto).toLocaleDateString('it-IT');
+        }
+      }
+    }
+    
     const variables = {
-      '{{nome_cognome}}': data.nome_cognome || '', '{{phone}}': data.phone || '',
+      '{{nome_cognome}}': data.nome_cognome || '', 
+      '{{phone}}': data.phone || '',
       '{{data_nascita}}': data.data_nascita ? new Date(data.data_nascita).toLocaleDateString('it-IT') : '',
-      '{{citta_nascita}}': data.citta_nascita || '', '{{codice_fiscale}}': data.codice_fiscale || '',
-      '{{indirizzo_residenza}}': data.indirizzo_residenza || '', '{{iban}}': data.iban || '',
-      '{{employee_group}}': data.employee_group || '', '{{function_name}}': data.function_name || '',
+      '{{citta_nascita}}': data.citta_nascita || '', 
+      '{{codice_fiscale}}': data.codice_fiscale || '',
+      '{{indirizzo_residenza}}': data.indirizzo_residenza || '', 
+      '{{iban}}': data.iban || '',
+      '{{employee_group}}': data.employee_group || '', 
+      '{{function_name}}': data.function_name || '',
       '{{ore_settimanali}}': data.ore_settimanali?.toString() || '',
       '{{data_inizio_contratto}}': data.data_inizio_contratto ? new Date(data.data_inizio_contratto).toLocaleDateString('it-IT') : '',
       '{{durata_contratto_mesi}}': data.durata_contratto_mesi?.toString() || '',
-      '{{data_oggi}}': oggi, '{{data_fine_contratto}}': dataFineContratto,
+      '{{data_oggi}}': oggi, 
+      '{{data_fine_contratto}}': dataFineContratto,
       '{{ruoli}}': (data.ruoli_dipendente || []).join(', '),
-      '{{locali}}': (data.assigned_stores || []).join(', ') || 'Tutti i locali'
+      '{{locali}}': (data.assigned_stores || []).join(', ') || 'Tutti i locali',
+      '{{data_inizio_primo_contratto}}': dataInizioPrimoContratto
     };
 
     Object.keys(variables).forEach(key => {
-      result = result.split(key).join(variables[key]);
+      const regex = new RegExp(key.replace(/[{}]/g, '\\$&'), 'g');
+      result = result.replace(regex, variables[key]);
     });
 
     return result;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedTemplate) {
       alert('Seleziona un template per il contratto');
@@ -1010,7 +1031,7 @@ function ContrattiSection() {
       return;
     }
 
-    const contenutoContratto = replaceVariables(template.contenuto_template, formData);
+    const contenutoContratto = await replaceVariables(template.contenuto_template, formData);
     const contrattoData = {
       ...formData,
       template_id: template.id,
@@ -1062,11 +1083,11 @@ function ContrattiSection() {
     }
   };
 
-  const handleTemplateSelect = (templateId) => {
+  const handleTemplateSelect = async (templateId) => {
     setSelectedTemplate(templateId);
     const template = templates.find(t => t.id === templateId);
     if (template && formData.nome_cognome) {
-      const preview = replaceVariables(template.contenuto_template, formData);
+      const preview = await replaceVariables(template.contenuto_template, formData);
       setPreviewContratto(preview);
     }
   };
@@ -1163,7 +1184,7 @@ function ContrattiSection() {
   const availableVariables = [
     'nome_cognome', 'phone', 'data_nascita', 'citta_nascita', 'codice_fiscale', 'indirizzo_residenza', 'iban',
     'employee_group', 'function_name', 'ore_settimanali', 'data_inizio_contratto', 
-    'durata_contratto_mesi', 'data_oggi', 'data_fine_contratto', 'ruoli', 'locali'
+    'durata_contratto_mesi', 'data_oggi', 'data_fine_contratto', 'ruoli', 'locali', 'data_inizio_primo_contratto'
   ];
 
   const handleLoadDriveFolders = async () => {

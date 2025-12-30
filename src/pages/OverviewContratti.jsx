@@ -147,26 +147,45 @@ export default function OverviewContratti() {
     const dataFine = new Date(dataInizio);
     dataFine.setMonth(dataFine.getMonth() + parseInt(renewalData.durata_mesi));
 
+    // Find first contract date for this user
+    const tuttiContratti = await base44.entities.Contratto.filter({ user_id: renewingContract.user_id, status: 'firmato' });
+    let dataInizioPrimoContratto = '';
+    if (tuttiContratti.length > 0) {
+      const contrattoPiuVecchio = tuttiContratti.sort((a, b) => 
+        new Date(a.data_inizio_contratto) - new Date(b.data_inizio_contratto)
+      )[0];
+      if (contrattoPiuVecchio.data_inizio_contratto) {
+        dataInizioPrimoContratto = new Date(contrattoPiuVecchio.data_inizio_contratto).toLocaleDateString('it-IT');
+      }
+    }
+
     // Replace variables in template
     let contenutoContratto = template.contenuto_template;
     const variabili = {
-      '{nome_cognome}': user.nome_cognome || user.full_name || '',
-      '{email}': user.email || '',
-      '{phone}': user.phone || '',
-      '{data_nascita}': user.data_nascita || '',
-      '{citta_nascita}': user.citta_nascita || '',
-      '{codice_fiscale}': user.codice_fiscale || '',
-      '{indirizzo_residenza}': user.indirizzo_residenza || '',
-      '{iban}': user.iban || '',
-      '{sede_lavoro}': user.sede_lavoro || '',
-      '{ore_settimanali}': renewingContract.ore_settimanali || '',
-      '{data_inizio_contratto}': renewalData.data_inizio,
-      '{data_fine_contratto}': dataFine.toISOString().split('T')[0],
-      '{durata_contratto_mesi}': renewalData.durata_mesi.toString()
+      '{{nome_cognome}}': user.nome_cognome || user.full_name || '',
+      '{{email}}': user.email || '',
+      '{{phone}}': user.phone || '',
+      '{{data_nascita}}': user.data_nascita ? new Date(user.data_nascita).toLocaleDateString('it-IT') : '',
+      '{{citta_nascita}}': user.citta_nascita || '',
+      '{{codice_fiscale}}': user.codice_fiscale || '',
+      '{{indirizzo_residenza}}': user.indirizzo_residenza || '',
+      '{{iban}}': user.iban || '',
+      '{{sede_lavoro}}': user.sede_lavoro || '',
+      '{{ore_settimanali}}': renewingContract.ore_settimanali?.toString() || '',
+      '{{data_inizio_contratto}}': new Date(renewalData.data_inizio).toLocaleDateString('it-IT'),
+      '{{data_fine_contratto}}': dataFine.toLocaleDateString('it-IT'),
+      '{{durata_contratto_mesi}}': renewalData.durata_mesi.toString(),
+      '{{employee_group}}': renewingContract.employee_group || '',
+      '{{function_name}}': renewingContract.function_name || '',
+      '{{data_oggi}}': new Date().toLocaleDateString('it-IT'),
+      '{{ruoli}}': (renewingContract.ruoli_dipendente || user.ruoli_dipendente || []).join(', '),
+      '{{locali}}': (user.assigned_stores || []).join(', ') || 'Tutti i locali',
+      '{{data_inizio_primo_contratto}}': dataInizioPrimoContratto
     };
 
     Object.entries(variabili).forEach(([key, value]) => {
-      contenutoContratto = contenutoContratto.replace(new RegExp(key, 'g'), value);
+      const regex = new RegExp(key.replace(/[{}]/g, '\\$&'), 'g');
+      contenutoContratto = contenutoContratto.replace(regex, value);
     });
 
     const newContract = {
