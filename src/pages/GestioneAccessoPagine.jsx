@@ -248,6 +248,7 @@ export default function GestioneAccessoPagine() {
     { value: 'PlandayStoreManager', label: '✅ Planday Store Manager', icon: Calendar, category: 'Area Dipendente', recommended: true },
     { value: 'FormSpostamenti', label: '✅ Spostamenti tra Negozi', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
     { value: 'FormCantina', label: '✅ Form Cantina', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+    { value: 'Ordini', label: '✅ Ordini Fornitori', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
     { value: 'Dashboard', label: '🚫 Dashboard Overview (DATI FINANZIARI)', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
     { value: 'SummaryAI', label: '🚫 Summary AI (DATI FINANZIARI)', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
     { value: 'StoreReviews', label: '🚫 Store Reviews', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
