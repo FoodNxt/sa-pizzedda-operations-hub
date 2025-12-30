@@ -507,7 +507,7 @@ export default function OrdiniSbagliati() {
   const generatePreview = (lines, headers, mapping) => {
     const preview = [];
     const maxPreview = 5;
-    
+
     for (let i = 1; i < Math.min(lines.length, maxPreview + 1); i++) {
       const values = parseCsvLine(lines[i]);
       const record = {};
@@ -516,9 +516,11 @@ export default function OrdiniSbagliati() {
       });
 
       const storeName = record[mapping.store_column] || '';
-      
+      const totalRaw = record[mapping.order_total_column] || '';
+      const refundRaw = record[mapping.refund_column] || '';
+
       // Detect suspicious store names
-      const suspicious = storeName && (
+      const storeSuspicious = storeName && (
         storeName.includes(',') || 
         storeName.toLowerCase().includes('delivered') ||
         storeName.toLowerCase().includes('missing') ||
@@ -526,17 +528,27 @@ export default function OrdiniSbagliati() {
         storeName.split(',').length > 2 // multiple commas
       );
 
+      // Parse and validate numeric values
+      const totalParsed = parseNumericValue(totalRaw);
+      const refundParsed = parseNumericValue(refundRaw);
+      const totalSuspicious = !totalRaw || totalParsed === 0;
+      const refundSuspicious = !refundRaw || refundParsed === 0;
+
       preview.push({
         orderId: record[mapping.order_id_column] || '',
         store: storeName,
-        storeSuspicious: suspicious,
+        storeSuspicious,
         date: record[mapping.order_date_column] || '',
-        total: record[mapping.order_total_column] || '',
-        refund: record[mapping.refund_column] || '',
+        total: totalRaw,
+        totalParsed,
+        totalSuspicious,
+        refund: refundRaw,
+        refundParsed,
+        refundSuspicious,
         reason: mapping.refund_reason_column ? record[mapping.refund_reason_column] || '' : ''
       });
     }
-    
+
     setPreviewData(preview);
   };
 
