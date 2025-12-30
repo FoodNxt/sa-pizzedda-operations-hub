@@ -133,49 +133,64 @@ export default function Ricette() {
     const materiaPrima = materiePrime.find(m => m.id === ing.materia_prima_id);
     if (!materiaPrima || !materiaPrima.prezzo_unitario) return 0;
 
-    // Step 1: Calculate price per internal unit if package has multiple units
-    // Example: Sacco da 12 unità da 1kg costa 3.83€ → 3.83€ / 12 = 0.319€ per unità da 1kg
-    let pricePerInternalUnit = materiaPrima.prezzo_unitario;
+    let pricePerBaseUnit = materiaPrima.prezzo_unitario;
     
-    if (materiaPrima.unita_per_confezione && materiaPrima.unita_per_confezione > 1) {
-      pricePerInternalUnit = materiaPrima.prezzo_unitario / materiaPrima.unita_per_confezione;
+    // CRITICAL: Handle products with internal units (confezioni)
+    if (materiaPrima.unita_per_confezione && materiaPrima.peso_unita_interna && materiaPrima.unita_misura_interna) {
+      const totalInPackage = materiaPrima.unita_per_confezione * materiaPrima.peso_unita_interna;
+      pricePerBaseUnit = materiaPrima.prezzo_unitario / totalInPackage;
+      
+      let quantityInBaseUnit = ing.quantita;
+      const internalUnit = materiaPrima.unita_misura_interna;
+      
+      if (ing.unita_misura === 'g' && internalUnit === 'kg') {
+        quantityInBaseUnit = ing.quantita / 1000;
+      } else if (ing.unita_misura === 'kg' && internalUnit === 'kg') {
+        quantityInBaseUnit = ing.quantita;
+      } else if (ing.unita_misura === 'ml' && internalUnit === 'litri') {
+        quantityInBaseUnit = ing.quantita / 1000;
+      } else if (ing.unita_misura === 'litri' && internalUnit === 'litri') {
+        quantityInBaseUnit = ing.quantita;
+      } else if (ing.unita_misura === 'g' && internalUnit === 'g') {
+        quantityInBaseUnit = ing.quantita;
+      } else if (ing.unita_misura === 'ml' && internalUnit === 'ml') {
+        quantityInBaseUnit = ing.quantita;
+      }
+      
+      return quantityInBaseUnit * pricePerBaseUnit;
+    }
+    
+    // Legacy handling
+    if (materiaPrima.peso_dimensione_unita && materiaPrima.unita_misura_peso) {
+      pricePerBaseUnit = materiaPrima.prezzo_unitario / materiaPrima.peso_dimensione_unita;
+      
+      let quantityInBaseUnit = ing.quantita;
+      const baseUnit = materiaPrima.unita_misura_peso;
+      
+      if (ing.unita_misura === 'g' && baseUnit === 'kg') {
+        quantityInBaseUnit = ing.quantita / 1000;
+      } else if (ing.unita_misura === 'kg' && baseUnit === 'kg') {
+        quantityInBaseUnit = ing.quantita;
+      } else if (ing.unita_misura === 'ml' && baseUnit === 'litri') {
+        quantityInBaseUnit = ing.quantita / 1000;
+      } else if (ing.unita_misura === 'litri' && baseUnit === 'litri') {
+        quantityInBaseUnit = ing.quantita;
+      } else if (ing.unita_misura === 'g' && baseUnit === 'g') {
+        quantityInBaseUnit = ing.quantita;
+      } else if (ing.unita_misura === 'ml' && baseUnit === 'ml') {
+        quantityInBaseUnit = ing.quantita;
+      }
+      
+      return quantityInBaseUnit * pricePerBaseUnit;
     }
 
-    // Step 2: Calculate price per base unit (kg, g, litri, ml)
-    // Example: Se ogni unità pesa 1kg → 0.319€ / 1kg = 0.319€/kg
-    let pricePerBaseUnit = pricePerInternalUnit;
-    
-    if (materiaPrima.peso_unita_interna && materiaPrima.unita_misura_interna) {
-      pricePerBaseUnit = pricePerInternalUnit / materiaPrima.peso_unita_interna;
-    } else if (materiaPrima.peso_dimensione_unita && materiaPrima.unita_misura_peso) {
-      // Fallback to old logic if peso_unita_interna not set
-      pricePerBaseUnit = pricePerInternalUnit / materiaPrima.peso_dimensione_unita;
-    }
-
-    // Step 3: Convert recipe quantity to base unit
-    // Example: 13.89g → 0.01389kg
     let quantityInBaseUnit = ing.quantita;
-    
-    const baseUnit = materiaPrima.unita_misura_interna || materiaPrima.unita_misura_peso || materiaPrima.unita_misura;
-    
-    if (ing.unita_misura === 'g' && baseUnit === 'kg') {
+    if (ing.unita_misura === 'g' && materiaPrima.unita_misura === 'kg') {
       quantityInBaseUnit = ing.quantita / 1000;
-    } else if (ing.unita_misura === 'kg' && baseUnit === 'kg') {
-      quantityInBaseUnit = ing.quantita;
-    } else if (ing.unita_misura === 'ml' && baseUnit === 'litri') {
+    } else if (ing.unita_misura === 'ml' && materiaPrima.unita_misura === 'litri') {
       quantityInBaseUnit = ing.quantita / 1000;
-    } else if (ing.unita_misura === 'litri' && baseUnit === 'litri') {
-      quantityInBaseUnit = ing.quantita;
-    } else if (ing.unita_misura === 'g' && baseUnit === 'g') {
-      quantityInBaseUnit = ing.quantita;
-    } else if (ing.unita_misura === 'ml' && baseUnit === 'ml') {
-      quantityInBaseUnit = ing.quantita;
-    } else if (ing.unita_misura === materiaPrima.unita_misura) {
-      quantityInBaseUnit = ing.quantita;
     }
 
-    // Step 4: Calculate final cost
-    // Example: 0.01389kg * 0.319€/kg = 0.0044€
     return quantityInBaseUnit * pricePerBaseUnit;
   };
 
@@ -238,9 +253,86 @@ export default function Ricette() {
 
   const calculateCosts = () => {
     let totalCost = 0;
+
     formData.ingredienti.forEach(ing => {
-      totalCost += calculateIngredientCost(ing);
+      // Check if it's a semilavorato
+      if (ing.is_semilavorato) {
+        totalCost += ing.quantita * (ing.prezzo_unitario || 0);
+        return;
+      }
+
+      const materiaPrima = materiePrime.find(m => m.id === ing.materia_prima_id);
+      if (!materiaPrima || !materiaPrima.prezzo_unitario) return;
+
+      let pricePerBaseUnit = materiaPrima.prezzo_unitario;
+      
+      // CRITICAL: Handle products with internal units (confezioni)
+      // Example: Sale costs €3.83 per confezione, with 12 units of 1kg each
+      // So price per kg = €3.83 / (12 * 1) = €0.319/kg
+      if (materiaPrima.unita_per_confezione && materiaPrima.peso_unita_interna && materiaPrima.unita_misura_interna) {
+        // Calculate total weight/volume in the package
+        const totalInPackage = materiaPrima.unita_per_confezione * materiaPrima.peso_unita_interna;
+        // Price per internal unit (e.g., per kg, per liter)
+        pricePerBaseUnit = materiaPrima.prezzo_unitario / totalInPackage;
+        
+        // Convert recipe quantity to internal unit
+        let quantityInBaseUnit = ing.quantita;
+        const internalUnit = materiaPrima.unita_misura_interna;
+        
+        if (ing.unita_misura === 'g' && internalUnit === 'kg') {
+          quantityInBaseUnit = ing.quantita / 1000;
+        } else if (ing.unita_misura === 'kg' && internalUnit === 'kg') {
+          quantityInBaseUnit = ing.quantita;
+        } else if (ing.unita_misura === 'ml' && internalUnit === 'litri') {
+          quantityInBaseUnit = ing.quantita / 1000;
+        } else if (ing.unita_misura === 'litri' && internalUnit === 'litri') {
+          quantityInBaseUnit = ing.quantita;
+        } else if (ing.unita_misura === 'g' && internalUnit === 'g') {
+          quantityInBaseUnit = ing.quantita;
+        } else if (ing.unita_misura === 'ml' && internalUnit === 'ml') {
+          quantityInBaseUnit = ing.quantita;
+        }
+        
+        totalCost += quantityInBaseUnit * pricePerBaseUnit;
+        return;
+      }
+      
+      // Legacy handling for peso_dimensione_unita (backwards compatibility)
+      if (materiaPrima.peso_dimensione_unita && materiaPrima.unita_misura_peso) {
+        pricePerBaseUnit = materiaPrima.prezzo_unitario / materiaPrima.peso_dimensione_unita;
+        
+        let quantityInBaseUnit = ing.quantita;
+        const baseUnit = materiaPrima.unita_misura_peso;
+        
+        if (ing.unita_misura === 'g' && baseUnit === 'kg') {
+          quantityInBaseUnit = ing.quantita / 1000;
+        } else if (ing.unita_misura === 'kg' && baseUnit === 'kg') {
+          quantityInBaseUnit = ing.quantita;
+        } else if (ing.unita_misura === 'ml' && baseUnit === 'litri') {
+          quantityInBaseUnit = ing.quantita / 1000;
+        } else if (ing.unita_misura === 'litri' && baseUnit === 'litri') {
+          quantityInBaseUnit = ing.quantita;
+        } else if (ing.unita_misura === 'g' && baseUnit === 'g') {
+          quantityInBaseUnit = ing.quantita;
+        } else if (ing.unita_misura === 'ml' && baseUnit === 'ml') {
+          quantityInBaseUnit = ing.quantita;
+        }
+        
+        totalCost += quantityInBaseUnit * pricePerBaseUnit;
+        return;
+      }
+
+      // Simple case: no internal units, direct price
+      let quantityInBaseUnit = ing.quantita;
+      if (ing.unita_misura === 'g' && materiaPrima.unita_misura === 'kg') {
+        quantityInBaseUnit = ing.quantita / 1000;
+      } else if (ing.unita_misura === 'ml' && materiaPrima.unita_misura === 'litri') {
+        quantityInBaseUnit = ing.quantita / 1000;
+      }
+
+      totalCost += quantityInBaseUnit * pricePerBaseUnit;
     });
+
     return totalCost;
   };
 
