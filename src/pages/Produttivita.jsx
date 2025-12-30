@@ -645,6 +645,51 @@ export default function Produttivita() {
             <p className="text-center text-[#9b9b9b] py-8">Nessun dato per questa data</p>
           )}
         </NeumorphicCard>
+
+        {/* Raw Data Table */}
+        <NeumorphicCard className="p-6">
+          <div className="mb-4">
+            <h3 className="text-lg font-bold text-[#6b6b6b]">Dati Raw da Zapier</h3>
+            <p className="text-sm text-[#9b9b9b]">Tutti i record caricati ({filteredData.length} record)</p>
+          </div>
+          {filteredData.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b-2 border-[#8b7355]">
+                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Data</th>
+                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Negozio</th>
+                    <th className="text-right p-3 text-[#9b9b9b] font-medium">Revenue Totale</th>
+                    <th className="text-center p-3 text-[#9b9b9b] font-medium">Slot Popolati</th>
+                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Creato</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredData.map((record) => {
+                    const slotCount = Object.keys(record.slots || {}).length;
+                    return (
+                      <tr key={record.id} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
+                        <td className="p-3 text-[#6b6b6b] font-medium">
+                          {format(parseISO(record.date), 'dd/MM/yyyy', { locale: it })}
+                        </td>
+                        <td className="p-3 text-[#6b6b6b]">{record.store_name}</td>
+                        <td className="p-3 text-right font-bold text-green-600">
+                          €{(record.total_revenue || 0).toFixed(2)}
+                        </td>
+                        <td className="p-3 text-center text-[#6b6b6b]">{slotCount} slot</td>
+                        <td className="p-3 text-xs text-[#9b9b9b]">
+                          {format(parseISO(record.created_date), 'dd/MM/yyyy HH:mm', { locale: it })}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
+          )}
+        </NeumorphicCard>
       </div>
     </ProtectedPage>
   );
