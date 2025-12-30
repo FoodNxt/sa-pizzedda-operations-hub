@@ -61,19 +61,20 @@ export default function Produttivita() {
     return filtered;
   }, [revenueData, selectedStore, dateRange, startDate, endDate]);
 
-  // Calculate hours worked by time slot
+  // Calculate AVERAGE hours worked by time slot (per day)
   const hoursWorkedBySlot = useMemo(() => {
-    const slotHours = {};
+    const slotData = {}; // { slot: { totalHours, daysSet } }
 
     allShifts.forEach(shift => {
       if (!shift.ora_inizio || !shift.ora_fine) return;
       if (selectedStore !== 'all' && shift.store_id !== selectedStore) return;
 
       const shiftDate = shift.data;
-      const startTime = shift.ora_inizio; // e.g. "09:00"
-      const endTime = shift.ora_fine; // e.g. "17:00"
+      if (!shiftDate) return;
 
-      // Generate all 30-min slots for this shift
+      const startTime = shift.ora_inizio;
+      const endTime = shift.ora_fine;
+
       const [startHour, startMin] = startTime.split(':').map(Number);
       const [endHour, endMin] = endTime.split(':').map(Number);
       
@@ -85,16 +86,25 @@ export default function Produttivita() {
         const m = currentMin % 60;
         const slot = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}-${String(Math.floor((currentMin + 30) / 60)).padStart(2, '0')}:${String((currentMin + 30) % 60).padStart(2, '0')}`;
         
-        if (!slotHours[slot]) {
-          slotHours[slot] = 0;
+        if (!slotData[slot]) {
+          slotData[slot] = { totalHours: 0, daysSet: new Set() };
         }
-        slotHours[slot] += 0.5; // 30 minutes = 0.5 hours
+        
+        slotData[slot].totalHours += 0.5; // 30 minutes = 0.5 hours
+        slotData[slot].daysSet.add(shiftDate);
         
         currentMin += 30;
       }
     });
 
-    return slotHours;
+    // Calculate average hours per day for each slot
+    const avgHours = {};
+    Object.keys(slotData).forEach(slot => {
+      const daysCount = slotData[slot].daysSet.size;
+      avgHours[slot] = daysCount > 0 ? slotData[slot].totalHours / daysCount : 0;
+    });
+
+    return avgHours;
   }, [allShifts, selectedStore]);
 
   // Aggregate by time slot (30min or 1hour)
