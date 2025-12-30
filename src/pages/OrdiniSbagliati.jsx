@@ -499,16 +499,8 @@ export default function OrdiniSbagliati() {
       const totalRaw = record[mapping.order_total_column] || '';
       const refundRaw = record[mapping.refund_column] || '';
 
-      // Detect suspicious store names
-      const storeSuspicious = storeName && (
-        (storeName.split(',').length >= 3) || // multiple commas (2+ commas)
-        storeName.toLowerCase().includes('delivered') ||
-        storeName.toLowerCase().includes('missing') ||
-        storeName.toLowerCase().includes('cancelled') ||
-        /\d{4}-\d{2}-\d{2}/.test(storeName) || // date pattern YYYY-MM-DD
-        /^\d{2}\/\d{2}\/\d{4}/.test(storeName) || // date pattern DD/MM/YYYY
-        storeName.length > 100 // unreasonably long
-      );
+      // Mark as suspicious only if clearly wrong
+      const storeSuspicious = false; // Accept all store names
 
       // Parse and validate numeric values
       const totalParsed = parseNumericValue(totalRaw);
