@@ -339,12 +339,15 @@ export default function OrdiniSbagliati() {
         }
         
         // CRITICAL: Detect and skip suspicious store names (wrong column mapping)
+        // Only block really obvious wrong mappings - be permissive with store names
         const isSuspicious = platformStoreName && (
-          platformStoreName.includes(',') || 
+          (platformStoreName.split(',').length >= 3) || // multiple commas (2+ commas)
           platformStoreName.toLowerCase().includes('delivered') ||
           platformStoreName.toLowerCase().includes('missing') ||
-          /\d{4}-\d{2}-\d{2}/.test(platformStoreName) || // date pattern
-          platformStoreName.split(',').length > 2 // multiple commas
+          platformStoreName.toLowerCase().includes('cancelled') ||
+          /\d{4}-\d{2}-\d{2}/.test(platformStoreName) || // date pattern YYYY-MM-DD
+          /^\d{2}\/\d{2}\/\d{4}/.test(platformStoreName) || // date pattern DD/MM/YYYY
+          platformStoreName.length > 100 // unreasonably long
         );
         
         if (isSuspicious) {
