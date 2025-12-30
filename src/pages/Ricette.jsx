@@ -324,10 +324,27 @@ export default function Ricette() {
 
       // Simple case: no internal units, direct price
       let quantityInBaseUnit = ing.quantita;
+      
+      // Handle ALL weight/volume conversions
       if (ing.unita_misura === 'g' && materiaPrima.unita_misura === 'kg') {
         quantityInBaseUnit = ing.quantita / 1000;
+      } else if (ing.unita_misura === 'kg' && materiaPrima.unita_misura === 'g') {
+        quantityInBaseUnit = ing.quantita * 1000;
       } else if (ing.unita_misura === 'ml' && materiaPrima.unita_misura === 'litri') {
         quantityInBaseUnit = ing.quantita / 1000;
+      } else if (ing.unita_misura === 'litri' && materiaPrima.unita_misura === 'ml') {
+        quantityInBaseUnit = ing.quantita * 1000;
+      } else if (ing.unita_misura === 'g' && materiaPrima.unita_misura === 'litri') {
+        // grammi -> litri (assuming density ~1, like oil/water)
+        quantityInBaseUnit = ing.quantita / 1000;
+      } else if (ing.unita_misura === 'ml' && materiaPrima.unita_misura === 'kg') {
+        // ml -> kg (assuming density ~1)
+        quantityInBaseUnit = ing.quantita / 1000;
+      } else if (ing.unita_misura === 'pezzi' && materiaPrima.unita_misura === 'pezzi') {
+        quantityInBaseUnit = ing.quantita;
+      } else if (ing.unita_misura === 'pezzi' && materiaPrima.unita_misura === 'confezioni' && !materiaPrima.unita_per_confezione) {
+        // If using pezzi but product is sold in confezioni, assume 1:1 if no unita_per_confezione
+        quantityInBaseUnit = ing.quantita;
       }
 
       totalCost += quantityInBaseUnit * pricePerBaseUnit;
