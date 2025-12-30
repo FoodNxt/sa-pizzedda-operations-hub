@@ -135,40 +135,35 @@ export default function Ricette() {
 
     let pricePerBaseUnit = materiaPrima.prezzo_unitario;
     
-    if (materiaPrima.peso_dimensione_unita && materiaPrima.unita_misura_peso) {
+    // Handle products with units per package (e.g., 12 bags of 1kg per box)
+    if (materiaPrima.unita_per_confezione && materiaPrima.peso_unita_interna && materiaPrima.unita_misura_interna) {
+      // Total weight/volume per package
+      const totalPerPackage = materiaPrima.unita_per_confezione * materiaPrima.peso_unita_interna;
+      pricePerBaseUnit = materiaPrima.prezzo_unitario / totalPerPackage;
+    } else if (materiaPrima.peso_dimensione_unita && materiaPrima.unita_misura_peso) {
       pricePerBaseUnit = materiaPrima.prezzo_unitario / materiaPrima.peso_dimensione_unita;
     }
 
     let quantityInBaseUnit = ing.quantita;
     
-    if (materiaPrima.peso_dimensione_unita && materiaPrima.unita_misura_peso) {
-      const baseUnit = materiaPrima.unita_misura_peso;
-      
-      if (ing.unita_misura === 'g' && baseUnit === 'kg') {
-        quantityInBaseUnit = ing.quantita / 1000;
-      } else if (ing.unita_misura === 'kg' && baseUnit === 'kg') {
-        quantityInBaseUnit = ing.quantita;
-      } else if (ing.unita_misura === 'ml' && baseUnit === 'litri') {
-        quantityInBaseUnit = ing.quantita / 1000;
-      } else if (ing.unita_misura === 'litri' && baseUnit === 'litri') {
-        quantityInBaseUnit = ing.quantita;
-      } else if (ing.unita_misura === 'g' && baseUnit === 'g') {
-        quantityInBaseUnit = ing.quantita;
-      } else if (ing.unita_misura === 'ml' && baseUnit === 'ml') {
-        quantityInBaseUnit = ing.quantita;
-      } else {
-        quantityInBaseUnit = ing.quantita;
-      }
-    } else {
-      if (ing.unita_misura === 'g' && materiaPrima.unita_misura === 'kg') {
-        quantityInBaseUnit = ing.quantita / 1000;
-      } else if (ing.unita_misura === 'ml' && materiaPrima.unita_misura === 'litri') {
-        quantityInBaseUnit = ing.quantita / 1000;
-      } else if (ing.unita_misura === materiaPrima.unita_misura) {
-        quantityInBaseUnit = ing.quantita;
-      } else {
-        quantityInBaseUnit = ing.quantita;
-      }
+    // Determine base unit for calculation
+    let baseUnit = materiaPrima.unita_misura_interna || materiaPrima.unita_misura_peso || materiaPrima.unita_misura;
+    
+    // Convert recipe quantity to base unit
+    if (ing.unita_misura === 'g' && (baseUnit === 'kg' || baseUnit === 'kg')) {
+      quantityInBaseUnit = ing.quantita / 1000;
+    } else if (ing.unita_misura === 'kg' && baseUnit === 'kg') {
+      quantityInBaseUnit = ing.quantita;
+    } else if (ing.unita_misura === 'ml' && baseUnit === 'litri') {
+      quantityInBaseUnit = ing.quantita / 1000;
+    } else if (ing.unita_misura === 'litri' && baseUnit === 'litri') {
+      quantityInBaseUnit = ing.quantita;
+    } else if (ing.unita_misura === 'g' && baseUnit === 'g') {
+      quantityInBaseUnit = ing.quantita;
+    } else if (ing.unita_misura === 'ml' && baseUnit === 'ml') {
+      quantityInBaseUnit = ing.quantita;
+    } else if (ing.unita_misura === baseUnit) {
+      quantityInBaseUnit = ing.quantita;
     }
 
     return quantityInBaseUnit * pricePerBaseUnit;
@@ -235,66 +230,7 @@ export default function Ricette() {
     let totalCost = 0;
 
     formData.ingredienti.forEach(ing => {
-      // Check if it's a semilavorato
-      if (ing.is_semilavorato) {
-        // For semilavorati, use the stored cost directly multiplied by quantity
-        // Assuming quantity is in "pezzi" or "unità" for semilavorati
-        totalCost += ing.quantita * (ing.prezzo_unitario || 0);
-        return;
-      }
-
-      const materiaPrima = materiePrime.find(m => m.id === ing.materia_prima_id);
-      if (!materiaPrima || !materiaPrima.prezzo_unitario) return;
-
-      // Calculate base unit price
-      let pricePerBaseUnit = materiaPrima.prezzo_unitario;
-      
-      // If the product has peso_dimensione_unita, we need to calculate the price per base unit
-      // Example: Sacco da 25kg costs €10 -> €10/25kg = €0.4 per kg
-      if (materiaPrima.peso_dimensione_unita && materiaPrima.unita_misura_peso) {
-        pricePerBaseUnit = materiaPrima.prezzo_unitario / materiaPrima.peso_dimensione_unita;
-      }
-
-      // Convert recipe quantity to base unit
-      let quantityInBaseUnit = ing.quantita;
-      
-      // If product has peso_dimensione_unita, convert recipe quantity to that base unit
-      if (materiaPrima.peso_dimensione_unita && materiaPrima.unita_misura_peso) {
-        const baseUnit = materiaPrima.unita_misura_peso;
-        
-        // Convert recipe quantity to base unit
-        if (ing.unita_misura === 'g' && baseUnit === 'kg') {
-          quantityInBaseUnit = ing.quantita / 1000;
-        } else if (ing.unita_misura === 'kg' && baseUnit === 'kg') {
-          quantityInBaseUnit = ing.quantita;
-        } else if (ing.unita_misura === 'ml' && baseUnit === 'litri') {
-          quantityInBaseUnit = ing.quantita / 1000;
-        } else if (ing.unita_misura === 'litri' && baseUnit === 'litri') {
-          quantityInBaseUnit = ing.quantita;
-        } else if (ing.unita_misura === 'g' && baseUnit === 'g') {
-          quantityInBaseUnit = ing.quantita;
-        } else if (ing.unita_misura === 'ml' && baseUnit === 'ml') {
-          quantityInBaseUnit = ing.quantita;
-        } else {
-          // If units don't match, use quantity as is (e.g., pezzi)
-          quantityInBaseUnit = ing.quantita;
-        }
-      } else {
-        // No peso_dimensione_unita, so prezzo_unitario is already per unita_misura
-        // Convert if needed
-        if (ing.unita_misura === 'g' && materiaPrima.unita_misura === 'kg') {
-          quantityInBaseUnit = ing.quantita / 1000;
-        } else if (ing.unita_misura === 'ml' && materiaPrima.unita_misura === 'litri') {
-          quantityInBaseUnit = ing.quantita / 1000;
-        } else if (ing.unita_misura === materiaPrima.unita_misura) {
-          quantityInBaseUnit = ing.quantita;
-        } else {
-          // Units don't match, use as is
-          quantityInBaseUnit = ing.quantita;
-        }
-      }
-
-      totalCost += quantityInBaseUnit * pricePerBaseUnit;
+      totalCost += calculateIngredientCost(ing);
     });
 
     return totalCost;
