@@ -135,7 +135,14 @@ export default function Ricette() {
 
     let pricePerBaseUnit = materiaPrima.prezzo_unitario;
     
-    // CRITICAL: Handle products with internal units (confezioni)
+    // Handle products sold in "confezioni" with pieces inside (e.g., Coca Cola 3-pack)
+    if (materiaPrima.unita_misura === 'confezioni' && materiaPrima.unita_per_confezione && ing.unita_misura === 'pezzi') {
+      // Price per single piece = price per box / number of pieces in box
+      pricePerBaseUnit = materiaPrima.prezzo_unitario / materiaPrima.unita_per_confezione;
+      return ing.quantita * pricePerBaseUnit;
+    }
+    
+    // CRITICAL: Handle products with internal units (weight/volume in confezioni)
     if (materiaPrima.unita_per_confezione && materiaPrima.peso_unita_interna && materiaPrima.unita_misura_interna) {
       const totalInPackage = materiaPrima.unita_per_confezione * materiaPrima.peso_unita_interna;
       pricePerBaseUnit = materiaPrima.prezzo_unitario / totalInPackage;
