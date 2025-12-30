@@ -1406,7 +1406,7 @@ export default function OrdiniSbagliati() {
                         <span className="font-mono text-sm text-[#6b6b6b]">{order.order_id}</span>
                       </td>
                       <td className="p-3 text-sm text-[#6b6b6b]">
-                        {new Date(order.order_date).toLocaleDateString('it-IT')}
+                        {new Date(order.order_date).toLocaleDateString('it-IT')} {new Date(order.order_date).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
                       </td>
                       <td className="p-3">
                         <div>

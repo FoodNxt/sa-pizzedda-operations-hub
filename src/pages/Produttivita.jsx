@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { TrendingUp, Clock, DollarSign, Calendar } from 'lucide-react';
+import { TrendingUp, Clock, DollarSign, Calendar, Store } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
-import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
+import { format, startOfMonth, endOfMonth, parseISO, startOfWeek, endOfWeek, getWeek } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import ProtectedPage from "../components/ProtectedPage";
@@ -253,6 +253,86 @@ export default function Produttivita() {
     
     return result;
   }, [filteredData, timeSlotView, hoursWorkedBySlot]);
+
+  // Weekly/Monthly productivity by store
+  const storeProductivity = useMemo(() => {
+    const storeData = {};
+    
+    // Group by store and time period (week/month)
+    filteredData.forEach(record => {
+      const date = parseISO(record.date);
+      const storeId = record.store_id;
+      const storeName = record.store_name;
+      
+      if (!storeId) return;
+      
+      // Get week and month identifiers
+      const weekKey = `${format(startOfWeek(date, { locale: it }), 'yyyy-MM-dd')}`;
+      const monthKey = format(date, 'yyyy-MM');
+      
+      // Initialize store data
+      if (!storeData[storeId]) {
+        storeData[storeId] = {
+          name: storeName,
+          weekly: {},
+          monthly: {}
+        };
+      }
+      
+      // Weekly data
+      if (!storeData[storeId].weekly[weekKey]) {
+        storeData[storeId].weekly[weekKey] = { revenue: 0, hours: 0, date: weekKey };
+      }
+      storeData[storeId].weekly[weekKey].revenue += record.total_revenue || 0;
+      
+      // Monthly data
+      if (!storeData[storeId].monthly[monthKey]) {
+        storeData[storeId].monthly[monthKey] = { revenue: 0, hours: 0, date: monthKey };
+      }
+      storeData[storeId].monthly[monthKey].revenue += record.total_revenue || 0;
+    });
+    
+    // Add hours from shifts
+    allShifts.forEach(shift => {
+      if (!shift.ora_inizio || !shift.ora_fine || !shift.data || !shift.store_id) return;
+      
+      const date = parseISO(shift.data);
+      const weekKey = `${format(startOfWeek(date, { locale: it }), 'yyyy-MM-dd')}`;
+      const monthKey = format(date, 'yyyy-MM');
+      
+      // Calculate shift duration in hours
+      const [startHour, startMin] = shift.ora_inizio.split(':').map(Number);
+      const [endHour, endMin] = shift.ora_fine.split(':').map(Number);
+      const hours = (endHour * 60 + endMin - (startHour * 60 + startMin)) / 60;
+      
+      if (storeData[shift.store_id]) {
+        // Weekly hours
+        if (storeData[shift.store_id].weekly[weekKey]) {
+          storeData[shift.store_id].weekly[weekKey].hours += hours;
+        }
+        
+        // Monthly hours
+        if (storeData[shift.store_id].monthly[monthKey]) {
+          storeData[shift.store_id].monthly[monthKey].hours += hours;
+        }
+      }
+    });
+    
+    // Calculate productivity (€/hour)
+    Object.keys(storeData).forEach(storeId => {
+      Object.keys(storeData[storeId].weekly).forEach(weekKey => {
+        const data = storeData[storeId].weekly[weekKey];
+        data.productivity = data.hours > 0 ? data.revenue / data.hours : 0;
+      });
+      
+      Object.keys(storeData[storeId].monthly).forEach(monthKey => {
+        const data = storeData[storeId].monthly[monthKey];
+        data.productivity = data.hours > 0 ? data.revenue / data.hours : 0;
+      });
+    });
+    
+    return storeData;
+  }, [filteredData, allShifts]);
 
   const stats = {
     totalRevenue: filteredData.reduce((sum, r) => sum + (r.total_revenue || 0), 0),
@@ -643,6 +723,132 @@ export default function Produttivita() {
             </ResponsiveContainer>
           ) : (
             <p className="text-center text-[#9b9b9b] py-8">Nessun dato per questa data</p>
+          )}
+        </NeumorphicCard>
+
+        {/* Store Productivity Comparison - Weekly */}
+        <NeumorphicCard className="p-6">
+          <div className="mb-4">
+            <h3 className="text-lg font-bold text-[#6b6b6b] flex items-center gap-2">
+              <Store className="w-5 h-5" />
+              Produttività Settimanale per Negozio
+            </h3>
+            <p className="text-sm text-[#9b9b9b]">€/ora per settimana - confronto tra negozi</p>
+          </div>
+          {Object.keys(storeProductivity).length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b-2 border-[#8b7355]">
+                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Settimana</th>
+                    {Object.values(storeProductivity).map(store => (
+                      <th key={store.name} className="text-right p-3 text-[#9b9b9b] font-medium">{store.name}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const allWeeks = new Set();
+                    Object.values(storeProductivity).forEach(store => {
+                      Object.keys(store.weekly).forEach(week => allWeeks.add(week));
+                    });
+                    const sortedWeeks = Array.from(allWeeks).sort().reverse();
+                    
+                    return sortedWeeks.map(week => (
+                      <tr key={week} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
+                        <td className="p-3 text-[#6b6b6b] font-medium">
+                          {format(parseISO(week), "'Sett.' w - dd/MM", { locale: it })}
+                        </td>
+                        {Object.values(storeProductivity).map(store => {
+                          const data = store.weekly[week];
+                          return (
+                            <td key={store.name} className="p-3 text-right">
+                              {data ? (
+                                <div className="space-y-1">
+                                  <span className="font-bold text-green-600">
+                                    €{data.productivity.toFixed(2)}/h
+                                  </span>
+                                  <div className="text-xs text-[#9b9b9b]">
+                                    €{data.revenue.toFixed(0)} / {data.hours.toFixed(0)}h
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-[#9b9b9b]">-</span>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ));
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
+          )}
+        </NeumorphicCard>
+
+        {/* Store Productivity Comparison - Monthly */}
+        <NeumorphicCard className="p-6">
+          <div className="mb-4">
+            <h3 className="text-lg font-bold text-[#6b6b6b] flex items-center gap-2">
+              <Store className="w-5 h-5" />
+              Produttività Mensile per Negozio
+            </h3>
+            <p className="text-sm text-[#9b9b9b]">€/ora per mese - confronto tra negozi</p>
+          </div>
+          {Object.keys(storeProductivity).length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b-2 border-[#8b7355]">
+                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Mese</th>
+                    {Object.values(storeProductivity).map(store => (
+                      <th key={store.name} className="text-right p-3 text-[#9b9b9b] font-medium">{store.name}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const allMonths = new Set();
+                    Object.values(storeProductivity).forEach(store => {
+                      Object.keys(store.monthly).forEach(month => allMonths.add(month));
+                    });
+                    const sortedMonths = Array.from(allMonths).sort().reverse();
+                    
+                    return sortedMonths.map(month => (
+                      <tr key={month} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
+                        <td className="p-3 text-[#6b6b6b] font-medium">
+                          {format(parseISO(month + '-01'), 'MMMM yyyy', { locale: it })}
+                        </td>
+                        {Object.values(storeProductivity).map(store => {
+                          const data = store.monthly[month];
+                          return (
+                            <td key={store.name} className="p-3 text-right">
+                              {data ? (
+                                <div className="space-y-1">
+                                  <span className="font-bold text-green-600">
+                                    €{data.productivity.toFixed(2)}/h
+                                  </span>
+                                  <div className="text-xs text-[#9b9b9b]">
+                                    €{data.revenue.toFixed(0)} / {data.hours.toFixed(0)}h
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-[#9b9b9b]">-</span>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ));
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
           )}
         </NeumorphicCard>
 
