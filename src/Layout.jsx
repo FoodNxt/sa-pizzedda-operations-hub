@@ -135,9 +135,14 @@ const navigationStructure = [
         title: "Forms",
         url: createPageUrl("FinancialForms"),
         icon: FileText,
+      },
+      {
+        title: "Produttività",
+        url: createPageUrl("Produttivita"),
+        icon: Clock,
       }
-    ]
-  },
+      ]
+      },
   {
     title: "Inventory",
     icon: Package,
@@ -375,9 +380,19 @@ const navigationStructure = [
         title: "Bulk Import Prodotti Venduti",
         url: createPageUrl("BulkImportProdottiVenduti"),
         icon: Upload,
+      },
+      {
+        title: "Zapier Produttività",
+        url: createPageUrl("ZapierProduttivita"),
+        icon: Zap,
+      },
+      {
+        title: "Bulk Import Produttività",
+        url: createPageUrl("BulkImportProduttivita"),
+        icon: Upload,
       }
-    ]
-  },
+      ]
+      },
   {
     title: "Sistema",
     icon: User,
