@@ -133,24 +133,32 @@ export default function Ricette() {
     const materiaPrima = materiePrime.find(m => m.id === ing.materia_prima_id);
     if (!materiaPrima || !materiaPrima.prezzo_unitario) return 0;
 
-    let pricePerBaseUnit = materiaPrima.prezzo_unitario;
+    // Step 1: Calculate price per internal unit if package has multiple units
+    // Example: Sacco da 12 unità da 1kg costa 3.83€ → 3.83€ / 12 = 0.319€ per unità da 1kg
+    let pricePerInternalUnit = materiaPrima.prezzo_unitario;
     
-    // Handle products with units per package (e.g., 12 bags of 1kg per box)
-    if (materiaPrima.unita_per_confezione && materiaPrima.peso_unita_interna && materiaPrima.unita_misura_interna) {
-      // Total weight/volume per package
-      const totalPerPackage = materiaPrima.unita_per_confezione * materiaPrima.peso_unita_interna;
-      pricePerBaseUnit = materiaPrima.prezzo_unitario / totalPerPackage;
-    } else if (materiaPrima.peso_dimensione_unita && materiaPrima.unita_misura_peso) {
-      pricePerBaseUnit = materiaPrima.prezzo_unitario / materiaPrima.peso_dimensione_unita;
+    if (materiaPrima.unita_per_confezione && materiaPrima.unita_per_confezione > 1) {
+      pricePerInternalUnit = materiaPrima.prezzo_unitario / materiaPrima.unita_per_confezione;
     }
 
+    // Step 2: Calculate price per base unit (kg, g, litri, ml)
+    // Example: Se ogni unità pesa 1kg → 0.319€ / 1kg = 0.319€/kg
+    let pricePerBaseUnit = pricePerInternalUnit;
+    
+    if (materiaPrima.peso_unita_interna && materiaPrima.unita_misura_interna) {
+      pricePerBaseUnit = pricePerInternalUnit / materiaPrima.peso_unita_interna;
+    } else if (materiaPrima.peso_dimensione_unita && materiaPrima.unita_misura_peso) {
+      // Fallback to old logic if peso_unita_interna not set
+      pricePerBaseUnit = pricePerInternalUnit / materiaPrima.peso_dimensione_unita;
+    }
+
+    // Step 3: Convert recipe quantity to base unit
+    // Example: 13.89g → 0.01389kg
     let quantityInBaseUnit = ing.quantita;
     
-    // Determine base unit for calculation
-    let baseUnit = materiaPrima.unita_misura_interna || materiaPrima.unita_misura_peso || materiaPrima.unita_misura;
+    const baseUnit = materiaPrima.unita_misura_interna || materiaPrima.unita_misura_peso || materiaPrima.unita_misura;
     
-    // Convert recipe quantity to base unit
-    if (ing.unita_misura === 'g' && (baseUnit === 'kg' || baseUnit === 'kg')) {
+    if (ing.unita_misura === 'g' && baseUnit === 'kg') {
       quantityInBaseUnit = ing.quantita / 1000;
     } else if (ing.unita_misura === 'kg' && baseUnit === 'kg') {
       quantityInBaseUnit = ing.quantita;
@@ -162,10 +170,12 @@ export default function Ricette() {
       quantityInBaseUnit = ing.quantita;
     } else if (ing.unita_misura === 'ml' && baseUnit === 'ml') {
       quantityInBaseUnit = ing.quantita;
-    } else if (ing.unita_misura === baseUnit) {
+    } else if (ing.unita_misura === materiaPrima.unita_misura) {
       quantityInBaseUnit = ing.quantita;
     }
 
+    // Step 4: Calculate final cost
+    // Example: 0.01389kg * 0.319€/kg = 0.0044€
     return quantityInBaseUnit * pricePerBaseUnit;
   };
 
@@ -228,11 +238,9 @@ export default function Ricette() {
 
   const calculateCosts = () => {
     let totalCost = 0;
-
     formData.ingredienti.forEach(ing => {
       totalCost += calculateIngredientCost(ing);
     });
-
     return totalCost;
   };
 

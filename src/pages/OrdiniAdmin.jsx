@@ -11,7 +11,8 @@ import {
   Building2,
   Truck,
   Mail,
-  Loader2
+  Loader2,
+  BarChart3
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -246,7 +247,8 @@ Sa Pizzedda`
   const tabs = [
     { id: 'suggeriti', label: 'Ordini Suggeriti', icon: Package },
     { id: 'inviati', label: 'Ordini Inviati', icon: Send },
-    { id: 'completati', label: 'Ordini Arrivati', icon: CheckCircle }
+    { id: 'completati', label: 'Ordini Arrivati', icon: CheckCircle },
+    { id: 'analisi', label: 'Analisi Ordini', icon: BarChart3 }
   ];
 
   return (
@@ -281,11 +283,7 @@ Sa Pizzedda`
                   {ordiniInviati.length}
                 </span>
               )}
-              {tab.id === 'completati' && ordiniCompletati.length > 0 && (
-                <span className="px-2 py-0.5 rounded-full text-xs bg-green-500 text-white">
-                  {ordiniCompletati.length}
-                </span>
-              )}
+
             </button>
           ))}
         </div>
@@ -338,8 +336,24 @@ Sa Pizzedda`
                         const ordineMinimo = fornitore?.ordine_minimo || 0;
                         const superaMinimo = totaleOrdine >= ordineMinimo;
                         
+                        // Check if this order was already sent
+                        const existingOrder = ordiniInviati.find(o => 
+                          o.store_id === storeId && 
+                          o.fornitore === supplier &&
+                          o.status === 'inviato'
+                        );
+                        const wasAlreadySent = !!existingOrder;
+                        
                         return (
-                          <div key={supplier} className="neumorphic-pressed p-4 rounded-xl">
+                          <div key={supplier} className={`neumorphic-pressed p-4 rounded-xl ${wasAlreadySent ? 'border-2 border-green-300 bg-green-50' : ''}`}>
+                            {wasAlreadySent && (
+                              <div className="mb-3 p-2 bg-green-100 rounded-lg flex items-center gap-2">
+                                <CheckCircle className="w-4 h-4 text-green-600" />
+                                <span className="text-sm text-green-700 font-medium">
+                                  Ordine già inviato il {format(parseISO(existingOrder.data_invio), 'dd/MM/yyyy HH:mm', { locale: it })}
+                                </span>
+                              </div>
+                            )}
                             <div className="flex items-center justify-between mb-3">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <Truck className="w-5 h-5 text-slate-600" />
@@ -533,6 +547,125 @@ Sa Pizzedda`
                     ))}
                 </div>
               )}
+            </NeumorphicCard>
+          </div>
+        )}
+
+        {/* Analisi Ordini Tab */}
+        {activeTab === 'analisi' && (
+          <div className="space-y-6">
+            <NeumorphicCard className="p-6">
+              <h2 className="text-xl font-bold text-slate-800 mb-4">📊 Analisi Ordini</h2>
+              
+              {/* Summary Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                  <p className="text-sm text-slate-500 mb-1">Ordini Totali</p>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {ordiniInviati.length + ordiniCompletati.length}
+                  </p>
+                </div>
+                <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                  <p className="text-sm text-slate-500 mb-1">In Attesa</p>
+                  <p className="text-2xl font-bold text-orange-600">{ordiniInviati.length}</p>
+                </div>
+                <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                  <p className="text-sm text-slate-500 mb-1">Completati</p>
+                  <p className="text-2xl font-bold text-green-600">{ordiniCompletati.length}</p>
+                </div>
+                <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                  <p className="text-sm text-slate-500 mb-1">Valore Totale</p>
+                  <p className="text-2xl font-bold text-purple-600">
+                    €{[...ordiniInviati, ...ordiniCompletati].reduce((sum, o) => sum + o.totale_ordine, 0).toFixed(2)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Analisi per Negozio */}
+              <div className="mb-6">
+                <h3 className="text-lg font-bold text-slate-800 mb-3">Ordini per Negozio</h3>
+                <div className="space-y-2">
+                  {stores
+                    .filter(store => selectedStore === 'all' || store.id === selectedStore)
+                    .map(store => {
+                      const ordiniStore = [...ordiniInviati, ...ordiniCompletati].filter(o => o.store_id === store.id);
+                      const totaleStore = ordiniStore.reduce((sum, o) => sum + o.totale_ordine, 0);
+                      return ordiniStore.length > 0 ? (
+                        <div key={store.id} className="neumorphic-pressed p-4 rounded-xl">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className="font-bold text-slate-800">{store.name}</h4>
+                              <p className="text-sm text-slate-500">{ordiniStore.length} ordini</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xl font-bold text-blue-600">€{totaleStore.toFixed(2)}</p>
+                              <p className="text-xs text-slate-500">
+                                In attesa: {ordiniStore.filter(o => o.status === 'inviato').length} | 
+                                Completati: {ordiniStore.filter(o => o.status === 'completato').length}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : null;
+                    })}
+                </div>
+              </div>
+
+              {/* Analisi per Prodotto */}
+              <div>
+                <h3 className="text-lg font-bold text-slate-800 mb-3">Prodotti Più Ordinati</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b-2 border-blue-600">
+                        <th className="text-left p-3 text-slate-600 font-medium text-sm">Prodotto</th>
+                        <th className="text-right p-3 text-slate-600 font-medium text-sm">Quantità Tot.</th>
+                        <th className="text-right p-3 text-slate-600 font-medium text-sm">Ordini</th>
+                        <th className="text-right p-3 text-slate-600 font-medium text-sm">Valore</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const prodottiStats = {};
+                        [...ordiniInviati, ...ordiniCompletati]
+                          .filter(o => selectedStore === 'all' || o.store_id === selectedStore)
+                          .forEach(ordine => {
+                            ordine.prodotti.forEach(prod => {
+                              if (!prodottiStats[prod.nome_prodotto]) {
+                                prodottiStats[prod.nome_prodotto] = {
+                                  nome: prod.nome_prodotto,
+                                  quantita: 0,
+                                  ordini: 0,
+                                  valore: 0,
+                                  unita: prod.unita_misura
+                                };
+                              }
+                              prodottiStats[prod.nome_prodotto].quantita += prod.quantita_ordinata;
+                              prodottiStats[prod.nome_prodotto].ordini += 1;
+                              prodottiStats[prod.nome_prodotto].valore += prod.prezzo_unitario * prod.quantita_ordinata;
+                            });
+                          });
+                        
+                        return Object.values(prodottiStats)
+                          .sort((a, b) => b.valore - a.valore)
+                          .slice(0, 20)
+                          .map((prod, idx) => (
+                            <tr key={idx} className="border-b border-slate-200">
+                              <td className="p-3 text-slate-700">{prod.nome}</td>
+                              <td className="p-3 text-right font-medium text-slate-700">
+                                {prod.quantita.toFixed(1)} {prod.unita}
+                              </td>
+                              <td className="p-3 text-right text-slate-600">{prod.ordini}</td>
+                              <td className="p-3 text-right font-bold text-blue-600">
+                                €{prod.valore.toFixed(2)}
+                              </td>
+                            </tr>
+                          ));
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </NeumorphicCard>
           </div>
         )}
