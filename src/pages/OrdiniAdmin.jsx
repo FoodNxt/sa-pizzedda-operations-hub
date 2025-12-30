@@ -706,6 +706,248 @@ Sa Pizzedda`
           </div>
         )}
 
+        {/* Analisi Ordini Tab */}
+        {activeTab === 'analisi' && (
+          <div className="space-y-6">
+            <NeumorphicCard className="p-6">
+              <h2 className="text-xl font-bold text-slate-800 mb-6">📊 Analisi Ordini</h2>
+              
+              {(() => {
+                const allOrders = [...ordiniInviati, ...ordiniCompletati];
+                const filteredOrders = selectedStore === 'all' 
+                  ? allOrders 
+                  : allOrders.filter(o => o.store_id === selectedStore);
+
+                if (filteredOrders.length === 0) {
+                  return <p className="text-center text-slate-500 py-8">Nessun ordine trovato</p>;
+                }
+
+                // Group by store
+                const byStore = {};
+                filteredOrders.forEach(order => {
+                  if (!byStore[order.store_name]) {
+                    byStore[order.store_name] = {
+                      count: 0,
+                      total: 0,
+                      inviati: 0,
+                      completati: 0
+                    };
+                  }
+                  byStore[order.store_name].count++;
+                  byStore[order.store_name].total += order.totale_ordine;
+                  if (order.status === 'inviato') byStore[order.store_name].inviati++;
+                  if (order.status === 'completato') byStore[order.store_name].completati++;
+                });
+
+                // Group by product
+                const byProduct = {};
+                filteredOrders.forEach(order => {
+                  order.prodotti.forEach(prod => {
+                    if (!byProduct[prod.nome_prodotto]) {
+                      byProduct[prod.nome_prodotto] = {
+                        count: 0,
+                        totalQuantity: 0,
+                        totalCost: 0,
+                        unit: prod.unita_misura
+                      };
+                    }
+                    byProduct[prod.nome_prodotto].count++;
+                    byProduct[prod.nome_prodotto].totalQuantity += prod.quantita_ordinata;
+                    byProduct[prod.nome_prodotto].totalCost += prod.prezzo_unitario * prod.quantita_ordinata;
+                  });
+                });
+
+                // Group by supplier
+                const bySupplier = {};
+                filteredOrders.forEach(order => {
+                  if (!bySupplier[order.fornitore]) {
+                    bySupplier[order.fornitore] = {
+                      count: 0,
+                      total: 0
+                    };
+                  }
+                  bySupplier[order.fornitore].count++;
+                  bySupplier[order.fornitore].total += order.totale_ordine;
+                });
+
+                // Group by month
+                const byMonth = {};
+                filteredOrders.forEach(order => {
+                  const date = order.data_invio || order.created_date;
+                  const month = format(parseISO(date), 'MMM yyyy', { locale: it });
+                  if (!byMonth[month]) {
+                    byMonth[month] = {
+                      count: 0,
+                      total: 0
+                    };
+                  }
+                  byMonth[month].count++;
+                  byMonth[month].total += order.totale_ordine;
+                });
+
+                return (
+                  <div className="space-y-6">
+                    {/* Stats Summary */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                        <p className="text-sm text-slate-500 mb-1">Ordini Totali</p>
+                        <p className="text-3xl font-bold text-blue-600">{filteredOrders.length}</p>
+                      </div>
+                      <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                        <p className="text-sm text-slate-500 mb-1">Valore Totale</p>
+                        <p className="text-3xl font-bold text-green-600">
+                          €{filteredOrders.reduce((sum, o) => sum + o.totale_ordine, 0).toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                        <p className="text-sm text-slate-500 mb-1">Ordini Inviati</p>
+                        <p className="text-3xl font-bold text-orange-600">
+                          {filteredOrders.filter(o => o.status === 'inviato').length}
+                        </p>
+                      </div>
+                      <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                        <p className="text-sm text-slate-500 mb-1">Ordini Completati</p>
+                        <p className="text-3xl font-bold text-green-600">
+                          {filteredOrders.filter(o => o.status === 'completato').length}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* By Store */}
+                    <div className="neumorphic-flat p-6 rounded-xl">
+                      <h3 className="text-lg font-bold text-slate-800 mb-4">Per Negozio</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b-2 border-blue-600">
+                              <th className="text-left p-3 text-slate-600 font-medium">Negozio</th>
+                              <th className="text-right p-3 text-slate-600 font-medium">Ordini</th>
+                              <th className="text-right p-3 text-slate-600 font-medium">Inviati</th>
+                              <th className="text-right p-3 text-slate-600 font-medium">Completati</th>
+                              <th className="text-right p-3 text-slate-600 font-medium">Totale</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Object.entries(byStore)
+                              .sort((a, b) => b[1].total - a[1].total)
+                              .map(([store, data]) => (
+                                <tr key={store} className="border-b border-slate-200">
+                                  <td className="p-3 text-slate-800 font-medium">{store}</td>
+                                  <td className="p-3 text-right text-slate-700">{data.count}</td>
+                                  <td className="p-3 text-right text-orange-600">{data.inviati}</td>
+                                  <td className="p-3 text-right text-green-600">{data.completati}</td>
+                                  <td className="p-3 text-right font-bold text-blue-600">
+                                    €{data.total.toFixed(2)}
+                                  </td>
+                                </tr>
+                              ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* By Product */}
+                    <div className="neumorphic-flat p-6 rounded-xl">
+                      <h3 className="text-lg font-bold text-slate-800 mb-4">Per Prodotto (Top 20)</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b-2 border-purple-600">
+                              <th className="text-left p-3 text-slate-600 font-medium">Prodotto</th>
+                              <th className="text-right p-3 text-slate-600 font-medium">Ordini</th>
+                              <th className="text-right p-3 text-slate-600 font-medium">Quantità Totale</th>
+                              <th className="text-right p-3 text-slate-600 font-medium">Costo Totale</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Object.entries(byProduct)
+                              .sort((a, b) => b[1].totalCost - a[1].totalCost)
+                              .slice(0, 20)
+                              .map(([product, data]) => (
+                                <tr key={product} className="border-b border-slate-200">
+                                  <td className="p-3 text-slate-800 font-medium">{product}</td>
+                                  <td className="p-3 text-right text-slate-700">{data.count}</td>
+                                  <td className="p-3 text-right text-purple-600">
+                                    {data.totalQuantity.toFixed(2)} {data.unit}
+                                  </td>
+                                  <td className="p-3 text-right font-bold text-blue-600">
+                                    €{data.totalCost.toFixed(2)}
+                                  </td>
+                                </tr>
+                              ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* By Supplier */}
+                    <div className="neumorphic-flat p-6 rounded-xl">
+                      <h3 className="text-lg font-bold text-slate-800 mb-4">Per Fornitore</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b-2 border-green-600">
+                              <th className="text-left p-3 text-slate-600 font-medium">Fornitore</th>
+                              <th className="text-right p-3 text-slate-600 font-medium">Ordini</th>
+                              <th className="text-right p-3 text-slate-600 font-medium">Totale Speso</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Object.entries(bySupplier)
+                              .sort((a, b) => b[1].total - a[1].total)
+                              .map(([supplier, data]) => (
+                                <tr key={supplier} className="border-b border-slate-200">
+                                  <td className="p-3 text-slate-800 font-medium">{supplier}</td>
+                                  <td className="p-3 text-right text-slate-700">{data.count}</td>
+                                  <td className="p-3 text-right font-bold text-green-600">
+                                    €{data.total.toFixed(2)}
+                                  </td>
+                                </tr>
+                              ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* By Month */}
+                    <div className="neumorphic-flat p-6 rounded-xl">
+                      <h3 className="text-lg font-bold text-slate-800 mb-4">Per Mese</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b-2 border-orange-600">
+                              <th className="text-left p-3 text-slate-600 font-medium">Mese</th>
+                              <th className="text-right p-3 text-slate-600 font-medium">Ordini</th>
+                              <th className="text-right p-3 text-slate-600 font-medium">Totale</th>
+                              <th className="text-right p-3 text-slate-600 font-medium">Media per Ordine</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Object.entries(byMonth)
+                              .sort((a, b) => new Date(b[0]) - new Date(a[0]))
+                              .map(([month, data]) => (
+                                <tr key={month} className="border-b border-slate-200">
+                                  <td className="p-3 text-slate-800 font-medium">{month}</td>
+                                  <td className="p-3 text-right text-slate-700">{data.count}</td>
+                                  <td className="p-3 text-right font-bold text-orange-600">
+                                    €{data.total.toFixed(2)}
+                                  </td>
+                                  <td className="p-3 text-right text-blue-600">
+                                    €{(data.total / data.count).toFixed(2)}
+                                  </td>
+                                </tr>
+                              ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </NeumorphicCard>
+          </div>
+        )}
+
         {/* Email Customization Modal */}
         {customizingEmail && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
