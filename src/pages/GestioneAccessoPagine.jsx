@@ -181,6 +181,7 @@ export default function GestioneAccessoPagine() {
     { value: 'TeglieButtate', label: 'Teglie Buttate', category: 'Inventory' },
     { value: 'Preparazioni', label: 'Preparazioni', category: 'Inventory' },
     { value: 'InventoryForms', label: 'Inventory Forms', category: 'Inventory' },
+    { value: 'OrdiniAdmin', label: 'Ordini Fornitori Admin', category: 'Inventory' },
     { value: 'Employees', label: 'Employees', category: 'HR' },
     { value: 'Shifts', label: 'Shifts', category: 'HR' },
     { value: 'Payroll', label: 'Payroll', category: 'HR' },

@@ -196,6 +196,11 @@ const navigationStructure = [
         requiredUserType: ["admin"]
       },
       {
+        title: "Ordini Fornitori",
+        url: createPageUrl("OrdiniAdmin"),
+        icon: ShoppingCart,
+      },
+      {
         title: "Forms",
         url: createPageUrl("InventoryForms"),
         icon: Edit,

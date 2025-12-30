@@ -100,6 +100,7 @@ import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSetup from './pages/ZapierSetup';
 import Ordini from './pages/Ordini';
+import OrdiniAdmin from './pages/OrdiniAdmin';
 import __Layout from './Layout.jsx';
 
 
@@ -206,6 +207,7 @@ export const PAGES = {
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSetup": ZapierSetup,
     "Ordini": Ordini,
+    "OrdiniAdmin": OrdiniAdmin,
 }
 
 export const pagesConfig = {
