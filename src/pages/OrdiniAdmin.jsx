@@ -13,7 +13,8 @@ import {
   Mail,
   Loader2,
   BarChart3,
-  Calendar
+  Calendar,
+  Trash2
 } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
@@ -80,6 +81,15 @@ export default function OrdiniAdmin() {
       queryClient.invalidateQueries({ queryKey: ['ordini-completati'] });
       setEditingOrder(null);
       alert('✅ Ordine segnato come inviato!');
+    },
+  });
+
+  const deleteOrderMutation = useMutation({
+    mutationFn: (orderId) => base44.entities.OrdineFornitore.delete(orderId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ordini-inviati'] });
+      queryClient.invalidateQueries({ queryKey: ['ordini-completati'] });
+      alert('✅ Ordine eliminato!');
     },
   });
 
@@ -513,16 +523,28 @@ Sa Pizzedda`
                     .map(ordine => (
                       <div key={ordine.id} className="neumorphic-pressed p-4 rounded-xl">
                         <div className="flex items-start justify-between mb-3">
-                          <div>
+                          <div className="flex-1">
                             <h3 className="font-bold text-slate-800">{ordine.store_name}</h3>
                             <p className="text-sm text-slate-500">{ordine.fornitore}</p>
                             <p className="text-xs text-slate-400">
                               Inviato: {format(parseISO(ordine.data_invio), 'dd/MM/yyyy HH:mm', { locale: it })}
                             </p>
                           </div>
-                          <div className="text-right">
-                            <p className="text-xl font-bold text-blue-600">€{ordine.totale_ordine.toFixed(2)}</p>
-                            <p className="text-xs text-slate-500">{ordine.prodotti.length} prodotti</p>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <p className="text-xl font-bold text-blue-600">€{ordine.totale_ordine.toFixed(2)}</p>
+                              <p className="text-xs text-slate-500">{ordine.prodotti.length} prodotti</p>
+                            </div>
+                            <button
+                              onClick={() => {
+                                if (confirm('Eliminare questo ordine?')) {
+                                  deleteOrderMutation.mutate(ordine.id);
+                                }
+                              }}
+                              className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                            </button>
                           </div>
                         </div>
                         <div className="overflow-x-auto">
@@ -571,7 +593,7 @@ Sa Pizzedda`
                     .map(ordine => (
                       <div key={ordine.id} className="neumorphic-pressed p-4 rounded-xl border-2 border-green-200">
                         <div className="flex items-start justify-between mb-3">
-                          <div>
+                          <div className="flex-1">
                             <h3 className="font-bold text-slate-800">{ordine.store_name}</h3>
                             <p className="text-sm text-slate-500">{ordine.fornitore}</p>
                             <p className="text-xs text-slate-400">
@@ -579,9 +601,21 @@ Sa Pizzedda`
                             </p>
                             <p className="text-xs text-slate-400">Da: {ordine.completato_da}</p>
                           </div>
-                          <div className="text-right">
-                            <p className="text-xl font-bold text-green-600">€{ordine.totale_ordine.toFixed(2)}</p>
-                            <p className="text-xs text-slate-500">{ordine.prodotti.length} prodotti</p>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <p className="text-xl font-bold text-green-600">€{ordine.totale_ordine.toFixed(2)}</p>
+                              <p className="text-xs text-slate-500">{ordine.prodotti.length} prodotti</p>
+                            </div>
+                            <button
+                              onClick={() => {
+                                if (confirm('Eliminare questo ordine completato?')) {
+                                  deleteOrderMutation.mutate(ordine.id);
+                                }
+                              }}
+                              className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                            </button>
                           </div>
                         </div>
                         <div className="overflow-x-auto">
