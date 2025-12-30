@@ -96,6 +96,9 @@ import ValutazionePulizie from './pages/ValutazionePulizie';
 import VenditeAnalytics from './pages/VenditeAnalytics';
 import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierSetup from './pages/ZapierSetup';
+import Produttivita from './pages/Produttivita';
+import ZapierProduttivita from './pages/ZapierProduttivita';
+import BulkImportProduttivita from './pages/BulkImportProduttivita';
 import __Layout from './Layout.jsx';
 
 
@@ -198,6 +201,9 @@ export const PAGES = {
     "VenditeAnalytics": VenditeAnalytics,
     "ZapierProdottiVenduti": ZapierProdottiVenduti,
     "ZapierSetup": ZapierSetup,
+    "Produttivita": Produttivita,
+    "ZapierProduttivita": ZapierProduttivita,
+    "BulkImportProduttivita": BulkImportProduttivita,
 }
 
 export const pagesConfig = {
