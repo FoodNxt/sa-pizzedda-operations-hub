@@ -61,6 +61,8 @@ import MatchingOrdiniSbagliati from './pages/MatchingOrdiniSbagliati';
 import MateriePrime from './pages/MateriePrime';
 import Meteo from './pages/Meteo';
 import OrderItemsSetup from './pages/OrderItemsSetup';
+import Ordini from './pages/Ordini';
+import OrdiniAdmin from './pages/OrdiniAdmin';
 import OrdiniSbagliati from './pages/OrdiniSbagliati';
 import OreLavorate from './pages/OreLavorate';
 import OverviewContratti from './pages/OverviewContratti';
@@ -99,8 +101,6 @@ import VenditeAnalytics from './pages/VenditeAnalytics';
 import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSetup from './pages/ZapierSetup';
-import Ordini from './pages/Ordini';
-import OrdiniAdmin from './pages/OrdiniAdmin';
 import __Layout from './Layout.jsx';
 
 
@@ -168,6 +168,8 @@ export const PAGES = {
     "MateriePrime": MateriePrime,
     "Meteo": Meteo,
     "OrderItemsSetup": OrderItemsSetup,
+    "Ordini": Ordini,
+    "OrdiniAdmin": OrdiniAdmin,
     "OrdiniSbagliati": OrdiniSbagliati,
     "OreLavorate": OreLavorate,
     "OverviewContratti": OverviewContratti,
@@ -206,8 +208,6 @@ export const PAGES = {
     "ZapierProdottiVenduti": ZapierProdottiVenduti,
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSetup": ZapierSetup,
-    "Ordini": Ordini,
-    "OrdiniAdmin": OrdiniAdmin,
 }
 
 export const pagesConfig = {

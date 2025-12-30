@@ -12,8 +12,10 @@ import {
   Truck,
   Mail,
   Loader2,
-  BarChart3
+  BarChart3,
+  Calendar
 } from 'lucide-react';
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { format, parseISO } from 'date-fns';
@@ -31,6 +33,8 @@ export default function OrdiniAdmin() {
     subject: '',
     body: ''
   });
+  const [timeRange, setTimeRange] = useState('all'); // 'week', 'month', '3months', '6months', 'year', 'all'
+  const [selectedProduct, setSelectedProduct] = useState('all');
 
   const queryClient = useQueryClient();
 
@@ -711,11 +715,82 @@ Sa Pizzedda`
             <NeumorphicCard className="p-6">
               <h2 className="text-xl font-bold text-slate-800 mb-6">📊 Analisi Ordini</h2>
               
+              {/* Time Range and Product Filters */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Periodo Temporale
+                  </label>
+                  <select
+                    value={timeRange}
+                    onChange={(e) => setTimeRange(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                  >
+                    <option value="week">Ultima Settimana</option>
+                    <option value="month">Ultimo Mese</option>
+                    <option value="3months">Ultimi 3 Mesi</option>
+                    <option value="6months">Ultimi 6 Mesi</option>
+                    <option value="year">Ultimo Anno</option>
+                    <option value="all">Tutto il Periodo</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
+                    <Package className="w-4 h-4" />
+                    Prodotto Specifico
+                  </label>
+                  <select
+                    value={selectedProduct}
+                    onChange={(e) => setSelectedProduct(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                  >
+                    <option value="all">Tutti i Prodotti</option>
+                    {(() => {
+                      const allOrders = [...ordiniInviati, ...ordiniCompletati];
+                      const productNames = new Set();
+                      allOrders.forEach(order => {
+                        order.prodotti.forEach(prod => productNames.add(prod.nome_prodotto));
+                      });
+                      return Array.from(productNames).sort().map(name => (
+                        <option key={name} value={name}>{name}</option>
+                      ));
+                    })()}
+                  </select>
+                </div>
+              </div>
+              
               {(() => {
+                const now = new Date();
+                let startDate = new Date(0); // Default: all time
+                
+                switch(timeRange) {
+                  case 'week':
+                    startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    break;
+                  case 'month':
+                    startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                    break;
+                  case '3months':
+                    startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+                    break;
+                  case '6months':
+                    startDate = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
+                    break;
+                  case 'year':
+                    startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+                    break;
+                }
+                
                 const allOrders = [...ordiniInviati, ...ordiniCompletati];
-                const filteredOrders = selectedStore === 'all' 
-                  ? allOrders 
-                  : allOrders.filter(o => o.store_id === selectedStore);
+                let filteredOrders = allOrders.filter(o => {
+                  const orderDate = new Date(o.data_invio || o.created_date);
+                  return orderDate >= startDate;
+                });
+                
+                if (selectedStore !== 'all') {
+                  filteredOrders = filteredOrders.filter(o => o.store_id === selectedStore);
+                }
 
                 if (filteredOrders.length === 0) {
                   return <p className="text-center text-slate-500 py-8">Nessun ordine trovato</p>;
@@ -769,20 +844,82 @@ Sa Pizzedda`
                   bySupplier[order.fornitore].total += order.totale_ordine;
                 });
 
-                // Group by month
-                const byMonth = {};
+                // Group by date for timeline
+                const byDate = {};
                 filteredOrders.forEach(order => {
                   const date = order.data_invio || order.created_date;
-                  const month = format(parseISO(date), 'MMM yyyy', { locale: it });
-                  if (!byMonth[month]) {
-                    byMonth[month] = {
+                  const dateKey = format(parseISO(date), 'dd MMM', { locale: it });
+                  if (!byDate[dateKey]) {
+                    byDate[dateKey] = {
+                      date: dateKey,
                       count: 0,
-                      total: 0
+                      total: 0,
+                      timestamp: new Date(date).getTime()
                     };
                   }
-                  byMonth[month].count++;
-                  byMonth[month].total += order.totale_ordine;
+                  byDate[dateKey].count++;
+                  byDate[dateKey].total += order.totale_ordine;
                 });
+
+                const timelineData = Object.values(byDate)
+                  .sort((a, b) => a.timestamp - b.timestamp)
+                  .map(({ date, count, total }) => ({ date, count, total }));
+
+                // Product timeline (for selected product or top 5)
+                const productTimeline = {};
+                let productsToTrack = [];
+                
+                if (selectedProduct === 'all') {
+                  // Get top 5 products by total quantity
+                  const productTotals = {};
+                  filteredOrders.forEach(order => {
+                    order.prodotti.forEach(prod => {
+                      if (!productTotals[prod.nome_prodotto]) {
+                        productTotals[prod.nome_prodotto] = 0;
+                      }
+                      productTotals[prod.nome_prodotto] += prod.quantita_ordinata;
+                    });
+                  });
+                  productsToTrack = Object.entries(productTotals)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 5)
+                    .map(([name]) => name);
+                } else {
+                  productsToTrack = [selectedProduct];
+                }
+
+                filteredOrders.forEach(order => {
+                  const date = order.data_invio || order.created_date;
+                  const dateKey = format(parseISO(date), 'dd MMM', { locale: it });
+                  
+                  if (!productTimeline[dateKey]) {
+                    productTimeline[dateKey] = {
+                      date: dateKey,
+                      timestamp: new Date(date).getTime()
+                    };
+                    productsToTrack.forEach(p => {
+                      productTimeline[dateKey][p] = 0;
+                    });
+                  }
+                  
+                  order.prodotti.forEach(prod => {
+                    if (productsToTrack.includes(prod.nome_prodotto)) {
+                      productTimeline[dateKey][prod.nome_prodotto] += prod.quantita_ordinata;
+                    }
+                  });
+                });
+
+                const productTimelineData = Object.values(productTimeline)
+                  .sort((a, b) => a.timestamp - b.timestamp)
+                  .map(({ timestamp, ...rest }) => rest);
+
+                // Supplier distribution for pie chart
+                const supplierData = Object.entries(bySupplier).map(([name, data]) => ({
+                  name,
+                  value: data.total
+                }));
+
+                const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
 
                 return (
                   <div className="space-y-6">
@@ -809,6 +946,175 @@ Sa Pizzedda`
                         <p className="text-3xl font-bold text-green-600">
                           {filteredOrders.filter(o => o.status === 'completato').length}
                         </p>
+                      </div>
+                    </div>
+
+                    {/* Timeline Charts */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Orders Over Time */}
+                      <div className="neumorphic-flat p-6 rounded-xl">
+                        <h3 className="text-lg font-bold text-slate-800 mb-4">Andamento Ordini nel Tempo</h3>
+                        {timelineData.length > 0 ? (
+                          <ResponsiveContainer width="100%" height={300}>
+                            <LineChart data={timelineData}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis 
+                                dataKey="date" 
+                                angle={-45} 
+                                textAnchor="end" 
+                                height={80}
+                                style={{ fontSize: '12px' }}
+                              />
+                              <YAxis />
+                              <Tooltip />
+                              <Legend />
+                              <Line 
+                                type="monotone" 
+                                dataKey="count" 
+                                stroke="#3b82f6" 
+                                strokeWidth={2}
+                                name="Numero Ordini"
+                                dot={{ r: 4 }}
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <p className="text-center text-slate-500 py-8">Nessun dato disponibile</p>
+                        )}
+                      </div>
+
+                      {/* Revenue Over Time */}
+                      <div className="neumorphic-flat p-6 rounded-xl">
+                        <h3 className="text-lg font-bold text-slate-800 mb-4">Valore Ordini nel Tempo</h3>
+                        {timelineData.length > 0 ? (
+                          <ResponsiveContainer width="100%" height={300}>
+                            <LineChart data={timelineData}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis 
+                                dataKey="date" 
+                                angle={-45} 
+                                textAnchor="end" 
+                                height={80}
+                                style={{ fontSize: '12px' }}
+                              />
+                              <YAxis />
+                              <Tooltip 
+                                formatter={(value) => `€${value.toFixed(2)}`}
+                              />
+                              <Legend />
+                              <Line 
+                                type="monotone" 
+                                dataKey="total" 
+                                stroke="#10b981" 
+                                strokeWidth={2}
+                                name="Valore Totale (€)"
+                                dot={{ r: 4 }}
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <p className="text-center text-slate-500 py-8">Nessun dato disponibile</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Product Timeline */}
+                    <div className="neumorphic-flat p-6 rounded-xl">
+                      <h3 className="text-lg font-bold text-slate-800 mb-4">
+                        {selectedProduct === 'all' 
+                          ? 'Andamento Top 5 Prodotti nel Tempo' 
+                          : `Andamento ${selectedProduct} nel Tempo`}
+                      </h3>
+                      {productTimelineData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={350}>
+                          <LineChart data={productTimelineData}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis 
+                              dataKey="date" 
+                              angle={-45} 
+                              textAnchor="end" 
+                              height={80}
+                              style={{ fontSize: '12px' }}
+                            />
+                            <YAxis />
+                            <Tooltip />
+                            <Legend />
+                            {productsToTrack.map((product, idx) => (
+                              <Line 
+                                key={product}
+                                type="monotone" 
+                                dataKey={product} 
+                                stroke={COLORS[idx % COLORS.length]} 
+                                strokeWidth={2}
+                                dot={{ r: 3 }}
+                              />
+                            ))}
+                          </LineChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <p className="text-center text-slate-500 py-8">Nessun dato disponibile</p>
+                      )}
+                    </div>
+
+                    {/* Supplier Distribution */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <div className="neumorphic-flat p-6 rounded-xl">
+                        <h3 className="text-lg font-bold text-slate-800 mb-4">Distribuzione Spesa per Fornitore</h3>
+                        {supplierData.length > 0 ? (
+                          <ResponsiveContainer width="100%" height={300}>
+                            <PieChart>
+                              <Pie
+                                data={supplierData}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={false}
+                                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                                outerRadius={80}
+                                fill="#8884d8"
+                                dataKey="value"
+                              >
+                                {supplierData.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                              </Pie>
+                              <Tooltip formatter={(value) => `€${value.toFixed(2)}`} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <p className="text-center text-slate-500 py-8">Nessun dato disponibile</p>
+                        )}
+                      </div>
+
+                      {/* Top Products Bar Chart */}
+                      <div className="neumorphic-flat p-6 rounded-xl">
+                        <h3 className="text-lg font-bold text-slate-800 mb-4">Top 10 Prodotti per Valore</h3>
+                        {Object.keys(byProduct).length > 0 ? (
+                          <ResponsiveContainer width="100%" height={300}>
+                            <BarChart 
+                              data={Object.entries(byProduct)
+                                .sort((a, b) => b[1].totalCost - a[1].totalCost)
+                                .slice(0, 10)
+                                .map(([name, data]) => ({
+                                  name: name.length > 20 ? name.substring(0, 20) + '...' : name,
+                                  value: data.totalCost
+                                }))}
+                            >
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis 
+                                dataKey="name" 
+                                angle={-45} 
+                                textAnchor="end" 
+                                height={100}
+                                style={{ fontSize: '10px' }}
+                              />
+                              <YAxis />
+                              <Tooltip formatter={(value) => `€${value.toFixed(2)}`} />
+                              <Bar dataKey="value" fill="#8b5cf6" name="Valore Totale (€)" />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <p className="text-center text-slate-500 py-8">Nessun dato disponibile</p>
+                        )}
                       </div>
                     </div>
 
