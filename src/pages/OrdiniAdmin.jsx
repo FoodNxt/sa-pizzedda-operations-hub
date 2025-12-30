@@ -12,8 +12,7 @@ import {
   Truck,
   Mail,
   Loader2,
-  BarChart3,
-  Calendar
+  BarChart3
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -284,6 +283,11 @@ Sa Pizzedda`
                   {ordiniInviati.length}
                 </span>
               )}
+              {tab.id === 'inviati' && ordiniInviati.length > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-xs bg-blue-500 text-white">
+                  {ordiniInviati.length}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -345,21 +349,6 @@ Sa Pizzedda`
                                 <span className="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700">
                                   {orders.length} prodotti
                                 </span>
-
-                                {/* Check if order was already sent */}
-                                {(() => {
-                                  const existingOrder = ordiniInviati.find(o => 
-                                    o.store_id === storeId && 
-                                    o.fornitore === supplier &&
-                                    o.prodotti.every(op => orders.some(or => or.product.id === op.prodotto_id))
-                                  );
-                                  return existingOrder ? (
-                                    <span className="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700 flex items-center gap-1">
-                                      <CheckCircle className="w-3 h-3" />
-                                      Inviato {format(parseISO(existingOrder.data_invio), 'dd/MM', { locale: it })}
-                                    </span>
-                                  ) : null;
-                                })()}
                                 {fornitore?.contatto_email && (
                                   <span className="px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-700 flex items-center gap-1">
                                     <Mail className="w-3 h-3" />
@@ -376,7 +365,7 @@ Sa Pizzedda`
                                   <Send className="w-4 h-4" />
                                   Segna Inviato
                                 </button>
-                                
+
                                 {fornitore?.contatto_email && (
                                   <button
                                     onClick={() => openEmailCustomization(storeData.store.name, supplier, orders)}
@@ -405,7 +394,27 @@ Sa Pizzedda`
                                     )}
                                   </button>
                                 )}
-                              </div>
+                                </div>
+
+                                {/* Check if order was already sent */}
+                                {(() => {
+                                const alreadySent = ordiniInviati.find(o => 
+                                  o.store_id === storeId && 
+                                  o.fornitore === supplier &&
+                                  o.prodotti.length === orders.length
+                                );
+                                if (alreadySent) {
+                                  return (
+                                    <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
+                                      <CheckCircle className="w-4 h-4 text-green-600" />
+                                      <span className="text-xs text-green-700">
+                                        Ordine già inviato il {format(parseISO(alreadySent.data_invio), 'dd/MM/yyyy HH:mm', { locale: it })}
+                                      </span>
+                                    </div>
+                                  );
+                                }
+                                })()}
+                                </div>
                             </div>
 
                             <div className="mb-3 p-3 rounded-lg bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200">
@@ -547,229 +556,6 @@ Sa Pizzedda`
                 </div>
               )}
             </NeumorphicCard>
-          </div>
-        )}
-
-        {/* Analisi Ordini Tab */}
-        {activeTab === 'analisi' && (
-          <div className="space-y-6">
-            {(() => {
-              const allOrders = [...ordiniInviati, ...ordiniCompletati];
-              
-              // Analytics by store
-              const byStore = {};
-              allOrders.forEach(ord => {
-                if (!byStore[ord.store_name]) {
-                  byStore[ord.store_name] = {
-                    totale: 0,
-                    ordini: 0,
-                    prodotti: new Set()
-                  };
-                }
-                byStore[ord.store_name].totale += ord.totale_ordine;
-                byStore[ord.store_name].ordini++;
-                ord.prodotti.forEach(p => byStore[ord.store_name].prodotti.add(p.nome_prodotto));
-              });
-              
-              // Analytics by product
-              const byProduct = {};
-              allOrders.forEach(ord => {
-                ord.prodotti.forEach(p => {
-                  if (!byProduct[p.nome_prodotto]) {
-                    byProduct[p.nome_prodotto] = {
-                      quantita: 0,
-                      ordini: 0,
-                      costo: 0,
-                      unita: p.unita_misura
-                    };
-                  }
-                  byProduct[p.nome_prodotto].quantita += p.quantita_ordinata;
-                  byProduct[p.nome_prodotto].ordini++;
-                  byProduct[p.nome_prodotto].costo += p.prezzo_unitario * p.quantita_ordinata;
-                });
-              });
-              
-              // Analytics by supplier
-              const bySupplier = {};
-              allOrders.forEach(ord => {
-                if (!bySupplier[ord.fornitore]) {
-                  bySupplier[ord.fornitore] = {
-                    totale: 0,
-                    ordini: 0
-                  };
-                }
-                bySupplier[ord.fornitore].totale += ord.totale_ordine;
-                bySupplier[ord.fornitore].ordini++;
-              });
-              
-              // Timeline data
-              const timeline = {};
-              allOrders.forEach(ord => {
-                const date = format(parseISO(ord.data_invio || ord.created_date), 'MMM yyyy', { locale: it });
-                if (!timeline[date]) {
-                  timeline[date] = { totale: 0, ordini: 0 };
-                }
-                timeline[date].totale += ord.totale_ordine;
-                timeline[date].ordini++;
-              });
-              
-              return (
-                <>
-                  {/* Summary Stats */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <NeumorphicCard className="p-4 text-center">
-                      <p className="text-sm text-slate-500 mb-1">Totale Ordini</p>
-                      <p className="text-3xl font-bold text-blue-600">{allOrders.length}</p>
-                    </NeumorphicCard>
-                    <NeumorphicCard className="p-4 text-center">
-                      <p className="text-sm text-slate-500 mb-1">Spesa Totale</p>
-                      <p className="text-3xl font-bold text-green-600">
-                        €{allOrders.reduce((sum, o) => sum + o.totale_ordine, 0).toFixed(0)}
-                      </p>
-                    </NeumorphicCard>
-                    <NeumorphicCard className="p-4 text-center">
-                      <p className="text-sm text-slate-500 mb-1">Fornitori</p>
-                      <p className="text-3xl font-bold text-purple-600">{Object.keys(bySupplier).length}</p>
-                    </NeumorphicCard>
-                    <NeumorphicCard className="p-4 text-center">
-                      <p className="text-sm text-slate-500 mb-1">Prodotti Diversi</p>
-                      <p className="text-3xl font-bold text-orange-600">{Object.keys(byProduct).length}</p>
-                    </NeumorphicCard>
-                  </div>
-                  
-                  {/* By Store */}
-                  <NeumorphicCard className="p-6">
-                    <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                      <Building2 className="w-5 h-5" />
-                      Per Negozio
-                    </h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b-2 border-blue-600">
-                            <th className="text-left p-3 text-slate-600 font-medium">Negozio</th>
-                            <th className="text-right p-3 text-slate-600 font-medium">Ordini</th>
-                            <th className="text-right p-3 text-slate-600 font-medium">Prodotti Unici</th>
-                            <th className="text-right p-3 text-slate-600 font-medium">Spesa Totale</th>
-                            <th className="text-right p-3 text-slate-600 font-medium">Media Ordine</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {Object.entries(byStore)
-                            .sort((a, b) => b[1].totale - a[1].totale)
-                            .map(([store, data]) => (
-                              <tr key={store} className="border-b border-slate-200">
-                                <td className="p-3 font-medium text-slate-800">{store}</td>
-                                <td className="p-3 text-right text-slate-700">{data.ordini}</td>
-                                <td className="p-3 text-right text-slate-700">{data.prodotti.size}</td>
-                                <td className="p-3 text-right font-bold text-blue-600">€{data.totale.toFixed(2)}</td>
-                                <td className="p-3 text-right text-slate-600">€{(data.totale / data.ordini).toFixed(2)}</td>
-                              </tr>
-                            ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </NeumorphicCard>
-                  
-                  {/* Top Products */}
-                  <NeumorphicCard className="p-6">
-                    <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                      <Package className="w-5 h-5" />
-                      Top 10 Prodotti Ordinati
-                    </h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b-2 border-green-600">
-                            <th className="text-left p-3 text-slate-600 font-medium">Prodotto</th>
-                            <th className="text-right p-3 text-slate-600 font-medium">Quantità Totale</th>
-                            <th className="text-right p-3 text-slate-600 font-medium">Ordini</th>
-                            <th className="text-right p-3 text-slate-600 font-medium">Costo Totale</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {Object.entries(byProduct)
-                            .sort((a, b) => b[1].quantita - a[1].quantita)
-                            .slice(0, 10)
-                            .map(([product, data]) => (
-                              <tr key={product} className="border-b border-slate-200">
-                                <td className="p-3 font-medium text-slate-800">{product}</td>
-                                <td className="p-3 text-right text-slate-700">
-                                  {data.quantita.toFixed(1)} {data.unita}
-                                </td>
-                                <td className="p-3 text-right text-slate-700">{data.ordini}</td>
-                                <td className="p-3 text-right font-bold text-green-600">€{data.costo.toFixed(2)}</td>
-                              </tr>
-                            ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </NeumorphicCard>
-                  
-                  {/* By Supplier */}
-                  <NeumorphicCard className="p-6">
-                    <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                      <Truck className="w-5 h-5" />
-                      Per Fornitore
-                    </h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b-2 border-purple-600">
-                            <th className="text-left p-3 text-slate-600 font-medium">Fornitore</th>
-                            <th className="text-right p-3 text-slate-600 font-medium">Ordini</th>
-                            <th className="text-right p-3 text-slate-600 font-medium">Spesa Totale</th>
-                            <th className="text-right p-3 text-slate-600 font-medium">Media Ordine</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {Object.entries(bySupplier)
-                            .sort((a, b) => b[1].totale - a[1].totale)
-                            .map(([supplier, data]) => (
-                              <tr key={supplier} className="border-b border-slate-200">
-                                <td className="p-3 font-medium text-slate-800">{supplier}</td>
-                                <td className="p-3 text-right text-slate-700">{data.ordini}</td>
-                                <td className="p-3 text-right font-bold text-purple-600">€{data.totale.toFixed(2)}</td>
-                                <td className="p-3 text-right text-slate-600">€{(data.totale / data.ordini).toFixed(2)}</td>
-                              </tr>
-                            ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </NeumorphicCard>
-                  
-                  {/* Timeline */}
-                  <NeumorphicCard className="p-6">
-                    <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                      <Calendar className="w-5 h-5" />
-                      Timeline Ordini
-                    </h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b-2 border-orange-600">
-                            <th className="text-left p-3 text-slate-600 font-medium">Periodo</th>
-                            <th className="text-right p-3 text-slate-600 font-medium">Ordini</th>
-                            <th className="text-right p-3 text-slate-600 font-medium">Spesa</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {Object.entries(timeline)
-                            .sort((a, b) => b[0].localeCompare(a[0]))
-                            .map(([date, data]) => (
-                              <tr key={date} className="border-b border-slate-200">
-                                <td className="p-3 font-medium text-slate-800">{date}</td>
-                                <td className="p-3 text-right text-slate-700">{data.ordini}</td>
-                                <td className="p-3 text-right font-bold text-orange-600">€{data.totale.toFixed(2)}</td>
-                              </tr>
-                            ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </NeumorphicCard>
-                </>
-              );
-            })()}
           </div>
         )}
 
