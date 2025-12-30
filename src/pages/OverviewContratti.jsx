@@ -593,6 +593,77 @@ export default function OverviewContratti() {
             </NeumorphicCard>
           </div>
         )}
+
+        {/* Contract History Modal */}
+        {viewingHistory && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="max-w-4xl w-full p-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-800">{viewingHistory.nome_cognome}</h2>
+                  <p className="text-sm text-slate-500">
+                    Storico Contratti • Tenure: {viewingHistory.tenure_mesi} {viewingHistory.tenure_mesi === 1 ? 'mese' : 'mesi'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setViewingHistory(null)}
+                  className="nav-button p-2 rounded-lg"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {viewingHistory.tutti_contratti.map((contratto, idx) => {
+                  const dataInizio = new Date(contratto.data_inizio_contratto);
+                  const dataFine = new Date(dataInizio);
+                  dataFine.setMonth(dataFine.getMonth() + parseInt(contratto.durata_contratto_mesi || 0));
+                  const isCurrent = idx === 0;
+
+                  return (
+                    <div 
+                      key={contratto.id} 
+                      className={`neumorphic-pressed p-4 rounded-xl ${isCurrent ? 'border-2 border-green-400 bg-green-50' : ''}`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="font-bold text-slate-800">{contratto.template_nome}</h3>
+                            {isCurrent && (
+                              <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-green-600 text-white">
+                                Attuale
+                              </span>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                            <p className="text-slate-600">
+                              <span className="font-medium">Tipo:</span> {contratto.employee_group}
+                            </p>
+                            <p className="text-slate-600">
+                              <span className="font-medium">Ruolo:</span> {contratto.function_name}
+                            </p>
+                            <p className="text-slate-600">
+                              <span className="font-medium">Ore:</span> {contratto.ore_settimanali}h/sett
+                            </p>
+                            <p className="text-slate-600">
+                              <span className="font-medium">Durata:</span> {contratto.durata_contratto_mesi} mesi
+                            </p>
+                            <p className="text-slate-600">
+                              <span className="font-medium">Inizio:</span> {moment(dataInizio).format('DD/MM/YYYY')}
+                            </p>
+                            <p className="text-slate-600">
+                              <span className="font-medium">Fine:</span> {moment(dataFine).format('DD/MM/YYYY')}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </NeumorphicCard>
+          </div>
+        )}
       </div>
     </ProtectedPage>
   );
