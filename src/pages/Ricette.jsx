@@ -322,6 +322,14 @@ export default function Ricette() {
         return;
       }
       
+      // Handle products sold in "confezioni" with pieces inside (e.g., Coca Cola 3-pack)
+      if (materiaPrima.unita_misura === 'confezioni' && materiaPrima.unita_per_confezione && ing.unita_misura === 'pezzi') {
+        // Price per single piece = price per box / number of pieces in box
+        pricePerBaseUnit = materiaPrima.prezzo_unitario / materiaPrima.unita_per_confezione;
+        totalCost += ing.quantita * pricePerBaseUnit;
+        return;
+      }
+      
       // Legacy handling for peso_dimensione_unita (backwards compatibility)
       if (materiaPrima.peso_dimensione_unita && materiaPrima.unita_misura_peso) {
         pricePerBaseUnit = materiaPrima.prezzo_unitario / materiaPrima.peso_dimensione_unita;

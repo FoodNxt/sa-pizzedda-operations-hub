@@ -1,14 +1,23 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
+import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
-import { FileText, Calendar, Clock, Briefcase, User, ArrowUpDown, AlertTriangle } from "lucide-react";
+import { FileText, Calendar, Clock, Briefcase, User, ArrowUpDown, AlertTriangle, RefreshCw, X } from "lucide-react";
 import moment from "moment";
 
 export default function OverviewContratti() {
   const [sortField, setSortField] = useState('giorni_rimanenti');
   const [sortDirection, setSortDirection] = useState('asc');
+  const [renewingContract, setRenewingContract] = useState(null);
+  const [renewalData, setRenewalData] = useState({
+    template_id: '',
+    data_inizio: '',
+    durata_mesi: 12
+  });
+
+  const queryClient = useQueryClient();
 
   const { data: contratti = [], isLoading } = useQuery({
     queryKey: ['contratti-overview'],
@@ -18,6 +27,21 @@ export default function OverviewContratti() {
   const { data: users = [] } = useQuery({
     queryKey: ['users-overview'],
     queryFn: () => base44.entities.User.list(),
+  });
+
+  const { data: templates = [] } = useQuery({
+    queryKey: ['contratto-templates'],
+    queryFn: () => base44.entities.ContrattoTemplate.filter({ attivo: true }),
+  });
+
+  const createContractMutation = useMutation({
+    mutationFn: (contractData) => base44.entities.Contratto.create(contractData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contratti-overview'] });
+      setRenewingContract(null);
+      setRenewalData({ template_id: '', data_inizio: '', durata_mesi: 12 });
+      alert('✅ Contratto rinnovato e inviato al dipendente!');
+    },
   });
 
   const dipendentiConContratti = useMemo(() => {
@@ -99,6 +123,85 @@ export default function OverviewContratti() {
       <ArrowUpDown className={`w-3 h-3 ${sortField === field ? 'text-blue-600' : 'text-slate-400'}`} />
     </button>
   );
+
+  const handleRenewContract = async () => {
+    if (!renewalData.template_id || !renewalData.data_inizio) {
+      alert('Compila tutti i campi obbligatori');
+      return;
+    }
+
+    const template = templates.find(t => t.id === renewalData.template_id);
+    if (!template) {
+      alert('Template non trovato');
+      return;
+    }
+
+    const user = users.find(u => u.id === renewingContract.user_id);
+    if (!user) {
+      alert('Utente non trovato');
+      return;
+    }
+
+    // Calculate end date
+    const dataInizio = new Date(renewalData.data_inizio);
+    const dataFine = new Date(dataInizio);
+    dataFine.setMonth(dataFine.getMonth() + parseInt(renewalData.durata_mesi));
+
+    // Replace variables in template
+    let contenutoContratto = template.contenuto_template;
+    const variabili = {
+      '{nome_cognome}': user.nome_cognome || user.full_name || '',
+      '{email}': user.email || '',
+      '{phone}': user.phone || '',
+      '{data_nascita}': user.data_nascita || '',
+      '{citta_nascita}': user.citta_nascita || '',
+      '{codice_fiscale}': user.codice_fiscale || '',
+      '{indirizzo_residenza}': user.indirizzo_residenza || '',
+      '{iban}': user.iban || '',
+      '{sede_lavoro}': user.sede_lavoro || '',
+      '{ore_settimanali}': renewingContract.ore_settimanali || '',
+      '{data_inizio_contratto}': renewalData.data_inizio,
+      '{data_fine_contratto}': dataFine.toISOString().split('T')[0],
+      '{durata_contratto_mesi}': renewalData.durata_mesi.toString()
+    };
+
+    Object.entries(variabili).forEach(([key, value]) => {
+      contenutoContratto = contenutoContratto.replace(new RegExp(key, 'g'), value);
+    });
+
+    const newContract = {
+      user_id: renewingContract.user_id,
+      user_email: user.email,
+      user_nome_cognome: user.nome_cognome || user.full_name,
+      template_id: template.id,
+      template_nome: template.nome_template,
+      contenuto_contratto: contenutoContratto,
+      nome_cognome: user.nome_cognome || user.full_name,
+      phone: user.phone,
+      data_nascita: user.data_nascita,
+      citta_nascita: user.citta_nascita,
+      codice_fiscale: user.codice_fiscale,
+      indirizzo_residenza: user.indirizzo_residenza,
+      iban: user.iban,
+      taglia_maglietta: user.taglia_maglietta,
+      user_type: 'dipendente',
+      ruoli_dipendente: renewingContract.ruoli_dipendente || user.ruoli_dipendente,
+      assigned_stores: user.assigned_stores,
+      sede_lavoro: user.sede_lavoro,
+      tipo_contratto: renewingContract.tipo_contratto,
+      employee_group: renewingContract.employee_group,
+      function_name: renewingContract.function_name,
+      ore_settimanali: renewingContract.ore_settimanali,
+      data_inizio_contratto: renewalData.data_inizio,
+      data_fine_contratto: dataFine.toISOString().split('T')[0],
+      durata_contratto_mesi: renewalData.durata_mesi,
+      status: 'inviato',
+      data_invio: new Date().toISOString(),
+      note: 'Rinnovo contratto'
+    };
+
+    await createContractMutation.mutateAsync(newContract);
+  };
 
   const dipendentiSenzaContratto = useMemo(() => {
     const dipendentiConContrattoIds = new Set(dipendentiConContratti.map(d => d.user_id));
@@ -241,6 +344,9 @@ export default function OverviewContratti() {
                     <th className="text-center py-3 px-2 font-semibold text-slate-700">
                       <SortButton field="giorni_rimanenti">Giorni a Fine</SortButton>
                     </th>
+                    <th className="text-center py-3 px-2 font-semibold text-slate-700">
+                      Azioni
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -300,6 +406,15 @@ export default function OverviewContratti() {
                             <span className="text-slate-400">N/A</span>
                           )}
                         </td>
+                        <td className="py-3 px-2 text-center">
+                          <button
+                            onClick={() => setRenewingContract(dip)}
+                            className="nav-button p-2 rounded-lg hover:bg-green-50 transition-colors"
+                            title="Rinnova Contratto"
+                          >
+                            <RefreshCw className="w-4 h-4 text-green-600" />
+                          </button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -308,6 +423,126 @@ export default function OverviewContratti() {
             </div>
           )}
         </NeumorphicCard>
+
+        {/* Rinnovo Contratto Modal */}
+        {renewingContract && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="max-w-2xl w-full p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                  <RefreshCw className="w-6 h-6 text-green-600" />
+                  Rinnova Contratto - {renewingContract.nome_cognome}
+                </h2>
+                <button
+                  onClick={() => {
+                    setRenewingContract(null);
+                    setRenewalData({ template_id: '', data_inizio: '', durata_mesi: 12 });
+                  }}
+                  className="nav-button p-2 rounded-lg"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Info Contratto Precedente */}
+                <div className="neumorphic-pressed p-4 rounded-xl bg-blue-50">
+                  <p className="text-sm font-bold text-blue-800 mb-2">📄 Contratto Precedente</p>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-blue-700">
+                    <p>• Tipo: <strong>{renewingContract.tipo_contratto_label}</strong></p>
+                    <p>• Ore/sett: <strong>{renewingContract.ore_settimanali}h</strong></p>
+                    <p>• Inizio: <strong>{renewingContract.data_inizio ? moment(renewingContract.data_inizio).format('DD/MM/YYYY') : 'N/A'}</strong></p>
+                    <p>• Fine: <strong>{renewingContract.data_fine ? moment(renewingContract.data_fine).format('DD/MM/YYYY') : 'N/A'}</strong></p>
+                  </div>
+                </div>
+
+                {/* Template Selection */}
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                    Template Contratto <span className="text-red-600">*</span>
+                  </label>
+                  <select
+                    value={renewalData.template_id}
+                    onChange={(e) => setRenewalData({ ...renewalData, template_id: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                  >
+                    <option value="">Seleziona template...</option>
+                    {templates.map(t => (
+                      <option key={t.id} value={t.id}>{t.nome_template}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Data Inizio */}
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">
+                      Data Inizio <span className="text-red-600">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={renewalData.data_inizio}
+                      onChange={(e) => setRenewalData({ ...renewalData, data_inizio: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    />
+                  </div>
+
+                  {/* Durata */}
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">
+                      Durata (mesi) <span className="text-red-600">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={renewalData.durata_mesi}
+                      onChange={(e) => setRenewalData({ ...renewalData, durata_mesi: parseInt(e.target.value) || 0 })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      min="1"
+                    />
+                  </div>
+                </div>
+
+                {/* Data Fine Calcolata */}
+                {renewalData.data_inizio && renewalData.durata_mesi > 0 && (
+                  <div className="neumorphic-pressed p-4 rounded-xl bg-green-50">
+                    <p className="text-sm text-green-700">
+                      ✓ Data Fine Calcolata: <strong>
+                        {(() => {
+                          const inizio = new Date(renewalData.data_inizio);
+                          const fine = new Date(inizio);
+                          fine.setMonth(fine.getMonth() + renewalData.durata_mesi);
+                          return moment(fine).format('DD/MM/YYYY');
+                        })()}
+                      </strong>
+                    </p>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-4">
+                  <NeumorphicButton
+                    onClick={() => {
+                      setRenewingContract(null);
+                      setRenewalData({ template_id: '', data_inizio: '', durata_mesi: 12 });
+                    }}
+                    className="flex-1"
+                  >
+                    Annulla
+                  </NeumorphicButton>
+                  <NeumorphicButton
+                    onClick={handleRenewContract}
+                    variant="primary"
+                    className="flex-1 flex items-center justify-center gap-2"
+                    disabled={createContractMutation.isPending}
+                  >
+                    <RefreshCw className="w-5 h-5" />
+                    Rinnova e Invia
+                  </NeumorphicButton>
+                </div>
+              </div>
+            </NeumorphicCard>
+          </div>
+        )}
       </div>
     </ProtectedPage>
   );
