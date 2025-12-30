@@ -917,45 +917,51 @@ export default function Ricette() {
                   </thead>
                   <tbody>
                     {semilavorati.map((ricetta) => (
-                      <tr key={ricetta.id} className="border-b border-slate-200 hover:bg-purple-50 transition-colors">
-                        <td className="p-2 lg:p-3">
-                          <div>
-                            <p className="font-medium text-slate-800 text-sm">{ricetta.nome_prodotto}</p>
-                            <p className="text-xs text-purple-600">{ricetta.categoria}</p>
-                          </div>
-                        </td>
-                        <td className="p-2 lg:p-3 text-right font-bold text-purple-600 text-sm">
-                          €{ricetta.costo_unitario?.toFixed(2)}
-                        </td>
-                        <td className="p-2 lg:p-3 text-center text-slate-700 text-sm">
-                          {ricetta.ingredienti?.length || 0}
-                        </td>
-                        <td className="p-2 lg:p-3">
-                          <div className="flex justify-center">
-                            {ricetta.attivo !== false ? (
-                              <CheckCircle className="w-5 h-5 text-green-600" />
-                            ) : (
-                              <X className="w-5 h-5 text-gray-400" />
-                            )}
-                          </div>
-                        </td>
-                        <td className="p-2 lg:p-3">
-                          <div className="flex items-center justify-center gap-2">
-                            <button
-                              onClick={() => handleEdit(ricetta)}
-                              className="nav-button p-2 rounded-lg hover:bg-blue-50 transition-colors"
-                            >
-                              <Edit className="w-4 h-4 text-blue-600" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(ricetta.id)}
-                              className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4 text-red-600" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
+                     <tr key={ricetta.id} className="border-b border-slate-200 hover:bg-purple-50 transition-colors">
+                       <td className="p-2 lg:p-3">
+                         <div>
+                           <p className="font-medium text-slate-800 text-sm">{ricetta.nome_prodotto}</p>
+                           <p className="text-xs text-purple-600">{ricetta.categoria}</p>
+                         </div>
+                       </td>
+                       <td className="p-2 lg:p-3 text-right font-bold text-purple-600 text-sm">
+                         €{ricetta.costo_unitario?.toFixed(2)}
+                       </td>
+                       <td className="p-2 lg:p-3 text-center text-slate-700 text-sm">
+                         {ricetta.ingredienti?.length || 0}
+                       </td>
+                       <td className="p-2 lg:p-3">
+                         <div className="flex justify-center">
+                           {ricetta.attivo !== false ? (
+                             <CheckCircle className="w-5 h-5 text-green-600" />
+                           ) : (
+                             <X className="w-5 h-5 text-gray-400" />
+                           )}
+                         </div>
+                       </td>
+                       <td className="p-2 lg:p-3">
+                         <div className="flex items-center justify-center gap-2">
+                           <button
+                             onClick={() => setViewingRecipe(ricetta)}
+                             className="nav-button p-2 rounded-lg hover:bg-green-50 transition-colors"
+                           >
+                             <Package className="w-4 h-4 text-green-600" />
+                           </button>
+                           <button
+                             onClick={() => handleEdit(ricetta)}
+                             className="nav-button p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                           >
+                             <Edit className="w-4 h-4 text-blue-600" />
+                           </button>
+                           <button
+                             onClick={() => handleDelete(ricetta.id)}
+                             className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
+                           >
+                             <Trash2 className="w-4 h-4 text-red-600" />
+                           </button>
+                         </div>
+                       </td>
+                     </tr>
                     ))}
                   </tbody>
                 </table>
@@ -1050,6 +1056,12 @@ export default function Ricette() {
                         </td>
                         <td className="p-2 lg:p-3">
                           <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => setViewingRecipe(ricetta)}
+                              className="nav-button p-2 rounded-lg hover:bg-green-50 transition-colors"
+                            >
+                              <Package className="w-4 h-4 text-green-600" />
+                            </button>
                             <button
                               onClick={() => handleEdit(ricetta)}
                               className="nav-button p-2 rounded-lg hover:bg-blue-50 transition-colors"
