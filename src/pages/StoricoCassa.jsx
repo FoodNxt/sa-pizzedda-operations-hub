@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   DollarSign,
   Store,
@@ -8,7 +8,11 @@ import {
   Calendar,
   TrendingUp,
   Filter,
-  X
+  X,
+  Bell,
+  AlertTriangle,
+  Settings,
+  Plus
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import ProtectedPage from "../components/ProtectedPage";
@@ -21,6 +25,11 @@ export default function StoricoCassa() {
   const [dateRange, setDateRange] = useState('30');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [selectedStoresForTrend, setSelectedStoresForTrend] = useState([]);
+  const [showAlertConfig, setShowAlertConfig] = useState(false);
+  const [editingAlert, setEditingAlert] = useState(null);
+
+  const queryClient = useQueryClient();
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -30,6 +39,32 @@ export default function StoricoCassa() {
   const { data: conteggi = [] } = useQuery({
     queryKey: ['conteggi-cassa'],
     queryFn: () => base44.entities.ConteggioCassa.list('-data_conteggio', 500),
+  });
+
+  const { data: alertConfigs = [] } = useQuery({
+    queryKey: ['alert-cassa-config'],
+    queryFn: () => base44.entities.AlertCassaConfig.list(),
+  });
+
+  const saveAlertMutation = useMutation({
+    mutationFn: (data) => {
+      if (data.id) {
+        return base44.entities.AlertCassaConfig.update(data.id, data);
+      }
+      return base44.entities.AlertCassaConfig.create(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['alert-cassa-config'] });
+      setShowAlertConfig(false);
+      setEditingAlert(null);
+    },
+  });
+
+  const deleteAlertMutation = useMutation({
+    mutationFn: (id) => base44.entities.AlertCassaConfig.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['alert-cassa-config'] });
+    },
   });
 
   const filteredConteggi = useMemo(() => {
@@ -65,7 +100,11 @@ export default function StoricoCassa() {
     const media = filteredConteggi.length > 0 ? totale / filteredConteggi.length : 0;
     
     const byDate = {};
-    filteredConteggi.forEach(c => {
+    const conteggiForTrend = selectedStoresForTrend.length > 0 
+      ? filteredConteggi.filter(c => selectedStoresForTrend.includes(c.store_id))
+      : filteredConteggi;
+    
+    conteggiForTrend.forEach(c => {
       if (!c.data_conteggio) return;
       try {
         const date = c.data_conteggio.split('T')[0];
@@ -117,7 +156,43 @@ export default function StoricoCassa() {
       }));
 
     return { totale, media, dailyData, storeData, count: filteredConteggi.length };
-  }, [filteredConteggi]);
+  }, [filteredConteggi, selectedStoresForTrend]);
+
+  const handleToggleStoreForTrend = (storeId) => {
+    setSelectedStoresForTrend(prev => {
+      if (prev.includes(storeId)) {
+        return prev.filter(id => id !== storeId);
+      }
+      return [...prev, storeId];
+    });
+  };
+
+  const handleSaveAlert = (e) => {
+    e.preventDefault();
+    saveAlertMutation.mutate(editingAlert);
+  };
+
+  const activeAlerts = useMemo(() => {
+    const alerts = [];
+    stores.forEach(store => {
+      const config = alertConfigs.find(c => c.store_id === store.id && c.attivo);
+      if (!config) return;
+      
+      const lastConteggio = conteggi
+        .filter(c => c.store_id === store.id && c.data_conteggio)
+        .sort((a, b) => new Date(b.data_conteggio) - new Date(a.data_conteggio))[0];
+      
+      if (lastConteggio && lastConteggio.valore_conteggio > config.soglia_alert) {
+        alerts.push({
+          store: store.name,
+          valore: lastConteggio.valore_conteggio,
+          soglia: config.soglia_alert,
+          data: lastConteggio.data_conteggio
+        });
+      }
+    });
+    return alerts;
+  }, [stores, alertConfigs, conteggi]);
 
   return (
     <ProtectedPage pageName="StoricoCassa">
@@ -227,9 +302,112 @@ export default function StoricoCassa() {
           </NeumorphicCard>
         </div>
 
+        {activeAlerts.length > 0 && (
+          <NeumorphicCard className="p-4 lg:p-6 border-2 border-red-500 bg-red-50">
+            <div className="flex items-center gap-2 mb-3">
+              <AlertTriangle className="w-6 h-6 text-red-600" />
+              <h2 className="text-base lg:text-lg font-bold text-red-800">Alert Soglia Cassa Superata</h2>
+            </div>
+            <div className="space-y-2">
+              {activeAlerts.map((alert, idx) => (
+                <div key={idx} className="neumorphic-pressed p-3 rounded-xl bg-white">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-slate-800">{alert.store}</p>
+                      <p className="text-xs text-slate-500">
+                        {format(parseISO(alert.data), 'dd/MM/yyyy HH:mm', { locale: it })}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-red-600">€{alert.valore.toFixed(2)}</p>
+                      <p className="text-xs text-slate-500">Soglia: €{alert.soglia.toFixed(2)}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </NeumorphicCard>
+        )}
+
+        <NeumorphicCard className="p-4 lg:p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base lg:text-lg font-bold text-slate-800">Configurazione Alert</h2>
+            <button
+              onClick={() => {
+                setEditingAlert({ soglia_alert: 0, attivo: true });
+                setShowAlertConfig(true);
+              }}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm hover:from-blue-600 hover:to-blue-700"
+            >
+              <Plus className="w-4 h-4" />
+              Nuovo Alert
+            </button>
+          </div>
+          
+          <div className="space-y-2">
+            {alertConfigs.map(config => (
+              <div key={config.id} className="neumorphic-pressed p-3 rounded-xl flex items-center justify-between">
+                <div>
+                  <p className="font-bold text-slate-800">{config.store_name}</p>
+                  <p className="text-sm text-slate-600">Soglia: €{config.soglia_alert.toFixed(2)}</p>
+                  <p className="text-xs text-slate-500">{config.attivo ? 'Attivo' : 'Disattivo'}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setEditingAlert(config);
+                      setShowAlertConfig(true);
+                    }}
+                    className="p-2 rounded-lg hover:bg-blue-50"
+                  >
+                    <Settings className="w-4 h-4 text-blue-600" />
+                  </button>
+                  <button
+                    onClick={() => deleteAlertMutation.mutate(config.id)}
+                    className="p-2 rounded-lg hover:bg-red-50"
+                  >
+                    <X className="w-4 h-4 text-red-600" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </NeumorphicCard>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
           <NeumorphicCard className="p-4 lg:p-6">
-            <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Trend Giornaliero</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base lg:text-lg font-bold text-slate-800">Trend Giornaliero</h2>
+              <div className="text-xs text-slate-500">
+                {selectedStoresForTrend.length > 0 
+                  ? `${selectedStoresForTrend.length} locale/i selezionato/i`
+                  : 'Tutti i locali'}
+              </div>
+            </div>
+            
+            <div className="flex flex-wrap gap-2 mb-4">
+              {stores.map(store => (
+                <button
+                  key={store.id}
+                  onClick={() => handleToggleStoreForTrend(store.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    selectedStoresForTrend.includes(store.id)
+                      ? 'bg-blue-500 text-white'
+                      : 'neumorphic-flat text-slate-600'
+                  }`}
+                >
+                  {store.name}
+                </button>
+              ))}
+              {selectedStoresForTrend.length > 0 && (
+                <button
+                  onClick={() => setSelectedStoresForTrend([])}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-100 text-red-700"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
             <div className="w-full overflow-x-auto">
               <div style={{ minWidth: '300px' }}>
                 <ResponsiveContainer width="100%" height={250}>
@@ -402,6 +580,95 @@ export default function StoricoCassa() {
             </div>
           )}
         </NeumorphicCard>
+
+        {showAlertConfig && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="max-w-md w-full p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-slate-800">
+                  {editingAlert?.id ? 'Modifica Alert' : 'Nuovo Alert'}
+                </h2>
+                <button onClick={() => {
+                  setShowAlertConfig(false);
+                  setEditingAlert(null);
+                }} className="p-2 rounded-lg hover:bg-slate-100">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveAlert} className="space-y-4">
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block">Locale</label>
+                  <select
+                    value={editingAlert?.store_id || ''}
+                    onChange={(e) => {
+                      const store = stores.find(s => s.id === e.target.value);
+                      setEditingAlert({
+                        ...editingAlert,
+                        store_id: e.target.value,
+                        store_name: store?.name || ''
+                      });
+                    }}
+                    required
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                  >
+                    <option value="">Seleziona...</option>
+                    {stores.map(store => (
+                      <option key={store.id} value={store.id}>{store.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block">Soglia Alert (€)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editingAlert?.soglia_alert || 0}
+                    onChange={(e) => setEditingAlert({
+                      ...editingAlert,
+                      soglia_alert: parseFloat(e.target.value) || 0
+                    })}
+                    required
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={editingAlert?.attivo || false}
+                    onChange={(e) => setEditingAlert({
+                      ...editingAlert,
+                      attivo: e.target.checked
+                    })}
+                    className="w-4 h-4"
+                  />
+                  <label className="text-sm text-slate-600">Attivo</label>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAlertConfig(false);
+                      setEditingAlert(null);
+                    }}
+                    className="flex-1 px-4 py-3 rounded-xl neumorphic-flat text-slate-700 font-medium"
+                  >
+                    Annulla
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium"
+                  >
+                    Salva
+                  </button>
+                </div>
+              </form>
+            </NeumorphicCard>
+          </div>
+        )}
       </div>
     </ProtectedPage>
   );

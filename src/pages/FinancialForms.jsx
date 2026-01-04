@@ -32,6 +32,13 @@ export default function FinancialForms() {
       icon: PlusCircle,
       url: createPageUrl("FormDeposito"),
       gradient: "from-green-500 to-emerald-600"
+    },
+    {
+      title: "Pagamenti Contanti",
+      description: "Registra pagamenti effettuati in contanti",
+      icon: DollarSign,
+      url: createPageUrl("FormPagamentiContanti"),
+      gradient: "from-emerald-500 to-teal-600"
     }
   ];
 
@@ -48,7 +55,7 @@ export default function FinancialForms() {
           <p className="text-sm text-slate-500">Gestione cassa, prelievi e depositi</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {forms.map((form) => {
             const Icon = form.icon;
             return (
@@ -78,6 +85,7 @@ export default function FinancialForms() {
                 <li>• <strong>Conteggio Cassa:</strong> Registra il valore contante in cassa</li>
                 <li>• <strong>Prelievi:</strong> Sottrae automaticamente dall'ultimo conteggio cassa</li>
                 <li>• <strong>Depositi:</strong> Traccia i depositi in banca BPM o Sella</li>
+                <li>• <strong>Pagamenti Contanti:</strong> Registra pagamenti effettuati in contanti con descrizione</li>
               </ul>
             </div>
           </div>

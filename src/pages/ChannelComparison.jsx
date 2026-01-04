@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -16,15 +15,23 @@ export default function ChannelComparison() {
   // Combination 1
   const [channel1, setChannel1] = useState('all');
   const [app1, setApp1] = useState('all');
+  const [store1, setStore1] = useState('all');
   
   // Combination 2
   const [channel2, setChannel2] = useState('all');
   const [app2, setApp2] = useState('all');
+  const [store2, setStore2] = useState('all');
 
   // Fetch iPratico data
   const { data: iPraticoData = [], isLoading } = useQuery({
     queryKey: ['iPratico'], // Updated queryKey as per outline
     queryFn: () => base44.entities.iPratico.list('-order_date', 1000), // Updated queryFn as per outline
+  });
+
+  // Fetch stores
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores'],
+    queryFn: () => base44.entities.Store.list(),
   });
 
   // Get unique sales channels and delivery apps
@@ -77,8 +84,13 @@ export default function ChannelComparison() {
       });
     };
 
-    const calculateMetrics = (channel, app) => {
-      const filteredData = filterByDate(); // First filter by date
+    const calculateMetrics = (channel, app, store) => {
+      let filteredData = filterByDate(); // First filter by date
+      
+      // Apply store filter
+      if (store !== 'all') {
+        filteredData = filteredData.filter(item => item.store_id === store);
+      }
       
       let totalRevenue = 0;
       let totalOrders = 0;
@@ -139,8 +151,8 @@ export default function ChannelComparison() {
       return { totalRevenue, totalOrders, avgOrderValue };
     };
 
-    const metrics1 = calculateMetrics(channel1, app1);
-    const metrics2 = calculateMetrics(channel2, app2);
+    const metrics1 = calculateMetrics(channel1, app1, store1);
+    const metrics2 = calculateMetrics(channel2, app2, store2);
 
     // Calculate comparison percentages - simplified as per outline
     const revenueDiff = metrics2.totalRevenue !== 0 
@@ -160,18 +172,22 @@ export default function ChannelComparison() {
       ordersDiff,
       avgDiff
     };
-  }, [iPraticoData, channel1, app1, channel2, app2, dateRange, startDate, endDate]);
+  }, [iPraticoData, channel1, app1, store1, channel2, app2, store2, dateRange, startDate, endDate]);
 
   // Removed clearCustomDates function
 
-  const getCombinationLabel = (channel, app) => {
+  const getCombinationLabel = (channel, app, store) => {
     const channelLabel = channel === 'all' ? 'Tutti i canali' : channel;
-    const appLabel = app === 'all' ? 'Tutte le app' : app; // Use app name directly, assuming already capitalized
+    const appLabel = app === 'all' ? 'Tutte le app' : app;
+    const storeLabel = store === 'all' ? 'Tutti i locali' : stores.find(s => s.id === store)?.name || store;
     
-    if (channel === 'all' && app === 'all') return 'Tutti i canali e app';
-    if (channel === 'all') return appLabel;
-    if (app === 'all') return channelLabel;
-    return `${channelLabel} - ${appLabel}`;
+    const parts = [];
+    if (store !== 'all') parts.push(storeLabel);
+    if (channel !== 'all') parts.push(channelLabel);
+    if (app !== 'all') parts.push(appLabel);
+    
+    if (parts.length === 0) return 'Tutti';
+    return parts.join(' - ');
   };
 
   const formatDiff = (diff) => {
@@ -280,6 +296,20 @@ export default function ChannelComparison() {
             
             <div className="space-y-3"> {/* Updated spacing */}
               <div>
+                <label className="text-sm text-slate-600 mb-2 block">Locale</label>
+                <select
+                  value={store1}
+                  onChange={(e) => setStore1(e.target.value)}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                >
+                  <option value="all">Tutti</option>
+                  {stores.map(store => (
+                    <option key={store.id} value={store.id}>{store.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
                 <label className="text-sm text-slate-600 mb-2 block">Canale</label> {/* Updated text styling */}
                 <select
                   value={channel1}
@@ -309,7 +339,7 @@ export default function ChannelComparison() {
 
               <div className="neumorphic-flat p-3 rounded-xl bg-blue-50"> {/* Updated padding */}
                 <p className="text-sm text-blue-800 font-medium truncate"> {/* Added truncate */}
-                  {getCombinationLabel(channel1, app1)}
+                  {getCombinationLabel(channel1, app1, store1)}
                 </p>
               </div>
             </div>
@@ -323,6 +353,20 @@ export default function ChannelComparison() {
             </div>
             
             <div className="space-y-3"> {/* Updated spacing */}
+              <div>
+                <label className="text-sm text-slate-600 mb-2 block">Locale</label>
+                <select
+                  value={store2}
+                  onChange={(e) => setStore2(e.target.value)}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                >
+                  <option value="all">Tutti</option>
+                  {stores.map(store => (
+                    <option key={store.id} value={store.id}>{store.name}</option>
+                  ))}
+                </select>
+              </div>
+
               <div>
                 <label className="text-sm text-slate-600 mb-2 block">Canale</label> {/* Updated text styling */}
                 <select
@@ -353,7 +397,7 @@ export default function ChannelComparison() {
 
               <div className="neumorphic-flat p-3 rounded-xl bg-purple-50"> {/* Updated padding */}
                 <p className="text-sm text-purple-800 font-medium truncate"> {/* Added truncate */}
-                  {getCombinationLabel(channel2, app2)}
+                  {getCombinationLabel(channel2, app2, store2)}
                 </p>
               </div>
             </div>
