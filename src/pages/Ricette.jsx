@@ -343,9 +343,9 @@ export default function Ricette() {
 
     const costoUnitario = calculateCosts();
     
-    // If semilavorato, set prices to 0
-    const prezzoOnline = formData.is_semilavorato ? 0 : parseFloat(formData.prezzo_vendita_online);
-    const prezzoOffline = formData.is_semilavorato ? 0 : parseFloat(formData.prezzo_vendita_offline);
+    // Set prices based on venduto flags
+    const prezzoOnline = formData.is_semilavorato || !formData.venduto_online ? 0 : (parseFloat(formData.prezzo_vendita_online) || 0);
+    const prezzoOffline = formData.is_semilavorato || !formData.venduto_offline ? 0 : (parseFloat(formData.prezzo_vendita_offline) || 0);
 
     const data = {
       ...formData,
