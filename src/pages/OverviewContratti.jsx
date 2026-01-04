@@ -429,7 +429,9 @@ export default function OverviewContratti() {
                           {dip.data_fine ? moment(dip.data_fine).format('DD/MM/YYYY') : 'N/A'}
                         </td>
                         <td className="py-3 px-2 text-center">
-                          {dip.giorni_rimanenti !== null ? (
+                          {dip.durata_contratto === 'Indeterminato' ? (
+                            <span className="text-slate-400">-</span>
+                          ) : dip.giorni_rimanenti !== null ? (
                             <span className={`font-bold ${
                               isScaduto ? 'text-red-700' :
                               isInScadenza ? 'text-orange-700' :
