@@ -16,7 +16,8 @@ import {
   CheckCircle,
   AlertTriangle,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Calculator
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -42,6 +43,11 @@ export default function Ricette() {
   const [customNomeProdotto, setCustomNomeProdotto] = useState('');
   const [addingNewProduct, setAddingNewProduct] = useState(false);
   const [showProductsWithoutRecipe, setShowProductsWithoutRecipe] = useState(false);
+  const [showFoodCostModal, setShowFoodCostModal] = useState(false);
+  const [deliveryFeePercentage, setDeliveryFeePercentage] = useState(() => {
+    const saved = localStorage.getItem('delivery_fee_percentage');
+    return saved ? parseFloat(saved) : 0;
+  });
 
   // Ingredient form state
   const [selectedIngredient, setSelectedIngredient] = useState('');
@@ -411,6 +417,18 @@ export default function Ricette() {
     setShowProductsWithoutRecipe(false);
   };
 
+  const handleSaveFee = () => {
+    localStorage.setItem('delivery_fee_percentage', deliveryFeePercentage.toString());
+    setShowFoodCostModal(false);
+  };
+
+  const calculateNetFoodCost = (costo, prezzoOnline) => {
+    if (!prezzoOnline || prezzoOnline === 0) return 0;
+    const nettoFees = prezzoOnline - (prezzoOnline * (deliveryFeePercentage / 100));
+    if (nettoFees <= 0) return 0;
+    return (costo / nettoFees) * 100;
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
       {/* Header */}
@@ -422,14 +440,23 @@ export default function Ricette() {
             </h1>
             <p className="text-sm text-slate-500">Gestisci ricette, ingredienti e calcola il food cost</p>
           </div>
-          <NeumorphicButton
-            onClick={() => setShowForm(true)}
-            variant="primary"
-            className="flex items-center gap-2"
-          >
-            <Plus className="w-5 h-5" />
-            <span className="hidden sm:inline">Nuova</span>
-          </NeumorphicButton>
+          <div className="flex gap-2">
+            <NeumorphicButton
+              onClick={() => setShowFoodCostModal(true)}
+              className="flex items-center gap-2"
+            >
+              <Calculator className="w-5 h-5" />
+              <span className="hidden sm:inline">Food Cost</span>
+            </NeumorphicButton>
+            <NeumorphicButton
+              onClick={() => setShowForm(true)}
+              variant="primary"
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              <span className="hidden sm:inline">Nuova</span>
+            </NeumorphicButton>
+          </div>
         </div>
       </div>
 
@@ -912,26 +939,51 @@ export default function Ricette() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {formData.venduto_online && formData.prezzo_vendita_online && (
-                        <div className="neumorphic-pressed p-4 rounded-lg">
-                          <p className="text-sm text-[#9b9b9b] mb-2">Food Cost Online</p>
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 h-2 neumorphic-pressed rounded-full overflow-hidden">
-                              <div
-                                className={`h-full ${
-                                  (getCostoPreview() / parseFloat(formData.prezzo_vendita_online)) * 100 < 30 
-                                    ? 'bg-green-600' 
-                                    : (getCostoPreview() / parseFloat(formData.prezzo_vendita_online)) * 100 < 40
-                                    ? 'bg-yellow-600'
-                                    : 'bg-red-600'
-                                }`}
-                                style={{ width: `${Math.min((getCostoPreview() / parseFloat(formData.prezzo_vendita_online)) * 100, 100)}%` }}
-                              />
+                        <>
+                          <div className="neumorphic-pressed p-4 rounded-lg">
+                            <p className="text-sm text-[#9b9b9b] mb-2">Food Cost Online</p>
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 h-2 neumorphic-pressed rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full ${
+                                    (getCostoPreview() / parseFloat(formData.prezzo_vendita_online)) * 100 < 30 
+                                      ? 'bg-green-600' 
+                                      : (getCostoPreview() / parseFloat(formData.prezzo_vendita_online)) * 100 < 40
+                                      ? 'bg-yellow-600'
+                                      : 'bg-red-600'
+                                  }`}
+                                  style={{ width: `${Math.min((getCostoPreview() / parseFloat(formData.prezzo_vendita_online)) * 100, 100)}%` }}
+                                />
+                              </div>
+                              <span className="font-bold text-[#6b6b6b] min-w-[60px]">
+                                {((getCostoPreview() / parseFloat(formData.prezzo_vendita_online)) * 100).toFixed(1)}%
+                              </span>
                             </div>
-                            <span className="font-bold text-[#6b6b6b] min-w-[60px]">
-                              {((getCostoPreview() / parseFloat(formData.prezzo_vendita_online)) * 100).toFixed(1)}%
-                            </span>
                           </div>
-                        </div>
+                          
+                          {deliveryFeePercentage > 0 && (
+                            <div className="neumorphic-pressed p-4 rounded-lg">
+                              <p className="text-sm text-[#9b9b9b] mb-2">FC Online (Netto Fees {deliveryFeePercentage}%)</p>
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 h-2 neumorphic-pressed rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full ${
+                                      calculateNetFoodCost(getCostoPreview(), parseFloat(formData.prezzo_vendita_online)) < 30 
+                                        ? 'bg-green-600' 
+                                        : calculateNetFoodCost(getCostoPreview(), parseFloat(formData.prezzo_vendita_online)) < 40
+                                        ? 'bg-yellow-600'
+                                        : 'bg-red-600'
+                                    }`}
+                                    style={{ width: `${Math.min(calculateNetFoodCost(getCostoPreview(), parseFloat(formData.prezzo_vendita_online)), 100)}%` }}
+                                  />
+                                </div>
+                                <span className="font-bold text-[#6b6b6b] min-w-[60px]">
+                                  {calculateNetFoodCost(getCostoPreview(), parseFloat(formData.prezzo_vendita_online)).toFixed(1)}%
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </>
                       )}
 
                       {formData.venduto_offline && formData.prezzo_vendita_offline && (
@@ -1121,6 +1173,9 @@ export default function Ricette() {
                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">P. Online</th>
                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">P. Offline</th>
                       <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">FC Online</th>
+                      {deliveryFeePercentage > 0 && (
+                        <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">FC Netto</th>
+                      )}
                       <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">FC Offline</th>
                       <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ing</th>
                       <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Stato</th>
@@ -1164,6 +1219,21 @@ export default function Ricette() {
                             </span>
                           </div>
                         </td>
+                        {deliveryFeePercentage > 0 && (
+                          <td className="p-2 lg:p-3">
+                            <div className="flex justify-center">
+                              <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                calculateNetFoodCost(ricetta.costo_unitario, ricetta.prezzo_vendita_online) < 30 
+                                  ? 'bg-green-100 text-green-700' 
+                                  : calculateNetFoodCost(ricetta.costo_unitario, ricetta.prezzo_vendita_online) < 40
+                                  ? 'bg-yellow-100 text-yellow-700'
+                                  : 'bg-red-100 text-red-700'
+                              }`}>
+                                {calculateNetFoodCost(ricetta.costo_unitario, ricetta.prezzo_vendita_online).toFixed(1)}%
+                              </span>
+                            </div>
+                          </td>
+                        )}
                         <td className="p-2 lg:p-3">
                           <div className="flex justify-center">
                             <span className={`px-2 py-1 rounded-full text-xs font-bold ${
@@ -1219,6 +1289,71 @@ export default function Ricette() {
             </NeumorphicCard>
           )}
         </>
+      )}
+
+      {/* Food Cost Configuration Modal */}
+      {showFoodCostModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <NeumorphicCard className="max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-slate-800">Configurazione Food Cost</h2>
+              <button
+                onClick={() => setShowFoodCostModal(false)}
+                className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+              >
+                <X className="w-5 h-5 text-slate-600" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-2 block">
+                  Fee Delivery (%)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={deliveryFeePercentage}
+                  onChange={(e) => setDeliveryFeePercentage(parseFloat(e.target.value) || 0)}
+                  placeholder="0"
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                />
+                <p className="text-xs text-slate-500 mt-2">
+                  Le fee delle piattaforme delivery che impattano sul food cost online netto
+                </p>
+              </div>
+
+              <div className="neumorphic-flat p-4 rounded-xl bg-blue-50">
+                <p className="text-sm font-medium text-blue-800 mb-2">Esempio:</p>
+                <p className="text-xs text-slate-600">
+                  Prodotto venduto a 10€ con costo di 2€ e fee del 20%:
+                </p>
+                <p className="text-xs text-slate-600 mt-1">
+                  • Food Cost: 20% (2€/10€)
+                </p>
+                <p className="text-xs text-slate-600">
+                  • Food Cost Netto: 25% (2€/8€)
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <NeumorphicButton
+                  onClick={() => setShowFoodCostModal(false)}
+                  className="flex-1"
+                >
+                  Annulla
+                </NeumorphicButton>
+                <NeumorphicButton
+                  onClick={handleSaveFee}
+                  variant="primary"
+                  className="flex-1"
+                >
+                  Salva
+                </NeumorphicButton>
+              </div>
+            </div>
+          </NeumorphicCard>
+        </div>
       )}
 
       {/* Recipe Detail Modal */}
