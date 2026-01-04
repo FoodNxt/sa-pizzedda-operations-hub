@@ -15,7 +15,8 @@ import {
   BarChart3,
   Calendar,
   Settings,
-  Eye
+  Eye,
+  Sparkles
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -50,6 +51,9 @@ export default function OrdiniSbagliati() {
   const [pendingFile, setPendingFile] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
   const [previewData, setPreviewData] = useState([]);
+  const [showAIAnalysis, setShowAIAnalysis] = useState(false);
+  const [aiAnalysisContent, setAiAnalysisContent] = useState('');
+  const [loadingAI, setLoadingAI] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -576,6 +580,41 @@ export default function OrdiniSbagliati() {
       setPreviewData([]);
     } catch (error) {
       setUploading(false);
+    }
+  };
+
+  const analyzeWithAI = async (chartType) => {
+    setLoadingAI(true);
+    setShowAIAnalysis(true);
+    setAiAnalysisContent('Analisi in corso...');
+
+    try {
+      let prompt = '';
+      
+      if (chartType === 'byStore') {
+        const data = analyticsData.byStore.map(s => 
+          `${s.name}: ${s.count} ordini (${s.glovo} Glovo, ${s.deliveroo} Deliveroo), €${s.refunds.toFixed(2)} rimborsi`
+        ).join('\n');
+        
+        prompt = `Analizza questi dati sugli ordini sbagliati per negozio e fornisci insights utili:\n\n${data}\n\nFornisci:\n1. Negozi con più problemi\n2. Analisi delle piattaforme (Glovo vs Deliveroo)\n3. Raccomandazioni specifiche per migliorare\n4. Pattern o anomalie rilevate`;
+      } else if (chartType === 'byDate') {
+        const data = analyticsData.byDate.map(d => 
+          `${d.date}: ${d.count} ordini, €${d.refunds.toFixed(2)} rimborsi`
+        ).join('\n');
+        
+        prompt = `Analizza questo trend temporale degli ordini sbagliati e fornisci insights:\n\n${data}\n\nFornisci:\n1. Trend generale (in miglioramento/peggioramento)\n2. Giorni con picchi e possibili cause\n3. Pattern ricorrenti (es. giorni specifici della settimana)\n4. Previsioni e raccomandazioni`;
+      }
+
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt,
+        add_context_from_internet: false
+      });
+
+      setAiAnalysisContent(response);
+    } catch (error) {
+      setAiAnalysisContent('Errore nell\'analisi: ' + error.message);
+    } finally {
+      setLoadingAI(false);
     }
   };
 
@@ -1338,7 +1377,17 @@ export default function OrdiniSbagliati() {
 
           {/* Charts */}
           <NeumorphicCard className="p-6 mb-6">
-            <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Ordini Sbagliati per Negozio</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-[#6b6b6b]">Ordini Sbagliati per Negozio</h3>
+              <NeumorphicButton
+                onClick={() => analyzeWithAI('byStore')}
+                disabled={analyticsData.byStore.length === 0 || loadingAI}
+                className="flex items-center gap-2 text-sm"
+              >
+                <Sparkles className="w-4 h-4" />
+                AI Analisi
+              </NeumorphicButton>
+            </div>
             {analyticsData.byStore.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={analyticsData.byStore}>
@@ -1359,7 +1408,16 @@ export default function OrdiniSbagliati() {
           <NeumorphicCard className="p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-[#6b6b6b]">Trend nel Tempo</h3>
-              <div className="flex gap-2">
+              <div className="flex gap-3">
+                <NeumorphicButton
+                  onClick={() => analyzeWithAI('byDate')}
+                  disabled={analyticsData.byDate.length === 0 || loadingAI}
+                  className="flex items-center gap-2 text-sm"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  AI Analisi
+                </NeumorphicButton>
+                <div className="flex gap-2">
                 <label className="flex items-center gap-2 text-sm text-[#6b6b6b] cursor-pointer">
                   <input
                     type="checkbox"
@@ -1378,6 +1436,7 @@ export default function OrdiniSbagliati() {
                   />
                   € Rimborsi
                 </label>
+              </div>
               </div>
             </div>
             {analyticsData.byDate.length > 0 ? (
@@ -1501,6 +1560,49 @@ export default function OrdiniSbagliati() {
             </div>
           )}
         </NeumorphicCard>
+      )}
+
+      {/* AI Analysis Modal */}
+      {showAIAnalysis && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-[#6b6b6b] flex items-center gap-2">
+                  <Sparkles className="w-6 h-6 text-purple-600" />
+                  Analisi AI
+                </h2>
+                <button
+                  onClick={() => setShowAIAnalysis(false)}
+                  className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+                >
+                  <X className="w-5 h-5 text-[#9b9b9b]" />
+                </button>
+              </div>
+
+              <div className="neumorphic-pressed p-6 rounded-xl bg-gradient-to-br from-purple-50 to-blue-50">
+                {loadingAI ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                  </div>
+                ) : (
+                  <div className="prose prose-sm max-w-none text-[#6b6b6b] whitespace-pre-wrap">
+                    {aiAnalysisContent}
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4">
+                <NeumorphicButton
+                  onClick={() => setShowAIAnalysis(false)}
+                  className="w-full"
+                >
+                  Chiudi
+                </NeumorphicButton>
+              </div>
+            </NeumorphicCard>
+          </div>
+        </div>
       )}
 
       {/* Info Box */}
