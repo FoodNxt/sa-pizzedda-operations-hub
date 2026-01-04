@@ -13,7 +13,8 @@ import {
   TrendingUp,
   Package,
   Search,
-  CheckCircle // Added CheckCircle import
+  CheckCircle,
+  AlertTriangle
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -31,6 +32,8 @@ export default function Ricette() {
     ingredienti: [],
     prezzo_vendita_online: '',
     prezzo_vendita_offline: '',
+    venduto_online: true,
+    venduto_offline: true,
     note: '',
     attivo: true
   });
@@ -97,6 +100,8 @@ export default function Ricette() {
       ingredienti: [],
       prezzo_vendita_online: '',
       prezzo_vendita_offline: '',
+      venduto_online: true,
+      venduto_offline: true,
       note: '',
       attivo: true
     });
@@ -119,6 +124,8 @@ export default function Ricette() {
       ingredienti: ricetta.ingredienti || [],
       prezzo_vendita_online: ricetta.prezzo_vendita_online,
       prezzo_vendita_offline: ricetta.prezzo_vendita_offline,
+      venduto_online: ricetta.venduto_online !== false,
+      venduto_offline: ricetta.venduto_offline !== false,
       note: ricetta.note || '',
       attivo: ricetta.attivo !== false
     });
@@ -318,6 +325,19 @@ export default function Ricette() {
       return;
     }
 
+    // Check for duplicate recipes (only if creating new or changing product name)
+    if (!editingRecipe || editingRecipe.nome_prodotto !== nomeProdotto) {
+      const existingRecipe = ricette.find(r => 
+        r.nome_prodotto.toLowerCase() === nomeProdotto.toLowerCase() &&
+        r.is_semilavorato === formData.is_semilavorato
+      );
+      
+      if (existingRecipe) {
+        alert(`Esiste già una ricetta per "${nomeProdotto}". Ogni prodotto può avere una sola ricetta.`);
+        return;
+      }
+    }
+
     const costoUnitario = calculateCosts();
     
     // If semilavorato, set prices to 0
@@ -357,6 +377,15 @@ export default function Ricette() {
   const semilavorati = filteredRicette.filter(r => r.is_semilavorato);
   const prodottiFiniti = filteredRicette.filter(r => !r.is_semilavorato);
 
+  // Calculate products without recipes
+  const productsWithRecipes = ricette
+    .filter(r => !r.is_semilavorato)
+    .map(r => r.nome_prodotto.toLowerCase());
+  
+  const productsWithoutRecipes = VALID_PRODUCT_NAMES.filter(
+    name => !productsWithRecipes.includes(name.toLowerCase())
+  );
+
   const getCostoPreview = () => calculateCosts();
 
   return (
@@ -382,7 +411,7 @@ export default function Ricette() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         <NeumorphicCard className="p-4">
           <div className="text-center">
             <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 mx-auto mb-2 lg:mb-3 flex items-center justify-center shadow-lg">
@@ -390,6 +419,18 @@ export default function Ricette() {
             </div>
             <h3 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1">{ricette.length}</h3>
             <p className="text-xs text-slate-500">Ricette</p>
+          </div>
+        </NeumorphicCard>
+
+        <NeumorphicCard className="p-4">
+          <div className="text-center">
+            <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 mx-auto mb-2 lg:mb-3 flex items-center justify-center shadow-lg">
+              <AlertTriangle className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+            </div>
+            <h3 className="text-xl lg:text-2xl font-bold text-orange-600 mb-1">
+              {productsWithoutRecipes.length}
+            </h3>
+            <p className="text-xs text-slate-500">Senza Ricetta</p>
           </div>
         </NeumorphicCard>
 
@@ -700,44 +741,76 @@ export default function Ricette() {
                   <div className="neumorphic-flat p-6 rounded-xl">
                     <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Prezzi di Vendita</h3>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       <div>
-                        <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
-                          <Euro className="w-4 h-4" />
-                          Prezzo Online <span className="text-red-600">*</span>
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={formData.prezzo_vendita_online}
-                          onChange={(e) => setFormData({ ...formData, prezzo_vendita_online: e.target.value })}
-                          placeholder="0.00"
-                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                          required
-                        />
+                        <div className="flex items-center gap-2 mb-2">
+                          <input
+                            type="checkbox"
+                            id="venduto_online"
+                            checked={formData.venduto_online}
+                            onChange={(e) => setFormData({ ...formData, venduto_online: e.target.checked })}
+                            className="w-4 h-4 rounded"
+                          />
+                          <label htmlFor="venduto_online" className="text-sm font-medium text-[#6b6b6b] flex items-center gap-2">
+                            <Euro className="w-4 h-4" />
+                            Venduto Online
+                          </label>
+                        </div>
+                        {formData.venduto_online && (
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={formData.prezzo_vendita_online}
+                            onChange={(e) => setFormData({ ...formData, prezzo_vendita_online: e.target.value })}
+                            placeholder="0.00"
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                            required={formData.venduto_online}
+                          />
+                        )}
+                        {!formData.venduto_online && (
+                          <div className="neumorphic-pressed px-4 py-3 rounded-xl text-slate-400 text-sm">
+                            Non venduto online
+                          </div>
+                        )}
                       </div>
 
                       <div>
-                        <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
-                          <Euro className="w-4 h-4" />
-                          Prezzo Offline <span className="text-red-600">*</span>
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={formData.prezzo_vendita_offline}
-                          onChange={(e) => setFormData({ ...formData, prezzo_vendita_offline: e.target.value })}
-                          placeholder="0.00"
-                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                          required
-                        />
+                        <div className="flex items-center gap-2 mb-2">
+                          <input
+                            type="checkbox"
+                            id="venduto_offline"
+                            checked={formData.venduto_offline}
+                            onChange={(e) => setFormData({ ...formData, venduto_offline: e.target.checked })}
+                            className="w-4 h-4 rounded"
+                          />
+                          <label htmlFor="venduto_offline" className="text-sm font-medium text-[#6b6b6b] flex items-center gap-2">
+                            <Euro className="w-4 h-4" />
+                            Venduto Offline
+                          </label>
+                        </div>
+                        {formData.venduto_offline && (
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={formData.prezzo_vendita_offline}
+                            onChange={(e) => setFormData({ ...formData, prezzo_vendita_offline: e.target.value })}
+                            placeholder="0.00"
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                            required={formData.venduto_offline}
+                          />
+                        )}
+                        {!formData.venduto_offline && (
+                          <div className="neumorphic-pressed px-4 py-3 rounded-xl text-slate-400 text-sm">
+                            Non venduto offline
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
                 )}
 
                 {/* Costi Preview - Only show if not semilavorato */}
-                {!formData.is_semilavorato && formData.ingredienti.length > 0 && formData.prezzo_vendita_online && formData.prezzo_vendita_offline && (
+                {!formData.is_semilavorato && formData.ingredienti.length > 0 && (formData.venduto_online || formData.venduto_offline) && (
                   <div className="neumorphic-flat p-6 rounded-xl bg-blue-50">
                     <h3 className="text-lg font-bold text-blue-800 mb-4">📊 Analisi Costi</h3>
                     
@@ -749,63 +822,71 @@ export default function Ricette() {
                         </p>
                       </div>
 
-                      <div className="neumorphic-pressed p-4 rounded-lg text-center">
-                        <p className="text-sm text-[#9b9b9b] mb-1">Margine Online</p>
-                        <p className="text-2xl font-bold text-green-600">
-                          €{(parseFloat(formData.prezzo_vendita_online) - getCostoPreview()).toFixed(2)}
-                        </p>
-                      </div>
+                      {formData.venduto_online && formData.prezzo_vendita_online && (
+                        <div className="neumorphic-pressed p-4 rounded-lg text-center">
+                          <p className="text-sm text-[#9b9b9b] mb-1">Margine Online</p>
+                          <p className="text-2xl font-bold text-green-600">
+                            €{(parseFloat(formData.prezzo_vendita_online) - getCostoPreview()).toFixed(2)}
+                          </p>
+                        </div>
+                      )}
 
-                      <div className="neumorphic-pressed p-4 rounded-lg text-center">
-                        <p className="text-sm text-[#9b9b9b] mb-1">Margine Offline</p>
-                        <p className="text-2xl font-bold text-green-600">
-                          €{(parseFloat(formData.prezzo_vendita_offline) - getCostoPreview()).toFixed(2)}
-                        </p>
-                      </div>
+                      {formData.venduto_offline && formData.prezzo_vendita_offline && (
+                        <div className="neumorphic-pressed p-4 rounded-lg text-center">
+                          <p className="text-sm text-[#9b9b9b] mb-1">Margine Offline</p>
+                          <p className="text-2xl font-bold text-green-600">
+                            €{(parseFloat(formData.prezzo_vendita_offline) - getCostoPreview()).toFixed(2)}
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="neumorphic-pressed p-4 rounded-lg">
-                        <p className="text-sm text-[#9b9b9b] mb-2">Food Cost Online</p>
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 h-2 neumorphic-pressed rounded-full overflow-hidden">
-                            <div
-                              className={`h-full ${
-                                (getCostoPreview() / parseFloat(formData.prezzo_vendita_online)) * 100 < 30 
-                                  ? 'bg-green-600' 
-                                  : (getCostoPreview() / parseFloat(formData.prezzo_vendita_online)) * 100 < 40
-                                  ? 'bg-yellow-600'
-                                  : 'bg-red-600'
-                              }`}
-                              style={{ width: `${Math.min((getCostoPreview() / parseFloat(formData.prezzo_vendita_online)) * 100, 100)}%` }}
-                            />
+                      {formData.venduto_online && formData.prezzo_vendita_online && (
+                        <div className="neumorphic-pressed p-4 rounded-lg">
+                          <p className="text-sm text-[#9b9b9b] mb-2">Food Cost Online</p>
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-2 neumorphic-pressed rounded-full overflow-hidden">
+                              <div
+                                className={`h-full ${
+                                  (getCostoPreview() / parseFloat(formData.prezzo_vendita_online)) * 100 < 30 
+                                    ? 'bg-green-600' 
+                                    : (getCostoPreview() / parseFloat(formData.prezzo_vendita_online)) * 100 < 40
+                                    ? 'bg-yellow-600'
+                                    : 'bg-red-600'
+                                }`}
+                                style={{ width: `${Math.min((getCostoPreview() / parseFloat(formData.prezzo_vendita_online)) * 100, 100)}%` }}
+                              />
+                            </div>
+                            <span className="font-bold text-[#6b6b6b] min-w-[60px]">
+                              {((getCostoPreview() / parseFloat(formData.prezzo_vendita_online)) * 100).toFixed(1)}%
+                            </span>
                           </div>
-                          <span className="font-bold text-[#6b6b6b] min-w-[60px]">
-                            {((getCostoPreview() / parseFloat(formData.prezzo_vendita_online)) * 100).toFixed(1)}%
-                          </span>
                         </div>
-                      </div>
+                      )}
 
-                      <div className="neumorphic-pressed p-4 rounded-lg">
-                        <p className="text-sm text-[#9b9b9b] mb-2">Food Cost Offline</p>
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 h-2 neumorphic-pressed rounded-full overflow-hidden">
-                            <div
-                              className={`h-full ${
-                                (getCostoPreview() / parseFloat(formData.prezzo_vendita_offline)) * 100 < 30 
-                                  ? 'bg-green-600' 
-                                  : (getCostoPreview() / parseFloat(formData.prezzo_vendita_offline)) * 100 < 40
-                                  ? 'bg-yellow-600'
-                                  : 'bg-red-600'
-                              }`}
-                              style={{ width: `${Math.min((getCostoPreview() / parseFloat(formData.prezzo_vendita_offline)) * 100, 100)}%` }}
-                            />
+                      {formData.venduto_offline && formData.prezzo_vendita_offline && (
+                        <div className="neumorphic-pressed p-4 rounded-lg">
+                          <p className="text-sm text-[#9b9b9b] mb-2">Food Cost Offline</p>
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-2 neumorphic-pressed rounded-full overflow-hidden">
+                              <div
+                                className={`h-full ${
+                                  (getCostoPreview() / parseFloat(formData.prezzo_vendita_offline)) * 100 < 30 
+                                    ? 'bg-green-600' 
+                                    : (getCostoPreview() / parseFloat(formData.prezzo_vendita_offline)) * 100 < 40
+                                    ? 'bg-yellow-600'
+                                    : 'bg-red-600'
+                                }`}
+                                style={{ width: `${Math.min((getCostoPreview() / parseFloat(formData.prezzo_vendita_offline)) * 100, 100)}%` }}
+                              />
+                            </div>
+                            <span className="font-bold text-[#6b6b6b] min-w-[60px]">
+                              {((getCostoPreview() / parseFloat(formData.prezzo_vendita_offline)) * 100).toFixed(1)}%
+                            </span>
                           </div>
-                          <span className="font-bold text-[#6b6b6b] min-w-[60px]">
-                            {((getCostoPreview() / parseFloat(formData.prezzo_vendita_offline)) * 100).toFixed(1)}%
-                          </span>
                         </div>
-                      </div>
+                      )}
                     </div>
 
                     <p className="text-xs text-blue-700 mt-4">
