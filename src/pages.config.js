@@ -78,7 +78,6 @@ import ProdottiVenduti from './pages/ProdottiVenduti';
 import Produttivita from './pages/Produttivita';
 import ProfiloDipendente from './pages/ProfiloDipendente';
 import QuantitaMinime from './pages/QuantitaMinime';
-import RealTime from './pages/RealTime';
 import RecalculateShifts from './pages/RecalculateShifts';
 import RegolamentoDipendenti from './pages/RegolamentoDipendenti';
 import ResetAdmin from './pages/ResetAdmin';
@@ -97,7 +96,6 @@ import UsersManagement from './pages/UsersManagement';
 import Valutazione from './pages/Valutazione';
 import ValutazioneProvaForm from './pages/ValutazioneProvaForm';
 import ValutazionePulizie from './pages/ValutazionePulizie';
-import VenditeAnalytics from './pages/VenditeAnalytics';
 import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSetup from './pages/ZapierSetup';
@@ -185,7 +183,6 @@ export const PAGES = {
     "Produttivita": Produttivita,
     "ProfiloDipendente": ProfiloDipendente,
     "QuantitaMinime": QuantitaMinime,
-    "RealTime": RealTime,
     "RecalculateShifts": RecalculateShifts,
     "RegolamentoDipendenti": RegolamentoDipendenti,
     "ResetAdmin": ResetAdmin,
@@ -204,7 +201,6 @@ export const PAGES = {
     "Valutazione": Valutazione,
     "ValutazioneProvaForm": ValutazioneProvaForm,
     "ValutazionePulizie": ValutazionePulizie,
-    "VenditeAnalytics": VenditeAnalytics,
     "ZapierProdottiVenduti": ZapierProdottiVenduti,
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSetup": ZapierSetup,
