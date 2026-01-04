@@ -93,7 +93,7 @@ export default function FormSpostamenti() {
   };
 
   return (
-    <ProtectedPage pageName="FormSpostamenti">
+    <ProtectedPage pageName="InventoryForms">
       <div className="max-w-2xl mx-auto space-y-6">
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
