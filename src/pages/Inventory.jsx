@@ -275,8 +275,13 @@ export default function Inventory() {
             </p>
           </div>
           <div className="neumorphic-flat p-2 rounded-lg">
-            <p className="text-xs text-slate-500">Minimo</p>
-            <p className="text-sm lg:text-base font-bold text-slate-700">{item.quantita_minima} {item.unita_misura}</p>
+            <p className="text-xs text-slate-500">Qtà Critica</p>
+            <p className="text-sm lg:text-base font-bold text-slate-700">
+              {(() => {
+                const quantitaCritica = product?.store_specific_quantita_critica?.[item.store_id] || product?.quantita_critica || item.quantita_minima;
+                return `${quantitaCritica} ${item.unita_misura}`;
+              })()}
+            </p>
           </div>
         </div>
 
@@ -984,9 +989,13 @@ export default function Inventory() {
                   </div>
 
                   <div className="neumorphic-pressed p-4 rounded-xl text-center">
-                    <p className="text-sm text-slate-500 mb-2">Quantità Minima</p>
+                    <p className="text-sm text-slate-500 mb-2">Qtà Critica</p>
                     <p className="text-3xl font-bold text-slate-800">
-                      {selectedProduct.quantita_minima}
+                      {(() => {
+                        const product = products.find(p => p.id === selectedProduct.prodotto_id);
+                        const quantitaCritica = product?.store_specific_quantita_critica?.[selectedProduct.store_id] || product?.quantita_critica || selectedProduct.quantita_minima;
+                        return quantitaCritica;
+                      })()}
                     </p>
                     <p className="text-sm text-slate-500 mt-1">{selectedProduct.unita_misura}</p>
                   </div>
