@@ -18,7 +18,9 @@ import {
   Loader2,
   Send,
   Edit,
-  Trash2
+  Trash2,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -33,6 +35,7 @@ export default function Inventory() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [historyProduct, setHistoryProduct] = useState(null);
   const [selectedFormCompletion, setSelectedFormCompletion] = useState(null);
+  const [expandedStores, setExpandedStores] = useState({});
   
   const queryClient = useQueryClient();
 
@@ -113,6 +116,46 @@ export default function Inventory() {
     const usage = (r.quantita_minima - r.quantita_rilevata) / r.quantita_minima;
     return !r.sotto_minimo && usage <= 0.7;
   });
+
+  // Group products by store
+  const productsByStore = useMemo(() => {
+    const grouped = {};
+    
+    latestReadings.forEach(reading => {
+      const storeId = reading.store_id;
+      const storeName = reading.store_name || stores.find(s => s.id === storeId)?.name || 'N/D';
+      
+      if (!grouped[storeId]) {
+        grouped[storeId] = {
+          storeId,
+          storeName,
+          critical: [],
+          warning: [],
+          ok: []
+        };
+      }
+      
+      if (reading.sotto_minimo) {
+        grouped[storeId].critical.push(reading);
+      } else {
+        const usage = (reading.quantita_minima - reading.quantita_rilevata) / reading.quantita_minima;
+        if (usage > 0.7) {
+          grouped[storeId].warning.push(reading);
+        } else {
+          grouped[storeId].ok.push(reading);
+        }
+      }
+    });
+    
+    return Object.values(grouped).sort((a, b) => a.storeName.localeCompare(b.storeName));
+  }, [latestReadings, stores]);
+
+  const toggleStoreExpansion = (storeId) => {
+    setExpandedStores(prev => ({
+      ...prev,
+      [storeId]: !prev[storeId]
+    }));
+  };
 
   // Calculate orders needed - products below critical quantity
   const ordersNeeded = useMemo(() => {
@@ -435,47 +478,111 @@ export default function Inventory() {
               </NeumorphicCard>
             </div>
 
-                {criticalProducts.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <AlertTriangle className="w-5 h-5 text-red-600" />
-                  <h2 className="text-lg font-bold text-slate-800">Prodotti Critici</h2>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
-                  {criticalProducts.map(item => (
-                    <ProductCard key={`${item.store_id}-${item.prodotto_id}`} item={item} status="critical" />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {warningProducts.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <AlertTriangle className="w-5 h-5 text-yellow-600" />
-                  <h2 className="text-lg font-bold text-slate-800">Prodotti in Warning</h2>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
-                  {warningProducts.map(item => (
-                    <ProductCard key={`${item.store_id}-${item.prodotto_id}`} item={item} status="warning" />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {okProducts.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                  <h2 className="text-lg font-bold text-slate-800">Prodotti OK</h2>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
-                  {okProducts.map(item => (
-                    <ProductCard key={`${item.store_id}-${item.prodotto_id}`} item={item} status="ok" />
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* Stores sections */}
+            <div className="space-y-4">
+              {productsByStore.map(storeGroup => {
+                const isExpanded = expandedStores[storeGroup.storeId];
+                const totalProducts = storeGroup.critical.length + storeGroup.warning.length + storeGroup.ok.length;
+                
+                return (
+                  <NeumorphicCard key={storeGroup.storeId} className="overflow-hidden">
+                    {/* Collapsed header */}
+                    <button
+                      onClick={() => toggleStoreExpansion(storeGroup.storeId)}
+                      className="w-full p-4 lg:p-6 text-left hover:bg-slate-50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                            <Building2 className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-bold text-slate-800">{storeGroup.storeName}</h3>
+                            <p className="text-xs text-slate-500">{totalProducts} prodotti</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-3">
+                            {storeGroup.critical.length > 0 && (
+                              <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-red-100">
+                                <AlertTriangle className="w-4 h-4 text-red-600" />
+                                <span className="text-sm font-bold text-red-700">{storeGroup.critical.length}</span>
+                              </div>
+                            )}
+                            {storeGroup.warning.length > 0 && (
+                              <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-yellow-100">
+                                <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                                <span className="text-sm font-bold text-yellow-700">{storeGroup.warning.length}</span>
+                              </div>
+                            )}
+                            {storeGroup.ok.length > 0 && (
+                              <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-green-100">
+                                <CheckCircle className="w-4 h-4 text-green-600" />
+                                <span className="text-sm font-bold text-green-700">{storeGroup.ok.length}</span>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {isExpanded ? (
+                            <ChevronDown className="w-5 h-5 text-slate-600" />
+                          ) : (
+                            <ChevronRight className="w-5 h-5 text-slate-600" />
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                    
+                    {/* Expanded content */}
+                    {isExpanded && (
+                      <div className="p-4 lg:p-6 pt-0 space-y-6">
+                        {storeGroup.critical.length > 0 && (
+                          <div>
+                            <div className="flex items-center gap-2 mb-3">
+                              <AlertTriangle className="w-5 h-5 text-red-600" />
+                              <h4 className="font-bold text-slate-800">Critici ({storeGroup.critical.length})</h4>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                              {storeGroup.critical.map(item => (
+                                <ProductCard key={`${item.store_id}-${item.prodotto_id}`} item={item} status="critical" />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {storeGroup.warning.length > 0 && (
+                          <div>
+                            <div className="flex items-center gap-2 mb-3">
+                              <AlertTriangle className="w-5 h-5 text-yellow-600" />
+                              <h4 className="font-bold text-slate-800">Warning ({storeGroup.warning.length})</h4>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                              {storeGroup.warning.map(item => (
+                                <ProductCard key={`${item.store_id}-${item.prodotto_id}`} item={item} status="warning" />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {storeGroup.ok.length > 0 && (
+                          <div>
+                            <div className="flex items-center gap-2 mb-3">
+                              <CheckCircle className="w-5 h-5 text-green-600" />
+                              <h4 className="font-bold text-slate-800">OK ({storeGroup.ok.length})</h4>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                              {storeGroup.ok.map(item => (
+                                <ProductCard key={`${item.store_id}-${item.prodotto_id}`} item={item} status="ok" />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </NeumorphicCard>
+                );
+              })}
+            </div>
           </>
         )}
 
