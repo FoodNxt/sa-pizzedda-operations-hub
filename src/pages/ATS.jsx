@@ -481,16 +481,17 @@ export default function ATS() {
                 <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-500" />
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 overflow-x-auto pb-4">
+              <div className="space-y-4">
                 {STATI.map(stato => (
-                  <div key={stato.value} className="min-w-[280px]">
-                    <div className={`${stato.headerColor} text-white px-4 py-2 rounded-t-xl font-bold text-sm flex items-center justify-between`}>
+                  <div key={stato.value}>
+                    <div className={`${stato.headerColor} text-white px-4 py-3 rounded-t-xl font-bold text-sm flex items-center justify-between`}>
                       <span>{stato.label}</span>
                       <span className="bg-white bg-opacity-30 px-2 py-0.5 rounded-full text-xs">
                         {candidatiByStato[stato.value].length}
                       </span>
                     </div>
-                    <div className="bg-slate-100 rounded-b-xl p-2 min-h-[400px] space-y-2">
+                    <div className="bg-slate-100 rounded-b-xl p-3 min-h-[120px]">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                       {candidatiByStato[stato.value].map(candidato => {
                         const provaPassata = isProvaPassata(candidato);
                         
@@ -619,6 +620,7 @@ export default function ATS() {
                         );
                       })}
                       
+                      </div>
                       {candidatiByStato[stato.value].length === 0 && (
                         <div className="text-center py-8 text-slate-400 text-sm">
                           Nessun candidato

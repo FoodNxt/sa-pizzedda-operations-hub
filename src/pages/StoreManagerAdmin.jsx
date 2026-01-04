@@ -144,14 +144,41 @@ export default function StoreManagerAdmin() {
     );
     const totaleRitardi = storeShifts.reduce((acc, s) => acc + (s.minuti_di_ritardo || 0), 0);
 
-    // Pulizie
+    // Pulizie - calcola media di tutti i form pulizia completati per il locale
     const storePulizie = pulizie.filter(p => 
       p.store_id === storeId && 
       moment(p.inspection_date).isBetween(monthStart, monthEnd, 'day', '[]') &&
-      p.overall_score !== undefined
+      p.analysis_status === 'completed'
     );
-    const mediaPulizie = storePulizie.length > 0
-      ? storePulizie.reduce((acc, p) => acc + p.overall_score, 0) / storePulizie.length
+    
+    // Calcola score medio considerando tutti i form pulizia
+    let totalScores = [];
+    storePulizie.forEach(inspection => {
+      if (inspection.domande_risposte && inspection.domande_risposte.length > 0) {
+        // Per ogni domanda con attrezzatura, calcola il punteggio
+        inspection.domande_risposte.forEach(risposta => {
+          if (!risposta.attrezzatura) return;
+          
+          const equipmentKey = risposta.attrezzatura.toLowerCase().replace(/\s+/g, '_');
+          const status = inspection[`${equipmentKey}_corrected`]
+            ? inspection[`${equipmentKey}_corrected_status`]
+            : inspection[`${equipmentKey}_pulizia_status`];
+          
+          if (status) {
+            let score = 0;
+            if (status === 'pulito') score = 100;
+            else if (status === 'medio') score = 50;
+            else if (status === 'sporco') score = 0;
+            else return; // Skip non_valutabile
+            
+            totalScores.push(score);
+          }
+        });
+      }
+    });
+    
+    const mediaPulizie = totalScores.length > 0
+      ? totalScores.reduce((sum, s) => sum + s, 0) / totalScores.length
       : null;
 
     return { fatturato, mediaRecensioni, numRecensioni, numOrdiniSbagliati, totaleRitardi, mediaPulizie };
