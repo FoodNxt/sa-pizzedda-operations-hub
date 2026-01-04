@@ -38,7 +38,8 @@ export default function Ricette() {
     venduto_online: true,
     venduto_offline: true,
     note: '',
-    attivo: true
+    attivo: true,
+    trasportabile: false
   });
   const [customNomeProdotto, setCustomNomeProdotto] = useState('');
   const [addingNewProduct, setAddingNewProduct] = useState(false);
