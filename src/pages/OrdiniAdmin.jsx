@@ -360,9 +360,7 @@ Sa Pizzedda`
                     </button>
                     
                     {isExpanded && (
-                      <div className="p-6 pt-0">
-
-                      <div className="space-y-4">
+                      <div className="p-6 pt-0 space-y-4">
                         {Object.entries(storeData.suppliers).map(([supplier, orders]) => {
                         const fornitore = getFornitoreByName(supplier);
                         const emailKey = `${storeData.store.name}-${supplier}`;
