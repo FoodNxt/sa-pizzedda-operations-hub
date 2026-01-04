@@ -18,6 +18,7 @@ export default function Produttivita() {
   const [showRevenue, setShowRevenue] = useState(true);
   const [showHours, setShowHours] = useState(true);
   const [showRevenuePerHour, setShowRevenuePerHour] = useState(true);
+  const [selectedHeatmapCell, setSelectedHeatmapCell] = useState(null);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -236,9 +237,9 @@ export default function Produttivita() {
       });
     });
     
-    // Convert to structured format
+    // Convert to structured format with metadata
     const result = daysOfWeek.map(day => {
-      const dayData = { day };
+      const dayData = { day, metadata: {} };
       Object.keys(daySlotMap)
         .filter(k => k.startsWith(day + '|'))
         .forEach(k => {
@@ -246,7 +247,15 @@ export default function Produttivita() {
           const data = daySlotMap[k];
           const avgRevenue = data.revenue / data.count;
           const avgHours = data.hours / data.count;
-          dayData[slot] = avgHours > 0 ? avgRevenue / avgHours : 0;
+          const productivity = avgHours > 0 ? avgRevenue / avgHours : 0;
+          
+          dayData[slot] = productivity;
+          dayData.metadata[slot] = {
+            avgRevenue,
+            avgHours,
+            productivity,
+            count: data.count
+          };
         });
       return dayData;
     });
@@ -531,14 +540,14 @@ export default function Produttivita() {
         <NeumorphicCard className="p-6">
           <div className="mb-4">
             <h3 className="text-lg font-bold text-[#6b6b6b]">Heatmap Produttività per Giorno e Slot</h3>
-            <p className="text-sm text-[#9b9b9b]">Produttività media (€/ora) per giorno della settimana e fascia oraria</p>
+            <p className="text-sm text-[#9b9b9b]">€ fatturato / Ore lavorate (media per giorno e slot)</p>
           </div>
           {heatmapData.length > 0 && (() => {
             // Get all unique slots from data
             const allSlots = new Set();
             heatmapData.forEach(row => {
               Object.keys(row).forEach(key => {
-                if (key !== 'day') allSlots.add(key);
+                if (key !== 'day' && key !== 'metadata') allSlots.add(key);
               });
             });
             const slots = Array.from(allSlots).sort();
@@ -581,9 +590,11 @@ export default function Produttivita() {
                         </td>
                         {slots.map(slot => {
                           const value = row[slot] || 0;
+                          const metadata = row.metadata?.[slot];
                           return (
                             <td
                               key={slot}
+                              onClick={() => metadata && setSelectedHeatmapCell({ day: row.day, slot, ...metadata })}
                               className={`p-2 text-center font-semibold transition-all hover:scale-110 cursor-pointer ${getColor(value)}`}
                               title={value > 0 ? `€${value.toFixed(2)}/ora` : 'Nessun dato'}
                             >
@@ -613,6 +624,66 @@ export default function Produttivita() {
             );
           })()}
         </NeumorphicCard>
+
+        {/* Heatmap Cell Detail Modal */}
+        {selectedHeatmapCell && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="p-6 max-w-md w-full">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-[#6b6b6b]">Dettaglio Slot</h3>
+                <button
+                  onClick={() => setSelectedHeatmapCell(null)}
+                  className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+                >
+                  <X className="w-5 h-5 text-[#9b9b9b]" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="neumorphic-pressed p-4 rounded-xl">
+                  <p className="text-sm text-[#9b9b9b] mb-1">Giorno e Orario</p>
+                  <p className="text-lg font-bold text-[#6b6b6b]">
+                    {selectedHeatmapCell.day} - {selectedHeatmapCell.slot}
+                  </p>
+                </div>
+
+                <div className="neumorphic-pressed p-4 rounded-xl">
+                  <p className="text-sm text-[#9b9b9b] mb-2">Produttività</p>
+                  <p className="text-3xl font-bold text-green-600">
+                    €{selectedHeatmapCell.productivity.toFixed(2)}/ora
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="neumorphic-flat p-4 rounded-xl text-center">
+                    <DollarSign className="w-6 h-6 text-green-600 mx-auto mb-2" />
+                    <p className="text-xs text-[#9b9b9b] mb-1">Fatturato Medio</p>
+                    <p className="text-lg font-bold text-[#6b6b6b]">
+                      €{selectedHeatmapCell.avgRevenue.toFixed(2)}
+                    </p>
+                  </div>
+
+                  <div className="neumorphic-flat p-4 rounded-xl text-center">
+                    <Clock className="w-6 h-6 text-orange-600 mx-auto mb-2" />
+                    <p className="text-xs text-[#9b9b9b] mb-1">Ore Medie Lavorate</p>
+                    <p className="text-lg font-bold text-[#6b6b6b]">
+                      {selectedHeatmapCell.avgHours.toFixed(1)}h
+                    </p>
+                  </div>
+                </div>
+
+                <div className="neumorphic-pressed p-3 rounded-xl bg-blue-50">
+                  <p className="text-xs text-blue-700">
+                    <strong>Formula:</strong> €{selectedHeatmapCell.avgRevenue.toFixed(2)} ÷ {selectedHeatmapCell.avgHours.toFixed(1)}h = €{selectedHeatmapCell.productivity.toFixed(2)}/ora
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    Calcolato su {selectedHeatmapCell.count} {selectedHeatmapCell.count === 1 ? 'giorno' : 'giorni'}
+                  </p>
+                </div>
+              </div>
+            </NeumorphicCard>
+          </div>
+        )}
 
         {/* Revenue per Hour Chart - NEW */}
         <NeumorphicCard className="p-6">
