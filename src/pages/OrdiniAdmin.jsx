@@ -16,7 +16,9 @@ import {
   Calendar,
   Trash2,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Camera,
+  Image as ImageIcon
 } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
@@ -748,22 +750,49 @@ Sa Pizzedda`
                                   </table>
                                 </div>
                                 {ordine.note && (
-                                  <div className="mt-3 p-2 bg-yellow-50 rounded-lg">
-                                    <p className="text-xs text-slate-600"><strong>Note:</strong> {ordine.note}</p>
-                                  </div>
+                                 <div className="mt-3 p-2 bg-yellow-50 rounded-lg">
+                                   <p className="text-xs text-slate-600"><strong>Note:</strong> {ordine.note}</p>
+                                 </div>
                                 )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </NeumorphicCard>
-                  );
-                });
-              })()
-            )}
-          </div>
-        )}
+
+                                {ordine.foto_ddt && ordine.foto_ddt.length > 0 && (
+                                 <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                                   <div className="flex items-center gap-2 mb-2">
+                                     <Camera className="w-4 h-4 text-blue-600" />
+                                     <p className="text-xs font-bold text-blue-800">Foto DDT ({ordine.foto_ddt.length})</p>
+                                   </div>
+                                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                     {ordine.foto_ddt.map((url, idx) => (
+                                       <a 
+                                         key={idx} 
+                                         href={url} 
+                                         target="_blank" 
+                                         rel="noopener noreferrer"
+                                         className="neumorphic-flat rounded-lg overflow-hidden hover:shadow-lg transition-shadow group"
+                                       >
+                                         <div className="relative">
+                                           <img src={url} alt={`DDT ${idx + 1}`} className="w-full h-24 object-cover" />
+                                           <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
+                                             <ImageIcon className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                           </div>
+                                         </div>
+                                       </a>
+                                     ))}
+                                   </div>
+                                 </div>
+                                )}
+                                </div>
+                                );
+                                })}
+                                </div>
+                                )}
+                                </NeumorphicCard>
+                                );
+                                });
+                                })()
+                                )}
+                                </div>
+                                )}
 
         {/* Order Editor Modal */}
         {editingOrder && (

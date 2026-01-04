@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Package, CheckCircle, AlertTriangle, X } from 'lucide-react';
+import { Package, CheckCircle, AlertTriangle, X, Camera, Upload, Loader2 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { format, parseISO } from 'date-fns';
@@ -12,6 +12,8 @@ export default function Ordini() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [receivedQuantities, setReceivedQuantities] = useState({});
   const [confirmedProducts, setConfirmedProducts] = useState({});
+  const [ddtPhotos, setDdtPhotos] = useState([]);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: currentUser } = useQuery({
@@ -59,6 +61,30 @@ export default function Ordini() {
     });
     setReceivedQuantities(initialQuantities);
     setConfirmedProducts(initialConfirmed);
+    setDdtPhotos([]);
+  };
+
+  const handlePhotoUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    setUploadingPhoto(true);
+    try {
+      const uploadedUrls = [];
+      for (const file of files) {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        uploadedUrls.push(file_url);
+      }
+      setDdtPhotos(prev => [...prev, ...uploadedUrls]);
+    } catch (error) {
+      alert('Errore nel caricamento delle foto: ' + error.message);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const removePhoto = (index) => {
+    setDdtPhotos(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleCompleteOrder = async () => {
@@ -84,7 +110,8 @@ export default function Ordini() {
         status: 'completato',
         data_completamento: new Date().toISOString(),
         completato_da: currentUser.email,
-        prodotti: updatedProdotti
+        prodotti: updatedProdotti,
+        foto_ddt: ddtPhotos
       }
     });
   };
@@ -181,6 +208,46 @@ export default function Ordini() {
                       Verifica che le quantità ricevute corrispondano a quelle ordinate prima di completare.
                     </p>
                   </div>
+                </div>
+              </div>
+
+              {/* DDT Photo Upload */}
+              <div className="mb-6">
+                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
+                  <Camera className="w-4 h-4" />
+                  Foto DDT (opzionale)
+                </label>
+                <div className="space-y-3">
+                  <label className="neumorphic-pressed p-4 rounded-xl flex items-center justify-center gap-2 cursor-pointer hover:bg-blue-50 transition-colors">
+                    <Upload className="w-5 h-5 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-600">
+                      {uploadingPhoto ? 'Caricamento...' : 'Carica Foto DDT'}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handlePhotoUpload}
+                      disabled={uploadingPhoto}
+                      className="hidden"
+                    />
+                  </label>
+
+                  {ddtPhotos.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {ddtPhotos.map((url, idx) => (
+                        <div key={idx} className="relative neumorphic-flat rounded-xl overflow-hidden group">
+                          <img src={url} alt={`DDT ${idx + 1}`} className="w-full h-32 object-cover" />
+                          <button
+                            onClick={() => removePhoto(idx)}
+                            className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
