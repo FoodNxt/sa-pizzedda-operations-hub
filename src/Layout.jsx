@@ -39,7 +39,8 @@ import {
   LogOut,
   Calendar,
   Bell,
-  Cloud
+  Cloud,
+  TrendingUp
 } from "lucide-react";
 import CompleteProfileModal from "./components/auth/CompleteProfileModal";
 
