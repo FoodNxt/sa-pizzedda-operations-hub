@@ -638,19 +638,48 @@ export default function OrdiniSbagliati() {
       if (order.platform === 'deliveroo') byStore[storeName].deliveroo++;
     });
 
-    // Group by date
+    // Group by date - include ALL days in range, even with 0 orders
+    const now = new Date();
+    let startDate, endDate;
+    
+    if (dateRange === 'week') {
+      startDate = startOfWeek(now, { locale: it });
+      endDate = endOfWeek(now, { locale: it });
+    } else if (dateRange === 'month') {
+      startDate = startOfMonth(now);
+      endDate = endOfMonth(now);
+    } else {
+      // For 'all', use the earliest and latest order dates
+      if (filteredOrders.length > 0) {
+        const dates = filteredOrders.map(o => parseISO(o.order_date)).filter(d => !isNaN(d));
+        startDate = new Date(Math.min(...dates));
+        endDate = new Date(Math.max(...dates));
+      } else {
+        startDate = now;
+        endDate = now;
+      }
+    }
+
+    // Create an entry for each day in the range
     const byDate = {};
+    const currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+      const dateKey = format(currentDate, 'dd/MM', { locale: it });
+      byDate[dateKey] = {
+        date: dateKey,
+        count: 0,
+        refunds: 0
+      };
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    // Add actual order data
     filteredOrders.forEach(order => {
       const date = format(parseISO(order.order_date), 'dd/MM', { locale: it });
-      if (!byDate[date]) {
-        byDate[date] = {
-          date,
-          count: 0,
-          refunds: 0
-        };
+      if (byDate[date]) {
+        byDate[date].count++;
+        byDate[date].refunds += order.refund_value || 0;
       }
-      byDate[date].count++;
-      byDate[date].refunds += order.refund_value || 0;
     });
 
     return {
@@ -661,7 +690,7 @@ export default function OrdiniSbagliati() {
         return monthA !== monthB ? monthA - monthB : dayA - dayB;
       })
     };
-  }, [filteredOrders, stores]);
+  }, [filteredOrders, stores, dateRange]);
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
