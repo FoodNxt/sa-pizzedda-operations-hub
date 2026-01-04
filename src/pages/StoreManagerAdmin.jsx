@@ -19,7 +19,8 @@ import {
   TrendingDown,
   CheckCircle,
   Gift,
-  BarChart3
+  BarChart3,
+  Copy
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -32,6 +33,8 @@ export default function StoreManagerAdmin() {
   });
   const [editingTarget, setEditingTarget] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [showCopyModal, setShowCopyModal] = useState(false);
+  const [copyFromMonth, setCopyFromMonth] = useState('');
   const [formData, setFormData] = useState({
     store_id: '',
     metriche_attive: ['fatturato', 'recensioni_media', 'num_recensioni', 'ordini_sbagliati', 'ritardi', 'pulizie'],
@@ -79,6 +82,11 @@ export default function StoreManagerAdmin() {
   const { data: targets = [], isLoading } = useQuery({
     queryKey: ['sm-targets', selectedMonth],
     queryFn: () => base44.entities.StoreManagerTarget.filter({ mese: selectedMonth })
+  });
+
+  const { data: allTargets = [] } = useQuery({
+    queryKey: ['sm-all-targets'],
+    queryFn: () => base44.entities.StoreManagerTarget.list()
   });
 
   // Fetch actual data for comparison
@@ -207,6 +215,24 @@ export default function StoreManagerAdmin() {
     }
   });
 
+  const copyTargetsMutation = useMutation({
+    mutationFn: async ({ fromMonth, toMonth }) => {
+      const sourceTargets = await base44.entities.StoreManagerTarget.filter({ mese: fromMonth });
+      const promises = sourceTargets.map(t => {
+        const { id, created_date, updated_date, created_by, ...data } = t;
+        return base44.entities.StoreManagerTarget.create({ ...data, mese: toMonth });
+      });
+      return Promise.all(promises);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sm-targets'] });
+      queryClient.invalidateQueries({ queryKey: ['sm-all-targets'] });
+      setShowCopyModal(false);
+      setCopyFromMonth('');
+      alert('Target copiati con successo!');
+    }
+  });
+
   const resetForm = () => {
     setFormData({
       store_id: '',
@@ -321,6 +347,17 @@ export default function StoreManagerAdmin() {
 
   // Store con Store Manager
   const storesWithSM = stores.filter(s => s.store_manager_id);
+
+  // Get months with targets
+  const monthsWithTargets = useMemo(() => {
+    const months = new Set();
+    allTargets.forEach(t => {
+      if (t.mese && t.mese !== selectedMonth) {
+        months.add(t.mese);
+      }
+    });
+    return Array.from(months).sort().reverse();
+  }, [allTargets, selectedMonth]);
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -580,7 +617,17 @@ export default function StoreManagerAdmin() {
         ) : targets.length === 0 ? (
           <div className="text-center py-8">
             <Target className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <p className="text-slate-500">Nessun target configurato per questo mese</p>
+            <p className="text-slate-500 mb-4">Nessun target configurato per questo mese</p>
+            {monthsWithTargets.length > 0 && (
+              <NeumorphicButton
+                onClick={() => setShowCopyModal(true)}
+                variant="primary"
+                className="flex items-center gap-2 mx-auto"
+              >
+                <Copy className="w-4 h-4" />
+                Copia da altro mese
+              </NeumorphicButton>
+            )}
           </div>
         ) : (
           <div className="space-y-6">
@@ -830,6 +877,73 @@ export default function StoreManagerAdmin() {
             </div>
           </div>
         </NeumorphicCard>
+      )}
+
+      {/* Copy Modal */}
+      {showCopyModal && (
+        <>
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={() => setShowCopyModal(false)} />
+          <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md">
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-slate-800">Copia Target</h3>
+                <button onClick={() => setShowCopyModal(false)} className="text-slate-500">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <p className="text-sm text-slate-600 mb-4">
+                Copia i target da un altro mese a <strong>{monthOptions.find(m => m.value === selectedMonth)?.label}</strong>
+              </p>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Copia da mese:</label>
+                  <select
+                    value={copyFromMonth}
+                    onChange={(e) => setCopyFromMonth(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  >
+                    <option value="">-- Seleziona mese --</option>
+                    {monthsWithTargets.map(month => {
+                      const monthLabel = monthOptions.find(m => m.value === month)?.label || month;
+                      const count = allTargets.filter(t => t.mese === month).length;
+                      return (
+                        <option key={month} value={month}>
+                          {monthLabel} ({count} target)
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowCopyModal(false)}
+                    className="flex-1 py-2 neumorphic-flat rounded-xl text-slate-600"
+                  >
+                    Annulla
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!copyFromMonth) {
+                        alert('Seleziona un mese');
+                        return;
+                      }
+                      if (confirm(`Copiare tutti i target da ${monthOptions.find(m => m.value === copyFromMonth)?.label}?`)) {
+                        copyTargetsMutation.mutate({ fromMonth: copyFromMonth, toMonth: selectedMonth });
+                      }
+                    }}
+                    disabled={!copyFromMonth || copyTargetsMutation.isPending}
+                    className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-xl font-medium disabled:opacity-50"
+                  >
+                    {copyTargetsMutation.isPending ? 'Copiando...' : 'Copia'}
+                  </button>
+                </div>
+              </div>
+            </NeumorphicCard>
+          </div>
+        </>
       )}
     </div>
   );
