@@ -14,7 +14,9 @@ import {
   Loader2,
   BarChart3,
   Calendar,
-  Trash2
+  Trash2,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
@@ -36,6 +38,8 @@ export default function OrdiniAdmin() {
   });
   const [timeRange, setTimeRange] = useState('all'); // 'week', 'month', '3months', '6months', 'year', 'all'
   const [selectedProduct, setSelectedProduct] = useState('all');
+  const [expandedStoresSuggeriti, setExpandedStoresSuggeriti] = useState({});
+  const [expandedStoresCompletati, setExpandedStoresCompletati] = useState({});
 
   const queryClient = useQueryClient();
 
@@ -327,17 +331,39 @@ Sa Pizzedda`
             ) : (
               Object.entries(ordersByStoreAndSupplier)
                 .filter(([storeId]) => selectedStore === 'all' || storeId === selectedStore)
-                .map(([storeId, storeData]) => (
-                  <NeumorphicCard key={storeId} className="p-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                        <Building2 className="w-5 h-5 text-white" />
+                .map(([storeId, storeData]) => {
+                  const isExpanded = expandedStoresSuggeriti[storeId];
+                  const totalOrdersForStore = Object.values(storeData.suppliers).reduce((sum, orders) => sum + orders.length, 0);
+                  
+                  return (
+                  <NeumorphicCard key={storeId} className="overflow-hidden">
+                    <button
+                      onClick={() => setExpandedStoresSuggeriti(prev => ({ ...prev, [storeId]: !prev[storeId] }))}
+                      className="w-full p-6 text-left hover:bg-slate-50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                            <Building2 className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <h2 className="text-lg font-bold text-slate-800">{storeData.store.name}</h2>
+                            <p className="text-xs text-slate-500">{totalOrdersForStore} prodotti da ordinare</p>
+                          </div>
+                        </div>
+                        {isExpanded ? (
+                          <ChevronDown className="w-5 h-5 text-slate-600" />
+                        ) : (
+                          <ChevronRight className="w-5 h-5 text-slate-600" />
+                        )}
                       </div>
-                      <h2 className="text-lg font-bold text-slate-800">{storeData.store.name}</h2>
-                    </div>
+                    </button>
+                    
+                    {isExpanded && (
+                      <div className="p-6 pt-0">
 
-                    <div className="space-y-4">
-                      {Object.entries(storeData.suppliers).map(([supplier, orders]) => {
+                      <div className="space-y-4">
+                        {Object.entries(storeData.suppliers).map(([supplier, orders]) => {
                         const fornitore = getFornitoreByName(supplier);
                         const emailKey = `${storeData.store.name}-${supplier}`;
                         const isSending = sendingEmail[emailKey];
@@ -500,11 +526,13 @@ Sa Pizzedda`
                               </table>
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </NeumorphicCard>
-                ))
+                  );
+                })
             )}
           </div>
         )}
@@ -582,80 +610,160 @@ Sa Pizzedda`
         {/* Ordini Completati Tab */}
         {activeTab === 'completati' && (
           <div className="space-y-4">
-            <NeumorphicCard className="p-6">
-              <h2 className="text-xl font-bold text-slate-800 mb-4">Ordini Arrivati ({ordiniCompletati.length})</h2>
-              {ordiniCompletati.length === 0 ? (
-                <p className="text-center text-slate-500 py-8">Nessun ordine completato</p>
-              ) : (
-                <div className="space-y-3">
-                  {ordiniCompletati
-                    .filter(o => selectedStore === 'all' || o.store_id === selectedStore)
-                    .map(ordine => (
-                      <div key={ordine.id} className="neumorphic-pressed p-4 rounded-xl border-2 border-green-200">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1">
-                            <h3 className="font-bold text-slate-800">{ordine.store_name}</h3>
-                            <p className="text-sm text-slate-500">{ordine.fornitore}</p>
-                            <p className="text-xs text-slate-400">
-                              Completato: {format(parseISO(ordine.data_completamento), 'dd/MM/yyyy HH:mm', { locale: it })}
-                            </p>
-                            <p className="text-xs text-slate-400">Da: {ordine.completato_da}</p>
-                          </div>
+            {ordiniCompletati.length === 0 ? (
+              <NeumorphicCard className="p-12 text-center">
+                <Package className="w-16 h-16 text-slate-300 mx-auto mb-4 opacity-50" />
+                <h3 className="text-xl font-bold text-slate-800 mb-2">Nessun ordine completato</h3>
+                <p className="text-slate-500">Gli ordini completati appariranno qui</p>
+              </NeumorphicCard>
+            ) : (
+              (() => {
+                // Group orders by store
+                const ordersByStore = {};
+                ordiniCompletati
+                  .filter(o => selectedStore === 'all' || o.store_id === selectedStore)
+                  .forEach(ordine => {
+                    if (!ordersByStore[ordine.store_id]) {
+                      ordersByStore[ordine.store_id] = {
+                        store_name: ordine.store_name,
+                        ordini: []
+                      };
+                    }
+                    ordersByStore[ordine.store_id].ordini.push(ordine);
+                  });
+
+                return Object.entries(ordersByStore).map(([storeId, storeData]) => {
+                  const isExpanded = expandedStoresCompletati[storeId];
+                  const hasDiscrepancies = storeData.ordini.some(ordine =>
+                    ordine.prodotti.some(prod => prod.quantita_ricevuta !== prod.quantita_ordinata)
+                  );
+
+                  return (
+                    <NeumorphicCard key={storeId} className="overflow-hidden">
+                      <button
+                        onClick={() => setExpandedStoresCompletati(prev => ({ ...prev, [storeId]: !prev[storeId] }))}
+                        className="w-full p-6 text-left hover:bg-slate-50 transition-colors"
+                      >
+                        <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="text-right">
-                              <p className="text-xl font-bold text-green-600">€{ordine.totale_ordine.toFixed(2)}</p>
-                              <p className="text-xs text-slate-500">{ordine.prodotti.length} prodotti</p>
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
+                              <Building2 className="w-5 h-5 text-white" />
                             </div>
-                            <button
-                              onClick={() => {
-                                if (confirm('Eliminare questo ordine completato?')) {
-                                  deleteOrderMutation.mutate(ordine.id);
-                                }
-                              }}
-                              className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4 text-red-600" />
-                            </button>
+                            <div>
+                              <h2 className="text-lg font-bold text-slate-800">{storeData.store_name}</h2>
+                              <p className="text-xs text-slate-500">{storeData.ordini.length} ordini completati</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-3">
+                            {hasDiscrepancies && (
+                              <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-orange-100">
+                                <AlertTriangle className="w-4 h-4 text-orange-600" />
+                                <span className="text-xs font-bold text-orange-700">Differenze</span>
+                              </div>
+                            )}
+                            {isExpanded ? (
+                              <ChevronDown className="w-5 h-5 text-slate-600" />
+                            ) : (
+                              <ChevronRight className="w-5 h-5 text-slate-600" />
+                            )}
                           </div>
                         </div>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b border-slate-300">
-                                <th className="text-left p-2 text-slate-600 font-medium text-xs">Prodotto</th>
-                                <th className="text-right p-2 text-slate-600 font-medium text-xs">Ordinato</th>
-                                <th className="text-right p-2 text-slate-600 font-medium text-xs">Ricevuto</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {ordine.prodotti.map((prod, idx) => (
-                                <tr key={idx} className="border-b border-slate-200">
-                                  <td className="p-2 text-slate-700">{prod.nome_prodotto}</td>
-                                  <td className="p-2 text-right text-slate-700">
-                                    {prod.quantita_ordinata} {prod.unita_misura}
-                                  </td>
-                                  <td className={`p-2 text-right font-bold ${
-                                    prod.quantita_ricevuta === prod.quantita_ordinata 
-                                      ? 'text-green-600' 
-                                      : 'text-orange-600'
-                                  }`}>
-                                    {prod.quantita_ricevuta} {prod.unita_misura}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                      </button>
+                      
+                      {isExpanded && (
+                        <div className="p-6 pt-0 space-y-3">
+                          {storeData.ordini.map(ordine => {
+                            const hasDifferences = ordine.prodotti.some(prod => prod.quantita_ricevuta !== prod.quantita_ordinata);
+                            
+                            return (
+                              <div key={ordine.id} className="neumorphic-pressed p-4 rounded-xl border-2 border-green-200">
+                                {hasDifferences && (
+                                  <div className="mb-3 p-2 bg-orange-50 border border-orange-200 rounded-lg flex items-center gap-2">
+                                    <AlertTriangle className="w-4 h-4 text-orange-600" />
+                                    <span className="text-xs font-medium text-orange-700">
+                                      ⚠️ Quantità ricevute diverse da quelle ordinate
+                                    </span>
+                                  </div>
+                                )}
+                                
+                                <div className="flex items-start justify-between mb-3">
+                                  <div className="flex-1">
+                                    <p className="text-sm font-bold text-slate-500">{ordine.fornitore}</p>
+                                    <p className="text-xs text-slate-400">
+                                      Completato: {format(parseISO(ordine.data_completamento), 'dd/MM/yyyy HH:mm', { locale: it })}
+                                    </p>
+                                    <p className="text-xs text-slate-400">Da: {ordine.completato_da}</p>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <div className="text-right">
+                                      <p className="text-xl font-bold text-green-600">€{ordine.totale_ordine.toFixed(2)}</p>
+                                      <p className="text-xs text-slate-500">{ordine.prodotti.length} prodotti</p>
+                                    </div>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (confirm('Eliminare questo ordine completato?')) {
+                                          deleteOrderMutation.mutate(ordine.id);
+                                        }
+                                      }}
+                                      className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
+                                    >
+                                      <Trash2 className="w-4 h-4 text-red-600" />
+                                    </button>
+                                  </div>
+                                </div>
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-sm">
+                                    <thead>
+                                      <tr className="border-b border-slate-300">
+                                        <th className="text-left p-2 text-slate-600 font-medium text-xs">Prodotto</th>
+                                        <th className="text-right p-2 text-slate-600 font-medium text-xs">Ordinato</th>
+                                        <th className="text-right p-2 text-slate-600 font-medium text-xs">Ricevuto</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {ordine.prodotti.map((prod, idx) => {
+                                        const isDifferent = prod.quantita_ricevuta !== prod.quantita_ordinata;
+                                        return (
+                                          <tr key={idx} className={`border-b border-slate-200 ${isDifferent ? 'bg-orange-50' : ''}`}>
+                                            <td className="p-2 text-slate-700">{prod.nome_prodotto}</td>
+                                            <td className="p-2 text-right text-slate-700">
+                                              {prod.quantita_ordinata} {prod.unita_misura}
+                                            </td>
+                                            <td className={`p-2 text-right font-bold ${
+                                              prod.quantita_ricevuta === prod.quantita_ordinata 
+                                                ? 'text-green-600' 
+                                                : 'text-orange-600'
+                                            }`}>
+                                              {prod.quantita_ricevuta} {prod.unita_misura}
+                                              {isDifferent && (
+                                                <span className="ml-2 text-xs">
+                                                  ({prod.quantita_ricevuta > prod.quantita_ordinata ? '+' : ''}{(prod.quantita_ricevuta - prod.quantita_ordinata).toFixed(1)})
+                                                </span>
+                                              )}
+                                            </td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                  </table>
+                                </div>
+                                {ordine.note && (
+                                  <div className="mt-3 p-2 bg-yellow-50 rounded-lg">
+                                    <p className="text-xs text-slate-600"><strong>Note:</strong> {ordine.note}</p>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
-                        {ordine.note && (
-                          <div className="mt-3 p-2 bg-yellow-50 rounded-lg">
-                            <p className="text-xs text-slate-600"><strong>Note:</strong> {ordine.note}</p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                </div>
-              )}
-            </NeumorphicCard>
+                      )}
+                    </NeumorphicCard>
+                  );
+                });
+              })()
+            )}
           </div>
         )}
 
