@@ -100,6 +100,8 @@ import ValutazionePulizie from './pages/ValutazionePulizie';
 import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSetup from './pages/ZapierSetup';
+import Google from './pages/Google';
+import Meta from './pages/Meta';
 import __Layout from './Layout.jsx';
 
 
@@ -206,6 +208,8 @@ export const PAGES = {
     "ZapierProdottiVenduti": ZapierProdottiVenduti,
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSetup": ZapierSetup,
+    "Google": Google,
+    "Meta": Meta,
 }
 
 export const pagesConfig = {

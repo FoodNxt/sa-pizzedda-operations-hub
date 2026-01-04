@@ -335,6 +335,25 @@ const navigationStructure = [
   },
 
   {
+    title: "Marketing",
+    icon: TrendingUp,
+    type: "section",
+    requiredUserType: ["admin", "manager"],
+    items: [
+      {
+        title: "Google",
+        url: createPageUrl("Google"),
+        icon: BarChart3,
+      },
+      {
+        title: "Meta",
+        url: createPageUrl("Meta"),
+        icon: BarChart3,
+      }
+    ]
+  },
+
+  {
     title: "Zapier Guide",
     icon: Zap,
     type: "section",
