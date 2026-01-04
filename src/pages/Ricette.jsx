@@ -137,7 +137,8 @@ export default function Ricette() {
       venduto_online: ricetta.venduto_online !== false,
       venduto_offline: ricetta.venduto_offline !== false,
       note: ricetta.note || '',
-      attivo: ricetta.attivo !== false
+      attivo: ricetta.attivo !== false,
+      trasportabile: ricetta.trasportabile || false
     });
     setShowForm(true);
   };
@@ -1110,17 +1111,31 @@ export default function Ricette() {
                 </div>
 
                 {/* Active */}
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="attivo"
-                    checked={formData.attivo}
-                    onChange={(e) => setFormData({ ...formData, attivo: e.target.checked })}
-                    className="w-5 h-5 rounded"
-                  />
-                  <label htmlFor="attivo" className="text-sm font-medium text-[#6b6b6b]">
-                    Ricetta attiva nel menu
-                  </label>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="attivo"
+                      checked={formData.attivo}
+                      onChange={(e) => setFormData({ ...formData, attivo: e.target.checked })}
+                      className="w-5 h-5 rounded"
+                    />
+                    <label htmlFor="attivo" className="text-sm font-medium text-[#6b6b6b]">
+                      Ricetta attiva nel menu
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="trasportabile"
+                      checked={formData.trasportabile}
+                      onChange={(e) => setFormData({ ...formData, trasportabile: e.target.checked })}
+                      className="w-5 h-5 rounded"
+                    />
+                    <label htmlFor="trasportabile" className="text-sm font-medium text-[#6b6b6b]">
+                      Prodotto trasportabile tra negozi
+                    </label>
+                  </div>
                 </div>
 
                 {/* Action Buttons */}

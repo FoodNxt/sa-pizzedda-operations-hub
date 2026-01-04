@@ -35,6 +35,14 @@ export default function FormSpostamenti() {
     },
   });
 
+  const { data: ricette = [] } = useQuery({
+    queryKey: ['ricette-trasportabili'],
+    queryFn: async () => {
+      const all = await base44.entities.Ricetta.filter({ trasportabile: true });
+      return all.filter(r => r.attivo !== false);
+    },
+  });
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Spostamento.create(data),
     onSuccess: () => {
@@ -67,13 +75,30 @@ export default function FormSpostamenti() {
       return;
     }
 
-    const materiaPrima = materiePrime.find(m => m.id === formData.materia_prima_id);
+    // Determine if it's a materia prima or ricetta
+    const isRicetta = formData.materia_prima_id.startsWith('ricetta_');
+    const productId = formData.materia_prima_id.replace(/^(mp_|ricetta_)/, '');
+    
+    let productName = '';
+    let productType = '';
+    
+    if (isRicetta) {
+      const ricetta = ricette.find(r => r.id === productId);
+      productName = ricetta?.nome_prodotto || '';
+      productType = 'ricetta';
+    } else {
+      const materiaPrima = materiePrime.find(m => m.id === productId);
+      productName = materiaPrima?.nome_prodotto || '';
+      productType = 'materia_prima';
+    }
+
     const storeOrigine = stores.find(s => s.id === formData.store_origine_id);
     const storeDestinazione = stores.find(s => s.id === formData.store_destinazione_id);
 
     const dataToSubmit = {
-      materia_prima_id: formData.materia_prima_id,
-      materia_prima_nome: materiaPrima?.nome_prodotto || '',
+      materia_prima_id: productId,
+      materia_prima_nome: productName,
+      tipo_prodotto: productType,
       peso_kg: parseFloat(formData.peso_kg),
       store_origine_id: formData.store_origine_id,
       store_origine_nome: storeOrigine?.name || '',
@@ -117,13 +142,22 @@ export default function FormSpostamenti() {
                 className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
               >
                 <option value="">Seleziona prodotto...</option>
-                {materiePrime.map(mp => (
-                  <option key={mp.id} value={mp.id}>
-                    {mp.nome_prodotto} {mp.marca ? `(${mp.marca})` : ''}
-                  </option>
-                ))}
+                <optgroup label="📦 Materie Prime">
+                  {materiePrime.map(mp => (
+                    <option key={`mp_${mp.id}`} value={`mp_${mp.id}`}>
+                      {mp.nome_prodotto} {mp.marca ? `(${mp.marca})` : ''}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="🍕 Ricette / Semilavorati">
+                  {ricette.map(r => (
+                    <option key={`ricetta_${r.id}`} value={`ricetta_${r.id}`}>
+                      {r.nome_prodotto} {r.is_semilavorato ? '(Semilavorato)' : ''}
+                    </option>
+                  ))}
+                </optgroup>
               </select>
-              {materiePrime.length === 0 && (
+              {materiePrime.length === 0 && ricette.length === 0 && (
                 <p className="text-xs text-orange-600 mt-1">
                   ⚠️ Nessun prodotto trasportabile configurato. Contatta l'amministratore.
                 </p>
@@ -205,7 +239,16 @@ export default function FormSpostamenti() {
               <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
                 <p className="text-sm text-blue-800 font-medium mb-2">📦 Riepilogo:</p>
                 <div className="flex items-center gap-2 text-sm text-blue-700">
-                  <span className="font-bold">{materiePrime.find(m => m.id === formData.materia_prima_id)?.nome_prodotto}</span>
+                  <span className="font-bold">
+                    {(() => {
+                      const isRicetta = formData.materia_prima_id.startsWith('ricetta_');
+                      const productId = formData.materia_prima_id.replace(/^(mp_|ricetta_)/, '');
+                      if (isRicetta) {
+                        return ricette.find(r => r.id === productId)?.nome_prodotto;
+                      }
+                      return materiePrime.find(m => m.id === productId)?.nome_prodotto;
+                    })()}
+                  </span>
                   <span>•</span>
                   <span>{formData.peso_kg} kg</span>
                   <span>•</span>
