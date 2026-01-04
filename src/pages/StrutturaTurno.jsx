@@ -5,6 +5,7 @@ import { Calendar, Plus, Edit, Trash2, Save, X, Copy, Clock, Users, Store, FileT
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
+import CalendarViewDnD from "../components/strutturaturno/CalendarViewDnD";
 
 const GIORNI = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
 const RUOLI = ['Pizzaiolo', 'Cassiere', 'Store Manager'];
@@ -64,6 +65,7 @@ export default function StrutturaTurno() {
   const [copyTargetDays, setCopyTargetDays] = useState([]);
   const [showBulkAddSlotModal, setShowBulkAddSlotModal] = useState(false);
   const [selectedSchemiForSlot, setSelectedSchemiForSlot] = useState([]);
+  const [viewMode, setViewMode] = useState('timeline'); // 'timeline' or 'calendar'
 
   const [formData, setFormData] = useState({
     nome_schema: '',
@@ -722,12 +724,36 @@ export default function StrutturaTurno() {
                   </div>
                 </div>
 
-                {/* Timeline View */}
-                <div className="mt-4 overflow-x-auto">
+                {/* View Mode Toggle */}
+                <div className="mt-4 mb-3 flex gap-2">
+                  <button
+                    onClick={() => setViewMode('timeline')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      viewMode === 'timeline'
+                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                        : 'nav-button text-slate-700'
+                    }`}
+                  >
+                    Timeline
+                  </button>
+                  <button
+                    onClick={() => setViewMode('calendar')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      viewMode === 'calendar'
+                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                        : 'nav-button text-slate-700'
+                    }`}
+                  >
+                    Vista Calendario
+                  </button>
+                </div>
+
+                {/* View Content */}
+                <div className="overflow-x-auto">
                   <div className="min-w-[600px]">
                     {(schema.slots || []).length === 0 ? (
                       <p className="text-sm text-slate-500 italic">Nessuno slot configurato</p>
-                    ) : (
+                    ) : viewMode === 'timeline' ? (
                       <div className="space-y-2">
                         {(schema.slots || []).map((slot, idx) => (
                           <div
@@ -777,6 +803,27 @@ export default function StrutturaTurno() {
                           </div>
                         ))}
                       </div>
+                    ) : (
+                      <CalendarViewDnD
+                        slots={schema.slots || []}
+                        onSlotsChange={async (newSlots) => {
+                          try {
+                            await base44.entities.StrutturaTurno.update(schema.id, {
+                              ...schema,
+                              slots: newSlots
+                            });
+                            queryClient.invalidateQueries({ queryKey: ['struttura-turno'] });
+                          } catch (error) {
+                            console.error('Error updating slots:', error);
+                            alert('Errore durante il salvataggio');
+                          }
+                        }}
+                        getCorsoName={getCorsoName}
+                        isProvaAffiancamento={(schema.tipi_turno || []).some(t => {
+                          const lower = t.toLowerCase();
+                          return lower.includes('prova') || lower.includes('affiancamento');
+                        })}
+                      />
                     )}
                   </div>
                 </div>

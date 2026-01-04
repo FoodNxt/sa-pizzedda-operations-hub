@@ -492,9 +492,6 @@ export default function ContrattiDipendente() {
                         <h3 className="font-bold text-slate-800 text-base mb-2">
                           {lettera.template_nome || 'Lettera di Richiamo'}
                         </h3>
-                        <p className="text-sm text-slate-600 mb-2">
-                          {lettera.motivo || 'Motivo non specificato'}
-                        </p>
                         <p className="text-xs text-slate-400">
                           Inviata: {safeFormatDate(lettera.data_invio)}
                         </p>
@@ -618,9 +615,6 @@ export default function ContrattiDipendente() {
                         <h3 className="font-bold text-slate-800 text-base mb-2">
                           Chiusura Procedura
                         </h3>
-                        <p className="text-sm text-slate-600 mb-2">
-                          {lettera.motivo || 'Procedura conclusa positivamente'}
-                        </p>
                         <p className="text-xs text-slate-400">
                           Inviata: {safeFormatDate(lettera.data_invio)}
                         </p>
