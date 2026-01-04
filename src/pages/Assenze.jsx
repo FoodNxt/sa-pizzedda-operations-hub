@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
-import { Calendar, Thermometer, Check, X, Clock, FileText, User, AlertCircle, Copy, Loader2, Users, ArrowRightLeft, CheckCircle, MapPin } from "lucide-react";
+import { Calendar, Thermometer, Check, X, Clock, FileText, User, AlertCircle, Copy, Loader2, Users, ArrowRightLeft, CheckCircle, MapPin, Edit } from "lucide-react";
 import moment from "moment";
 
 // Componente per mostrare il turno dell'altro dipendente
@@ -202,8 +202,12 @@ export default function Assenze() {
     mutationFn: ({ id, data }) => base44.entities.TurnoPlanday.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['turni-planday-assenze'] });
+      queryClient.invalidateQueries({ queryKey: ['richieste-malattia'] });
     },
   });
+
+  const [changingTipoTurno, setChangingTipoTurno] = useState(null);
+  const [newTipoTurno, setNewTipoTurno] = useState('');
 
   const createTurnoMutation = useMutation({
     mutationFn: (data) => base44.entities.TurnoPlanday.create(data),
@@ -513,22 +517,32 @@ export default function Assenze() {
                         </div>
                       </div>
                       
-                      {(request.stato === 'non_certificata' || request.stato === 'in_attesa_verifica') && request.certificato_url && (
-                        <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-2">
+                        {(request.stato === 'non_certificata' || request.stato === 'in_attesa_verifica') && request.certificato_url && (
+                          <>
+                            <button
+                              onClick={() => handleVerifyMalattia(request, true)}
+                              className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 flex items-center gap-1"
+                            >
+                              <Check className="w-3 h-3" /> Certifica
+                            </button>
+                            <button
+                              onClick={() => handleVerifyMalattia(request, false)}
+                              className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 flex items-center gap-1"
+                            >
+                              <X className="w-3 h-3" /> Rifiuta
+                            </button>
+                          </>
+                        )}
+                        {(request.stato === 'non_certificata' || request.stato === 'in_attesa_verifica') && !request.certificato_url && request.turni_coinvolti && request.turni_coinvolti.length > 0 && (
                           <button
-                            onClick={() => handleVerifyMalattia(request, true)}
-                            className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 flex items-center gap-1"
+                            onClick={() => setChangingTipoTurno(request)}
+                            className="px-3 py-1.5 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 flex items-center gap-1"
                           >
-                            <Check className="w-3 h-3" /> Certifica
+                            <Edit className="w-3 h-3" /> Cambia Tipo
                           </button>
-                          <button
-                            onClick={() => handleVerifyMalattia(request, false)}
-                            className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 flex items-center gap-1"
-                          >
-                            <X className="w-3 h-3" /> Rifiuta
-                          </button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -549,8 +563,19 @@ export default function Assenze() {
             ) : turniConScambio.length === 0 ? (
               <p className="text-slate-500 text-center py-8">Nessuna richiesta di scambio</p>
             ) : (
-              <div className="space-y-3">
-                {turniConScambio.sort((a, b) => new Date(b.richiesta_scambio?.data_richiesta) - new Date(a.richiesta_scambio?.data_richiesta)).map(turnoRichiedente => {
+              <>
+                {/* Da Approvare */}
+                {turniConScambio.filter(t => t.richiesta_scambio?.stato === 'accepted_by_colleague').length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-bold text-orange-600 mb-3 flex items-center gap-2">
+                      <Clock className="w-5 h-5" />
+                      Da Approvare ({turniConScambio.filter(t => t.richiesta_scambio?.stato === 'accepted_by_colleague').length})
+                    </h3>
+                    <div className="space-y-3">
+                      {turniConScambio
+                        .filter(t => t.richiesta_scambio?.stato === 'accepted_by_colleague')
+                        .sort((a, b) => new Date(b.richiesta_scambio?.data_richiesta) - new Date(a.richiesta_scambio?.data_richiesta))
+                        .map(turnoRichiedente => {
                   const scambio = turnoRichiedente.richiesta_scambio;
                   
                   return (
@@ -821,6 +846,71 @@ export default function Assenze() {
                 >
                   Annulla
                 </button>
+              </NeumorphicCard>
+            </div>
+          </>
+        )}
+
+        {/* Modal Cambio Tipo Turno */}
+        {changingTipoTurno && (
+          <>
+            <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={() => setChangingTipoTurno(null)} />
+            <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md">
+              <NeumorphicCard className="p-6">
+                <h3 className="text-lg font-bold text-slate-800 mb-4">Modifica Tipo Turno</h3>
+                <p className="text-sm text-slate-600 mb-4">
+                  Cambia il tipo turno per i turni coinvolti di <strong>{changingTipoTurno.dipendente_nome}</strong>
+                </p>
+                
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">Nuovo Tipo Turno</label>
+                    <select
+                      value={newTipoTurno}
+                      onChange={(e) => setNewTipoTurno(e.target.value)}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    >
+                      <option value="">Seleziona...</option>
+                      <option value="Malattia (Non Certificata)">Malattia (Non Certificata)</option>
+                      <option value="Malattia (Certificata)">Malattia (Certificata)</option>
+                      <option value="Ferie">Ferie</option>
+                      <option value="Normale">Normale</option>
+                      <option value="Permesso">Permesso</option>
+                    </select>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setChangingTipoTurno(null)}
+                      className="flex-1 py-2 text-slate-600 hover:text-slate-800 neumorphic-flat rounded-xl"
+                    >
+                      Annulla
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!newTipoTurno) {
+                          alert('Seleziona un tipo turno');
+                          return;
+                        }
+                        
+                        for (const turnoId of (changingTipoTurno.turni_coinvolti || [])) {
+                          await updateTurnoMutation.mutateAsync({
+                            id: turnoId,
+                            data: { tipo_turno: newTipoTurno }
+                          });
+                        }
+                        
+                        setChangingTipoTurno(null);
+                        setNewTipoTurno('');
+                        alert('Tipo turno aggiornato!');
+                      }}
+                      disabled={!newTipoTurno || updateTurnoMutation.isPending}
+                      className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-xl font-medium disabled:opacity-50"
+                    >
+                      Salva
+                    </button>
+                  </div>
+                </div>
               </NeumorphicCard>
             </div>
           </>
