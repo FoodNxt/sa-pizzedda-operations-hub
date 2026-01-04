@@ -275,14 +275,43 @@ export default function Ricette() {
       return;
     }
 
-    setFormData(prev => ({
-      ...prev,
-      ingredienti: [...prev.ingredienti, newIngredient]
-    }));
+    if (editingIngredientIndex !== null) {
+      // Update existing ingredient
+      const updatedIngredienti = [...formData.ingredienti];
+      updatedIngredienti[editingIngredientIndex] = newIngredient;
+      setFormData(prev => ({
+        ...prev,
+        ingredienti: updatedIngredienti
+      }));
+      setEditingIngredientIndex(null);
+    } else {
+      // Add new ingredient
+      setFormData(prev => ({
+        ...prev,
+        ingredienti: [...prev.ingredienti, newIngredient]
+      }));
+    }
 
     setSelectedIngredient('');
     setIngredientQuantity('');
     setIngredientUnit('g');
+  };
+
+  const editIngredient = (index) => {
+    const ingredient = formData.ingredienti[index];
+    // Reconstruct the selected value
+    const prefix = ingredient.is_semilavorato ? 'sl_' : 'mp_';
+    setSelectedIngredient(prefix + ingredient.materia_prima_id);
+    setIngredientQuantity(ingredient.quantita.toString());
+    setIngredientUnit(ingredient.unita_misura);
+    setEditingIngredientIndex(index);
+  };
+
+  const cancelEditIngredient = () => {
+    setSelectedIngredient('');
+    setIngredientQuantity('');
+    setIngredientUnit('g');
+    setEditingIngredientIndex(null);
   };
 
   const removeIngredient = (index) => {
@@ -735,6 +764,14 @@ export default function Ricette() {
                   <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Ingredienti</h3>
                   
                   {/* Add Ingredient Form */}
+                  {editingIngredientIndex !== null && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                      <p className="text-xs font-medium text-blue-800">
+                        ✏️ Modifica ingrediente in corso
+                      </p>
+                    </div>
+                  )}
+                  
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                     <div className="md:col-span-2">
                       <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
@@ -800,33 +837,74 @@ export default function Ricette() {
                     </div>
                   </div>
 
-                  <NeumorphicButton
-                    type="button"
-                    onClick={addIngredient}
-                    className="mb-4"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Aggiungi Ingrediente
-                  </NeumorphicButton>
+                  <div className="flex gap-2 mb-4">
+                    {editingIngredientIndex !== null && (
+                      <NeumorphicButton
+                        type="button"
+                        onClick={cancelEditIngredient}
+                        className="flex-1"
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Annulla
+                      </NeumorphicButton>
+                    )}
+                    <NeumorphicButton
+                      type="button"
+                      onClick={addIngredient}
+                      className="flex-1"
+                    >
+                      {editingIngredientIndex !== null ? (
+                        <>
+                          <Save className="w-4 h-4 mr-2" />
+                          Salva Modifica
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4 mr-2" />
+                          Aggiungi Ingrediente
+                        </>
+                      )}
+                    </NeumorphicButton>
+                  </div>
 
                   {/* Ingredients List */}
                   {formData.ingredienti.length > 0 && (
                     <div className="space-y-2">
                       {formData.ingredienti.map((ing, index) => (
-                        <div key={index} className="neumorphic-pressed p-4 rounded-lg flex items-center justify-between">
+                        <div 
+                          key={index} 
+                          className={`neumorphic-pressed p-4 rounded-lg flex items-center justify-between ${
+                            editingIngredientIndex === index ? 'ring-2 ring-blue-400' : ''
+                          }`}
+                        >
                           <div className="flex-1">
                             <p className="font-medium text-[#6b6b6b]">{ing.nome_prodotto}</p>
                             <p className="text-sm text-[#9b9b9b]">
                               {ing.quantita} {ing.unita_misura} - €{ing.prezzo_unitario?.toFixed(2)}
                             </p>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => removeIngredient(index)}
-                            className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4 text-red-600" />
-                          </button>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => editIngredient(index)}
+                              className="neumorphic-flat p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                              disabled={editingIngredientIndex !== null && editingIngredientIndex !== index}
+                            >
+                              <Edit className="w-4 h-4 text-blue-600" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (editingIngredientIndex === index) {
+                                  cancelEditIngredient();
+                                }
+                                removeIngredient(index);
+                              }}
+                              className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
