@@ -49,8 +49,8 @@ export default function Employees() {
   });
 
   const { data: shifts = [] } = useQuery({
-    queryKey: ['shifts'],
-    queryFn: () => base44.entities.Shift.list(),
+    queryKey: ['planday-shifts'],
+    queryFn: () => base44.entities.TurnoPlanday.list(),
   });
 
   const { data: reviews = [] } = useQuery({
@@ -155,17 +155,17 @@ export default function Employees() {
     const uniqueShiftsMap = new Map();
 
     shiftsArray.forEach(shift => {
-      const shiftDate = safeParseDate(shift.shift_date);
+      const shiftDate = safeParseDate(shift.data);
       const normalizedDate = shiftDate ? shiftDate.toISOString().split('T')[0] : 'no-date';
 
-      const normalizedStart = shift.scheduled_start
-        ? new Date(shift.scheduled_start).toISOString().substring(11, 16)
+      const normalizedStart = shift.ora_inizio
+        ? shift.ora_inizio
         : 'no-start';
-      const normalizedEnd = shift.scheduled_end
-        ? new Date(shift.scheduled_end).toISOString().substring(11, 16)
+      const normalizedEnd = shift.ora_fine
+        ? shift.ora_fine
         : 'no-end';
 
-      const key = `${shift.employee_name}|${shift.store_id || 'no-store'}|${normalizedDate}|${normalizedStart}|${normalizedEnd}`;
+      const key = `${shift.dipendente_nome}|${shift.store_id || 'no-store'}|${normalizedDate}|${normalizedStart}|${normalizedEnd}`;
 
       if (!uniqueShiftsMap.has(key)) {
         uniqueShiftsMap.set(key, shift);
@@ -208,11 +208,11 @@ export default function Employees() {
       const employeeName = user.nome_cognome || user.full_name || user.email;
 
       let employeeShifts = shifts.filter(s => {
-        if (s.employee_name !== employeeName) return false;
+        if (s.dipendente_nome !== employeeName) return false;
 
         if (startDate || endDate) {
-          if (!s.shift_date) return false;
-          const shiftDate = safeParseDate(s.shift_date);
+          if (!s.data) return false;
+          const shiftDate = safeParseDate(s.data);
           if (!shiftDate) return false;
             
           const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
@@ -258,11 +258,11 @@ export default function Employees() {
         ? (wrongOrdersCount / employeeShifts.length) * 100
         : 0;
 
-      const totalLateMinutes = employeeShifts.reduce((sum, s) => sum + (s.minuti_di_ritardo || 0), 0);
+      const totalLateMinutes = employeeShifts.reduce((sum, s) => sum + (s.minuti_ritardo || 0), 0);
       const avgLateMinutes = employeeShifts.length > 0 ? totalLateMinutes / employeeShifts.length : 0;
-      const numeroRitardi = employeeShifts.filter(s => s.ritardo === true).length;
+      const numeroRitardi = employeeShifts.filter(s => s.in_ritardo === true).length;
       const percentualeRitardi = employeeShifts.length > 0 ? (numeroRitardi / employeeShifts.length) * 100 : 0;
-      const numeroTimbratureMancate = employeeShifts.filter(s => s.timbratura_mancata === true).length;
+      const numeroTimbratureMancate = employeeShifts.filter(s => s.stato === 'programmato' && new Date(s.data) < new Date()).length;
 
       const mentions = filteredReviews.filter(r => r.employee_mentioned === user.id);
       const positiveMentions = mentions.filter(r => r.rating >= 4).length;
@@ -342,7 +342,7 @@ export default function Employees() {
           const eligibleShifts = employeeShifts.filter(shift => {
             if (shift.store_id !== inspectionStoreId) return false;
             
-            const shiftEnd = shift.actual_end || shift.scheduled_end;
+            const shiftEnd = shift.timbratura_uscita || (shift.data && shift.ora_fine ? `${shift.data}T${shift.ora_fine}` : null);
             if (!shiftEnd) return false;
 
             try {
@@ -358,8 +358,8 @@ export default function Employees() {
           });
 
           const sortedShifts = roleFilteredShifts.sort((a, b) => {
-            const endA = safeParseDate(a.actual_end || a.scheduled_end);
-            const endB = safeParseDate(b.actual_end || b.scheduled_end);
+            const endA = safeParseDate(a.timbratura_uscita || (a.data && a.ora_fine ? `${a.data}T${a.ora_fine}` : null));
+            const endB = safeParseDate(b.timbratura_uscita || (b.data && b.ora_fine ? `${b.data}T${b.ora_fine}` : null));
             return endB - endA;
           });
 
@@ -522,10 +522,10 @@ export default function Employees() {
   const getAllLateShifts = (employeeName) => {
     const lateShifts = shifts
       .filter(s => {
-        if (s.employee_name !== employeeName || s.ritardo !== true || !s.shift_date) return false;
+        if (s.dipendente_nome !== employeeName || s.in_ritardo !== true || !s.data) return false;
         
         if (startDate || endDate) {
-          const shiftDate = safeParseDate(s.shift_date);
+          const shiftDate = safeParseDate(s.data);
           if (!shiftDate) return false;
           const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
           const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
@@ -541,8 +541,8 @@ export default function Employees() {
         return true;
       })
       .sort((a, b) => {
-        const dateA = safeParseDate(a.shift_date);
-        const dateB = safeParseDate(b.shift_date);
+        const dateA = safeParseDate(a.data);
+        const dateB = safeParseDate(b.data);
         if (!dateA || !dateB) return 0;
         return dateB.getTime() - dateA.getTime();
       });
@@ -557,11 +557,13 @@ export default function Employees() {
   const getAllMissingClockIns = (employeeName) => {
     const missingClockIns = shifts
       .filter(s => {
-        if (s.employee_name !== employeeName || s.timbratura_mancata !== true || !s.shift_date) return false;
+        if (s.dipendente_nome !== employeeName || !s.data) return false;
+        // Missing clock-in = stato programmato and date is in the past
+        if (s.stato !== 'programmato') return false;
+        const shiftDate = safeParseDate(s.data);
+        if (!shiftDate || shiftDate >= new Date()) return false;
         
         if (startDate || endDate) {
-          const shiftDate = safeParseDate(s.shift_date);
-          if (!shiftDate) return false;
           const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
           const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
 
@@ -576,8 +578,8 @@ export default function Employees() {
         return true;
       })
       .sort((a, b) => {
-        const dateA = safeParseDate(a.shift_date);
-        const dateB = safeParseDate(b.shift_date);
+        const dateA = safeParseDate(a.data);
+        const dateB = safeParseDate(b.data);
         if (!dateA || !dateB) return 0;
         return dateB.getTime() - dateA.getTime();
       });
@@ -711,10 +713,10 @@ export default function Employees() {
         
         // Find shifts for this employee at this store that ended before inspection
         const eligibleShifts = shifts.filter(shift => {
-          if (shift.employee_name !== employeeName) return false;
+          if (shift.dipendente_nome !== employeeName) return false;
           if (shift.store_id !== inspectionStoreId) return false;
           
-          const shiftEnd = shift.actual_end || shift.scheduled_end;
+          const shiftEnd = shift.timbratura_uscita || (shift.data && shift.ora_fine ? `${shift.data}T${shift.ora_fine}` : null);
           if (!shiftEnd) return false;
 
           try {
@@ -730,8 +732,8 @@ export default function Employees() {
         });
 
         const sortedShifts = roleFilteredShifts.sort((a, b) => {
-          const endA = safeParseDate(a.actual_end || a.scheduled_end);
-          const endB = safeParseDate(b.actual_end || b.scheduled_end);
+          const endA = safeParseDate(a.timbratura_uscita || (a.data && a.ora_fine ? `${a.data}T${a.ora_fine}` : null));
+          const endB = safeParseDate(b.timbratura_uscita || (b.data && b.ora_fine ? `${b.data}T${b.ora_fine}` : null));
           return endB - endA;
         });
 
@@ -1215,19 +1217,19 @@ export default function Employees() {
                       <div className="space-y-2">
                         {lateShifts.map((shift, index) => (
                           <div key={`${shift.id}-${index}`} className="neumorphic-pressed p-3 rounded-lg">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-sm font-medium text-slate-800">
-                                {safeFormatDateLocale(shift.shift_date)} - {shift.store_name || 'N/A'}
-                              </span>
-                              <span className="text-sm font-bold text-red-600">
-                                +{shift.minuti_di_ritardo || 0} min
-                              </span>
-                            </div>
-                            <div className="text-xs text-slate-500">
-                              <strong>Previsto:</strong> {safeFormatTime(shift.scheduled_start)}
-                              {' → '}
-                              <strong>Effettivo:</strong> {safeFormatTime(shift.actual_start)}
-                            </div>
+                           <div className="flex items-center justify-between mb-1">
+                             <span className="text-sm font-medium text-slate-800">
+                               {safeFormatDateLocale(shift.data)} - {shift.store_nome || 'N/A'}
+                             </span>
+                             <span className="text-sm font-bold text-red-600">
+                               +{shift.minuti_ritardo || 0} min
+                             </span>
+                           </div>
+                           <div className="text-xs text-slate-500">
+                             <strong>Previsto:</strong> {shift.ora_inizio}
+                             {' → '}
+                             <strong>Effettivo:</strong> {shift.timbratura_entrata ? safeFormatTime(shift.timbratura_entrata) : 'N/A'}
+                           </div>
                           </div>
                         ))}
                       </div>
@@ -1264,19 +1266,19 @@ export default function Employees() {
                       <div className="space-y-2">
                         {missingClockIns.map((shift, index) => (
                           <div key={`${shift.id}-${index}`} className="neumorphic-pressed p-3 rounded-lg border-2 border-orange-200">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-sm font-medium text-slate-800">
-                                {safeFormatDateLocale(shift.shift_date)} - {shift.store_name || 'N/A'}
-                              </span>
-                              <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded">
-                                NON TIMBRATO
-                              </span>
-                            </div>
-                            <div className="text-xs text-slate-500">
-                              <strong>Orario Previsto:</strong> {safeFormatTime(shift.scheduled_start)}
-                              {' - '}
-                              {safeFormatTime(shift.scheduled_end)}
-                            </div>
+                           <div className="flex items-center justify-between mb-1">
+                             <span className="text-sm font-medium text-slate-800">
+                               {safeFormatDateLocale(shift.data)} - {shift.store_nome || 'N/A'}
+                             </span>
+                             <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded">
+                               NON TIMBRATO
+                             </span>
+                           </div>
+                           <div className="text-xs text-slate-500">
+                             <strong>Orario Previsto:</strong> {shift.ora_inizio}
+                             {' - '}
+                             {shift.ora_fine}
+                           </div>
                           </div>
                         ))}
                       </div>

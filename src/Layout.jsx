@@ -194,12 +194,6 @@ const navigationStructure = [
         title: "Forms",
         url: createPageUrl("InventoryForms"),
         icon: Edit,
-      },
-      {
-        title: "Spostamenti",
-        url: createPageUrl("FormSpostamenti"),
-        icon: Edit,
-        requiredUserType: ["admin"]
       }
     ]
   },
