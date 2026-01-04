@@ -48,6 +48,7 @@ export default function Ricette() {
     const saved = localStorage.getItem('delivery_fee_percentage');
     return saved ? parseFloat(saved) : 0;
   });
+  const [editingIngredientIndex, setEditingIngredientIndex] = useState(null);
 
   // Ingredient form state
   const [selectedIngredient, setSelectedIngredient] = useState('');
