@@ -148,7 +148,8 @@ export default function MateriePrime() {
       posizione: 'negozio',
       assigned_stores: [],
       in_uso: false,
-      in_uso_per_store: {}
+      in_uso_per_store: {},
+      trasportabile: false
     });
     setStoreQuantities({});
     setShowStoreQuantities(false);
@@ -183,7 +184,8 @@ export default function MateriePrime() {
       posizione: product.posizione || 'negozio',
       assigned_stores: product.assigned_stores || [],
       in_uso: false,
-      in_uso_per_store: {}
+      in_uso_per_store: {},
+      trasportabile: product.trasportabile || false
     });
     setStoreQuantities(product.store_specific_min_quantities || {});
     setStorePositions(product.store_specific_positions || {});
@@ -217,7 +219,8 @@ export default function MateriePrime() {
       posizione: product.posizione || 'negozio',
       assigned_stores: product.assigned_stores || [],
       in_uso: product.in_uso || false,
-      in_uso_per_store: product.in_uso_per_store || {}
+      in_uso_per_store: product.in_uso_per_store || {},
+      trasportabile: product.trasportabile || false
     });
     setStoreQuantities(product.store_specific_min_quantities || {});
     setStorePositions(product.store_specific_positions || {});
@@ -907,17 +910,31 @@ export default function MateriePrime() {
                     />
                   </div>
 
-                  <div className="flex items-center gap-2 mt-3">
-                    <input
-                      type="checkbox"
-                      id="attivo"
-                      checked={formData.attivo}
-                      onChange={(e) => setFormData({ ...formData, attivo: e.target.checked })}
-                      className="w-4 h-4"
-                    />
-                    <label htmlFor="attivo" className="text-sm font-medium text-slate-700">
-                      Prodotto Attivo
-                    </label>
+                  <div className="flex flex-col gap-2 mt-3">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="attivo"
+                        checked={formData.attivo}
+                        onChange={(e) => setFormData({ ...formData, attivo: e.target.checked })}
+                        className="w-4 h-4"
+                      />
+                      <label htmlFor="attivo" className="text-sm font-medium text-slate-700">
+                        Prodotto Attivo
+                      </label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="trasportabile"
+                        checked={formData.trasportabile}
+                        onChange={(e) => setFormData({ ...formData, trasportabile: e.target.checked })}
+                        className="w-4 h-4"
+                      />
+                      <label htmlFor="trasportabile" className="text-sm font-medium text-slate-700">
+                        Trasportabile tra Negozi
+                      </label>
+                    </div>
                   </div>
                 </div>
 
