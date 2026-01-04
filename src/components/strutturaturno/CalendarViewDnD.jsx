@@ -1,4 +1,3 @@
-import React from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Clock, FileText, GraduationCap, Sparkles } from 'lucide-react';
 
