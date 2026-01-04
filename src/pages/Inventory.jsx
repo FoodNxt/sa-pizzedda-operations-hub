@@ -239,9 +239,14 @@ export default function Inventory() {
   // Get all inventory history for a specific product
   const getFullProductHistory = (productId) => {
     const allInventory = [...inventory, ...inventoryCantina];
-    return allInventory
-      .filter(item => item.prodotto_id === productId)
-      .sort((a, b) => new Date(b.data_rilevazione) - new Date(a.data_rilevazione));
+    let filtered = allInventory.filter(item => item.prodotto_id === productId);
+    
+    // Apply store filter if set
+    if (selectedStore !== 'all') {
+      filtered = filtered.filter(item => item.store_id === selectedStore);
+    }
+    
+    return filtered.sort((a, b) => new Date(b.data_rilevazione) - new Date(a.data_rilevazione));
   };
 
   // Calculate product trends
@@ -1038,7 +1043,7 @@ export default function Inventory() {
                         <tr className="border-b-2 border-blue-600">
                           <th className="text-left p-3 text-slate-600 font-medium text-sm">Prodotto</th>
                           <th className="text-right p-3 text-slate-600 font-medium text-sm">Quantità</th>
-                          <th className="text-right p-3 text-slate-600 font-medium text-sm">Min / Critica / Ordine</th>
+                          <th className="text-right p-3 text-slate-600 font-medium text-sm">Critica / Ordine</th>
                           <th className="text-left p-3 text-slate-600 font-medium text-sm">Note</th>
                         </tr>
                       </thead>
@@ -1057,7 +1062,7 @@ export default function Inventory() {
                               {prod.quantita_rilevata} {prod.unita_misura}
                             </td>
                             <td className="p-3 text-sm text-right text-slate-600">
-                              {prod.quantita_minima} / {quantitaCritica} / {quantitaOrdine}
+                              {quantitaCritica} / {quantitaOrdine}
                             </td>
                             <td className="p-3 text-sm text-slate-500">{prod.note || '-'}</td>
                           </tr>
