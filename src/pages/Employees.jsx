@@ -14,7 +14,8 @@ import {
   Settings,
   Save,
   BarChart3,
-  Sparkles
+  Sparkles,
+  RefreshCw
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -33,6 +34,9 @@ export default function Employees() {
   const [endDate, setEndDate] = useState('');
   const [expandedView, setExpandedView] = useState(null);
   const [showWeightsModal, setShowWeightsModal] = useState(false);
+  const [recalculating, setRecalculating] = useState(false);
+
+  const queryClient = useQueryClient();
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -773,6 +777,23 @@ export default function Employees() {
     }
   };
 
+  const handleRecalculateDelays = async () => {
+    if (!confirm('Vuoi ricalcolare i ritardi per tutti i turni? Questo potrebbe richiedere alcuni secondi.')) {
+      return;
+    }
+    
+    setRecalculating(true);
+    try {
+      const response = await base44.functions.invoke('calculateShiftDelay', {});
+      alert(response.data.message || 'Ritardi ricalcolati con successo!');
+      queryClient.invalidateQueries({ queryKey: ['planday-shifts'] });
+    } catch (error) {
+      alert('Errore nel ricalcolo dei ritardi: ' + error.message);
+    } finally {
+      setRecalculating(false);
+    }
+  };
+
   return (
     <ProtectedPage pageName="Employees">
       <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
@@ -783,13 +804,23 @@ export default function Employees() {
             </h1>
             <p className="text-sm text-slate-500">Ranking dipendenti</p>
           </div>
-          <NeumorphicButton
-            onClick={() => setShowWeightsModal(true)}
-            className="flex items-center gap-2"
-          >
-            <Settings className="w-5 h-5" />
-            Pesi Metriche
-          </NeumorphicButton>
+          <div className="flex gap-2">
+            <NeumorphicButton
+              onClick={handleRecalculateDelays}
+              disabled={recalculating}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${recalculating ? 'animate-spin' : ''}`} />
+              <span className="hidden md:inline">{recalculating ? 'Ricalcolo...' : 'Ricalcola Ritardi'}</span>
+            </NeumorphicButton>
+            <NeumorphicButton
+              onClick={() => setShowWeightsModal(true)}
+              className="flex items-center gap-2"
+            >
+              <Settings className="w-5 h-5" />
+              <span className="hidden md:inline">Pesi</span>
+            </NeumorphicButton>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-2">
