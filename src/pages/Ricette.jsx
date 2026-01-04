@@ -14,7 +14,9 @@ import {
   Package,
   Search,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -39,6 +41,7 @@ export default function Ricette() {
   });
   const [customNomeProdotto, setCustomNomeProdotto] = useState('');
   const [addingNewProduct, setAddingNewProduct] = useState(false);
+  const [showProductsWithoutRecipe, setShowProductsWithoutRecipe] = useState(false);
 
   // Ingredient form state
   const [selectedIngredient, setSelectedIngredient] = useState('');
@@ -349,6 +352,8 @@ export default function Ricette() {
       nome_prodotto: nomeProdotto,
       prezzo_vendita_online: prezzoOnline,
       prezzo_vendita_offline: prezzoOffline,
+      venduto_online: formData.venduto_online,
+      venduto_offline: formData.venduto_offline,
       costo_unitario: costoUnitario,
       food_cost_online: prezzoOnline > 0 ? (costoUnitario / prezzoOnline) * 100 : 0,
       food_cost_offline: prezzoOffline > 0 ? (costoUnitario / prezzoOffline) * 100 : 0,
@@ -387,6 +392,24 @@ export default function Ricette() {
   );
 
   const getCostoPreview = () => calculateCosts();
+
+  const handleCreateRecipeForProduct = (productName) => {
+    setFormData({
+      nome_prodotto: productName,
+      categoria: 'pizza',
+      tipo_teglia: 'nessuna',
+      is_semilavorato: false,
+      ingredienti: [],
+      prezzo_vendita_online: '',
+      prezzo_vendita_offline: '',
+      venduto_online: true,
+      venduto_offline: true,
+      note: '',
+      attivo: true
+    });
+    setShowForm(true);
+    setShowProductsWithoutRecipe(false);
+  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
@@ -472,6 +495,52 @@ export default function Ricette() {
           />
         </div>
       </NeumorphicCard>
+
+      {/* Products Without Recipe */}
+      {productsWithoutRecipes.length > 0 && (
+        <NeumorphicCard className="overflow-hidden">
+          <button
+            onClick={() => setShowProductsWithoutRecipe(!showProductsWithoutRecipe)}
+            className="w-full p-4 lg:p-6 text-left hover:bg-slate-50 transition-colors"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800">Prodotti Senza Ricetta</h3>
+                  <p className="text-xs text-slate-500">{productsWithoutRecipes.length} prodotti</p>
+                </div>
+              </div>
+              
+              {showProductsWithoutRecipe ? (
+                <ChevronDown className="w-5 h-5 text-slate-600" />
+              ) : (
+                <ChevronRight className="w-5 h-5 text-slate-600" />
+              )}
+            </div>
+          </button>
+          
+          {showProductsWithoutRecipe && (
+            <div className="p-4 lg:p-6 pt-0 border-t border-slate-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {productsWithoutRecipes.map(productName => (
+                  <div key={productName} className="neumorphic-flat p-4 rounded-xl flex items-center justify-between">
+                    <span className="text-sm font-medium text-slate-700">{productName}</span>
+                    <button
+                      onClick={() => handleCreateRecipeForProduct(productName)}
+                      className="nav-button p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                    >
+                      <Plus className="w-4 h-4 text-blue-600" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </NeumorphicCard>
+      )}
 
       {/* Form Modal */}
       {showForm && (
