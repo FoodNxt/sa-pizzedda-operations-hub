@@ -32,7 +32,9 @@ export default function OrdiniSbagliati() {
   const [storeMapping, setStoreMapping] = useState({});
   const [activeTab, setActiveTab] = useState('list'); // 'list' or 'analytics'
   const [selectedStore, setSelectedStore] = useState('all');
-  const [dateRange, setDateRange] = useState('month'); // 'week', 'month', 'all'
+  const [dateRange, setDateRange] = useState('month'); // 'week', 'month', 'all', 'custom'
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   const [showCount, setShowCount] = useState(true);
   const [showRefunds, setShowRefunds] = useState(true);
   const [showColumnMapping, setShowColumnMapping] = useState(false);
@@ -600,10 +602,17 @@ export default function OrdiniSbagliati() {
         const date = parseISO(o.order_date);
         return date >= monthStart && date <= monthEnd;
       });
+    } else if (dateRange === 'custom' && customStartDate && customEndDate) {
+      const start = new Date(customStartDate);
+      const end = new Date(customEndDate);
+      filtered = filtered.filter(o => {
+        const date = parseISO(o.order_date);
+        return date >= start && date <= end;
+      });
     }
 
     return filtered;
-  }, [wrongOrders, selectedStore, dateRange]);
+  }, [wrongOrders, selectedStore, dateRange, customStartDate, customEndDate]);
 
   const stats = {
     total: wrongOrders.length,
@@ -648,6 +657,9 @@ export default function OrdiniSbagliati() {
     } else if (dateRange === 'month') {
       startDate = startOfMonth(now);
       endDate = endOfMonth(now);
+    } else if (dateRange === 'custom' && customStartDate && customEndDate) {
+      startDate = new Date(customStartDate);
+      endDate = new Date(customEndDate);
     } else {
       // For 'all', use the earliest and latest order dates
       if (filteredOrders.length > 0) {
@@ -1290,9 +1302,37 @@ export default function OrdiniSbagliati() {
                 >
                   <option value="week">Questa settimana</option>
                   <option value="month">Questo mese</option>
+                  <option value="custom">Personalizzato</option>
                   <option value="all">Tutti i periodi</option>
                 </select>
               </div>
+
+              {dateRange === 'custom' && (
+                <>
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                      Data Inizio
+                    </label>
+                    <input
+                      type="date"
+                      value={customStartDate}
+                      onChange={(e) => setCustomStartDate(e.target.value)}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                      Data Fine
+                    </label>
+                    <input
+                      type="date"
+                      value={customEndDate}
+                      onChange={(e) => setCustomEndDate(e.target.value)}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                    />
+                  </div>
+                </>
+              )}
             </div>
           </NeumorphicCard>
 
