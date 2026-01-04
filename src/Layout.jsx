@@ -107,19 +107,9 @@ const navigationStructure = [
     requiredUserType: ["admin", "manager"],
     items: [
       {
-        title: "Real Time",
-        url: createPageUrl("RealTime"),
-        icon: Zap,
-      },
-      {
         title: "Financials",
         url: createPageUrl("Financials"),
         icon: DollarSign,
-      },
-      {
-        title: "Analytics Vendite",
-        url: createPageUrl("VenditeAnalytics"),
-        icon: BarChart3,
       },
       {
         title: "Channel Comparison",
