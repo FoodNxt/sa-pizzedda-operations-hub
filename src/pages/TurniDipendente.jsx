@@ -2658,7 +2658,7 @@ export default function TurniDipendente() {
                     <div key={turno.id} className="neumorphic-pressed p-4 rounded-xl">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-bold text-slate-800">
+                          <p className="font-bold text-slate-800 capitalize">
                             {moment(turno.data).format('dddd DD MMMM')}
                           </p>
                           <div className="flex items-center gap-2 text-sm text-slate-600">
@@ -2728,7 +2728,7 @@ export default function TurniDipendente() {
               </div>
 
               <div className="mb-4 p-3 bg-blue-50 rounded-xl">
-                <div className="font-medium text-blue-800">
+                <div className="font-medium text-blue-800 capitalize">
                   {moment(selectedTurnoScambio.data).format('dddd DD MMMM YYYY')}
                 </div>
                 <div className="text-sm text-blue-700">
@@ -2873,7 +2873,7 @@ export default function TurniDipendente() {
                           >
                             <div className="flex items-center justify-between">
                               <div>
-                                <p className="font-medium text-slate-800">
+                                <p className="font-medium text-slate-800 capitalize">
                                   {moment(turnoC.data).format('dddd DD MMMM YYYY')}
                                 </p>
                                 <div className="text-sm text-slate-600 flex items-center gap-2">

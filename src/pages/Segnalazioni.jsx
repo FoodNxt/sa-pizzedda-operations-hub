@@ -268,9 +268,9 @@ export default function Segnalazioni() {
 
       {/* Form Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="max-w-2xl w-full my-8">
-            <NeumorphicCard className="p-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto pt-20 pb-20">
+          <div className="max-w-2xl w-full my-auto">
+            <NeumorphicCard className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-[#6b6b6b]">Nuova Segnalazione</h2>
                 <button onClick={resetForm} className="text-[#9b9b9b] hover:text-[#6b6b6b]">
@@ -298,7 +298,7 @@ export default function Segnalazioni() {
 
                 <div>
                   <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                    Foto <span className="text-red-600">*</span>
+                    Foto (opzionale)
                   </label>
                   {photoPreview ? (
                     <div className="relative">
@@ -328,7 +328,6 @@ export default function Segnalazioni() {
                         capture="environment"
                         onChange={handlePhotoUpload}
                         className="hidden"
-                        required
                       />
                     </label>
                   )}
@@ -354,7 +353,7 @@ export default function Segnalazioni() {
                   <NeumorphicButton 
                     type="submit" 
                     variant="primary"
-                    disabled={createMutation.isPending || uploading || !formData.foto_url}
+                    disabled={createMutation.isPending || uploading}
                   >
                     {createMutation.isPending ? (
                       <Loader2 className="w-5 h-5 animate-spin" />
