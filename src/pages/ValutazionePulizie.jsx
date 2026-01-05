@@ -67,6 +67,8 @@ export default function ValutazionePulizie() {
       
       return allInspections;
     },
+    staleTime: 0,
+    cacheTime: 0
   });
 
   const { data: stores = [] } = useQuery({
@@ -216,9 +218,15 @@ export default function ValutazionePulizie() {
       });
 
       if (response.data.success) {
-        await queryClient.invalidateQueries({ queryKey: ['cleaning-inspections'] });
-        await queryClient.refetchQueries({ queryKey: ['cleaning-inspections'] });
-        alert(`✅ Foto ri-analizzata: ${response.data.status.toUpperCase()}`);
+        // Force immediate refetch with stale time 0
+        queryClient.invalidateQueries({ queryKey: ['cleaning-inspections'] });
+        await queryClient.refetchQueries({ 
+          queryKey: ['cleaning-inspections'],
+          type: 'active',
+          exact: false 
+        });
+        
+        alert(`✅ Foto ri-analizzata: ${response.data.status.toUpperCase()}\nNota: ${response.data.note}`);
       } else {
         alert('❌ Errore nella ri-analisi');
       }
@@ -259,8 +267,13 @@ export default function ValutazionePulizie() {
         });
       }
 
-      await queryClient.invalidateQueries({ queryKey: ['cleaning-inspections'] });
-      await queryClient.refetchQueries({ queryKey: ['cleaning-inspections'] });
+      queryClient.invalidateQueries({ queryKey: ['cleaning-inspections'] });
+      await queryClient.refetchQueries({ 
+        queryKey: ['cleaning-inspections'],
+        type: 'active',
+        exact: false 
+      });
+      
       alert(`✅ ${fotoNonValutate.length} foto ri-analizzate con successo`);
     } catch (error) {
       console.error('Error reanalyzing photos:', error);
