@@ -160,7 +160,9 @@ export default function Valutazione() {
         googleReviews: [],
         wrongOrders: [],
         totalShifts: 0,
-        latePercentage: 0
+        latePercentage: 0,
+        averageRating: 0,
+        overallScore: 0
       };
     }
 
@@ -173,13 +175,29 @@ export default function Valutazione() {
       ? (lateShifts.length / totalShifts) * 100
       : 0;
 
+    // Calculate average rating
+    const averageRating = googleReviews.length > 0
+      ? googleReviews.reduce((sum, r) => sum + r.rating, 0) / googleReviews.length
+      : 0;
+
+    // Calculate overall score (0-100)
+    let overallScore = 100;
+    if (totalShifts > 0) {
+      overallScore -= (lateShifts.length / totalShifts) * 30; // -30% max for delays
+      overallScore -= (missingClockIns.length / totalShifts) * 40; // -40% max for missing clock-ins
+    }
+    overallScore -= myWrongOrders.length * 5; // -5 points per wrong order
+    overallScore = Math.max(0, Math.min(100, overallScore));
+
     return {
       lateShifts: lateShifts.sort((a, b) => new Date(b.data) - new Date(a.data)),
       missingClockIns: missingClockIns.sort((a, b) => new Date(b.data) - new Date(a.data)),
       googleReviews: googleReviews.sort((a, b) => new Date(b.review_date) - new Date(a.review_date)),
       wrongOrders: myWrongOrders,
       totalShifts,
-      latePercentage
+      latePercentage,
+      averageRating,
+      overallScore: Math.round(overallScore)
     };
   }, [user, matchedEmployee, myShifts, myReviews, myWrongOrders]);
 
@@ -251,59 +269,79 @@ export default function Valutazione() {
       </NeumorphicCard>
 
       {/* Employee Info */}
-      <NeumorphicCard className="p-6">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full neumorphic-flat flex items-center justify-center">
-            <User className="w-8 h-8 text-[#8b7355]" />
+      <NeumorphicCard className="p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full neumorphic-flat flex items-center justify-center flex-shrink-0">
+            <User className="w-6 h-6 sm:w-8 sm:h-8 text-[#8b7355]" />
           </div>
-          <div className="flex-1">
-            <h2 className="text-2xl font-bold text-[#6b6b6b]">{matchedEmployee.full_name}</h2>
-            <p className="text-[#9b9b9b]">{matchedEmployee.function_name || 'Dipendente'}</p>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-xl sm:text-2xl font-bold text-[#6b6b6b] truncate">{matchedEmployee.full_name}</h2>
+            <p className="text-sm sm:text-base text-[#9b9b9b]">{matchedEmployee.function_name || 'Dipendente'}</p>
             {matchedEmployee.employee_group && (
-              <p className="text-sm text-[#9b9b9b]">Gruppo: {matchedEmployee.employee_group}</p>
+              <p className="text-xs sm:text-sm text-[#9b9b9b]">Gruppo: {matchedEmployee.employee_group}</p>
             )}
           </div>
-          <div className="text-right">
-            <div className="neumorphic-pressed px-4 py-2 rounded-xl">
-              <p className="text-sm text-[#9b9b9b]">Turni Totali</p>
-              <p className="text-2xl font-bold text-[#6b6b6b]">{employeeData.totalShifts}</p>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <div className="neumorphic-pressed px-3 py-2 rounded-xl flex-1 sm:flex-initial text-center">
+              <p className="text-xs text-[#9b9b9b]">Turni</p>
+              <p className="text-lg sm:text-2xl font-bold text-[#6b6b6b]">{employeeData.totalShifts}</p>
+            </div>
+            <div className="neumorphic-pressed px-3 py-2 rounded-xl flex-1 sm:flex-initial text-center">
+              <p className="text-xs text-[#9b9b9b]">Score</p>
+              <p className={`text-lg sm:text-2xl font-bold ${
+                employeeData.overallScore >= 80 ? 'text-green-600' :
+                employeeData.overallScore >= 60 ? 'text-yellow-600' :
+                'text-red-600'
+              }`}>
+                {employeeData.overallScore}
+              </p>
             </div>
           </div>
         </div>
       </NeumorphicCard>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <NeumorphicCard className="p-4 text-center">
-          <div className="neumorphic-flat w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center">
-            <Clock className="w-6 h-6 text-red-600" />
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
+        <NeumorphicCard className="p-3 sm:p-4 text-center">
+          <div className="neumorphic-flat w-10 h-10 sm:w-12 sm:h-12 rounded-full mx-auto mb-2 sm:mb-3 flex items-center justify-center">
+            <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
           </div>
-          <h3 className="text-2xl font-bold text-red-600 mb-1">{employeeData.lateShifts.length}</h3>
-          <p className="text-xs text-[#9b9b9b]">Ritardi</p>
+          <h3 className="text-xl sm:text-2xl font-bold text-red-600 mb-1">{employeeData.lateShifts.length}</h3>
+          <p className="text-[10px] sm:text-xs text-[#9b9b9b]">Ritardi</p>
         </NeumorphicCard>
 
-        <NeumorphicCard className="p-4 text-center">
-          <div className="neumorphic-flat w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center">
-            <AlertCircle className="w-6 h-6 text-orange-600" />
+        <NeumorphicCard className="p-3 sm:p-4 text-center">
+          <div className="neumorphic-flat w-10 h-10 sm:w-12 sm:h-12 rounded-full mx-auto mb-2 sm:mb-3 flex items-center justify-center">
+            <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
           </div>
-          <h3 className="text-2xl font-bold text-orange-600 mb-1">{employeeData.missingClockIns.length}</h3>
-          <p className="text-xs text-[#9b9b9b]">Timb. Mancanti</p>
+          <h3 className="text-xl sm:text-2xl font-bold text-orange-600 mb-1">{employeeData.missingClockIns.length}</h3>
+          <p className="text-[10px] sm:text-xs text-[#9b9b9b]">Timb. Manc.</p>
         </NeumorphicCard>
 
-        <NeumorphicCard className="p-4 text-center">
-          <div className="neumorphic-flat w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center">
-            <AlertTriangle className="w-6 h-6 text-purple-600" />
+        <NeumorphicCard className="p-3 sm:p-4 text-center">
+          <div className="neumorphic-flat w-10 h-10 sm:w-12 sm:h-12 rounded-full mx-auto mb-2 sm:mb-3 flex items-center justify-center">
+            <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
           </div>
-          <h3 className="text-2xl font-bold text-purple-600 mb-1">{employeeData.wrongOrders.length}</h3>
-          <p className="text-xs text-[#9b9b9b]">Ordini Sbagliati</p>
+          <h3 className="text-xl sm:text-2xl font-bold text-purple-600 mb-1">{employeeData.wrongOrders.length}</h3>
+          <p className="text-[10px] sm:text-xs text-[#9b9b9b]">Ordini Sbag.</p>
         </NeumorphicCard>
 
-        <NeumorphicCard className="p-4 text-center">
-          <div className="neumorphic-flat w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center">
-            <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
+        <NeumorphicCard className="p-3 sm:p-4 text-center">
+          <div className="neumorphic-flat w-10 h-10 sm:w-12 sm:h-12 rounded-full mx-auto mb-2 sm:mb-3 flex items-center justify-center">
+            <Star className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500 fill-yellow-500" />
           </div>
-          <h3 className="text-2xl font-bold text-[#6b6b6b] mb-1">{employeeData.googleReviews.length}</h3>
-          <p className="text-xs text-[#9b9b9b]">Recensioni</p>
+          <h3 className="text-xl sm:text-2xl font-bold text-[#6b6b6b] mb-1">{employeeData.googleReviews.length}</h3>
+          <p className="text-[10px] sm:text-xs text-[#9b9b9b]">Recensioni</p>
+        </NeumorphicCard>
+
+        <NeumorphicCard className="p-3 sm:p-4 text-center col-span-2 md:col-span-1">
+          <div className="neumorphic-flat w-10 h-10 sm:w-12 sm:h-12 rounded-full mx-auto mb-2 sm:mb-3 flex items-center justify-center">
+            <Star className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 fill-blue-600" />
+          </div>
+          <h3 className="text-xl sm:text-2xl font-bold text-blue-600 mb-1">
+            {employeeData.averageRating > 0 ? employeeData.averageRating.toFixed(1) : '-'}
+          </h3>
+          <p className="text-[10px] sm:text-xs text-[#9b9b9b]">Rating Medio</p>
         </NeumorphicCard>
       </div>
 
