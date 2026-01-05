@@ -236,7 +236,7 @@ export default function FormInventario() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <NeumorphicCard className="p-4 lg:p-6">
-          <h2 className="text-lg font-bold text-slate-800 mb-4">Informazioni</h2>
+          <h2 className="text-lg font-bold text-slate-800 mb-4">Seleziona Locale</h2>
           
           <div className="grid grid-cols-1 gap-4">
             <div>
@@ -283,7 +283,17 @@ export default function FormInventario() {
           </div>
         </NeumorphicCard>
 
-        {Object.entries(productsByCategory).map(([categoria, categoryProducts]) => (
+        {!selectedStore && (
+          <NeumorphicCard className="p-8 text-center bg-blue-50 border-2 border-blue-300">
+            <Store className="w-16 h-16 text-blue-500 mx-auto mb-3" />
+            <h3 className="text-lg font-bold text-slate-800 mb-2">Seleziona un Locale</h3>
+            <p className="text-slate-600">
+              Scegli prima il locale per visualizzare i prodotti specifici
+            </p>
+          </NeumorphicCard>
+        )}
+
+        {selectedStore && Object.entries(productsByCategory).map(([categoria, categoryProducts]) => (
           <NeumorphicCard key={categoria} className="p-4 lg:p-6">
             <h2 className="text-lg font-bold text-slate-800 mb-4">
               {categoriaLabels[categoria] || categoria}

@@ -1433,7 +1433,7 @@ export default function TurniDipendente() {
             <div className="bg-white rounded-xl p-4 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex-1">
-                  <div className="font-bold text-lg text-slate-800">
+                  <div className="font-bold text-lg text-slate-800 capitalize">
                     {moment(prossimoTurno.data).format('dddd DD MMMM')}
                   </div>
                   <div className="flex items-center gap-2 text-slate-600">
@@ -2062,8 +2062,8 @@ export default function TurniDipendente() {
                       {day.format('DD')}
                     </div>
                     <div>
-                      <div className="font-medium text-slate-800">{day.format('dddd')}</div>
-                      <div className="text-sm text-slate-500">{day.format('MMMM YYYY')}</div>
+                      <div className="font-medium text-slate-800 capitalize">{day.format('dddd')}</div>
+                      <div className="text-sm text-slate-500 capitalize">{day.format('MMMM YYYY')}</div>
                     </div>
                   </div>
 
