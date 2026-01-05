@@ -332,6 +332,16 @@ export default function ValutazionePulizie() {
             const scoreColor = score >= 80 ? 'text-green-600' : score >= 50 ? 'text-orange-600' : 'text-red-600';
             const isExpanded = expandedInspections[inspection.id];
             
+            // Count unrated photos
+            const fotoDomande = inspection.domande_risposte?.filter(d => d.tipo_controllo === 'foto') || [];
+            const fotoNonValutate = fotoDomande.filter(d => {
+              const attrezzatura = d.attrezzatura?.toLowerCase().replace(/\s+/g, '_');
+              const statusField = `${attrezzatura}_pulizia_status`;
+              const correctedField = `${attrezzatura}_corrected_status`;
+              const status = inspection[correctedField] || inspection[statusField];
+              return !status || status === 'non_valutabile';
+            });
+            
             return (
               <NeumorphicCard key={inspection.id} className="p-6">
                 <div 
@@ -357,6 +367,12 @@ export default function ValutazionePulizie() {
                             <Calendar className="w-4 h-4" />
                             {format(new Date(inspection.inspection_date), "d MMM yyyy 'alle' HH:mm", { locale: it })}
                           </div>
+                          {fotoNonValutate.length > 0 && (
+                            <div className="flex items-center gap-1">
+                              <AlertCircle className="w-4 h-4 text-red-500" />
+                              <span className="text-red-600 font-medium">{fotoNonValutate.length} foto non valutate</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
