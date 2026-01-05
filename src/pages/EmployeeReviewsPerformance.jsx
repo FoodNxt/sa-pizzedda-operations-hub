@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -22,21 +21,49 @@ export default function EmployeeReviewsPerformance() {
     queryFn: () => base44.entities.Store.list(),
   });
 
-  // Process employee performance data - FIXED with robust duplicate prevention
+  const { data: users = [] } = useQuery({
+    queryKey: ['users-dipendenti'],
+    queryFn: async () => {
+      const allUsers = await base44.entities.User.list();
+      return allUsers.filter(u => u.user_type === 'user' || u.user_type === 'dipendente');
+    },
+  });
+
+  const { data: turniPlanday = [] } = useQuery({
+    queryKey: ['turni-planday'],
+    queryFn: () => base44.entities.TurnoPlanday.list(),
+  });
+
+  // Process employee performance data - Only users with Planday shifts
   const employeePerformance = useMemo(() => {
+    // Get unique dipendenti IDs from Planday shifts
+    const dipendenteIdsWithShifts = new Set(
+      turniPlanday.filter(t => t.dipendente_id).map(t => t.dipendente_id)
+    );
+
+    // Filter users to only those with Planday shifts
+    const validUsers = users.filter(u => dipendenteIdsWithShifts.has(u.id));
+
+    // Create a map of normalized names to user IDs for matching
+    const nameToUserMap = new Map();
+    validUsers.forEach(user => {
+      const displayName = (user.nome_cognome || user.full_name || '').toLowerCase().trim();
+      if (displayName) {
+        nameToUserMap.set(displayName, user);
+      }
+    });
+
     // Filter reviews by date and store
     let filteredReviews = reviews.filter(r => r.employee_assigned_name);
 
     // Date filter
     if (startDate || endDate) {
       filteredReviews = filteredReviews.filter(review => {
-        // Ensure review_date exists before attempting to parse
         if (!review.review_date) return false;
         
         try {
           const reviewDate = parseISO(review.review_date);
-          // Check if parseISO resulted in an invalid date
-          if (isNaN(reviewDate.getTime())) return false; // Invalid date
+          if (isNaN(reviewDate.getTime())) return false;
           
           const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
           const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
@@ -49,8 +76,7 @@ export default function EmployeeReviewsPerformance() {
             return reviewDate <= end;
           }
         } catch (e) {
-          // Catch any errors during date parsing and skip the review
-          return false; // Skip invalid dates
+          return false;
         }
         return true;
       });
@@ -61,32 +87,34 @@ export default function EmployeeReviewsPerformance() {
       filteredReviews = filteredReviews.filter(r => r.store_id === selectedStore);
     }
 
-    // Group by employee with ROBUST duplicate prevention
+    // Group by employee - ONLY valid users with Planday shifts
     const employeeMap = new Map();
 
     filteredReviews.forEach(review => {
-      // Split and normalize employee names
       const employeeNames = (review.employee_assigned_name || '')
         .split(',')
         .map(n => n.trim())
         .filter(n => n.length > 0);
       
-      // Remove duplicates from THIS review's employee list (case-insensitive)
       const uniqueNamesThisReview = [...new Set(
         employeeNames.map(name => name.toLowerCase())
       )].map(lowerName => {
-        // Find the original case version
         return employeeNames.find(n => n.toLowerCase() === lowerName) || lowerName;
       });
 
       uniqueNamesThisReview.forEach(employeeName => {
-        const mapKey = employeeName.toLowerCase(); // Use lowercase for map key
+        const mapKey = employeeName.toLowerCase();
+        
+        // ONLY process if this name matches a valid user with Planday shifts
+        const matchedUser = nameToUserMap.get(mapKey);
+        if (!matchedUser) return; // Skip if no matching user
         
         if (!employeeMap.has(mapKey)) {
           employeeMap.set(mapKey, {
-            name: employeeName, // Keep original case for display
+            name: matchedUser.nome_cognome || matchedUser.full_name,
+            userId: matchedUser.id,
             reviews: [],
-            reviewIds: new Set(), // Track review IDs to prevent double counting
+            reviewIds: new Set(),
             totalReviews: 0,
             avgRating: 0,
             ratings: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
@@ -98,7 +126,6 @@ export default function EmployeeReviewsPerformance() {
 
         const emp = employeeMap.get(mapKey);
         
-        // Only count this review if we haven't already counted it for this employee
         if (!emp.reviewIds.has(review.id)) {
           emp.reviewIds.add(review.id);
           emp.reviews.push(review);
@@ -118,14 +145,12 @@ export default function EmployeeReviewsPerformance() {
       emp.avgRating = emp.totalReviews > 0 ? totalRating / emp.totalReviews : 0;
       emp.positiveRate = emp.totalReviews > 0 ? (emp.positiveReviews / emp.totalReviews) * 100 : 0;
       emp.storeCount = emp.stores.size;
-      // Remove internal tracking from final object
       delete emp.reviewIds;
       return emp;
     });
 
-    // Sort by average rating (descending)
     return employeeArray.sort((a, b) => b.avgRating - a.avgRating);
-  }, [reviews, selectedStore, startDate, endDate]);
+  }, [reviews, selectedStore, startDate, endDate, users, turniPlanday]);
 
   const getStoreName = (storeId) => {
     const store = stores.find(s => s.id === storeId);
