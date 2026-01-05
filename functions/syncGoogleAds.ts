@@ -9,15 +9,25 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized: Admin access required' }, { status: 403 });
     }
 
-    const DEVELOPER_TOKEN = Deno.env.get('GOOGLE_ADS_DEVELOPER_TOKEN');
-    const CLIENT_ID = Deno.env.get('GOOGLE_ADS_CLIENT_ID');
-    const CLIENT_SECRET = Deno.env.get('GOOGLE_ADS_CLIENT_SECRET');
-    const REFRESH_TOKEN = Deno.env.get('GOOGLE_ADS_REFRESH_TOKEN');
-    const CUSTOMER_ID = Deno.env.get('GOOGLE_ADS_CUSTOMER_ID');
+    // Get credentials from MarketingConfig entity
+    const configs = await base44.asServiceRole.entities.MarketingConfig.filter({ config_name: 'google_ads' });
+    
+    if (configs.length === 0) {
+      return Response.json({ 
+        error: 'Google Ads non configurato. Vai su Marketing Settings per inserire le credenziali.' 
+      }, { status: 400 });
+    }
+
+    const credentials = configs[0].credentials;
+    const DEVELOPER_TOKEN = credentials.developer_token;
+    const CLIENT_ID = credentials.client_id;
+    const CLIENT_SECRET = credentials.client_secret;
+    const REFRESH_TOKEN = credentials.refresh_token;
+    const CUSTOMER_ID = credentials.customer_id;
 
     if (!DEVELOPER_TOKEN || !CLIENT_ID || !CLIENT_SECRET || !REFRESH_TOKEN || !CUSTOMER_ID) {
       return Response.json({ 
-        error: 'Missing Google Ads credentials. Please configure secrets in app settings.' 
+        error: 'Credenziali Google Ads incomplete. Completa la configurazione in Marketing Settings.' 
       }, { status: 400 });
     }
 

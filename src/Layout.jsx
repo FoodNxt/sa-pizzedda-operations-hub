@@ -350,6 +350,12 @@ const navigationStructure = [
         title: "Meta",
         url: createPageUrl("Meta"),
         icon: BarChart3,
+      },
+      {
+        title: "Configurazione",
+        url: createPageUrl("MarketingSettings"),
+        icon: Settings,
+        requiredUserType: ["admin"]
       }
     ]
   },

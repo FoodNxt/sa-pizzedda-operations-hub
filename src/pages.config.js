@@ -47,6 +47,7 @@ import FotoLocale from './pages/FotoLocale';
 import FunzionamentoApp from './pages/FunzionamentoApp';
 import GestioneAccessoPagine from './pages/GestioneAccessoPagine';
 import GestioneAssistente from './pages/GestioneAssistente';
+import Google from './pages/Google';
 import HRAdmin from './pages/HRAdmin';
 import Home from './pages/Home';
 import IPraticoBulkImport from './pages/IPraticoBulkImport';
@@ -60,6 +61,7 @@ import InventoryForms from './pages/InventoryForms';
 import LettereRichiamo from './pages/LettereRichiamo';
 import MatchingOrdiniSbagliati from './pages/MatchingOrdiniSbagliati';
 import MateriePrime from './pages/MateriePrime';
+import Meta from './pages/Meta';
 import Meteo from './pages/Meteo';
 import OrderItemsSetup from './pages/OrderItemsSetup';
 import Ordini from './pages/Ordini';
@@ -100,8 +102,7 @@ import ValutazionePulizie from './pages/ValutazionePulizie';
 import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSetup from './pages/ZapierSetup';
-import Google from './pages/Google';
-import Meta from './pages/Meta';
+import MarketingSettings from './pages/MarketingSettings';
 import __Layout from './Layout.jsx';
 
 
@@ -155,6 +156,7 @@ export const PAGES = {
     "FunzionamentoApp": FunzionamentoApp,
     "GestioneAccessoPagine": GestioneAccessoPagine,
     "GestioneAssistente": GestioneAssistente,
+    "Google": Google,
     "HRAdmin": HRAdmin,
     "Home": Home,
     "IPraticoBulkImport": IPraticoBulkImport,
@@ -168,6 +170,7 @@ export const PAGES = {
     "LettereRichiamo": LettereRichiamo,
     "MatchingOrdiniSbagliati": MatchingOrdiniSbagliati,
     "MateriePrime": MateriePrime,
+    "Meta": Meta,
     "Meteo": Meteo,
     "OrderItemsSetup": OrderItemsSetup,
     "Ordini": Ordini,
@@ -208,8 +211,7 @@ export const PAGES = {
     "ZapierProdottiVenduti": ZapierProdottiVenduti,
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSetup": ZapierSetup,
-    "Google": Google,
-    "Meta": Meta,
+    "MarketingSettings": MarketingSettings,
 }
 
 export const pagesConfig = {

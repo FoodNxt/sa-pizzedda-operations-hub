@@ -9,12 +9,22 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized: Admin access required' }, { status: 403 });
     }
 
-    const ACCESS_TOKEN = Deno.env.get('META_ACCESS_TOKEN');
-    const AD_ACCOUNT_ID = Deno.env.get('META_AD_ACCOUNT_ID');
+    // Get credentials from MarketingConfig entity
+    const configs = await base44.asServiceRole.entities.MarketingConfig.filter({ config_name: 'meta_ads' });
+    
+    if (configs.length === 0) {
+      return Response.json({ 
+        error: 'Meta Ads non configurato. Vai su Marketing Settings per inserire le credenziali.' 
+      }, { status: 400 });
+    }
+
+    const credentials = configs[0].credentials;
+    const ACCESS_TOKEN = credentials.access_token;
+    const AD_ACCOUNT_ID = credentials.ad_account_id;
 
     if (!ACCESS_TOKEN || !AD_ACCOUNT_ID) {
       return Response.json({ 
-        error: 'Missing Meta Ads credentials. Please configure secrets in app settings.' 
+        error: 'Credenziali Meta Ads incomplete. Completa la configurazione in Marketing Settings.' 
       }, { status: 400 });
     }
 
