@@ -297,7 +297,19 @@ export default function ValutazionePulizie() {
   };
 
   const normalizeAttrezzatura = (attrezzatura) => {
-    return attrezzatura?.toLowerCase()
+    // Use EXACT mapping - must match backend
+    const attrezzaturaMap = {
+      'Forno': 'forno',
+      'Impastatrice': 'impastatrice',
+      'Tavolo da lavoro': 'tavolo_lavoro',
+      'Tavolo lavoro': 'tavolo_lavoro',
+      'Frigo': 'frigo',
+      'Cassa': 'cassa',
+      'Lavandino': 'lavandino',
+      'Tavolette Takeaway': 'tavolette_takeaway'
+    };
+    
+    return attrezzaturaMap[attrezzatura] || attrezzatura?.toLowerCase()
       .replace(/\s+/g, '_')
       .replace(/[àáâãä]/g, 'a')
       .replace(/[èéêë]/g, 'e')
