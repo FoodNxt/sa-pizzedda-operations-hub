@@ -16,8 +16,6 @@ import { createPageUrl } from "@/utils";
 import moment from "moment";
 import "moment/locale/it";
 
-moment.locale('it');
-
 const COLORI_RUOLO = {
   "Pizzaiolo": "bg-orange-100 border-orange-300 text-orange-800",
   "Cassiere": "bg-blue-100 border-blue-300 text-blue-800",
@@ -49,6 +47,11 @@ export default function TurniDipendente() {
   const [condizioniPausa, setCondizioniPausa] = useState({ canPause: false, reason: 'Verifica in corso...' });
 
   const queryClient = useQueryClient();
+
+  // Imposta locale italiana per moment
+  useEffect(() => {
+    moment.locale('it');
+  }, []);
 
   // Timer per aggiornare "now" ogni secondo
   useEffect(() => {
@@ -1434,7 +1437,7 @@ export default function TurniDipendente() {
               <div className="flex items-center justify-between mb-3">
                 <div className="flex-1">
                   <div className="font-bold text-lg text-slate-800 capitalize">
-                    {moment(prossimoTurno.data).format('dddd DD MMMM')}
+                    {moment(prossimoTurno.data).locale('it').format('dddd DD MMMM')}
                   </div>
                   <div className="flex items-center gap-2 text-slate-600">
                     <Clock className="w-4 h-4" />
@@ -2032,8 +2035,8 @@ export default function TurniDipendente() {
             <NeumorphicButton onClick={() => setWeekStart(weekStart.clone().subtract(1, 'week'))}>
               <ChevronLeft className="w-4 h-4" />
             </NeumorphicButton>
-            <span className="font-medium text-slate-700">
-              {weekStart.format('DD MMM')} - {weekStart.clone().add(6, 'days').format('DD MMM YYYY')}
+            <span className="font-medium text-slate-700 capitalize">
+              {weekStart.locale('it').format('DD MMM')} - {weekStart.clone().add(6, 'days').locale('it').format('DD MMM YYYY')}
             </span>
             <NeumorphicButton onClick={() => setWeekStart(weekStart.clone().add(1, 'week'))}>
               <ChevronRight className="w-4 h-4" />
@@ -2062,8 +2065,8 @@ export default function TurniDipendente() {
                       {day.format('DD')}
                     </div>
                     <div>
-                      <div className="font-medium text-slate-800 capitalize">{day.format('dddd')}</div>
-                      <div className="text-sm text-slate-500 capitalize">{day.format('MMMM YYYY')}</div>
+                      <div className="font-medium text-slate-800 capitalize">{day.locale('it').format('dddd')}</div>
+                      <div className="text-sm text-slate-500 capitalize">{day.locale('it').format('MMMM YYYY')}</div>
                     </div>
                   </div>
 
@@ -2659,7 +2662,7 @@ export default function TurniDipendente() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="font-bold text-slate-800 capitalize">
-                            {moment(turno.data).format('dddd DD MMMM')}
+                            {moment(turno.data).locale('it').format('dddd DD MMMM')}
                           </p>
                           <div className="flex items-center gap-2 text-sm text-slate-600">
                             <Clock className="w-4 h-4" />
@@ -2729,7 +2732,7 @@ export default function TurniDipendente() {
 
               <div className="mb-4 p-3 bg-blue-50 rounded-xl">
                 <div className="font-medium text-blue-800 capitalize">
-                  {moment(selectedTurnoScambio.data).format('dddd DD MMMM YYYY')}
+                  {moment(selectedTurnoScambio.data).locale('it').format('dddd DD MMMM YYYY')}
                 </div>
                 <div className="text-sm text-blue-700">
                   {selectedTurnoScambio.ora_inizio} - {selectedTurnoScambio.ora_fine} • {selectedTurnoScambio.ruolo}
@@ -2874,7 +2877,7 @@ export default function TurniDipendente() {
                             <div className="flex items-center justify-between">
                               <div>
                                 <p className="font-medium text-slate-800 capitalize">
-                                  {moment(turnoC.data).format('dddd DD MMMM YYYY')}
+                                  {moment(turnoC.data).locale('it').format('dddd DD MMMM YYYY')}
                                 </p>
                                 <div className="text-sm text-slate-600 flex items-center gap-2">
                                   <Clock className="w-3 h-3" />
