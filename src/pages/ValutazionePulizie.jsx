@@ -217,7 +217,8 @@ export default function ValutazionePulizie() {
 
       if (response.data.success) {
         await queryClient.invalidateQueries({ queryKey: ['cleaning-inspections'] });
-        alert(`✅ Foto ri-analizzata: ${response.data.status}`);
+        await queryClient.refetchQueries({ queryKey: ['cleaning-inspections'] });
+        alert(`✅ Foto ri-analizzata: ${response.data.status.toUpperCase()}`);
       } else {
         alert('❌ Errore nella ri-analisi');
       }
@@ -259,6 +260,7 @@ export default function ValutazionePulizie() {
       }
 
       await queryClient.invalidateQueries({ queryKey: ['cleaning-inspections'] });
+      await queryClient.refetchQueries({ queryKey: ['cleaning-inspections'] });
       alert(`✅ ${fotoNonValutate.length} foto ri-analizzate con successo`);
     } catch (error) {
       console.error('Error reanalyzing photos:', error);
