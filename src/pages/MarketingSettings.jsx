@@ -15,35 +15,42 @@ export default function MarketingSettings() {
     queryFn: () => base44.entities.MarketingConfig.list(),
   });
 
-  const googleConfig = configs.find(c => c.config_name === 'google_ads') || {
-    config_name: 'google_ads',
-    credentials: {
-      developer_token: '',
-      client_id: '',
-      client_secret: '',
-      refresh_token: '',
-      customer_id: ''
-    }
-  };
+  const googleConfig = configs.find(c => c.config_name === 'google_ads');
+  const metaConfig = configs.find(c => c.config_name === 'meta_ads');
 
-  const metaConfig = configs.find(c => c.config_name === 'meta_ads') || {
-    config_name: 'meta_ads',
-    credentials: {
-      access_token: '',
-      ad_account_id: ''
-    }
-  };
+  const [googleForm, setGoogleForm] = useState({
+    developer_token: '',
+    client_id: '',
+    client_secret: '',
+    refresh_token: '',
+    customer_id: ''
+  });
 
-  const [googleForm, setGoogleForm] = useState(googleConfig.credentials);
-  const [metaForm, setMetaForm] = useState(metaConfig.credentials);
+  const [metaForm, setMetaForm] = useState({
+    access_token: '',
+    ad_account_id: ''
+  });
+
+  // Update forms when configs are loaded
+  React.useEffect(() => {
+    if (googleConfig?.credentials) {
+      setGoogleForm(googleConfig.credentials);
+    }
+  }, [googleConfig]);
+
+  React.useEffect(() => {
+    if (metaConfig?.credentials) {
+      setMetaForm(metaConfig.credentials);
+    }
+  }, [metaConfig]);
 
   const saveMutation = useMutation({
     mutationFn: async ({ configName, credentials }) => {
       const existing = configs.find(c => c.config_name === configName);
       if (existing) {
-        return base44.entities.MarketingConfig.update(existing.id, { credentials });
+        return await base44.entities.MarketingConfig.update(existing.id, { credentials });
       } else {
-        return base44.entities.MarketingConfig.create({
+        return await base44.entities.MarketingConfig.create({
           config_name: configName,
           credentials,
           is_active: true
@@ -54,6 +61,9 @@ export default function MarketingSettings() {
       queryClient.invalidateQueries({ queryKey: ['marketing-configs'] });
       alert('✅ Configurazione salvata con successo!');
     },
+    onError: (error) => {
+      alert('❌ Errore nel salvataggio: ' + error.message);
+    }
   });
 
   const handleSaveGoogle = () => {
