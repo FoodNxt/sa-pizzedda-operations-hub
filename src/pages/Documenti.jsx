@@ -1927,6 +1927,14 @@ function LettereSection() {
         // Mese firma richiamo
         const mesi = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
         contenuto = contenuto.replace(/{{mese_firma_richiamo}}/g, mesi[dataFirma.getMonth()] + ' ' + dataFirma.getFullYear());
+      } else {
+        // Fallback if no data_firma but data_invio exists
+        if (richiamoData.data_invio) {
+          const dataInvio = new Date(richiamoData.data_invio);
+          contenuto = contenuto.replace(/{{data_firma_richiamo}}/g, dataInvio.toLocaleDateString('it-IT'));
+          const mesi = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
+          contenuto = contenuto.replace(/{{mese_firma_richiamo}}/g, mesi[dataInvio.getMonth()] + ' ' + dataInvio.getFullYear());
+        }
       }
       // Data visualizzazione richiamo
       if (richiamoData.data_visualizzazione) {

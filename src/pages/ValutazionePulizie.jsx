@@ -16,7 +16,9 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronRight,
-  Image
+  Image,
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -31,6 +33,7 @@ export default function ValutazionePulizie() {
   const [showSettings, setShowSettings] = useState(false);
   const [expandedInspections, setExpandedInspections] = useState({});
   const [selectedImage, setSelectedImage] = useState(null);
+  const [reanalyzingPhoto, setReanalyzingPhoto] = useState(null);
   const [settingsForm, setSettingsForm] = useState({
     metodo_calcolo: 'media',
     punteggio_pulito: 100,
@@ -198,6 +201,34 @@ export default function ValutazionePulizie() {
     }
   };
 
+  const handleReanalyzePhoto = async (inspection, domanda) => {
+    const attrezzatura = domanda.attrezzatura;
+    const photoUrl = domanda.risposta;
+    
+    setReanalyzingPhoto(`${inspection.id}_${attrezzatura}`);
+    
+    try {
+      const response = await base44.functions.invoke('reanalyzePhoto', {
+        inspection_id: inspection.id,
+        attrezzatura: attrezzatura,
+        photo_url: photoUrl,
+        prompt_ai: domanda.prompt_ai || ''
+      });
+
+      if (response.data.success) {
+        await queryClient.invalidateQueries({ queryKey: ['cleaning-inspections'] });
+        alert(`✅ Foto ri-analizzata: ${response.data.status}`);
+      } else {
+        alert('❌ Errore nella ri-analisi');
+      }
+    } catch (error) {
+      console.error('Error reanalyzing photo:', error);
+      alert('❌ Errore: ' + error.message);
+    } finally {
+      setReanalyzingPhoto(null);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -352,61 +383,77 @@ export default function ValutazionePulizie() {
                   <div className="mt-6 space-y-4 pt-4 border-t border-slate-200">
                     {/* Photo Questions */}
                     {inspection.domande_risposte?.filter(d => d.tipo_controllo === 'foto').length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-bold text-[#6b6b6b] mb-3 flex items-center gap-2">
-                          <Image className="w-4 h-4" />
-                          Controlli Foto
-                        </h4>
-                        <div className="space-y-2">
-                          {inspection.domande_risposte.filter(d => d.tipo_controllo === 'foto').map((domanda, idx) => {
-                            const attrezzatura = domanda.attrezzatura?.toLowerCase().replace(/\s+/g, '_');
-                            const statusField = `${attrezzatura}_pulizia_status`;
-                            const correctedField = `${attrezzatura}_corrected_status`;
-                            const noteField = `${attrezzatura}_note_ai`;
-                            const status = inspection[correctedField] || inspection[statusField];
-                            const note = inspection[noteField];
-                            
-                            return (
-                              <div key={idx} className="neumorphic-pressed p-4 rounded-lg">
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="font-medium text-[#6b6b6b]">{domanda.attrezzatura}</span>
-                                  <div className="flex items-center gap-2">
-                                    {status === 'pulito' ? (
-                                      <>
-                                        <CheckCircle className="w-5 h-5 text-green-600" />
-                                        <span className="text-sm font-medium text-green-600">Pulito</span>
-                                      </>
-                                    ) : status === 'sporco' ? (
-                                      <>
-                                        <XCircle className="w-5 h-5 text-red-600" />
-                                        <span className="text-sm font-medium text-red-600">Sporco</span>
-                                      </>
-                                    ) : (
-                                      <span className="text-sm text-[#9b9b9b]">Non valutato</span>
-                                    )}
-                                  </div>
-                                </div>
-                                {domanda.risposta && (
-                                  <img 
-                                    src={domanda.risposta} 
-                                    alt={domanda.attrezzatura}
-                                    className="w-full h-48 object-cover rounded-lg mb-2 cursor-pointer hover:opacity-90 transition-opacity"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedImage(domanda.risposta);
-                                    }}
-                                  />
+                    <div>
+                    <h4 className="text-sm font-bold text-[#6b6b6b] mb-3 flex items-center gap-2">
+                    <Image className="w-4 h-4" />
+                    Controlli Foto
+                    </h4>
+                    <div className="space-y-2">
+                    {inspection.domande_risposte.filter(d => d.tipo_controllo === 'foto').map((domanda, idx) => {
+                      const attrezzatura = domanda.attrezzatura?.toLowerCase().replace(/\s+/g, '_');
+                      const statusField = `${attrezzatura}_pulizia_status`;
+                      const correctedField = `${attrezzatura}_corrected_status`;
+                      const noteField = `${attrezzatura}_note_ai`;
+                      const status = inspection[correctedField] || inspection[statusField];
+                      const note = inspection[noteField];
+                      const isReanalyzing = reanalyzingPhoto === `${inspection.id}_${domanda.attrezzatura}`;
+
+                      return (
+                        <div key={idx} className="neumorphic-pressed p-4 rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium text-[#6b6b6b]">{domanda.attrezzatura}</span>
+                            <div className="flex items-center gap-2">
+                              {status === 'pulito' ? (
+                                <>
+                                  <CheckCircle className="w-5 h-5 text-green-600" />
+                                  <span className="text-sm font-medium text-green-600">Pulito</span>
+                                </>
+                              ) : status === 'sporco' ? (
+                                <>
+                                  <XCircle className="w-5 h-5 text-red-600" />
+                                  <span className="text-sm font-medium text-red-600">Sporco</span>
+                                </>
+                              ) : (
+                                <span className="text-sm text-[#9b9b9b]">Non valutato</span>
+                              )}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleReanalyzePhoto(inspection, domanda);
+                                }}
+                                disabled={isReanalyzing}
+                                className="nav-button p-1.5 rounded-lg ml-2 hover:bg-blue-50"
+                                title="Ri-analizza foto con AI"
+                              >
+                                {isReanalyzing ? (
+                                  <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                                ) : (
+                                  <RefreshCw className="w-4 h-4 text-blue-600" />
                                 )}
-                                {note && (
-                                  <p className="text-xs text-[#9b9b9b] mt-2">
-                                    <strong>Note AI:</strong> {note}
-                                  </p>
-                                )}
-                              </div>
-                            );
-                          })}
+                              </button>
+                            </div>
+                          </div>
+                          {domanda.risposta && (
+                            <img 
+                              src={domanda.risposta} 
+                              alt={domanda.attrezzatura}
+                              className="w-full h-48 object-cover rounded-lg mb-2 cursor-pointer hover:opacity-90 transition-opacity"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedImage(domanda.risposta);
+                              }}
+                            />
+                          )}
+                          {note && (
+                            <p className="text-xs text-[#9b9b9b] mt-2">
+                              <strong>Note AI:</strong> {note}
+                            </p>
+                          )}
                         </div>
-                      </div>
+                      );
+                    })}
+                    </div>
+                    </div>
                     )}
 
                     {/* Multiple Choice Questions */}
