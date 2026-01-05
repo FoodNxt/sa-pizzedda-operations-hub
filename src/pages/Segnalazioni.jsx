@@ -229,16 +229,14 @@ export default function Segnalazioni() {
           <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Segnalazioni</h1>
           <p className="text-[#9b9b9b]">{isAdmin ? 'Gestisci le segnalazioni dei dipendenti' : 'Segnala problemi e anomalie negli store'}</p>
         </div>
-        {!isAdmin && (
-          <NeumorphicButton
-            onClick={() => setShowForm(true)}
-            variant="primary"
-            className="flex items-center gap-2"
-          >
-            <Camera className="w-5 h-5" />
-            Nuova Segnalazione
-          </NeumorphicButton>
-        )}
+        <NeumorphicButton
+          onClick={() => setShowForm(true)}
+          variant="primary"
+          className="flex items-center gap-2"
+        >
+          <Camera className="w-5 h-5" />
+          Nuova Segnalazione
+        </NeumorphicButton>
       </div>
 
       {/* Stats */}

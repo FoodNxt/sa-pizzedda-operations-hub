@@ -1130,7 +1130,7 @@ export default function Layout({ children, currentPageName }) {
             fixed lg:static inset-y-0 left-0 z-40
             w-72 transform transition-transform duration-300 ease-in-out
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-            ${normalizedUserType !== 'admin' ? 'mt-12' : ''}
+            pt-20 lg:pt-0
           `}>
             <div className="h-full neumorphic-card m-4 p-6 flex flex-col overflow-y-auto">
               <div className="hidden lg:flex items-center gap-3 mb-8">
