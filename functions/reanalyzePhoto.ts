@@ -93,16 +93,20 @@ NOTE: Superficie pulita e ordinata`;
       }
     }
 
-    console.log(`Parsed result: ${status}`);
+    console.log(`Parsed result: ${status}, note: ${note}`);
 
-    // Update inspection with new analysis
+    // Update inspection with new analysis - reset corrected status if exists
     const updateData = {};
     updateData[`${normalizedAttrezzatura}_pulizia_status`] = status;
     updateData[`${normalizedAttrezzatura}_note_ai`] = note;
+    updateData[`${normalizedAttrezzatura}_corrected`] = false;
+    updateData[`${normalizedAttrezzatura}_corrected_status`] = null;
+
+    console.log(`Updating inspection ${inspection_id} with fields:`, Object.keys(updateData));
 
     await base44.asServiceRole.entities.CleaningInspection.update(inspection_id, updateData);
 
-    console.log(`Successfully reanalyzed ${attrezzatura}`);
+    console.log(`✓ Successfully reanalyzed ${attrezzatura} - status: ${status}`);
 
     return Response.json({ 
       success: true, 
