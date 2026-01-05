@@ -218,19 +218,9 @@ export default function ValutazionePulizie() {
       });
 
       if (response.data.success) {
-        // Fetch fresh data directly from backend
-        const updatedInspection = await base44.entities.CleaningInspection.filter({ id: inspection.id });
-        
-        // Update cache manually
-        queryClient.setQueryData(
-          ['cleaning-inspections', selectedStore, selectedRole, dateFrom, dateTo],
-          (oldData) => {
-            if (!oldData) return oldData;
-            return oldData.map(insp => 
-              insp.id === inspection.id ? updatedInspection[0] : insp
-            );
-          }
-        );
+        // Remove all cache and force complete refetch
+        queryClient.removeQueries({ queryKey: ['cleaning-inspections'] });
+        await queryClient.refetchQueries({ queryKey: ['cleaning-inspections', selectedStore, selectedRole, dateFrom, dateTo] });
         
         alert(`✅ Foto ri-analizzata: ${response.data.status.toUpperCase()}\nNota: ${response.data.note}`);
       } else {
@@ -273,19 +263,9 @@ export default function ValutazionePulizie() {
         });
       }
 
-      // Fetch fresh data directly from backend
-      const updatedInspection = await base44.entities.CleaningInspection.filter({ id: inspection.id });
-      
-      // Update cache manually
-      queryClient.setQueryData(
-        ['cleaning-inspections', selectedStore, selectedRole, dateFrom, dateTo],
-        (oldData) => {
-          if (!oldData) return oldData;
-          return oldData.map(insp => 
-            insp.id === inspection.id ? updatedInspection[0] : insp
-          );
-        }
-      );
+      // Remove all cache and force complete refetch
+      queryClient.removeQueries({ queryKey: ['cleaning-inspections'] });
+      await queryClient.refetchQueries({ queryKey: ['cleaning-inspections', selectedStore, selectedRole, dateFrom, dateTo] });
       
       alert(`✅ ${fotoNonValutate.length} foto ri-analizzate con successo`);
     } catch (error) {
