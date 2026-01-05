@@ -76,12 +76,21 @@ NOTE: Superficie pulita e ordinata`;
       status = 'pulito';
     }
 
-    // Extract note
+    // Extract note - ALWAYS provide a note
     const noteMatch = aiResponse?.match(/NOTE:\s*(.+)/i);
     if (noteMatch) {
       note = noteMatch[1].trim();
     } else {
-      note = aiResponse?.substring(0, 200) || 'Analisi completata';
+      // Fallback: use full response or create a default note
+      if (aiResponse && aiResponse.length > 0) {
+        // Remove the status word from the note
+        note = aiResponse.replace(/^(pulito|sporco)\s*/i, '').trim();
+        if (!note || note.length < 5) {
+          note = status === 'pulito' ? 'Superficie pulita e ordinata' : 'Rilevata presenza di sporco';
+        }
+      } else {
+        note = status === 'pulito' ? 'Superficie pulita e ordinata' : 'Rilevata presenza di sporco';
+      }
     }
 
     console.log(`Parsed result: ${status}`);

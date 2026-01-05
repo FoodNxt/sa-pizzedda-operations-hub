@@ -229,6 +229,55 @@ export default function ValutazionePulizie() {
     }
   };
 
+  const handleReanalyzeAllUnrated = async (inspection) => {
+    const fotoDomande = inspection.domande_risposte?.filter(d => d.tipo_controllo === 'foto') || [];
+    const fotoNonValutate = fotoDomande.filter(d => {
+      const attrezzatura = normalizeAttrezzatura(d.attrezzatura);
+      const statusField = `${attrezzatura}_pulizia_status`;
+      const correctedField = `${attrezzatura}_corrected_status`;
+      const status = inspection[correctedField] || inspection[statusField];
+      return !status || status === 'non_valutabile';
+    });
+
+    if (fotoNonValutate.length === 0) {
+      alert('Tutte le foto sono già state valutate');
+      return;
+    }
+
+    if (!confirm(`Ri-analizzare ${fotoNonValutate.length} foto non valutate?`)) return;
+
+    setReanalyzingPhoto(`${inspection.id}_bulk`);
+
+    try {
+      for (const domanda of fotoNonValutate) {
+        await base44.functions.invoke('reanalyzePhoto', {
+          inspection_id: inspection.id,
+          attrezzatura: domanda.attrezzatura,
+          photo_url: domanda.risposta,
+          prompt_ai: domanda.prompt_ai || ''
+        });
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ['cleaning-inspections'] });
+      alert(`✅ ${fotoNonValutate.length} foto ri-analizzate con successo`);
+    } catch (error) {
+      console.error('Error reanalyzing photos:', error);
+      alert('❌ Errore: ' + error.message);
+    } finally {
+      setReanalyzingPhoto(null);
+    }
+  };
+
+  const normalizeAttrezzatura = (attrezzatura) => {
+    return attrezzatura?.toLowerCase()
+      .replace(/\s+/g, '_')
+      .replace(/[àáâãä]/g, 'a')
+      .replace(/[èéêë]/g, 'e')
+      .replace(/[ìíîï]/g, 'i')
+      .replace(/[òóôõö]/g, 'o')
+      .replace(/[ùúûü]/g, 'u') || '';
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -335,7 +384,7 @@ export default function ValutazionePulizie() {
             // Count unrated photos
             const fotoDomande = inspection.domande_risposte?.filter(d => d.tipo_controllo === 'foto') || [];
             const fotoNonValutate = fotoDomande.filter(d => {
-              const attrezzatura = d.attrezzatura?.toLowerCase().replace(/\s+/g, '_');
+              const attrezzatura = normalizeAttrezzatura(d.attrezzatura);
               const statusField = `${attrezzatura}_pulizia_status`;
               const correctedField = `${attrezzatura}_corrected_status`;
               const status = inspection[correctedField] || inspection[statusField];
@@ -399,56 +448,80 @@ export default function ValutazionePulizie() {
                   <div className="mt-6 space-y-4 pt-4 border-t border-slate-200">
                     {/* Photo Questions */}
                     {inspection.domande_risposte?.filter(d => d.tipo_controllo === 'foto').length > 0 && (
-                    <div>
-                    <h4 className="text-sm font-bold text-[#6b6b6b] mb-3 flex items-center gap-2">
-                    <Image className="w-4 h-4" />
-                    Controlli Foto
-                    </h4>
-                    <div className="space-y-2">
-                    {inspection.domande_risposte.filter(d => d.tipo_controllo === 'foto').map((domanda, idx) => {
-                      const attrezzatura = domanda.attrezzatura?.toLowerCase().replace(/\s+/g, '_');
-                      const statusField = `${attrezzatura}_pulizia_status`;
-                      const correctedField = `${attrezzatura}_corrected_status`;
-                      const noteField = `${attrezzatura}_note_ai`;
-                      const status = inspection[correctedField] || inspection[statusField];
-                      const note = inspection[noteField];
-                      const isReanalyzing = reanalyzingPhoto === `${inspection.id}_${domanda.attrezzatura}`;
-
-                      return (
-                        <div key={idx} className="neumorphic-pressed p-4 rounded-lg">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-medium text-[#6b6b6b]">{domanda.attrezzatura}</span>
-                            <div className="flex items-center gap-2">
-                              {status === 'pulito' ? (
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-sm font-bold text-[#6b6b6b] flex items-center gap-2">
+                            <Image className="w-4 h-4" />
+                            Controlli Foto
+                          </h4>
+                          {fotoNonValutate.length > 0 && (
+                            <NeumorphicButton
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleReanalyzeAllUnrated(inspection);
+                              }}
+                              disabled={reanalyzingPhoto === `${inspection.id}_bulk`}
+                              className="flex items-center gap-2 text-xs px-3 py-2"
+                            >
+                              {reanalyzingPhoto === `${inspection.id}_bulk` ? (
                                 <>
-                                  <CheckCircle className="w-5 h-5 text-green-600" />
-                                  <span className="text-sm font-medium text-green-600">Pulito</span>
-                                </>
-                              ) : status === 'sporco' ? (
-                                <>
-                                  <XCircle className="w-5 h-5 text-red-600" />
-                                  <span className="text-sm font-medium text-red-600">Sporco</span>
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  Analisi in corso...
                                 </>
                               ) : (
-                                <span className="text-sm text-[#9b9b9b]">Non valutato</span>
+                                <>
+                                  <RefreshCw className="w-3.5 h-3.5" />
+                                  Analizza {fotoNonValutate.length} foto
+                                </>
                               )}
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleReanalyzePhoto(inspection, domanda);
-                                }}
-                                disabled={isReanalyzing}
-                                className="nav-button p-1.5 rounded-lg ml-2 hover:bg-blue-50"
-                                title="Ri-analizza foto con AI"
-                              >
-                                {isReanalyzing ? (
-                                  <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                            </NeumorphicButton>
+                          )}
+                        </div>
+                    <div className="space-y-2">
+                      {inspection.domande_risposte.filter(d => d.tipo_controllo === 'foto').map((domanda, idx) => {
+                        const attrezzatura = normalizeAttrezzatura(domanda.attrezzatura);
+                        const statusField = `${attrezzatura}_pulizia_status`;
+                        const correctedField = `${attrezzatura}_corrected_status`;
+                        const noteField = `${attrezzatura}_note_ai`;
+                        const status = inspection[correctedField] || inspection[statusField];
+                        const note = inspection[noteField];
+                        const isReanalyzing = reanalyzingPhoto === `${inspection.id}_${domanda.attrezzatura}`;
+
+                        return (
+                          <div key={idx} className="neumorphic-pressed p-4 rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-medium text-[#6b6b6b]">{domanda.attrezzatura}</span>
+                              <div className="flex items-center gap-2">
+                                {status === 'pulito' ? (
+                                  <>
+                                    <CheckCircle className="w-5 h-5 text-green-600" />
+                                    <span className="text-sm font-medium text-green-600">Pulito</span>
+                                  </>
+                                ) : status === 'sporco' ? (
+                                  <>
+                                    <XCircle className="w-5 h-5 text-red-600" />
+                                    <span className="text-sm font-medium text-red-600">Sporco</span>
+                                  </>
                                 ) : (
-                                  <RefreshCw className="w-4 h-4 text-blue-600" />
+                                  <span className="text-sm text-[#9b9b9b]">Non valutato</span>
                                 )}
-                              </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleReanalyzePhoto(inspection, domanda);
+                                  }}
+                                  disabled={isReanalyzing || reanalyzingPhoto === `${inspection.id}_bulk`}
+                                  className="nav-button p-1.5 rounded-lg ml-2 hover:bg-blue-50"
+                                  title="Ri-analizza foto con AI"
+                                >
+                                  {isReanalyzing ? (
+                                    <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                                  ) : (
+                                    <RefreshCw className="w-4 h-4 text-blue-600" />
+                                  )}
+                                </button>
+                              </div>
                             </div>
-                          </div>
                           {domanda.risposta && (
                             <img 
                               src={domanda.risposta} 
