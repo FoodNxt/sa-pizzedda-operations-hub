@@ -25,14 +25,26 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Inspection not found' }, { status: 404 });
     }
 
-    // Normalize attrezzatura name for field names
-    const normalizedAttrezzatura = attrezzatura.toLowerCase()
+    // Normalize attrezzatura name for field names - use EXACT mapping
+    const attrezzaturaMap = {
+      'Forno': 'forno',
+      'Impastatrice': 'impastatrice',
+      'Tavolo da lavoro': 'tavolo_lavoro',
+      'Tavolo lavoro': 'tavolo_lavoro',
+      'Frigo': 'frigo',
+      'Cassa': 'cassa',
+      'Lavandino': 'lavandino'
+    };
+    
+    const normalizedAttrezzatura = attrezzaturaMap[attrezzatura] || attrezzatura.toLowerCase()
       .replace(/\s+/g, '_')
       .replace(/[àáâãä]/g, 'a')
       .replace(/[èéêë]/g, 'e')
       .replace(/[ìíîï]/g, 'i')
       .replace(/[òóôõö]/g, 'o')
       .replace(/[ùúûü]/g, 'u');
+    
+    console.log(`Attrezzatura: "${attrezzatura}" → normalized: "${normalizedAttrezzatura}"`);
 
     // Build AI prompt
     const prompt = `Analizza questa foto e valuta SOLO lo stato di pulizia di: ${attrezzatura}.
@@ -102,10 +114,11 @@ NOTE: Superficie pulita e ordinata`;
     updateData[`${normalizedAttrezzatura}_corrected`] = false;
     updateData[`${normalizedAttrezzatura}_corrected_status`] = null;
 
-    console.log(`Updating inspection ${inspection_id} with fields:`, Object.keys(updateData));
+    console.log(`Updating inspection ${inspection_id} with data:`, updateData);
 
-    await base44.asServiceRole.entities.CleaningInspection.update(inspection_id, updateData);
+    const result = await base44.asServiceRole.entities.CleaningInspection.update(inspection_id, updateData);
 
+    console.log(`✓ Successfully updated inspection, result:`, result);
     console.log(`✓ Successfully reanalyzed ${attrezzatura} - status: ${status}`);
 
     return Response.json({ 
