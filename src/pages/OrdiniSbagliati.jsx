@@ -1864,6 +1864,8 @@ export default function OrdiniSbagliati() {
                     setShowLetterModal(false);
                     setSelectedEmployee(null);
                     setSelectedTemplate('');
+                    setLetterContent('');
+                    setIncludeOrderDetails(true);
                   }}
                   className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
                 >
@@ -1938,6 +1940,8 @@ export default function OrdiniSbagliati() {
                     setShowLetterModal(false);
                     setSelectedEmployee(null);
                     setSelectedTemplate('');
+                    setLetterContent('');
+                    setIncludeOrderDetails(true);
                   }}
                   className="flex-1"
                 >
