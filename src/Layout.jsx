@@ -44,7 +44,25 @@ import {
 } from "lucide-react";
 import CompleteProfileModal from "./components/auth/CompleteProfileModal";
 
-const navigationStructure = [
+// Load menu structure from config or use default
+const [menuStructure, setMenuStructure] = useState(null);
+
+useEffect(() => {
+  const loadMenuStructure = async () => {
+    try {
+      const configs = await base44.entities.MenuStructureConfig.list();
+      const activeConfig = configs.find(c => c.is_active);
+      if (activeConfig?.menu_structure) {
+        setMenuStructure(activeConfig.menu_structure);
+      }
+    } catch (error) {
+      console.error('Error loading menu structure:', error);
+    }
+  };
+  loadMenuStructure();
+}, []);
+
+const navigationStructure = menuStructure || [
   {
     title: "Dashboard",
     icon: LayoutDashboard,
