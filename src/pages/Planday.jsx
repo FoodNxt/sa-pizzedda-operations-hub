@@ -1905,11 +1905,33 @@ export default function Planday() {
                           <div 
                             key={`${dayKey}-${slot.hour}-${slot.minute}`}
                             className={`border-t border-slate-100 cursor-pointer select-none transition-colors ${
-                              inDragRange ? 'bg-blue-200' : 'hover:bg-slate-50'
+                              inDragRange ? 'bg-blue-200' : 'hover:bg-blue-50'
                             } ${slot.minute === 0 ? 'border-slate-200' : 'border-slate-100'}`}
                             onMouseDown={(e) => { e.preventDefault(); handleMouseDown(day, slot); }}
                             onMouseEnter={() => handleMouseEnter(day, slot)}
                             onMouseUp={() => handleMouseUp(day, slot)}
+                            onClick={(e) => {
+                              if (!isDragging) {
+                                e.stopPropagation();
+                                setQuickTurnoPopup({
+                                  day: day.format('YYYY-MM-DD'),
+                                  startSlot: slot.hour + slot.minute / 60,
+                                  endSlot: slot.hour + slot.minute / 60 + 0.5
+                                });
+                                setTurnoForm({
+                                  store_id: selectedStore || (stores[0]?.id || ''),
+                                  data: day.format('YYYY-MM-DD'),
+                                  ora_inizio: `${slot.hour.toString().padStart(2, '0')}:${slot.minute.toString().padStart(2, '0')}`,
+                                  ora_fine: `${(slot.hour + (slot.minute === 30 ? 1 : 0)).toString().padStart(2, '0')}:${slot.minute === 30 ? '00' : '30'}`,
+                                  ruolo: 'Pizzaiolo',
+                                  dipendente_id: '',
+                                  tipo_turno: 'Normale',
+                                  note: '',
+                                  is_prova: false,
+                                  candidato_id: ''
+                                });
+                              }
+                            }}
                           />
                         );
                       })}
@@ -2206,43 +2228,6 @@ export default function Planday() {
                   <Clock className="w-4 h-4" />
                   Modelli Turno Singolo
                 </h3>
-
-              {/* Sezione Tipi Turno */}
-              <div className="mb-4">
-                <button 
-                  onClick={() => setShowTipiTurnoSection(!showTipiTurnoSection)}
-                  className="text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                >
-                  {showTipiTurnoSection ? '▼' : '▶'} Gestisci Tipi Turno
-                </button>
-                {showTipiTurnoSection && (
-                  <div className="neumorphic-pressed p-3 rounded-xl mt-2">
-                    <div className="flex gap-2 mb-2">
-                      <input
-                        type="text"
-                        value={newTipoTurno}
-                        onChange={(e) => setNewTipoTurno(e.target.value)}
-                        className="flex-1 neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
-                        placeholder="Nuovo tipo turno..."
-                        onKeyDown={(e) => e.key === 'Enter' && addTipoTurno()}
-                      />
-                      <NeumorphicButton onClick={addTipoTurno} className="text-sm px-3 py-1">
-                        <Plus className="w-4 h-4" />
-                      </NeumorphicButton>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {tipiTurno.map(tipo => (
-                        <span key={tipo} className="px-2 py-1 bg-slate-100 rounded-lg text-xs flex items-center gap-1">
-                          {tipo}
-                          <button onClick={() => deleteTipoTurno(tipo)} className="text-red-500 hover:text-red-700">
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
 
               {/* Lista modelli turno singoli esistenti */}
               <div>
