@@ -54,7 +54,6 @@ const DEFAULT_MENU_STRUCTURE = [
       { title: "Prodotti Venduti", page: "ProdottiVenduti", icon: "ShoppingCart" },
       { title: "Impasti", page: "StoricoImpasti", icon: "ChefHat" },
       { title: "Precotture", page: "PrecottureAdmin", icon: "Pizza" },
-      { title: "Inventario Store Manager", page: "InventarioStoreManager", icon: "Settings" },
       { title: "Ordini Fornitori", page: "OrdiniAdmin", icon: "ShoppingCart" },
       { title: "Forms", page: "InventoryForms", icon: "Edit" },
       { title: "Inventory Admin", page: "InventarioAdmin", icon: "Settings" }
@@ -135,6 +134,7 @@ const DEFAULT_MENU_STRUCTURE = [
     items: [
       { title: "Gestione Utenti", page: "UsersManagement", icon: "Users" },
       { title: "Gestione Accesso Pagine", page: "GestioneAccessoPagine", icon: "CheckSquare" },
+      { title: "Struttura Menu", page: "StrutturaMenù", icon: "Menu" },
       { title: "Funzionamento App", page: "FunzionamentoApp", icon: "BookOpen" }
     ]
   }
