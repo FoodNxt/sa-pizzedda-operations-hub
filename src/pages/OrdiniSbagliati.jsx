@@ -16,7 +16,9 @@ import {
   Calendar,
   Settings,
   Eye,
-  Sparkles
+  Sparkles,
+  Users,
+  Send
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -54,6 +56,9 @@ export default function OrdiniSbagliati() {
   const [showAIAnalysis, setShowAIAnalysis] = useState(false);
   const [aiAnalysisContent, setAiAnalysisContent] = useState('');
   const [loadingAI, setLoadingAI] = useState(false);
+  const [showLetterModal, setShowLetterModal] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [selectedTemplate, setSelectedTemplate] = useState('');
 
   const queryClient = useQueryClient();
 
@@ -89,6 +94,21 @@ export default function OrdiniSbagliati() {
   const { data: columnMappings = [] } = useQuery({
     queryKey: ['column-mappings'],
     queryFn: () => base44.entities.CSVColumnMapping.list(),
+  });
+
+  const { data: wrongOrderMatches = [] } = useQuery({
+    queryKey: ['wrong-order-matches'],
+    queryFn: () => base44.entities.WrongOrderMatch.list(),
+  });
+
+  const { data: employees = [] } = useQuery({
+    queryKey: ['employees'],
+    queryFn: () => base44.entities.Employee.list(),
+  });
+
+  const { data: letterTemplates = [] } = useQuery({
+    queryKey: ['letter-templates'],
+    queryFn: () => base44.entities.LetteraRichiamoTemplate.list(),
   });
 
   const createMappingMutation = useMutation({
@@ -665,6 +685,79 @@ export default function OrdiniSbagliati() {
       new Date(b.order_date) - new Date(a.order_date)
     )[0]
   };
+
+  // Employee analytics data
+  const employeeAnalytics = useMemo(() => {
+    const byEmployee = {};
+
+    // Filter matches by date range
+    let filteredMatches = wrongOrderMatches;
+
+    const now = new Date();
+    if (dateRange === 'week') {
+      const weekStart = startOfWeek(now, { locale: it });
+      const weekEnd = endOfWeek(now, { locale: it });
+      filteredMatches = filteredMatches.filter(m => {
+        const order = wrongOrders.find(o => o.id === m.wrong_order_id);
+        if (!order) return false;
+        const date = parseISO(order.order_date);
+        return date >= weekStart && date <= weekEnd;
+      });
+    } else if (dateRange === 'month') {
+      const monthStart = startOfMonth(now);
+      const monthEnd = endOfMonth(now);
+      filteredMatches = filteredMatches.filter(m => {
+        const order = wrongOrders.find(o => o.id === m.wrong_order_id);
+        if (!order) return false;
+        const date = parseISO(order.order_date);
+        return date >= monthStart && date <= monthEnd;
+      });
+    } else if (dateRange === 'custom' && customStartDate && customEndDate) {
+      const start = new Date(customStartDate);
+      const end = new Date(customEndDate);
+      filteredMatches = filteredMatches.filter(m => {
+        const order = wrongOrders.find(o => o.id === m.wrong_order_id);
+        if (!order) return false;
+        const date = parseISO(order.order_date);
+        return date >= start && date <= end;
+      });
+    }
+
+    // Filter by store if selected
+    if (selectedStore !== 'all') {
+      filteredMatches = filteredMatches.filter(m => {
+        const order = wrongOrders.find(o => o.id === m.wrong_order_id);
+        return order && order.store_id === selectedStore;
+      });
+    }
+
+    // Group by employee
+    filteredMatches.forEach(match => {
+      if (!match.dipendente_id) return;
+
+      const order = wrongOrders.find(o => o.id === match.wrong_order_id);
+      if (!order) return;
+
+      if (!byEmployee[match.dipendente_id]) {
+        byEmployee[match.dipendente_id] = {
+          dipendente_id: match.dipendente_id,
+          dipendente_nome: match.dipendente_nome,
+          count: 0,
+          totalRefunds: 0,
+          orders: []
+        };
+      }
+
+      byEmployee[match.dipendente_id].count++;
+      byEmployee[match.dipendente_id].totalRefunds += order.refund_value || 0;
+      byEmployee[match.dipendente_id].orders.push({
+        ...order,
+        match_confidence: match.confidence_score
+      });
+    });
+
+    return Object.values(byEmployee).sort((a, b) => b.count - a.count);
+  }, [wrongOrderMatches, wrongOrders, dateRange, customStartDate, customEndDate, selectedStore]);
 
   // Analytics data
   const analyticsData = useMemo(() => {
@@ -1306,6 +1399,13 @@ export default function OrdiniSbagliati() {
           <BarChart3 className="w-4 h-4" />
           Analisi
         </NeumorphicButton>
+        <NeumorphicButton
+          onClick={() => setActiveTab('employees')}
+          className={`flex items-center gap-2 ${activeTab === 'employees' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' : ''}`}
+        >
+          <Users className="w-4 h-4" />
+          Dipendenti
+        </NeumorphicButton>
       </div>
 
       {/* Analytics Tab */}
@@ -1560,6 +1660,245 @@ export default function OrdiniSbagliati() {
             </div>
           )}
         </NeumorphicCard>
+      )}
+
+      {/* Employees Tab */}
+      {activeTab === 'employees' && (
+        <>
+          {/* Filters */}
+          <NeumorphicCard className="p-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                  Negozio
+                </label>
+                <select
+                  value={selectedStore}
+                  onChange={(e) => setSelectedStore(e.target.value)}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                >
+                  <option value="all">Tutti i negozi</option>
+                  {stores.map(store => (
+                    <option key={store.id} value={store.id}>{store.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                  Periodo
+                </label>
+                <select
+                  value={dateRange}
+                  onChange={(e) => setDateRange(e.target.value)}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                >
+                  <option value="week">Questa settimana</option>
+                  <option value="month">Questo mese</option>
+                  <option value="custom">Personalizzato</option>
+                  <option value="all">Tutti i periodi</option>
+                </select>
+              </div>
+
+              {dateRange === 'custom' && (
+                <>
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                      Data Inizio
+                    </label>
+                    <input
+                      type="date"
+                      value={customStartDate}
+                      onChange={(e) => setCustomStartDate(e.target.value)}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                      Data Fine
+                    </label>
+                    <input
+                      type="date"
+                      value={customEndDate}
+                      onChange={(e) => setCustomEndDate(e.target.value)}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          </NeumorphicCard>
+
+          {/* Employee List */}
+          <NeumorphicCard className="p-6">
+            <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Ordini Sbagliati per Dipendente</h3>
+            {employeeAnalytics.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b-2 border-[#8b7355]">
+                      <th className="text-left p-3 text-[#9b9b9b] font-medium">Dipendente</th>
+                      <th className="text-right p-3 text-[#9b9b9b] font-medium">N° Ordini</th>
+                      <th className="text-right p-3 text-[#9b9b9b] font-medium">Rimborsi Totali</th>
+                      <th className="text-center p-3 text-[#9b9b9b] font-medium">Azioni</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {employeeAnalytics.map((emp) => (
+                      <tr key={emp.dipendente_id} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
+                        <td className="p-3">
+                          <div>
+                            <p className="text-[#6b6b6b] font-medium">{emp.dipendente_nome}</p>
+                            <p className="text-xs text-[#9b9b9b]">{emp.orders.length} ordini abbinati</p>
+                          </div>
+                        </td>
+                        <td className="p-3 text-right font-bold text-[#6b6b6b]">{emp.count}</td>
+                        <td className="p-3 text-right font-bold text-red-600">€{emp.totalRefunds.toFixed(2)}</td>
+                        <td className="p-3 text-center">
+                          <NeumorphicButton
+                            onClick={() => {
+                              setSelectedEmployee(emp);
+                              setShowLetterModal(true);
+                            }}
+                            className="flex items-center gap-2 text-sm mx-auto"
+                          >
+                            <Send className="w-4 h-4" />
+                            Invia Lettera
+                          </NeumorphicButton>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-center text-[#9b9b9b] py-8">
+                Nessun ordine sbagliato abbinato a dipendenti nel periodo selezionato
+              </p>
+            )}
+          </NeumorphicCard>
+        </>
+      )}
+
+      {/* Letter Modal */}
+      {showLetterModal && selectedEmployee && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-[#6b6b6b]">
+                  Lettera di Richiamo - {selectedEmployee.dipendente_nome}
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowLetterModal(false);
+                    setSelectedEmployee(null);
+                    setSelectedTemplate('');
+                  }}
+                  className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+                >
+                  <X className="w-5 h-5 text-[#9b9b9b]" />
+                </button>
+              </div>
+
+              <div className="neumorphic-pressed p-4 rounded-xl bg-orange-50 mb-6">
+                <p className="text-sm font-bold text-orange-800 mb-2">📊 Riepilogo Ordini Sbagliati</p>
+                <div className="text-xs text-orange-700 space-y-1">
+                  <p>• Numero ordini: <strong>{selectedEmployee.count}</strong></p>
+                  <p>• Rimborsi totali: <strong>€{selectedEmployee.totalRefunds.toFixed(2)}</strong></p>
+                  <p>• Periodo: <strong>{dateRange === 'week' ? 'Questa settimana' : dateRange === 'month' ? 'Questo mese' : dateRange === 'custom' ? `${customStartDate} - ${customEndDate}` : 'Tutti i periodi'}</strong></p>
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                  Seleziona Template Lettera <span className="text-red-600">*</span>
+                </label>
+                <select
+                  value={selectedTemplate}
+                  onChange={(e) => setSelectedTemplate(e.target.value)}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                >
+                  <option value="">-- Seleziona template --</option>
+                  {letterTemplates.map(template => (
+                    <option key={template.id} value={template.id}>
+                      {template.nome_template} - {template.tipo_lettera}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedTemplate && (() => {
+                const template = letterTemplates.find(t => t.id === selectedTemplate);
+                return template ? (
+                  <div className="neumorphic-pressed p-4 rounded-xl bg-blue-50 mb-6">
+                    <p className="text-sm font-bold text-blue-800 mb-2">📄 Anteprima Template</p>
+                    <p className="text-xs text-blue-700"><strong>Oggetto:</strong> {template.oggetto}</p>
+                    <p className="text-xs text-blue-700 mt-2 whitespace-pre-wrap">{template.contenuto?.substring(0, 200)}...</p>
+                  </div>
+                ) : null;
+              })()}
+
+              <div className="flex gap-3">
+                <NeumorphicButton
+                  onClick={() => {
+                    setShowLetterModal(false);
+                    setSelectedEmployee(null);
+                    setSelectedTemplate('');
+                  }}
+                  className="flex-1"
+                >
+                  Annulla
+                </NeumorphicButton>
+                <NeumorphicButton
+                  onClick={async () => {
+                    if (!selectedTemplate) {
+                      alert('Seleziona un template');
+                      return;
+                    }
+
+                    try {
+                      const template = letterTemplates.find(t => t.id === selectedTemplate);
+                      const employee = employees.find(e => e.id === selectedEmployee.dipendente_id);
+
+                      if (!employee) {
+                        alert('Dipendente non trovato');
+                        return;
+                      }
+
+                      // Create letter record
+                      await base44.entities.LetteraRichiamo.create({
+                        dipendente_id: employee.id,
+                        dipendente_nome: employee.full_name,
+                        template_id: template.id,
+                        tipo_lettera: template.tipo_lettera,
+                        oggetto: template.oggetto,
+                        contenuto: template.contenuto,
+                        data_invio: new Date().toISOString(),
+                        inviato_da: (await base44.auth.me()).email,
+                        motivo: `Ordini sbagliati: ${selectedEmployee.count} ordini nel periodo selezionato`,
+                        status: 'inviata'
+                      });
+
+                      alert('✅ Lettera di richiamo creata con successo!');
+                      setShowLetterModal(false);
+                      setSelectedEmployee(null);
+                      setSelectedTemplate('');
+                    } catch (error) {
+                      alert('Errore: ' + error.message);
+                    }
+                  }}
+                  variant="primary"
+                  className="flex-1"
+                  disabled={!selectedTemplate}
+                >
+                  <Send className="w-4 h-4 mr-2" />
+                  Invia Lettera
+                </NeumorphicButton>
+              </div>
+            </NeumorphicCard>
+          </div>
+        </div>
       )}
 
       {/* AI Analysis Modal */}
