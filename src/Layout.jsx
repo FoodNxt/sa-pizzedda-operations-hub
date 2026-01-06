@@ -44,25 +44,7 @@ import {
 } from "lucide-react";
 import CompleteProfileModal from "./components/auth/CompleteProfileModal";
 
-// Load menu structure from config or use default
-const [menuStructure, setMenuStructure] = useState(null);
-
-useEffect(() => {
-  const loadMenuStructure = async () => {
-    try {
-      const configs = await base44.entities.MenuStructureConfig.list();
-      const activeConfig = configs.find(c => c.is_active);
-      if (activeConfig?.menu_structure) {
-        setMenuStructure(activeConfig.menu_structure);
-      }
-    } catch (error) {
-      console.error('Error loading menu structure:', error);
-    }
-  };
-  loadMenuStructure();
-}, []);
-
-const navigationStructure = menuStructure || [
+const navigationStructure = [
   {
     title: "Dashboard",
     icon: LayoutDashboard,
@@ -481,10 +463,26 @@ export default function Layout({ children, currentPageName }) {
   const [dipendenteNav, setDipendenteNav] = useState(null);
   const [pageAccessConfig, setPageAccessConfig] = useState(null);
   const [compactMenu, setCompactMenu] = useState(false);
+  const [menuStructure, setMenuStructure] = useState(null);
   
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [isLoadingConfig, setIsLoadingConfig] = useState(true);
   const [notifications, setNotifications] = useState({});
+
+  useEffect(() => {
+    const loadMenuStructure = async () => {
+      try {
+        const configs = await base44.entities.MenuStructureConfig.list();
+        const activeConfig = configs.find(c => c.is_active);
+        if (activeConfig?.menu_structure) {
+          setMenuStructure(activeConfig.menu_structure);
+        }
+      } catch (error) {
+        console.error('Error loading menu structure:', error);
+      }
+    };
+    loadMenuStructure();
+  }, []);
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -941,16 +939,6 @@ export default function Layout({ children, currentPageName }) {
     };
     return icons[pageName] || User;
   };
-
-  const filteredNavigation = (!isLoadingConfig && !isLoadingUser && currentUser) 
-    ? navigationStructure
-        .filter(section => hasAccess(section.requiredUserType))
-        .map(section => ({
-          ...section,
-          items: section.items.filter(item => hasAccess(item.requiredUserType, item.requiredRole))
-        }))
-        .filter(section => section.items.length > 0)
-    : [];
 
   const normalizedUserType = currentUser ? getNormalizedUserType(currentUser.user_type) : null;
   
