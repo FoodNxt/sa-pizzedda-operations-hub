@@ -2166,6 +2166,80 @@ export default function Planday() {
           </div>
         </NeumorphicCard>
 
+        {/* Verifica Ore Settimanali */}
+        <NeumorphicCard className="p-6">
+          <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <Clock className="w-6 h-6 text-blue-600" />
+            Verifica Ore
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b-2 border-slate-200">
+                  <th className="text-left p-3 text-sm font-medium text-slate-600">Dipendente</th>
+                  <th className="text-center p-3 text-sm font-medium text-slate-600">Ore Contratto</th>
+                  <th className="text-center p-3 text-sm font-medium text-slate-600">Ore Pianificate</th>
+                  <th className="text-center p-3 text-sm font-medium text-slate-600">Differenza</th>
+                  <th className="text-center p-3 text-sm font-medium text-slate-600">Stato</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users
+                  .filter(u => (u.user_type === 'dipendente' || u.user_type === 'user') && u.ruoli_dipendente?.length > 0)
+                  .map(dipendente => {
+                    const turniSettimana = turni.filter(t => t.dipendente_id === dipendente.id);
+                    const orePianificate = turniSettimana.reduce((sum, t) => {
+                      const [sh, sm] = t.ora_inizio.split(':').map(Number);
+                      const [eh, em] = t.ora_fine.split(':').map(Number);
+                      return sum + (eh - sh) + (em - sm) / 60;
+                    }, 0);
+                    const oreContratto = dipendente.ore_settimanali || 0;
+                    const differenza = orePianificate - oreContratto;
+                    const hasAlert = Math.abs(differenza) > 0.5;
+
+                    return (
+                      <tr key={dipendente.id} className={`border-b border-slate-100 ${hasAlert ? 'bg-orange-50' : ''}`}>
+                        <td className="p-3">
+                          <div className="font-medium text-slate-800">{dipendente.nome_cognome || dipendente.full_name}</div>
+                          <div className="text-xs text-slate-500">{dipendente.ruoli_dipendente?.join(', ')}</div>
+                        </td>
+                        <td className="p-3 text-center font-medium text-slate-700">{oreContratto}h</td>
+                        <td className="p-3 text-center font-bold text-blue-700">{orePianificate.toFixed(1)}h</td>
+                        <td className="p-3 text-center">
+                          <span className={`font-bold ${
+                            differenza > 0.5 ? 'text-red-600' : 
+                            differenza < -0.5 ? 'text-orange-600' : 
+                            'text-green-600'
+                          }`}>
+                            {differenza > 0 ? '+' : ''}{differenza.toFixed(1)}h
+                          </span>
+                        </td>
+                        <td className="p-3 text-center">
+                          {differenza > 0.5 ? (
+                            <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium flex items-center gap-1 justify-center">
+                              <AlertTriangle className="w-3 h-3" />
+                              Troppe ore
+                            </span>
+                          ) : differenza < -0.5 ? (
+                            <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium flex items-center gap-1 justify-center">
+                              <AlertTriangle className="w-3 h-3" />
+                              Poche ore
+                            </span>
+                          ) : (
+                            <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium flex items-center gap-1 justify-center">
+                              <CheckCircle className="w-3 h-3" />
+                              OK
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
+          </div>
+        </NeumorphicCard>
+
 
 
 
