@@ -328,14 +328,18 @@ export default function Financials() {
         const compareTotalRevenue = compareFiltered.reduce((sum, item) => sum + (item.total_revenue || 0), 0);
         const compareTotalOrders = compareFiltered.reduce((sum, item) => sum + (item.total_orders || 0), 0);
         
+        const compareAvgOrderValue = compareTotalOrders > 0 ? compareTotalRevenue / compareTotalOrders : 0;
+        
         comparisonData = {
           totalRevenue: compareTotalRevenue,
           totalOrders: compareTotalOrders,
-          avgOrderValue: compareTotalOrders > 0 ? compareTotalRevenue / compareTotalOrders : 0,
+          avgOrderValue: compareAvgOrderValue,
           revenueDiff: totalRevenue - compareTotalRevenue,
           revenueDiffPercent: compareTotalRevenue > 0 ? ((totalRevenue - compareTotalRevenue) / compareTotalRevenue) * 100 : 0,
           ordersDiff: totalOrders - compareTotalOrders,
-          ordersDiffPercent: compareTotalOrders > 0 ? ((totalOrders - compareTotalOrders) / compareTotalOrders) * 100 : 0
+          ordersDiffPercent: compareTotalOrders > 0 ? ((totalOrders - compareTotalOrders) / compareTotalOrders) * 100 : 0,
+          avgOrderValueDiff: avgOrderValue - compareAvgOrderValue,
+          avgOrderValueDiffPercent: compareAvgOrderValue > 0 ? ((avgOrderValue - compareAvgOrderValue) / compareAvgOrderValue) * 100 : 0
         };
       }
     }
@@ -477,21 +481,23 @@ export default function Financials() {
             <div>
               <label className="text-sm text-slate-600 mb-2 block">Canali</label>
               <div className="flex flex-wrap gap-2">
-                {Array.from(new Set(Object.values(channelMapping).concat(['delivery', 'takeaway', 'takeawayOnSite', 'store']))).map(channel => (
+                {processedData.channelBreakdown.map(channel => (
                   <button
-                    key={channel}
+                    key={channel.name}
                     onClick={() => {
                       setSelectedChannels(prev => 
-                        prev.includes(channel) ? prev.filter(c => c !== channel) : [...prev, channel]
+                        prev.includes(channel.name.toLowerCase()) 
+                          ? prev.filter(c => c !== channel.name.toLowerCase()) 
+                          : [...prev, channel.name.toLowerCase()]
                       );
                     }}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                      selectedChannels.includes(channel) || selectedChannels.length === 0
+                      selectedChannels.includes(channel.name.toLowerCase()) || selectedChannels.length === 0
                         ? 'bg-blue-500 text-white'
                         : 'bg-slate-200 text-slate-600'
                     }`}
                   >
-                    {channel}
+                    {channel.name}
                   </button>
                 ))}
               </div>
@@ -500,21 +506,23 @@ export default function Financials() {
             <div>
               <label className="text-sm text-slate-600 mb-2 block">App Delivery</label>
               <div className="flex flex-wrap gap-2">
-                {Array.from(new Set(Object.values(appMapping).concat(['glovo', 'deliveroo', 'justeat', 'onlineordering', 'ordertable', 'tabesto', 'store']))).map(app => (
+                {processedData.deliveryAppBreakdown.map(app => (
                   <button
-                    key={app}
+                    key={app.name}
                     onClick={() => {
                       setSelectedApps(prev => 
-                        prev.includes(app) ? prev.filter(a => a !== app) : [...prev, app]
+                        prev.includes(app.name.toLowerCase()) 
+                          ? prev.filter(a => a !== app.name.toLowerCase()) 
+                          : [...prev, app.name.toLowerCase()]
                       );
                     }}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                      selectedApps.includes(app) || selectedApps.length === 0
+                      selectedApps.includes(app.name.toLowerCase()) || selectedApps.length === 0
                         ? 'bg-green-500 text-white'
                         : 'bg-slate-200 text-slate-600'
                     }`}
                   >
-                    {app}
+                    {app.name}
                   </button>
                 ))}
               </div>
@@ -559,9 +567,17 @@ export default function Financials() {
 
               <div className="neumorphic-pressed p-4 rounded-xl bg-white">
                 <p className="text-xs text-slate-500 mb-1">Medio</p>
-                <p className="text-lg font-bold text-slate-800">
-                  €{processedData.comparisonData.avgOrderValue.toFixed(2)}
-                </p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-lg font-bold text-slate-800">
+                    €{processedData.comparisonData.avgOrderValue.toFixed(2)}
+                  </p>
+                  <p className={`text-xs font-medium ${
+                    processedData.comparisonData.avgOrderValueDiff >= 0 ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {processedData.comparisonData.avgOrderValueDiff >= 0 ? '+' : ''}
+                    {processedData.comparisonData.avgOrderValueDiffPercent.toFixed(1)}%
+                  </p>
+                </div>
               </div>
             </div>
           </NeumorphicCard>
@@ -610,9 +626,16 @@ export default function Financials() {
                 <TrendingUp className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
               </div>
               <h3 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1">
-                {processedData.deliveryAppBreakdown.reduce((sum, app) => sum + app.orders, 0)}
+                {(() => {
+                  const storeApp = processedData.deliveryAppBreakdown.find(app => 
+                    app.name.toLowerCase() === 'store'
+                  );
+                  const totalAppRevenue = processedData.deliveryAppBreakdown.reduce((sum, app) => sum + app.value, 0);
+                  const storeRevenue = storeApp?.value || 0;
+                  return totalAppRevenue > 0 ? ((storeRevenue / totalAppRevenue) * 100).toFixed(1) : 0;
+                })()}%
               </h3>
-              <p className="text-xs text-slate-500">Delivery</p>
+              <p className="text-xs text-slate-500">Store su App</p>
             </div>
           </NeumorphicCard>
         </div>
