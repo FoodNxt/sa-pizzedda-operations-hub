@@ -186,6 +186,12 @@ const navigationStructure = [
         icon: Edit,
       },
       {
+        title: "Controllo Consumi",
+        url: createPageUrl("ControlloConsumi"),
+        icon: BarChart3,
+        requiredUserType: ["admin"]
+      },
+      {
         title: "Inventory Admin",
         url: createPageUrl("InventarioAdmin"),
         icon: Settings,

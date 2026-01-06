@@ -170,6 +170,7 @@ export default function GestioneAccessoPagine() {
     { value: 'AnalisiSprechi', label: 'Analisi Sprechi', category: 'Inventory' },
     { value: 'InventarioAdmin', label: 'Inventario Admin', category: 'Inventory' },
     { value: 'InventarioStoreManager', label: 'Inventario Store Manager', category: 'Inventory' },
+    { value: 'ControlloConsumi', label: 'Controllo Consumi', category: 'Inventory' },
     { value: 'FormInventario', label: 'Form Inventario', category: 'Inventory' },
     { value: 'FormCantina', label: 'Form Cantina', category: 'Inventory' },
     { value: 'QuantitaMinime', label: 'Quantità Minime', category: 'Inventory' },

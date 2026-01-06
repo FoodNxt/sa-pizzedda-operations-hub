@@ -56,6 +56,7 @@ const DEFAULT_MENU_STRUCTURE = [
       { title: "Precotture", page: "PrecottureAdmin", icon: "Pizza" },
       { title: "Ordini Fornitori", page: "OrdiniAdmin", icon: "ShoppingCart" },
       { title: "Forms", page: "InventoryForms", icon: "Edit" },
+      { title: "Controllo Consumi", page: "ControlloConsumi", icon: "BarChart3" },
       { title: "Inventory Admin", page: "InventarioAdmin", icon: "Settings" }
     ]
   },
