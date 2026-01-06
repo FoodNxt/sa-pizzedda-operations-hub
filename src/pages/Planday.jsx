@@ -205,6 +205,12 @@ export default function Planday() {
     queryFn: () => base44.entities.Candidato.filter({ stato: { $in: ['nuovo', 'in_valutazione', 'prova_programmata'] } }),
   });
 
+  // Carica TUTTE le disponibilità (non filtrate) per verifiche nel form
+  const { data: tutteDisponibilita = [] } = useQuery({
+    queryKey: ['tutte-disponibilita'],
+    queryFn: () => base44.entities.Disponibilita.list(),
+  });
+
   const { data: disponibilita = [] } = useQuery({
     queryKey: ['disponibilita', selectedDipendenteDisp],
     queryFn: () => base44.entities.Disponibilita.filter({ dipendente_id: selectedDipendenteDisp }),
@@ -1026,7 +1032,7 @@ export default function Planday() {
     
     // NUOVO: Verifica disponibilità dal sistema Disponibilita
     // Recupera tutte le disponibilità del dipendente
-    const allDisp = disponibilita.filter(d => d.dipendente_id === dipendenteId);
+    const allDisp = tutteDisponibilita.filter(d => d.dipendente_id === dipendenteId);
     const dayOfWeek = moment(turnoForm.data).day();
     
     // Filtra disponibilità applicabili (specifiche o ricorrenti)
