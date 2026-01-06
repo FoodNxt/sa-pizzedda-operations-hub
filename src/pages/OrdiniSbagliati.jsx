@@ -1922,12 +1922,37 @@ export default function OrdiniSbagliati() {
 
                   <div className="mb-6">
                     <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                      Contenuto Lettera
+                      Anteprima Completa Lettera
+                    </label>
+                    <div className="neumorphic-pressed px-4 py-3 rounded-xl bg-white overflow-y-auto max-h-[400px]">
+                      <pre className="text-xs text-[#6b6b6b] whitespace-pre-wrap font-sans">
+                        {letterContent}
+                        {includeOrderDetails && (
+                          <>
+                            {'\n\n--- DETTAGLIO ORDINI SBAGLIATI ---\n\n'}
+                            {selectedEmployee.orders.map((order, idx) => 
+                              `${idx + 1}. ${order.platform.toUpperCase()} - Order ID: ${order.order_id}\n` +
+                              `   Data: ${new Date(order.order_date).toLocaleDateString('it-IT')} ${new Date(order.order_date).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}\n` +
+                              `   Negozio: ${order.store_name}\n` +
+                              `   Totale ordine: €${order.order_total?.toFixed(2) || '0.00'}\n` +
+                              `   Rimborso: €${order.refund_value?.toFixed(2) || '0.00'}\n` +
+                              `   Confidenza abbinamento: ${order.match_confidence}\n`
+                            ).join('\n')}
+                            {`\nTOTALE RIMBORSI: €${selectedEmployee.totalRefunds.toFixed(2)}`}
+                          </>
+                        )}
+                      </pre>
+                    </div>
+                  </div>
+
+                  <div className="mb-6">
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                      Modifica Contenuto Base
                     </label>
                     <textarea
                       value={letterContent}
                       onChange={(e) => setLetterContent(e.target.value)}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none min-h-[300px] font-mono text-sm"
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none min-h-[200px] font-mono text-sm"
                       placeholder="Modifica il contenuto della lettera..."
                     />
                   </div>
