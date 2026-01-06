@@ -291,6 +291,10 @@ export default function Planday() {
     ore_mancata_uscita: 2
   });
 
+  // Disponibilità
+  const [showDisponibilitaModal, setShowDisponibilitaModal] = useState(false);
+  const [selectedDipendenteDisp, setSelectedDipendenteDisp] = useState(null);
+
   const [editingTimbratura, setEditingTimbratura] = useState(null);
   const [timbrForm, setTimbrForm] = useState({ timbrata_entrata: '', timbrata_uscita: '' });
   const [showFormAssignmentDetails, setShowFormAssignmentDetails] = useState(null);
@@ -380,11 +384,6 @@ export default function Planday() {
     richiede_form: true 
   });
   const [editingTipoConfig, setEditingTipoConfig] = useState(null);
-
-  // Disponibilità
-  const [showDisponibilitaModal, setShowDisponibilitaModal] = useState(false);
-  const [selectedDipendenteDisp, setSelectedDipendenteDisp] = useState(null);
-  const [disponibilitaView, setDisponibilitaView] = useState('calendario'); // 'calendario' o 'ricorrenti'
 
   React.useEffect(() => {
     if (config) {
