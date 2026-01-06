@@ -914,8 +914,6 @@ export default function AnalisiSprechi() {
           </NeumorphicCard>
         </div>
       )}
-        </>
-      )}
     </div>
   );
 }
