@@ -62,6 +62,8 @@ export default function OrdiniSbagliati() {
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [expandedEmployees, setExpandedEmployees] = useState({});
+  const [letterContent, setLetterContent] = useState('');
+  const [includeOrderDetails, setIncludeOrderDetails] = useState(true);
 
   const queryClient = useQueryClient();
 
@@ -1810,7 +1812,7 @@ export default function OrdiniSbagliati() {
                                           </td>
                                           <td className="p-2 font-mono text-xs text-[#6b6b6b]">{order.order_id}</td>
                                           <td className="p-2 text-xs text-[#6b6b6b]">
-                                            {new Date(order.order_date).toLocaleDateString('it-IT')}
+                                            {new Date(order.order_date).toLocaleDateString('it-IT')} {new Date(order.order_date).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
                                           </td>
                                           <td className="p-2 text-xs text-[#6b6b6b]">{order.store_name}</td>
                                           <td className="p-2 text-right text-xs text-[#6b6b6b]">€{order.order_total?.toFixed(2) || '0.00'}</td>
@@ -1884,7 +1886,13 @@ export default function OrdiniSbagliati() {
                 </label>
                 <select
                   value={selectedTemplate}
-                  onChange={(e) => setSelectedTemplate(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedTemplate(e.target.value);
+                    const template = letterTemplates.find(t => t.id === e.target.value);
+                    if (template) {
+                      setLetterContent(template.contenuto || '');
+                    }
+                  }}
                   className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                 >
                   <option value="">-- Seleziona template --</option>
@@ -1896,16 +1904,33 @@ export default function OrdiniSbagliati() {
                 </select>
               </div>
 
-              {selectedTemplate && (() => {
-                const template = letterTemplates.find(t => t.id === selectedTemplate);
-                return template ? (
-                  <div className="neumorphic-pressed p-4 rounded-xl bg-blue-50 mb-6">
-                    <p className="text-sm font-bold text-blue-800 mb-2">📄 Anteprima Template</p>
-                    <p className="text-xs text-blue-700"><strong>Oggetto:</strong> {template.oggetto}</p>
-                    <p className="text-xs text-blue-700 mt-2 whitespace-pre-wrap">{template.contenuto?.substring(0, 200)}...</p>
+              {selectedTemplate && (
+                <>
+                  <div className="mb-4">
+                    <label className="flex items-center gap-2 text-sm text-[#6b6b6b] cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includeOrderDetails}
+                        onChange={(e) => setIncludeOrderDetails(e.target.checked)}
+                        className="w-4 h-4"
+                      />
+                      Includi dettaglio ordini sbagliati nella lettera
+                    </label>
                   </div>
-                ) : null;
-              })()}
+
+                  <div className="mb-6">
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                      Contenuto Lettera
+                    </label>
+                    <textarea
+                      value={letterContent}
+                      onChange={(e) => setLetterContent(e.target.value)}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none min-h-[300px] font-mono text-sm"
+                      placeholder="Modifica il contenuto della lettera..."
+                    />
+                  </div>
+                </>
+              )}
 
               <div className="flex gap-3">
                 <NeumorphicButton
@@ -1929,6 +1954,24 @@ export default function OrdiniSbagliati() {
                       const template = letterTemplates.find(t => t.id === selectedTemplate);
                       const employee = employees.find(e => e.full_name === selectedEmployee.dipendente_nome);
 
+                      let finalContent = letterContent;
+
+                      // Add order details if requested
+                      if (includeOrderDetails) {
+                        const ordersTable = '\n\n--- DETTAGLIO ORDINI SBAGLIATI ---\n\n' + 
+                          selectedEmployee.orders.map((order, idx) => 
+                            `${idx + 1}. ${order.platform.toUpperCase()} - Order ID: ${order.order_id}\n` +
+                            `   Data: ${new Date(order.order_date).toLocaleDateString('it-IT')} ${new Date(order.order_date).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}\n` +
+                            `   Negozio: ${order.store_name}\n` +
+                            `   Totale ordine: €${order.order_total?.toFixed(2) || '0.00'}\n` +
+                            `   Rimborso: €${order.refund_value?.toFixed(2) || '0.00'}\n` +
+                            `   Confidenza abbinamento: ${order.match_confidence}\n`
+                          ).join('\n') +
+                          `\nTOTALE RIMBORSI: €${selectedEmployee.totalRefunds.toFixed(2)}`;
+                        
+                        finalContent += ordersTable;
+                      }
+
                       // Create letter record
                       await base44.entities.LetteraRichiamo.create({
                         dipendente_id: employee?.id || null,
@@ -1936,7 +1979,7 @@ export default function OrdiniSbagliati() {
                         template_id: template.id,
                         tipo_lettera: template.tipo_lettera,
                         oggetto: template.oggetto,
-                        contenuto: template.contenuto,
+                        contenuto: finalContent,
                         data_invio: new Date().toISOString(),
                         inviato_da: (await base44.auth.me()).email,
                         motivo: `Ordini sbagliati: ${selectedEmployee.count} ordini nel periodo selezionato`,
@@ -1947,6 +1990,8 @@ export default function OrdiniSbagliati() {
                       setShowLetterModal(false);
                       setSelectedEmployee(null);
                       setSelectedTemplate('');
+                      setLetterContent('');
+                      setIncludeOrderDetails(true);
                     } catch (error) {
                       alert('Errore: ' + error.message);
                     }
