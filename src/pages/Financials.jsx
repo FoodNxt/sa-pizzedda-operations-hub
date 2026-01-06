@@ -635,7 +635,7 @@ export default function Financials() {
                   return totalAppRevenue > 0 ? ((storeRevenue / totalAppRevenue) * 100).toFixed(1) : 0;
                 })()}%
               </h3>
-              <p className="text-xs text-slate-500">Store su App</p>
+              <p className="text-xs text-slate-500">% in Store</p>
             </div>
           </NeumorphicCard>
         </div>
