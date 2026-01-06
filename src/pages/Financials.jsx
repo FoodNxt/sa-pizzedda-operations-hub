@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DollarSign, TrendingUp, Filter, Calendar, X, Settings, Eye, EyeOff, Save } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { format, subDays, isAfter, isBefore, parseISO, isValid } from 'date-fns';
+import { format, subDays, isAfter, isBefore, parseISO, isValid, addDays, subYears, eachDayOfInterval } from 'date-fns';
 import ProtectedPage from "../components/ProtectedPage";
 
 export default function Financials() {
@@ -19,6 +19,11 @@ export default function Financials() {
   const [showAppSettings, setShowAppSettings] = useState(false);
   const [channelMapping, setChannelMapping] = useState({});
   const [appMapping, setAppMapping] = useState({});
+  const [compareMode, setCompareMode] = useState('none');
+  const [compareStartDate, setCompareStartDate] = useState('');
+  const [compareEndDate, setCompareEndDate] = useState('');
+  const [selectedChannels, setSelectedChannels] = useState([]);
+  const [selectedApps, setSelectedApps] = useState([]);
 
   const queryClient = useQueryClient();
 
@@ -118,8 +123,20 @@ export default function Financials() {
     
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
+    // Generate ALL days in range (including zero-revenue days)
+    const allDaysInRange = cutoffDate && endFilterDate 
+      ? eachDayOfInterval({ start: cutoffDate, end: endFilterDate })
+      : [];
+
     const revenueByDate = {};
     
+    // Initialize all days with 0
+    allDaysInRange.forEach(day => {
+      const dateStr = format(day, 'yyyy-MM-dd');
+      revenueByDate[dateStr] = { date: dateStr, revenue: 0, orders: 0 };
+    });
+    
+    // Fill in actual data
     filtered.forEach(item => {
       if (!item.order_date) return;
       const date = item.order_date;
@@ -178,6 +195,12 @@ export default function Financials() {
       types.forEach(type => {
         if (type.revenue > 0 || type.orders > 0) {
           const mappedKey = channelMapping[type.key] || type.key;
+          
+          // Apply channel filter
+          if (selectedChannels.length > 0 && !selectedChannels.includes(mappedKey)) {
+            return;
+          }
+          
           if (!revenueByType[mappedKey]) {
             revenueByType[mappedKey] = { name: mappedKey, value: 0, orders: 0 };
           }
@@ -211,6 +234,12 @@ export default function Financials() {
       apps.forEach(app => {
         if (app.revenue > 0 || app.orders > 0) {
           const mappedKey = appMapping[app.key] || app.key;
+          
+          // Apply app filter
+          if (selectedApps.length > 0 && !selectedApps.includes(mappedKey)) {
+            return;
+          }
+          
           if (!revenueByApp[mappedKey]) {
             revenueByApp[mappedKey] = { name: mappedKey, value: 0, orders: 0 };
           }
@@ -267,6 +296,50 @@ export default function Financials() {
         return a.parsedDate.getTime() - b.parsedDate.getTime();
       });
 
+    // Comparison data
+    let comparisonData = null;
+    if (compareMode !== 'none' && cutoffDate && endFilterDate) {
+      let compareStart, compareEnd;
+      
+      if (compareMode === 'previous') {
+        const daysDiff = Math.ceil((endFilterDate - cutoffDate) / (1000 * 60 * 60 * 24));
+        compareEnd = subDays(cutoffDate, 1);
+        compareStart = subDays(compareEnd, daysDiff);
+      } else if (compareMode === 'lastyear') {
+        compareStart = subYears(cutoffDate, 1);
+        compareEnd = subYears(endFilterDate, 1);
+      } else if (compareMode === 'custom' && compareStartDate && compareEndDate) {
+        compareStart = safeParseDate(compareStartDate + 'T00:00:00');
+        compareEnd = safeParseDate(compareEndDate + 'T23:59:59');
+      }
+      
+      if (compareStart && compareEnd) {
+        const compareFiltered = iPraticoData.filter(item => {
+          if (!item.order_date) return false;
+          const itemDateStart = safeParseDate(item.order_date + 'T00:00:00');
+          const itemDateEnd = safeParseDate(item.order_date + 'T23:59:59');
+          if (!itemDateStart || !itemDateEnd) return false;
+          if (isBefore(itemDateEnd, compareStart)) return false;
+          if (isAfter(itemDateStart, compareEnd)) return false;
+          if (selectedStore !== 'all' && item.store_id !== selectedStore) return false;
+          return true;
+        });
+        
+        const compareTotalRevenue = compareFiltered.reduce((sum, item) => sum + (item.total_revenue || 0), 0);
+        const compareTotalOrders = compareFiltered.reduce((sum, item) => sum + (item.total_orders || 0), 0);
+        
+        comparisonData = {
+          totalRevenue: compareTotalRevenue,
+          totalOrders: compareTotalOrders,
+          avgOrderValue: compareTotalOrders > 0 ? compareTotalRevenue / compareTotalOrders : 0,
+          revenueDiff: totalRevenue - compareTotalRevenue,
+          revenueDiffPercent: compareTotalRevenue > 0 ? ((totalRevenue - compareTotalRevenue) / compareTotalRevenue) * 100 : 0,
+          ordersDiff: totalOrders - compareTotalOrders,
+          ordersDiffPercent: compareTotalOrders > 0 ? ((totalOrders - compareTotalOrders) / compareTotalOrders) * 100 : 0
+        };
+      }
+    }
+
     return {
       totalRevenue,
       totalOrders,
@@ -275,9 +348,10 @@ export default function Financials() {
       dailyRevenueMultiStore,
       storeBreakdown,
       channelBreakdown,
-      deliveryAppBreakdown
+      deliveryAppBreakdown,
+      comparisonData
     };
-  }, [iPraticoData, selectedStore, dateRange, startDate, endDate, selectedStoresForTrend, channelMapping, appMapping]);
+  }, [iPraticoData, selectedStore, dateRange, startDate, endDate, selectedStoresForTrend, channelMapping, appMapping, compareMode, compareStartDate, compareEndDate, selectedChannels, selectedApps]);
 
   const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4'];
 
@@ -361,8 +435,137 @@ export default function Financials() {
                 </div>
               </div>
             )}
+
+            <div>
+              <label className="text-sm text-slate-600 mb-2 block">Confronta con</label>
+              <select
+                value={compareMode}
+                onChange={(e) => setCompareMode(e.target.value)}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+              >
+                <option value="none">Nessun confronto</option>
+                <option value="previous">Periodo Precedente</option>
+                <option value="lastyear">Anno Scorso</option>
+                <option value="custom">Personalizzato</option>
+              </select>
+            </div>
+
+            {compareMode === 'custom' && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block">Confronta Da</label>
+                  <input
+                    type="date"
+                    value={compareStartDate}
+                    onChange={(e) => setCompareStartDate(e.target.value)}
+                    className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block">Confronta A</label>
+                  <input
+                    type="date"
+                    value={compareEndDate}
+                    onChange={(e) => setCompareEndDate(e.target.value)}
+                    className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="text-sm text-slate-600 mb-2 block">Canali</label>
+              <div className="flex flex-wrap gap-2">
+                {Array.from(new Set(Object.values(channelMapping).concat(['delivery', 'takeaway', 'takeawayOnSite', 'store']))).map(channel => (
+                  <button
+                    key={channel}
+                    onClick={() => {
+                      setSelectedChannels(prev => 
+                        prev.includes(channel) ? prev.filter(c => c !== channel) : [...prev, channel]
+                      );
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      selectedChannels.includes(channel) || selectedChannels.length === 0
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-slate-200 text-slate-600'
+                    }`}
+                  >
+                    {channel}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm text-slate-600 mb-2 block">App Delivery</label>
+              <div className="flex flex-wrap gap-2">
+                {Array.from(new Set(Object.values(appMapping).concat(['glovo', 'deliveroo', 'justeat', 'onlineordering', 'ordertable', 'tabesto', 'store']))).map(app => (
+                  <button
+                    key={app}
+                    onClick={() => {
+                      setSelectedApps(prev => 
+                        prev.includes(app) ? prev.filter(a => a !== app) : [...prev, app]
+                      );
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      selectedApps.includes(app) || selectedApps.length === 0
+                        ? 'bg-green-500 text-white'
+                        : 'bg-slate-200 text-slate-600'
+                    }`}
+                  >
+                    {app}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </NeumorphicCard>
+
+        {/* Comparison Stats */}
+        {processedData.comparisonData && (
+          <NeumorphicCard className="p-4 lg:p-6 bg-gradient-to-br from-blue-50 to-blue-100">
+            <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Confronto Periodi</h2>
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="neumorphic-pressed p-4 rounded-xl bg-white">
+                <p className="text-xs text-slate-500 mb-1">Revenue</p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-lg font-bold text-slate-800">
+                    €{(processedData.comparisonData.totalRevenue / 1000).toFixed(1)}k
+                  </p>
+                  <p className={`text-xs font-medium ${
+                    processedData.comparisonData.revenueDiff >= 0 ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {processedData.comparisonData.revenueDiff >= 0 ? '+' : ''}
+                    {processedData.comparisonData.revenueDiffPercent.toFixed(1)}%
+                  </p>
+                </div>
+              </div>
+
+              <div className="neumorphic-pressed p-4 rounded-xl bg-white">
+                <p className="text-xs text-slate-500 mb-1">Ordini</p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-lg font-bold text-slate-800">
+                    {processedData.comparisonData.totalOrders}
+                  </p>
+                  <p className={`text-xs font-medium ${
+                    processedData.comparisonData.ordersDiff >= 0 ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {processedData.comparisonData.ordersDiff >= 0 ? '+' : ''}
+                    {processedData.comparisonData.ordersDiffPercent.toFixed(1)}%
+                  </p>
+                </div>
+              </div>
+
+              <div className="neumorphic-pressed p-4 rounded-xl bg-white">
+                <p className="text-xs text-slate-500 mb-1">Medio</p>
+                <p className="text-lg font-bold text-slate-800">
+                  €{processedData.comparisonData.avgOrderValue.toFixed(2)}
+                </p>
+              </div>
+            </div>
+          </NeumorphicCard>
+        )}
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           <NeumorphicCard className="p-4">
