@@ -8,7 +8,8 @@ import {
   ChefHat,
   ClipboardCheck,
   ArrowRight,
-  Truck
+  Truck,
+  Settings
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import ProtectedPage from "../components/ProtectedPage";
@@ -49,6 +50,13 @@ export default function InventoryForms() {
       icon: Package,
       url: createPageUrl("FormSpostamenti"),
       color: "from-indigo-500 to-purple-600"
+    },
+    {
+      title: "Inventario Store Manager",
+      description: "Gestione inventario Store Manager",
+      icon: Settings,
+      url: createPageUrl("InventarioStoreManager"),
+      color: "from-slate-500 to-slate-700"
     }
   ];
 
@@ -97,6 +105,7 @@ export default function InventoryForms() {
                 <li>• <strong>Teglie Buttate</strong>: monitora gli sprechi giornalieri</li>
                 <li>• <strong>Preparazioni</strong>: traccia i pesi delle preparazioni</li>
                 <li>• <strong>Spostamenti</strong>: registra trasferimenti tra negozi</li>
+                <li>• <strong>Inventario Store Manager</strong>: gestione completa inventario</li>
               </ul>
             </div>
           </div>

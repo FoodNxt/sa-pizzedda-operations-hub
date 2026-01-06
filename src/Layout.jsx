@@ -954,6 +954,47 @@ export default function Layout({ children, currentPageName }) {
 
   const normalizedUserType = currentUser ? getNormalizedUserType(currentUser.user_type) : null;
   
+  // Map page names to URLs for loaded menu structure
+  const getUrlForPage = (pageName) => {
+    return createPageUrl(pageName);
+  };
+
+  const getIconComponent = (iconName) => {
+    const iconMap = {
+      LayoutDashboard, MapPin, DollarSign, Users, Pizza, Zap, Star, Clock, UserCheck, 
+      BarChart3, AlertTriangle, Package, Upload, Camera, ClipboardCheck, User, 
+      ClipboardList, ChefHat, CheckSquare, Truck, LinkIcon, ShoppingCart, GraduationCap, 
+      FileText, BookOpen, Settings, Home, Edit, LogOut, Calendar, Bell, Cloud, TrendingUp, Menu
+    };
+    return iconMap[iconName] || User;
+  };
+
+  const processMenuStructure = (structure) => {
+    if (!structure) return [];
+    
+    return structure.map(section => ({
+      ...section,
+      icon: getIconComponent(section.icon),
+      items: section.items.map(item => ({
+        ...item,
+        url: getUrlForPage(item.page),
+        icon: getIconComponent(item.icon)
+      }))
+    }));
+  };
+
+  const processedNavigation = menuStructure ? processMenuStructure(menuStructure) : navigationStructure;
+  
+  const filteredNavigation = (!isLoadingConfig && !isLoadingUser && currentUser) 
+    ? processedNavigation
+        .filter(section => hasAccess(section.requiredUserType))
+        .map(section => ({
+          ...section,
+          items: section.items.filter(item => hasAccess(item.requiredUserType, item.requiredRole))
+        }))
+        .filter(section => section.items.length > 0)
+    : [];
+
   const finalNavigation = (!isLoadingConfig && !isLoadingUser && currentUser)
     ? (normalizedUserType === 'dipendente' ? (dipendenteNav || []) : filteredNavigation)
     : [];
