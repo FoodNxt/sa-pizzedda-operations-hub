@@ -19,7 +19,14 @@ export default function DisponibilitaCalendar({ dipendente, disponibilita = [] }
   const queryClient = useQueryClient();
 
   const createDisponibilitaMutation = useMutation({
-    mutationFn: (data) => base44.entities.Disponibilita.create(data),
+    mutationFn: async (data) => {
+      const user = await base44.auth.me();
+      const creatoAdmin = user.user_type === 'admin' || user.user_type === 'manager';
+      return base44.entities.Disponibilita.create({
+        ...data,
+        creato_da_admin: creatoAdmin
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['disponibilita'] });
       setShowSlotForm(false);
@@ -77,8 +84,7 @@ export default function DisponibilitaCalendar({ dipendente, disponibilita = [] }
       data_specifica: slotForm.data,
       ora_inizio: slotForm.ora_inizio,
       ora_fine: slotForm.ora_fine,
-      ricorrente: false,
-      creato_da_admin: true
+      ricorrente: false
     });
   };
 

@@ -4,12 +4,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
+import DisponibilitaCalendar from "../components/disponibilita/DisponibilitaCalendar";
+import DisponibilitaRicorrenti from "../components/disponibilita/DisponibilitaRicorrenti";
 import { 
   Calendar, Clock, MapPin, CheckCircle, AlertCircle, 
   Loader2, LogIn, LogOut, ChevronLeft, ChevronRight,
   RefreshCw, X, AlertTriangle, Users, Store as StoreIcon, Navigation, Timer, ClipboardList,
   Palmtree, Thermometer, Upload, FileText, ExternalLink, GraduationCap, Check, Square, CheckSquare, ArrowRightLeft,
-  Coffee, ChefHat, Pizza
+  Coffee, ChefHat, Pizza, CalendarClock
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -23,7 +25,7 @@ const COLORI_RUOLO = {
 };
 
 export default function TurniDipendente() {
-  const [activeView, setActiveView] = useState('prossimo'); // 'prossimo', 'tutti', 'ferie', 'malattia', 'liberi', 'scambi'
+  const [activeView, setActiveView] = useState('prossimo'); // 'prossimo', 'tutti', 'ferie', 'malattia', 'liberi', 'scambi', 'disponibilita'
   const [weekStart, setWeekStart] = useState(moment().startOf('isoWeek'));
   const [currentPosition, setCurrentPosition] = useState(null);
   const [gpsError, setGpsError] = useState(null);
@@ -272,6 +274,12 @@ export default function TurniDipendente() {
   const { data: ricettaImpasto = [] } = useQuery({
     queryKey: ['ricetta-impasto'],
     queryFn: () => base44.entities.RicettaImpasto.list(),
+  });
+
+  const { data: mieDisponibilita = [] } = useQuery({
+    queryKey: ['disponibilita', currentUser?.id],
+    queryFn: () => base44.entities.Disponibilita.filter({ dipendente_id: currentUser.id }),
+    enabled: !!currentUser?.id,
   });
 
   // Turni del dipendente corrente
@@ -1352,6 +1360,14 @@ export default function TurniDipendente() {
                   {scambiPerMe.length + scambiDaMePending.length}
                 </span>
               )}
+            </NeumorphicButton>
+            <NeumorphicButton 
+              onClick={() => setActiveView('disponibilita')}
+              variant={activeView === 'disponibilita' ? 'primary' : 'default'}
+              className="flex items-center gap-2"
+            >
+              <CalendarClock className="w-4 h-4" />
+              Disponibilità
             </NeumorphicButton>
           </div>
         </div>
@@ -2717,6 +2733,41 @@ export default function TurniDipendente() {
               </div>
             )}
           </NeumorphicCard>
+        )}
+
+        {/* VISTA: DISPONIBILITÀ */}
+        {activeView === 'disponibilita' && currentUser && (
+          <>
+            <NeumorphicCard className="p-4 bg-blue-50 border border-blue-200">
+              <p className="text-sm text-blue-800">
+                <strong>ℹ️ Disponibilità:</strong> Indica quando sei disponibile o non disponibile a lavorare. 
+                Gli amministratori riceveranno un avviso se cercano di assegnarti un turno in un momento in cui non sei disponibile.
+              </p>
+            </NeumorphicCard>
+
+            {/* Tabs: Calendario vs Ricorrenti */}
+            <div className="flex gap-2">
+              <NeumorphicButton
+                onClick={() => setActiveView('disponibilita')}
+                variant="primary"
+                className="flex-1"
+              >
+                Vista Calendario
+              </NeumorphicButton>
+            </div>
+
+            <DisponibilitaCalendar 
+              dipendente={currentUser} 
+              disponibilita={mieDisponibilita} 
+            />
+
+            <div className="mt-6">
+              <DisponibilitaRicorrenti 
+                dipendente={currentUser} 
+                disponibilita={mieDisponibilita} 
+              />
+            </div>
+          </>
         )}
 
         {/* Modal Scambio Turno */}

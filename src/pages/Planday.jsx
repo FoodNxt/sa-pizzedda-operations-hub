@@ -8,10 +8,12 @@ import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
 import PlandayStoreView from "../components/planday/PlandayStoreView";
 import PlandayEmployeeView from "../components/planday/PlandayEmployeeView";
+import DisponibilitaCalendar from "../components/disponibilita/DisponibilitaCalendar";
+import DisponibilitaRicorrenti from "../components/disponibilita/DisponibilitaRicorrenti";
 import { 
   Calendar, ChevronLeft, ChevronRight, Plus, X, Save, Clock, 
   User, Store as StoreIcon, Trash2, Edit, Settings, Loader2, MapPin, Users, LayoutGrid,
-  CheckCircle, XCircle, AlertTriangle
+  CheckCircle, XCircle, AlertTriangle, CalendarClock
 } from "lucide-react";
 import moment from "moment";
 import "moment/locale/it";
@@ -203,6 +205,12 @@ export default function Planday() {
     queryFn: () => base44.entities.Candidato.filter({ stato: { $in: ['nuovo', 'in_valutazione', 'prova_programmata'] } }),
   });
 
+  const { data: disponibilita = [] } = useQuery({
+    queryKey: ['disponibilita', selectedDipendenteDisp],
+    queryFn: () => base44.entities.Disponibilita.filter({ dipendente_id: selectedDipendenteDisp }),
+    enabled: !!selectedDipendenteDisp,
+  });
+
   // Listen for changes in trial shifts to update candidati
   const updateCandidatoFromTrialShift = useMutation({
     mutationFn: async ({ turno }) => {
@@ -366,6 +374,11 @@ export default function Planday() {
     richiede_form: true 
   });
   const [editingTipoConfig, setEditingTipoConfig] = useState(null);
+
+  // Disponibilità
+  const [showDisponibilitaModal, setShowDisponibilitaModal] = useState(false);
+  const [selectedDipendenteDisp, setSelectedDipendenteDisp] = useState(null);
+  const [disponibilitaView, setDisponibilitaView] = useState('calendario'); // 'calendario' o 'ricorrenti'
 
   React.useEffect(() => {
     if (config) {
@@ -986,7 +999,7 @@ export default function Planday() {
 
   // Verifica disponibilità dipendente per il giorno/orario del turno
   const getDipendenteDisponibilita = (dipendenteId) => {
-    if (!turnoForm.data || !dipendenteId) return { disponibile: true, turniGiorno: [], sovrapposizione: false };
+    if (!turnoForm.data || !dipendenteId) return { disponibile: true, turniGiorno: [], sovrapposizione: false, nonDisponibile: false };
     
     // Trova tutti i turni del dipendente in quel giorno
     const turniGiorno = turni.filter(t => 
@@ -994,10 +1007,6 @@ export default function Planday() {
       t.data === turnoForm.data &&
       (editingTurno ? t.id !== editingTurno.id : true) // Escludi il turno che stiamo modificando
     );
-    
-    if (turniGiorno.length === 0) {
-      return { disponibile: true, turniGiorno: [], sovrapposizione: false };
-    }
     
     // Verifica sovrapposizione oraria
     const [newStartH, newStartM] = turnoForm.ora_inizio.split(':').map(Number);
@@ -1015,10 +1024,38 @@ export default function Planday() {
       return (newStart < tEnd && newEnd > tStart);
     });
     
+    // NUOVO: Verifica disponibilità dal sistema Disponibilita
+    // Recupera tutte le disponibilità del dipendente
+    const allDisp = disponibilita.filter(d => d.dipendente_id === dipendenteId);
+    const dayOfWeek = moment(turnoForm.data).day();
+    
+    // Filtra disponibilità applicabili (specifiche o ricorrenti)
+    const dispApplicabili = allDisp.filter(d => {
+      if (d.ricorrente) {
+        return d.giorno_settimana === dayOfWeek;
+      } else {
+        return d.data_specifica === turnoForm.data;
+      }
+    });
+    
+    // Verifica se c'è una non-disponibilità in questo slot
+    const nonDisponibile = dispApplicabili.some(d => {
+      if (d.tipo !== 'non_disponibile') return false;
+      
+      const [dStartH, dStartM] = d.ora_inizio.split(':').map(Number);
+      const [dEndH, dEndM] = d.ora_fine.split(':').map(Number);
+      const dStart = dStartH * 60 + dStartM;
+      const dEnd = dEndH * 60 + dEndM;
+      
+      // Verifica sovrapposizione tra turno e slot di non-disponibilità
+      return (newStart < dEnd && newEnd > dStart);
+    });
+    
     return { 
-      disponibile: !sovrapposizione, 
+      disponibile: !sovrapposizione && !nonDisponibile, 
       turniGiorno, 
-      sovrapposizione 
+      sovrapposizione,
+      nonDisponibile
     };
   };
 
@@ -1435,9 +1472,18 @@ export default function Planday() {
               <Clock className="w-4 h-4" />
               Timbrature
             </NeumorphicButton>
-
-          </div>
-        </div>
+            <NeumorphicButton 
+              onClick={() => {
+                setShowDisponibilitaModal(true);
+                setSelectedDipendenteDisp(null);
+              }}
+              className="flex items-center gap-2"
+            >
+              <CalendarClock className="w-4 h-4" />
+              Disponibilità
+            </NeumorphicButton>
+            </div>
+            </div>
 
         {/* Main Content - Gestione Turni */}
         {mainView === 'turni' && (
@@ -1688,6 +1734,9 @@ export default function Planday() {
                   if (!canAssign) {
                     statusEmoji = '🚫';
                     label = `${nome} (non è ${turnoForm.ruolo})`;
+                  } else if (disponibilita.nonDisponibile) {
+                    statusEmoji = '🚫';
+                    label = `${nome} (NON DISPONIBILE in questo orario)`;
                   } else if (disponibilita.sovrapposizione) {
                     statusEmoji = '⚠️';
                     label = `${nome} (OCCUPATO - sovrapposizione orario)`;
@@ -1714,6 +1763,14 @@ export default function Planday() {
               </select>
               {turnoForm.dipendente_id && (() => {
                 const disponibilita = getDipendenteDisponibilita(turnoForm.dipendente_id);
+                if (disponibilita.nonDisponibile) {
+                  return (
+                    <p className="text-xs text-red-600 mt-1 flex items-center gap-1 font-bold">
+                      <AlertTriangle className="w-3 h-3" />
+                      ⚠️ ATTENZIONE: Il dipendente ha segnalato NON DISPONIBILITÀ in questo orario!
+                    </p>
+                  );
+                }
                 if (disponibilita.sovrapposizione) {
                   return (
                     <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
@@ -2386,6 +2443,9 @@ export default function Planday() {
                       if (!canAssign) {
                         statusEmoji = '🚫';
                         label = `${nome} (non ${turnoForm.ruolo})`;
+                      } else if (disponibilita.nonDisponibile) {
+                        statusEmoji = '🚫';
+                        label = `${nome} (NON DISPONIBILE)`;
                       } else if (disponibilita.sovrapposizione) {
                         statusEmoji = '⚠️';
                         label = `${nome} (OCCUPATO)`;
@@ -3844,6 +3904,66 @@ export default function Planday() {
           </div>
         )}
 
+        {/* Modal Disponibilità Dipendente */}
+        {showDisponibilitaModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <NeumorphicCard className="p-6 my-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-slate-800">Gestione Disponibilità</h2>
+                  <button onClick={() => setShowDisponibilitaModal(false)} className="nav-button p-2 rounded-lg">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Selezione Dipendente */}
+                <div className="mb-6">
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Seleziona Dipendente</label>
+                  <select
+                    value={selectedDipendenteDisp || ''}
+                    onChange={(e) => setSelectedDipendenteDisp(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  >
+                    <option value="">-- Seleziona dipendente --</option>
+                    {users.filter(u => u.user_type === 'dipendente' || u.user_type === 'user').map(u => (
+                      <option key={u.id} value={u.id}>
+                        {u.nome_cognome || u.full_name} - {u.ruoli_dipendente?.join(', ')}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {selectedDipendenteDisp && (() => {
+                  const dipendente = users.find(u => u.id === selectedDipendenteDisp);
+                  if (!dipendente) return null;
+
+                  return (
+                    <div className="space-y-4">
+                      <DisponibilitaCalendar 
+                        dipendente={dipendente} 
+                        disponibilita={disponibilita} 
+                      />
+                      
+                      <div className="mt-6">
+                        <DisponibilitaRicorrenti 
+                          dipendente={dipendente} 
+                          disponibilita={disponibilita} 
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {!selectedDipendenteDisp && (
+                  <div className="text-center py-8 text-slate-500">
+                    <CalendarClock className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                    <p>Seleziona un dipendente per gestire le sue disponibilità</p>
+                  </div>
+                )}
+              </NeumorphicCard>
+            </div>
+          </div>
+        )}
 
       </div>
     </ProtectedPage>

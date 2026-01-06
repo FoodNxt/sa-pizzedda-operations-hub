@@ -28,7 +28,14 @@ export default function DisponibilitaRicorrenti({ dipendente, disponibilita = []
   const queryClient = useQueryClient();
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Disponibilita.create(data),
+    mutationFn: async (data) => {
+      const user = await base44.auth.me();
+      const creatoAdmin = user.user_type === 'admin' || user.user_type === 'manager';
+      return base44.entities.Disponibilita.create({
+        ...data,
+        creato_da_admin: creatoAdmin
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['disponibilita'] });
       setShowForm(false);
@@ -59,8 +66,7 @@ export default function DisponibilitaRicorrenti({ dipendente, disponibilita = []
       giorno_settimana: formData.giorno_settimana,
       ora_inizio: formData.ora_inizio,
       ora_fine: formData.ora_fine,
-      note: formData.note,
-      creato_da_admin: true
+      note: formData.note
     });
   };
 
