@@ -13,7 +13,8 @@ export default function ControlloConsumi() {
   const [startDate, setStartDate] = useState(format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [showSettings, setShowSettings] = useState(false);
-  const [selectedProductTypes, setSelectedProductTypes] = useState({
+  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [expandedCategories, setExpandedCategories] = useState({
     materie_prime: true,
     semilavorati: true,
     prodotti_finiti: true
@@ -65,6 +66,44 @@ export default function ControlloConsumi() {
 
     // Default: materie prime
     return 'materie_prime';
+  };
+
+  // Raggruppa prodotti per categoria
+  const productsByCategory = {
+    materie_prime: materiePrime.map(m => ({ id: m.id, nome: m.nome_prodotto })),
+    semilavorati: ricette.filter(r => r.is_semilavorato).map(r => ({ id: r.id, nome: r.nome_prodotto })),
+    prodotti_finiti: ricette.filter(r => !r.is_semilavorato).map(r => ({ id: r.id, nome: r.nome_prodotto }))
+  };
+
+  // Inizializza selectedProducts con tutti i prodotti se vuoto
+  React.useEffect(() => {
+    if (selectedProducts.length === 0 && (materiePrime.length > 0 || ricette.length > 0)) {
+      const allProducts = [
+        ...productsByCategory.materie_prime.map(p => p.id),
+        ...productsByCategory.semilavorati.map(p => p.id),
+        ...productsByCategory.prodotti_finiti.map(p => p.id)
+      ];
+      setSelectedProducts(allProducts);
+    }
+  }, [materiePrime, ricette]);
+
+  const toggleProduct = (productId) => {
+    setSelectedProducts(prev => 
+      prev.includes(productId) 
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId]
+    );
+  };
+
+  const toggleCategory = (category) => {
+    const categoryProducts = productsByCategory[category].map(p => p.id);
+    const allSelected = categoryProducts.every(id => selectedProducts.includes(id));
+    
+    if (allSelected) {
+      setSelectedProducts(prev => prev.filter(id => !categoryProducts.includes(id)));
+    } else {
+      setSelectedProducts(prev => [...new Set([...prev, ...categoryProducts])]);
+    }
   };
 
   // Filtra per store e date
@@ -177,9 +216,8 @@ export default function ControlloConsumi() {
       // Salta se la data non è nel range selezionato
       if (date < startDate || date > endDate) return;
 
-      // Applica filtro tipo prodotto
-      const productType = getProductType(prodottoId, inv.nome_prodotto);
-      if (!selectedProductTypes[productType]) return;
+      // Applica filtro prodotti selezionati
+      if (!selectedProducts.includes(prodottoId)) return;
 
       if (!datiGiornalieriPerProdotto[date]) {
         datiGiornalieriPerProdotto[date] = {};
@@ -405,7 +443,7 @@ export default function ControlloConsumi() {
         {/* Modal Impostazioni */}
         {showSettings && (
           <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <NeumorphicCard className="max-w-md w-full p-6">
+            <NeumorphicCard className="max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-bold text-slate-700">Impostazioni Controllo Consumi</h3>
                 <button onClick={() => setShowSettings(false)} className="text-slate-500 hover:text-slate-700">
@@ -413,50 +451,134 @@ export default function ControlloConsumi() {
                 </button>
               </div>
 
-              <div className="space-y-4">
-                <p className="text-sm text-slate-600 mb-4">Seleziona i tipi di prodotti da monitorare:</p>
+              <p className="text-sm text-slate-600 mb-4">Seleziona i prodotti da monitorare:</p>
 
-                <label className="flex items-center gap-3 p-3 neumorphic-pressed rounded-lg cursor-pointer hover:bg-slate-50">
-                  <input
-                    type="checkbox"
-                    checked={selectedProductTypes.materie_prime}
-                    onChange={(e) => setSelectedProductTypes(prev => ({ ...prev, materie_prime: e.target.checked }))}
-                    className="w-5 h-5 rounded"
-                  />
-                  <div>
-                    <p className="font-medium text-slate-700">Materie Prime</p>
-                    <p className="text-xs text-slate-500">Ingredienti base (farina, pomodoro, mozzarella, ecc.)</p>
+              <div className="space-y-3">
+                {/* Materie Prime */}
+                <div className="neumorphic-pressed rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={productsByCategory.materie_prime.every(p => selectedProducts.includes(p.id))}
+                        onChange={() => toggleCategory('materie_prime')}
+                        className="w-5 h-5 rounded"
+                      />
+                      <div>
+                        <p className="font-bold text-slate-700">Materie Prime</p>
+                        <p className="text-xs text-slate-500">{productsByCategory.materie_prime.length} prodotti</p>
+                      </div>
+                    </label>
+                    <button
+                      onClick={() => setExpandedCategories(prev => ({ ...prev, materie_prime: !prev.materie_prime }))}
+                      className="text-slate-500 hover:text-slate-700"
+                    >
+                      {expandedCategories.materie_prime ? '▼' : '▶'}
+                    </button>
                   </div>
-                </label>
 
-                <label className="flex items-center gap-3 p-3 neumorphic-pressed rounded-lg cursor-pointer hover:bg-slate-50">
-                  <input
-                    type="checkbox"
-                    checked={selectedProductTypes.semilavorati}
-                    onChange={(e) => setSelectedProductTypes(prev => ({ ...prev, semilavorati: e.target.checked }))}
-                    className="w-5 h-5 rounded"
-                  />
-                  <div>
-                    <p className="font-medium text-slate-700">Semilavorati</p>
-                    <p className="text-xs text-slate-500">Prodotti intermedi (impasti, salse preparate, ecc.)</p>
-                  </div>
-                </label>
+                  {expandedCategories.materie_prime && (
+                    <div className="ml-8 space-y-2 max-h-48 overflow-y-auto">
+                      {productsByCategory.materie_prime.map(product => (
+                        <label key={product.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                          <input
+                            type="checkbox"
+                            checked={selectedProducts.includes(product.id)}
+                            onChange={() => toggleProduct(product.id)}
+                            className="w-4 h-4 rounded"
+                          />
+                          <span className="text-sm text-slate-700">{product.nome}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-                <label className="flex items-center gap-3 p-3 neumorphic-pressed rounded-lg cursor-pointer hover:bg-slate-50">
-                  <input
-                    type="checkbox"
-                    checked={selectedProductTypes.prodotti_finiti}
-                    onChange={(e) => setSelectedProductTypes(prev => ({ ...prev, prodotti_finiti: e.target.checked }))}
-                    className="w-5 h-5 rounded"
-                  />
-                  <div>
-                    <p className="font-medium text-slate-700">Prodotti Finiti</p>
-                    <p className="text-xs text-slate-500">Pizze e altri prodotti finali</p>
+                {/* Semilavorati */}
+                <div className="neumorphic-pressed rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={productsByCategory.semilavorati.every(p => selectedProducts.includes(p.id))}
+                        onChange={() => toggleCategory('semilavorati')}
+                        className="w-5 h-5 rounded"
+                      />
+                      <div>
+                        <p className="font-bold text-slate-700">Semilavorati</p>
+                        <p className="text-xs text-slate-500">{productsByCategory.semilavorati.length} prodotti</p>
+                      </div>
+                    </label>
+                    <button
+                      onClick={() => setExpandedCategories(prev => ({ ...prev, semilavorati: !prev.semilavorati }))}
+                      className="text-slate-500 hover:text-slate-700"
+                    >
+                      {expandedCategories.semilavorati ? '▼' : '▶'}
+                    </button>
                   </div>
-                </label>
+
+                  {expandedCategories.semilavorati && (
+                    <div className="ml-8 space-y-2 max-h-48 overflow-y-auto">
+                      {productsByCategory.semilavorati.map(product => (
+                        <label key={product.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                          <input
+                            type="checkbox"
+                            checked={selectedProducts.includes(product.id)}
+                            onChange={() => toggleProduct(product.id)}
+                            className="w-4 h-4 rounded"
+                          />
+                          <span className="text-sm text-slate-700">{product.nome}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Prodotti Finiti */}
+                <div className="neumorphic-pressed rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={productsByCategory.prodotti_finiti.every(p => selectedProducts.includes(p.id))}
+                        onChange={() => toggleCategory('prodotti_finiti')}
+                        className="w-5 h-5 rounded"
+                      />
+                      <div>
+                        <p className="font-bold text-slate-700">Prodotti Finiti</p>
+                        <p className="text-xs text-slate-500">{productsByCategory.prodotti_finiti.length} prodotti</p>
+                      </div>
+                    </label>
+                    <button
+                      onClick={() => setExpandedCategories(prev => ({ ...prev, prodotti_finiti: !prev.prodotti_finiti }))}
+                      className="text-slate-500 hover:text-slate-700"
+                    >
+                      {expandedCategories.prodotti_finiti ? '▼' : '▶'}
+                    </button>
+                  </div>
+
+                  {expandedCategories.prodotti_finiti && (
+                    <div className="ml-8 space-y-2 max-h-48 overflow-y-auto">
+                      {productsByCategory.prodotti_finiti.map(product => (
+                        <label key={product.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                          <input
+                            type="checkbox"
+                            checked={selectedProducts.includes(product.id)}
+                            onChange={() => toggleProduct(product.id)}
+                            className="w-4 h-4 rounded"
+                          />
+                          <span className="text-sm text-slate-700">{product.nome}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="mt-6 flex justify-end">
+              <div className="mt-6 flex justify-between items-center">
+                <p className="text-sm text-slate-600">
+                  {selectedProducts.length} prodotti selezionati
+                </p>
                 <NeumorphicButton onClick={() => setShowSettings(false)} variant="primary">
                   Applica Filtri
                 </NeumorphicButton>

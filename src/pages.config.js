@@ -16,6 +16,7 @@ import ConfrontoListini from './pages/ConfrontoListini';
 import ConteggioCassa from './pages/ConteggioCassa';
 import Contratti from './pages/Contratti';
 import ContrattiDipendente from './pages/ContrattiDipendente';
+import ControlloConsumi from './pages/ControlloConsumi';
 import ControlloPuliziaCassiere from './pages/ControlloPuliziaCassiere';
 import ControlloPuliziaPizzaiolo from './pages/ControlloPuliziaPizzaiolo';
 import ControlloPuliziaStoreManager from './pages/ControlloPuliziaStoreManager';
@@ -92,6 +93,7 @@ import StoreManagerAdmin from './pages/StoreManagerAdmin';
 import StoreReviews from './pages/StoreReviews';
 import StoricoCassa from './pages/StoricoCassa';
 import StoricoImpasti from './pages/StoricoImpasti';
+import strutturamen from './pages/StrutturaMenù';
 import StrutturaTurno from './pages/StrutturaTurno';
 import SummaryAI from './pages/SummaryAI';
 import TeglieButtate from './pages/TeglieButtate';
@@ -104,8 +106,6 @@ import ValutazionePulizie from './pages/ValutazionePulizie';
 import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSetup from './pages/ZapierSetup';
-import strutturamen from './pages/StrutturaMenù';
-import ControlloConsumi from './pages/ControlloConsumi';
 import __Layout from './Layout.jsx';
 
 
@@ -128,6 +128,7 @@ export const PAGES = {
     "ConteggioCassa": ConteggioCassa,
     "Contratti": Contratti,
     "ContrattiDipendente": ContrattiDipendente,
+    "ControlloConsumi": ControlloConsumi,
     "ControlloPuliziaCassiere": ControlloPuliziaCassiere,
     "ControlloPuliziaPizzaiolo": ControlloPuliziaPizzaiolo,
     "ControlloPuliziaStoreManager": ControlloPuliziaStoreManager,
@@ -204,6 +205,7 @@ export const PAGES = {
     "StoreReviews": StoreReviews,
     "StoricoCassa": StoricoCassa,
     "StoricoImpasti": StoricoImpasti,
+    "StrutturaMenù": strutturamen,
     "StrutturaTurno": StrutturaTurno,
     "SummaryAI": SummaryAI,
     "TeglieButtate": TeglieButtate,
@@ -216,8 +218,6 @@ export const PAGES = {
     "ZapierProdottiVenduti": ZapierProdottiVenduti,
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSetup": ZapierSetup,
-    "StrutturaMenù": strutturamen,
-    "ControlloConsumi": ControlloConsumi,
 }
 
 export const pagesConfig = {
