@@ -181,12 +181,6 @@ const navigationStructure = [
         icon: Settings,
       },
       {
-        title: "Inventory Admin",
-        url: createPageUrl("InventarioAdmin"),
-        icon: Settings,
-        requiredUserType: ["admin"]
-      },
-      {
         title: "Ordini Fornitori",
         url: createPageUrl("OrdiniAdmin"),
         icon: ShoppingCart,
@@ -195,6 +189,12 @@ const navigationStructure = [
         title: "Forms",
         url: createPageUrl("InventoryForms"),
         icon: Edit,
+      },
+      {
+        title: "Inventory Admin",
+        url: createPageUrl("InventarioAdmin"),
+        icon: Settings,
+        requiredUserType: ["admin"]
       }
     ]
   },
@@ -423,6 +423,11 @@ const navigationStructure = [
         title: "Gestione Accesso Pagine",
         url: createPageUrl("GestioneAccessoPagine"),
         icon: CheckSquare,
+      },
+      {
+        title: "Struttura Menu",
+        url: createPageUrl("StrutturaMenù"),
+        icon: Menu,
       },
       {
         title: "Funzionamento App",
