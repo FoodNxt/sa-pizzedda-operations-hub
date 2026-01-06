@@ -222,6 +222,7 @@ export default function GestioneAccessoPagine() {
     { value: 'BulkImportProdottiVenduti', label: 'Bulk Import Prodotti Venduti', category: 'Zapier' },
     { value: 'UsersManagement', label: 'Gestione Utenti', category: 'Sistema' },
     { value: 'GestioneAccessoPagine', label: 'Gestione Accesso Pagine', category: 'Sistema' },
+    { value: 'StrutturaMenù', label: 'Struttura Menu', category: 'Sistema' },
     { value: 'FunzionamentoApp', label: 'Funzionamento App', category: 'Sistema' }
   ];
 
