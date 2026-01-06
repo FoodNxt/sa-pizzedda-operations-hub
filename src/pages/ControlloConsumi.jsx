@@ -247,8 +247,7 @@ export default function ControlloConsumi() {
         qtyVenduta,
         qtyArrivata,
         qtyFinale,
-        delta,
-        productType
+        delta
       };
     });
   });
