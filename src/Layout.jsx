@@ -418,16 +418,19 @@ const navigationStructure = [
         title: "Gestione Accesso Pagine",
         url: createPageUrl("GestioneAccessoPagine"),
         icon: CheckSquare,
+        requiredUserType: ["admin"]
       },
       {
         title: "Struttura Menu",
         url: createPageUrl("StrutturaMenù"),
         icon: Menu,
+        requiredUserType: ["admin"]
       },
       {
         title: "Funzionamento App",
         url: createPageUrl("FunzionamentoApp"),
         icon: BookOpen,
+        requiredUserType: ["admin"]
       }
     ]
   }
