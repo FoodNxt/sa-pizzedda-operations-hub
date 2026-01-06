@@ -40,6 +40,7 @@ import FormPrelievi from './pages/FormPrelievi';
 import FormPreparazioni from './pages/FormPreparazioni';
 import FormPulizia from './pages/FormPulizia';
 import FormSpostamenti from './pages/FormSpostamenti';
+import FormSprechi from './pages/FormSprechi';
 import FormTeglieButtate from './pages/FormTeglieButtate';
 import FormTracker from './pages/FormTracker';
 import FormsDipendente from './pages/FormsDipendente';
@@ -103,7 +104,6 @@ import ValutazionePulizie from './pages/ValutazionePulizie';
 import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSetup from './pages/ZapierSetup';
-import FormSprechi from './pages/FormSprechi';
 import __Layout from './Layout.jsx';
 
 
@@ -150,6 +150,7 @@ export const PAGES = {
     "FormPreparazioni": FormPreparazioni,
     "FormPulizia": FormPulizia,
     "FormSpostamenti": FormSpostamenti,
+    "FormSprechi": FormSprechi,
     "FormTeglieButtate": FormTeglieButtate,
     "FormTracker": FormTracker,
     "FormsDipendente": FormsDipendente,
@@ -213,7 +214,6 @@ export const PAGES = {
     "ZapierProdottiVenduti": ZapierProdottiVenduti,
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSetup": ZapierSetup,
-    "FormSprechi": FormSprechi,
 }
 
 export const pagesConfig = {

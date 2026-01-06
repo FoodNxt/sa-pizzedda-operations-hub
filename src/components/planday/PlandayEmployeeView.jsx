@@ -22,7 +22,8 @@ export default function PlandayEmployeeView({
   getFormDovutiPerTurno = () => [],
   getAttivitaTurno = () => [],
   getTurnoSequenceFromMomento = () => 'first',
-  candidati = []
+  candidati = [],
+  tutteDisponibilita = []
 }) {
   const [viewMode, setViewMode] = useState('settimana');
   const [currentDate, setCurrentDate] = useState(moment());
@@ -94,6 +95,39 @@ export default function PlandayEmployeeView({
 
   const handleQuickSave = () => {
     if (onSaveTurno && quickPopup) {
+      // Verifica disponibilità prima di salvare
+      if (!quickForm.is_prova && selectedDipendente) {
+        const dayOfWeek = moment(quickPopup.day).day();
+        const dispApplicabili = tutteDisponibilita.filter(d => {
+          if (d.dipendente_id !== selectedDipendente) return false;
+          if (d.ricorrente) {
+            return d.giorno_settimana === dayOfWeek;
+          } else {
+            return d.data_specifica === quickPopup.day;
+          }
+        });
+
+        const [newStartH, newStartM] = quickForm.ora_inizio.split(':').map(Number);
+        const [newEndH, newEndM] = quickForm.ora_fine.split(':').map(Number);
+        const newStart = newStartH * 60 + newStartM;
+        const newEnd = newEndH * 60 + newEndM;
+
+        const nonDisponibile = dispApplicabili.some(d => {
+          if (d.tipo !== 'non_disponibile') return false;
+          const [dStartH, dStartM] = d.ora_inizio.split(':').map(Number);
+          const [dEndH, dEndM] = d.ora_fine.split(':').map(Number);
+          const dStart = dStartH * 60 + dStartM;
+          const dEnd = dEndH * 60 + dEndM;
+          return (newStart < dEnd && newEnd > dStart);
+        });
+
+        if (nonDisponibile) {
+          if (!confirm('⚠️ ATTENZIONE: Il dipendente ha segnalato NON DISPONIBILITÀ in questo orario!\n\nVuoi procedere comunque?')) {
+            return;
+          }
+        }
+      }
+
       const candidato = candidati.find(c => c.id === quickForm.candidato_id);
       onSaveTurno({
         store_id: quickForm.store_id || stores[0]?.id,
@@ -173,14 +207,36 @@ export default function PlandayEmployeeView({
                 const dayTurni = turniByDate[dayKey] || [];
                 const isToday = day.isSame(moment(), 'day');
                 return (
-                  <div key={dayKey} className={`neumorphic-pressed p-3 rounded-xl min-h-[150px] ${isToday ? 'ring-2 ring-blue-400' : ''}`} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, day)}>
+                  <div 
+                    key={dayKey} 
+                    className={`neumorphic-pressed p-3 rounded-xl min-h-[150px] cursor-pointer hover:bg-slate-50 ${isToday ? 'ring-2 ring-blue-400' : ''}`} 
+                    onDragOver={handleDragOver} 
+                    onDrop={(e) => handleDrop(e, day)}
+                    onClick={() => {
+                      if (dayTurni.length === 0) {
+                        setQuickPopup({ day: day.format('YYYY-MM-DD') });
+                        setSelectedTurno(null);
+                        setQuickForm({ ruolo: 'Pizzaiolo', ora_inizio: '09:00', ora_fine: '17:00', tipo_turno: 'Normale', store_id: stores[0]?.id || '', is_prova: false, candidato_id: '' });
+                      }
+                    }}
+                  >
                     <div className={`text-center mb-2 ${isToday ? 'text-blue-600' : 'text-slate-700'}`}>
                       <div className="font-medium">{day.format('ddd')}</div>
                       <div className="text-xl font-bold">{day.format('DD')}</div>
                     </div>
                     <div className="space-y-1">
                     {dayTurni.map(turno => (
-                      <div key={turno.id} draggable onDragStart={(e) => handleDragStart(e, turno)} className="p-2 rounded-lg cursor-grab text-xs relative text-white" style={getRuoloStyle(turno.ruolo)} onClick={() => handleTurnoClick(turno)}>
+                      <div 
+                        key={turno.id} 
+                        draggable 
+                        onDragStart={(e) => handleDragStart(e, turno)} 
+                        className="p-2 rounded-lg cursor-grab text-xs relative text-white" 
+                        style={getRuoloStyle(turno.ruolo)} 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleTurnoClick(turno);
+                        }}
+                      >
                        {turno.is_prova && (
                          <div className="absolute top-0 left-0 px-1 py-0.5 text-[7px] font-bold text-white rounded-br bg-purple-600">
                            🧪

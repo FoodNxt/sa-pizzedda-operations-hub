@@ -2095,6 +2095,7 @@ export default function Planday() {
             getAttivitaTurno={getAttivitaTurno}
             getTurnoSequenceFromMomento={getTurnoSequenceFromMomento}
             candidati={candidati}
+            tutteDisponibilita={tutteDisponibilita}
           />
         )}
 
