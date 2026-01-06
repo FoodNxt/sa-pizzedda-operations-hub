@@ -690,7 +690,7 @@ export default function OrdiniSbagliati() {
   const employeeAnalytics = useMemo(() => {
     const byEmployee = {};
 
-    // Filter matches by date range
+    // Filter matches by date range and store
     let filteredMatches = wrongOrderMatches;
 
     const now = new Date();
@@ -698,61 +698,56 @@ export default function OrdiniSbagliati() {
       const weekStart = startOfWeek(now, { locale: it });
       const weekEnd = endOfWeek(now, { locale: it });
       filteredMatches = filteredMatches.filter(m => {
-        const order = wrongOrders.find(o => o.id === m.wrong_order_id);
-        if (!order) return false;
-        const date = parseISO(order.order_date);
+        if (!m.order_date) return false;
+        const date = parseISO(m.order_date);
         return date >= weekStart && date <= weekEnd;
       });
     } else if (dateRange === 'month') {
       const monthStart = startOfMonth(now);
       const monthEnd = endOfMonth(now);
       filteredMatches = filteredMatches.filter(m => {
-        const order = wrongOrders.find(o => o.id === m.wrong_order_id);
-        if (!order) return false;
-        const date = parseISO(order.order_date);
+        if (!m.order_date) return false;
+        const date = parseISO(m.order_date);
         return date >= monthStart && date <= monthEnd;
       });
     } else if (dateRange === 'custom' && customStartDate && customEndDate) {
       const start = new Date(customStartDate);
       const end = new Date(customEndDate);
       filteredMatches = filteredMatches.filter(m => {
-        const order = wrongOrders.find(o => o.id === m.wrong_order_id);
-        if (!order) return false;
-        const date = parseISO(order.order_date);
+        if (!m.order_date) return false;
+        const date = parseISO(m.order_date);
         return date >= start && date <= end;
       });
     }
 
     // Filter by store if selected
     if (selectedStore !== 'all') {
-      filteredMatches = filteredMatches.filter(m => {
-        const order = wrongOrders.find(o => o.id === m.wrong_order_id);
-        return order && order.store_id === selectedStore;
-      });
+      filteredMatches = filteredMatches.filter(m => m.store_id === selectedStore);
     }
 
     // Group by employee
     filteredMatches.forEach(match => {
-      if (!match.dipendente_id) return;
+      if (!match.matched_employee_name) return;
 
       const order = wrongOrders.find(o => o.id === match.wrong_order_id);
       if (!order) return;
 
-      if (!byEmployee[match.dipendente_id]) {
-        byEmployee[match.dipendente_id] = {
-          dipendente_id: match.dipendente_id,
-          dipendente_nome: match.dipendente_nome,
+      const employeeKey = match.matched_employee_name;
+
+      if (!byEmployee[employeeKey]) {
+        byEmployee[employeeKey] = {
+          dipendente_nome: match.matched_employee_name,
           count: 0,
           totalRefunds: 0,
           orders: []
         };
       }
 
-      byEmployee[match.dipendente_id].count++;
-      byEmployee[match.dipendente_id].totalRefunds += order.refund_value || 0;
-      byEmployee[match.dipendente_id].orders.push({
+      byEmployee[employeeKey].count++;
+      byEmployee[employeeKey].totalRefunds += order.refund_value || 0;
+      byEmployee[employeeKey].orders.push({
         ...order,
-        match_confidence: match.confidence_score
+        match_confidence: match.match_confidence
       });
     });
 
@@ -1744,8 +1739,8 @@ export default function OrdiniSbagliati() {
                     </tr>
                   </thead>
                   <tbody>
-                    {employeeAnalytics.map((emp) => (
-                      <tr key={emp.dipendente_id} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
+                    {employeeAnalytics.map((emp, idx) => (
+                      <tr key={idx} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
                         <td className="p-3">
                           <div>
                             <p className="text-[#6b6b6b] font-medium">{emp.dipendente_nome}</p>
@@ -1859,17 +1854,12 @@ export default function OrdiniSbagliati() {
 
                     try {
                       const template = letterTemplates.find(t => t.id === selectedTemplate);
-                      const employee = employees.find(e => e.id === selectedEmployee.dipendente_id);
-
-                      if (!employee) {
-                        alert('Dipendente non trovato');
-                        return;
-                      }
+                      const employee = employees.find(e => e.full_name === selectedEmployee.dipendente_nome);
 
                       // Create letter record
                       await base44.entities.LetteraRichiamo.create({
-                        dipendente_id: employee.id,
-                        dipendente_nome: employee.full_name,
+                        dipendente_id: employee?.id || null,
+                        dipendente_nome: selectedEmployee.dipendente_nome,
                         template_id: template.id,
                         tipo_lettera: template.tipo_lettera,
                         oggetto: template.oggetto,
