@@ -566,7 +566,7 @@ export default function Financials() {
               </div>
 
               <div className="neumorphic-pressed p-4 rounded-xl bg-white">
-                <p className="text-xs text-slate-500 mb-1">Medio</p>
+                <p className="text-xs text-slate-500 mb-1">Scontrino Medio</p>
                 <div className="flex items-baseline gap-2">
                   <p className="text-lg font-bold text-slate-800">
                     €{processedData.comparisonData.avgOrderValue.toFixed(2)}
