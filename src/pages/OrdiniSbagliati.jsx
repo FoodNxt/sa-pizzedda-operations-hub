@@ -18,7 +18,9 @@ import {
   Eye,
   Sparkles,
   Users,
-  Send
+  Send,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -59,6 +61,7 @@ export default function OrdiniSbagliati() {
   const [showLetterModal, setShowLetterModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [expandedEmployees, setExpandedEmployees] = useState({});
 
   const queryClient = useQueryClient();
 
@@ -1740,28 +1743,98 @@ export default function OrdiniSbagliati() {
                   </thead>
                   <tbody>
                     {employeeAnalytics.map((emp, idx) => (
-                      <tr key={idx} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
-                        <td className="p-3">
-                          <div>
-                            <p className="text-[#6b6b6b] font-medium">{emp.dipendente_nome}</p>
-                            <p className="text-xs text-[#9b9b9b]">{emp.orders.length} ordini abbinati</p>
-                          </div>
-                        </td>
-                        <td className="p-3 text-right font-bold text-[#6b6b6b]">{emp.count}</td>
-                        <td className="p-3 text-right font-bold text-red-600">€{emp.totalRefunds.toFixed(2)}</td>
-                        <td className="p-3 text-center">
-                          <NeumorphicButton
-                            onClick={() => {
-                              setSelectedEmployee(emp);
-                              setShowLetterModal(true);
-                            }}
-                            className="flex items-center gap-2 text-sm mx-auto"
-                          >
-                            <Send className="w-4 h-4" />
-                            Invia Lettera
-                          </NeumorphicButton>
-                        </td>
-                      </tr>
+                      <>
+                        <tr key={idx} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
+                          <td className="p-3">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => setExpandedEmployees(prev => ({ ...prev, [idx]: !prev[idx] }))}
+                                className="neumorphic-flat p-1 rounded-lg hover:bg-blue-50 transition-colors"
+                              >
+                                {expandedEmployees[idx] ? (
+                                  <ChevronDown className="w-4 h-4 text-[#6b6b6b]" />
+                                ) : (
+                                  <ChevronRight className="w-4 h-4 text-[#6b6b6b]" />
+                                )}
+                              </button>
+                              <div>
+                                <p className="text-[#6b6b6b] font-medium">{emp.dipendente_nome}</p>
+                                <p className="text-xs text-[#9b9b9b]">{emp.orders.length} ordini abbinati</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-3 text-right font-bold text-[#6b6b6b]">{emp.count}</td>
+                          <td className="p-3 text-right font-bold text-red-600">€{emp.totalRefunds.toFixed(2)}</td>
+                          <td className="p-3 text-center">
+                            <NeumorphicButton
+                              onClick={() => {
+                                setSelectedEmployee(emp);
+                                setShowLetterModal(true);
+                              }}
+                              className="flex items-center gap-2 text-sm mx-auto"
+                            >
+                              <Send className="w-4 h-4" />
+                              Invia Lettera
+                            </NeumorphicButton>
+                          </td>
+                        </tr>
+                        {expandedEmployees[idx] && (
+                          <tr key={`${idx}-details`}>
+                            <td colSpan="4" className="p-0">
+                              <div className="bg-slate-50 p-4">
+                                <h4 className="text-sm font-bold text-[#6b6b6b] mb-3">Dettaglio Ordini</h4>
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-sm">
+                                    <thead>
+                                      <tr className="border-b border-slate-300">
+                                        <th className="text-left p-2 text-[#9b9b9b] font-medium">Piattaforma</th>
+                                        <th className="text-left p-2 text-[#9b9b9b] font-medium">Order ID</th>
+                                        <th className="text-left p-2 text-[#9b9b9b] font-medium">Data</th>
+                                        <th className="text-left p-2 text-[#9b9b9b] font-medium">Negozio</th>
+                                        <th className="text-right p-2 text-[#9b9b9b] font-medium">Totale</th>
+                                        <th className="text-right p-2 text-[#9b9b9b] font-medium">Rimborso</th>
+                                        <th className="text-center p-2 text-[#9b9b9b] font-medium">Confidenza</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {emp.orders.map((order, orderIdx) => (
+                                        <tr key={orderIdx} className="border-b border-slate-200">
+                                          <td className="p-2">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                              order.platform === 'glovo' 
+                                                ? 'bg-orange-100 text-orange-700' 
+                                                : 'bg-teal-100 text-teal-700'
+                                            }`}>
+                                              {order.platform}
+                                            </span>
+                                          </td>
+                                          <td className="p-2 font-mono text-xs text-[#6b6b6b]">{order.order_id}</td>
+                                          <td className="p-2 text-xs text-[#6b6b6b]">
+                                            {new Date(order.order_date).toLocaleDateString('it-IT')}
+                                          </td>
+                                          <td className="p-2 text-xs text-[#6b6b6b]">{order.store_name}</td>
+                                          <td className="p-2 text-right text-xs text-[#6b6b6b]">€{order.order_total?.toFixed(2) || '0.00'}</td>
+                                          <td className="p-2 text-right text-xs font-bold text-red-600">€{order.refund_value?.toFixed(2) || '0.00'}</td>
+                                          <td className="p-2 text-center">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                              order.match_confidence === 'high' ? 'bg-green-100 text-green-700' :
+                                              order.match_confidence === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                                              order.match_confidence === 'manual' ? 'bg-blue-100 text-blue-700' :
+                                              'bg-orange-100 text-orange-700'
+                                            }`}>
+                                              {order.match_confidence}
+                                            </span>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </>
                     ))}
                   </tbody>
                 </table>
