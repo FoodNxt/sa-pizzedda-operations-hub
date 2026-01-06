@@ -176,11 +176,6 @@ const navigationStructure = [
         icon: Pizza,
       },
       {
-        title: "Inventario Store Manager",
-        url: createPageUrl("InventarioStoreManager"),
-        icon: Settings,
-      },
-      {
         title: "Ordini Fornitori",
         url: createPageUrl("OrdiniAdmin"),
         icon: ShoppingCart,
