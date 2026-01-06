@@ -44,6 +44,10 @@ export default function Planday() {
   const [viewMode, setViewMode] = useState('calendario'); // calendario, dipendenti, singolo
   const [selectedDipendente, setSelectedDipendente] = useState(null);
   
+  // Disponibilità
+  const [showDisponibilitaModal, setShowDisponibilitaModal] = useState(false);
+  const [selectedDipendenteDisp, setSelectedDipendenteDisp] = useState(null);
+  
   // Timbrature states
   const [selectedDipendenteTimbr, setSelectedDipendenteTimbr] = useState('all');
   const [selectedRuolo, setSelectedRuolo] = useState('all');
@@ -290,10 +294,6 @@ export default function Planday() {
     penalita_timbratura_mancata: 0,
     ore_mancata_uscita: 2
   });
-
-  // Disponibilità
-  const [showDisponibilitaModal, setShowDisponibilitaModal] = useState(false);
-  const [selectedDipendenteDisp, setSelectedDipendenteDisp] = useState(null);
 
   const [editingTimbratura, setEditingTimbratura] = useState(null);
   const [timbrForm, setTimbrForm] = useState({ timbrata_entrata: '', timbrata_uscita: '' });
