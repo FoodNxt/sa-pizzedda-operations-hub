@@ -134,8 +134,61 @@ export default function PlandayStoreManager() {
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.TurnoPlanday.create(data),
-    onSuccess: () => {
+    onSuccess: async (newTurno, variables) => {
       queryClient.invalidateQueries({ queryKey: ['turni-store-manager'] });
+      
+      // Invia email di notifica al dipendente se assegnato
+      if (variables.dipendente_id && variables.dipendente_nome) {
+        try {
+          const dipendente = users.find(u => u.id === variables.dipendente_id);
+          
+          if (dipendente?.email) {
+            const emailTemplates = await base44.entities.EmailNotificationTemplate.filter({
+              tipo_notifica: 'turno',
+              attivo: true
+            });
+
+            if (emailTemplates.length > 0) {
+              const emailTemplate = emailTemplates[0];
+              const storeName = getStoreName(variables.store_id);
+              
+              let emailBody = emailTemplate.corpo
+                .replace(/\{\{nome_dipendente\}\}/g, variables.dipendente_nome)
+                .replace(/\{\{data\}\}/g, moment(variables.data).format('DD/MM/YYYY'))
+                .replace(/\{\{ora_inizio\}\}/g, variables.ora_inizio)
+                .replace(/\{\{ora_fine\}\}/g, variables.ora_fine)
+                .replace(/\{\{ruolo\}\}/g, variables.ruolo)
+                .replace(/\{\{store\}\}/g, storeName)
+                .replace(/\{\{tipo_turno\}\}/g, variables.tipo_turno || 'Normale');
+
+              let emailSubject = emailTemplate.oggetto
+                .replace(/\{\{nome_dipendente\}\}/g, variables.dipendente_nome)
+                .replace(/\{\{data\}\}/g, moment(variables.data).format('DD/MM/YYYY'));
+
+              await base44.integrations.Core.SendEmail({
+                to: dipendente.email,
+                subject: emailSubject,
+                body: emailBody
+              });
+
+              await base44.entities.EmailLog.create({
+                tipo_notifica: 'turno',
+                destinatario_email: dipendente.email,
+                destinatario_nome: variables.dipendente_nome,
+                oggetto: emailSubject,
+                corpo: emailBody,
+                data_invio: new Date().toISOString(),
+                inviato_da: currentUser.email,
+                status: 'inviata',
+                riferimento_id: newTurno.id
+              });
+            }
+          }
+        } catch (emailError) {
+          console.error('Errore invio email turno:', emailError);
+        }
+      }
+      
       resetForm();
     },
   });
