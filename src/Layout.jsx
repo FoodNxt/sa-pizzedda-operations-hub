@@ -437,6 +437,12 @@ const navigationStructure = [
         url: createPageUrl("FunzionamentoApp"),
         icon: BookOpen,
         requiredUserType: ["admin"]
+      },
+      {
+        title: "Notifiche Mail",
+        url: createPageUrl("NotificheMail"),
+        icon: Bell,
+        requiredUserType: ["admin"]
       }
     ]
   }

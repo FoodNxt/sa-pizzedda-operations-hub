@@ -1982,6 +1982,7 @@ export default function OrdiniSbagliati() {
                     try {
                       const template = letterTemplates.find(t => t.id === selectedTemplate);
                       const employee = employees.find(e => e.full_name === selectedEmployee.dipendente_nome);
+                      const currentUser = await base44.auth.me();
 
                       let finalContent = letterContent;
 
@@ -2002,7 +2003,7 @@ export default function OrdiniSbagliati() {
                       }
 
                       // Create letter record
-                      await base44.entities.LetteraRichiamo.create({
+                      const letteraRichiamo = await base44.entities.LetteraRichiamo.create({
                         dipendente_id: employee?.id || null,
                         dipendente_nome: selectedEmployee.dipendente_nome,
                         template_id: template.id,
@@ -2010,12 +2011,71 @@ export default function OrdiniSbagliati() {
                         oggetto: template.oggetto,
                         contenuto: finalContent,
                         data_invio: new Date().toISOString(),
-                        inviato_da: (await base44.auth.me()).email,
+                        inviato_da: currentUser.email,
                         motivo: `Ordini sbagliati: ${selectedEmployee.count} ordini nel periodo selezionato`,
                         status: 'inviata'
                       });
 
-                      alert('✅ Lettera di richiamo creata con successo!');
+                      // Send email notification to employee
+                      try {
+                        const emailTemplates = await base44.entities.EmailNotificationTemplate.filter({
+                          tipo_notifica: 'lettera_richiamo',
+                          attivo: true
+                        });
+
+                        if (emailTemplates.length > 0 && employee?.email) {
+                          const emailTemplate = emailTemplates[0];
+                          
+                          // Replace variables in email
+                          let emailBody = emailTemplate.corpo
+                            .replace(/\{\{nome_dipendente\}\}/g, selectedEmployee.dipendente_nome)
+                            .replace(/\{\{data\}\}/g, new Date().toLocaleDateString('it-IT'))
+                            .replace(/\{\{tipo_lettera\}\}/g, template.tipo_lettera)
+                            .replace(/\{\{motivo\}\}/g, `Ordini sbagliati: ${selectedEmployee.count} ordini`);
+
+                          let emailSubject = emailTemplate.oggetto
+                            .replace(/\{\{nome_dipendente\}\}/g, selectedEmployee.dipendente_nome)
+                            .replace(/\{\{data\}\}/g, new Date().toLocaleDateString('it-IT'))
+                            .replace(/\{\{tipo_lettera\}\}/g, template.tipo_lettera);
+
+                          // Send email using Core integration
+                          await base44.integrations.Core.SendEmail({
+                            to: employee.email,
+                            subject: emailSubject,
+                            body: emailBody
+                          });
+
+                          // Log email
+                          await base44.entities.EmailLog.create({
+                            tipo_notifica: 'lettera_richiamo',
+                            destinatario_email: employee.email,
+                            destinatario_nome: selectedEmployee.dipendente_nome,
+                            oggetto: emailSubject,
+                            corpo: emailBody,
+                            data_invio: new Date().toISOString(),
+                            inviato_da: currentUser.email,
+                            status: 'inviata',
+                            riferimento_id: letteraRichiamo.id
+                          });
+                        }
+                      } catch (emailError) {
+                        console.error('Errore invio email:', emailError);
+                        // Log failed email
+                        await base44.entities.EmailLog.create({
+                          tipo_notifica: 'lettera_richiamo',
+                          destinatario_email: employee?.email || 'N/A',
+                          destinatario_nome: selectedEmployee.dipendente_nome,
+                          oggetto: 'Notifica Lettera di Richiamo',
+                          corpo: 'Errore durante l\'invio',
+                          data_invio: new Date().toISOString(),
+                          inviato_da: currentUser.email,
+                          status: 'fallita',
+                          errore: emailError.message,
+                          riferimento_id: letteraRichiamo.id
+                        });
+                      }
+
+                      alert('✅ Lettera di richiamo creata con successo! Email di notifica inviata al dipendente.');
                       setShowLetterModal(false);
                       setSelectedEmployee(null);
                       setSelectedTemplate('');
