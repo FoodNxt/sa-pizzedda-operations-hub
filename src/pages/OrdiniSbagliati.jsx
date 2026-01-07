@@ -2031,12 +2031,16 @@ export default function OrdiniSbagliati() {
                             .replace(/\{\{nome_dipendente\}\}/g, selectedEmployee.dipendente_nome)
                             .replace(/\{\{data\}\}/g, new Date().toLocaleDateString('it-IT'))
                             .replace(/\{\{tipo_lettera\}\}/g, template.tipo_lettera)
-                            .replace(/\{\{motivo\}\}/g, `Ordini sbagliati: ${selectedEmployee.count} ordini`);
+                            .replace(/\{\{motivo\}\}/g, `Ordini sbagliati: ${selectedEmployee.count} ordini`)
+                            .replace(/\{\{giorno_turno\}\}/g, 'N/A')
+                            .replace(/\{\{orario_turno\}\}/g, 'N/A');
 
                           let emailSubject = emailTemplate.oggetto
                             .replace(/\{\{nome_dipendente\}\}/g, selectedEmployee.dipendente_nome)
                             .replace(/\{\{data\}\}/g, new Date().toLocaleDateString('it-IT'))
-                            .replace(/\{\{tipo_lettera\}\}/g, template.tipo_lettera);
+                            .replace(/\{\{tipo_lettera\}\}/g, template.tipo_lettera)
+                            .replace(/\{\{giorno_turno\}\}/g, 'N/A')
+                            .replace(/\{\{orario_turno\}\}/g, 'N/A');
 
                           // Send email using Core integration
                           await base44.integrations.Core.SendEmail({

@@ -13,6 +13,7 @@ export default function NotificheMail() {
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [selectedLog, setSelectedLog] = useState(null);
+  const corpoTextareaRef = React.useRef(null);
   
   const [templateForm, setTemplateForm] = useState({
     tipo_notifica: 'lettera_richiamo',
@@ -96,6 +97,35 @@ export default function NotificheMail() {
     contratto: 'Contratto',
     turno: 'Turno',
     altro: 'Altro'
+  };
+
+  const availableVariables = [
+    { key: '{{nome_dipendente}}', label: 'Nome Dipendente', description: 'Nome completo del dipendente' },
+    { key: '{{data}}', label: 'Data', description: 'Data corrente' },
+    { key: '{{tipo_lettera}}', label: 'Tipo Lettera', description: 'Tipo di lettera di richiamo' },
+    { key: '{{motivo}}', label: 'Motivo', description: 'Motivo della lettera' },
+    { key: '{{giorno_turno}}', label: 'Giorno Turno', description: 'Giorno del turno' },
+    { key: '{{orario_turno}}', label: 'Orario Turno', description: 'Orario del turno' }
+  ];
+
+  const insertVariable = (variable) => {
+    const textarea = corpoTextareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = templateForm.corpo;
+    const before = text.substring(0, start);
+    const after = text.substring(end);
+    
+    const newText = before + variable + after;
+    setTemplateForm({ ...templateForm, corpo: newText });
+
+    // Set cursor position after inserted variable
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + variable.length, start + variable.length);
+    }, 0);
   };
 
   return (
@@ -342,14 +372,34 @@ export default function NotificheMail() {
                   <label className="text-sm font-medium text-slate-700 mb-2 block">
                     Corpo Email <span className="text-red-600">*</span>
                   </label>
+                  
+                  {/* Variables Section */}
+                  <div className="neumorphic-pressed p-3 rounded-xl mb-3">
+                    <p className="text-xs font-medium text-slate-600 mb-2">📌 Clicca per inserire variabili:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {availableVariables.map((variable) => (
+                        <button
+                          key={variable.key}
+                          type="button"
+                          onClick={() => insertVariable(variable.key)}
+                          className="text-xs px-3 py-1.5 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-700 transition-colors"
+                          title={variable.description}
+                        >
+                          {variable.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <textarea
+                    ref={corpoTextareaRef}
                     value={templateForm.corpo}
                     onChange={(e) => setTemplateForm({ ...templateForm, corpo: e.target.value })}
                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 min-h-[250px]"
-                    placeholder="Variabili disponibili: {{nome_dipendente}}, {{data}}, {{tipo_lettera}}, {{motivo}}"
+                    placeholder="Scrivi il corpo dell'email qui. Clicca sui pulsanti sopra per inserire le variabili."
                   />
                   <p className="text-xs text-slate-500 mt-2">
-                    💡 Usa le variabili tra doppie graffe per personalizzare: {`{{nome_dipendente}}`}, {`{{data}}`}, {`{{tipo_lettera}}`}, {`{{motivo}}`}
+                    💡 Le variabili verranno sostituite automaticamente con i dati reali quando l'email viene inviata
                   </p>
                 </div>
 
