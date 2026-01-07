@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
-import { Camera, AlertTriangle, CheckCircle, Clock, User, Upload, Loader2, X, Save, Trash2, FileText, Plus, XCircle } from 'lucide-react';
+import { Camera, AlertTriangle, CheckCircle, Clock, User, Upload, Loader2, X, Save, Trash2, FileText, Plus, XCircle, ChevronDown, ChevronRight, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 
@@ -25,6 +25,9 @@ export default function Segnalazioni() {
   const [selectedDipendenteLettera, setSelectedDipendenteLettera] = useState('');
   const [testoLettera, setTestoLettera] = useState('');
   const [loadingLettera, setLoadingLettera] = useState(false);
+
+  const [activeTab, setActiveTab] = useState('aperte');
+  const [expandedStores, setExpandedStores] = useState({});
 
   const queryClient = useQueryClient();
 
@@ -164,6 +167,30 @@ export default function Segnalazioni() {
       default: return <AlertTriangle className="w-5 h-5" />;
     }
   };
+
+  const toggleStore = (storeId) => {
+    setExpandedStores(prev => ({
+      ...prev,
+      [storeId]: !prev[storeId]
+    }));
+  };
+
+  const groupedSegnalazioni = React.useMemo(() => {
+    const filtered = activeTab === 'aperte' 
+      ? segnalazioni.filter(s => s.stato !== 'risolta')
+      : segnalazioni.filter(s => s.stato === 'risolta');
+
+    const grouped = {};
+    filtered.forEach(seg => {
+      const storeId = seg.store_id || 'unknown';
+      if (!grouped[storeId]) {
+        grouped[storeId] = [];
+      }
+      grouped[storeId].push(seg);
+    });
+
+    return grouped;
+  }, [segnalazioni, activeTab]);
 
   const handleCaricaTemplate = () => {
     if (!selectedTemplate || !selectedDipendenteLettera) {
@@ -366,18 +393,65 @@ export default function Segnalazioni() {
         </div>
       )}
 
+      {/* Tabs */}
+      <div className="flex gap-2">
+        <NeumorphicButton
+          onClick={() => setActiveTab('aperte')}
+          variant={activeTab === 'aperte' ? 'primary' : 'default'}
+          className="flex items-center gap-2"
+        >
+          <AlertTriangle className="w-4 h-4" />
+          Aperte / In Gestione ({segnalazioni.filter(s => s.stato !== 'risolta').length})
+        </NeumorphicButton>
+        <NeumorphicButton
+          onClick={() => setActiveTab('chiuse')}
+          variant={activeTab === 'chiuse' ? 'primary' : 'default'}
+          className="flex items-center gap-2"
+        >
+          <CheckCircle className="w-4 h-4" />
+          Risolte ({segnalazioni.filter(s => s.stato === 'risolta').length})
+        </NeumorphicButton>
+      </div>
+
       {/* Segnalazioni List */}
       <NeumorphicCard className="p-6">
-        <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Tutte le Segnalazioni</h2>
+        <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">
+          {activeTab === 'aperte' ? 'Segnalazioni Aperte' : 'Segnalazioni Risolte'}
+        </h2>
         
-        {segnalazioni.length === 0 ? (
+        {Object.keys(groupedSegnalazioni).length === 0 ? (
           <div className="text-center py-12">
             <AlertTriangle className="w-16 h-16 text-[#9b9b9b] opacity-50 mx-auto mb-4" />
-            <p className="text-[#9b9b9b]">Nessuna segnalazione presente</p>
+            <p className="text-[#9b9b9b]">Nessuna segnalazione {activeTab === 'aperte' ? 'aperta' : 'risolta'}</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {segnalazioni.map((segnalazione) => (
+            {Object.entries(groupedSegnalazioni).map(([storeId, segnalazioniStore]) => {
+              const store = stores.find(s => s.id === storeId);
+              const storeName = store?.name || 'Store Sconosciuto';
+              const isExpanded = expandedStores[storeId] ?? true;
+
+              return (
+                <div key={storeId}>
+                  <button
+                    onClick={() => toggleStore(storeId)}
+                    className="w-full neumorphic-flat p-4 rounded-xl mb-3 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <MapPin className="w-5 h-5 text-[#8b7355]" />
+                      <h3 className="text-lg font-bold text-[#6b6b6b]">{storeName}</h3>
+                      <span className="text-sm text-[#9b9b9b]">({segnalazioniStore.length})</span>
+                    </div>
+                    {isExpanded ? (
+                      <ChevronDown className="w-5 h-5 text-[#9b9b9b]" />
+                    ) : (
+                      <ChevronRight className="w-5 h-5 text-[#9b9b9b]" />
+                    )}
+                  </button>
+
+                  {isExpanded && (
+                    <div className="space-y-3 ml-4 mb-4">
+                      {segnalazioniStore.map((segnalazione) => (
               <div key={segnalazione.id} className="neumorphic-flat p-5 rounded-xl">
                 <div className="flex items-start gap-4">
                   {/* Photo */}
@@ -509,7 +583,12 @@ export default function Segnalazioni() {
                   </div>
                 </div>
               </div>
-            ))}
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </NeumorphicCard>
