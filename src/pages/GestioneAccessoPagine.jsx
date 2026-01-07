@@ -224,7 +224,8 @@ export default function GestioneAccessoPagine() {
     { value: 'UsersManagement', label: 'Gestione Utenti', category: 'Sistema' },
     { value: 'GestioneAccessoPagine', label: 'Gestione Accesso Pagine', category: 'Sistema' },
     { value: 'StrutturaMenù', label: 'Struttura Menu', category: 'Sistema' },
-    { value: 'FunzionamentoApp', label: 'Funzionamento App', category: 'Sistema' }
+    { value: 'FunzionamentoApp', label: 'Funzionamento App', category: 'Sistema' },
+    { value: 'NotificheMail', label: 'Notifiche Mail', category: 'Sistema' }
   ];
 
   const availableDipendentiPages = [
