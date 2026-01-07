@@ -36,7 +36,8 @@ export default function OrdiniAdmin() {
   const [customizingEmail, setCustomizingEmail] = useState(null);
   const [emailTemplate, setEmailTemplate] = useState({
     subject: '',
-    body: ''
+    body: '',
+    prodotti: []
   });
   const [timeRange, setTimeRange] = useState('all'); // 'week', 'month', '3months', '6months', 'year', 'all'
   const [selectedProduct, setSelectedProduct] = useState('all');
@@ -206,10 +207,18 @@ export default function OrdiniAdmin() {
     await createOrderMutation.mutateAsync(orderData);
   };
 
-  const openEmailCustomization = (storeName, supplierName, orders) => {
+  const openEmailCustomization = (storeName, storeId, supplierName, orders) => {
     const fornitore = getFornitoreByName(supplierName);
-    const productList = orders.map(order => 
-      `• ${order.nome_prodotto}: ${order.quantita_ordine} ${order.unita_misura}`
+    const prodotti = orders.map(order => ({
+      prodotto_id: order.product.id,
+      nome_prodotto: order.nome_prodotto,
+      quantita_ordinata: order.quantita_ordine,
+      unita_misura: order.unita_misura,
+      prezzo_unitario: order.product.prezzo_unitario || 0
+    }));
+
+    const productList = prodotti.map(p => 
+      `• ${p.nome_prodotto}: ${p.quantita_ordinata} ${p.unita_misura}`
     ).join('\n');
 
     setEmailTemplate({
@@ -223,15 +232,15 @@ ${productList}
 Grazie per la collaborazione.
 
 Cordiali saluti,
-Sa Pizzedda`
+Sa Pizzedda`,
+      prodotti
     });
     
-    setCustomizingEmail({ storeName, supplierName, orders });
+    setCustomizingEmail({ storeName, storeId, supplierName, orders, fornitore });
   };
 
   const sendOrderEmail = async () => {
-    const { storeName, supplierName, orders } = customizingEmail;
-    const fornitore = getFornitoreByName(supplierName);
+    const { storeName, storeId, supplierName, fornitore } = customizingEmail;
     
     if (!fornitore?.contatto_email) {
       alert(`Email non trovata per il fornitore "${supplierName}". Aggiungi l'email del fornitore nella sezione Fornitori.`);
@@ -247,6 +256,24 @@ Sa Pizzedda`
         subject: emailTemplate.subject,
         body: emailTemplate.body,
         from_name: 'Sa Pizzedda'
+      });
+
+      // Salva ordine come inviato
+      const totaleOrdine = emailTemplate.prodotti.reduce((sum, p) => sum + (p.prezzo_unitario * p.quantita_ordinata), 0);
+      
+      await createOrderMutation.mutateAsync({
+        store_id: storeId,
+        store_name: storeName,
+        fornitore: supplierName,
+        fornitore_email: fornitore.contatto_email,
+        prodotti: emailTemplate.prodotti.map(p => ({
+          ...p,
+          quantita_ricevuta: 0
+        })),
+        totale_ordine: totaleOrdine,
+        status: 'inviato',
+        data_invio: new Date().toISOString(),
+        note: ''
       });
 
       setEmailSent(prev => ({ ...prev, [emailKey]: true }));
@@ -403,7 +430,7 @@ Sa Pizzedda`
 
                                {fornitore?.contatto_email && (
                                  <button
-                                   onClick={() => openEmailCustomization(storeData.store.name, supplier, orders)}
+                                   onClick={() => openEmailCustomization(storeData.store.name, storeId, supplier, orders)}
                                    disabled={isSending || wasSent}
                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                                      wasSent
@@ -497,30 +524,43 @@ Sa Pizzedda`
                                 </thead>
                                 <tbody>
                                   {orders.map((order, idx) => {
-                                    const prezzoUnitario = order.product.prezzo_unitario || 0;
-                                    const totaleRiga = prezzoUnitario * order.quantita_ordine;
-                                    return (
-                                      <tr key={idx} className="border-b border-slate-200">
-                                        <td className="p-2 text-sm text-slate-700">
-                                          {order.nome_prodotto}
-                                        </td>
-                                        <td className="p-2 text-sm text-right text-red-600 font-bold">
-                                          {order.quantita_rilevata} {order.unita_misura}
-                                        </td>
-                                        <td className="p-2 text-sm text-right text-slate-500">
-                                          {order.quantita_critica} {order.unita_misura}
-                                        </td>
-                                        <td className="p-2 text-sm text-right font-bold text-green-600">
-                                          {order.quantita_ordine} {order.unita_misura}
-                                        </td>
-                                        <td className="p-2 text-sm text-right text-slate-600">
-                                          {prezzoUnitario > 0 ? `€${prezzoUnitario.toFixed(2)}` : '-'}
-                                        </td>
-                                        <td className="p-2 text-sm text-right font-bold text-blue-600">
-                                          {totaleRiga > 0 ? `€${totaleRiga.toFixed(2)}` : '-'}
-                                        </td>
-                                      </tr>
-                                    );
+                                   const prezzoUnitario = order.product.prezzo_unitario || 0;
+                                   const totaleRiga = prezzoUnitario * order.quantita_ordine;
+
+                                   // Check if there's already an order for this product
+                                   const hasPendingOrder = ordiniInviati.some(o => 
+                                     o.store_id === storeId &&
+                                     o.prodotti.some(p => p.prodotto_id === order.product.id)
+                                   );
+
+                                   return (
+                                     <tr key={idx} className={`border-b border-slate-200 ${hasPendingOrder ? 'bg-yellow-50' : ''}`}>
+                                       <td className="p-2 text-sm text-slate-700">
+                                         {order.nome_prodotto}
+                                         {hasPendingOrder && (
+                                           <div className="flex items-center gap-1 mt-1">
+                                             <AlertTriangle className="w-3 h-3 text-orange-600" />
+                                             <span className="text-xs text-orange-600 font-medium">Ordine in corso</span>
+                                           </div>
+                                         )}
+                                       </td>
+                                       <td className="p-2 text-sm text-right text-red-600 font-bold">
+                                         {order.quantita_rilevata} {order.unita_misura}
+                                       </td>
+                                       <td className="p-2 text-sm text-right text-slate-500">
+                                         {order.quantita_critica} {order.unita_misura}
+                                       </td>
+                                       <td className="p-2 text-sm text-right font-bold text-green-600">
+                                         {order.quantita_ordine} {order.unita_misura}
+                                       </td>
+                                       <td className="p-2 text-sm text-right text-slate-600">
+                                         {prezzoUnitario > 0 ? `€${prezzoUnitario.toFixed(2)}` : '-'}
+                                       </td>
+                                       <td className="p-2 text-sm text-right font-bold text-blue-600">
+                                         {totaleRiga > 0 ? `€${totaleRiga.toFixed(2)}` : '-'}
+                                       </td>
+                                     </tr>
+                                   );
                                   })}
                                 </tbody>
                               </table>
@@ -1435,7 +1475,7 @@ Sa Pizzedda`
         {/* Email Customization Modal */}
         {customizingEmail && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <NeumorphicCard className="max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <NeumorphicCard className="max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-slate-800">Personalizza Email Ordine</h2>
                 <button onClick={() => setCustomizingEmail(null)} className="nav-button p-2 rounded-lg">
@@ -1444,6 +1484,60 @@ Sa Pizzedda`
               </div>
 
               <div className="space-y-4">
+                {/* Prodotti con modifica quantità */}
+                <div>
+                  <h3 className="text-sm font-bold text-slate-700 mb-3">Prodotti da Ordinare</h3>
+                  <div className="space-y-2">
+                    {emailTemplate.prodotti.map((prod, idx) => (
+                      <div key={idx} className="neumorphic-pressed p-3 rounded-xl grid grid-cols-3 gap-2 items-center">
+                        <div>
+                          <p className="text-sm font-medium text-slate-800">{prod.nome_prodotto}</p>
+                        </div>
+                        <div>
+                          <label className="text-xs text-slate-500">Quantità</label>
+                          <input
+                            type="number"
+                            value={prod.quantita_ordinata}
+                            onChange={(e) => {
+                              const newProdotti = [...emailTemplate.prodotti];
+                              newProdotti[idx].quantita_ordinata = parseFloat(e.target.value) || 0;
+                              
+                              // Update email body automatically
+                              const productList = newProdotti.map(p => 
+                                `• ${p.nome_prodotto}: ${p.quantita_ordinata} ${p.unita_misura}`
+                              ).join('\n');
+                              
+                              const newBody = emailTemplate.body.replace(
+                                /Vi inviamo il seguente ordine.*:\n\n([\s\S]*?)\n\nGrazie/,
+                                `Vi inviamo il seguente ordine per il locale ${customizingEmail.storeName}:\n\n${productList}\n\nGrazie`
+                              );
+
+                              setEmailTemplate({ 
+                                ...emailTemplate, 
+                                prodotti: newProdotti,
+                                body: newBody
+                              });
+                            }}
+                            className="w-full neumorphic-pressed px-2 py-1 rounded-lg text-sm text-slate-700 outline-none"
+                          />
+                          <p className="text-xs text-slate-500">{prod.unita_misura}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-slate-500">€{prod.prezzo_unitario.toFixed(2)}/u</p>
+                          <p className="text-sm font-bold text-blue-600">
+                            €{(prod.prezzo_unitario * prod.quantita_ordinata).toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                    <p className="text-sm font-bold text-blue-700">
+                      Totale: €{emailTemplate.prodotti.reduce((sum, p) => sum + (p.prezzo_unitario * p.quantita_ordinata), 0).toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+
                 <div>
                   <label className="text-sm font-medium text-slate-700 mb-2 block">Oggetto Email</label>
                   <input
@@ -1473,7 +1567,7 @@ Sa Pizzedda`
                     className="flex-1 flex items-center justify-center gap-2"
                   >
                     <Send className="w-5 h-5" />
-                    Invia Email
+                    Invia Email e Segna Inviato
                   </NeumorphicButton>
                 </div>
               </div>
