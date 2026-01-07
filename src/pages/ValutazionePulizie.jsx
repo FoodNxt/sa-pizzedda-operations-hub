@@ -553,10 +553,9 @@ export default function ValutazionePulizie() {
                         </div>
                       </div>
                     </div>
-                  </div>
-                  </div>
+                    </div>
 
-                  <div className="flex items-center gap-3 ml-4">
+                    <div className="flex items-center gap-3 ml-4">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                       inspection.inspector_role === 'Pizzaiolo' ? 'bg-orange-100 text-orange-700' :
                       inspection.inspector_role === 'Cassiere' ? 'bg-blue-100 text-blue-700' :
