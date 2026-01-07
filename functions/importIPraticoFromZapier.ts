@@ -1,0 +1,196 @@
+
+import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
+
+Deno.serve(async (req) => {
+    try {
+        const base44 = createClientFromRequest(req);
+        
+        // Parse request body
+        let body;
+        try {
+            const text = await req.text();
+            body = JSON.parse(text);
+        } catch (parseError) {
+            return Response.json({ 
+                error: 'Invalid JSON in request body',
+                details: parseError.message 
+            }, { status: 400 });
+        }
+        
+        // Validate webhook secret
+        const providedSecret = body.secret;
+        const expectedSecret = Deno.env.get('ZAPIER_IPRATICO_WEBHOOK_SECRET');
+        
+        if (!expectedSecret) {
+            return Response.json({ 
+                error: 'Server configuration error: ZAPIER_IPRATICO_WEBHOOK_SECRET not set',
+                hint: 'Set ZAPIER_IPRATICO_WEBHOOK_SECRET in Dashboard → Code → Secrets'
+            }, { status: 500 });
+        }
+        
+        if (!providedSecret || providedSecret !== expectedSecret) {
+            return Response.json({ 
+                error: 'Unauthorized: Invalid or missing webhook secret',
+                hint: 'Make sure the "secret" field matches your ZAPIER_IPRATICO_WEBHOOK_SECRET'
+            }, { status: 401 });
+        }
+        
+        // Validate required fields
+        if (!body.store_name) {
+            return Response.json({ 
+                error: 'Campo obbligatorio mancante: store_name',
+                received_fields: Object.keys(body)
+            }, { status: 400 });
+        }
+
+        if (!body.order_date) {
+            return Response.json({ 
+                error: 'Campo obbligatorio mancante: order_date',
+                received_fields: Object.keys(body)
+            }, { status: 400 });
+        }
+
+        // Find store by name
+        const stores = await base44.asServiceRole.entities.Store.filter({
+            name: body.store_name
+        });
+
+        if (!stores || stores.length === 0) {
+            const allStores = await base44.asServiceRole.entities.Store.list();
+            return Response.json({ 
+                error: `Locale non trovato: "${body.store_name}". Verifica che il nome sia esatto (maiuscole/minuscole).`,
+                available_stores: allStores.map(s => s.name),
+                received: body.store_name
+            }, { status: 404 });
+        }
+
+        const store = stores[0];
+
+        // Parse date (format: YYYY-MM-DD or DD/MM/YYYY or DD-MM-YYYY)
+        const parseDate = (dateStr) => {
+            if (!dateStr) return new Date().toISOString().split('T')[0];
+            
+            // Try YYYY-MM-DD format
+            if (dateStr.match(/^\d{4}-\d{2}-\d{2}/)) {
+                return dateStr.split('T')[0];
+            }
+            
+            // Try DD/MM/YYYY or DD-MM-YYYY format
+            const parts = dateStr.split(/[\/\-\s]/);
+            if (parts.length >= 3) {
+                const day = parts[0].padStart(2, '0');
+                const month = parts[1].padStart(2, '0');
+                const year = parts[2];
+                return `${year}-${month}-${day}`;
+            }
+            
+            return new Date().toISOString().split('T')[0];
+        };
+
+        // Helper to parse number fields (handle empty strings, null, undefined)
+        const parseNumber = (value) => {
+            if (value === null || value === undefined || value === '') return 0;
+            const num = typeof value === 'number' ? value : parseFloat(value);
+            return isNaN(num) ? 0 : num;
+        };
+
+        // Check if record already exists for this store and date
+        const existingRecords = await base44.asServiceRole.entities.iPratico.filter({
+            store_id: store.id,
+            order_date: parseDate(body.order_date)
+        });
+
+        // Create iPratico data object
+        const iPraticoData = {
+            store_id: store.id,
+            store_name: body.store_name,
+            order_date: parseDate(body.order_date),
+            total_orders: parseNumber(body.total_orders),
+            total_revenue: parseNumber(body.total_revenue),
+            
+            // Source App - Revenue
+            sourceApp_glovo: parseNumber(body.sourceApp_glovo),
+            sourceApp_deliveroo: parseNumber(body.sourceApp_deliveroo),
+            sourceApp_justeat: parseNumber(body.sourceApp_justeat),
+            sourceApp_onlineordering: parseNumber(body.sourceApp_onlineordering),
+            sourceApp_ordertable: parseNumber(body.sourceApp_ordertable),
+            sourceApp_tabesto: parseNumber(body.sourceApp_tabesto),
+            sourceApp_store: parseNumber(body.sourceApp_store),
+            
+            // Source App - Orders
+            sourceApp_glovo_orders: parseNumber(body.sourceApp_glovo_orders),
+            sourceApp_deliveroo_orders: parseNumber(body.sourceApp_deliveroo_orders),
+            sourceApp_justeat_orders: parseNumber(body.sourceApp_justeat_orders),
+            sourceApp_onlineordering_orders: parseNumber(body.sourceApp_onlineordering_orders),
+            sourceApp_ordertable_orders: parseNumber(body.sourceApp_ordertable_orders),
+            sourceApp_tabesto_orders: parseNumber(body.sourceApp_tabesto_orders),
+            sourceApp_store_orders: parseNumber(body.sourceApp_store_orders),
+            
+            // Source Type - Revenue
+            sourceType_delivery: parseNumber(body.sourceType_delivery),
+            sourceType_takeaway: parseNumber(body.sourceType_takeaway),
+            sourceType_takeawayOnSite: parseNumber(body.sourceType_takeawayOnSite),
+            sourceType_store: parseNumber(body.sourceType_store),
+            
+            // Source Type - Orders
+            sourceType_delivery_orders: parseNumber(body.sourceType_delivery_orders),
+            sourceType_takeaway_orders: parseNumber(body.sourceType_takeaway_orders),
+            sourceType_takeawayOnSite_orders: parseNumber(body.sourceType_takeawayOnSite_orders),
+            sourceType_store_orders: parseNumber(body.sourceType_store_orders),
+            
+            // Money Type - Revenue
+            moneyType_bancomat: parseNumber(body.moneyType_bancomat),
+            moneyType_cash: parseNumber(body.moneyType_cash),
+            moneyType_online: parseNumber(body.moneyType_online),
+            moneyType_satispay: parseNumber(body.moneyType_satispay),
+            moneyType_credit_card: parseNumber(body.moneyType_credit_card),
+            moneyType_fidelity_card_points: parseNumber(body.moneyType_fidelity_card_points),
+            
+            // Money Type - Orders
+            moneyType_bancomat_orders: parseNumber(body.moneyType_bancomat_orders),
+            moneyType_cash_orders: parseNumber(body.moneyType_cash_orders),
+            moneyType_online_orders: parseNumber(body.moneyType_online_orders),
+            moneyType_satispay_orders: parseNumber(body.moneyType_satispay_orders),
+            moneyType_credit_card_orders: parseNumber(body.moneyType_credit_card_orders),
+            moneyType_fidelity_card_points_orders: parseNumber(body.moneyType_fidelity_card_points_orders)
+        };
+
+        let record;
+        let isUpdate = false;
+
+        if (existingRecords && existingRecords.length > 0) {
+            // Update existing record
+            record = await base44.asServiceRole.entities.iPratico.update(
+                existingRecords[0].id,
+                iPraticoData
+            );
+            isUpdate = true;
+        } else {
+            // Create new record
+            record = await base44.asServiceRole.entities.iPratico.create(iPraticoData);
+        }
+
+        return Response.json({
+            success: true,
+            message: isUpdate 
+                ? 'Record iPratico aggiornato con successo' 
+                : 'Record iPratico importato con successo',
+            action: isUpdate ? 'updated' : 'created',
+            record: {
+                id: record.id,
+                store_name: record.store_name,
+                order_date: record.order_date,
+                total_orders: record.total_orders,
+                total_revenue: record.total_revenue
+            }
+        }, { status: isUpdate ? 200 : 201 });
+
+    } catch (error) {
+        console.error('Error importing iPratico record:', error);
+        return Response.json({ 
+            error: 'Errore durante l\'importazione del record iPratico',
+            details: error.message,
+            stack: error.stack
+        }, { status: 500 });
+    }
+});
