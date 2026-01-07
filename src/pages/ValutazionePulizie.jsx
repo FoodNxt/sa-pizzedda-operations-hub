@@ -45,6 +45,10 @@ export default function ValutazionePulizie() {
   });
 
   const queryClient = useQueryClient();
+  const [editingPhoto, setEditingPhoto] = useState(null);
+  const [manualStatus, setManualStatus] = useState('');
+  const [manualNote, setManualNote] = useState('');
+  const [reanalyzingAll, setReanalyzingAll] = useState(false);
 
   const { data: inspections = [], isLoading } = useQuery({
     queryKey: ['cleaning-inspections', selectedStore, selectedRole, dateFrom, dateTo],
@@ -101,6 +105,21 @@ export default function ValutazionePulizie() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pulizie-configs'] });
       setShowSettings(false);
+    },
+  });
+
+  const deleteInspectionMutation = useMutation({
+    mutationFn: (id) => base44.entities.CleaningInspection.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cleaning-inspections'] });
+    },
+  });
+
+  const updateInspectionMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.CleaningInspection.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cleaning-inspections'] });
+      setEditingPhoto(null);
     },
   });
 
@@ -298,6 +317,76 @@ export default function ValutazionePulizie() {
       .replace(/[ùúûü]/g, 'u') || '';
   };
 
+  const handleReanalyzeAllFiltered = async () => {
+    if (!confirm(`Vuoi ri-analizzare tutte le foto non valutate nei ${inspections.length} controlli mostrati?`)) return;
+
+    setReanalyzingAll(true);
+
+    try {
+      let totalAnalyzed = 0;
+
+      for (const inspection of inspections) {
+        const fotoDomande = inspection.domande_risposte?.filter(d => d.tipo_controllo === 'foto') || [];
+        const fotoNonValutate = fotoDomande.filter(d => {
+          const attrezzatura = normalizeAttrezzatura(d.attrezzatura);
+          const statusField = `${attrezzatura}_pulizia_status`;
+          const correctedField = `${attrezzatura}_corrected_status`;
+          const status = inspection[correctedField] || inspection[statusField];
+          return !status || status === 'non_valutabile';
+        });
+
+        if (fotoNonValutate.length > 0) {
+          for (const domanda of fotoNonValutate) {
+            await base44.functions.invoke('reanalyzePhoto', {
+              inspection_id: inspection.id,
+              attrezzatura: domanda.attrezzatura,
+              photo_url: domanda.risposta,
+              prompt_ai: domanda.prompt_ai || ''
+            });
+            totalAnalyzed++;
+          }
+        }
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['cleaning-inspections'] });
+      alert(`✅ ${totalAnalyzed} foto ri-analizzate con successo`);
+    } catch (error) {
+      console.error('Error reanalyzing all:', error);
+      alert('❌ Errore: ' + error.message);
+    } finally {
+      setReanalyzingAll(false);
+    }
+  };
+
+  const handleEditPhotoStatus = (inspection, domanda) => {
+    const attrezzatura = normalizeAttrezzatura(domanda.attrezzatura);
+    const statusField = `${attrezzatura}_pulizia_status`;
+    const correctedField = `${attrezzatura}_corrected_status`;
+    const noteField = `${attrezzatura}_note_ai`;
+    const correctionNoteField = `${attrezzatura}_correction_note`;
+    
+    const currentStatus = inspection[correctedField] || inspection[statusField] || '';
+    const currentNote = inspection[correctionNoteField] || inspection[noteField] || '';
+
+    setEditingPhoto({ inspection, domanda, attrezzatura });
+    setManualStatus(currentStatus);
+    setManualNote(currentNote);
+  };
+
+  const handleSaveManualEdit = async () => {
+    if (!editingPhoto || !manualStatus) return;
+
+    const { inspection, attrezzatura } = editingPhoto;
+    
+    const updateData = {
+      [`${attrezzatura}_corrected`]: true,
+      [`${attrezzatura}_corrected_status`]: manualStatus,
+      [`${attrezzatura}_correction_note`]: manualNote
+    };
+
+    await updateInspectionMutation.mutateAsync({ id: inspection.id, data: updateData });
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -306,10 +395,29 @@ export default function ValutazionePulizie() {
           <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Valutazione Pulizie</h1>
           <p className="text-[#9b9b9b]">Visualizza e valuta tutti i form pulizia completati</p>
         </div>
-        <NeumorphicButton onClick={handleOpenSettings} className="flex items-center gap-2">
-          <Settings className="w-5 h-5" />
-          Impostazioni
-        </NeumorphicButton>
+        <div className="flex gap-2">
+          <NeumorphicButton 
+            onClick={handleReanalyzeAllFiltered}
+            disabled={reanalyzingAll || inspections.length === 0}
+            className="flex items-center gap-2"
+          >
+            {reanalyzingAll ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Analisi in corso...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-5 h-5" />
+                Analizza Tutte
+              </>
+            )}
+          </NeumorphicButton>
+          <NeumorphicButton onClick={handleOpenSettings} className="flex items-center gap-2">
+            <Settings className="w-5 h-5" />
+            Impostazioni
+          </NeumorphicButton>
+        </div>
       </div>
 
       {/* Filters */}
@@ -413,14 +521,14 @@ export default function ValutazionePulizie() {
             
             return (
               <NeumorphicCard key={inspection.id} className="p-6">
-                <div 
-                  className="flex items-start justify-between cursor-pointer"
-                  onClick={() => setExpandedInspections(prev => ({
-                    ...prev,
-                    [inspection.id]: !prev[inspection.id]
-                  }))}
-                >
-                  <div className="flex-1">
+                <div className="flex items-start justify-between mb-4">
+                  <div 
+                    className="flex-1 cursor-pointer"
+                    onClick={() => setExpandedInspections(prev => ({
+                      ...prev,
+                      [inspection.id]: !prev[inspection.id]
+                    }))}
+                  >
                     <div className="flex items-center gap-4">
                       <div className={`text-3xl font-bold ${scoreColor}`}>
                         {score}%
@@ -446,6 +554,7 @@ export default function ValutazionePulizie() {
                       </div>
                     </div>
                   </div>
+                  </div>
 
                   <div className="flex items-center gap-3 ml-4">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${
@@ -455,11 +564,34 @@ export default function ValutazionePulizie() {
                     }`}>
                       {inspection.inspector_role}
                     </span>
-                    {isExpanded ? (
-                      <ChevronDown className="w-5 h-5 text-[#9b9b9b]" />
-                    ) : (
-                      <ChevronRight className="w-5 h-5 text-[#9b9b9b]" />
-                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm('Sei sicuro di voler eliminare questo controllo?')) {
+                          deleteInspectionMutation.mutate(inspection.id);
+                        }
+                      }}
+                      className="nav-button p-2 rounded-lg hover:bg-red-50"
+                      title="Elimina controllo"
+                    >
+                      <X className="w-4 h-4 text-red-600" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExpandedInspections(prev => ({
+                          ...prev,
+                          [inspection.id]: !prev[inspection.id]
+                        }));
+                      }}
+                      className="p-2"
+                    >
+                      {isExpanded ? (
+                        <ChevronDown className="w-5 h-5 text-[#9b9b9b]" />
+                      ) : (
+                        <ChevronRight className="w-5 h-5 text-[#9b9b9b]" />
+                      )}
+                    </button>
                   </div>
                 </div>
 
@@ -528,10 +660,20 @@ export default function ValutazionePulizie() {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    handleEditPhotoStatus(inspection, domanda);
+                                  }}
+                                  className="nav-button p-1.5 rounded-lg ml-2 hover:bg-orange-50"
+                                  title="Modifica valutazione manualmente"
+                                >
+                                  <Settings className="w-4 h-4 text-orange-600" />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     handleReanalyzePhoto(inspection, domanda);
                                   }}
                                   disabled={isReanalyzing || reanalyzingPhoto === `${inspection.id}_bulk`}
-                                  className="nav-button p-1.5 rounded-lg ml-2 hover:bg-blue-50"
+                                  className="nav-button p-1.5 rounded-lg hover:bg-blue-50"
                                   title="Ri-analizza foto con AI"
                                 >
                                   {isReanalyzing ? (
@@ -760,6 +902,81 @@ export default function ValutazionePulizie() {
             className="max-w-full max-h-full object-contain"
             onClick={(e) => e.stopPropagation()}
           />
+        </div>
+      )}
+
+      {/* Manual Edit Modal */}
+      {editingPhoto && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <NeumorphicCard className="p-6 max-w-md w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-[#6b6b6b]">Modifica Valutazione</h2>
+              <button onClick={() => setEditingPhoto(null)} className="nav-button p-2 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="mb-4 neumorphic-pressed p-3 rounded-xl">
+              <p className="text-sm font-medium text-[#6b6b6b]">{editingPhoto.domanda.attrezzatura}</p>
+              <p className="text-xs text-[#9b9b9b] mt-1">
+                {editingPhoto.inspection.store_name} - {editingPhoto.inspection.inspector_name}
+              </p>
+            </div>
+
+            {editingPhoto.domanda.risposta && (
+              <img 
+                src={editingPhoto.domanda.risposta} 
+                alt={editingPhoto.domanda.attrezzatura}
+                className="w-full h-48 object-cover rounded-lg mb-4"
+              />
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                  Valutazione *
+                </label>
+                <select
+                  value={manualStatus}
+                  onChange={(e) => setManualStatus(e.target.value)}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                >
+                  <option value="">Seleziona...</option>
+                  <option value="pulito">✅ Pulito</option>
+                  <option value="sporco">❌ Sporco</option>
+                  <option value="medio">⚠️ Medio</option>
+                  <option value="non_valutabile">❓ Non Valutabile</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                  Note
+                </label>
+                <textarea
+                  value={manualNote}
+                  onChange={(e) => setManualNote(e.target.value)}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none h-24"
+                  placeholder="Aggiungi note sulla valutazione..."
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <NeumorphicButton onClick={() => setEditingPhoto(null)} className="flex-1">
+                Annulla
+              </NeumorphicButton>
+              <NeumorphicButton 
+                onClick={handleSaveManualEdit}
+                variant="primary" 
+                className="flex-1 flex items-center justify-center gap-2"
+                disabled={!manualStatus}
+              >
+                <Save className="w-4 h-4" />
+                Salva
+              </NeumorphicButton>
+            </div>
+          </NeumorphicCard>
         </div>
       )}
     </div>
