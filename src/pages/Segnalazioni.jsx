@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
-import { Camera, AlertTriangle, CheckCircle, Clock, User, Upload, Loader2, X, Save, Trash2, FileText, Plus, XCircle, ChevronDown, ChevronRight, MapPin } from 'lucide-react';
+import { Camera, AlertTriangle, CheckCircle, Clock, User, Upload, Loader2, X, Save, Trash2, FileText, Plus, XCircle, ChevronDown, ChevronRight, MapPin, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 
@@ -28,6 +28,8 @@ export default function Segnalazioni() {
 
   const [activeTab, setActiveTab] = useState('aperte');
   const [expandedStores, setExpandedStores] = useState({});
+  const [showCommentModal, setShowCommentModal] = useState(false);
+  const [commentText, setCommentText] = useState('');
 
   const queryClient = useQueryClient();
 
@@ -148,6 +150,27 @@ export default function Segnalazioni() {
       data.data_risoluzione = new Date().toISOString();
     }
     updateMutation.mutate({ id: segnalazioneId, data });
+  };
+
+  const handleAddComment = () => {
+    if (!commentText.trim() || !selectedSegnalazione) return;
+
+    const newComment = {
+      autore: user?.nome_cognome || user?.full_name || user?.email,
+      testo: commentText,
+      data: new Date().toISOString()
+    };
+
+    const updatedComments = [...(selectedSegnalazione.commenti || []), newComment];
+
+    updateMutation.mutate({
+      id: selectedSegnalazione.id,
+      data: { commenti: updatedComments }
+    });
+
+    setCommentText('');
+    setShowCommentModal(false);
+    setSelectedSegnalazione(null);
   };
 
   const getStatoColor = (stato) => {
@@ -492,6 +515,25 @@ export default function Segnalazioni() {
                       </div>
                     )}
 
+                    {/* Commenti Admin */}
+                    {segnalazione.commenti && segnalazione.commenti.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        {segnalazione.commenti.map((commento, idx) => (
+                          <div key={idx} className="neumorphic-pressed p-3 rounded-lg bg-blue-50">
+                            <div className="flex items-start gap-2">
+                              <MessageSquare className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                              <div className="flex-1">
+                                <p className="text-sm text-[#6b6b6b]">{commento.testo}</p>
+                                <p className="text-xs text-blue-600 mt-1">
+                                  {commento.autore} • {format(new Date(commento.data), 'dd MMM yyyy HH:mm', { locale: it })}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     {/* Admin Actions */}
                     {isAdmin && (
                       <div className="flex flex-wrap gap-2 mt-3">
@@ -511,6 +553,17 @@ export default function Segnalazioni() {
                               Risolvi
                             </>
                           )}
+                        </NeumorphicButton>
+
+                        <NeumorphicButton
+                          onClick={() => {
+                            setSelectedSegnalazione(segnalazione);
+                            setShowCommentModal(true);
+                          }}
+                          className="text-sm flex items-center gap-1 text-blue-600"
+                        >
+                          <MessageSquare className="w-4 h-4" />
+                          Commenta
                         </NeumorphicButton>
                         
                         <NeumorphicButton
@@ -592,6 +645,52 @@ export default function Segnalazioni() {
           </div>
         )}
       </NeumorphicCard>
+
+      {/* Comment Modal */}
+      {showCommentModal && selectedSegnalazione && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <NeumorphicCard className="p-6 max-w-lg w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-[#6b6b6b]">Aggiungi Commento</h2>
+              <button onClick={() => { setShowCommentModal(false); setSelectedSegnalazione(null); setCommentText(''); }} className="text-[#9b9b9b]">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="mb-4 p-3 bg-slate-50 rounded-xl">
+              <p className="text-sm text-[#6b6b6b]">
+                <strong>{selectedSegnalazione.store_name}</strong>
+              </p>
+              <p className="text-xs text-[#9b9b9b] mt-1">{selectedSegnalazione.descrizione}</p>
+            </div>
+
+            <textarea
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="Scrivi un commento..."
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none h-32 resize-none mb-4"
+            />
+
+            <div className="flex gap-3">
+              <NeumorphicButton
+                onClick={() => { setShowCommentModal(false); setSelectedSegnalazione(null); setCommentText(''); }}
+                className="flex-1"
+              >
+                Annulla
+              </NeumorphicButton>
+              <NeumorphicButton
+                onClick={handleAddComment}
+                variant="primary"
+                disabled={!commentText.trim()}
+                className="flex-1 flex items-center justify-center gap-2"
+              >
+                <MessageSquare className="w-4 h-4" />
+                Aggiungi
+              </NeumorphicButton>
+            </div>
+          </NeumorphicCard>
+        </div>
+      )}
 
       {/* Lettera Richiamo Modal */}
       {showLetteraModal && selectedSegnalazione && (
