@@ -300,21 +300,30 @@ export default function Segnalazioni() {
         <NeumorphicCard className="p-6 text-center">
           <AlertTriangle className="w-8 h-8 text-red-600 mx-auto mb-2" />
           <p className="text-2xl font-bold text-red-600">
-            {segnalazioni.filter(s => s.stato === 'aperta').length}
+            {(isAdmin || isStoreManager 
+              ? segnalazioni 
+              : segnalazioni.filter(s => s.dipendente_id === user?.id)
+            ).filter(s => s.stato === 'aperta').length}
           </p>
           <p className="text-sm text-[#9b9b9b]">Aperte</p>
         </NeumorphicCard>
         <NeumorphicCard className="p-6 text-center">
           <Clock className="w-8 h-8 text-yellow-600 mx-auto mb-2" />
           <p className="text-2xl font-bold text-yellow-600">
-            {segnalazioni.filter(s => s.stato === 'in_gestione').length}
+            {(isAdmin || isStoreManager 
+              ? segnalazioni 
+              : segnalazioni.filter(s => s.dipendente_id === user?.id)
+            ).filter(s => s.stato === 'in_gestione').length}
           </p>
           <p className="text-sm text-[#9b9b9b]">In Gestione</p>
         </NeumorphicCard>
         <NeumorphicCard className="p-6 text-center">
           <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
           <p className="text-2xl font-bold text-green-600">
-            {segnalazioni.filter(s => s.stato === 'risolta').length}
+            {(isAdmin || isStoreManager 
+              ? segnalazioni 
+              : segnalazioni.filter(s => s.dipendente_id === user?.id)
+            ).filter(s => s.stato === 'risolta').length}
           </p>
           <p className="text-sm text-[#9b9b9b]">Risolte</p>
         </NeumorphicCard>
