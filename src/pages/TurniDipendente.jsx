@@ -306,6 +306,7 @@ export default function TurniDipendente() {
       });
     },
     enabled: !!currentUser?.id,
+    refetchInterval: 3000, // Ricarica ogni 3 secondi per aggiornamenti in tempo reale
   });
 
   // Turni futuri per scambio (include TUTTI i turni futuri, non solo i miei)
@@ -320,6 +321,7 @@ export default function TurniDipendente() {
       });
     },
     enabled: !!currentUser?.id,
+    refetchInterval: 3000, // Ricarica ogni 3 secondi
   });
 
   // Turni futuri del collega selezionato per scambio (filtrati per non passati)

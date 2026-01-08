@@ -1046,15 +1046,6 @@ export default function Layout({ children, currentPageName }) {
 
   const isFullyLoaded = !isLoadingUser && !isLoadingConfig && currentUser;
 
-  // Get main navigation items for bottom bar (dipendente only) - STABILE
-  const bottomNavItems = useMemo(() => {
-    if (normalizedUserType !== 'dipendente') return [];
-    if (!dipendenteNav || dipendenteNav.length === 0) return [];
-    
-    const mainItems = dipendenteNav[0]?.items || [];
-    return mainItems;
-  }, [normalizedUserType, dipendenteNav]);
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {showProfileModal && currentUser && (
@@ -1408,7 +1399,7 @@ export default function Layout({ children, currentPageName }) {
       </div>
 
       {/* Mobile Bottom Navigation (Dipendente only) */}
-      {normalizedUserType === 'dipendente' && bottomNavItems.length > 0 && (
+      {normalizedUserType === 'dipendente' && isFullyLoaded && bottomNavItems && bottomNavItems.length > 0 && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] safe-area-bottom bg-gradient-to-br from-slate-50 to-slate-100">
           <div className="px-2 pb-2 pt-1">
             <button
