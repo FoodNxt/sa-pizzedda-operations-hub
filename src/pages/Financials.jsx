@@ -1,13 +1,14 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { DollarSign, TrendingUp, Filter, Calendar, X, Settings, Eye, EyeOff, Save } from 'lucide-react';
+import { DollarSign, TrendingUp, Filter, Calendar, X, Settings, Eye, EyeOff, Save, CreditCard, Wallet } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, subDays, isAfter, isBefore, parseISO, isValid, addDays, subYears, eachDayOfInterval } from 'date-fns';
 import ProtectedPage from "../components/ProtectedPage";
 
 export default function Financials() {
+  const [activeTab, setActiveTab] = useState('overview');
   const [selectedStore, setSelectedStore] = useState('all');
   const [dateRange, setDateRange] = useState('30');
   const [startDate, setStartDate] = useState('');
@@ -357,6 +358,78 @@ export default function Financials() {
     };
   }, [iPraticoData, selectedStore, dateRange, startDate, endDate, selectedStoresForTrend, channelMapping, appMapping, compareMode, compareStartDate, compareEndDate, selectedChannels, selectedApps]);
 
+  // Payment Methods Analysis
+  const paymentMethodsData = useMemo(() => {
+    let cutoffDate;
+    let endFilterDate;
+    
+    if (startDate || endDate) {
+      cutoffDate = startDate ? safeParseDate(startDate + 'T00:00:00') : new Date(0);
+      endFilterDate = endDate ? safeParseDate(endDate + 'T23:59:59') : new Date();
+    } else {
+      const days = parseInt(dateRange, 10);
+      cutoffDate = subDays(new Date(), days);
+      endFilterDate = new Date(); 
+    }
+    
+    let filtered = iPraticoData.filter(item => {
+      if (!item.order_date) return false;
+      
+      const itemDateStart = safeParseDate(item.order_date + 'T00:00:00');
+      const itemDateEnd = safeParseDate(item.order_date + 'T23:59:59');
+      
+      if (!itemDateStart || !itemDateEnd) return false;
+
+      if (cutoffDate && isBefore(itemDateEnd, cutoffDate)) return false;
+      if (endFilterDate && isAfter(itemDateStart, endFilterDate)) return false;
+      
+      if (selectedStore !== 'all' && item.store_id !== selectedStore) return false;
+      
+      return true;
+    });
+
+    const paymentMethods = {};
+    
+    filtered.forEach(item => {
+      const methods = [
+        { key: 'bancomat', revenue: item.moneyType_bancomat || 0, orders: item.moneyType_bancomat_orders || 0, label: 'Bancomat' },
+        { key: 'cash', revenue: item.moneyType_cash || 0, orders: item.moneyType_cash_orders || 0, label: 'Contanti' },
+        { key: 'online', revenue: item.moneyType_online || 0, orders: item.moneyType_online_orders || 0, label: 'Online' },
+        { key: 'satispay', revenue: item.moneyType_satispay || 0, orders: item.moneyType_satispay_orders || 0, label: 'Satispay' },
+        { key: 'credit_card', revenue: item.moneyType_credit_card || 0, orders: item.moneyType_credit_card_orders || 0, label: 'Carta di Credito' },
+        { key: 'fidelity_card_points', revenue: item.moneyType_fidelity_card_points || 0, orders: item.moneyType_fidelity_card_points_orders || 0, label: 'Punti Fidelity' }
+      ];
+      
+      methods.forEach(method => {
+        if (method.revenue > 0 || method.orders > 0) {
+          if (!paymentMethods[method.key]) {
+            paymentMethods[method.key] = { 
+              name: method.label, 
+              value: 0, 
+              orders: 0 
+            };
+          }
+          paymentMethods[method.key].value += method.revenue;
+          paymentMethods[method.key].orders += method.orders;
+        }
+      });
+    });
+
+    const breakdown = Object.values(paymentMethods)
+      .sort((a, b) => b.value - a.value)
+      .map(m => ({
+        name: m.name,
+        value: parseFloat(m.value.toFixed(2)),
+        orders: m.orders,
+        avgValue: m.orders > 0 ? parseFloat((m.value / m.orders).toFixed(2)) : 0
+      }));
+
+    const totalRevenue = breakdown.reduce((sum, m) => sum + m.value, 0);
+    const totalOrders = breakdown.reduce((sum, m) => sum + m.orders, 0);
+
+    return { breakdown, totalRevenue, totalOrders };
+  }, [iPraticoData, selectedStore, dateRange, startDate, endDate]);
+
   const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4'];
 
   const clearCustomDates = () => {
@@ -364,6 +437,8 @@ export default function Financials() {
     setEndDate('');
     setDateRange('30');
   };
+
+  const PAYMENT_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4'];
 
   return (
     <ProtectedPage pageName="Financials">
@@ -375,6 +450,34 @@ export default function Financials() {
           <p className="text-sm text-slate-500">Dati iPratico</p>
         </div>
 
+        {/* Tabs */}
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
+              activeTab === 'overview'
+                ? 'neumorphic-pressed bg-blue-50 text-blue-700'
+                : 'neumorphic-flat text-slate-600 hover:text-slate-800'
+            }`}
+          >
+            <TrendingUp className="w-4 h-4" />
+            Overview
+          </button>
+          <button
+            onClick={() => setActiveTab('payments')}
+            className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
+              activeTab === 'payments'
+                ? 'neumorphic-pressed bg-blue-50 text-blue-700'
+                : 'neumorphic-flat text-slate-600 hover:text-slate-800'
+            }`}
+          >
+            <CreditCard className="w-4 h-4" />
+            Metodi Pagamento
+          </button>
+        </div>
+
+        {activeTab === 'overview' && (
+          <>
         <NeumorphicCard className="p-4 lg:p-6">
           <div className="flex items-center gap-2 mb-4">
             <Filter className="w-5 h-5 text-blue-600" />
@@ -1073,6 +1176,228 @@ export default function Financials() {
               </table>
             </div>
           </NeumorphicCard>
+        )}
+        </>
+        )}
+
+        {/* Payment Methods Tab */}
+        {activeTab === 'payments' && (
+          <>
+            <NeumorphicCard className="p-4 lg:p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Filter className="w-5 h-5 text-blue-600" />
+                <h2 className="text-base lg:text-lg font-bold text-slate-800">Filtri</h2>
+              </div>
+              <div className="grid grid-cols-1 gap-3">
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block">Locale</label>
+                  <select
+                    value={selectedStore}
+                    onChange={(e) => setSelectedStore(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                  >
+                    <option value="all">Tutti i Locali</option>
+                    {stores.map(store => (
+                      <option key={store.id} value={store.id}>{store.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block">Periodo</label>
+                  <select
+                    value={dateRange}
+                    onChange={(e) => {
+                      setDateRange(e.target.value);
+                      if (e.target.value !== 'custom') {
+                        setStartDate('');
+                        setEndDate('');
+                      }
+                    }}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                  >
+                    <option value="7">Ultimi 7 giorni</option>
+                    <option value="30">Ultimi 30 giorni</option>
+                    <option value="90">Ultimi 90 giorni</option>
+                    <option value="365">Ultimo anno</option>
+                    <option value="custom">Personalizzato</option>
+                  </select>
+                </div>
+
+                {dateRange === 'custom' && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-sm text-slate-600 mb-2 block">Inizio</label>
+                      <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm text-slate-600 mb-2 block">Fine</label>
+                      <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </NeumorphicCard>
+
+            {/* Payment Stats */}
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+              <NeumorphicCard className="p-4">
+                <div className="flex flex-col items-center text-center">
+                  <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center mb-3 shadow-lg">
+                    <DollarSign className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+                  </div>
+                  <h3 className="text-lg lg:text-xl font-bold text-slate-800 mb-1">
+                    €{(paymentMethodsData.totalRevenue / 1000).toFixed(1)}k
+                  </h3>
+                  <p className="text-xs text-slate-500">Revenue Totale</p>
+                </div>
+              </NeumorphicCard>
+
+              <NeumorphicCard className="p-4">
+                <div className="flex flex-col items-center text-center">
+                  <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-3 shadow-lg">
+                    <CreditCard className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+                  </div>
+                  <h3 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1">
+                    {paymentMethodsData.totalOrders}
+                  </h3>
+                  <p className="text-xs text-slate-500">Ordini Totali</p>
+                </div>
+              </NeumorphicCard>
+
+              <NeumorphicCard className="p-4">
+                <div className="flex flex-col items-center text-center">
+                  <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center mb-3 shadow-lg">
+                    <Wallet className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+                  </div>
+                  <h3 className="text-lg lg:text-xl font-bold text-slate-800 mb-1">
+                    {paymentMethodsData.breakdown.length}
+                  </h3>
+                  <p className="text-xs text-slate-500">Metodi Usati</p>
+                </div>
+              </NeumorphicCard>
+            </div>
+
+            {/* Payment Methods Chart */}
+            <NeumorphicCard className="p-4 lg:p-6">
+              <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Distribuzione per Metodo di Pagamento</h2>
+              {paymentMethodsData.breakdown.length > 0 ? (
+                <div className="w-full overflow-x-auto">
+                  <div style={{ minWidth: '300px' }}>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={paymentMethodsData.breakdown}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                        <XAxis 
+                          dataKey="name" 
+                          stroke="#64748b"
+                          tick={{ fontSize: 11 }}
+                          angle={-45}
+                          textAnchor="end"
+                          height={80}
+                        />
+                        <YAxis 
+                          stroke="#64748b"
+                          tick={{ fontSize: 11 }}
+                          width={60}
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            background: 'rgba(248, 250, 252, 0.95)', 
+                            border: 'none',
+                            borderRadius: '12px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                            fontSize: '11px'
+                          }}
+                          formatter={(value) => `€${value.toFixed(2)}`}
+                        />
+                        <Legend wrapperStyle={{ fontSize: '11px' }} />
+                        <Bar 
+                          dataKey="value" 
+                          fill="url(#paymentGradient)" 
+                          name="Revenue" 
+                          radius={[8, 8, 0, 0]} 
+                        />
+                        <defs>
+                          <linearGradient id="paymentGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#10b981" />
+                            <stop offset="100%" stopColor="#059669" />
+                          </linearGradient>
+                        </defs>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center text-slate-500">
+                  Nessun dato disponibile
+                </div>
+              )}
+            </NeumorphicCard>
+
+            {/* Payment Methods Table */}
+            <NeumorphicCard className="p-4 lg:p-6">
+              <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Dettaglio Metodi di Pagamento</h2>
+              <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
+                <table className="w-full min-w-[600px]">
+                  <thead>
+                    <tr className="border-b-2 border-green-600">
+                      <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Metodo</th>
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Revenue</th>
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ordini</th>
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">€ Medio</th>
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">% Revenue</th>
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">% Ordini</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paymentMethodsData.breakdown.map((method, index) => (
+                      <tr key={index} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                        <td className="p-2 lg:p-3">
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full flex-shrink-0" 
+                              style={{ background: PAYMENT_COLORS[index % PAYMENT_COLORS.length] }}
+                            />
+                            <span className="text-slate-700 font-medium text-sm">{method.name}</span>
+                          </div>
+                        </td>
+                        <td className="p-2 lg:p-3 text-right text-slate-700 font-bold text-sm">
+                          €{method.value.toFixed(2)}
+                        </td>
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
+                          {method.orders}
+                        </td>
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
+                          €{method.avgValue.toFixed(2)}
+                        </td>
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
+                          {paymentMethodsData.totalRevenue > 0 
+                            ? ((method.value / paymentMethodsData.totalRevenue) * 100).toFixed(1) 
+                            : 0}%
+                        </td>
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
+                          {paymentMethodsData.totalOrders > 0 
+                            ? ((method.orders / paymentMethodsData.totalOrders) * 100).toFixed(1) 
+                            : 0}%
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </NeumorphicCard>
+          </>
         )}
       </div>
     </ProtectedPage>
