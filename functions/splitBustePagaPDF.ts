@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         
         // Create a File object from the Blob
-        const fileName = `busta_paga_${split.user_name || 'dipendente'}_page${page.page_number}.pdf`;
+        const fileName = `busta_paga_${matchedUser.nome_cognome || matchedUser.full_name || 'dipendente'}_page${page.page_number}.pdf`;
         const file = new File([blob], fileName, { type: 'application/pdf' });
         
         const { file_url: singlePageUrl } = await base44.asServiceRole.integrations.Core.UploadFile({
