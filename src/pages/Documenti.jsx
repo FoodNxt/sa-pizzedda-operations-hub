@@ -2890,6 +2890,7 @@ function BustePagaSection() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="nav-button p-2 rounded-lg"
+                      title="Scarica PDF completo"
                     >
                       <Download className="w-4 h-4 text-blue-600" />
                     </a>
