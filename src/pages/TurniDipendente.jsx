@@ -1263,7 +1263,7 @@ export default function TurniDipendente() {
         const straordInizio = moment(straord.timbratura_entrata);
         const straordFine = straord.timbratura_uscita ? moment(straord.timbratura_uscita) : moment(`${straord.data} ${straord.ora_fine}`);
         const ore = straordFine.diff(straordInizio, 'hours', true);
-        const importo = ore * retribuzioneOraria;
+        const importo = Math.ceil(ore * retribuzioneOraria);
         
         attivitaNormali.push({
           nome: `Pagamento straordinari - ${straord.dipendente_nome}`,
@@ -1771,7 +1771,7 @@ export default function TurniDipendente() {
                                    >
                                     <Euro className="w-4 h-4" /> 
                                     <div className="text-left">
-                                      <div>Paga €{att.importoPagamento.toFixed(2)}</div>
+                                      <div>Paga €{att.importoPagamento.toFixed(0)}</div>
                                       <div className="text-[10px] opacity-80">a {att.dipendenteStraordinario}</div>
                                     </div>
                                    </button>

@@ -207,7 +207,7 @@ export default function Disponibilita() {
       const start = new Date(turno.timbratura_entrata);
       const end = turno.timbratura_uscita ? new Date(turno.timbratura_uscita) : new Date();
       const ore = (end - start) / (1000 * 60 * 60);
-      const retribuzione = ore * retribuzioneOraria;
+      const retribuzione = Math.ceil(ore * retribuzioneOraria);
       const inCorso = !turno.timbratura_uscita;
 
       return {
@@ -513,13 +513,13 @@ export default function Disponibilita() {
               <NeumorphicCard className="p-6 text-center">
                 <Euro className="w-10 h-10 text-green-600 mx-auto mb-3" />
                 <p className="text-xs text-[#9b9b9b] mb-1">Totale €</p>
-                <p className="text-2xl font-bold text-green-600">€{straordinariStats.totaleRetribuzione.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-green-600">€{straordinariStats.totaleRetribuzione}</p>
               </NeumorphicCard>
 
               <NeumorphicCard className="p-6 text-center">
                 <AlertCircle className="w-10 h-10 text-orange-600 mx-auto mb-3" />
                 <p className="text-xs text-[#9b9b9b] mb-1">Da Pagare</p>
-                <p className="text-2xl font-bold text-orange-600">€{straordinariStats.importoDaPagare.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-orange-600">€{straordinariStats.importoDaPagare}</p>
                 {straordinariStats.inCorso > 0 && (
                   <p className="text-xs text-blue-600 mt-1">+ {straordinariStats.inCorso} in corso</p>
                 )}
@@ -602,7 +602,7 @@ export default function Disponibilita() {
 
                          <div className="text-right flex flex-col items-end gap-2">
                            <div>
-                             <p className="text-2xl font-bold text-green-600">€{turno.retribuzione.toFixed(2)}</p>
+                             <p className="text-2xl font-bold text-green-600">€{turno.retribuzione}</p>
                              <p className="text-xs text-slate-500">({retribuzioneOraria}€/h)</p>
                            </div>
                            {turno.inCorso ? (
