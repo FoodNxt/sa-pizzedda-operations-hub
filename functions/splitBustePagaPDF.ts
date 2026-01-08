@@ -81,17 +81,15 @@ Deno.serve(async (req) => {
         // Save as bytes
         const pdfBytes = await singlePagePdf.save();
         
-        // Convert to base64 data URL for upload
-        const uint8Array = new Uint8Array(pdfBytes);
-        let binaryString = '';
-        for (let i = 0; i < uint8Array.length; i++) {
-          binaryString += String.fromCharCode(uint8Array[i]);
-        }
-        const base64Data = btoa(binaryString);
-        const dataUrl = `data:application/pdf;base64,${base64Data}`;
+        // Create a Blob from the PDF bytes
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        
+        // Create a File object from the Blob
+        const fileName = `busta_paga_${split.user_name || 'dipendente'}_page${page.page_number}.pdf`;
+        const file = new File([blob], fileName, { type: 'application/pdf' });
         
         const { file_url: singlePageUrl } = await base44.asServiceRole.integrations.Core.UploadFile({
-          file: dataUrl
+          file: file
         });
         
         splits.push({
