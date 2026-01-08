@@ -54,16 +54,73 @@ export default function CalendarViewDnD({ slots, onSlotsChange, getCorsoName, is
   const handleDragEnd = (result) => {
     if (!result.destination) return;
     
+    const sourceTimeSlot = result.source.droppableId;
+    const destinationTimeSlot = result.destination.droppableId;
     const sourceIndex = result.source.index;
     const destinationIndex = result.destination.index;
     
-    if (sourceIndex === destinationIndex) return;
+    // Get the moved slot
+    const movedSlot = timedSlots[sourceIndex];
+    if (!movedSlot) return;
     
-    const newSlots = Array.from(slots);
-    const [movedSlot] = newSlots.splice(sourceIndex, 1);
-    newSlots.splice(destinationIndex, 0, movedSlot);
+    // Calculate duration in minutes
+    const calculateDuration = (start, end) => {
+      const [startH, startM] = start.split(':').map(Number);
+      const [endH, endM] = end.split(':').map(Number);
+      let startMinutes = startH * 60 + startM;
+      let endMinutes = endH * 60 + endM;
+      
+      // Handle overnight shifts (end time after midnight)
+      if (endMinutes < startMinutes) {
+        endMinutes += 24 * 60;
+      }
+      
+      return endMinutes - startMinutes;
+    };
     
-    onSlotsChange(newSlots);
+    // Calculate new end time based on start time and duration
+    const calculateEndTime = (startTime, durationMinutes) => {
+      const [h, m] = startTime.split(':').map(Number);
+      let totalMinutes = h * 60 + m + durationMinutes;
+      
+      // Handle overflow past midnight
+      if (totalMinutes >= 24 * 60) {
+        totalMinutes -= 24 * 60;
+      }
+      
+      const endHours = Math.floor(totalMinutes / 60);
+      const endMinutes = totalMinutes % 60;
+      
+      return `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
+    };
+    
+    // Update slot times if dropped on different time slot
+    let updatedSlot = movedSlot;
+    if (sourceTimeSlot !== destinationTimeSlot) {
+      const duration = calculateDuration(movedSlot.ora_inizio, movedSlot.ora_fine);
+      const newEndTime = calculateEndTime(destinationTimeSlot, duration);
+      
+      updatedSlot = {
+        ...movedSlot,
+        ora_inizio: destinationTimeSlot,
+        ora_fine: newEndTime
+      };
+    }
+    
+    // Rebuild slots array with updated positions and times
+    const newSlots = slots.filter(s => !s.necessario_in_ogni_turno);
+    newSlots[sourceIndex] = updatedSlot;
+    
+    // Sort by time
+    const sortedTimedSlots = newSlots.sort((a, b) => (a.ora_inizio || '').localeCompare(b.ora_inizio || ''));
+    
+    // Combine with necessary slots
+    const finalSlots = [
+      ...slots.filter(s => s.necessario_in_ogni_turno),
+      ...sortedTimedSlots
+    ];
+    
+    onSlotsChange(finalSlots);
   };
 
   // Separate necessary slots from timed slots
