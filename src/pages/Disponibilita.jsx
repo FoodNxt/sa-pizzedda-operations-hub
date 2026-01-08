@@ -140,11 +140,8 @@ export default function Disponibilita() {
     return dipendenti.map(dipendente => {
       const ruoli = dipendente.ruoli_dipendente || [];
       
-      // Find stores this employee has access to from AccessoStore
-      const accessiDipendente = accessiStore.filter(a => a.dipendente_id === dipendente.id);
-      const storesAbilitati = accessiDipendente.length > 0 
-        ? accessiDipendente.map(a => a.store_id) 
-        : [];
+      // Find stores this employee has access to from assigned_stores
+      const storesAbilitati = dipendente.assigned_stores || [];
 
       // Calculate overtime hours done by this employee (escludi turni in corso)
       const oreStraordinarioFatte = filteredTurni
