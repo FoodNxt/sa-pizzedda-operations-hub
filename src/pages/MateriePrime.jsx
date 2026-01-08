@@ -18,7 +18,9 @@ import {
   Copy,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Upload,
+  Camera
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -66,8 +68,10 @@ export default function MateriePrime() {
     posizione: 'negozio',
     assigned_stores: [],
     in_uso: false,
-    in_uso_per_store: {}
+    in_uso_per_store: {},
+    foto_url: ''
   });
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [inUsoPerStore, setInUsoPerStore] = useState({});
   const [storeQuantitaCritica, setStoreQuantitaCritica] = useState({});
   const [storeQuantitaOrdine, setStoreQuantitaOrdine] = useState({});
@@ -149,7 +153,8 @@ export default function MateriePrime() {
       assigned_stores: [],
       in_uso: false,
       in_uso_per_store: {},
-      trasportabile: false
+      trasportabile: false,
+      foto_url: ''
     });
     setStoreQuantities({});
     setShowStoreQuantities(false);
@@ -220,7 +225,8 @@ export default function MateriePrime() {
       assigned_stores: product.assigned_stores || [],
       in_uso: product.in_uso || false,
       in_uso_per_store: product.in_uso_per_store || {},
-      trasportabile: product.trasportabile || false
+      trasportabile: product.trasportabile || false,
+      foto_url: product.foto_url || ''
     });
     setStoreQuantities(product.store_specific_min_quantities || {});
     setStorePositions(product.store_specific_positions || {});
@@ -615,6 +621,55 @@ export default function MateriePrime() {
                           placeholder="es. SKU-12345"
                         />
                       </div>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
+                        <Camera className="w-4 h-4" />
+                        Foto Prodotto
+                      </label>
+                      {formData.foto_url && (
+                        <div className="mb-3 relative">
+                          <img 
+                            src={formData.foto_url} 
+                            alt={formData.nome_prodotto}
+                            className="w-full h-40 object-cover rounded-xl"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, foto_url: '' })}
+                            className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                      <label className="neumorphic-pressed p-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer hover:bg-blue-50 transition-colors">
+                        <Upload className="w-4 h-4 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-600">
+                          {uploadingPhoto ? 'Caricamento...' : formData.foto_url ? 'Cambia Foto' : 'Carica Foto'}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setUploadingPhoto(true);
+                              try {
+                                const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                                setFormData({ ...formData, foto_url: file_url });
+                              } catch (error) {
+                                alert('Errore nel caricamento: ' + error.message);
+                              } finally {
+                                setUploadingPhoto(false);
+                              }
+                            }
+                          }}
+                          disabled={uploadingPhoto}
+                          className="hidden"
+                        />
+                      </label>
                     </div>
                   </div>
                 </div>

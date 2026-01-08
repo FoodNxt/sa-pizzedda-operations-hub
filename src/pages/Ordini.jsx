@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Package, CheckCircle, AlertTriangle, X, Camera, Upload, Loader2 } from 'lucide-react';
+import { Package, CheckCircle, AlertTriangle, X, Camera, Upload, Loader2, Volume2 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { format, parseISO } from 'date-fns';
@@ -14,7 +14,13 @@ export default function Ordini() {
   const [confirmedProducts, setConfirmedProducts] = useState({});
   const [ddtPhotos, setDdtPhotos] = useState([]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [playingAudio, setPlayingAudio] = useState(null);
   const queryClient = useQueryClient();
+
+  const { data: materiePrime = [] } = useQuery({
+    queryKey: ['materie-prime'],
+    queryFn: () => base44.entities.MateriePrime.list(),
+  });
 
   const { data: currentUser } = useQuery({
     queryKey: ['current-user'],
@@ -119,6 +125,25 @@ export default function Ordini() {
   const allProductsConfirmed = selectedOrder 
     ? selectedOrder.prodotti.every(prod => confirmedProducts[prod.prodotto_id])
     : false;
+
+  const speakProductName = async (productName) => {
+    if (!productName) return;
+    
+    setPlayingAudio(productName);
+    try {
+      // Use Web Speech API
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(productName);
+        utterance.lang = 'it-IT';
+        utterance.rate = 0.9;
+        utterance.onend = () => setPlayingAudio(null);
+        window.speechSynthesis.speak(utterance);
+      }
+    } catch (error) {
+      console.error('Error speaking:', error);
+      setPlayingAudio(null);
+    }
+  };
 
   return (
     <ProtectedPage pageName="Ordini">
@@ -256,14 +281,35 @@ export default function Ordini() {
                   const receivedQty = receivedQuantities[prod.prodotto_id] || 0;
                   const isMatch = receivedQty === prod.quantita_ordinata;
                   const isConfirmed = confirmedProducts[prod.prodotto_id];
+                  const materiaPrima = materiePrime.find(m => m.id === prod.prodotto_id);
                   
                   return (
                     <div key={prod.prodotto_id} className={`neumorphic-pressed p-4 rounded-xl transition-all ${
                       isConfirmed ? 'border-2 border-green-500' : ''
                     }`}>
+                      {materiaPrima?.foto_url && (
+                        <div className="mb-3">
+                          <img 
+                            src={materiaPrima.foto_url} 
+                            alt={prod.nome_prodotto}
+                            className="w-full h-32 object-cover rounded-lg"
+                          />
+                        </div>
+                      )}
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
-                          <p className="font-bold text-[#6b6b6b]">{prod.nome_prodotto}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-bold text-[#6b6b6b]">{prod.nome_prodotto}</p>
+                            <button
+                              type="button"
+                              onClick={() => speakProductName(prod.nome_prodotto)}
+                              disabled={playingAudio === prod.nome_prodotto}
+                              className="nav-button p-1.5 rounded-lg hover:bg-blue-50"
+                              title="Ascolta il nome"
+                            >
+                              <Volume2 className={`w-4 h-4 ${playingAudio === prod.nome_prodotto ? 'text-blue-600 animate-pulse' : 'text-slate-600'}`} />
+                            </button>
+                          </div>
                           <p className="text-sm text-[#9b9b9b]">
                             Ordinato: {prod.quantita_ordinata} {prod.unita_misura}
                           </p>
