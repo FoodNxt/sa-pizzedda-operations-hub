@@ -478,6 +478,17 @@ export default function Planday() {
     },
   });
 
+  const deleteWeekTurniMutation = useMutation({
+    mutationFn: async (turniIds) => {
+      for (const id of turniIds) {
+        await base44.entities.TurnoPlanday.delete(id);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['turni-planday'] });
+    },
+  });
+
   const saveConfigMutation = useMutation({
     mutationFn: async (data) => {
       const configs = await base44.entities.TimbraturaConfig.list();
@@ -2137,6 +2148,7 @@ export default function Planday() {
             onAddTurno={handleAddTurnoFromStoreView}
             onSaveTurno={handleSaveTurnoFromChild}
             onDeleteTurno={(id) => deleteMutation.mutate(id)}
+            onDeleteWeekTurni={(ids) => deleteWeekTurniMutation.mutate(ids)}
             getStoreName={getStoreName}
             tipiTurno={tipiTurno}
             coloriTipoTurno={coloriTipoTurno}
