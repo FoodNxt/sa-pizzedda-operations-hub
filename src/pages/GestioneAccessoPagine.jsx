@@ -203,6 +203,7 @@ export default function GestioneAccessoPagine() {
     { value: 'GestioneAssistente', label: 'Gestione Assistente', category: 'HR' },
     { value: 'RecalculateShifts', label: 'Ricalcola Ritardi Turni', category: 'HR' },
     { value: 'CleanupDuplicateShifts', label: 'Elimina Turni Duplicati', category: 'HR' },
+    { value: 'Disponibilita', label: 'Disponibilità', category: 'HR' },
     { value: 'Pulizie', label: 'Storico Pulizie', category: 'Pulizie' },
     { value: 'PulizieMatch', label: 'Pulizie Match', category: 'Pulizie' },
     { value: 'FormPulizia', label: 'Form Pulizia', category: 'Pulizie' },

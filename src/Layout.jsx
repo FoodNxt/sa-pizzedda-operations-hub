@@ -271,6 +271,11 @@ const navigationStructure = [
         icon: MapPin,
       },
       {
+        title: "Disponibilità",
+        url: createPageUrl("Disponibilita"),
+        icon: Clock,
+      },
+      {
         title: "Store Manager",
         url: createPageUrl("StoreManagerAdmin"),
         icon: Users,
