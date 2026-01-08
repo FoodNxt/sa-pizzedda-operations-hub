@@ -699,27 +699,34 @@ export default function Layout({ children, currentPageName }) {
       const normalizedUserType = getNormalizedUserType(currentUser.user_type);
       
       if (normalizedUserType === 'dipendente') {
-        // Set fallback immediately per evitare UI vuota
-        const fallbackNav = [{
-          title: "Area Dipendente",
-          icon: Users,
-          type: "section",
-          items: [
-            { title: 'Profilo', url: createPageUrl('ProfiloDipendente'), icon: User },
-            { title: 'Turni', url: createPageUrl('TurniDipendente'), icon: Clock }
-          ]
-        }];
-        
-        setDipendenteNav(fallbackNav);
-        
-        // Poi calcola la nav completa
+        // Always ensure nav is loaded
         getFilteredNavigationForDipendente(currentUser).then(nav => {
           if (nav && nav.length > 0 && nav[0]?.items && nav[0].items.length > 0) {
             setDipendenteNav(nav);
+          } else {
+            // Fallback garantito
+            setDipendenteNav([{
+              title: "Area Dipendente",
+              icon: Users,
+              type: "section",
+              items: [
+                { title: 'Profilo', url: createPageUrl('ProfiloDipendente'), icon: User },
+                { title: 'Turni', url: createPageUrl('TurniDipendente'), icon: Clock }
+              ]
+            }]);
           }
         }).catch(error => {
           console.error('Error loading dipendente navigation:', error);
-          // Mantieni il fallback già impostato
+          // Fallback in caso di errore
+          setDipendenteNav([{
+            title: "Area Dipendente",
+            icon: Users,
+            type: "section",
+            items: [
+              { title: 'Profilo', url: createPageUrl('ProfiloDipendente'), icon: User },
+              { title: 'Turni', url: createPageUrl('TurniDipendente'), icon: Clock }
+            ]
+          }]);
         });
       }
     }
@@ -1076,23 +1083,18 @@ export default function Layout({ children, currentPageName }) {
   // Get main navigation items for bottom bar (dipendente only) - STABILE
   const bottomNavItems = useMemo(() => {
     if (normalizedUserType !== 'dipendente') return [];
-    if (!dipendenteNav || dipendenteNav.length === 0) {
-      // Fallback garantito
+    
+    // ALWAYS ensure we have items - never return empty
+    if (!dipendenteNav || dipendenteNav.length === 0 || !dipendenteNav[0]?.items || dipendenteNav[0].items.length === 0) {
+      // Fallback garantito - SEMPRE visibile
       return [
         { title: 'Profilo', url: createPageUrl('ProfiloDipendente'), icon: User },
         { title: 'Turni', url: createPageUrl('TurniDipendente'), icon: Clock }
       ];
     }
     
-    const mainItems = dipendenteNav[0]?.items || [];
-    // Se items è vuoto, usa fallback
-    if (mainItems.length === 0) {
-      return [
-        { title: 'Profilo', url: createPageUrl('ProfiloDipendente'), icon: User },
-        { title: 'Turni', url: createPageUrl('TurniDipendente'), icon: Clock }
-      ];
-    }
-    return mainItems;
+    // Return all items from dipendente nav
+    return dipendenteNav[0].items;
   }, [normalizedUserType, dipendenteNav]);
 
   return (
@@ -1448,7 +1450,7 @@ export default function Layout({ children, currentPageName }) {
       </div>
 
       {/* Mobile Bottom Navigation (Dipendente only) */}
-      {normalizedUserType === 'dipendente' && isFullyLoaded && bottomNavItems && bottomNavItems.length > 0 && (
+      {normalizedUserType === 'dipendente' && bottomNavItems && bottomNavItems.length > 0 && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] safe-area-bottom bg-gradient-to-br from-slate-50 to-slate-100">
           <div className="px-2 pb-2 pt-1">
             <button
