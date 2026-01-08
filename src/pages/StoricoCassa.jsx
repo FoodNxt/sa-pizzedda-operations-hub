@@ -60,6 +60,11 @@ export default function StoricoCassa() {
     queryFn: () => base44.entities.Prelievo.list('-data_prelievo', 500),
   });
 
+  const { data: depositi = [] } = useQuery({
+    queryKey: ['depositi'],
+    queryFn: () => base44.entities.Deposito.list('-data_deposito', 500),
+  });
+
   const { data: attivitaCompletate = [] } = useQuery({
     queryKey: ['attivita-completate'],
     queryFn: () => base44.entities.AttivitaCompletata.list('-completato_at', 500),
@@ -294,7 +299,36 @@ export default function StoricoCassa() {
       if (a.status === 'ok' && b.status === 'warning') return 1;
       return Math.abs(b.delta || 0) - Math.abs(a.delta || 0);
     });
-  }, [stores, conteggi, iPraticoData, prelievi, verificaDate]);
+  }, [stores, conteggi, iPraticoData, prelievi, verificaDate, attivitaCompletate]);
+
+  const saldoDipendenti = useMemo(() => {
+    const saldi = {};
+
+    // Get all unique dipendenti from prelievi and depositi
+    prelievi.forEach(p => {
+      const dipendente = p.rilevato_da;
+      if (!saldi[dipendente]) {
+        saldi[dipendente] = { nome: dipendente, prelievi: 0, depositi: 0, saldo: 0 };
+      }
+      saldi[dipendente].prelievi += p.importo || 0;
+    });
+
+    depositi.forEach(d => {
+      const dipendente = d.rilevato_da;
+      if (!saldi[dipendente]) {
+        saldi[dipendente] = { nome: dipendente, prelievi: 0, depositi: 0, saldo: 0 };
+      }
+      saldi[dipendente].depositi += d.importo || 0;
+    });
+
+    // Calculate saldo: prelievi - depositi
+    Object.keys(saldi).forEach(dipendente => {
+      saldi[dipendente].saldo = saldi[dipendente].prelievi - saldi[dipendente].depositi;
+    });
+
+    // Return as array sorted by saldo (highest first)
+    return Object.values(saldi).sort((a, b) => b.saldo - a.saldo);
+  }, [prelievi, depositi]);
 
   return (
     <ProtectedPage pageName="StoricoCassa">
@@ -329,6 +363,17 @@ export default function StoricoCassa() {
           >
             <CheckCircle className="w-4 h-4" />
             Verifica Cassa
+          </button>
+          <button
+            onClick={() => setActiveTab('saldo')}
+            className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
+              activeTab === 'saldo'
+                ? 'neumorphic-pressed bg-blue-50 text-blue-700'
+                : 'neumorphic-flat text-slate-600 hover:text-slate-800'
+            }`}
+          >
+            <User className="w-4 h-4" />
+            Saldo Personale
           </button>
         </div>
 
@@ -945,6 +990,82 @@ export default function StoricoCassa() {
                 );
               })}
             </div>
+          </>
+        )}
+
+        {/* Saldo Personale Tab */}
+        {activeTab === 'saldo' && (
+          <>
+            <NeumorphicCard className="p-4 lg:p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <User className="w-5 h-5 text-blue-600" />
+                <h2 className="text-base lg:text-lg font-bold text-slate-800">Saldo Contanti per Dipendente</h2>
+              </div>
+              <p className="text-sm text-slate-500 mb-4">
+                Saldo calcolato come: Prelievi - Depositi
+              </p>
+
+              {saldoDipendenti.length === 0 ? (
+                <div className="text-center py-12">
+                  <User className="w-16 h-16 text-slate-300 opacity-50 mx-auto mb-4" />
+                  <p className="text-slate-500">Nessun prelievo o deposito registrato</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
+                  <table className="w-full min-w-[500px]">
+                    <thead>
+                      <tr className="border-b-2 border-blue-600">
+                        <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Dipendente</th>
+                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Prelievi</th>
+                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Depositi</th>
+                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Saldo</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {saldoDipendenti.map((dipendente, idx) => (
+                        <tr key={idx} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                          <td className="p-2 lg:p-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                                <span className="text-xs font-bold text-white">
+                                  {dipendente.nome.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                              <span className="text-slate-700 text-sm font-medium">{dipendente.nome}</span>
+                            </div>
+                          </td>
+                          <td className="p-2 lg:p-3 text-right">
+                            <span className="text-red-600 font-bold text-sm">
+                              €{dipendente.prelievi.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+                            </span>
+                          </td>
+                          <td className="p-2 lg:p-3 text-right">
+                            <span className="text-green-600 font-bold text-sm">
+                              €{dipendente.depositi.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+                            </span>
+                          </td>
+                          <td className="p-2 lg:p-3 text-right">
+                            <span className={`font-bold text-base lg:text-lg ${
+                              dipendente.saldo > 0 ? 'text-orange-600' :
+                              dipendente.saldo < 0 ? 'text-green-600' :
+                              'text-slate-600'
+                            }`}>
+                              {dipendente.saldo >= 0 ? '+' : ''}€{dipendente.saldo.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <div className="mt-6 neumorphic-pressed p-4 rounded-xl bg-blue-50">
+                <p className="text-sm text-blue-800">
+                  <strong>ℹ️ Legenda:</strong> Saldo positivo = il dipendente ha prelevato più di quanto depositato. Saldo negativo = ha depositato più di quanto prelevato.
+                </p>
+              </div>
+            </NeumorphicCard>
           </>
         )}
       </div>
