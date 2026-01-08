@@ -927,7 +927,8 @@ export default function Layout({ children, currentPageName }) {
       'DashboardStoreManager': 'Dashboard',
       'Segnalazioni': 'Segnalazioni',
       'ValutazioneProvaForm': 'Valutazioni',
-      'PlandayStoreManager': 'Planday'
+      'PlandayStoreManager': 'Planday',
+      'FormSprechi': 'Sprechi'
     };
     return titles[pageName] || pageName;
   };

@@ -94,7 +94,7 @@ export default function ProtectedPage({ children, pageName, requiredUserTypes = 
         }
 
         // Common forms that should always be accessible to dipendenti (without needing explicit config)
-        const commonForms = ['FormInventario', 'FormCantina', 'Impasto', 'Preparazioni', 'Precotture', 'ControlloPuliziaCassiere', 'ControlloPuliziaPizzaiolo', 'ControlloPuliziaStoreManager', 'ConteggioCassa', 'FormPreparazioni', 'FormDeposito', 'FormPrelievi', 'FormTeglieButtate'];
+        const commonForms = ['FormInventario', 'FormCantina', 'Impasto', 'Preparazioni', 'Precotture', 'ControlloPuliziaCassiere', 'ControlloPuliziaPizzaiolo', 'ControlloPuliziaStoreManager', 'ConteggioCassa', 'FormPreparazioni', 'FormDeposito', 'FormPrelievi', 'FormTeglieButtate', 'FormSprechi'];
         
         const hasAccess = allowedPages.includes(pageName) || (normalizedUserType === 'dipendente' && commonForms.includes(pageName));
 
