@@ -394,9 +394,9 @@ export default function Disponibilita() {
                           ))}
                         </div>
                         <p className="text-xs text-[#9b9b9b] mt-2">
-                          Negozi abilitati: {storesAbilitati.length === stores.length 
-                            ? 'Tutti' 
-                            : storesAbilitati.map(sid => stores.find(s => s.id === sid)?.name || 'N/A').join(', ')}
+                          Negozi abilitati: {storesAbilitati.length > 0
+                            ? storesAbilitati.map(sid => stores.find(s => s.id === sid)?.name || 'N/A').join(', ')
+                            : 'Nessuno'}
                         </p>
                       </div>
                     </div>
