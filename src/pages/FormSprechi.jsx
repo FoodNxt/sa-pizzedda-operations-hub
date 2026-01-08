@@ -80,15 +80,7 @@ export default function FormSprechi() {
       queryClient.invalidateQueries({ queryKey: ['attivita-completate'] });
       setSaved(true);
       setTimeout(() => {
-        if (redirectPage) {
-          navigate(createPageUrl(redirectPage));
-        } else {
-          setSelectedProdotto('');
-          setQuantita('');
-          setMotivoSpreco('');
-          setNote('');
-          setSaved(false);
-        }
+        navigate(createPageUrl(redirectPage || 'TurniDipendente'));
       }, 1500);
     },
   });
