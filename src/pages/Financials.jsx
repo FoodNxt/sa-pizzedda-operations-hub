@@ -1397,6 +1397,19 @@ export default function Financials() {
                 </table>
               </div>
             </NeumorphicCard>
+
+            {/* Summary Info Card */}
+            <NeumorphicCard className="p-4 lg:p-6 bg-blue-50">
+              <div className="flex items-start gap-3">
+                <Wallet className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                <div className="text-sm text-blue-700">
+                  <p className="font-bold mb-1">💳 Informazioni Metodi di Pagamento</p>
+                  <p>
+                    I dati includono tutte le transazioni nel periodo selezionato. La percentuale mostra l'incidenza di ciascun metodo sul totale.
+                  </p>
+                </div>
+              </div>
+            </NeumorphicCard>
           </>
         )}
       </div>
