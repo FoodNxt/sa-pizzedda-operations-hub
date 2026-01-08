@@ -693,13 +693,24 @@ export default function Layout({ children, currentPageName }) {
   }, [location.pathname, navigate, pageAccessConfig, isLoadingConfig]);
 
   useEffect(() => {
-    if (currentUser && !isLoadingConfig && !isLoadingUser) {
+    if (currentUser && !isLoadingConfig && !isLoadingUser && pageAccessConfig) {
       const normalizedUserType = getNormalizedUserType(currentUser.user_type);
       
       if (normalizedUserType === 'dipendente') {
         getFilteredNavigationForDipendente(currentUser).then(nav => {
           if (nav && nav.length > 0) {
             setDipendenteNav(nav);
+          } else {
+            // Fallback se il calcolo nav è vuoto
+            setDipendenteNav([{
+              title: "Area Dipendente",
+              icon: Users,
+              type: "section",
+              items: [
+                { title: 'Profilo', url: createPageUrl('ProfiloDipendente'), icon: User },
+                { title: 'Turni', url: createPageUrl('TurniDipendente'), icon: Clock }
+              ]
+            }]);
           }
         }).catch(error => {
           console.error('Error loading dipendente navigation:', error);

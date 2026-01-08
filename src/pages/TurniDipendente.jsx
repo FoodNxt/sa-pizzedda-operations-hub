@@ -1354,7 +1354,7 @@ export default function TurniDipendente() {
     return { canPause: true, reason: null };
   };
 
-  if (isLoadingUser) {
+  if (isLoadingUser || !currentUser) {
     return (
       <ProtectedPage pageName="TurniDipendente">
         <div className="max-w-4xl mx-auto flex items-center justify-center min-h-[60vh]">
