@@ -11,7 +11,7 @@ import {
   Loader2, LogIn, LogOut, ChevronLeft, ChevronRight,
   RefreshCw, X, AlertTriangle, Users, Store as StoreIcon, Navigation, Timer, ClipboardList,
   Palmtree, Thermometer, Upload, FileText, ExternalLink, GraduationCap, Check, Square, CheckSquare, ArrowRightLeft,
-  Coffee, ChefHat, Pizza, CalendarClock, DollarSign
+  Coffee, ChefHat, Pizza, CalendarClock, Euro
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -1261,7 +1261,7 @@ export default function TurniDipendente() {
 
       straordinariIniziatiBefore.forEach(straord => {
         const straordInizio = moment(straord.timbratura_entrata);
-        const straordFine = straord.timbratura_uscita ? moment(straord.timbratura_uscita) : moment();
+        const straordFine = straord.timbratura_uscita ? moment(straord.timbratura_uscita) : moment(`${straord.data} ${straord.ora_fine}`);
         const ore = straordFine.diff(straordInizio, 'hours', true);
         const importo = ore * retribuzioneOraria;
         
@@ -1760,20 +1760,20 @@ export default function TurniDipendente() {
                                  )}
                                  {att.isPagamentoStraordinari && (
                                    <button
-                                     onClick={() => completaAttivitaMutation.mutate({ 
-                                       turno: prossimoTurno, 
-                                       attivitaNome: att.nome,
-                                       importoPagato: att.importoPagamento,
-                                       turnoStraordinarioId: att.turnoStraordinarioId
-                                     })}
-                                     disabled={completaAttivitaMutation.isPending}
-                                     className="flex-1 px-4 py-2.5 bg-green-500 text-white text-sm font-medium rounded-xl flex items-col justify-center gap-1 hover:bg-green-600 shadow-sm"
+                                    onClick={() => completaAttivitaMutation.mutate({ 
+                                      turno: prossimoTurno, 
+                                      attivitaNome: att.nome,
+                                      importoPagato: att.importoPagamento,
+                                      turnoStraordinarioId: att.turnoStraordinarioId
+                                    })}
+                                    disabled={completaAttivitaMutation.isPending}
+                                    className="flex-1 px-4 py-2.5 bg-green-500 text-white text-sm font-medium rounded-xl flex items-col justify-center gap-1 hover:bg-green-600 shadow-sm"
                                    >
-                                     <DollarSign className="w-4 h-4" /> 
-                                     <div className="text-left">
-                                       <div>Paga €{att.importoPagamento.toFixed(2)}</div>
-                                       <div className="text-[10px] opacity-80">a {att.dipendenteStraordinario}</div>
-                                     </div>
+                                    <Euro className="w-4 h-4" /> 
+                                    <div className="text-left">
+                                      <div>Paga €{att.importoPagamento.toFixed(2)}</div>
+                                      <div className="text-[10px] opacity-80">a {att.dipendenteStraordinario}</div>
+                                    </div>
                                    </button>
                                  )}
                                </div>

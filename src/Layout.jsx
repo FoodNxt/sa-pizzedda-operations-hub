@@ -5,7 +5,7 @@ import { base44 } from "@/api/base44Client";
 import {
   LayoutDashboard,
   MapPin,
-  DollarSign,
+  Euro,
   Users,
   Menu,
   X,
@@ -103,14 +103,14 @@ const navigationStructure = [
   },
   {
     title: "Financials",
-    icon: DollarSign,
+    icon: Euro,
     type: "section",
     requiredUserType: ["admin", "manager"],
     items: [
       {
         title: "Financials",
         url: createPageUrl("Financials"),
-        icon: DollarSign,
+        icon: Euro,
       },
       {
         title: "Channel Comparison",
@@ -120,7 +120,7 @@ const navigationStructure = [
       {
         title: "Storico Cassa",
         url: createPageUrl("StoricoCassa"),
-        icon: DollarSign,
+        icon: Euro,
       },
       {
         title: "Forms",
@@ -153,7 +153,7 @@ const navigationStructure = [
       {
         title: "Confronto Listini",
         url: createPageUrl("ConfrontoListini"),
-        icon: DollarSign,
+        icon: Euro,
       },
       {
         title: "Analisi Sprechi",
@@ -213,7 +213,7 @@ const navigationStructure = [
       {
         title: "Payroll",
         url: createPageUrl("Payroll"),
-        icon: DollarSign,
+        icon: Euro,
       },
       {
         title: "Alerts",
@@ -959,7 +959,7 @@ export default function Layout({ children, currentPageName }) {
         'ControlloPuliziaPizzaiolo': Camera,
         'ControlloPuliziaStoreManager': Camera,
         'FormInventario': ClipboardList,
-        'ConteggioCassa': DollarSign,
+        'ConteggioCassa': Euro,
         'FormTeglieButtate': AlertTriangle,
         'Preparazioni': ChefHat,
         'FeedbackP2P': Users,
@@ -987,10 +987,11 @@ export default function Layout({ children, currentPageName }) {
 
   const getIconComponent = (iconName) => {
     const iconMap = {
-      LayoutDashboard, MapPin, DollarSign, Users, Pizza, Zap, Star, Clock, UserCheck, 
+      LayoutDashboard, MapPin, Euro, Users, Pizza, Zap, Star, Clock, UserCheck, 
       BarChart3, AlertTriangle, Package, Upload, Camera, ClipboardCheck, User, 
       ClipboardList, ChefHat, CheckSquare, Truck, LinkIcon, ShoppingCart, GraduationCap, 
-      FileText, BookOpen, Settings, Home, Edit, LogOut, Calendar, Bell, Cloud, TrendingUp, Menu
+      FileText, BookOpen, Settings, Home, Edit, LogOut, Calendar, Bell, Cloud, TrendingUp, Menu,
+      DollarSign: Euro
     };
     return iconMap[iconName] || User;
   };

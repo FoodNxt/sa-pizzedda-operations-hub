@@ -8,7 +8,7 @@ import {
   Calendar,
   Award,
   AlertCircle,
-  DollarSign,
+  Euro,
   Settings,
   X,
   CheckCircle,
@@ -282,7 +282,7 @@ export default function Disponibilita() {
                 : 'neumorphic-flat text-slate-600 hover:text-slate-800'
             }`}
           >
-            <DollarSign className="w-4 h-4" />
+            <Euro className="w-4 h-4" />
             Straordinari
           </button>
         </div>
@@ -511,7 +511,7 @@ export default function Disponibilita() {
               </NeumorphicCard>
 
               <NeumorphicCard className="p-6 text-center">
-                <DollarSign className="w-10 h-10 text-green-600 mx-auto mb-3" />
+                <Euro className="w-10 h-10 text-green-600 mx-auto mb-3" />
                 <p className="text-xs text-[#9b9b9b] mb-1">Totale €</p>
                 <p className="text-2xl font-bold text-green-600">€{straordinariStats.totaleRetribuzione.toFixed(2)}</p>
               </NeumorphicCard>
@@ -529,7 +529,7 @@ export default function Disponibilita() {
             {/* Info Card */}
             <NeumorphicCard className="p-4 bg-blue-50">
               <div className="flex items-start gap-3">
-                <DollarSign className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                <Euro className="w-5 h-5 text-blue-600 flex-shrink-0" />
                 <div className="text-sm text-blue-700">
                   <p className="font-bold mb-1">💰 Retribuzione Straordinari</p>
                   <p>
