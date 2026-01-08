@@ -1237,21 +1237,17 @@ export default function TurniDipendente() {
     // Ordina slot normali per ora
     const attivitaNormali = Array.from(attivitaMap.values()).sort((a, b) => (a.ora_inizio || '').localeCompare(b.ora_inizio || ''));
     
-    // Aggiungi attività "Pagamento straordinari" se cassiere e ci sono straordinari che iniziano durante il turno
+    // Aggiungi attività "Pagamento straordinari" se cassiere e ci sono straordinari in corso o completati durante il turno
     if (attivitaPagamentoAbilitata && turno.ruolo === 'Cassiere' && turno.timbratura_entrata && !turno.timbratura_uscita) {
       const turnoInizio = moment(`${turno.data} ${turno.ora_inizio}`);
       const turnoFine = moment(`${turno.data} ${turno.ora_fine}`);
       
-      // Trova tutti i turni straordinari che iniziano durante questo turno
+      // Trova tutti i turni straordinari in corso o completati nello stesso giorno e store
       const straordinariIniziatiBefore = colleghiProssimoTurno.filter(t => {
         if (t.tipo_turno !== 'Straordinario') return false;
         if (!t.timbratura_entrata) return false; // Solo se già iniziato
         
         const straordInizio = moment(t.timbratura_entrata);
-        const straordFine = t.timbratura_uscita ? moment(t.timbratura_uscita) : null;
-        
-        // Lo straordinario è iniziato durante il mio turno
-        const iniziatoDuranteMioTurno = straordInizio.isBetween(turnoInizio, turnoFine, null, '[]');
         
         // Non ancora pagato
         const giaPagato = attivitaCompletate.some(ac => 
@@ -1259,7 +1255,8 @@ export default function TurniDipendente() {
           ac.turno_straordinario_id === t.id
         );
         
-        return iniziatoDuranteMioTurno && !giaPagato;
+        // Mostra straordinari iniziati in qualsiasi momento dello stesso giorno nello stesso store
+        return !giaPagato;
       });
 
       straordinariIniziatiBefore.forEach(straord => {
