@@ -117,11 +117,30 @@ Deno.serve(async (req) => {
           : null
     });
 
+    // Send email to each employee with their payslip
+    const busta = await base44.asServiceRole.entities.BustaPaga.filter({ id: bustaId });
+    const meseLabel = busta[0]?.mese 
+      ? new Date(busta[0].mese + '-01').toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })
+      : 'del mese corrente';
+
+    for (const split of splits) {
+      try {
+        await base44.asServiceRole.integrations.Core.SendEmail({
+          to: allUsers.find(u => u.id === split.user_id)?.email,
+          subject: `Busta Paga - ${meseLabel}`,
+          body: `Gentile ${split.user_name},\n\nLa tua busta paga di ${meseLabel} è disponibile.\nPuoi visualizzarla e scaricarla accedendo alla piattaforma nella sezione "Documenti > Buste Paga".\n\nCordiali saluti,\nSa Pizzedda`
+        });
+      } catch (emailError) {
+        console.error(`Error sending email to ${split.user_name}:`, emailError);
+      }
+    }
+
     return Response.json({
       success: true,
       splits_count: splits.length,
       total_pages: totalPages,
-      unmatched_count: unmatched.length
+      unmatched_count: unmatched.length,
+      emails_sent: splits.length
     });
 
   } catch (error) {
