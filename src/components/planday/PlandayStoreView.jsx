@@ -22,6 +22,7 @@ export default function PlandayStoreView({
   onAddTurno,
   onSaveTurno,
   onDeleteTurno,
+  onDeleteWeekTurni,
   getStoreName,
   tipiTurno = [],
   coloriTipoTurno = {},
@@ -208,6 +209,18 @@ export default function PlandayStoreView({
           <NeumorphicButton onClick={() => setWeekStart(weekStart.clone().add(1, 'week'))}>
             <ChevronRight className="w-4 h-4" />
           </NeumorphicButton>
+          {turni.length > 0 && onDeleteWeekTurni && (
+            <NeumorphicButton 
+              onClick={() => {
+                if (confirm(`Eliminare tutti i ${turni.length} turni di questa settimana?`)) {
+                  onDeleteWeekTurni(turni.map(t => t.id));
+                }
+              }}
+              className="bg-red-50 text-red-600 hover:bg-red-100"
+            >
+              <Trash2 className="w-4 h-4" />
+            </NeumorphicButton>
+          )}
         </div>
       </div>
 
