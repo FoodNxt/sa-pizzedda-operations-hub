@@ -180,13 +180,45 @@ export default function Valutazione() {
       ? googleReviews.reduce((sum, r) => sum + r.rating, 0) / googleReviews.length
       : 0;
 
-    // Calculate overall score (0-100)
+    // Calculate overall score (same formula as admin page)
     let overallScore = 100;
-    if (totalShifts > 0) {
-      overallScore -= (lateShifts.length / totalShifts) * 30; // -30% max for delays
-      overallScore -= (missingClockIns.length / totalShifts) * 40; // -40% max for missing clock-ins
+    
+    // Get weights (default to 1 if not found)
+    const getWeight = (metricName) => {
+      // We don't have metricWeights here, use defaults that match admin
+      const defaults = {
+        'ordini_sbagliati': 2,
+        'ritardi': 0.3,
+        'timbrature_mancanti': 1,
+        'numero_recensioni': 0.5,
+        'punteggio_recensioni': 2
+      };
+      return defaults[metricName] || 1;
+    };
+    
+    const w_ordini = getWeight('ordini_sbagliati');
+    const w_ritardi = getWeight('ritardi');
+    const w_timbrature = getWeight('timbrature_mancanti');
+    const w_num_recensioni = getWeight('numero_recensioni');
+    const w_punteggio_recensioni = getWeight('punteggio_recensioni');
+    
+    // Deduct points for negative metrics
+    overallScore -= (myWrongOrders.length * w_ordini);
+    overallScore -= (lateShifts.length * w_ritardi);
+    overallScore -= (missingClockIns.length * w_timbrature);
+    
+    // Reduce score if average review rating is below 5
+    if (googleReviews.length > 0 && averageRating < 5) {
+      const reviewPenalty = (5 - averageRating) * w_punteggio_recensioni;
+      overallScore -= reviewPenalty;
     }
-    overallScore -= myWrongOrders.length * 5; // -5 points per wrong order
+    
+    // Small bonus for having reviews (max +5)
+    if (googleReviews.length > 0) {
+      const reviewBonus = Math.min(googleReviews.length * w_num_recensioni, 5);
+      overallScore += reviewBonus;
+    }
+    
     overallScore = Math.max(0, Math.min(100, overallScore));
 
     return {

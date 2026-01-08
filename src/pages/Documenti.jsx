@@ -46,10 +46,10 @@ export default function Documenti() {
             <p className="text-sm text-slate-500">Contratti, lettere e regolamenti</p>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 overflow-x-auto pb-2">
             <button
               onClick={() => setActiveTab('contratti')}
-              className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all text-sm ${
+              className={`px-3 py-2 rounded-xl font-medium transition-all text-xs whitespace-nowrap ${
                 activeTab === 'contratti' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'nav-button text-slate-700'
               }`}
             >
@@ -57,7 +57,7 @@ export default function Documenti() {
             </button>
             <button
               onClick={() => setActiveTab('lettere')}
-              className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all text-sm ${
+              className={`px-3 py-2 rounded-xl font-medium transition-all text-xs whitespace-nowrap ${
                 activeTab === 'lettere' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'nav-button text-slate-700'
               }`}
             >
@@ -65,7 +65,7 @@ export default function Documenti() {
             </button>
             <button
               onClick={() => setActiveTab('regolamento')}
-              className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all text-sm ${
+              className={`px-3 py-2 rounded-xl font-medium transition-all text-xs whitespace-nowrap ${
                 activeTab === 'regolamento' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'nav-button text-slate-700'
               }`}
             >
@@ -73,7 +73,7 @@ export default function Documenti() {
             </button>
             <button
               onClick={() => setActiveTab('buste_paga')}
-              className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all text-sm ${
+              className={`px-3 py-2 rounded-xl font-medium transition-all text-xs whitespace-nowrap ${
                 activeTab === 'buste_paga' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'nav-button text-slate-700'
               }`}
             >
@@ -81,7 +81,7 @@ export default function Documenti() {
             </button>
             <button
               onClick={() => setActiveTab('unilav')}
-              className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all text-sm ${
+              className={`px-3 py-2 rounded-xl font-medium transition-all text-xs whitespace-nowrap ${
                 activeTab === 'unilav' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'nav-button text-slate-700'
               }`}
             >
