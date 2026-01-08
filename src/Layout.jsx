@@ -552,8 +552,9 @@ export default function Layout({ children, currentPageName }) {
 
           // Scambi turni da approvare
           const oggi = new Date().toISOString().split('T')[0];
+          const maxData = moment().add(30, 'days').format('YYYY-MM-DD');
           const turniConScambi = await base44.entities.TurnoPlanday.filter({
-            data: { $gte: oggi },
+            data: { $gte: oggi, $lte: maxData },
             'richiesta_scambio.stato': 'accepted_by_colleague'
           });
           if (turniConScambi.length > 0) {
@@ -572,8 +573,9 @@ export default function Layout({ children, currentPageName }) {
           }
 
           // Richieste scambio turno in attesa della mia risposta
+          const maxData = moment().add(30, 'days').format('YYYY-MM-DD');
           const turniDaRispondere = await base44.entities.TurnoPlanday.filter({
-            data: { $gte: oggi },
+            data: { $gte: oggi, $lte: maxData },
             'richiesta_scambio.richiesto_a': user.id,
             'richiesta_scambio.stato': 'pending'
           });
@@ -590,7 +592,7 @@ export default function Layout({ children, currentPageName }) {
 
     if (!isLoadingUser && currentUser) {
       fetchNotifications();
-      const interval = setInterval(fetchNotifications, 60000); // Refresh ogni minuto
+      const interval = setInterval(fetchNotifications, 120000); // Refresh ogni 2 minuti
       return () => clearInterval(interval);
     }
   }, [isLoadingUser, currentUser]);

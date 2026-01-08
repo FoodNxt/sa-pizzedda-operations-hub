@@ -105,12 +105,15 @@ export default function TurniDipendente() {
 
   const { data: storesData = [] } = useQuery({
     queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list(),
+    queryFn: () => base44.entities.Store.filter({ status: 'active' }),
+    staleTime: 300000,
   });
 
   const { data: allEmployees = [] } = useQuery({
     queryKey: ['all-employees'],
     queryFn: () => base44.entities.Employee.list(),
+    enabled: activeView === 'scambi' && showScambioModal,
+    staleTime: 60000,
   });
 
   const { data: accessoStoreData = [] } = useQuery({
@@ -124,19 +127,22 @@ export default function TurniDipendente() {
       const configs = await base44.entities.TimbraturaConfig.list();
       return configs[0] || { distanza_massima_metri: 100, tolleranza_ritardo_minuti: 5, abilita_timbratura_gps: true };
     },
+    staleTime: 300000,
   });
 
   // Richieste ferie e malattia del dipendente
   const { data: mieFerie = [] } = useQuery({
     queryKey: ['mie-ferie', currentUser?.id],
     queryFn: () => base44.entities.RichiestaFerie.filter({ dipendente_id: currentUser.id }),
-    enabled: !!currentUser?.id,
+    enabled: activeView === 'ferie' && !!currentUser?.id,
+    staleTime: 30000,
   });
 
   const { data: mieMalattie = [] } = useQuery({
     queryKey: ['mie-malattie', currentUser?.id],
     queryFn: () => base44.entities.RichiestaMalattia.filter({ dipendente_id: currentUser.id }),
-    enabled: !!currentUser?.id,
+    enabled: activeView === 'malattia' && !!currentUser?.id,
+    staleTime: 30000,
   });
 
   // Turni liberi disponibili per il ruolo del dipendente
@@ -144,15 +150,16 @@ export default function TurniDipendente() {
     queryKey: ['turni-liberi', currentUser?.ruoli_dipendente],
     queryFn: async () => {
       const oggi = moment().format('YYYY-MM-DD');
+      const maxData = moment().add(30, 'days').format('YYYY-MM-DD');
       const allTurni = await base44.entities.TurnoPlanday.filter({
-        data: { $gte: oggi },
+        data: { $gte: oggi, $lte: maxData },
         dipendente_id: ''
       });
-      // Filtra per ruoli del dipendente
       const ruoli = currentUser?.ruoli_dipendente || [];
       return allTurni.filter(t => ruoli.includes(t.ruolo));
     },
-    enabled: !!currentUser?.ruoli_dipendente?.length,
+    enabled: activeView === 'liberi' && !!currentUser?.ruoli_dipendente?.length,
+    staleTime: 30000,
   });
 
   // Richieste turni liberi del dipendente
@@ -167,17 +174,18 @@ export default function TurniDipendente() {
     queryKey: ['scambi-per-me', currentUser?.id],
     queryFn: async () => {
       const oggi = moment().format('YYYY-MM-DD');
+      const maxData = moment().add(30, 'days').format('YYYY-MM-DD');
       const allTurni = await base44.entities.TurnoPlanday.filter({
-        data: { $gte: oggi }
+        data: { $gte: oggi, $lte: maxData }
       });
-      // Mostra solo il mio turno (suo_turno_id) per evitare duplicati
       return allTurni.filter(t => 
         t.richiesta_scambio?.richiesto_a === currentUser.id && 
         ['pending', 'accepted_by_colleague'].includes(t.richiesta_scambio?.stato) &&
         t.id === t.richiesta_scambio?.suo_turno_id
       );
     },
-    enabled: !!currentUser?.id,
+    enabled: activeView === 'scambi' && !!currentUser?.id,
+    staleTime: 15000,
   });
 
   // Scambi turno richiesti da me (i miei turni con richiesta_scambio dove io sono richiesto_da)
@@ -186,15 +194,16 @@ export default function TurniDipendente() {
     queryFn: async () => {
       if (!currentUser?.id) return [];
       const oggi = moment().format('YYYY-MM-DD');
+      const maxData = moment().add(30, 'days').format('YYYY-MM-DD');
       const allTurni = await base44.entities.TurnoPlanday.filter({
-        data: { $gte: oggi }
+        data: { $gte: oggi, $lte: maxData }
       });
-      // Filtra solo quelli con richiesta_scambio dove io sono il richiedente
       return allTurni.filter(t => 
         t.richiesta_scambio?.richiesto_da === currentUser.id
       );
     },
-    enabled: !!currentUser?.id,
+    enabled: activeView === 'scambi' && !!currentUser?.id,
+    staleTime: 15000,
   });
 
   const scambiDaMePending = useMemo(() => {
@@ -208,29 +217,39 @@ export default function TurniDipendente() {
 
   const { data: formTrackerConfigs = [] } = useQuery({
     queryKey: ['form-tracker-configs'],
-    queryFn: () => base44.entities.FormTrackerConfig.list(),
+    queryFn: () => base44.entities.FormTrackerConfig.filter({ is_active: true }),
+    staleTime: 60000,
   });
 
   const { data: struttureTurno = [] } = useQuery({
     queryKey: ['strutture-turno'],
-    queryFn: () => base44.entities.StrutturaTurno.list(),
+    queryFn: () => base44.entities.StrutturaTurno.filter({ is_active: { $ne: false } }),
+    staleTime: 60000,
   });
 
   const { data: corsi = [] } = useQuery({
     queryKey: ['corsi'],
     queryFn: () => base44.entities.Corso.list(),
+    staleTime: 300000,
   });
 
   const { data: attivitaCompletate = [], refetch: refetchAttivitaCompletate } = useQuery({
     queryKey: ['attivita-completate', currentUser?.id],
-    queryFn: () => base44.entities.AttivitaCompletata.filter({ dipendente_id: currentUser.id }),
+    queryFn: async () => {
+      const ultimiTreGiorni = moment().subtract(3, 'days').format('YYYY-MM-DD');
+      return base44.entities.AttivitaCompletata.filter({ 
+        dipendente_id: currentUser.id,
+        turno_data: { $gte: ultimiTreGiorni }
+      });
+    },
     enabled: !!currentUser?.id,
-    refetchInterval: 5000, // Aggiorna ogni 5 secondi
+    staleTime: 10000,
   });
 
   const { data: tipoTurnoConfigs = [] } = useQuery({
     queryKey: ['tipo-turno-configs'],
     queryFn: () => base44.entities.TipoTurnoConfig.list(),
+    staleTime: 300000,
   });
 
   const { data: pauseConfig = null } = useQuery({
@@ -239,21 +258,23 @@ export default function TurniDipendente() {
       const configs = await base44.entities.PauseConfig.list();
       return configs.find(c => c.attivo) || null;
     },
+    staleTime: 300000,
   });
 
   const { data: allFormData = {} } = useQuery({
     queryKey: ['all-form-data-dipendente'],
     queryFn: async () => {
+      const ultimiTreGiorni = moment().subtract(3, 'days').format('YYYY-MM-DD');
       const [inventario, cantina, cassa, teglie, prep, impasti, calcoliImpasto, cleaningInspections, gestioneImpasti] = await Promise.all([
-        base44.entities.RilevazioneInventario.list('-data_rilevazione'),
-        base44.entities.RilevazioneInventarioCantina.list('-data_rilevazione'),
-        base44.entities.ConteggioCassa.list('-data_conteggio'),
-        base44.entities.TeglieButtate.list('-data_rilevazione'),
-        base44.entities.Preparazioni.list('-data_rilevazione'),
-        base44.entities.CalcoloImpastoLog.list('-data_calcolo'),
-        base44.entities.CalcoloImpastoLog.list('-data_calcolo'),
-        base44.entities.CleaningInspection.list('-inspection_date'),
-        base44.entities.GestioneImpasti.list('-data_creazione')
+        base44.entities.RilevazioneInventario.filter({ data_rilevazione: { $gte: ultimiTreGiorni } }),
+        base44.entities.RilevazioneInventarioCantina.filter({ data_rilevazione: { $gte: ultimiTreGiorni } }),
+        base44.entities.ConteggioCassa.filter({ data_conteggio: { $gte: ultimiTreGiorni } }),
+        base44.entities.TeglieButtate.filter({ data_rilevazione: { $gte: ultimiTreGiorni } }),
+        base44.entities.Preparazioni.filter({ data_rilevazione: { $gte: ultimiTreGiorni } }),
+        base44.entities.CalcoloImpastoLog.filter({ data_calcolo: { $gte: ultimiTreGiorni } }),
+        base44.entities.CalcoloImpastoLog.filter({ data_calcolo: { $gte: ultimiTreGiorni } }),
+        base44.entities.CleaningInspection.filter({ inspection_date: { $gte: ultimiTreGiorni } }),
+        base44.entities.GestioneImpasti.filter({ data_creazione: { $gte: ultimiTreGiorni } })
       ]);
       return {
         FormInventario: inventario,
@@ -269,27 +290,33 @@ export default function TurniDipendente() {
         ControlloPuliziaStoreManager: cleaningInspections.filter(i => i.inspector_role === 'Store Manager')
       };
     },
+    staleTime: 30000,
   });
 
   const { data: ricettaImpasto = [] } = useQuery({
     queryKey: ['ricetta-impasto'],
-    queryFn: () => base44.entities.RicettaImpasto.list(),
+    queryFn: () => base44.entities.RicettaImpasto.filter({ attivo: { $ne: false } }),
+    staleTime: 300000,
   });
 
   const { data: mieDisponibilita = [] } = useQuery({
     queryKey: ['disponibilita', currentUser?.id],
     queryFn: () => base44.entities.Disponibilita.filter({ dipendente_id: currentUser.id }),
-    enabled: !!currentUser?.id,
+    enabled: activeView === 'disponibilita' && !!currentUser?.id,
+    staleTime: 30000,
   });
 
   const { data: disponibilitaConfigs = [] } = useQuery({
     queryKey: ['disponibilita-config'],
-    queryFn: () => base44.entities.DisponibilitaConfig.list(),
+    queryFn: () => base44.entities.DisponibilitaConfig.filter({ is_active: true }),
+    staleTime: 300000,
   });
 
   const { data: allUsersData = [] } = useQuery({
     queryKey: ['all-users'],
     queryFn: () => base44.entities.User.list(),
+    enabled: activeView === 'scambi' && showScambioModal,
+    staleTime: 60000,
   });
 
   // Turni del dipendente corrente
@@ -306,22 +333,22 @@ export default function TurniDipendente() {
       });
     },
     enabled: !!currentUser?.id,
-    refetchInterval: 3000, // Ricarica ogni 3 secondi per aggiornamenti in tempo reale
+    staleTime: 10000,
   });
 
-  // Turni futuri per scambio (include TUTTI i turni futuri, non solo i miei)
+  // Turni futuri per scambio (solo prossimi 30 giorni)
   const { data: turniFuturi = [] } = useQuery({
     queryKey: ['turni-futuri', currentUser?.id],
     queryFn: async () => {
       if (!currentUser?.id) return [];
       const oggi = moment().format('YYYY-MM-DD');
-      // Prendi tutti i turni futuri per poter vedere anche quelli dei colleghi nelle richieste di scambio
+      const maxData = moment().add(30, 'days').format('YYYY-MM-DD');
       return base44.entities.TurnoPlanday.filter({
-        data: { $gte: oggi }
+        data: { $gte: oggi, $lte: maxData }
       });
     },
     enabled: !!currentUser?.id,
-    refetchInterval: 3000, // Ricarica ogni 3 secondi
+    staleTime: 15000,
   });
 
   // Turni futuri del collega selezionato per scambio (filtrati per non passati)
