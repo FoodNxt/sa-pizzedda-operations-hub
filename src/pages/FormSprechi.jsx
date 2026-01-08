@@ -48,11 +48,12 @@ export default function FormSprechi() {
 
   const activeConfig = sprechiConfig.find(c => c.is_active);
   const prodottiAbilitati = activeConfig?.prodotti_abilitati || [];
-  const motiviDisponibili = activeConfig?.motivi_spreco || [];
+  const motiviDisponibili = activeConfig?.motivi_disponibili || [];
 
-  const prodottiFiltrati = ricette.filter(r => 
-    prodottiAbilitati.includes(r.id) && r.attivo !== false
-  );
+  const prodottiFiltrati = prodottiAbilitati
+    .filter(p => p.tipo === 'ricetta')
+    .map(p => ricette.find(r => r.id === p.prodotto_id))
+    .filter(r => r && r.attivo !== false);
 
   const createSprecoMutation = useMutation({
     mutationFn: async (data) => {
@@ -102,15 +103,14 @@ export default function FormSprechi() {
     const data = {
       store_id: store?.id || storeId,
       store_name: store?.name || '',
-      data_spreco: new Date().toISOString(),
-      rilevato_da: currentUser.nome_cognome || currentUser.full_name,
-      dipendente_id: currentUser.id,
+      data_rilevazione: new Date().toISOString(),
+      rilevato_da: currentUser.email,
       prodotto_id: selectedProdotto,
-      nome_prodotto: prodotto?.nome_prodotto || '',
-      tipo_teglia: prodotto?.tipo_teglia || 'nessuna',
-      quantita: parseFloat(quantita),
-      motivo_spreco: motivoSpreco,
-      note: note || undefined
+      prodotto_nome: prodotto?.nome_prodotto || '',
+      tipo_prodotto: 'ricetta',
+      quantita_grammi: parseFloat(quantita) * 1000, // Converti in grammi (assumendo kg)
+      motivo: motivoSpreco,
+      costo_unitario: prodotto?.costo_unitario || 0
     };
 
     createSprecoMutation.mutate(data);
@@ -184,18 +184,21 @@ export default function FormSprechi() {
 
             <div>
               <label className="text-sm font-medium text-slate-700 mb-2 block">
-                Quantità *
+                Quantità (pezzi/teglie) *
               </label>
               <input
                 type="number"
-                step="0.01"
-                min="0.01"
+                step="1"
+                min="1"
                 value={quantita}
                 onChange={(e) => setQuantita(e.target.value)}
                 required
                 placeholder="Es. 2 (per 2 teglie o 2 prodotti)"
                 className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
               />
+              <p className="text-xs text-slate-500 mt-1">
+                Inserisci il numero di pezzi/teglie sprecate
+              </p>
             </div>
 
             <div>
@@ -217,18 +220,7 @@ export default function FormSprechi() {
               </select>
             </div>
 
-            <div>
-              <label className="text-sm font-medium text-slate-700 mb-2 block">
-                Note (opzionale)
-              </label>
-              <textarea
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Aggiungi dettagli se necessario..."
-                rows={3}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none resize-none"
-              />
-            </div>
+
 
             <div className="flex gap-3 pt-4">
               {redirectPage && (
