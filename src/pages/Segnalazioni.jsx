@@ -199,9 +199,15 @@ export default function Segnalazioni() {
   };
 
   const groupedSegnalazioni = React.useMemo(() => {
+    // Per i dipendenti (non admin e non store manager), mostra solo le proprie segnalazioni
+    let baseSegnalazioni = segnalazioni;
+    if (!isAdmin && !isStoreManager && user?.id) {
+      baseSegnalazioni = segnalazioni.filter(s => s.dipendente_id === user.id);
+    }
+
     const filtered = activeTab === 'aperte' 
-      ? segnalazioni.filter(s => s.stato !== 'risolta')
-      : segnalazioni.filter(s => s.stato === 'risolta');
+      ? baseSegnalazioni.filter(s => s.stato !== 'risolta')
+      : baseSegnalazioni.filter(s => s.stato === 'risolta');
 
     const grouped = {};
     filtered.forEach(seg => {
@@ -213,7 +219,7 @@ export default function Segnalazioni() {
     });
 
     return grouped;
-  }, [segnalazioni, activeTab]);
+  }, [segnalazioni, activeTab, isAdmin, isStoreManager, user?.id]);
 
   const handleCaricaTemplate = () => {
     if (!selectedTemplate || !selectedDipendenteLettera) {
