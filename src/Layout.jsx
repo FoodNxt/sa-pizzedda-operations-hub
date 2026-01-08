@@ -819,9 +819,13 @@ export default function Layout({ children, currentPageName }) {
         .filter(p => p.showInMenu === true)
         .map(p => p.page);
       
+      // Assicura sempre Profilo e Turni
+      if (!menuPages.includes('ProfiloDipendente')) menuPages.unshift('ProfiloDipendente');
+      if (!menuPages.includes('TurniDipendente')) menuPages.push('TurniDipendente');
+      
       return [{
         title: "Area Dipendente",
-        icon: User,
+        icon: Users,
         type: "section",
         items: menuPages.map(pageName => ({
           title: getPageTitle(pageName),
@@ -864,6 +868,7 @@ export default function Layout({ children, currentPageName }) {
       if (allowedPagesConfig.length === 0) {
         allowedPagesConfig = [
           { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
+          { page: 'TurniDipendente', showInMenu: true, showInForms: false },
           { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
           { page: 'Academy', showInMenu: true, showInForms: false }
         ];
@@ -881,6 +886,12 @@ export default function Layout({ children, currentPageName }) {
       .filter(p => p.showInMenu === true)
       .map(p => p.page)
       .filter(pageName => !pageName.toLowerCase().includes('teglie'));
+
+    // Assicura sempre Profilo e Turni come minimo
+    if (!menuPages.includes('ProfiloDipendente')) menuPages.unshift('ProfiloDipendente');
+    if (!menuPages.includes('TurniDipendente') && !menuPages.some(p => p.toLowerCase().includes('turni'))) {
+      menuPages.splice(1, 0, 'TurniDipendente');
+    }
 
     const menuItems = menuPages.map(pageName => ({
       title: getPageTitle(pageName),
@@ -929,6 +940,7 @@ export default function Layout({ children, currentPageName }) {
       'InventarioStoreManager': 'Inventario SM',
       'TurniDipendente': 'Turni',
       'AssistenteDipendente': 'Assistente',
+      'FormsDipendente': 'Forms',
       'DashboardStoreManager': 'Dashboard',
       'Segnalazioni': 'Segnalazioni',
       'ValutazioneProvaForm': 'Valutazioni',
@@ -963,7 +975,8 @@ export default function Layout({ children, currentPageName }) {
         'Segnalazioni': AlertTriangle,
         'ValutazioneProvaForm': UserCheck,
         'PlandayStoreManager': Calendar,
-        'FormSprechi': AlertTriangle
+        'FormSprechi': AlertTriangle,
+        'AssistenteDipendente': Users
       };
       return icons[pageName] || User;
     } catch (error) {
