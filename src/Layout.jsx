@@ -945,31 +945,37 @@ export default function Layout({ children, currentPageName }) {
   };
 
   const getPageIcon = (pageName) => {
-    const icons = {
-      'ProfiloDipendente': User,
-      'ContrattiDipendente': FileText,
-      'OreLavorate': Clock,
-      'Academy': GraduationCap,
-      'Valutazione': ClipboardCheck,
-      'FormsDipendente': Edit,
-      'Impasto': ChefHat,
-      'Precotture': Pizza,
-      'ControlloPuliziaCassiere': Camera,
-      'ControlloPuliziaPizzaiolo': Camera,
-      'ControlloPuliziaStoreManager': Camera,
-      'FormInventario': ClipboardList,
-      'ConteggioCassa': DollarSign,
-      'FormTeglieButtate': AlertTriangle,
-      'Preparazioni': ChefHat,
-      'FeedbackP2P': Users,
-      'InventarioStoreManager': Package,
-      'TurniDipendente': Clock,
-      'DashboardStoreManager': LayoutDashboard,
-      'Segnalazioni': AlertTriangle,
-      'ValutazioneProvaForm': UserCheck,
-      'PlandayStoreManager': Calendar
-    };
-    return icons[pageName] || User;
+    try {
+      const icons = {
+        'ProfiloDipendente': User,
+        'ContrattiDipendente': FileText,
+        'OreLavorate': Clock,
+        'Academy': GraduationCap,
+        'Valutazione': ClipboardCheck,
+        'FormsDipendente': Edit,
+        'Impasto': ChefHat,
+        'Precotture': Pizza,
+        'ControlloPuliziaCassiere': Camera,
+        'ControlloPuliziaPizzaiolo': Camera,
+        'ControlloPuliziaStoreManager': Camera,
+        'FormInventario': ClipboardList,
+        'ConteggioCassa': DollarSign,
+        'FormTeglieButtate': AlertTriangle,
+        'Preparazioni': ChefHat,
+        'FeedbackP2P': Users,
+        'InventarioStoreManager': Package,
+        'TurniDipendente': Clock,
+        'DashboardStoreManager': LayoutDashboard,
+        'Segnalazioni': AlertTriangle,
+        'ValutazioneProvaForm': UserCheck,
+        'PlandayStoreManager': Calendar,
+        'FormSprechi': AlertTriangle
+      };
+      return icons[pageName] || User;
+    } catch (error) {
+      console.error('Error getting page icon:', error, pageName);
+      return User;
+    }
   };
 
   const normalizedUserType = currentUser ? getNormalizedUserType(currentUser.user_type) : null;
