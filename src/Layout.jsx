@@ -1359,31 +1359,31 @@ export default function Layout({ children, currentPageName }) {
               </div>
 
               <nav className="flex-1 space-y-2">
-               {isFullyLoaded && bottomNavItems && bottomNavItems.length > 0 ? (
-                 bottomNavItems.map((item) => {
-                   const isActive = isActiveLink(item.url);
-                   const Icon = item.icon;
-                   return (
-                     <Link
-                       key={item.url}
-                       to={item.url}
-                       className={`
-                         flex items-center gap-3 px-4 py-3 rounded-xl
-                         transition-all duration-200
-                         ${isActive ? 'nav-button-active text-white' : 'nav-button text-slate-700'}
-                       `}
-                     >
-                       <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-slate-600'}`} />
-                       <span className="font-medium">{item.title}</span>
-                     </Link>
-                   );
-                 })
-               ) : (
-                 <div className="flex flex-col items-center justify-center py-8">
-                   <Loader2 className="w-8 h-8 text-blue-500 animate-spin mb-3" />
-                   <p className="text-sm text-slate-500">Caricamento...</p>
-                 </div>
-               )}
+              {isFullyLoaded && bottomNavItems && bottomNavItems.length > 0 ? (
+                bottomNavItems.map((item) => {
+                  const isActive = isActiveLink(item.url);
+                  const Icon = item.icon || User;
+                  return (
+                    <Link
+                      key={item.url}
+                      to={item.url}
+                      className={`
+                        flex items-center gap-3 px-4 py-3 rounded-xl
+                        transition-all duration-200
+                        ${isActive ? 'nav-button-active text-white' : 'nav-button text-slate-700'}
+                      `}
+                    >
+                      <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-slate-600'}`} />
+                      <span className="font-medium">{item.title}</span>
+                    </Link>
+                  );
+                })
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <Loader2 className="w-8 h-8 text-blue-500 animate-spin mb-3" />
+                  <p className="text-sm text-slate-500">Caricamento...</p>
+                </div>
+              )}
               </nav>
 
               {isFullyLoaded && (
@@ -1443,7 +1443,7 @@ export default function Layout({ children, currentPageName }) {
                     <div className="flex items-stretch justify-between gap-1">
                       {allItems.map((item) => {
                         const isActive = !item.isLogout && isActiveLink(item.url);
-                        const Icon = item.icon;
+                        const Icon = item.icon || User;
                         if (item.isLogout) {
                           return (
                             <button
@@ -1478,7 +1478,7 @@ export default function Layout({ children, currentPageName }) {
                     <div className="flex items-stretch justify-between gap-1.5">
                       {firstRow.map((item) => {
                         const isActive = !item.isLogout && isActiveLink(item.url);
-                        const Icon = item.icon;
+                        const Icon = item.icon || User;
                         if (item.isLogout) {
                           return (
                             <button
@@ -1509,7 +1509,7 @@ export default function Layout({ children, currentPageName }) {
                       <div className="flex items-stretch justify-between gap-1.5">
                         {secondRow.map((item) => {
                           const isActive = !item.isLogout && isActiveLink(item.url);
-                          const Icon = item.icon;
+                          const Icon = item.icon || User;
                           if (item.isLogout) {
                             return (
                               <button
