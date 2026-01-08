@@ -167,7 +167,7 @@ export default function Valutazione() {
     }
 
     const lateShifts = myShifts.filter(s => s.in_ritardo === true);
-    const missingClockIns = myShifts.filter(s => s.timbratura_assente === true);
+    const missingClockIns = myShifts.filter(s => s.stato === 'programmato' && new Date(s.data) < new Date());
     const googleReviews = myReviews.filter(r => r.source === 'google');
 
     const totalShifts = myShifts.length;
@@ -406,7 +406,7 @@ export default function Valutazione() {
                     <span className="font-medium text-[#6b6b6b]">{safeFormatDateLocale(shift.data)}</span>
                     {shift.store_name && <span className="text-sm text-[#9b9b9b]">• {shift.store_name}</span>}
                   </div>
-                  <span className="text-lg font-bold text-red-600">+{shift.ritardo_minuti || 0} min</span>
+                  <span className="text-lg font-bold text-red-600">+{shift.minuti_ritardo || 0} min</span>
                 </div>
                 <div className="text-sm text-[#9b9b9b]">
                   <strong>Previsto:</strong> {shift.ora_inizio || 'N/A'} → <strong>Effettivo:</strong> {shift.timbratura_entrata ? safeFormatTime(shift.timbratura_entrata) : 'N/A'}
