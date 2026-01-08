@@ -1046,6 +1046,15 @@ export default function Layout({ children, currentPageName }) {
 
   const isFullyLoaded = !isLoadingUser && !isLoadingConfig && currentUser;
 
+  // Get main navigation items for bottom bar (dipendente only) - STABILE
+  const bottomNavItems = useMemo(() => {
+    if (normalizedUserType !== 'dipendente') return [];
+    if (!dipendenteNav || dipendenteNav.length === 0) return [];
+    
+    const mainItems = dipendenteNav[0]?.items || [];
+    return mainItems;
+  }, [normalizedUserType, dipendenteNav]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {showProfileModal && currentUser && (
@@ -1333,31 +1342,31 @@ export default function Layout({ children, currentPageName }) {
               </div>
 
               <nav className="flex-1 space-y-2">
-                {isFullyLoaded ? (
-                  bottomNavItems.map((item) => {
-                    const isActive = isActiveLink(item.url);
-                    const Icon = item.icon;
-                    return (
-                      <Link
-                        key={item.url}
-                        to={item.url}
-                        className={`
-                          flex items-center gap-3 px-4 py-3 rounded-xl
-                          transition-all duration-200
-                          ${isActive ? 'nav-button-active text-white' : 'nav-button text-slate-700'}
-                        `}
-                      >
-                        <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-slate-600'}`} />
-                        <span className="font-medium">{item.title}</span>
-                      </Link>
-                    );
-                  })
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-8">
-                    <Loader2 className="w-8 h-8 text-blue-500 animate-spin mb-3" />
-                    <p className="text-sm text-slate-500">Caricamento...</p>
-                  </div>
-                )}
+               {isFullyLoaded && bottomNavItems && bottomNavItems.length > 0 ? (
+                 bottomNavItems.map((item) => {
+                   const isActive = isActiveLink(item.url);
+                   const Icon = item.icon;
+                   return (
+                     <Link
+                       key={item.url}
+                       to={item.url}
+                       className={`
+                         flex items-center gap-3 px-4 py-3 rounded-xl
+                         transition-all duration-200
+                         ${isActive ? 'nav-button-active text-white' : 'nav-button text-slate-700'}
+                       `}
+                     >
+                       <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-slate-600'}`} />
+                       <span className="font-medium">{item.title}</span>
+                     </Link>
+                   );
+                 })
+               ) : (
+                 <div className="flex flex-col items-center justify-center py-8">
+                   <Loader2 className="w-8 h-8 text-blue-500 animate-spin mb-3" />
+                   <p className="text-sm text-slate-500">Caricamento...</p>
+                 </div>
+               )}
               </nav>
 
               {isFullyLoaded && (
