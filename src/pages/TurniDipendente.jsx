@@ -839,8 +839,8 @@ export default function TurniDipendente() {
     const turnoAttendeUscita = allTurni.find(t => {
       if (t.dipendente_id !== currentUser?.id) return false;
       if (t.stato === 'completato') return false;
-      if (!t.timbrata_entrata) return false;
-      if (t.timbrata_uscita) return false;
+      if (!t.timbratura_entrata) return false;
+      if (t.timbratura_uscita) return false;
       
       let turnoEnd = moment(`${t.data} ${t.ora_fine}`);
       const [endHour] = t.ora_fine.split(':').map(Number);
@@ -916,8 +916,8 @@ export default function TurniDipendente() {
     const store = storesData.find(s => s.id === prossimoTurno.store_id);
     
     // Già timbrato entrata? Mostra timer e controllo uscita
-    if (prossimoTurno.timbrata_entrata && !prossimoTurno.timbrata_uscita) {
-      const entrata = moment(prossimoTurno.timbrata_entrata);
+    if (prossimoTurno.timbratura_entrata && !prossimoTurno.timbratura_uscita) {
+      const entrata = moment(prossimoTurno.timbratura_entrata);
       const durataLavorata = moment.duration(now.diff(entrata));
       const canUscita = now.isSameOrAfter(turnoEnd);
       
@@ -953,7 +953,7 @@ export default function TurniDipendente() {
         needsGPS: !gpsOk && !userPosition
       };
     }
-    if (prossimoTurno.timbrata_uscita) {
+    if (prossimoTurno.timbratura_uscita) {
       return { canTimbra: false, reason: 'Turno completato' };
     }
     
@@ -1236,17 +1236,17 @@ export default function TurniDipendente() {
     const attivitaNormali = Array.from(attivitaMap.values()).sort((a, b) => (a.ora_inizio || '').localeCompare(b.ora_inizio || ''));
     
     // Aggiungi attività "Pagamento straordinari" se cassiere e ci sono straordinari che iniziano durante il turno
-    if (attivitaPagamentoAbilitata && turno.ruolo === 'Cassiere' && turno.timbrata_entrata && !turno.timbrata_uscita) {
+    if (attivitaPagamentoAbilitata && turno.ruolo === 'Cassiere' && turno.timbratura_entrata && !turno.timbratura_uscita) {
       const turnoInizio = moment(`${turno.data} ${turno.ora_inizio}`);
       const turnoFine = moment(`${turno.data} ${turno.ora_fine}`);
       
       // Trova tutti i turni straordinari che iniziano durante questo turno
       const straordinariIniziatiBefore = colleghiProssimoTurno.filter(t => {
         if (t.tipo_turno !== 'Straordinario') return false;
-        if (!t.timbrata_entrata) return false; // Solo se già iniziato
+        if (!t.timbratura_entrata) return false; // Solo se già iniziato
         
-        const straordInizio = moment(t.timbrata_entrata);
-        const straordFine = t.timbrata_uscita ? moment(t.timbrata_uscita) : null;
+        const straordInizio = moment(t.timbratura_entrata);
+        const straordFine = t.timbratura_uscita ? moment(t.timbratura_uscita) : null;
         
         // Lo straordinario è iniziato durante il mio turno
         const iniziatoDuranteMioTurno = straordInizio.isBetween(turnoInizio, turnoFine, null, '[]');
@@ -1261,8 +1261,8 @@ export default function TurniDipendente() {
       });
 
       straordinariIniziatiBefore.forEach(straord => {
-        const straordInizio = moment(straord.timbrata_entrata);
-        const straordFine = straord.timbrata_uscita ? moment(straord.timbrata_uscita) : moment();
+        const straordInizio = moment(straord.timbratura_entrata);
+        const straordFine = straord.timbratura_uscita ? moment(straord.timbratura_uscita) : moment();
         const ore = straordFine.diff(straordInizio, 'hours', true);
         const importo = ore * retribuzioneOraria;
         
@@ -1306,7 +1306,7 @@ export default function TurniDipendente() {
   }, [prossimoTurno?.id, pauseAttive?.length, prossimoTurnoStatus.inCorso, pauseConfig]);
 
   const verificaCondizioniPausa = async (turno) => {
-    if (!pauseConfig || !turno.timbrata_entrata) return { canPause: false, reason: 'Configurazione non disponibile' };
+    if (!pauseConfig || !turno.timbratura_entrata) return { canPause: false, reason: 'Configurazione non disponibile' };
     
     const durataMinimaTurnoMs = pauseConfig.durata_minima_turno_minuti * 60000;
     const turnoStart = new Date(`${turno.data} ${turno.ora_inizio}`);
@@ -1553,7 +1553,7 @@ export default function TurniDipendente() {
                     </div>
                   )}
                 </div>
-                {!prossimoTurnoStatus.inCorso && !prossimoTurno.timbrata_entrata && !prossimoTurno.timbrata_uscita && (() => {
+                {!prossimoTurnoStatus.inCorso && !prossimoTurno.timbratura_entrata && !prossimoTurno.timbratura_uscita && (() => {
                   // Verifica che il turno non sia già iniziato
                   const turnoStart = moment(`${prossimoTurno.data} ${prossimoTurno.ora_inizio}`);
                   const turnoNonIniziato = turnoStart.isAfter(moment());
@@ -1592,7 +1592,7 @@ export default function TurniDipendente() {
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-green-700">Entrata: {moment(prossimoTurno.timbrata_entrata).format('HH:mm')}</span>
+                    <span className="text-sm text-green-700">Entrata: {moment(prossimoTurno.timbratura_entrata).format('HH:mm')}</span>
                     {prossimoTurnoStatus.minutesToEnd > 0 ? (
                       <span className="text-sm text-orange-600 font-medium">
                         ⏱️ Mancano {prossimoTurnoStatus.minutesToEnd} min alla fine
@@ -1732,24 +1732,24 @@ export default function TurniDipendente() {
                               </div>
                               
                               {/* Bottom: action buttons in full width */}
-                              {!isCompleted && prossimoTurno.timbrata_entrata && (
-                               <div className="flex gap-2">
-                                 {isCorsoActivity && (
-                                   <Link 
-                                     to={createPageUrl('Academy')}
-                                     className="flex-1 px-4 py-2.5 bg-purple-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-purple-600 shadow-sm"
-                                   >
-                                     <GraduationCap className="w-4 h-4" /> Corso
-                                   </Link>
-                                 )}
-                                 {isFormActivity && (
-                                   <Link 
-                                     to={createPageUrl(att.form_page) + '?redirect=TurniDipendente&turno_id=' + prossimoTurno.id + '&attivita=' + encodeURIComponent(att.nome) + '&store_id=' + prossimoTurno.store_id}
-                                     className="flex-1 px-4 py-2.5 bg-blue-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-blue-600 shadow-sm"
-                                   >
-                                     <FileText className="w-4 h-4" /> Compila Form
-                                   </Link>
-                                 )}
+                              {!isCompleted && prossimoTurno.timbratura_entrata && (
+                              <div className="flex gap-2">
+                                {isCorsoActivity && (
+                                  <Link 
+                                    to={createPageUrl('Academy')}
+                                    className="flex-1 px-4 py-2.5 bg-purple-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-purple-600 shadow-sm"
+                                  >
+                                    <GraduationCap className="w-4 h-4" /> Corso
+                                  </Link>
+                                )}
+                                {isFormActivity && (
+                                  <Link 
+                                    to={createPageUrl(att.form_page) + '?redirect=TurniDipendente&turno_id=' + prossimoTurno.id + '&attivita=' + encodeURIComponent(att.nome) + '&store_id=' + prossimoTurno.store_id}
+                                    className="flex-1 px-4 py-2.5 bg-blue-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-blue-600 shadow-sm"
+                                  >
+                                    <FileText className="w-4 h-4" /> Compila Form
+                                  </Link>
+                                )}
                                  {!isFormActivity && !isCorsoActivity && !att.isPagamentoStraordinari && (
                                    <button
                                      onClick={() => completaAttivitaMutation.mutate({ turno: prossimoTurno, attivitaNome: att.nome })}
@@ -1779,7 +1779,7 @@ export default function TurniDipendente() {
                                  )}
                                </div>
                               )}
-                              {!isCompleted && !prossimoTurno.timbrata_entrata && (
+                              {!isCompleted && !prossimoTurno.timbratura_entrata && (
                                <div className="p-2 bg-yellow-50 rounded-lg text-xs text-yellow-700 flex items-center gap-2">
                                  <AlertCircle className="w-3 h-3" />
                                  Timbra entrata per sbloccare le attività
@@ -1943,7 +1943,7 @@ export default function TurniDipendente() {
                               <span className="px-3 py-2 bg-green-100 text-green-700 text-sm font-medium rounded-xl flex items-center justify-center gap-1">
                                 <CheckCircle className="w-4 h-4" /> Completato
                               </span>
-                            ) : prossimoTurno.timbrata_entrata ? (
+                            ) : prossimoTurno.timbratura_entrata ? (
                               <Link 
                                 to={createPageUrl(form.page) + '?redirect=TurniDipendente&turno_id=' + prossimoTurno.id + '&attivita=' + encodeURIComponent(form.nome) + '&store_id=' + prossimoTurno.store_id}
                                 className="px-4 py-2.5 bg-blue-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-blue-600 shadow-sm"
@@ -1962,7 +1962,7 @@ export default function TurniDipendente() {
                     </div>
                     
                     {/* Warning se non tutto completato e turno in corso */}
-                    {prossimoTurno.timbrata_entrata && !tuttoCompleto && (
+                    {prossimoTurno.timbratura_entrata && !tuttoCompleto && (
                       <div className="mt-4 p-3 bg-orange-100 rounded-xl border border-orange-300">
                         <p className="text-sm text-orange-800 flex items-center gap-2">
                           <AlertTriangle className="w-4 h-4" />
@@ -2181,10 +2181,10 @@ export default function TurniDipendente() {
                   ) : (
                     <div className="space-y-2 ml-13">
                       {dayTurni.map(turno => {
-                        const hasTimbrato = turno.timbrata_entrata || turno.timbrata_uscita;
+                        const hasTimbrato = turno.timbratura_entrata || turno.timbratura_uscita;
                         const turnoStart = moment(`${turno.data} ${turno.ora_inizio}`);
                         const turnoNonIniziato = turnoStart.isAfter(moment());
-                        const canScambio = turnoNonIniziato && !turno.timbrata_entrata && 
+                        const canScambio = turnoNonIniziato && !turno.timbratura_entrata && 
                           (!turno.richiesta_scambio || !['pending', 'accepted_by_colleague'].includes(turno.richiesta_scambio?.stato));
                         
                         return (
