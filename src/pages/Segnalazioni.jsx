@@ -439,7 +439,10 @@ export default function Segnalazioni() {
           className="flex items-center gap-2"
         >
           <AlertTriangle className="w-4 h-4" />
-          Aperte / In Gestione ({segnalazioni.filter(s => s.stato !== 'risolta').length})
+          Aperte / In Gestione ({(isAdmin || isStoreManager 
+            ? segnalazioni 
+            : segnalazioni.filter(s => s.dipendente_id === user?.id)
+          ).filter(s => s.stato !== 'risolta').length})
         </NeumorphicButton>
         <NeumorphicButton
           onClick={() => setActiveTab('chiuse')}
@@ -447,7 +450,10 @@ export default function Segnalazioni() {
           className="flex items-center gap-2"
         >
           <CheckCircle className="w-4 h-4" />
-          Risolte ({segnalazioni.filter(s => s.stato === 'risolta').length})
+          Risolte ({(isAdmin || isStoreManager 
+            ? segnalazioni 
+            : segnalazioni.filter(s => s.dipendente_id === user?.id)
+          ).filter(s => s.stato === 'risolta').length})
         </NeumorphicButton>
       </div>
 
