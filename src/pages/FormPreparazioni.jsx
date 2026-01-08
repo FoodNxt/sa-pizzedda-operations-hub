@@ -138,13 +138,7 @@ export default function FormPreparazioni() {
 
       // Redirect dopo un breve delay
       setTimeout(() => {
-        if (redirectTo) {
-          navigate(createPageUrl(redirectTo));
-        } else {
-          setSaveSuccess(false);
-          setPreparazioni([{ tipo: '', peso: '' }]);
-          setSelectedStore('');
-        }
+        navigate(createPageUrl(redirectTo || 'TurniDipendente'));
       }, 1500);
     } catch (error) {
       console.error('Error saving:', error);

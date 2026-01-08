@@ -216,7 +216,7 @@ export default function ControlloPuliziaPizzaiolo() {
         }
       }
 
-      navigate(redirectTo ? createPageUrl(redirectTo) : createPageUrl('Pulizie'));
+      navigate(createPageUrl(redirectTo || 'TurniDipendente'));
 
     } catch (error) {
       console.error('Error processing inspection:', error);

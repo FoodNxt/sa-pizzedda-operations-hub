@@ -233,7 +233,7 @@ export default function ControlloPuliziaStoreManager() {
         }
       }
 
-      navigate(redirectTo ? createPageUrl(redirectTo) : createPageUrl('Pulizie'));
+      navigate(createPageUrl(redirectTo || 'TurniDipendente'));
 
     } catch (error) {
       console.error('Error processing inspection:', error);
