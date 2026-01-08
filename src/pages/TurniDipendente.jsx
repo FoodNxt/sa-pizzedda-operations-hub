@@ -282,6 +282,16 @@ export default function TurniDipendente() {
     enabled: !!currentUser?.id,
   });
 
+  const { data: disponibilitaConfigs = [] } = useQuery({
+    queryKey: ['disponibilita-config'],
+    queryFn: () => base44.entities.DisponibilitaConfig.list(),
+  });
+
+  const { data: allUsersData = [] } = useQuery({
+    queryKey: ['all-users'],
+    queryFn: () => base44.entities.User.list(),
+  });
+
   // Turni del dipendente corrente
   const { data: turni = [], isLoading } = useQuery({
     queryKey: ['turni-dipendente', currentUser?.id, weekStart.format('YYYY-MM-DD')],
@@ -531,8 +541,8 @@ export default function TurniDipendente() {
 
   // Completa attività
   const completaAttivitaMutation = useMutation({
-    mutationFn: async ({ turno, attivitaNome }) => {
-      return base44.entities.AttivitaCompletata.create({
+    mutationFn: async ({ turno, attivitaNome, importoPagato, turnoStraordinarioId }) => {
+      const data = {
         dipendente_id: currentUser.id,
         dipendente_nome: currentUser.nome_cognome || currentUser.full_name,
         turno_id: turno.id,
@@ -540,7 +550,16 @@ export default function TurniDipendente() {
         store_id: turno.store_id,
         attivita_nome: attivitaNome,
         completato_at: new Date().toISOString()
-      });
+      };
+
+      if (importoPagato !== undefined) {
+        data.importo_pagato = importoPagato;
+      }
+      if (turnoStraordinarioId) {
+        data.turno_straordinario_id = turnoStraordinarioId;
+      }
+
+      return base44.entities.AttivitaCompletata.create(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attivita-completate'] });
@@ -1116,6 +1135,9 @@ export default function TurniDipendente() {
     const momento = h < 14 ? 'Mattina' : 'Sera';
     const dayOfWeek = new Date(turno.data).getDay();
     const tipoTurno = turno.tipo_turno || 'Normale';
+    const activeDispConfig = disponibilitaConfigs.find(c => c.is_active);
+    const attivitaPagamentoAbilitata = activeDispConfig?.attivita_pagamento_abilitata !== false;
+    const retribuzioneOraria = activeDispConfig?.retribuzione_oraria_straordinari || 10;
     
     // Verifica config per tipo turno
     const tipoConfig = tipoTurnoConfigs.find(tc => tc.tipo_turno === tipoTurno);
@@ -1204,6 +1226,48 @@ export default function TurniDipendente() {
     
     // Ordina slot normali per ora
     const attivitaNormali = Array.from(attivitaMap.values()).sort((a, b) => (a.ora_inizio || '').localeCompare(b.ora_inizio || ''));
+    
+    // Aggiungi attività "Pagamento straordinari" se cassiere e ci sono straordinari che iniziano durante il turno
+    if (attivitaPagamentoAbilitata && turno.ruolo === 'Cassiere' && turno.timbrata_entrata && !turno.timbrata_uscita) {
+      const turnoInizio = moment(`${turno.data} ${turno.ora_inizio}`);
+      const turnoFine = moment(`${turno.data} ${turno.ora_fine}`);
+      
+      // Trova tutti i turni straordinari che iniziano durante questo turno
+      const straordinariIniziatiBefore = colleghiProssimoTurno.filter(t => {
+        if (t.tipo_turno !== 'Straordinario') return false;
+        if (!t.timbrata_entrata) return false; // Solo se già iniziato
+        
+        const straordInizio = moment(t.timbrata_entrata);
+        const straordFine = t.timbrata_uscita ? moment(t.timbrata_uscita) : null;
+        
+        // Lo straordinario è iniziato durante il mio turno
+        const iniziatoDuranteMioTurno = straordInizio.isBetween(turnoInizio, turnoFine, null, '[]');
+        
+        // Non ancora pagato
+        const giaPagato = attivitaCompletate.some(ac => 
+          ac.attivita_nome === 'Pagamento straordinari' && 
+          ac.turno_straordinario_id === t.id
+        );
+        
+        return iniziatoDuranteMioTurno && !giaPagato;
+      });
+
+      straordinariIniziatiBefore.forEach(straord => {
+        const straordInizio = moment(straord.timbrata_entrata);
+        const straordFine = straord.timbrata_uscita ? moment(straord.timbrata_uscita) : moment();
+        const ore = straordFine.diff(straordInizio, 'hours', true);
+        const importo = ore * retribuzioneOraria;
+        
+        attivitaNormali.push({
+          nome: `Pagamento straordinari - ${straord.dipendente_nome}`,
+          ora_inizio: straordInizio.format('HH:mm'),
+          isPagamentoStraordinari: true,
+          turnoStraordinarioId: straord.id,
+          importoPagamento: importo,
+          dipendenteStraordinario: straord.dipendente_nome
+        });
+      });
+    }
     
     // Combina: inizio + normali + fine
     return [...attivitaInizio, ...attivitaNormali, ...attivitaFine];
@@ -1678,13 +1742,31 @@ export default function TurniDipendente() {
                                      <FileText className="w-4 h-4" /> Compila Form
                                    </Link>
                                  )}
-                                 {!isFormActivity && !isCorsoActivity && (
+                                 {!isFormActivity && !isCorsoActivity && !att.isPagamentoStraordinari && (
                                    <button
                                      onClick={() => completaAttivitaMutation.mutate({ turno: prossimoTurno, attivitaNome: att.nome })}
                                      disabled={completaAttivitaMutation.isPending}
                                      className="flex-1 px-4 py-2.5 bg-green-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-green-600 shadow-sm"
                                    >
                                      <Check className="w-4 h-4" /> Segna Fatto
+                                   </button>
+                                 )}
+                                 {att.isPagamentoStraordinari && (
+                                   <button
+                                     onClick={() => completaAttivitaMutation.mutate({ 
+                                       turno: prossimoTurno, 
+                                       attivitaNome: att.nome,
+                                       importoPagato: att.importoPagamento,
+                                       turnoStraordinarioId: att.turnoStraordinarioId
+                                     })}
+                                     disabled={completaAttivitaMutation.isPending}
+                                     className="flex-1 px-4 py-2.5 bg-green-500 text-white text-sm font-medium rounded-xl flex items-col justify-center gap-1 hover:bg-green-600 shadow-sm"
+                                   >
+                                     <DollarSign className="w-4 h-4" /> 
+                                     <div className="text-left">
+                                       <div>Paga €{att.importoPagamento.toFixed(2)}</div>
+                                       <div className="text-[10px] opacity-80">a {att.dipendenteStraordinario}</div>
+                                     </div>
                                    </button>
                                  )}
                                </div>

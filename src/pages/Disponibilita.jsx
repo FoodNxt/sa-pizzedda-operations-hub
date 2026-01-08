@@ -25,6 +25,7 @@ export default function Disponibilita() {
   const [timeRange, setTimeRange] = useState('month');
   const [showSettings, setShowSettings] = useState(false);
   const [retribuzioneOraria, setRetribuzioneOraria] = useState(10);
+  const [attivitaPagamentoAbilitata, setAttivitaPagamentoAbilitata] = useState(true);
 
   const queryClient = useQueryClient();
 
@@ -78,6 +79,7 @@ export default function Disponibilita() {
     const activeConfig = disponibilitaConfigs.find(c => c.is_active);
     if (activeConfig) {
       setRetribuzioneOraria(activeConfig.retribuzione_oraria_straordinari || 10);
+      setAttivitaPagamentoAbilitata(activeConfig.attivita_pagamento_abilitata !== false);
     }
   }, [disponibilitaConfigs]);
 
@@ -237,7 +239,8 @@ export default function Disponibilita() {
 
   const handleSaveSettings = () => {
     saveConfigMutation.mutate({
-      retribuzione_oraria_straordinari: retribuzioneOraria
+      retribuzione_oraria_straordinari: retribuzioneOraria,
+      attivita_pagamento_abilitata: attivitaPagamentoAbilitata
     });
   };
 
@@ -641,6 +644,25 @@ export default function Disponibilita() {
                   />
                   <p className="text-xs text-slate-500 mt-1">
                     Questa tariffa verrà applicata a tutti i turni straordinari
+                  </p>
+                </div>
+
+                <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
+                  <h3 className="text-sm font-bold text-blue-800 mb-3">Attività "Pagamento straordinari"</h3>
+                  <div className="flex items-center gap-3 mb-2">
+                    <input
+                      type="checkbox"
+                      checked={attivitaPagamentoAbilitata}
+                      onChange={(e) => setAttivitaPagamentoAbilitata(e.target.checked)}
+                      className="w-5 h-5 rounded"
+                    />
+                    <label className="text-sm text-slate-700 flex-1">
+                      Abilita attività automatica per cassieri quando inizia uno straordinario
+                    </label>
+                  </div>
+                  <p className="text-xs text-blue-700 mt-2">
+                    Se abilitata, i cassieri in turno vedranno automaticamente l'attività "Pagamento straordinari" 
+                    quando un collega (o loro stessi) inizia un turno straordinario. Il completamento registra l'uscita di cassa.
                   </p>
                 </div>
 

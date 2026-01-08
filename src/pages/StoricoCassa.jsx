@@ -60,6 +60,11 @@ export default function StoricoCassa() {
     queryFn: () => base44.entities.Prelievo.list('-data_prelievo', 500),
   });
 
+  const { data: attivitaCompletate = [] } = useQuery({
+    queryKey: ['attivita-completate'],
+    queryFn: () => base44.entities.AttivitaCompletata.list('-completato_at', 500),
+  });
+
   const saveAlertMutation = useMutation({
     mutationFn: (data) => {
       if (data.id) {
@@ -248,8 +253,18 @@ export default function StoricoCassa() {
         )
         .reduce((sum, p) => sum + (p.importo || 0), 0);
 
+      // Get pagamenti straordinari (attività completate con importo_pagato) for this store on this date
+      const pagamentiStraordinari = attivitaCompletate
+        .filter(ac => 
+          ac.store_id === store.id && 
+          ac.turno_data === verificaDate &&
+          ac.attivita_nome?.includes('Pagamento straordinari') &&
+          ac.importo_pagato
+        )
+        .reduce((sum, ac) => sum + (ac.importo_pagato || 0), 0);
+
       // Calculate expected final amount
-      const cassaAttesa = primoConteggio.valore_conteggio + pagamentiContanti - prelieviGiorno;
+      const cassaAttesa = primoConteggio.valore_conteggio + pagamentiContanti - prelieviGiorno - pagamentiStraordinari;
       const cassaEffettiva = ultimoConteggio.valore_conteggio;
       const delta = cassaEffettiva - cassaAttesa;
 
@@ -261,6 +276,7 @@ export default function StoricoCassa() {
         primo_conteggio: primoConteggio.valore_conteggio,
         pagamenti_contanti: pagamentiContanti,
         prelievi: prelieviGiorno,
+        pagamenti_straordinari: pagamentiStraordinari,
         ultimo_conteggio: ultimoConteggio.valore_conteggio,
         cassa_attesa: cassaAttesa,
         delta,
@@ -898,6 +914,15 @@ export default function StoricoCassa() {
                           <span className="text-sm font-bold text-red-600">-€{verifica.prelievi.toFixed(2)}</span>
                         </div>
                       </div>
+
+                      {verifica.pagamenti_straordinari > 0 && (
+                        <div className="neumorphic-pressed p-3 rounded-xl bg-white">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-slate-600">- Straordinari</span>
+                            <span className="text-sm font-bold text-red-600">-€{verifica.pagamenti_straordinari.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      )}
 
                       <div className="neumorphic-pressed p-3 rounded-xl bg-blue-50 border-2 border-blue-300">
                         <div className="flex items-center justify-between mb-1">
