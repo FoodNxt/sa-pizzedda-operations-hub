@@ -26,6 +26,7 @@ import CreaCorso from './pages/CreaCorso';
 import DailyRevenueAggregation from './pages/DailyRevenueAggregation';
 import Dashboard from './pages/Dashboard';
 import DashboardStoreManager from './pages/DashboardStoreManager';
+import Disponibilita from './pages/Disponibilita';
 import Documenti from './pages/Documenti';
 import ElencoFornitori from './pages/ElencoFornitori';
 import EmployeeReviewsPerformance from './pages/EmployeeReviewsPerformance';
@@ -107,7 +108,6 @@ import ValutazionePulizie from './pages/ValutazionePulizie';
 import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSetup from './pages/ZapierSetup';
-import Disponibilita from './pages/Disponibilita';
 import __Layout from './Layout.jsx';
 
 
@@ -140,6 +140,7 @@ export const PAGES = {
     "DailyRevenueAggregation": DailyRevenueAggregation,
     "Dashboard": Dashboard,
     "DashboardStoreManager": DashboardStoreManager,
+    "Disponibilita": Disponibilita,
     "Documenti": Documenti,
     "ElencoFornitori": ElencoFornitori,
     "EmployeeReviewsPerformance": EmployeeReviewsPerformance,
@@ -221,7 +222,6 @@ export const PAGES = {
     "ZapierProdottiVenduti": ZapierProdottiVenduti,
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSetup": ZapierSetup,
-    "Disponibilita": Disponibilita,
 }
 
 export const pagesConfig = {

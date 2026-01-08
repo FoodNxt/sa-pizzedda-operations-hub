@@ -2911,6 +2911,38 @@ function BustePagaSection() {
                     <p className="text-xs text-red-700">{busta.error_message}</p>
                   </div>
                 )}
+
+                {busta.status === 'completed' && busta.pdf_splits?.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-slate-200">
+                    <h4 className="text-sm font-bold text-slate-700 mb-3">File Splittati per Dipendente:</h4>
+                    <div className="space-y-2">
+                      {busta.pdf_splits.map((split, idx) => (
+                        <div key={idx} className="neumorphic-pressed p-3 rounded-lg flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                              <span className="text-xs font-bold text-white">
+                                {split.user_name?.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-slate-800">{split.user_name}</p>
+                              <p className="text-xs text-slate-500">Pagina {split.page_number}</p>
+                            </div>
+                          </div>
+                          <a
+                            href={split.pdf_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="nav-button p-2 rounded-lg"
+                            title="Visualizza PDF"
+                          >
+                            <Eye className="w-4 h-4 text-blue-600" />
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </NeumorphicCard>
             ))}
           </div>
