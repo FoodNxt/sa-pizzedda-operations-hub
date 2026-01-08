@@ -120,9 +120,14 @@ export default function Disponibilita() {
     };
   }, [timeRange]);
 
-  // Filter turni by date range
+  // Filter turni by date range (include anche turni in corso senza uscita)
   const filteredTurni = useMemo(() => {
-    return turni.filter(t => t.data >= startDate && t.data <= endDate && t.tipo_turno === 'Straordinario');
+    return turni.filter(t => {
+      if (t.tipo_turno !== 'Straordinario') return false;
+      if (t.data < startDate || t.data > endDate) return false;
+      // Include anche turni con solo entrata (in corso)
+      return true;
+    });
   }, [turni, startDate, endDate]);
 
   // Calculate disponibilità for each employee
@@ -145,7 +150,7 @@ export default function Disponibilita() {
         ? storeIdsAssegnati 
         : stores.map(s => s.id);
 
-      // Calculate overtime hours done by this employee
+      // Calculate overtime hours done by this employee (escludi turni in corso)
       const oreStraordinarioFatte = filteredTurni
         .filter(t => t.dipendente_id === dipendente.id)
         .reduce((sum, t) => {
@@ -156,7 +161,7 @@ export default function Disponibilita() {
           return sum + hours;
         }, 0);
 
-      // Calculate potential overtime hours
+      // Calculate potential overtime hours (escludi turni in corso)
       // Consider only straordinari done by this employee OR other employees with same role
       // in stores where this employee is enabled to work
       const oreStraordinarioPotenziali = filteredTurni
@@ -192,23 +197,25 @@ export default function Disponibilita() {
 
   const sortedData = [...disponibilitaData].sort((a, b) => b.percentuale - a.percentuale);
 
-  // Straordinari data
+  // Straordinari data (include turni in corso)
   const straordinariData = useMemo(() => {
     return filteredTurni.map(turno => {
-      if (!turno.timbratura_entrata || !turno.timbratura_uscita) {
+      if (!turno.timbratura_entrata) {
         return null;
       }
       
       const start = new Date(turno.timbratura_entrata);
-      const end = new Date(turno.timbratura_uscita);
+      const end = turno.timbratura_uscita ? new Date(turno.timbratura_uscita) : new Date();
       const ore = (end - start) / (1000 * 60 * 60);
       const retribuzione = ore * retribuzioneOraria;
+      const inCorso = !turno.timbratura_uscita;
 
       return {
         ...turno,
         ore,
         retribuzione,
-        isPagato: turno.straordinario_pagato || false
+        isPagato: turno.straordinario_pagato || false,
+        inCorso
       };
     }).filter(t => t !== null).sort((a, b) => new Date(b.data) - new Date(a.data));
   }, [filteredTurni, retribuzioneOraria]);
@@ -216,9 +223,10 @@ export default function Disponibilita() {
   const straordinariStats = useMemo(() => {
     const totaleOre = straordinariData.reduce((sum, t) => sum + t.ore, 0);
     const totaleRetribuzione = straordinariData.reduce((sum, t) => sum + t.retribuzione, 0);
-    const pagati = straordinariData.filter(t => t.isPagato).length;
-    const daPagare = straordinariData.filter(t => !t.isPagato).length;
-    const importoDaPagare = straordinariData.filter(t => !t.isPagato).reduce((sum, t) => sum + t.retribuzione, 0);
+    const pagati = straordinariData.filter(t => t.isPagato && !t.inCorso).length;
+    const daPagare = straordinariData.filter(t => !t.isPagato && !t.inCorso).length;
+    const inCorso = straordinariData.filter(t => t.inCorso).length;
+    const importoDaPagare = straordinariData.filter(t => !t.isPagato && !t.inCorso).reduce((sum, t) => sum + t.retribuzione, 0);
 
     return {
       totaleOre,
@@ -226,6 +234,7 @@ export default function Disponibilita() {
       totaleTurni: straordinariData.length,
       pagati,
       daPagare,
+      inCorso,
       importoDaPagare
     };
   }, [straordinariData]);
@@ -511,6 +520,9 @@ export default function Disponibilita() {
                 <AlertCircle className="w-10 h-10 text-orange-600 mx-auto mb-3" />
                 <p className="text-xs text-[#9b9b9b] mb-1">Da Pagare</p>
                 <p className="text-2xl font-bold text-orange-600">€{straordinariStats.importoDaPagare.toFixed(2)}</p>
+                {straordinariStats.inCorso > 0 && (
+                  <p className="text-xs text-blue-600 mt-1">+ {straordinariStats.inCorso} in corso</p>
+                )}
               </NeumorphicCard>
             </div>
 
@@ -544,71 +556,83 @@ export default function Disponibilita() {
                     
                     return (
                       <div
-                        key={turno.id}
-                        className={`neumorphic-pressed p-4 rounded-xl transition-all ${
-                          turno.isPagato ? 'bg-green-50 border-2 border-green-200' : 'bg-white'
-                        }`}
+                       key={turno.id}
+                       className={`neumorphic-pressed p-4 rounded-xl transition-all ${
+                         turno.inCorso ? 'bg-blue-50 border-2 border-blue-300' :
+                         turno.isPagato ? 'bg-green-50 border-2 border-green-200' : 'bg-white'
+                       }`}
                       >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h3 className="font-bold text-slate-800">{turno.dipendente_nome}</h3>
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                turno.ruolo === 'Pizzaiolo' ? 'bg-orange-100 text-orange-700' :
-                                turno.ruolo === 'Cassiere' ? 'bg-blue-100 text-blue-700' :
-                                'bg-purple-100 text-purple-700'
-                              }`}>
-                                {turno.ruolo}
-                              </span>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
-                              <div className="flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                {format(parseISO(turno.data), 'dd MMM yyyy', { locale: it })}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {turno.ora_inizio} - {turno.ora_fine}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Award className="w-3 h-3" />
-                                {storeName}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <TrendingUp className="w-3 h-3" />
-                                {turno.ore.toFixed(2)}h lavorate
-                              </div>
-                            </div>
-                          </div>
+                       <div className="flex items-start justify-between gap-4">
+                         <div className="flex-1">
+                           <div className="flex items-center gap-2 mb-2">
+                             <h3 className="font-bold text-slate-800">{turno.dipendente_nome}</h3>
+                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                               turno.ruolo === 'Pizzaiolo' ? 'bg-orange-100 text-orange-700' :
+                               turno.ruolo === 'Cassiere' ? 'bg-blue-100 text-blue-700' :
+                               'bg-purple-100 text-purple-700'
+                             }`}>
+                               {turno.ruolo}
+                             </span>
+                             {turno.inCorso && (
+                               <span className="px-2 py-1 bg-blue-500 text-white rounded-full text-xs font-bold animate-pulse">
+                                 IN CORSO
+                               </span>
+                             )}
+                           </div>
 
-                          <div className="text-right flex flex-col items-end gap-2">
-                            <div>
-                              <p className="text-2xl font-bold text-green-600">€{turno.retribuzione.toFixed(2)}</p>
-                              <p className="text-xs text-slate-500">({retribuzioneOraria}€/h)</p>
-                            </div>
-                            <button
-                              onClick={() => togglePagamento(turno.id, turno.isPagato)}
-                              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                                turno.isPagato
-                                  ? 'bg-green-500 text-white hover:bg-green-600'
-                                  : 'bg-orange-500 text-white hover:bg-orange-600'
-                              }`}
-                            >
-                              {turno.isPagato ? (
-                                <>
-                                  <CheckCircle className="w-4 h-4" />
-                                  Pagato
-                                </>
-                              ) : (
-                                <>
-                                  <XCircle className="w-4 h-4" />
-                                  Da Pagare
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        </div>
+                           <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
+                             <div className="flex items-center gap-1">
+                               <Calendar className="w-3 h-3" />
+                               {format(parseISO(turno.data), 'dd MMM yyyy', { locale: it })}
+                             </div>
+                             <div className="flex items-center gap-1">
+                               <Clock className="w-3 h-3" />
+                               {turno.ora_inizio} - {turno.ora_fine}
+                             </div>
+                             <div className="flex items-center gap-1">
+                               <Award className="w-3 h-3" />
+                               {storeName}
+                             </div>
+                             <div className="flex items-center gap-1">
+                               <TrendingUp className="w-3 h-3" />
+                               {turno.ore.toFixed(2)}h {turno.inCorso ? '(in corso)' : 'lavorate'}
+                             </div>
+                           </div>
+                         </div>
+
+                         <div className="text-right flex flex-col items-end gap-2">
+                           <div>
+                             <p className="text-2xl font-bold text-green-600">€{turno.retribuzione.toFixed(2)}</p>
+                             <p className="text-xs text-slate-500">({retribuzioneOraria}€/h)</p>
+                           </div>
+                           {turno.inCorso ? (
+                             <span className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium">
+                               In Corso
+                             </span>
+                           ) : (
+                             <button
+                               onClick={() => togglePagamento(turno.id, turno.isPagato)}
+                               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                                 turno.isPagato
+                                   ? 'bg-green-500 text-white hover:bg-green-600'
+                                   : 'bg-orange-500 text-white hover:bg-orange-600'
+                               }`}
+                             >
+                               {turno.isPagato ? (
+                                 <>
+                                   <CheckCircle className="w-4 h-4" />
+                                   Pagato
+                                 </>
+                               ) : (
+                                 <>
+                                   <XCircle className="w-4 h-4" />
+                                   Da Pagare
+                                 </>
+                               )}
+                             </button>
+                           )}
+                         </div>
+                       </div>
                       </div>
                     );
                   })}
