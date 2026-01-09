@@ -472,68 +472,91 @@ export default function Financials() {
       return true;
     });
 
-    // Filter by channels
     let revenue = 0;
     let orders = 0;
+    
+    // Channel breakdown
+    const channelBreakdown = {};
+    const appBreakdown = {};
 
     filtered.forEach(item => {
-      const types = [
-        { key: 'delivery', revenue: item.sourceType_delivery || 0, orders: item.sourceType_delivery_orders || 0 },
-        { key: 'takeaway', revenue: item.sourceType_takeaway || 0, orders: item.sourceType_takeaway_orders || 0 },
-        { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0, orders: item.sourceType_takeawayOnSite_orders || 0 },
-        { key: 'store', revenue: item.sourceType_store || 0, orders: item.sourceType_store_orders || 0 }
-      ];
-
-      const apps = [
-        { key: 'glovo', revenue: item.sourceApp_glovo || 0, orders: item.sourceApp_glovo_orders || 0 },
-        { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0, orders: item.sourceApp_deliveroo_orders || 0 },
-        { key: 'justeat', revenue: item.sourceApp_justeat || 0, orders: item.sourceApp_justeat_orders || 0 },
-        { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0, orders: item.sourceApp_onlineordering_orders || 0 },
-        { key: 'ordertable', revenue: item.sourceApp_ordertable || 0, orders: item.sourceApp_ordertable_orders || 0 },
-        { key: 'tabesto', revenue: item.sourceApp_tabesto || 0, orders: item.sourceApp_tabesto_orders || 0 },
-        { key: 'store', revenue: item.sourceApp_store || 0, orders: item.sourceApp_store_orders || 0 }
-      ];
-
-      // If no filters, include everything
+      // If no filters, use total
       if (channels.length === 0 && apps.length === 0) {
         revenue += item.total_revenue || 0;
         orders += item.total_orders || 0;
       } else {
-        // Apply channel filter
+        // Process channels
+        const types = [
+          { key: 'delivery', revenue: item.sourceType_delivery || 0, orders: item.sourceType_delivery_orders || 0 },
+          { key: 'takeaway', revenue: item.sourceType_takeaway || 0, orders: item.sourceType_takeaway_orders || 0 },
+          { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0, orders: item.sourceType_takeawayOnSite_orders || 0 },
+          { key: 'store', revenue: item.sourceType_store || 0, orders: item.sourceType_store_orders || 0 }
+        ];
+
         types.forEach(type => {
           const mappedKey = channelMapping[type.key] || type.key;
           if (channels.length === 0 || channels.includes(mappedKey)) {
-            revenue += type.revenue;
-            orders += type.orders;
+            if (!channelBreakdown[mappedKey]) {
+              channelBreakdown[mappedKey] = { revenue: 0, orders: 0 };
+            }
+            channelBreakdown[mappedKey].revenue += type.revenue;
+            channelBreakdown[mappedKey].orders += type.orders;
+            
+            if (apps.length === 0) {
+              revenue += type.revenue;
+              orders += type.orders;
+            }
           }
         });
 
-        // Apply app filter (only if channel filter didn't already count)
-        if (apps.length > 0) {
-          let appRevenue = 0;
-          let appOrders = 0;
-          apps.forEach(app => {
-            const mappedKey = appMapping[app.key] || app.key;
-            if (apps.includes(mappedKey)) {
-              appRevenue += app.revenue;
-              appOrders += app.orders;
+        // Process apps
+        const appList = [
+          { key: 'glovo', revenue: item.sourceApp_glovo || 0, orders: item.sourceApp_glovo_orders || 0 },
+          { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0, orders: item.sourceApp_deliveroo_orders || 0 },
+          { key: 'justeat', revenue: item.sourceApp_justeat || 0, orders: item.sourceApp_justeat_orders || 0 },
+          { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0, orders: item.sourceApp_onlineordering_orders || 0 },
+          { key: 'ordertable', revenue: item.sourceApp_ordertable || 0, orders: item.sourceApp_ordertable_orders || 0 },
+          { key: 'tabesto', revenue: item.sourceApp_tabesto || 0, orders: item.sourceApp_tabesto_orders || 0 },
+          { key: 'store', revenue: item.sourceApp_store || 0, orders: item.sourceApp_store_orders || 0 }
+        ];
+
+        appList.forEach(app => {
+          const mappedKey = appMapping[app.key] || app.key;
+          if (apps.length === 0 || apps.includes(mappedKey)) {
+            if (!appBreakdown[mappedKey]) {
+              appBreakdown[mappedKey] = { revenue: 0, orders: 0 };
             }
-          });
-          // If we have both filters, use the minimum to avoid double counting
-          if (channels.length > 0) {
-            revenue = Math.min(revenue, appRevenue);
-            orders = Math.min(orders, appOrders);
-          } else {
-            revenue = appRevenue;
-            orders = appOrders;
+            appBreakdown[mappedKey].revenue += app.revenue;
+            appBreakdown[mappedKey].orders += app.orders;
+            
+            if (apps.length > 0) {
+              revenue += app.revenue;
+              orders += app.orders;
+            }
           }
-        }
+        });
       }
     });
 
     const avgOrderValue = orders > 0 ? revenue / orders : 0;
 
-    return { revenue, orders, avgOrderValue };
+    return { 
+      revenue, 
+      orders, 
+      avgOrderValue,
+      channelBreakdown: Object.entries(channelBreakdown).map(([name, data]) => ({
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        revenue: data.revenue,
+        orders: data.orders,
+        avgOrderValue: data.orders > 0 ? data.revenue / data.orders : 0
+      })).sort((a, b) => b.revenue - a.revenue),
+      appBreakdown: Object.entries(appBreakdown).map(([name, data]) => ({
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        revenue: data.revenue,
+        orders: data.orders,
+        avgOrderValue: data.orders > 0 ? data.revenue / data.orders : 0
+      })).sort((a, b) => b.revenue - a.revenue)
+    };
   };
 
   const periodo1Data = calculatePeriodData(periodo1Store, periodo1Start, periodo1End, periodo1Channels, periodo1Apps);
@@ -1751,85 +1774,199 @@ export default function Financials() {
 
             {/* Results */}
             {periodo1Data && periodo2Data && (
-              <NeumorphicCard className="p-4 lg:p-6">
-                <h2 className="text-lg font-bold text-slate-800 mb-4">Risultati Confronto</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  {/* Revenue */}
-                  <div className="neumorphic-pressed p-4 rounded-xl">
-                    <p className="text-xs text-slate-500 mb-3">Revenue</p>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <p className="text-xs text-blue-600 font-medium mb-1">Periodo 1</p>
-                        <p className="text-lg font-bold text-slate-800">€{periodo1Data.revenue.toFixed(2)}</p>
+              <>
+                <NeumorphicCard className="p-4 lg:p-6">
+                  <h2 className="text-lg font-bold text-slate-800 mb-4">Risultati Confronto Generale</h2>
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    {/* Revenue */}
+                    <div className="neumorphic-pressed p-4 rounded-xl">
+                      <p className="text-xs text-slate-500 mb-3">Revenue</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <p className="text-xs text-blue-600 font-medium mb-1">Periodo 1</p>
+                          <p className="text-lg font-bold text-slate-800">€{periodo1Data.revenue.toFixed(2)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-purple-600 font-medium mb-1">Periodo 2</p>
+                          <p className="text-lg font-bold text-slate-800">€{periodo2Data.revenue.toFixed(2)}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs text-purple-600 font-medium mb-1">Periodo 2</p>
-                        <p className="text-lg font-bold text-slate-800">€{periodo2Data.revenue.toFixed(2)}</p>
+                      <div className="mt-3 pt-3 border-t border-slate-200">
+                        <p className={`text-sm font-bold ${
+                          periodo1Data.revenue > periodo2Data.revenue ? 'text-green-600' : 
+                          periodo1Data.revenue < periodo2Data.revenue ? 'text-red-600' : 'text-slate-600'
+                        }`}>
+                          {periodo1Data.revenue > periodo2Data.revenue ? '+' : ''}
+                          €{(periodo1Data.revenue - periodo2Data.revenue).toFixed(2)} 
+                          ({periodo2Data.revenue > 0 ? (((periodo1Data.revenue - periodo2Data.revenue) / periodo2Data.revenue) * 100).toFixed(1) : 0}%)
+                        </p>
                       </div>
                     </div>
-                    <div className="mt-3 pt-3 border-t border-slate-200">
-                      <p className={`text-sm font-bold ${
-                        periodo1Data.revenue > periodo2Data.revenue ? 'text-green-600' : 
-                        periodo1Data.revenue < periodo2Data.revenue ? 'text-red-600' : 'text-slate-600'
-                      }`}>
-                        {periodo1Data.revenue > periodo2Data.revenue ? '+' : ''}
-                        €{(periodo1Data.revenue - periodo2Data.revenue).toFixed(2)} 
-                        ({periodo2Data.revenue > 0 ? (((periodo1Data.revenue - periodo2Data.revenue) / periodo2Data.revenue) * 100).toFixed(1) : 0}%)
-                      </p>
-                    </div>
-                  </div>
 
-                  {/* Orders */}
-                  <div className="neumorphic-pressed p-4 rounded-xl">
-                    <p className="text-xs text-slate-500 mb-3">Numero Ordini</p>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <p className="text-xs text-blue-600 font-medium mb-1">Periodo 1</p>
-                        <p className="text-lg font-bold text-slate-800">{periodo1Data.orders}</p>
+                    {/* Orders */}
+                    <div className="neumorphic-pressed p-4 rounded-xl">
+                      <p className="text-xs text-slate-500 mb-3">Numero Ordini</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <p className="text-xs text-blue-600 font-medium mb-1">Periodo 1</p>
+                          <p className="text-lg font-bold text-slate-800">{periodo1Data.orders}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-purple-600 font-medium mb-1">Periodo 2</p>
+                          <p className="text-lg font-bold text-slate-800">{periodo2Data.orders}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs text-purple-600 font-medium mb-1">Periodo 2</p>
-                        <p className="text-lg font-bold text-slate-800">{periodo2Data.orders}</p>
+                      <div className="mt-3 pt-3 border-t border-slate-200">
+                        <p className={`text-sm font-bold ${
+                          periodo1Data.orders > periodo2Data.orders ? 'text-green-600' : 
+                          periodo1Data.orders < periodo2Data.orders ? 'text-red-600' : 'text-slate-600'
+                        }`}>
+                          {periodo1Data.orders > periodo2Data.orders ? '+' : ''}
+                          {periodo1Data.orders - periodo2Data.orders} 
+                          ({periodo2Data.orders > 0 ? (((periodo1Data.orders - periodo2Data.orders) / periodo2Data.orders) * 100).toFixed(1) : 0}%)
+                        </p>
                       </div>
                     </div>
-                    <div className="mt-3 pt-3 border-t border-slate-200">
-                      <p className={`text-sm font-bold ${
-                        periodo1Data.orders > periodo2Data.orders ? 'text-green-600' : 
-                        periodo1Data.orders < periodo2Data.orders ? 'text-red-600' : 'text-slate-600'
-                      }`}>
-                        {periodo1Data.orders > periodo2Data.orders ? '+' : ''}
-                        {periodo1Data.orders - periodo2Data.orders} 
-                        ({periodo2Data.orders > 0 ? (((periodo1Data.orders - periodo2Data.orders) / periodo2Data.orders) * 100).toFixed(1) : 0}%)
-                      </p>
-                    </div>
-                  </div>
 
-                  {/* Avg Order Value */}
-                  <div className="neumorphic-pressed p-4 rounded-xl">
-                    <p className="text-xs text-slate-500 mb-3">Scontrino Medio</p>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <p className="text-xs text-blue-600 font-medium mb-1">Periodo 1</p>
-                        <p className="text-lg font-bold text-slate-800">€{periodo1Data.avgOrderValue.toFixed(2)}</p>
+                    {/* Avg Order Value */}
+                    <div className="neumorphic-pressed p-4 rounded-xl">
+                      <p className="text-xs text-slate-500 mb-3">Scontrino Medio</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <p className="text-xs text-blue-600 font-medium mb-1">Periodo 1</p>
+                          <p className="text-lg font-bold text-slate-800">€{periodo1Data.avgOrderValue.toFixed(2)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-purple-600 font-medium mb-1">Periodo 2</p>
+                          <p className="text-lg font-bold text-slate-800">€{periodo2Data.avgOrderValue.toFixed(2)}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs text-purple-600 font-medium mb-1">Periodo 2</p>
-                        <p className="text-lg font-bold text-slate-800">€{periodo2Data.avgOrderValue.toFixed(2)}</p>
+                      <div className="mt-3 pt-3 border-t border-slate-200">
+                        <p className={`text-sm font-bold ${
+                          periodo1Data.avgOrderValue > periodo2Data.avgOrderValue ? 'text-green-600' : 
+                          periodo1Data.avgOrderValue < periodo2Data.avgOrderValue ? 'text-red-600' : 'text-slate-600'
+                        }`}>
+                          {periodo1Data.avgOrderValue > periodo2Data.avgOrderValue ? '+' : ''}
+                          €{(periodo1Data.avgOrderValue - periodo2Data.avgOrderValue).toFixed(2)} 
+                          ({periodo2Data.avgOrderValue > 0 ? (((periodo1Data.avgOrderValue - periodo2Data.avgOrderValue) / periodo2Data.avgOrderValue) * 100).toFixed(1) : 0}%)
+                        </p>
                       </div>
-                    </div>
-                    <div className="mt-3 pt-3 border-t border-slate-200">
-                      <p className={`text-sm font-bold ${
-                        periodo1Data.avgOrderValue > periodo2Data.avgOrderValue ? 'text-green-600' : 
-                        periodo1Data.avgOrderValue < periodo2Data.avgOrderValue ? 'text-red-600' : 'text-slate-600'
-                      }`}>
-                        {periodo1Data.avgOrderValue > periodo2Data.avgOrderValue ? '+' : ''}
-                        €{(periodo1Data.avgOrderValue - periodo2Data.avgOrderValue).toFixed(2)} 
-                        ({periodo2Data.avgOrderValue > 0 ? (((periodo1Data.avgOrderValue - periodo2Data.avgOrderValue) / periodo2Data.avgOrderValue) * 100).toFixed(1) : 0}%)
-                      </p>
                     </div>
                   </div>
-                </div>
-              </NeumorphicCard>
+                </NeumorphicCard>
+
+                {/* Channel Breakdown Comparison */}
+                {(periodo1Data.channelBreakdown.length > 0 || periodo2Data.channelBreakdown.length > 0) && (
+                  <NeumorphicCard className="p-4 lg:p-6">
+                    <h2 className="text-lg font-bold text-slate-800 mb-4">Confronto per Canale</h2>
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[600px]">
+                        <thead>
+                          <tr className="border-b-2 border-blue-600">
+                            <th className="text-left p-3 text-slate-600 font-medium text-sm">Canale</th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm">Revenue P1</th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm">Revenue P2</th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm">Diff €</th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm">Diff %</th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm">Ordini P1</th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm">Ordini P2</th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm">Medio P1</th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm">Medio P2</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(() => {
+                            const allChannelNames = new Set([
+                              ...periodo1Data.channelBreakdown.map(c => c.name),
+                              ...periodo2Data.channelBreakdown.map(c => c.name)
+                            ]);
+                            return Array.from(allChannelNames).map(channelName => {
+                              const p1Channel = periodo1Data.channelBreakdown.find(c => c.name === channelName) || { revenue: 0, orders: 0, avgOrderValue: 0 };
+                              const p2Channel = periodo2Data.channelBreakdown.find(c => c.name === channelName) || { revenue: 0, orders: 0, avgOrderValue: 0 };
+                              const revDiff = p1Channel.revenue - p2Channel.revenue;
+                              const revDiffPercent = p2Channel.revenue > 0 ? (revDiff / p2Channel.revenue) * 100 : 0;
+                              
+                              return (
+                                <tr key={channelName} className="border-b border-slate-200 hover:bg-slate-50">
+                                  <td className="p-3 font-medium text-slate-700">{channelName}</td>
+                                  <td className="p-3 text-right text-slate-700">€{p1Channel.revenue.toFixed(2)}</td>
+                                  <td className="p-3 text-right text-slate-700">€{p2Channel.revenue.toFixed(2)}</td>
+                                  <td className={`p-3 text-right font-bold ${revDiff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {revDiff >= 0 ? '+' : ''}€{revDiff.toFixed(2)}
+                                  </td>
+                                  <td className={`p-3 text-right font-bold ${revDiff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {revDiff >= 0 ? '+' : ''}{revDiffPercent.toFixed(1)}%
+                                  </td>
+                                  <td className="p-3 text-right text-slate-700">{p1Channel.orders}</td>
+                                  <td className="p-3 text-right text-slate-700">{p2Channel.orders}</td>
+                                  <td className="p-3 text-right text-slate-700">€{p1Channel.avgOrderValue.toFixed(2)}</td>
+                                  <td className="p-3 text-right text-slate-700">€{p2Channel.avgOrderValue.toFixed(2)}</td>
+                                </tr>
+                              );
+                            });
+                          })()}
+                        </tbody>
+                      </table>
+                    </div>
+                  </NeumorphicCard>
+                )}
+
+                {/* App Breakdown Comparison */}
+                {(periodo1Data.appBreakdown.length > 0 || periodo2Data.appBreakdown.length > 0) && (
+                  <NeumorphicCard className="p-4 lg:p-6">
+                    <h2 className="text-lg font-bold text-slate-800 mb-4">Confronto per App Delivery</h2>
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[600px]">
+                        <thead>
+                          <tr className="border-b-2 border-green-600">
+                            <th className="text-left p-3 text-slate-600 font-medium text-sm">App</th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm">Revenue P1</th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm">Revenue P2</th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm">Diff €</th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm">Diff %</th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm">Ordini P1</th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm">Ordini P2</th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm">Medio P1</th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm">Medio P2</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(() => {
+                            const allAppNames = new Set([
+                              ...periodo1Data.appBreakdown.map(a => a.name),
+                              ...periodo2Data.appBreakdown.map(a => a.name)
+                            ]);
+                            return Array.from(allAppNames).map(appName => {
+                              const p1App = periodo1Data.appBreakdown.find(a => a.name === appName) || { revenue: 0, orders: 0, avgOrderValue: 0 };
+                              const p2App = periodo2Data.appBreakdown.find(a => a.name === appName) || { revenue: 0, orders: 0, avgOrderValue: 0 };
+                              const revDiff = p1App.revenue - p2App.revenue;
+                              const revDiffPercent = p2App.revenue > 0 ? (revDiff / p2App.revenue) * 100 : 0;
+                              
+                              return (
+                                <tr key={appName} className="border-b border-slate-200 hover:bg-slate-50">
+                                  <td className="p-3 font-medium text-slate-700">{appName}</td>
+                                  <td className="p-3 text-right text-slate-700">€{p1App.revenue.toFixed(2)}</td>
+                                  <td className="p-3 text-right text-slate-700">€{p2App.revenue.toFixed(2)}</td>
+                                  <td className={`p-3 text-right font-bold ${revDiff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {revDiff >= 0 ? '+' : ''}€{revDiff.toFixed(2)}
+                                  </td>
+                                  <td className={`p-3 text-right font-bold ${revDiff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {revDiff >= 0 ? '+' : ''}{revDiffPercent.toFixed(1)}%
+                                  </td>
+                                  <td className="p-3 text-right text-slate-700">{p1App.orders}</td>
+                                  <td className="p-3 text-right text-slate-700">{p2App.orders}</td>
+                                  <td className="p-3 text-right text-slate-700">€{p1App.avgOrderValue.toFixed(2)}</td>
+                                  <td className="p-3 text-right text-slate-700">€{p2App.avgOrderValue.toFixed(2)}</td>
+                                </tr>
+                              );
+                            });
+                          })()}
+                        </tbody>
+                      </table>
+                    </div>
+                  </NeumorphicCard>
+                )}
+              </>
             )}
 
             {(!periodo1Data || !periodo2Data) && (
