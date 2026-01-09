@@ -439,7 +439,7 @@ export default function OverviewContratti() {
                           </span>
                         </td>
                         <td className="py-3 px-2 text-center font-medium text-slate-700">
-                          {dip.ore_settimanali || 'N/A'}
+                          {dip.ore_settimanali ?? 'N/A'}
                         </td>
                         <td className="py-3 px-2 text-slate-600">
                           {dip.ruoli}
