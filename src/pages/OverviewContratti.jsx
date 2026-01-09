@@ -110,7 +110,7 @@ export default function OverviewContratti() {
         giorni_rimanenti: giorniRimanenti,
         tipo_contratto_label: currentContract.employee_group === 'FT' ? 'Full Time' : 
                              currentContract.employee_group === 'PT' ? 'Part Time' : 
-                             currentContract.employee_group === 'CM' ? 'Contratto Misto' : 
+                             currentContract.employee_group === 'CM' ? 'Chiamata' : 
                              currentContract.employee_group || 'N/A',
         durata_contratto: dataFine ? 'Determinato' : 'Indeterminato',
         ruoli: (currentContract.ruoli_dipendente || []).join(', ') || currentContract.function_name || 'N/A',
