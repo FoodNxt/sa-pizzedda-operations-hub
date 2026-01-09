@@ -170,7 +170,8 @@ export default function Valutazione() {
     const missingClockIns = myShifts.filter(s => s.stato === 'programmato' && new Date(s.data) < new Date());
     const googleReviews = myReviews.filter(r => r.source === 'google');
 
-    const totalShifts = myShifts.length;
+    // Count only shifts with both clock-in and clock-out
+    const totalShifts = myShifts.filter(s => s.timbratura_entrata && s.timbratura_uscita).length;
     const latePercentage = totalShifts > 0
       ? (lateShifts.length / totalShifts) * 100
       : 0;
