@@ -51,17 +51,20 @@ export default function GestioneAccessoPagine() {
   const [pageConfig, setPageConfig] = useState({
     admin_pages: activeConfig?.admin_pages || [],
     manager_pages: activeConfig?.manager_pages || [],
-    after_registration: normalizePages(activeConfig?.after_registration || [{ page: 'ProfiloDipendente', showInMenu: true, showInForms: false }]),
+    after_registration: normalizePages(activeConfig?.after_registration || [{ page: 'TurniDipendente', showInMenu: true, showInForms: false }, { page: 'ProfiloDipendente', showInMenu: true, showInForms: false }]),
     after_contract_received: normalizePages(activeConfig?.after_contract_received || [
+      { page: 'TurniDipendente', showInMenu: true, showInForms: false },
       { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
       { page: 'ContrattiDipendente', showInMenu: true, showInForms: false }
     ]),
     after_contract_signed: normalizePages(activeConfig?.after_contract_signed || [
+      { page: 'TurniDipendente', showInMenu: true, showInForms: false },
       { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
       { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
       { page: 'Academy', showInMenu: true, showInForms: false }
     ]),
     pizzaiolo_pages: normalizePages(activeConfig?.pizzaiolo_pages || [
+      { page: 'TurniDipendente', showInMenu: true, showInForms: false },
       { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
       { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
       { page: 'Academy', showInMenu: true, showInForms: false },
@@ -70,6 +73,7 @@ export default function GestioneAccessoPagine() {
       { page: 'ControlloPuliziaPizzaiolo', showInMenu: false, showInForms: true }
     ]),
     cassiere_pages: normalizePages(activeConfig?.cassiere_pages || [
+      { page: 'TurniDipendente', showInMenu: true, showInForms: false },
       { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
       { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
       { page: 'Academy', showInMenu: true, showInForms: false },
@@ -78,6 +82,7 @@ export default function GestioneAccessoPagine() {
       { page: 'ControlloPuliziaCassiere', showInMenu: false, showInForms: true }
     ]),
     store_manager_pages: normalizePages(activeConfig?.store_manager_pages || [
+      { page: 'TurniDipendente', showInMenu: true, showInForms: false },
       { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
       { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
       { page: 'Academy', showInMenu: true, showInForms: false },
