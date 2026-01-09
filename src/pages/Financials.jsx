@@ -472,71 +472,84 @@ export default function Financials() {
       return true;
     });
 
-    let revenue = 0;
-    let orders = 0;
-    
-    // Channel breakdown
+    // Channel breakdown - ALWAYS calculate for detail tables
     const channelBreakdown = {};
     const appBreakdown = {};
 
     filtered.forEach(item => {
-      // If no filters, use total
-      if (channels.length === 0 && apps.length === 0) {
+      // Process ALL channels for breakdown
+      const types = [
+        { key: 'delivery', revenue: item.sourceType_delivery || 0, orders: item.sourceType_delivery_orders || 0 },
+        { key: 'takeaway', revenue: item.sourceType_takeaway || 0, orders: item.sourceType_takeaway_orders || 0 },
+        { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0, orders: item.sourceType_takeawayOnSite_orders || 0 },
+        { key: 'store', revenue: item.sourceType_store || 0, orders: item.sourceType_store_orders || 0 }
+      ];
+
+      types.forEach(type => {
+        const mappedKey = channelMapping[type.key] || type.key;
+        if (!channelBreakdown[mappedKey]) {
+          channelBreakdown[mappedKey] = { revenue: 0, orders: 0 };
+        }
+        channelBreakdown[mappedKey].revenue += type.revenue;
+        channelBreakdown[mappedKey].orders += type.orders;
+      });
+
+      // Process ALL apps for breakdown
+      const appList = [
+        { key: 'glovo', revenue: item.sourceApp_glovo || 0, orders: item.sourceApp_glovo_orders || 0 },
+        { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0, orders: item.sourceApp_deliveroo_orders || 0 },
+        { key: 'justeat', revenue: item.sourceApp_justeat || 0, orders: item.sourceApp_justeat_orders || 0 },
+        { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0, orders: item.sourceApp_onlineordering_orders || 0 },
+        { key: 'ordertable', revenue: item.sourceApp_ordertable || 0, orders: item.sourceApp_ordertable_orders || 0 },
+        { key: 'tabesto', revenue: item.sourceApp_tabesto || 0, orders: item.sourceApp_tabesto_orders || 0 },
+        { key: 'store', revenue: item.sourceApp_store || 0, orders: item.sourceApp_store_orders || 0 }
+      ];
+
+      appList.forEach(app => {
+        const mappedKey = appMapping[app.key] || app.key;
+        if (!appBreakdown[mappedKey]) {
+          appBreakdown[mappedKey] = { revenue: 0, orders: 0 };
+        }
+        appBreakdown[mappedKey].revenue += app.revenue;
+        appBreakdown[mappedKey].orders += app.orders;
+      });
+    });
+
+    // Calculate totals based on filters
+    let revenue = 0;
+    let orders = 0;
+
+    if (channels.length === 0 && apps.length === 0) {
+      // No filters - use total
+      filtered.forEach(item => {
         revenue += item.total_revenue || 0;
         orders += item.total_orders || 0;
-      } else {
-        // Process channels
-        const types = [
-          { key: 'delivery', revenue: item.sourceType_delivery || 0, orders: item.sourceType_delivery_orders || 0 },
-          { key: 'takeaway', revenue: item.sourceType_takeaway || 0, orders: item.sourceType_takeaway_orders || 0 },
-          { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0, orders: item.sourceType_takeawayOnSite_orders || 0 },
-          { key: 'store', revenue: item.sourceType_store || 0, orders: item.sourceType_store_orders || 0 }
-        ];
-
-        types.forEach(type => {
-          const mappedKey = channelMapping[type.key] || type.key;
-          if (channels.length === 0 || channels.includes(mappedKey)) {
-            if (!channelBreakdown[mappedKey]) {
-              channelBreakdown[mappedKey] = { revenue: 0, orders: 0 };
-            }
-            channelBreakdown[mappedKey].revenue += type.revenue;
-            channelBreakdown[mappedKey].orders += type.orders;
-            
-            if (apps.length === 0) {
-              revenue += type.revenue;
-              orders += type.orders;
-            }
-          }
-        });
-
-        // Process apps
-        const appList = [
-          { key: 'glovo', revenue: item.sourceApp_glovo || 0, orders: item.sourceApp_glovo_orders || 0 },
-          { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0, orders: item.sourceApp_deliveroo_orders || 0 },
-          { key: 'justeat', revenue: item.sourceApp_justeat || 0, orders: item.sourceApp_justeat_orders || 0 },
-          { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0, orders: item.sourceApp_onlineordering_orders || 0 },
-          { key: 'ordertable', revenue: item.sourceApp_ordertable || 0, orders: item.sourceApp_ordertable_orders || 0 },
-          { key: 'tabesto', revenue: item.sourceApp_tabesto || 0, orders: item.sourceApp_tabesto_orders || 0 },
-          { key: 'store', revenue: item.sourceApp_store || 0, orders: item.sourceApp_store_orders || 0 }
-        ];
-
-        appList.forEach(app => {
-          const mappedKey = appMapping[app.key] || app.key;
-          if (apps.length === 0 || apps.includes(mappedKey)) {
-            if (!appBreakdown[mappedKey]) {
-              appBreakdown[mappedKey] = { revenue: 0, orders: 0 };
-            }
-            appBreakdown[mappedKey].revenue += app.revenue;
-            appBreakdown[mappedKey].orders += app.orders;
-            
-            if (apps.length > 0) {
-              revenue += app.revenue;
-              orders += app.orders;
-            }
-          }
-        });
-      }
-    });
+      });
+    } else if (channels.length > 0 && apps.length === 0) {
+      // Only channel filter
+      Object.entries(channelBreakdown).forEach(([name, data]) => {
+        if (channels.includes(name)) {
+          revenue += data.revenue;
+          orders += data.orders;
+        }
+      });
+    } else if (apps.length > 0 && channels.length === 0) {
+      // Only app filter
+      Object.entries(appBreakdown).forEach(([name, data]) => {
+        if (apps.includes(name)) {
+          revenue += data.revenue;
+          orders += data.orders;
+        }
+      });
+    } else {
+      // Both filters - use app filter (more specific)
+      Object.entries(appBreakdown).forEach(([name, data]) => {
+        if (apps.includes(name)) {
+          revenue += data.revenue;
+          orders += data.orders;
+        }
+      });
+    }
 
     const avgOrderValue = orders > 0 ? revenue / orders : 0;
 
@@ -1775,85 +1788,113 @@ export default function Financials() {
             {/* Results */}
             {periodo1Data && periodo2Data && (
               <>
-                <NeumorphicCard className="p-4 lg:p-6">
-                  <h2 className="text-lg font-bold text-slate-800 mb-4">Risultati Confronto Generale</h2>
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    {/* Revenue */}
-                    <div className="neumorphic-pressed p-4 rounded-xl">
-                      <p className="text-xs text-slate-500 mb-3">Revenue</p>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <p className="text-xs text-blue-600 font-medium mb-1">Periodo 1</p>
-                          <p className="text-lg font-bold text-slate-800">€{periodo1Data.revenue.toFixed(2)}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-purple-600 font-medium mb-1">Periodo 2</p>
-                          <p className="text-lg font-bold text-slate-800">€{periodo2Data.revenue.toFixed(2)}</p>
-                        </div>
+                {/* Quick Comparison Cards */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-4">
+                  {/* Revenue */}
+                  <NeumorphicCard className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-bold text-slate-700">Revenue</h3>
+                      <DollarSign className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-xs text-slate-500">P1:</span>
+                        <span className="text-lg font-bold text-blue-600">€{(periodo1Data.revenue / 1000).toFixed(1)}k</span>
                       </div>
-                      <div className="mt-3 pt-3 border-t border-slate-200">
-                        <p className={`text-sm font-bold ${
-                          periodo1Data.revenue > periodo2Data.revenue ? 'text-green-600' : 
-                          periodo1Data.revenue < periodo2Data.revenue ? 'text-red-600' : 'text-slate-600'
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-xs text-slate-500">P2:</span>
+                        <span className="text-lg font-bold text-purple-600">€{(periodo2Data.revenue / 1000).toFixed(1)}k</span>
+                      </div>
+                      <div className="pt-2 border-t border-slate-200">
+                        <div className={`text-center py-2 rounded-lg ${
+                          periodo1Data.revenue > periodo2Data.revenue ? 'bg-green-50' : 
+                          periodo1Data.revenue < periodo2Data.revenue ? 'bg-red-50' : 'bg-slate-50'
                         }`}>
-                          {periodo1Data.revenue > periodo2Data.revenue ? '+' : ''}
-                          €{(periodo1Data.revenue - periodo2Data.revenue).toFixed(2)} 
-                          ({periodo2Data.revenue > 0 ? (((periodo1Data.revenue - periodo2Data.revenue) / periodo2Data.revenue) * 100).toFixed(1) : 0}%)
-                        </p>
+                          <p className={`text-xl font-bold ${
+                            periodo1Data.revenue > periodo2Data.revenue ? 'text-green-600' : 
+                            periodo1Data.revenue < periodo2Data.revenue ? 'text-red-600' : 'text-slate-600'
+                          }`}>
+                            {periodo1Data.revenue > periodo2Data.revenue ? '↑ +' : periodo1Data.revenue < periodo2Data.revenue ? '↓ ' : '= '}
+                            {periodo2Data.revenue > 0 ? (((periodo1Data.revenue - periodo2Data.revenue) / periodo2Data.revenue) * 100).toFixed(1) : 0}%
+                          </p>
+                          <p className="text-xs text-slate-600 mt-1">
+                            {periodo1Data.revenue > periodo2Data.revenue ? '+' : ''}€{(periodo1Data.revenue - periodo2Data.revenue).toFixed(0)}
+                          </p>
+                        </div>
                       </div>
                     </div>
+                  </NeumorphicCard>
 
-                    {/* Orders */}
-                    <div className="neumorphic-pressed p-4 rounded-xl">
-                      <p className="text-xs text-slate-500 mb-3">Numero Ordini</p>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <p className="text-xs text-blue-600 font-medium mb-1">Periodo 1</p>
-                          <p className="text-lg font-bold text-slate-800">{periodo1Data.orders}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-purple-600 font-medium mb-1">Periodo 2</p>
-                          <p className="text-lg font-bold text-slate-800">{periodo2Data.orders}</p>
-                        </div>
+                  {/* Orders */}
+                  <NeumorphicCard className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-bold text-slate-700">Ordini</h3>
+                      <TrendingUp className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-xs text-slate-500">P1:</span>
+                        <span className="text-lg font-bold text-blue-600">{periodo1Data.orders}</span>
                       </div>
-                      <div className="mt-3 pt-3 border-t border-slate-200">
-                        <p className={`text-sm font-bold ${
-                          periodo1Data.orders > periodo2Data.orders ? 'text-green-600' : 
-                          periodo1Data.orders < periodo2Data.orders ? 'text-red-600' : 'text-slate-600'
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-xs text-slate-500">P2:</span>
+                        <span className="text-lg font-bold text-purple-600">{periodo2Data.orders}</span>
+                      </div>
+                      <div className="pt-2 border-t border-slate-200">
+                        <div className={`text-center py-2 rounded-lg ${
+                          periodo1Data.orders > periodo2Data.orders ? 'bg-green-50' : 
+                          periodo1Data.orders < periodo2Data.orders ? 'bg-red-50' : 'bg-slate-50'
                         }`}>
-                          {periodo1Data.orders > periodo2Data.orders ? '+' : ''}
-                          {periodo1Data.orders - periodo2Data.orders} 
-                          ({periodo2Data.orders > 0 ? (((periodo1Data.orders - periodo2Data.orders) / periodo2Data.orders) * 100).toFixed(1) : 0}%)
-                        </p>
+                          <p className={`text-xl font-bold ${
+                            periodo1Data.orders > periodo2Data.orders ? 'text-green-600' : 
+                            periodo1Data.orders < periodo2Data.orders ? 'text-red-600' : 'text-slate-600'
+                          }`}>
+                            {periodo1Data.orders > periodo2Data.orders ? '↑ +' : periodo1Data.orders < periodo2Data.orders ? '↓ ' : '= '}
+                            {periodo2Data.orders > 0 ? (((periodo1Data.orders - periodo2Data.orders) / periodo2Data.orders) * 100).toFixed(1) : 0}%
+                          </p>
+                          <p className="text-xs text-slate-600 mt-1">
+                            {periodo1Data.orders > periodo2Data.orders ? '+' : ''}{periodo1Data.orders - periodo2Data.orders} ordini
+                          </p>
+                        </div>
                       </div>
                     </div>
+                  </NeumorphicCard>
 
-                    {/* Avg Order Value */}
-                    <div className="neumorphic-pressed p-4 rounded-xl">
-                      <p className="text-xs text-slate-500 mb-3">Scontrino Medio</p>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <p className="text-xs text-blue-600 font-medium mb-1">Periodo 1</p>
-                          <p className="text-lg font-bold text-slate-800">€{periodo1Data.avgOrderValue.toFixed(2)}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-purple-600 font-medium mb-1">Periodo 2</p>
-                          <p className="text-lg font-bold text-slate-800">€{periodo2Data.avgOrderValue.toFixed(2)}</p>
-                        </div>
+                  {/* Avg Order Value */}
+                  <NeumorphicCard className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-bold text-slate-700">Scontrino Medio</h3>
+                      <DollarSign className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-xs text-slate-500">P1:</span>
+                        <span className="text-lg font-bold text-blue-600">€{periodo1Data.avgOrderValue.toFixed(2)}</span>
                       </div>
-                      <div className="mt-3 pt-3 border-t border-slate-200">
-                        <p className={`text-sm font-bold ${
-                          periodo1Data.avgOrderValue > periodo2Data.avgOrderValue ? 'text-green-600' : 
-                          periodo1Data.avgOrderValue < periodo2Data.avgOrderValue ? 'text-red-600' : 'text-slate-600'
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-xs text-slate-500">P2:</span>
+                        <span className="text-lg font-bold text-purple-600">€{periodo2Data.avgOrderValue.toFixed(2)}</span>
+                      </div>
+                      <div className="pt-2 border-t border-slate-200">
+                        <div className={`text-center py-2 rounded-lg ${
+                          periodo1Data.avgOrderValue > periodo2Data.avgOrderValue ? 'bg-green-50' : 
+                          periodo1Data.avgOrderValue < periodo2Data.avgOrderValue ? 'bg-red-50' : 'bg-slate-50'
                         }`}>
-                          {periodo1Data.avgOrderValue > periodo2Data.avgOrderValue ? '+' : ''}
-                          €{(periodo1Data.avgOrderValue - periodo2Data.avgOrderValue).toFixed(2)} 
-                          ({periodo2Data.avgOrderValue > 0 ? (((periodo1Data.avgOrderValue - periodo2Data.avgOrderValue) / periodo2Data.avgOrderValue) * 100).toFixed(1) : 0}%)
-                        </p>
+                          <p className={`text-xl font-bold ${
+                            periodo1Data.avgOrderValue > periodo2Data.avgOrderValue ? 'text-green-600' : 
+                            periodo1Data.avgOrderValue < periodo2Data.avgOrderValue ? 'text-red-600' : 'text-slate-600'
+                          }`}>
+                            {periodo1Data.avgOrderValue > periodo2Data.avgOrderValue ? '↑ +' : periodo1Data.avgOrderValue < periodo2Data.avgOrderValue ? '↓ ' : '= '}
+                            {periodo2Data.avgOrderValue > 0 ? (((periodo1Data.avgOrderValue - periodo2Data.avgOrderValue) / periodo2Data.avgOrderValue) * 100).toFixed(1) : 0}%
+                          </p>
+                          <p className="text-xs text-slate-600 mt-1">
+                            {periodo1Data.avgOrderValue > periodo2Data.avgOrderValue ? '+' : ''}€{(periodo1Data.avgOrderValue - periodo2Data.avgOrderValue).toFixed(2)}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </NeumorphicCard>
+                  </NeumorphicCard>
+                </div>
 
                 {/* Channel Breakdown Comparison */}
                 {(periodo1Data.channelBreakdown.length > 0 || periodo2Data.channelBreakdown.length > 0) && (
