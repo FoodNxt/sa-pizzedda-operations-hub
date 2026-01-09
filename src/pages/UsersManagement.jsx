@@ -212,7 +212,7 @@ export default function UsersManagement() {
            formData.indirizzo_residenza?.trim() &&
            formData.iban?.trim() &&
            formData.employee_group &&
-           formData.ore_settimanali > 0 &&
+           (formData.employee_group === 'CM' || formData.ore_settimanali > 0) &&
            formData.data_inizio_contratto;
     
     // For tempo indeterminato, we don't need durata or data_fine
@@ -965,7 +965,7 @@ export default function UsersManagement() {
                         <option value="">-- Seleziona --</option>
                         <option value="FT">FT - Full Time</option>
                         <option value="PT">PT - Part Time</option>
-                        <option value="CM">CM - Contratto Misto</option>
+                        <option value="CM">CM - Chiamata</option>
                       </select>
                     </div>
                     
