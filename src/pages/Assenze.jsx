@@ -326,7 +326,11 @@ export default function Assenze() {
   };
 
   const ferieInAttesa = richiesteFerie.filter(r => r.stato === 'in_attesa').length;
-  const malattiaInAttesa = richiesteMalattia.filter(r => r.stato === 'non_certificata' || r.stato === 'in_attesa_verifica').length;
+  const malattiaInAttesa = richiesteMalattia.filter(r => 
+    (r.stato === 'non_certificata' || r.stato === 'in_attesa_verifica') && 
+    r.turni_coinvolti && 
+    r.turni_coinvolti.length > 0
+  ).length;
   const scambiInAttesa = turniConScambio.filter(t => t.richiesta_scambio?.stato === 'accepted').length;
   const scambiPending = turniConScambio.filter(t => t.richiesta_scambio?.stato === 'pending').length;
   const turniLiberiInAttesa = richiesteTurniLiberi.filter(r => r.stato === 'in_attesa').length;
@@ -533,14 +537,6 @@ export default function Assenze() {
                               <X className="w-3 h-3" /> Rifiuta
                             </button>
                           </>
-                        )}
-                        {(request.stato === 'non_certificata' || request.stato === 'in_attesa_verifica') && !request.certificato_url && request.turni_coinvolti && request.turni_coinvolti.length > 0 && (
-                          <button
-                            onClick={() => setChangingTipoTurno(request)}
-                            className="px-3 py-1.5 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 flex items-center gap-1"
-                          >
-                            <Edit className="w-3 h-3" /> Cambia Tipo
-                          </button>
                         )}
                       </div>
                     </div>
