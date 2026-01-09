@@ -6,9 +6,12 @@ import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
 import { Package, TrendingUp, TrendingDown, Truck, AlertTriangle, Settings, X } from "lucide-react";
 import { format, parseISO, startOfDay, subDays } from "date-fns";
+import { it } from 'date-fns/locale';
 
 export default function ControlloConsumi() {
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState('confronto'); // 'confronto' o 'consumi_teorici'
+  const [viewMode, setViewMode] = useState('daily'); // 'daily', 'weekly', 'monthly'
   const [selectedStore, setSelectedStore] = useState("all");
   const [startDate, setStartDate] = useState(format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -254,6 +257,71 @@ export default function ControlloConsumi() {
 
   const datesSorted = Object.keys(datiGiornalieriPerProdotto).sort().reverse();
 
+  // Calcola consumi teorici da ProdottiVenduti
+  const consumiTeoriciPerGiorno = {};
+  filteredVendite.forEach(vendita => {
+    const ricetta = ricette.find(r => r.nome_prodotto === vendita.flavor);
+    if (!ricetta || !ricetta.ingredienti) return;
+
+    const qty = vendita.total_pizzas_sold || 0;
+    const date = vendita.data_vendita;
+
+    if (!consumiTeoriciPerGiorno[date]) {
+      consumiTeoriciPerGiorno[date] = {};
+    }
+
+    ricetta.ingredienti.forEach(ing => {
+      const key = ing.materia_prima_id || ing.nome_prodotto;
+      if (!consumiTeoriciPerGiorno[date][key]) {
+        consumiTeoriciPerGiorno[date][key] = {
+          nome: ing.nome_prodotto,
+          quantita: 0,
+          unita_misura: ing.unita_misura
+        };
+      }
+      consumiTeoriciPerGiorno[date][key].quantita += (ing.quantita * qty);
+    });
+  });
+
+  // Aggrega per settimana o mese
+  const aggregateData = (data, mode) => {
+    if (mode === 'daily') return data;
+
+    const aggregated = {};
+    Object.keys(data).forEach(date => {
+      const d = parseISO(date);
+      let key;
+      
+      if (mode === 'weekly') {
+        const weekStart = startOfDay(d);
+        weekStart.setDate(d.getDate() - d.getDay());
+        key = format(weekStart, 'yyyy-MM-dd');
+      } else if (mode === 'monthly') {
+        key = format(d, 'yyyy-MM');
+      }
+
+      if (!aggregated[key]) {
+        aggregated[key] = {};
+      }
+
+      Object.keys(data[date]).forEach(prodId => {
+        if (!aggregated[key][prodId]) {
+          aggregated[key][prodId] = {
+            nome: data[date][prodId].nome,
+            quantita: 0,
+            unita_misura: data[date][prodId].unita_misura
+          };
+        }
+        aggregated[key][prodId].quantita += data[date][prodId].quantita;
+      });
+    });
+
+    return aggregated;
+  };
+
+  const consumiAggregati = aggregateData(consumiTeoriciPerGiorno, viewMode);
+  const datesConsumiSorted = Object.keys(consumiAggregati).sort().reverse();
+
   // Calcola statistiche aggregate
   const stats = {
     giorniAnalizzati: datesSorted.length,
@@ -283,6 +351,32 @@ export default function ControlloConsumi() {
           </h1>
           <p className="text-slate-500 mt-1">Confronto tra consumi teorici ed effettivi</p>
         </div>
+
+        {/* Tabs */}
+        <NeumorphicCard className="p-2">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab('confronto')}
+              className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all ${
+                activeTab === 'confronto'
+                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                  : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              Confronto Consumi
+            </button>
+            <button
+              onClick={() => setActiveTab('consumi_teorici')}
+              className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all ${
+                activeTab === 'consumi_teorici'
+                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                  : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              Consumi Teorici
+            </button>
+          </div>
+        </NeumorphicCard>
 
         {/* Filtri */}
         <NeumorphicCard className="p-6">
@@ -333,8 +427,33 @@ export default function ControlloConsumi() {
           </div>
         </NeumorphicCard>
 
+        {/* View Mode Selector (solo per Consumi Teorici) */}
+        {activeTab === 'consumi_teorici' && (
+          <NeumorphicCard className="p-4">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-slate-700">Vista:</span>
+              <div className="flex gap-2">
+                {['daily', 'weekly', 'monthly'].map(mode => (
+                  <button
+                    key={mode}
+                    onClick={() => setViewMode(mode)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      viewMode === mode
+                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                        : 'neumorphic-flat text-slate-600'
+                    }`}
+                  >
+                    {mode === 'daily' ? 'Giornaliera' : mode === 'weekly' ? 'Settimanale' : 'Mensile'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </NeumorphicCard>
+        )}
+
         {/* Statistiche */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {activeTab === 'confronto' && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <NeumorphicCard className="p-6">
             <div className="flex items-center gap-3">
               <div className="neumorphic-flat p-3 rounded-xl">
@@ -383,9 +502,11 @@ export default function ControlloConsumi() {
             </div>
           </NeumorphicCard>
         </div>
+        )}
 
         {/* Tabella dati giornalieri */}
-        <NeumorphicCard className="p-6">
+        {activeTab === 'confronto' && (
+          <NeumorphicCard className="p-6">
           <h2 className="text-xl font-bold text-slate-700 mb-4">Dettaglio Giornaliero per Prodotto</h2>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -438,6 +559,63 @@ export default function ControlloConsumi() {
             </div>
           )}
         </NeumorphicCard>
+        )}
+
+        {/* Tabella Consumi Teorici */}
+        {activeTab === 'consumi_teorici' && (
+          <NeumorphicCard className="p-6">
+            <h2 className="text-xl font-bold text-slate-700 mb-4">
+              Consumi Teorici per {viewMode === 'daily' ? 'Giorno' : viewMode === 'weekly' ? 'Settimana' : 'Mese'}
+            </h2>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b-2 border-slate-300">
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">
+                      {viewMode === 'daily' ? 'Data' : viewMode === 'weekly' ? 'Settimana' : 'Mese'}
+                    </th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Materia Prima</th>
+                    <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Quantità Consumata</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">UM</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {datesConsumiSorted.map(date => {
+                    const prodotti = consumiAggregati[date] || {};
+                    
+                    return Object.keys(prodotti).map(prodId => {
+                      const prod = prodotti[prodId];
+
+                      return (
+                        <tr key={`${date}-${prodId}`} className="border-b border-slate-100 hover:bg-slate-50">
+                          <td className="py-3 px-4 text-sm text-slate-600">
+                            {viewMode === 'daily' 
+                              ? format(parseISO(date), 'dd/MM/yyyy')
+                              : viewMode === 'weekly'
+                              ? `${format(parseISO(date), 'dd/MM/yyyy')}`
+                              : format(parseISO(date + '-01'), 'MMMM yyyy', { locale: it })
+                            }
+                          </td>
+                          <td className="py-3 px-4 text-sm text-slate-700 font-medium">{prod.nome}</td>
+                          <td className="py-3 px-4 text-sm text-blue-600 text-right font-bold">
+                            {prod.quantita.toFixed(2)}
+                          </td>
+                          <td className="py-3 px-4 text-sm text-slate-500">{prod.unita_misura}</td>
+                        </tr>
+                      );
+                    });
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {datesConsumiSorted.length === 0 && (
+              <div className="text-center py-8 text-slate-500">
+                Nessun dato disponibile per il periodo selezionato
+              </div>
+            )}
+          </NeumorphicCard>
+        )}
 
         {/* Modal Impostazioni */}
         {showSettings && (
