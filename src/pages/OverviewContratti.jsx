@@ -115,7 +115,8 @@ export default function OverviewContratti() {
         durata_contratto: dataFine ? 'Determinato' : 'Indeterminato',
         ruoli: (currentContract.ruoli_dipendente || []).join(', ') || currentContract.function_name || 'N/A',
         tenure_mesi: mesiTenure,
-        tutti_contratti: sortedContracts
+        tutti_contratti: sortedContracts,
+        ore_settimanali: userData?.ore_settimanali ?? currentContract.ore_settimanali ?? 0
       };
     }).sort((a, b) => {
       let aVal = a[sortField];
