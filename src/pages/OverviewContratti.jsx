@@ -70,10 +70,31 @@ export default function OverviewContratti() {
 
       const currentContract = sortedContracts[0];
       const dataInizio = new Date(currentContract.data_inizio_contratto);
-      const dataFine = new Date(dataInizio);
-      dataFine.setMonth(dataFine.getMonth() + parseInt(currentContract.durata_contratto_mesi || 0));
+      
+      // Get user data to check for contract end date
+      const userData = users.find(u => u.id === userId);
+      let dataFine;
+      let durataMesi = 0;
+      
+      if (userData?.data_fine_contratto) {
+        // Use explicit end date from User entity
+        dataFine = new Date(userData.data_fine_contratto);
+      } else if (userData?.durata_contratto_mesi && userData.durata_contratto_mesi > 0) {
+        // Calculate from months in User entity
+        durataMesi = userData.durata_contratto_mesi;
+        dataFine = new Date(dataInizio);
+        dataFine.setMonth(dataFine.getMonth() + parseInt(durataMesi));
+      } else if (currentContract.durata_contratto_mesi && currentContract.durata_contratto_mesi > 0) {
+        // Fallback to contract data
+        durataMesi = currentContract.durata_contratto_mesi;
+        dataFine = new Date(dataInizio);
+        dataFine.setMonth(dataFine.getMonth() + parseInt(durataMesi));
+      } else {
+        // Indeterminato
+        dataFine = null;
+      }
 
-      const giorniRimanenti = Math.ceil((dataFine - oggi) / (1000 * 60 * 60 * 24));
+      const giorniRimanenti = dataFine ? Math.ceil((dataFine - oggi) / (1000 * 60 * 60 * 24)) : null;
 
       // Calculate tenure from first contract
       const primoContratto = userContracts.sort((a, b) => 
@@ -91,7 +112,7 @@ export default function OverviewContratti() {
                              currentContract.employee_group === 'PT' ? 'Part Time' : 
                              currentContract.employee_group === 'CM' ? 'Contratto Misto' : 
                              currentContract.employee_group || 'N/A',
-        durata_contratto: currentContract.durata_contratto_mesi && currentContract.durata_contratto_mesi > 0 ? 'Determinato' : 'Indeterminato',
+        durata_contratto: dataFine ? 'Determinato' : 'Indeterminato',
         ruoli: (currentContract.ruoli_dipendente || []).join(', ') || currentContract.function_name || 'N/A',
         tenure_mesi: mesiTenure,
         tutti_contratti: sortedContracts
