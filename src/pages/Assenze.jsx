@@ -328,7 +328,7 @@ export default function Assenze() {
   const ferieInAttesa = richiesteFerie.filter(r => r.stato === 'in_attesa').length;
   const malattiaInAttesa = richiesteMalattia.filter(r => 
     (r.stato === 'non_certificata' || r.stato === 'in_attesa_verifica') && 
-    r.turni_coinvolti && 
+    Array.isArray(r.turni_coinvolti) &&
     r.turni_coinvolti.length > 0
   ).length;
   const scambiInAttesa = turniConScambio.filter(t => t.richiesta_scambio?.stato === 'accepted').length;
