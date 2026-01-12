@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { DollarSign, TrendingUp, Filter, Calendar, X, Settings, Eye, EyeOff, Save, CreditCard, Wallet, ChevronUp, ChevronDown } from 'lucide-react';
+import { DollarSign, TrendingUp, Filter, Calendar, X, Settings, Eye, EyeOff, Save, CreditCard, Wallet, ChevronUp, ChevronDown, BarChart3 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, subDays, isAfter, isBefore, parseISO, isValid, addDays, subYears, eachDayOfInterval } from 'date-fns';
@@ -35,6 +35,8 @@ export default function Financials() {
   const [weeklySelectedPayments, setWeeklySelectedPayments] = useState([]);
   const [showWeeklySettings, setShowWeeklySettings] = useState(false);
   const [historicalAvgDays, setHistoricalAvgDays] = useState(90);
+  const [dailyMetric, setDailyMetric] = useState('revenue');
+  const [dailyDays, setDailyDays] = useState(90);
   
   // Confronto Mensile State
   const [periodo1Store, setPeriodo1Store] = useState('all');
@@ -718,15 +720,16 @@ export default function Financials() {
       // Apply filters for weekly aggregation
       let itemRevenue = 0;
       let itemOrders = 0;
-      let itemStoreRevenue = 0;
-      let itemTotalChannelRevenue = 0;
+      
+      // Always calculate % Store based on UNFILTERED Store and Delivery channels
+      const itemStoreRevenue = item.sourceType_store || 0;
+      const itemDeliveryRevenue = item.sourceType_delivery || 0;
+      const itemTotalChannelRevenue = itemStoreRevenue + itemDeliveryRevenue;
 
       // Channel filter
       if (weeklySelectedChannels.length === 0) {
         itemRevenue = item.total_revenue || 0;
         itemOrders = item.total_orders || 0;
-        itemStoreRevenue = item.sourceType_store || 0;
-        itemTotalChannelRevenue = (item.sourceType_store || 0) + (item.sourceType_delivery || 0);
       } else {
         const channels = [
           { key: 'delivery', revenue: item.sourceType_delivery || 0, orders: item.sourceType_delivery_orders || 0 },
@@ -740,13 +743,11 @@ export default function Financials() {
           if (weeklySelectedChannels.includes(mappedKey)) {
             itemRevenue += ch.revenue;
             itemOrders += ch.orders;
-            if (ch.key === 'store') itemStoreRevenue += ch.revenue;
-            if (ch.key === 'store' || ch.key === 'delivery') itemTotalChannelRevenue += ch.revenue;
           }
         });
       }
 
-      // App filter
+      // App filter (overrides channel filter if set)
       if (weeklySelectedApps.length > 0) {
         itemRevenue = 0;
         itemOrders = 0;
@@ -769,7 +770,7 @@ export default function Financials() {
         });
       }
 
-      // Payment method filter
+      // Payment method filter (overrides other filters if set)
       if (weeklySelectedPayments.length > 0) {
         itemRevenue = 0;
         itemOrders = 0;
@@ -828,8 +829,8 @@ export default function Financials() {
       .sort((a, b) => b.weekStart.localeCompare(a.weekStart));
   }, [iPraticoData, selectedStore, weeklySelectedChannels, weeklySelectedApps, weeklySelectedPayments, channelMapping, appMapping]);
 
-  // Historical averages for weekly view
-  const historicalAverages = useMemo(() => {
+  // Historical averages for weekly view (by day of week)
+  const historicalAveragesByDayOfWeek = useMemo(() => {
     const cutoffDate = subDays(new Date(), historicalAvgDays);
     
     let filtered = iPraticoData.filter(item => {
@@ -843,20 +844,122 @@ export default function Financials() {
       filtered = filtered.filter(item => item.store_id === selectedStore);
     }
 
-    const totalRevenue = filtered.reduce((sum, item) => sum + (item.total_revenue || 0), 0);
-    const totalOrders = filtered.reduce((sum, item) => sum + (item.total_orders || 0), 0);
-    const totalStoreRevenue = filtered.reduce((sum, item) => sum + (item.sourceType_store || 0), 0);
-    const totalChannelRevenue = filtered.reduce((sum, item) => sum + ((item.sourceType_store || 0) + (item.sourceType_delivery || 0)), 0);
+    // Group by day of week (0 = Sunday, 1 = Monday, etc.)
+    const dayOfWeekData = {};
+    
+    filtered.forEach(item => {
+      const itemDate = safeParseDate(item.order_date);
+      if (!itemDate) return;
+      
+      const dayOfWeek = itemDate.getDay();
+      
+      if (!dayOfWeekData[dayOfWeek]) {
+        dayOfWeekData[dayOfWeek] = {
+          revenue: [],
+          orders: [],
+          storeRevenue: [],
+          totalChannelRevenue: []
+        };
+      }
+      
+      dayOfWeekData[dayOfWeek].revenue.push(item.total_revenue || 0);
+      dayOfWeekData[dayOfWeek].orders.push(item.total_orders || 0);
+      dayOfWeekData[dayOfWeek].storeRevenue.push(item.sourceType_store || 0);
+      dayOfWeekData[dayOfWeek].totalChannelRevenue.push((item.sourceType_store || 0) + (item.sourceType_delivery || 0));
+    });
 
-    const uniqueDays = new Set(filtered.map(item => item.order_date)).size;
+    // Calculate averages for each day of week
+    const averages = {};
+    Object.entries(dayOfWeekData).forEach(([dayOfWeek, data]) => {
+      const count = data.revenue.length;
+      const totalRevenue = data.revenue.reduce((sum, v) => sum + v, 0);
+      const totalOrders = data.orders.reduce((sum, v) => sum + v, 0);
+      const totalStoreRevenue = data.storeRevenue.reduce((sum, v) => sum + v, 0);
+      const totalChannelRevenue = data.totalChannelRevenue.reduce((sum, v) => sum + v, 0);
+      
+      averages[dayOfWeek] = {
+        revenue: count > 0 ? totalRevenue / count : 0,
+        orders: count > 0 ? totalOrders / count : 0,
+        avgOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,
+        percentStore: totalChannelRevenue > 0 ? (totalStoreRevenue / totalChannelRevenue) * 100 : 0
+      };
+    });
 
-    return {
-      revenue: uniqueDays > 0 ? totalRevenue / uniqueDays : 0,
-      orders: uniqueDays > 0 ? totalOrders / uniqueDays : 0,
-      avgOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,
-      percentStore: totalChannelRevenue > 0 ? (totalStoreRevenue / totalChannelRevenue) * 100 : 0
-    };
+    return averages;
   }, [iPraticoData, selectedStore, historicalAvgDays]);
+
+  // Daily chart data (day of week analysis)
+  const dailyChartData = useMemo(() => {
+    const cutoffDate = subDays(new Date(), dailyDays);
+    
+    let filtered = iPraticoData.filter(item => {
+      if (!item.order_date) return false;
+      const itemDate = safeParseDate(item.order_date);
+      if (!itemDate) return false;
+      return itemDate >= cutoffDate;
+    });
+
+    if (selectedStore !== 'all') {
+      filtered = filtered.filter(item => item.store_id === selectedStore);
+    }
+
+    const dayOfWeekData = {};
+    
+    filtered.forEach(item => {
+      const itemDate = safeParseDate(item.order_date);
+      if (!itemDate) return;
+      
+      const dayOfWeek = itemDate.getDay();
+      
+      if (!dayOfWeekData[dayOfWeek]) {
+        dayOfWeekData[dayOfWeek] = {
+          revenue: [],
+          orders: [],
+          storeRevenue: [],
+          totalChannelRevenue: []
+        };
+      }
+      
+      dayOfWeekData[dayOfWeek].revenue.push(item.total_revenue || 0);
+      dayOfWeekData[dayOfWeek].orders.push(item.total_orders || 0);
+      dayOfWeekData[dayOfWeek].storeRevenue.push(item.sourceType_store || 0);
+      dayOfWeekData[dayOfWeek].totalChannelRevenue.push((item.sourceType_store || 0) + (item.sourceType_delivery || 0));
+    });
+
+    const dayNames = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+    
+    return [1, 2, 3, 4, 5, 6, 0].map(dayOfWeek => {
+      const data = dayOfWeekData[dayOfWeek];
+      if (!data) {
+        return {
+          day: dayNames[dayOfWeek],
+          value: 0
+        };
+      }
+      
+      const count = data.revenue.length;
+      const totalRevenue = data.revenue.reduce((sum, v) => sum + v, 0);
+      const totalOrders = data.orders.reduce((sum, v) => sum + v, 0);
+      const totalStoreRevenue = data.storeRevenue.reduce((sum, v) => sum + v, 0);
+      const totalChannelRevenue = data.totalChannelRevenue.reduce((sum, v) => sum + v, 0);
+      
+      let value = 0;
+      if (dailyMetric === 'revenue') {
+        value = count > 0 ? totalRevenue / count : 0;
+      } else if (dailyMetric === 'avgOrderValue') {
+        value = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+      } else if (dailyMetric === 'orders') {
+        value = count > 0 ? totalOrders / count : 0;
+      } else if (dailyMetric === 'percentStore') {
+        value = totalChannelRevenue > 0 ? (totalStoreRevenue / totalChannelRevenue) * 100 : 0;
+      }
+      
+      return {
+        day: dayNames[dayOfWeek],
+        value: parseFloat(value.toFixed(2))
+      };
+    });
+  }, [iPraticoData, selectedStore, dailyDays, dailyMetric]);
 
   // Calculate min/max for color scale
   const weeklyStats = useMemo(() => {
@@ -1080,6 +1183,17 @@ export default function Financials() {
           >
             <Calendar className="w-4 h-4" />
             Weekly
+          </button>
+          <button
+            onClick={() => setActiveTab('daily')}
+            className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
+              activeTab === 'daily'
+                ? 'neumorphic-pressed bg-blue-50 text-blue-700'
+                : 'neumorphic-flat text-slate-600 hover:text-slate-800'
+            }`}
+          >
+            <BarChart3 className="w-4 h-4" />
+            Daily
           </button>
         </div>
 
@@ -2536,16 +2650,21 @@ export default function Financials() {
                           const avgOrderValue = day.orders > 0 ? day.revenue / day.orders : 0;
                           const percentStore = day.totalChannelRevenue > 0 ? (day.storeRevenue / day.totalChannelRevenue) * 100 : 0;
                           
-                          const revenueDiff = day.revenue - historicalAverages.revenue;
-                          const revenueDiffPercent = historicalAverages.revenue > 0 ? (revenueDiff / historicalAverages.revenue) * 100 : 0;
+                          // Get historical average for this specific day of week
+                          const dayDate = safeParseDate(day.date);
+                          const dayOfWeek = dayDate ? dayDate.getDay() : 0;
+                          const dayAvg = historicalAveragesByDayOfWeek[dayOfWeek] || { revenue: 0, orders: 0, avgOrderValue: 0, percentStore: 0 };
                           
-                          const avgDiff = avgOrderValue - historicalAverages.avgOrderValue;
-                          const avgDiffPercent = historicalAverages.avgOrderValue > 0 ? (avgDiff / historicalAverages.avgOrderValue) * 100 : 0;
+                          const revenueDiff = day.revenue - dayAvg.revenue;
+                          const revenueDiffPercent = dayAvg.revenue > 0 ? (revenueDiff / dayAvg.revenue) * 100 : 0;
                           
-                          const ordersDiff = day.orders - historicalAverages.orders;
-                          const ordersDiffPercent = historicalAverages.orders > 0 ? (ordersDiff / historicalAverages.orders) * 100 : 0;
+                          const avgDiff = avgOrderValue - dayAvg.avgOrderValue;
+                          const avgDiffPercent = dayAvg.avgOrderValue > 0 ? (avgDiff / dayAvg.avgOrderValue) * 100 : 0;
                           
-                          const percentStoreDiff = percentStore - historicalAverages.percentStore;
+                          const ordersDiff = day.orders - dayAvg.orders;
+                          const ordersDiffPercent = dayAvg.orders > 0 ? (ordersDiff / dayAvg.orders) * 100 : 0;
+                          
+                          const percentStoreDiff = percentStore - dayAvg.percentStore;
                           
                           return (
                             <tr key={day.date} className="border-b border-slate-200">
@@ -2600,31 +2719,128 @@ export default function Financials() {
                           </td>
                           <td className="p-3"></td>
                         </tr>
-                        <tr className="bg-slate-50">
-                          <td className="p-3 font-medium text-slate-700 text-sm">Media Storica ({historicalAvgDays}gg)</td>
-                          <td className="p-3 text-right font-medium text-slate-600 text-sm">
-                            €{formatCurrency(historicalAverages.revenue)}
-                          </td>
-                          <td className="p-3"></td>
-                          <td className="p-3 text-right font-medium text-slate-600 text-sm">
-                            €{formatCurrency(historicalAverages.avgOrderValue)}
-                          </td>
-                          <td className="p-3"></td>
-                          <td className="p-3 text-right font-medium text-slate-600 text-sm">
-                            {historicalAverages.orders.toFixed(0)}
-                          </td>
-                          <td className="p-3"></td>
-                          <td className="p-3 text-right font-medium text-slate-600 text-sm">
-                            {historicalAverages.percentStore.toFixed(1)}%
-                          </td>
-                          <td className="p-3"></td>
-                        </tr>
+
                       </tfoot>
                     </table>
                   </div>
                 </NeumorphicCard>
               );
             })()}
+          </>
+        )}
+
+        {/* Daily Tab */}
+        {activeTab === 'daily' && (
+          <>
+            <NeumorphicCard className="p-4 lg:p-6">
+              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 gap-4">
+                <h2 className="text-lg font-bold text-slate-800">Analisi per Giorno della Settimana</h2>
+                <div className="flex flex-wrap gap-3">
+                  <div>
+                    <label className="text-sm text-slate-600 mb-2 block">Negozio</label>
+                    <select
+                      value={selectedStore}
+                      onChange={(e) => setSelectedStore(e.target.value)}
+                      className="neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none text-sm"
+                    >
+                      <option value="all">Tutti i Locali</option>
+                      {stores.map(store => (
+                        <option key={store.id} value={store.id}>{store.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm text-slate-600 mb-2 block">Metrica</label>
+                    <select
+                      value={dailyMetric}
+                      onChange={(e) => setDailyMetric(e.target.value)}
+                      className="neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none text-sm"
+                    >
+                      <option value="revenue">Revenue</option>
+                      <option value="avgOrderValue">Scontrino Medio</option>
+                      <option value="orders">Ordini</option>
+                      <option value="percentStore">% Store</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm text-slate-600 mb-2 block">Giorni</label>
+                    <select
+                      value={dailyDays}
+                      onChange={(e) => setDailyDays(parseInt(e.target.value))}
+                      className="neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none text-sm"
+                    >
+                      <option value="30">30 giorni</option>
+                      <option value="60">60 giorni</option>
+                      <option value="90">90 giorni</option>
+                      <option value="180">180 giorni</option>
+                      <option value="365">365 giorni</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="w-full overflow-x-auto">
+                <div style={{ minWidth: '500px' }}>
+                  <ResponsiveContainer width="100%" height={400}>
+                    <BarChart data={dailyChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                      <XAxis 
+                        dataKey="day" 
+                        stroke="#64748b"
+                        tick={{ fontSize: 12 }}
+                      />
+                      <YAxis 
+                        stroke="#64748b"
+                        tick={{ fontSize: 11 }}
+                        width={60}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          background: 'rgba(248, 250, 252, 0.95)', 
+                          border: 'none',
+                          borderRadius: '12px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                          fontSize: '11px'
+                        }}
+                        formatter={(value) => {
+                          if (dailyMetric === 'percentStore') return `${value}%`;
+                          if (dailyMetric === 'revenue' || dailyMetric === 'avgOrderValue') return `€${formatCurrency(value)}`;
+                          return value.toFixed(0);
+                        }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: '11px' }} />
+                      <Bar 
+                        dataKey="value" 
+                        fill="url(#dailyGradient)" 
+                        name={
+                          dailyMetric === 'revenue' ? 'Revenue Media' :
+                          dailyMetric === 'avgOrderValue' ? 'Scontrino Medio' :
+                          dailyMetric === 'orders' ? 'Ordini Medi' :
+                          '% Store Media'
+                        }
+                        radius={[8, 8, 0, 0]} 
+                      />
+                      <defs>
+                        <linearGradient id="dailyGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#3b82f6" />
+                          <stop offset="100%" stopColor="#2563eb" />
+                        </linearGradient>
+                      </defs>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="mt-4 p-3 bg-slate-50 rounded-lg">
+                <p className="text-xs text-slate-600">
+                  📊 Questo grafico mostra la media di <strong>
+                    {dailyMetric === 'revenue' ? 'Revenue' :
+                     dailyMetric === 'avgOrderValue' ? 'Scontrino Medio' :
+                     dailyMetric === 'orders' ? 'Ordini' : '% Store'}
+                  </strong> per ogni giorno della settimana, calcolata sugli ultimi <strong>{dailyDays} giorni</strong>.
+                </p>
+              </div>
+            </NeumorphicCard>
           </>
         )}
 
