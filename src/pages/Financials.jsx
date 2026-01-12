@@ -1344,13 +1344,25 @@ export default function Financials() {
                     <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Locale</th>
                     <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Revenue</th>
                     {processedData.comparisonData && (
-                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Rev Confronto</th>
-                    )}
-                    {processedData.comparisonData && (
-                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                      <>
+                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Rev Conf</th>
+                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                      </>
                     )}
                     <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ordini</th>
+                    {processedData.comparisonData && (
+                      <>
+                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ord Conf</th>
+                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                      </>
+                    )}
                     <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">€ Medio</th>
+                    {processedData.comparisonData && (
+                      <>
+                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Med Conf</th>
+                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                      </>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
@@ -1358,25 +1370,53 @@ export default function Financials() {
                     const compareStore = processedData.comparisonData?.storeBreakdown?.find(s => s.name === store.name);
                     const revDiff = compareStore ? store.revenue - compareStore.revenue : 0;
                     const revDiffPercent = compareStore && compareStore.revenue > 0 ? (revDiff / compareStore.revenue) * 100 : 0;
+                    const ordDiff = compareStore ? store.orders - compareStore.orders : 0;
+                    const ordDiffPercent = compareStore && compareStore.orders > 0 ? (ordDiff / compareStore.orders) * 100 : 0;
+                    const avgDiff = compareStore ? store.avgValue - compareStore.avgValue : 0;
+                    const avgDiffPercent = compareStore && compareStore.avgValue > 0 ? (avgDiff / compareStore.avgValue) * 100 : 0;
                     
                     return (
                       <tr key={index} className="border-b border-slate-200">
                         <td className="p-2 lg:p-3 text-slate-700 font-medium text-sm">{store.name}</td>
                         <td className="p-2 lg:p-3 text-right text-slate-700 text-sm font-bold">€{store.revenue.toFixed(2)}</td>
                         {processedData.comparisonData && (
-                          <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
-                            €{compareStore ? compareStore.revenue.toFixed(2) : '0.00'}
-                          </td>
+                          <>
+                            <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
+                              €{compareStore ? compareStore.revenue.toFixed(2) : '0.00'}
+                            </td>
+                            <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
+                              revDiff >= 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {revDiff >= 0 ? '+' : ''}{revDiffPercent.toFixed(1)}%
+                            </td>
+                          </>
                         )}
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm font-bold">{store.orders}</td>
                         {processedData.comparisonData && (
-                          <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
-                            revDiff >= 0 ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {revDiff >= 0 ? '+' : ''}{revDiffPercent.toFixed(1)}%
-                          </td>
+                          <>
+                            <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
+                              {compareStore ? compareStore.orders : 0}
+                            </td>
+                            <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
+                              ordDiff >= 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {ordDiff >= 0 ? '+' : ''}{ordDiffPercent.toFixed(1)}%
+                            </td>
+                          </>
                         )}
-                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">{store.orders}</td>
-                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">€{store.avgValue.toFixed(2)}</td>
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm font-bold">€{store.avgValue.toFixed(2)}</td>
+                        {processedData.comparisonData && (
+                          <>
+                            <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
+                              €{compareStore ? compareStore.avgValue.toFixed(2) : '0.00'}
+                            </td>
+                            <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
+                              avgDiff >= 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {avgDiff >= 0 ? '+' : ''}{avgDiffPercent.toFixed(1)}%
+                            </td>
+                          </>
+                        )}
                       </tr>
                     );
                   })}
@@ -1435,13 +1475,25 @@ export default function Financials() {
                     <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Canale</th>
                     <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Revenue</th>
                     {processedData.comparisonData && (
-                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Rev Confronto</th>
-                    )}
-                    {processedData.comparisonData && (
-                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                      <>
+                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Rev Conf</th>
+                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                      </>
                     )}
                     <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ordini</th>
-                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">%</th>
+                    {processedData.comparisonData && (
+                      <>
+                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ord Conf</th>
+                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                      </>
+                    )}
+                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">€ Medio</th>
+                    {processedData.comparisonData && (
+                      <>
+                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Med Conf</th>
+                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                      </>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
@@ -1449,27 +1501,55 @@ export default function Financials() {
                     const compareChannel = processedData.comparisonData?.channelBreakdown?.find(c => c.name === channel.name);
                     const revDiff = compareChannel ? channel.value - compareChannel.value : 0;
                     const revDiffPercent = compareChannel && compareChannel.value > 0 ? (revDiff / compareChannel.value) * 100 : 0;
+                    const ordDiff = compareChannel ? channel.orders - compareChannel.orders : 0;
+                    const ordDiffPercent = compareChannel && compareChannel.orders > 0 ? (ordDiff / compareChannel.orders) * 100 : 0;
+                    const channelAvg = channel.orders > 0 ? channel.value / channel.orders : 0;
+                    const compareAvg = compareChannel && compareChannel.orders > 0 ? compareChannel.value / compareChannel.orders : 0;
+                    const avgDiff = channelAvg - compareAvg;
+                    const avgDiffPercent = compareAvg > 0 ? (avgDiff / compareAvg) * 100 : 0;
                     
                     return (
                       <tr key={index} className="border-b border-slate-200">
                         <td className="p-2 lg:p-3 text-slate-700 font-medium text-sm">{channel.name}</td>
                         <td className="p-2 lg:p-3 text-right text-slate-700 text-sm font-bold">€{channel.value.toFixed(2)}</td>
                         {processedData.comparisonData && (
-                          <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
-                            €{compareChannel ? compareChannel.value.toFixed(2) : '0.00'}
-                          </td>
+                          <>
+                            <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
+                              €{compareChannel ? compareChannel.value.toFixed(2) : '0.00'}
+                            </td>
+                            <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
+                              revDiff >= 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {revDiff >= 0 ? '+' : ''}{revDiffPercent.toFixed(1)}%
+                            </td>
+                          </>
                         )}
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm font-bold">{channel.orders}</td>
                         {processedData.comparisonData && (
-                          <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
-                            revDiff >= 0 ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {revDiff >= 0 ? '+' : ''}{revDiffPercent.toFixed(1)}%
-                          </td>
+                          <>
+                            <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
+                              {compareChannel ? compareChannel.orders : 0}
+                            </td>
+                            <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
+                              ordDiff >= 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {ordDiff >= 0 ? '+' : ''}{ordDiffPercent.toFixed(1)}%
+                            </td>
+                          </>
                         )}
-                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">{channel.orders}</td>
-                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
-                          {processedData.totalRevenue > 0 ? ((channel.value / processedData.totalRevenue) * 100).toFixed(1) : 0}%
-                        </td>
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm font-bold">€{channelAvg.toFixed(2)}</td>
+                        {processedData.comparisonData && (
+                          <>
+                            <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
+                              €{compareChannel ? compareAvg.toFixed(2) : '0.00'}
+                            </td>
+                            <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
+                              avgDiff >= 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {avgDiff >= 0 ? '+' : ''}{avgDiffPercent.toFixed(1)}%
+                            </td>
+                          </>
+                        )}
                       </tr>
                     );
                   })}
@@ -1530,14 +1610,25 @@ export default function Financials() {
                     <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">App</th>
                     <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Revenue</th>
                     {processedData.comparisonData && (
-                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Rev Confronto</th>
-                    )}
-                    {processedData.comparisonData && (
-                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                      <>
+                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Rev Conf</th>
+                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                      </>
                     )}
                     <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ordini</th>
+                    {processedData.comparisonData && (
+                      <>
+                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ord Conf</th>
+                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                      </>
+                    )}
                     <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">€ Medio</th>
-                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">%</th>
+                    {processedData.comparisonData && (
+                      <>
+                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Med Conf</th>
+                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                      </>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
@@ -1545,6 +1636,12 @@ export default function Financials() {
                     const compareApp = processedData.comparisonData?.deliveryAppBreakdown?.find(a => a.name === app.name);
                     const revDiff = compareApp ? app.value - compareApp.value : 0;
                     const revDiffPercent = compareApp && compareApp.value > 0 ? (revDiff / compareApp.value) * 100 : 0;
+                    const ordDiff = compareApp ? app.orders - compareApp.orders : 0;
+                    const ordDiffPercent = compareApp && compareApp.orders > 0 ? (ordDiff / compareApp.orders) * 100 : 0;
+                    const appAvg = app.orders > 0 ? app.value / app.orders : 0;
+                    const compareAvg = compareApp && compareApp.orders > 0 ? compareApp.value / compareApp.orders : 0;
+                    const avgDiff = appAvg - compareAvg;
+                    const avgDiffPercent = compareAvg > 0 ? (avgDiff / compareAvg) * 100 : 0;
                     
                     return (
                       <tr key={index} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
@@ -1561,26 +1658,47 @@ export default function Financials() {
                           €{app.value.toFixed(2)}
                         </td>
                         {processedData.comparisonData && (
-                          <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
-                            €{compareApp ? compareApp.value.toFixed(2) : '0.00'}
-                          </td>
+                          <>
+                            <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
+                              €{compareApp ? compareApp.value.toFixed(2) : '0.00'}
+                            </td>
+                            <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
+                              revDiff >= 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {revDiff >= 0 ? '+' : ''}{revDiffPercent.toFixed(1)}%
+                            </td>
+                          </>
                         )}
-                        {processedData.comparisonData && (
-                          <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
-                            revDiff >= 0 ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {revDiff >= 0 ? '+' : ''}{revDiffPercent.toFixed(1)}%
-                          </td>
-                        )}
-                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
+                        <td className="p-2 lg:p-3 text-right text-slate-700 font-bold text-sm">
                           {app.orders}
                         </td>
-                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
-                          €{(app.orders > 0 ? (app.value / app.orders) : 0).toFixed(2)}
+                        {processedData.comparisonData && (
+                          <>
+                            <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
+                              {compareApp ? compareApp.orders : 0}
+                            </td>
+                            <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
+                              ordDiff >= 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {ordDiff >= 0 ? '+' : ''}{ordDiffPercent.toFixed(1)}%
+                            </td>
+                          </>
+                        )}
+                        <td className="p-2 lg:p-3 text-right text-slate-700 font-bold text-sm">
+                          €{appAvg.toFixed(2)}
                         </td>
-                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
-                          {processedData.totalRevenue > 0 ? ((app.value / processedData.totalRevenue) * 100).toFixed(1) : 0}%
-                        </td>
+                        {processedData.comparisonData && (
+                          <>
+                            <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
+                              €{compareApp ? compareAvg.toFixed(2) : '0.00'}
+                            </td>
+                            <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
+                              avgDiff >= 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {avgDiff >= 0 ? '+' : ''}{avgDiffPercent.toFixed(1)}%
+                            </td>
+                          </>
+                        )}
                       </tr>
                     );
                   })}
@@ -1805,13 +1923,25 @@ export default function Financials() {
                       <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Metodo</th>
                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Revenue</th>
                       {paymentMethodsData.comparisonBreakdown && (
-                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Rev Confronto</th>
-                      )}
-                      {paymentMethodsData.comparisonBreakdown && (
-                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                        <>
+                          <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Rev Conf</th>
+                          <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                        </>
                       )}
                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ordini</th>
+                      {paymentMethodsData.comparisonBreakdown && (
+                        <>
+                          <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ord Conf</th>
+                          <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                        </>
+                      )}
                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">€ Medio</th>
+                      {paymentMethodsData.comparisonBreakdown && (
+                        <>
+                          <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Med Conf</th>
+                          <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                        </>
+                      )}
                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">% Revenue</th>
                     </tr>
                   </thead>
@@ -1820,6 +1950,10 @@ export default function Financials() {
                       const compareMethod = paymentMethodsData.comparisonBreakdown?.find(m => m.name === method.name);
                       const revDiff = compareMethod ? method.value - compareMethod.value : 0;
                       const revDiffPercent = compareMethod && compareMethod.value > 0 ? (revDiff / compareMethod.value) * 100 : 0;
+                      const ordDiff = compareMethod ? method.orders - compareMethod.orders : 0;
+                      const ordDiffPercent = compareMethod && compareMethod.orders > 0 ? (ordDiff / compareMethod.orders) * 100 : 0;
+                      const avgDiff = compareMethod ? method.avgValue - compareMethod.avgValue : 0;
+                      const avgDiffPercent = compareMethod && compareMethod.avgValue > 0 ? (avgDiff / compareMethod.avgValue) * 100 : 0;
                       
                       return (
                         <tr key={index} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
@@ -1836,23 +1970,47 @@ export default function Financials() {
                             €{method.value.toFixed(2)}
                           </td>
                           {paymentMethodsData.comparisonBreakdown && (
-                            <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
-                              €{compareMethod ? compareMethod.value.toFixed(2) : '0.00'}
-                            </td>
+                            <>
+                              <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
+                                €{compareMethod ? compareMethod.value.toFixed(2) : '0.00'}
+                              </td>
+                              <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
+                                revDiff >= 0 ? 'text-green-600' : 'text-red-600'
+                              }`}>
+                                {revDiff >= 0 ? '+' : ''}{revDiffPercent.toFixed(1)}%
+                              </td>
+                            </>
                           )}
-                          {paymentMethodsData.comparisonBreakdown && (
-                            <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
-                              revDiff >= 0 ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              {revDiff >= 0 ? '+' : ''}{revDiffPercent.toFixed(1)}%
-                            </td>
-                          )}
-                          <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
+                          <td className="p-2 lg:p-3 text-right text-slate-700 font-bold text-sm">
                             {method.orders}
                           </td>
-                          <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
+                          {paymentMethodsData.comparisonBreakdown && (
+                            <>
+                              <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
+                                {compareMethod ? compareMethod.orders : 0}
+                              </td>
+                              <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
+                                ordDiff >= 0 ? 'text-green-600' : 'text-red-600'
+                              }`}>
+                                {ordDiff >= 0 ? '+' : ''}{ordDiffPercent.toFixed(1)}%
+                              </td>
+                            </>
+                          )}
+                          <td className="p-2 lg:p-3 text-right text-slate-700 font-bold text-sm">
                             €{method.avgValue.toFixed(2)}
                           </td>
+                          {paymentMethodsData.comparisonBreakdown && (
+                            <>
+                              <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
+                                €{compareMethod ? compareMethod.avgValue.toFixed(2) : '0.00'}
+                              </td>
+                              <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
+                                avgDiff >= 0 ? 'text-green-600' : 'text-red-600'
+                              }`}>
+                                {avgDiff >= 0 ? '+' : ''}{avgDiffPercent.toFixed(1)}%
+                              </td>
+                            </>
+                          )}
                           <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
                             {paymentMethodsData.totalRevenue > 0 
                               ? ((method.value / paymentMethodsData.totalRevenue) * 100).toFixed(1) 
