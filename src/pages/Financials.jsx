@@ -29,6 +29,7 @@ export default function Financials() {
   const [selectedApps, setSelectedApps] = useState([]);
   const [selectedPaymentMethods, setSelectedPaymentMethods] = useState([]);
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
+  const [selectedWeek, setSelectedWeek] = useState(null);
   
   // Confronto Mensile State
   const [periodo1Store, setPeriodo1Store] = useState('all');
@@ -676,6 +677,105 @@ export default function Financials() {
     return { breakdown, totalRevenue, totalOrders, comparisonBreakdown };
   }, [iPraticoData, selectedStore, dateRange, startDate, endDate, compareMode, compareStartDate, compareEndDate]);
 
+  // Weekly aggregation
+  const weeklyData = useMemo(() => {
+    let filtered = iPraticoData;
+    if (selectedStore !== 'all') {
+      filtered = filtered.filter(item => item.store_id === selectedStore);
+    }
+
+    const weeklyMap = {};
+
+    filtered.forEach(item => {
+      if (!item.order_date) return;
+      const date = safeParseDate(item.order_date);
+      if (!date) return;
+
+      const weekStart = new Date(date);
+      const dayOfWeek = weekStart.getDay();
+      const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      weekStart.setDate(weekStart.getDate() + diff);
+      weekStart.setHours(0, 0, 0, 0);
+
+      const weekKey = format(weekStart, 'yyyy-MM-dd');
+
+      if (!weeklyMap[weekKey]) {
+        weeklyMap[weekKey] = {
+          weekStart: weekKey,
+          revenue: 0,
+          orders: 0,
+          storeRevenue: 0,
+          totalChannelRevenue: 0,
+          days: {}
+        };
+      }
+
+      weeklyMap[weekKey].revenue += item.total_revenue || 0;
+      weeklyMap[weekKey].orders += item.total_orders || 0;
+      weeklyMap[weekKey].storeRevenue += item.sourceType_store || 0;
+      weeklyMap[weekKey].totalChannelRevenue += (item.sourceType_store || 0) + (item.sourceType_delivery || 0);
+
+      // Daily breakdown
+      const dayKey = item.order_date;
+      if (!weeklyMap[weekKey].days[dayKey]) {
+        weeklyMap[weekKey].days[dayKey] = {
+          date: dayKey,
+          revenue: 0,
+          orders: 0,
+          storeRevenue: 0,
+          totalChannelRevenue: 0
+        };
+      }
+      weeklyMap[weekKey].days[dayKey].revenue += item.total_revenue || 0;
+      weeklyMap[weekKey].days[dayKey].orders += item.total_orders || 0;
+      weeklyMap[weekKey].days[dayKey].storeRevenue += item.sourceType_store || 0;
+      weeklyMap[weekKey].days[dayKey].totalChannelRevenue += (item.sourceType_store || 0) + (item.sourceType_delivery || 0);
+    });
+
+    return Object.values(weeklyMap)
+      .map(week => ({
+        ...week,
+        avgOrderValue: week.orders > 0 ? week.revenue / week.orders : 0,
+        percentStore: week.totalChannelRevenue > 0 ? (week.storeRevenue / week.totalChannelRevenue) * 100 : 0,
+        dailyData: Object.values(week.days).sort((a, b) => a.date.localeCompare(b.date))
+      }))
+      .sort((a, b) => b.weekStart.localeCompare(a.weekStart));
+  }, [iPraticoData, selectedStore]);
+
+  // Calculate min/max for color scale
+  const weeklyStats = useMemo(() => {
+    if (weeklyData.length === 0) return null;
+    
+    return {
+      revenue: {
+        min: Math.min(...weeklyData.map(w => w.revenue)),
+        max: Math.max(...weeklyData.map(w => w.revenue))
+      },
+      avgOrderValue: {
+        min: Math.min(...weeklyData.map(w => w.avgOrderValue)),
+        max: Math.max(...weeklyData.map(w => w.avgOrderValue))
+      },
+      orders: {
+        min: Math.min(...weeklyData.map(w => w.orders)),
+        max: Math.max(...weeklyData.map(w => w.orders))
+      },
+      percentStore: {
+        min: Math.min(...weeklyData.map(w => w.percentStore)),
+        max: Math.max(...weeklyData.map(w => w.percentStore))
+      }
+    };
+  }, [weeklyData]);
+
+  const getColorForValue = (value, min, max, inverse = false) => {
+    if (min === max) return 'bg-slate-100';
+    const normalized = (value - min) / (max - min);
+    const intensity = inverse ? (1 - normalized) : normalized;
+    
+    if (intensity >= 0.7) return 'bg-green-100 text-green-800';
+    if (intensity >= 0.4) return 'bg-yellow-100 text-yellow-800';
+    return 'bg-red-100 text-red-800';
+  };
+
   const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4'];
 
   const clearCustomDates = () => {
@@ -854,7 +954,17 @@ export default function Financials() {
             <TrendingUp className="w-4 h-4" />
             Fatturato
           </button>
-
+          <button
+            onClick={() => setActiveTab('weekly')}
+            className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
+              activeTab === 'weekly'
+                ? 'neumorphic-pressed bg-blue-50 text-blue-700'
+                : 'neumorphic-flat text-slate-600 hover:text-slate-800'
+            }`}
+          >
+            <Calendar className="w-4 h-4" />
+            Weekly
+          </button>
         </div>
 
         {activeTab === 'overview' && (
@@ -2064,6 +2174,158 @@ export default function Financials() {
           </div>
         </NeumorphicCard>
         </>
+        )}
+
+        {/* Weekly Tab */}
+        {activeTab === 'weekly' && (
+          <>
+            <NeumorphicCard className="p-4 lg:p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-slate-800">Analisi Settimanale</h2>
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block">Negozio</label>
+                  <select
+                    value={selectedStore}
+                    onChange={(e) => setSelectedStore(e.target.value)}
+                    className="neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none text-sm"
+                  >
+                    <option value="all">Tutti i Locali</option>
+                    {stores.map(store => (
+                      <option key={store.id} value={store.id}>{store.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[700px]">
+                  <thead>
+                    <tr className="border-b-2 border-blue-600">
+                      <th className="text-left p-3 text-slate-600 font-medium text-sm">Settimana</th>
+                      <th className="text-right p-3 text-slate-600 font-medium text-sm">Revenue</th>
+                      <th className="text-right p-3 text-slate-600 font-medium text-sm">Scontrino Medio</th>
+                      <th className="text-right p-3 text-slate-600 font-medium text-sm">Ordini</th>
+                      <th className="text-right p-3 text-slate-600 font-medium text-sm">% Store</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {weeklyData.map((week, index) => {
+                      const weekEnd = addDays(safeParseDate(week.weekStart), 6);
+                      
+                      return (
+                        <tr 
+                          key={week.weekStart} 
+                          className="border-b border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer"
+                          onClick={() => setSelectedWeek(selectedWeek === week.weekStart ? null : week.weekStart)}
+                        >
+                          <td className="p-3 text-slate-700 font-medium text-sm">
+                            {safeFormatDate(safeParseDate(week.weekStart), 'dd/MM')} - {safeFormatDate(weekEnd, 'dd/MM/yyyy')}
+                          </td>
+                          <td className={`p-3 text-right font-bold text-sm ${weeklyStats ? getColorForValue(week.revenue, weeklyStats.revenue.min, weeklyStats.revenue.max) : ''}`}>
+                            €{formatCurrency(week.revenue / 1000, 1)}k
+                          </td>
+                          <td className={`p-3 text-right font-bold text-sm ${weeklyStats ? getColorForValue(week.avgOrderValue, weeklyStats.avgOrderValue.min, weeklyStats.avgOrderValue.max) : ''}`}>
+                            €{formatCurrency(week.avgOrderValue)}
+                          </td>
+                          <td className={`p-3 text-right font-bold text-sm ${weeklyStats ? getColorForValue(week.orders, weeklyStats.orders.min, weeklyStats.orders.max) : ''}`}>
+                            {week.orders}
+                          </td>
+                          <td className={`p-3 text-right font-bold text-sm ${weeklyStats ? getColorForValue(week.percentStore, weeklyStats.percentStore.min, weeklyStats.percentStore.max) : ''}`}>
+                            {week.percentStore.toFixed(1)}%
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {weeklyData.length === 0 && (
+                <div className="text-center py-8 text-slate-500">
+                  Nessun dato disponibile
+                </div>
+              )}
+            </NeumorphicCard>
+
+            {/* Daily Detail for Selected Week */}
+            {selectedWeek && (() => {
+              const week = weeklyData.find(w => w.weekStart === selectedWeek);
+              if (!week) return null;
+
+              return (
+                <NeumorphicCard className="p-4 lg:p-6 bg-blue-50">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-slate-800">
+                      Dettaglio Giornaliero - Settimana {safeFormatDate(safeParseDate(week.weekStart), 'dd/MM/yyyy')}
+                    </h3>
+                    <button
+                      onClick={() => setSelectedWeek(null)}
+                      className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                    >
+                      <X className="w-4 h-4 text-slate-600" />
+                    </button>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[600px]">
+                      <thead>
+                        <tr className="border-b-2 border-blue-600">
+                          <th className="text-left p-3 text-slate-600 font-medium text-sm">Giorno</th>
+                          <th className="text-right p-3 text-slate-600 font-medium text-sm">Revenue</th>
+                          <th className="text-right p-3 text-slate-600 font-medium text-sm">Scontrino Medio</th>
+                          <th className="text-right p-3 text-slate-600 font-medium text-sm">Ordini</th>
+                          <th className="text-right p-3 text-slate-600 font-medium text-sm">% Store</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {week.dailyData.map((day, index) => {
+                          const avgOrderValue = day.orders > 0 ? day.revenue / day.orders : 0;
+                          const percentStore = day.totalChannelRevenue > 0 ? (day.storeRevenue / day.totalChannelRevenue) * 100 : 0;
+                          
+                          return (
+                            <tr key={day.date} className="border-b border-slate-200">
+                              <td className="p-3 text-slate-700 font-medium text-sm">
+                                {safeFormatDate(safeParseDate(day.date), 'EEEE dd/MM/yyyy')}
+                              </td>
+                              <td className="p-3 text-right text-slate-700 font-bold text-sm">
+                                €{formatCurrency(day.revenue)}
+                              </td>
+                              <td className="p-3 text-right text-slate-700 font-bold text-sm">
+                                €{formatCurrency(avgOrderValue)}
+                              </td>
+                              <td className="p-3 text-right text-slate-700 font-bold text-sm">
+                                {day.orders}
+                              </td>
+                              <td className="p-3 text-right text-slate-700 font-bold text-sm">
+                                {percentStore.toFixed(1)}%
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 border-blue-600 bg-blue-50">
+                          <td className="p-3 font-bold text-slate-800 text-sm">Totale Settimana</td>
+                          <td className="p-3 text-right font-bold text-blue-700 text-sm">
+                            €{formatCurrency(week.revenue / 1000, 1)}k
+                          </td>
+                          <td className="p-3 text-right font-bold text-blue-700 text-sm">
+                            €{formatCurrency(week.avgOrderValue)}
+                          </td>
+                          <td className="p-3 text-right font-bold text-blue-700 text-sm">
+                            {week.orders}
+                          </td>
+                          <td className="p-3 text-right font-bold text-blue-700 text-sm">
+                            {week.percentStore.toFixed(1)}%
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </NeumorphicCard>
+              );
+            })()}
+          </>
         )}
 
         {/* Confronto Mensile Tab - REMOVED */}
