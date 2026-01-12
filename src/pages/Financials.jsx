@@ -341,8 +341,94 @@ export default function Financials() {
         
         const compareTotalRevenue = compareFiltered.reduce((sum, item) => sum + (item.total_revenue || 0), 0);
         const compareTotalOrders = compareFiltered.reduce((sum, item) => sum + (item.total_orders || 0), 0);
-        
         const compareAvgOrderValue = compareTotalOrders > 0 ? compareTotalRevenue / compareTotalOrders : 0;
+
+        // Calculate channel breakdown for comparison period
+        const compareRevenueByType = {};
+        compareFiltered.forEach(item => {
+          const types = [
+            { key: 'delivery', revenue: item.sourceType_delivery || 0, orders: item.sourceType_delivery_orders || 0 },
+            { key: 'takeaway', revenue: item.sourceType_takeaway || 0, orders: item.sourceType_takeaway_orders || 0 },
+            { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0, orders: item.sourceType_takeawayOnSite_orders || 0 },
+            { key: 'store', revenue: item.sourceType_store || 0, orders: item.sourceType_store_orders || 0 }
+          ];
+          
+          types.forEach(type => {
+            if (type.revenue > 0 || type.orders > 0) {
+              const mappedKey = channelMapping[type.key] || type.key;
+              if (selectedChannels.length > 0 && !selectedChannels.includes(mappedKey)) return;
+              
+              if (!compareRevenueByType[mappedKey]) {
+                compareRevenueByType[mappedKey] = { name: mappedKey, value: 0, orders: 0 };
+              }
+              compareRevenueByType[mappedKey].value += type.revenue;
+              compareRevenueByType[mappedKey].orders += type.orders;
+            }
+          });
+        });
+
+        const compareChannelBreakdown = Object.values(compareRevenueByType)
+          .sort((a, b) => b.value - a.value)
+          .map(c => ({
+            name: c.name.charAt(0).toUpperCase() + c.name.slice(1),
+            value: parseFloat(c.value.toFixed(2)),
+            orders: c.orders
+          }));
+
+        // Calculate app breakdown for comparison period
+        const compareRevenueByApp = {};
+        compareFiltered.forEach(item => {
+          const apps = [
+            { key: 'glovo', revenue: item.sourceApp_glovo || 0, orders: item.sourceApp_glovo_orders || 0 },
+            { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0, orders: item.sourceApp_deliveroo_orders || 0 },
+            { key: 'justeat', revenue: item.sourceApp_justeat || 0, orders: item.sourceApp_justeat_orders || 0 },
+            { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0, orders: item.sourceApp_onlineordering_orders || 0 },
+            { key: 'ordertable', revenue: item.sourceApp_ordertable || 0, orders: item.sourceApp_ordertable_orders || 0 },
+            { key: 'tabesto', revenue: item.sourceApp_tabesto || 0, orders: item.sourceApp_tabesto_orders || 0 },
+            { key: 'store', revenue: item.sourceApp_store || 0, orders: item.sourceApp_store_orders || 0 }
+          ];
+          
+          apps.forEach(app => {
+            if (app.revenue > 0 || app.orders > 0) {
+              const mappedKey = appMapping[app.key] || app.key;
+              if (selectedApps.length > 0 && !selectedApps.includes(mappedKey)) return;
+              
+              if (!compareRevenueByApp[mappedKey]) {
+                compareRevenueByApp[mappedKey] = { name: mappedKey, value: 0, orders: 0 };
+              }
+              compareRevenueByApp[mappedKey].value += app.revenue;
+              compareRevenueByApp[mappedKey].orders += app.orders;
+            }
+          });
+        });
+
+        const compareDeliveryAppBreakdown = Object.values(compareRevenueByApp)
+          .sort((a, b) => b.value - a.value)
+          .map(a => ({
+            name: a.name.charAt(0).toUpperCase() + a.name.slice(1),
+            value: parseFloat(a.value.toFixed(2)),
+            orders: a.orders
+          }));
+
+        // Store breakdown for comparison
+        const compareRevenueByStore = {};
+        compareFiltered.forEach(item => {
+          const storeName = item.store_name || 'Unknown';
+          if (!compareRevenueByStore[storeName]) {
+            compareRevenueByStore[storeName] = { name: storeName, revenue: 0, orders: 0 };
+          }
+          compareRevenueByStore[storeName].revenue += item.total_revenue || 0;
+          compareRevenueByStore[storeName].orders += item.total_orders || 0;
+        });
+
+        const compareStoreBreakdown = Object.values(compareRevenueByStore)
+          .sort((a, b) => b.revenue - a.revenue)
+          .map(s => ({
+            name: s.name,
+            revenue: parseFloat(s.revenue.toFixed(2)),
+            orders: s.orders,
+            avgValue: s.orders > 0 ? parseFloat((s.revenue / s.orders).toFixed(2)) : 0
+          }));
         
         comparisonData = {
           totalRevenue: compareTotalRevenue,
@@ -353,7 +439,10 @@ export default function Financials() {
           ordersDiff: totalOrders - compareTotalOrders,
           ordersDiffPercent: compareTotalOrders > 0 ? ((totalOrders - compareTotalOrders) / compareTotalOrders) * 100 : 0,
           avgOrderValueDiff: avgOrderValue - compareAvgOrderValue,
-          avgOrderValueDiffPercent: compareAvgOrderValue > 0 ? ((avgOrderValue - compareAvgOrderValue) / compareAvgOrderValue) * 100 : 0
+          avgOrderValueDiffPercent: compareAvgOrderValue > 0 ? ((avgOrderValue - compareAvgOrderValue) / compareAvgOrderValue) * 100 : 0,
+          channelBreakdown: compareChannelBreakdown,
+          deliveryAppBreakdown: compareDeliveryAppBreakdown,
+          storeBreakdown: compareStoreBreakdown
         };
       }
     }
@@ -1188,19 +1277,43 @@ export default function Financials() {
                   <tr className="border-b border-slate-300">
                     <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Locale</th>
                     <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Revenue</th>
+                    {processedData.comparisonData && (
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Rev Confronto</th>
+                    )}
+                    {processedData.comparisonData && (
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                    )}
                     <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ordini</th>
                     <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">€ Medio</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {processedData.storeBreakdown.map((store, index) => (
-                    <tr key={index} className="border-b border-slate-200">
-                      <td className="p-2 lg:p-3 text-slate-700 font-medium text-sm">{store.name}</td>
-                      <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">€{store.revenue.toFixed(2)}</td>
-                      <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">{store.orders}</td>
-                      <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">€{store.avgValue.toFixed(2)}</td>
-                    </tr>
-                  ))}
+                  {processedData.storeBreakdown.map((store, index) => {
+                    const compareStore = processedData.comparisonData?.storeBreakdown?.find(s => s.name === store.name);
+                    const revDiff = compareStore ? store.revenue - compareStore.revenue : 0;
+                    const revDiffPercent = compareStore && compareStore.revenue > 0 ? (revDiff / compareStore.revenue) * 100 : 0;
+                    
+                    return (
+                      <tr key={index} className="border-b border-slate-200">
+                        <td className="p-2 lg:p-3 text-slate-700 font-medium text-sm">{store.name}</td>
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm font-bold">€{store.revenue.toFixed(2)}</td>
+                        {processedData.comparisonData && (
+                          <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
+                            €{compareStore ? compareStore.revenue.toFixed(2) : '0.00'}
+                          </td>
+                        )}
+                        {processedData.comparisonData && (
+                          <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
+                            revDiff >= 0 ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {revDiff >= 0 ? '+' : ''}{revDiffPercent.toFixed(1)}%
+                          </td>
+                        )}
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">{store.orders}</td>
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">€{store.avgValue.toFixed(2)}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -1255,21 +1368,45 @@ export default function Financials() {
                   <tr className="border-b border-slate-300">
                     <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Canale</th>
                     <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Revenue</th>
+                    {processedData.comparisonData && (
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Rev Confronto</th>
+                    )}
+                    {processedData.comparisonData && (
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                    )}
                     <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ordini</th>
                     <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">%</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {processedData.channelBreakdown.map((channel, index) => (
-                    <tr key={index} className="border-b border-slate-200">
-                      <td className="p-2 lg:p-3 text-slate-700 font-medium text-sm">{channel.name}</td>
-                      <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">€{channel.value.toFixed(2)}</td>
-                      <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">{channel.orders}</td>
-                      <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
-                        {processedData.totalRevenue > 0 ? ((channel.value / processedData.totalRevenue) * 100).toFixed(1) : 0}%
-                      </td>
-                    </tr>
-                  ))}
+                  {processedData.channelBreakdown.map((channel, index) => {
+                    const compareChannel = processedData.comparisonData?.channelBreakdown?.find(c => c.name === channel.name);
+                    const revDiff = compareChannel ? channel.value - compareChannel.value : 0;
+                    const revDiffPercent = compareChannel && compareChannel.value > 0 ? (revDiff / compareChannel.value) * 100 : 0;
+                    
+                    return (
+                      <tr key={index} className="border-b border-slate-200">
+                        <td className="p-2 lg:p-3 text-slate-700 font-medium text-sm">{channel.name}</td>
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm font-bold">€{channel.value.toFixed(2)}</td>
+                        {processedData.comparisonData && (
+                          <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
+                            €{compareChannel ? compareChannel.value.toFixed(2) : '0.00'}
+                          </td>
+                        )}
+                        {processedData.comparisonData && (
+                          <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
+                            revDiff >= 0 ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {revDiff >= 0 ? '+' : ''}{revDiffPercent.toFixed(1)}%
+                          </td>
+                        )}
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">{channel.orders}</td>
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
+                          {processedData.totalRevenue > 0 ? ((channel.value / processedData.totalRevenue) * 100).toFixed(1) : 0}%
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -1326,37 +1463,61 @@ export default function Financials() {
                   <tr className="border-b-2 border-blue-600">
                     <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">App</th>
                     <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Revenue</th>
+                    {processedData.comparisonData && (
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Rev Confronto</th>
+                    )}
+                    {processedData.comparisonData && (
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                    )}
                     <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ordini</th>
                     <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">€ Medio</th>
                     <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">%</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {processedData.deliveryAppBreakdown.map((app, index) => (
-                    <tr key={index} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
-                      <td className="p-2 lg:p-3">
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-3 h-3 rounded-full flex-shrink-0" 
-                            style={{ background: COLORS[index % COLORS.length] }}
-                          />
-                          <span className="text-slate-700 font-medium text-sm">{app.name}</span>
-                        </div>
-                      </td>
-                      <td className="p-2 lg:p-3 text-right text-slate-700 font-bold text-sm">
-                        €{app.value.toFixed(2)}
-                      </td>
-                      <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
-                        {app.orders}
-                      </td>
-                      <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
-                        €{(app.orders > 0 ? (app.value / app.orders) : 0).toFixed(2)}
-                      </td>
-                      <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
-                        {processedData.totalRevenue > 0 ? ((app.value / processedData.totalRevenue) * 100).toFixed(1) : 0}%
-                      </td>
-                    </tr>
-                  ))}
+                  {processedData.deliveryAppBreakdown.map((app, index) => {
+                    const compareApp = processedData.comparisonData?.deliveryAppBreakdown?.find(a => a.name === app.name);
+                    const revDiff = compareApp ? app.value - compareApp.value : 0;
+                    const revDiffPercent = compareApp && compareApp.value > 0 ? (revDiff / compareApp.value) * 100 : 0;
+                    
+                    return (
+                      <tr key={index} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                        <td className="p-2 lg:p-3">
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full flex-shrink-0" 
+                              style={{ background: COLORS[index % COLORS.length] }}
+                            />
+                            <span className="text-slate-700 font-medium text-sm">{app.name}</span>
+                          </div>
+                        </td>
+                        <td className="p-2 lg:p-3 text-right text-slate-700 font-bold text-sm">
+                          €{app.value.toFixed(2)}
+                        </td>
+                        {processedData.comparisonData && (
+                          <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
+                            €{compareApp ? compareApp.value.toFixed(2) : '0.00'}
+                          </td>
+                        )}
+                        {processedData.comparisonData && (
+                          <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
+                            revDiff >= 0 ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {revDiff >= 0 ? '+' : ''}{revDiffPercent.toFixed(1)}%
+                          </td>
+                        )}
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
+                          {app.orders}
+                        </td>
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
+                          €{(app.orders > 0 ? (app.value / app.orders) : 0).toFixed(2)}
+                        </td>
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
+                          {processedData.totalRevenue > 0 ? ((app.value / processedData.totalRevenue) * 100).toFixed(1) : 0}%
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
