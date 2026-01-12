@@ -71,6 +71,13 @@ export default function FormTracker() {
     queryFn: () => base44.entities.GestioneImpasti.list('-data_creazione', 200),
   });
 
+  const { data: attivitaCompletate = [] } = useQuery({
+    queryKey: ['attivita-completate', selectedDate],
+    queryFn: () => base44.entities.AttivitaCompletata.filter({
+      turno_data: selectedDate
+    }),
+  });
+
   // Just use all shifts from the query (already filtered by date)
   const shiftsForDate = turniPlanday;
 
@@ -97,7 +104,18 @@ export default function FormTracker() {
     return false;
   }, [normalizeNameForMatch]);
 
-  const checkFormCompletion = useCallback((formPage, employeeName, storeName, date) => {
+  const checkFormCompletion = useCallback((formPage, employeeName, storeName, date, turnoId) => {
+    // METODO PRINCIPALE: Controlla AttivitaCompletata per turno_id e form_page
+    if (turnoId) {
+      const completata = attivitaCompletate.find(ac => 
+        ac.turno_id === turnoId && ac.form_page === formPage
+      );
+      if (completata) {
+        return { completed: true, data: completata };
+      }
+    }
+
+    // FALLBACK: Vecchio metodo per retrocompatibilità
     const dateStart = new Date(date);
     dateStart.setHours(0, 0, 0, 0);
     const dateEnd = new Date(date);
@@ -166,7 +184,7 @@ export default function FormTracker() {
       default:
         return { completed: false, data: null };
     }
-  }, [cleaningInspections, inventarioRilevazioni, conteggiCassa, teglieButtate, preparazioni, gestioneImpasti, namesMatch]);
+  }, [attivitaCompletate, cleaningInspections, inventarioRilevazioni, conteggiCassa, teglieButtate, preparazioni, gestioneImpasti, namesMatch]);
 
   const getFormName = useCallback((formPage) => {
     const names = {
@@ -308,7 +326,8 @@ export default function FormTracker() {
         grouped[storeName][form.formPage].completions.push({
           employeeName: shift.dipendente_nome,
           completed: form.completed,
-          data: form.data
+          data: form.data,
+          turnoId: shift.id
         });
       });
     });
@@ -499,7 +518,10 @@ export default function FormTracker() {
                   {expandedStores[storeName] && (
                     <div className="mt-4 space-y-3">
                       {storeShifts.map((shift, idx) => {
-                        const requiredForms = getRequiredFormsForShift(shift);
+                        const requiredForms = getRequiredFormsForShift(shift).map(form => ({
+                          ...form,
+                          ...checkFormCompletion(form.formPage, shift.dipendente_nome, shift.store_name || storeName, selectedDate, shift.id)
+                        }));
                         const completedForms = requiredForms.filter(f => f.completed).length;
                         const totalForms = requiredForms.length;
                         
@@ -544,10 +566,10 @@ export default function FormTracker() {
                                 }`}>
                                   {shift.stato || 'programmato'}
                                 </span>
-                                {shift.timbrata_entrata && (
+                                {shift.timbratura_entrata && (
                                   <span className="text-xs text-green-600">✓ Entrata</span>
                                 )}
-                                {shift.timbrata_uscita && (
+                                {shift.timbratura_uscita && (
                                   <span className="text-xs text-green-600">✓ Uscita</span>
                                 )}
                               </div>
