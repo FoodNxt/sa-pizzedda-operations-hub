@@ -15,6 +15,7 @@ export default function Financials() {
   const [endDate, setEndDate] = useState('');
   const [showRevenue, setShowRevenue] = useState(true);
   const [showAvgValue, setShowAvgValue] = useState(true);
+  const [showTrendline, setShowTrendline] = useState(false);
   const [selectedStoresForTrend, setSelectedStoresForTrend] = useState([]);
   const [showChannelSettings, setShowChannelSettings] = useState(false);
   const [showAppSettings, setShowAppSettings] = useState(false);
@@ -493,11 +494,41 @@ export default function Financials() {
       }
     }
 
+    // Calculate % in Store
+    const storeChannel = channelBreakdown.find(ch => ch.name.toLowerCase() === 'store');
+    const deliveryChannel = channelBreakdown.find(ch => ch.name.toLowerCase() === 'delivery');
+    const storeRevenue = storeChannel?.value || 0;
+    const deliveryRevenue = deliveryChannel?.value || 0;
+    const totalChannelRevenue = storeRevenue + deliveryRevenue;
+    const percentInStore = totalChannelRevenue > 0 ? (storeRevenue / totalChannelRevenue) * 100 : 0;
+
+    // Calculate trendline for revenue
+    const trendlineData = dailyRevenue.length > 1 ? (() => {
+      const n = dailyRevenue.length;
+      let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+      
+      dailyRevenue.forEach((point, index) => {
+        sumX += index;
+        sumY += point.revenue;
+        sumXY += index * point.revenue;
+        sumX2 += index * index;
+      });
+      
+      const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+      const intercept = (sumY - slope * sumX) / n;
+      
+      return dailyRevenue.map((point, index) => ({
+        ...point,
+        trend: parseFloat((slope * index + intercept).toFixed(2))
+      }));
+    })() : dailyRevenue;
+
     return {
       totalRevenue,
       totalOrders,
       avgOrderValue,
-      dailyRevenue,
+      percentInStore,
+      dailyRevenue: trendlineData,
       dailyRevenueMultiStore,
       storeBreakdown,
       channelBreakdown,
@@ -829,9 +860,43 @@ export default function Financials() {
           <>
         <NeumorphicCard className={`p-4 lg:p-6 sticky top-4 z-10 transition-all ${filtersCollapsed ? 'bg-opacity-95 backdrop-blur-sm' : ''}`}>
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Filter className="w-5 h-5 text-blue-600" />
-              <h2 className="text-base lg:text-lg font-bold text-slate-800">Filtri</h2>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <Filter className="w-5 h-5 text-blue-600" />
+                <h2 className="text-base lg:text-lg font-bold text-slate-800">Filtri</h2>
+              </div>
+              {(() => {
+                let periodText = '';
+                if (dateRange === 'custom' && (startDate || endDate)) {
+                  periodText = `${startDate || '...'} → ${endDate || '...'}`;
+                } else if (dateRange === 'currentweek') {
+                  const now = new Date();
+                  const dayOfWeek = now.getDay();
+                  const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+                  const monday = new Date(now);
+                  monday.setDate(now.getDate() + diffToMonday);
+                  periodText = `${format(monday, 'dd/MM/yyyy')} → ${format(now, 'dd/MM/yyyy')}`;
+                } else {
+                  const days = parseInt(dateRange, 10);
+                  const from = subDays(new Date(), days);
+                  periodText = `${format(from, 'dd/MM/yyyy')} → ${format(new Date(), 'dd/MM/yyyy')}`;
+                }
+                
+                let compareText = '';
+                if (compareMode === 'custom' && compareStartDate && compareEndDate) {
+                  compareText = ` vs ${compareStartDate} → ${compareEndDate}`;
+                } else if (compareMode === 'previous') {
+                  compareText = ' vs Periodo Precedente';
+                } else if (compareMode === 'lastyear') {
+                  compareText = ' vs Anno Scorso';
+                }
+                
+                return (
+                  <p className="text-xs text-slate-500">
+                    📅 {periodText}{compareText}
+                  </p>
+                );
+              })()}
             </div>
             <button
               onClick={() => setFiltersCollapsed(!filtersCollapsed)}
@@ -1046,7 +1111,7 @@ export default function Financials() {
         {processedData.comparisonData && (
           <NeumorphicCard className="p-4 lg:p-6 bg-gradient-to-br from-blue-50 to-blue-100">
             <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Confronto Periodi</h2>
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="neumorphic-pressed p-4 rounded-xl bg-white">
                 <p className="text-xs text-slate-500 mb-1">Revenue</p>
                 <div className="flex items-baseline gap-2">
@@ -1088,6 +1153,61 @@ export default function Financials() {
                   }`}>
                     {processedData.comparisonData.avgOrderValueDiff >= 0 ? '+' : ''}
                     {processedData.comparisonData.avgOrderValueDiffPercent.toFixed(1)}%
+                  </p>
+                </div>
+              </div>
+
+              <div className="neumorphic-pressed p-4 rounded-xl bg-white">
+                <p className="text-xs text-slate-500 mb-1">% in Store</p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-lg font-bold text-slate-800">
+                    {(() => {
+                      const storeChannel = processedData.comparisonData.channelBreakdown?.find(ch => ch.name.toLowerCase() === 'store');
+                      const deliveryChannel = processedData.comparisonData.channelBreakdown?.find(ch => ch.name.toLowerCase() === 'delivery');
+                      const storeRev = storeChannel?.value || 0;
+                      const deliveryRev = deliveryChannel?.value || 0;
+                      const total = storeRev + deliveryRev;
+                      return total > 0 ? ((storeRev / total) * 100).toFixed(1) : 0;
+                    })()}%
+                  </p>
+                  <p className={`text-xs font-medium ${
+                    (() => {
+                      const currentStore = processedData.channelBreakdown.find(ch => ch.name.toLowerCase() === 'store');
+                      const currentDelivery = processedData.channelBreakdown.find(ch => ch.name.toLowerCase() === 'delivery');
+                      const currentStoreRev = currentStore?.value || 0;
+                      const currentDeliveryRev = currentDelivery?.value || 0;
+                      const currentTotal = currentStoreRev + currentDeliveryRev;
+                      const currentPercent = currentTotal > 0 ? (currentStoreRev / currentTotal) * 100 : 0;
+                      
+                      const compareStore = processedData.comparisonData.channelBreakdown?.find(ch => ch.name.toLowerCase() === 'store');
+                      const compareDelivery = processedData.comparisonData.channelBreakdown?.find(ch => ch.name.toLowerCase() === 'delivery');
+                      const compareStoreRev = compareStore?.value || 0;
+                      const compareDeliveryRev = compareDelivery?.value || 0;
+                      const compareTotal = compareStoreRev + compareDeliveryRev;
+                      const comparePercent = compareTotal > 0 ? (compareStoreRev / compareTotal) * 100 : 0;
+                      
+                      const diff = currentPercent - comparePercent;
+                      return diff >= 0 ? 'text-green-600' : 'text-red-600';
+                    })()
+                  }`}>
+                    {(() => {
+                      const currentStore = processedData.channelBreakdown.find(ch => ch.name.toLowerCase() === 'store');
+                      const currentDelivery = processedData.channelBreakdown.find(ch => ch.name.toLowerCase() === 'delivery');
+                      const currentStoreRev = currentStore?.value || 0;
+                      const currentDeliveryRev = currentDelivery?.value || 0;
+                      const currentTotal = currentStoreRev + currentDeliveryRev;
+                      const currentPercent = currentTotal > 0 ? (currentStoreRev / currentTotal) * 100 : 0;
+                      
+                      const compareStore = processedData.comparisonData.channelBreakdown?.find(ch => ch.name.toLowerCase() === 'store');
+                      const compareDelivery = processedData.comparisonData.channelBreakdown?.find(ch => ch.name.toLowerCase() === 'delivery');
+                      const compareStoreRev = compareStore?.value || 0;
+                      const compareDeliveryRev = compareDelivery?.value || 0;
+                      const compareTotal = compareStoreRev + compareDeliveryRev;
+                      const comparePercent = compareTotal > 0 ? (compareStoreRev / compareTotal) * 100 : 0;
+                      
+                      const diff = currentPercent - comparePercent;
+                      return `${diff >= 0 ? '+' : ''}${diff.toFixed(1)}%`;
+                    })()}
                   </p>
                 </div>
               </div>
@@ -1138,18 +1258,7 @@ export default function Financials() {
                 <TrendingUp className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
               </div>
               <h3 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1">
-                {(() => {
-                  const storeChannel = processedData.channelBreakdown.find(ch => 
-                    ch.name.toLowerCase() === 'store'
-                  );
-                  const deliveryChannel = processedData.channelBreakdown.find(ch => 
-                    ch.name.toLowerCase() === 'delivery'
-                  );
-                  const storeRevenue = storeChannel?.value || 0;
-                  const deliveryRevenue = deliveryChannel?.value || 0;
-                  const total = storeRevenue + deliveryRevenue;
-                  return total > 0 ? ((storeRevenue / total) * 100).toFixed(1) : 0;
-                })()}%
+                {processedData.percentInStore.toFixed(1)}%
               </h3>
               <p className="text-xs text-slate-500">% in Store</p>
             </div>
@@ -1169,6 +1278,15 @@ export default function Financials() {
                 >
                   {showRevenue ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
                   Revenue
+                </button>
+                <button
+                  onClick={() => setShowTrendline(!showTrendline)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${
+                    showTrendline ? 'bg-purple-500 text-white' : 'bg-slate-200 text-slate-600'
+                  }`}
+                >
+                  {showTrendline ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                  Trendline
                 </button>
                 <button
                   onClick={() => setShowAvgValue(!showAvgValue)}
@@ -1327,6 +1445,18 @@ export default function Financials() {
                           strokeWidth={2} 
                           name="Revenue" 
                           dot={{ fill: '#3b82f6', r: 3 }}
+                        />
+                      )}
+                      {showTrendline && showRevenue && (
+                        <Line 
+                          yAxisId="left"
+                          type="monotone" 
+                          dataKey="trend" 
+                          stroke="#8b5cf6" 
+                          strokeWidth={2} 
+                          strokeDasharray="5 5"
+                          name="Trendline" 
+                          dot={false}
                         />
                       )}
                       {showAvgValue && (
