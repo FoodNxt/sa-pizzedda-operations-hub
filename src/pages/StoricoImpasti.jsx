@@ -444,10 +444,10 @@ export default function StoricoImpasti() {
                     value={settingsForm.impasto_minimo}
                     onChange={(e) => setSettingsForm({ ...settingsForm, impasto_minimo: parseInt(e.target.value) || 0 })}
                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                    placeholder="es. 0"
+                    placeholder="es. 20"
                   />
                   <p className="text-xs text-slate-500 mt-1">
-                    Numero minimo di palline che i dipendenti possono inserire nel form
+                    Se il calcolo suggerisce meno di questo valore, verrà mostrato questo minimo
                   </p>
                 </div>
 
@@ -464,14 +464,15 @@ export default function StoricoImpasti() {
                     placeholder="es. 100"
                   />
                   <p className="text-xs text-slate-500 mt-1">
-                    Numero massimo di palline che i dipendenti possono inserire nel form
+                    Se il calcolo supera questo valore, verrà limitato a questo massimo
                   </p>
                 </div>
 
                 <div className="neumorphic-flat p-4 rounded-xl bg-blue-50">
                   <p className="text-sm text-blue-800">
-                    <strong>ℹ️ Info:</strong> Questi valori min/max vengono usati nel form compilato dai dipendenti 
-                    per evitare errori di inserimento dati.
+                    <strong>ℹ️ Come funziona:</strong> Questi valori limitano l'output del calcolo impasto. 
+                    Se il calcolo suggerisce 15 palline ma il minimo è 20, al dipendente verrà mostrato di preparare 20 palline. 
+                    Analogamente, se il calcolo suggerisce 120 ma il massimo è 100, verrà mostrato di preparare 100 palline.
                   </p>
                 </div>
               </div>

@@ -53,6 +53,11 @@ export default function Impasto() {
     queryFn: () => base44.entities.RicettaImpasto.list(),
   });
 
+  const { data: impastiConfig = [] } = useQuery({
+    queryKey: ['impasti-config'],
+    queryFn: () => base44.entities.ImpastiConfig.list(),
+  });
+
   // Preselezione store da URL
   React.useEffect(() => {
     if (preselectedStoreId && !selectedStore) {
@@ -170,7 +175,20 @@ export default function Impasto() {
     }
 
     const pallinePresenti = parseInt(barelleInFrigo) * 6;
-    const impastoNecessario = totaleProssimi3Giorni - pallinePresenti;
+    let impastoNecessario = totaleProssimi3Giorni - pallinePresenti;
+    
+    // Applica limiti min/max dalla configurazione
+    const activeConfig = impastiConfig.find(c => c.is_active && !c.store_id);
+    if (activeConfig) {
+      const minImpasto = activeConfig.impasto_minimo || 0;
+      const maxImpasto = activeConfig.impasto_massimo || 9999;
+      
+      if (impastoNecessario < minImpasto) {
+        impastoNecessario = minImpasto;
+      } else if (impastoNecessario > maxImpasto) {
+        impastoNecessario = maxImpasto;
+      }
+    }
     
     // Calcola ingredienti necessari con arrotondamento
     const ingredientiNecessari = sortedIngredienti.map(ing => {
