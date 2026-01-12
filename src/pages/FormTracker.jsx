@@ -155,13 +155,10 @@ export default function FormTracker() {
         return { completed: !!rilevazione, data: rilevazione };
       }
       case 'ConteggioCassa': {
-        const conteggio = conteggiCassa.find(c => {
-          const contDate = new Date(c.data_conteggio);
-          return c.store_name === storeName &&
-                 namesMatch(c.rilevato_da, employeeName) &&
-                 contDate >= dateStart && contDate <= nextDayEnd;
-        });
-        return { completed: !!conteggio, data: conteggio };
+        // Per ConteggioCassa NON usare il fallback - deve essere verificato SOLO tramite AttivitaCompletata
+        // perché il ConteggioCassa può essere richiesto sia a inizio che a fine turno
+        // e il fallback non può distinguere tra i due
+        return { completed: false, data: null };
       }
       case 'FormTeglieButtate': {
         const teglie = teglieButtate.find(t => {
