@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { DollarSign, TrendingUp, Filter, Calendar, X, Settings, Eye, EyeOff, Save, CreditCard, Wallet } from 'lucide-react';
+import { DollarSign, TrendingUp, Filter, Calendar, X, Settings, Eye, EyeOff, Save, CreditCard, Wallet, ChevronUp, ChevronDown } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, subDays, isAfter, isBefore, parseISO, isValid, addDays, subYears, eachDayOfInterval } from 'date-fns';
@@ -26,6 +26,7 @@ export default function Financials() {
   const [selectedChannels, setSelectedChannels] = useState([]);
   const [selectedApps, setSelectedApps] = useState([]);
   const [selectedPaymentMethods, setSelectedPaymentMethods] = useState([]);
+  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
   
   // Confronto Mensile State
   const [periodo1Store, setPeriodo1Store] = useState('all');
@@ -821,26 +822,25 @@ export default function Financials() {
             <TrendingUp className="w-4 h-4" />
             Fatturato
           </button>
-          <button
-            onClick={() => setActiveTab('confronto_mensile')}
-            className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
-              activeTab === 'confronto_mensile'
-                ? 'neumorphic-pressed bg-blue-50 text-blue-700'
-                : 'neumorphic-flat text-slate-600 hover:text-slate-800'
-            }`}
-          >
-            <Calendar className="w-4 h-4" />
-            Confronto Mensile
-          </button>
+
         </div>
 
         {activeTab === 'overview' && (
           <>
-        <NeumorphicCard className="p-4 lg:p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Filter className="w-5 h-5 text-blue-600" />
-            <h2 className="text-base lg:text-lg font-bold text-slate-800">Filtri</h2>
+        <NeumorphicCard className={`p-4 lg:p-6 sticky top-4 z-10 transition-all ${filtersCollapsed ? 'bg-opacity-95 backdrop-blur-sm' : ''}`}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Filter className="w-5 h-5 text-blue-600" />
+              <h2 className="text-base lg:text-lg font-bold text-slate-800">Filtri</h2>
+            </div>
+            <button
+              onClick={() => setFiltersCollapsed(!filtersCollapsed)}
+              className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+            >
+              {filtersCollapsed ? <ChevronDown className="w-5 h-5 text-slate-600" /> : <ChevronUp className="w-5 h-5 text-slate-600" />}
+            </button>
           </div>
+          {!filtersCollapsed && (
           <div className="grid grid-cols-1 gap-3">
             <div>
               <label className="text-sm text-slate-600 mb-2 block">Locale</label>
@@ -1039,6 +1039,7 @@ export default function Financials() {
               </div>
             </div>
           </div>
+          )}
         </NeumorphicCard>
 
         {/* Comparison Stats */}
@@ -1138,12 +1139,16 @@ export default function Financials() {
               </div>
               <h3 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1">
                 {(() => {
-                  const storeApp = processedData.deliveryAppBreakdown.find(app => 
-                    app.name.toLowerCase() === 'store'
+                  const storeChannel = processedData.channelBreakdown.find(ch => 
+                    ch.name.toLowerCase() === 'store'
                   );
-                  const totalAppRevenue = processedData.deliveryAppBreakdown.reduce((sum, app) => sum + app.value, 0);
-                  const storeRevenue = storeApp?.value || 0;
-                  return totalAppRevenue > 0 ? ((storeRevenue / totalAppRevenue) * 100).toFixed(1) : 0;
+                  const deliveryChannel = processedData.channelBreakdown.find(ch => 
+                    ch.name.toLowerCase() === 'delivery'
+                  );
+                  const storeRevenue = storeChannel?.value || 0;
+                  const deliveryRevenue = deliveryChannel?.value || 0;
+                  const total = storeRevenue + deliveryRevenue;
+                  return total > 0 ? ((storeRevenue / total) * 100).toFixed(1) : 0;
                 })()}%
               </h3>
               <p className="text-xs text-slate-500">% in Store</p>
@@ -1775,340 +1780,153 @@ export default function Financials() {
             </div>
           </NeumorphicCard>
         )}
+
+        {/* Payment Methods Table */}
+        <NeumorphicCard className="p-4 lg:p-6">
+          <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Dettaglio Metodi di Pagamento</h2>
+          <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
+            <table className="w-full min-w-[600px]">
+              <thead>
+                <tr className="border-b-2 border-purple-600">
+                  <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Metodo</th>
+                  <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Revenue</th>
+                  {processedData.comparisonData && (
+                    <>
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Rev Conf</th>
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                    </>
+                  )}
+                  <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ordini</th>
+                  {processedData.comparisonData && (
+                    <>
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ord Conf</th>
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                    </>
+                  )}
+                  <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">€ Medio</th>
+                  {processedData.comparisonData && (
+                    <>
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Med Conf</th>
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                    </>
+                  )}
+                  <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">% Revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(() => {
+                  const methods = [
+                    { key: 'bancomat', label: 'Bancomat' },
+                    { key: 'cash', label: 'Contanti' },
+                    { key: 'online', label: 'Online' },
+                    { key: 'satispay', label: 'Satispay' },
+                    { key: 'credit_card', label: 'Carta di Credito' },
+                    { key: 'fidelity_card_points', label: 'Punti Fidelity' }
+                  ];
+
+                  let cutoffDate, endFilterDate;
+                  if (startDate || endDate) {
+                    cutoffDate = startDate ? safeParseDate(startDate + 'T00:00:00') : new Date(0);
+                    endFilterDate = endDate ? safeParseDate(endDate + 'T23:59:59') : new Date();
+                  } else if (dateRange === 'currentweek') {
+                    const now = new Date();
+                    const dayOfWeek = now.getDay();
+                    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+                    cutoffDate = new Date(now);
+                    cutoffDate.setDate(now.getDate() + diffToMonday);
+                    cutoffDate.setHours(0, 0, 0, 0);
+                    endFilterDate = new Date();
+                  } else {
+                    const days = parseInt(dateRange, 10);
+                    cutoffDate = subDays(new Date(), days);
+                    endFilterDate = new Date();
+                  }
+
+                  let filtered = iPraticoData.filter(item => {
+                    if (!item.order_date) return false;
+                    const itemDateStart = safeParseDate(item.order_date + 'T00:00:00');
+                    const itemDateEnd = safeParseDate(item.order_date + 'T23:59:59');
+                    if (!itemDateStart || !itemDateEnd) return false;
+                    if (cutoffDate && isBefore(itemDateEnd, cutoffDate)) return false;
+                    if (endFilterDate && isAfter(itemDateStart, endFilterDate)) return false;
+                    if (selectedStore !== 'all' && item.store_id !== selectedStore) return false;
+                    return true;
+                  });
+
+                  const paymentData = methods.map(method => {
+                    let revenue = 0;
+                    let orders = 0;
+                    
+                    filtered.forEach(item => {
+                      revenue += item[`moneyType_${method.key}`] || 0;
+                      orders += item[`moneyType_${method.key}_orders`] || 0;
+                    });
+                    
+                    return {
+                      name: method.label,
+                      revenue,
+                      orders,
+                      avgValue: orders > 0 ? revenue / orders : 0
+                    };
+                  }).filter(m => m.revenue > 0 || m.orders > 0);
+
+                  const totalPaymentRevenue = paymentData.reduce((sum, m) => sum + m.revenue, 0);
+
+                  return paymentData.map((method, index) => (
+                    <tr key={index} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                      <td className="p-2 lg:p-3">
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full flex-shrink-0" 
+                            style={{ background: PAYMENT_COLORS[index % PAYMENT_COLORS.length] }}
+                          />
+                          <span className="text-slate-700 font-medium text-sm">{method.name}</span>
+                        </div>
+                      </td>
+                      <td className="p-2 lg:p-3 text-right text-slate-700 font-bold text-sm">
+                        €{method.revenue.toFixed(2)}
+                      </td>
+                      {processedData.comparisonData && (
+                        <>
+                          <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">-</td>
+                          <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">-</td>
+                        </>
+                      )}
+                      <td className="p-2 lg:p-3 text-right text-slate-700 font-bold text-sm">
+                        {method.orders}
+                      </td>
+                      {processedData.comparisonData && (
+                        <>
+                          <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">-</td>
+                          <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">-</td>
+                        </>
+                      )}
+                      <td className="p-2 lg:p-3 text-right text-slate-700 font-bold text-sm">
+                        €{method.avgValue.toFixed(2)}
+                      </td>
+                      {processedData.comparisonData && (
+                        <>
+                          <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">-</td>
+                          <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">-</td>
+                        </>
+                      )}
+                      <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
+                        {totalPaymentRevenue > 0 
+                          ? ((method.revenue / totalPaymentRevenue) * 100).toFixed(1) 
+                          : 0}%
+                      </td>
+                    </tr>
+                  ));
+                })()}
+              </tbody>
+            </table>
+          </div>
+        </NeumorphicCard>
         </>
         )}
 
-        {/* Payment Methods Tab - REMOVED, now a filter in overview */}
-        {activeTab === 'payments_old_removed' && (
-          <>
-            <NeumorphicCard className="p-4 lg:p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Filter className="w-5 h-5 text-blue-600" />
-                <h2 className="text-base lg:text-lg font-bold text-slate-800">Filtri</h2>
-              </div>
-              <div className="grid grid-cols-1 gap-3">
-                <div>
-                  <label className="text-sm text-slate-600 mb-2 block">Locale</label>
-                  <select
-                    value={selectedStore}
-                    onChange={(e) => setSelectedStore(e.target.value)}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                  >
-                    <option value="all">Tutti i Locali</option>
-                    {stores.map(store => (
-                      <option key={store.id} value={store.id}>{store.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-sm text-slate-600 mb-2 block">Periodo</label>
-                  <select
-                    value={dateRange}
-                    onChange={(e) => {
-                      setDateRange(e.target.value);
-                      if (e.target.value !== 'custom') {
-                        setStartDate('');
-                        setEndDate('');
-                      }
-                    }}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                  >
-                    <option value="7">Ultimi 7 giorni</option>
-                    <option value="30">Ultimi 30 giorni</option>
-                    <option value="90">Ultimi 90 giorni</option>
-                    <option value="365">Ultimo anno</option>
-                    <option value="custom">Personalizzato</option>
-                  </select>
-                </div>
-
-                {dateRange === 'custom' && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-sm text-slate-600 mb-2 block">Inizio</label>
-                      <input
-                        type="date"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm text-slate-600 mb-2 block">Fine</label>
-                      <input
-                        type="date"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <div>
-                  <label className="text-sm text-slate-600 mb-2 block">Confronta con</label>
-                  <select
-                    value={compareMode}
-                    onChange={(e) => setCompareMode(e.target.value)}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                  >
-                    <option value="none">Nessun confronto</option>
-                    <option value="previous">Periodo Precedente</option>
-                    <option value="lastyear">Anno Scorso</option>
-                    <option value="custom">Personalizzato</option>
-                  </select>
-                </div>
-
-                {compareMode === 'custom' && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-sm text-slate-600 mb-2 block">Confronta Da</label>
-                      <input
-                        type="date"
-                        value={compareStartDate}
-                        onChange={(e) => setCompareStartDate(e.target.value)}
-                        className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm text-slate-600 mb-2 block">Confronta A</label>
-                      <input
-                        type="date"
-                        value={compareEndDate}
-                        onChange={(e) => setCompareEndDate(e.target.value)}
-                        className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </NeumorphicCard>
-
-            {/* Payment Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
-              <NeumorphicCard className="p-4">
-                <div className="flex flex-col items-center text-center">
-                  <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center mb-3 shadow-lg">
-                    <DollarSign className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
-                  </div>
-                  <h3 className="text-lg lg:text-xl font-bold text-slate-800 mb-1">
-                    €{(paymentMethodsData.totalRevenue / 1000).toFixed(1)}k
-                  </h3>
-                  <p className="text-xs text-slate-500">Revenue Totale</p>
-                </div>
-              </NeumorphicCard>
-
-              <NeumorphicCard className="p-4">
-                <div className="flex flex-col items-center text-center">
-                  <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-3 shadow-lg">
-                    <CreditCard className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
-                  </div>
-                  <h3 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1">
-                    {paymentMethodsData.totalOrders}
-                  </h3>
-                  <p className="text-xs text-slate-500">Ordini Totali</p>
-                </div>
-              </NeumorphicCard>
-
-              <NeumorphicCard className="p-4">
-                <div className="flex flex-col items-center text-center">
-                  <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center mb-3 shadow-lg">
-                    <Wallet className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
-                  </div>
-                  <h3 className="text-lg lg:text-xl font-bold text-slate-800 mb-1">
-                    {paymentMethodsData.breakdown.length}
-                  </h3>
-                  <p className="text-xs text-slate-500">Metodi Usati</p>
-                </div>
-              </NeumorphicCard>
-            </div>
-
-            {/* Payment Methods Chart */}
-            <NeumorphicCard className="p-4 lg:p-6">
-              <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Distribuzione per Metodo di Pagamento</h2>
-              {paymentMethodsData.breakdown.length > 0 ? (
-                <div className="w-full overflow-x-auto">
-                  <div style={{ minWidth: '300px' }}>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={paymentMethodsData.breakdown}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
-                        <XAxis 
-                          dataKey="name" 
-                          stroke="#64748b"
-                          tick={{ fontSize: 11 }}
-                          angle={-45}
-                          textAnchor="end"
-                          height={80}
-                        />
-                        <YAxis 
-                          stroke="#64748b"
-                          tick={{ fontSize: 11 }}
-                          width={60}
-                        />
-                        <Tooltip 
-                          contentStyle={{ 
-                            background: 'rgba(248, 250, 252, 0.95)', 
-                            border: 'none',
-                            borderRadius: '12px',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                            fontSize: '11px'
-                          }}
-                          formatter={(value) => `€${value.toFixed(2)}`}
-                        />
-                        <Legend wrapperStyle={{ fontSize: '11px' }} />
-                        <Bar 
-                          dataKey="value" 
-                          fill="url(#paymentGradient)" 
-                          name="Revenue" 
-                          radius={[8, 8, 0, 0]} 
-                        />
-                        <defs>
-                          <linearGradient id="paymentGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#10b981" />
-                            <stop offset="100%" stopColor="#059669" />
-                          </linearGradient>
-                        </defs>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              ) : (
-                <div className="h-[300px] flex items-center justify-center text-slate-500">
-                  Nessun dato disponibile
-                </div>
-              )}
-            </NeumorphicCard>
-
-            {/* Payment Methods Table */}
-            <NeumorphicCard className="p-4 lg:p-6">
-              <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Dettaglio Metodi di Pagamento</h2>
-              <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
-                <table className="w-full min-w-[600px]">
-                  <thead>
-                    <tr className="border-b-2 border-green-600">
-                      <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Metodo</th>
-                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Revenue</th>
-                      {paymentMethodsData.comparisonBreakdown && (
-                        <>
-                          <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Rev Conf</th>
-                          <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
-                        </>
-                      )}
-                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ordini</th>
-                      {paymentMethodsData.comparisonBreakdown && (
-                        <>
-                          <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ord Conf</th>
-                          <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
-                        </>
-                      )}
-                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">€ Medio</th>
-                      {paymentMethodsData.comparisonBreakdown && (
-                        <>
-                          <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Med Conf</th>
-                          <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
-                        </>
-                      )}
-                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">% Revenue</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paymentMethodsData.breakdown.map((method, index) => {
-                      const compareMethod = paymentMethodsData.comparisonBreakdown?.find(m => m.name === method.name);
-                      const revDiff = compareMethod ? method.value - compareMethod.value : 0;
-                      const revDiffPercent = compareMethod && compareMethod.value > 0 ? (revDiff / compareMethod.value) * 100 : 0;
-                      const ordDiff = compareMethod ? method.orders - compareMethod.orders : 0;
-                      const ordDiffPercent = compareMethod && compareMethod.orders > 0 ? (ordDiff / compareMethod.orders) * 100 : 0;
-                      const avgDiff = compareMethod ? method.avgValue - compareMethod.avgValue : 0;
-                      const avgDiffPercent = compareMethod && compareMethod.avgValue > 0 ? (avgDiff / compareMethod.avgValue) * 100 : 0;
-                      
-                      return (
-                        <tr key={index} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
-                          <td className="p-2 lg:p-3">
-                            <div className="flex items-center gap-2">
-                              <div 
-                                className="w-3 h-3 rounded-full flex-shrink-0" 
-                                style={{ background: PAYMENT_COLORS[index % PAYMENT_COLORS.length] }}
-                              />
-                              <span className="text-slate-700 font-medium text-sm">{method.name}</span>
-                            </div>
-                          </td>
-                          <td className="p-2 lg:p-3 text-right text-slate-700 font-bold text-sm">
-                            €{method.value.toFixed(2)}
-                          </td>
-                          {paymentMethodsData.comparisonBreakdown && (
-                            <>
-                              <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
-                                €{compareMethod ? compareMethod.value.toFixed(2) : '0.00'}
-                              </td>
-                              <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
-                                revDiff >= 0 ? 'text-green-600' : 'text-red-600'
-                              }`}>
-                                {revDiff >= 0 ? '+' : ''}{revDiffPercent.toFixed(1)}%
-                              </td>
-                            </>
-                          )}
-                          <td className="p-2 lg:p-3 text-right text-slate-700 font-bold text-sm">
-                            {method.orders}
-                          </td>
-                          {paymentMethodsData.comparisonBreakdown && (
-                            <>
-                              <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
-                                {compareMethod ? compareMethod.orders : 0}
-                              </td>
-                              <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
-                                ordDiff >= 0 ? 'text-green-600' : 'text-red-600'
-                              }`}>
-                                {ordDiff >= 0 ? '+' : ''}{ordDiffPercent.toFixed(1)}%
-                              </td>
-                            </>
-                          )}
-                          <td className="p-2 lg:p-3 text-right text-slate-700 font-bold text-sm">
-                            €{method.avgValue.toFixed(2)}
-                          </td>
-                          {paymentMethodsData.comparisonBreakdown && (
-                            <>
-                              <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
-                                €{compareMethod ? compareMethod.avgValue.toFixed(2) : '0.00'}
-                              </td>
-                              <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
-                                avgDiff >= 0 ? 'text-green-600' : 'text-red-600'
-                              }`}>
-                                {avgDiff >= 0 ? '+' : ''}{avgDiffPercent.toFixed(1)}%
-                              </td>
-                            </>
-                          )}
-                          <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
-                            {paymentMethodsData.totalRevenue > 0 
-                              ? ((method.value / paymentMethodsData.totalRevenue) * 100).toFixed(1) 
-                              : 0}%
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </NeumorphicCard>
-
-            {/* Summary Info Card */}
-            <NeumorphicCard className="p-4 lg:p-6 bg-blue-50">
-              <div className="flex items-start gap-3">
-                <Wallet className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                <div className="text-sm text-blue-700">
-                  <p className="font-bold mb-1">💳 Informazioni Metodi di Pagamento</p>
-                  <p>
-                    I dati includono tutte le transazioni nel periodo selezionato. La percentuale mostra l'incidenza di ciascun metodo sul totale.
-                  </p>
-                </div>
-              </div>
-            </NeumorphicCard>
-          </>
-        )}
-
-        {/* Confronto Mensile Tab */}
-        {activeTab === 'confronto_mensile' && (
+        {/* Confronto Mensile Tab - REMOVED */}
+        {activeTab === 'confronto_mensile_removed' && (
           <>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Periodo 1 */}
