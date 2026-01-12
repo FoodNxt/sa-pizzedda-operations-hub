@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
-import { ChefHat, Calendar, Store, User, TrendingUp, BarChart3, BookOpen, Plus, Edit, Save, Trash2 } from "lucide-react";
+import { ChefHat, Calendar, Store, User, TrendingUp, BarChart3, BookOpen, Plus, Edit, Save, Trash2, Settings, X } from "lucide-react";
 import moment from "moment";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
@@ -21,6 +21,11 @@ export default function StoricoImpasti() {
     ordine: 0,
     arrotondamento: 'nessuno'
   });
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [settingsForm, setSettingsForm] = useState({
+    impasto_minimo: 0,
+    impasto_massimo: 100
+  });
   const queryClient = useQueryClient();
 
   const { data: stores = [] } = useQuery({
@@ -36,6 +41,21 @@ export default function StoricoImpasti() {
   const { data: ricettaIngredienti = [] } = useQuery({
     queryKey: ['ricetta-impasto'],
     queryFn: () => base44.entities.RicettaImpasto.list(),
+  });
+
+  const { data: impastiConfig = [] } = useQuery({
+    queryKey: ['impasti-config'],
+    queryFn: async () => {
+      const configs = await base44.entities.ImpastiConfig.list();
+      const activeConfig = configs.find(c => c.is_active && !c.store_id);
+      if (activeConfig) {
+        setSettingsForm({
+          impasto_minimo: activeConfig.impasto_minimo || 0,
+          impasto_massimo: activeConfig.impasto_massimo || 100
+        });
+      }
+      return configs;
+    },
   });
 
   const sortedIngredienti = [...ricettaIngredienti].filter(i => i.attivo !== false).sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
@@ -60,6 +80,21 @@ export default function StoricoImpasti() {
     mutationFn: (id) => base44.entities.RicettaImpasto.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ricetta-impasto'] });
+    },
+  });
+
+  const saveSettingsMutation = useMutation({
+    mutationFn: async (data) => {
+      const existingConfig = impastiConfig.find(c => c.is_active && !c.store_id);
+      if (existingConfig) {
+        return await base44.entities.ImpastiConfig.update(existingConfig.id, data);
+      } else {
+        return await base44.entities.ImpastiConfig.create({ ...data, is_active: true });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['impasti-config'] });
+      setShowSettingsModal(false);
     },
   });
 
@@ -221,14 +256,23 @@ export default function StoricoImpasti() {
                 <h2 className="text-xl font-bold text-slate-800">Ricetta per 1 Pallina</h2>
                 <p className="text-sm text-slate-500 mt-1">Definisci gli ingredienti e le quantità per ogni pallina di impasto</p>
               </div>
-              <NeumorphicButton
-                onClick={() => setShowIngredientForm(true)}
-                variant="primary"
-                className="flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Aggiungi Ingrediente
-              </NeumorphicButton>
+              <div className="flex gap-2">
+                <NeumorphicButton
+                  onClick={() => setShowSettingsModal(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Settings className="w-4 h-4" />
+                  Impostazioni
+                </NeumorphicButton>
+                <NeumorphicButton
+                  onClick={() => setShowIngredientForm(true)}
+                  variant="primary"
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Aggiungi Ingrediente
+                </NeumorphicButton>
+              </div>
             </div>
 
             {showIngredientForm && (
@@ -376,6 +420,78 @@ export default function StoricoImpasti() {
               </p>
             </div>
           </NeumorphicCard>
+        )}
+
+        {/* Modal Impostazioni */}
+        {showSettingsModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="p-6 max-w-md w-full">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800">Impostazioni Impasto</h2>
+                <button onClick={() => setShowSettingsModal(false)} className="nav-button p-2 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                    Valore Minimo Impasto
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={settingsForm.impasto_minimo}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, impasto_minimo: parseInt(e.target.value) || 0 })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    placeholder="es. 0"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    Numero minimo di palline che i dipendenti possono inserire nel form
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                    Valore Massimo Impasto
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={settingsForm.impasto_massimo}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, impasto_massimo: parseInt(e.target.value) || 100 })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    placeholder="es. 100"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    Numero massimo di palline che i dipendenti possono inserire nel form
+                  </p>
+                </div>
+
+                <div className="neumorphic-flat p-4 rounded-xl bg-blue-50">
+                  <p className="text-sm text-blue-800">
+                    <strong>ℹ️ Info:</strong> Questi valori min/max vengono usati nel form compilato dai dipendenti 
+                    per evitare errori di inserimento dati.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <NeumorphicButton onClick={() => setShowSettingsModal(false)} className="flex-1">
+                  Annulla
+                </NeumorphicButton>
+                <NeumorphicButton 
+                  onClick={() => saveSettingsMutation.mutate(settingsForm)}
+                  variant="primary"
+                  className="flex-1 flex items-center justify-center gap-2"
+                  disabled={saveSettingsMutation.isPending}
+                >
+                  <Save className="w-4 h-4" />
+                  Salva
+                </NeumorphicButton>
+              </div>
+            </NeumorphicCard>
+          </div>
         )}
 
         {/* Tab Storico */}
