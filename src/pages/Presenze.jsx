@@ -27,11 +27,33 @@ export default function Presenze() {
     queryKey: ['turni-oggi'],
     queryFn: async () => {
       const oggi = new Date().toISOString().split('T')[0];
-      return await base44.entities.TurnoPlanday.filter({
+      const ieri = new Date();
+      ieri.setDate(ieri.getDate() - 1);
+      const ieriStr = ieri.toISOString().split('T')[0];
+      
+      // Prendi turni di oggi + turni timbrati senza uscita (potrebbero essere di ieri sera ma ancora aperti)
+      const turniOggi = await base44.entities.TurnoPlanday.filter({
         data: oggi,
         stato: { $ne: 'annullato' }
       });
+      
+      const turniTimbrati = await base44.entities.TurnoPlanday.filter({
+        data: { $gte: ieriStr },
+        timbratura_entrata: { $ne: null },
+        timbratura_uscita: null
+      });
+      
+      // Combina ed elimina duplicati
+      const allShifts = [...turniOggi];
+      turniTimbrati.forEach(t => {
+        if (!allShifts.find(s => s.id === t.id)) {
+          allShifts.push(t);
+        }
+      });
+      
+      return allShifts;
     },
+    refetchInterval: 60000
   });
 
   // Determina turni attivi in questo momento
