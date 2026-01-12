@@ -3205,14 +3205,14 @@ export default function Planday() {
                       onClick={() => {
                         const updateData = {};
                         if (timbrForm.timbrata_entrata) {
-                          updateData.timbrata_entrata = new Date(timbrForm.timbrata_entrata).toISOString();
+                          updateData.timbratura_entrata = new Date(timbrForm.timbrata_entrata).toISOString();
                         } else {
-                          updateData.timbrata_entrata = null;
+                          updateData.timbratura_entrata = null;
                         }
                         if (timbrForm.timbrata_uscita) {
-                          updateData.timbrata_uscita = new Date(timbrForm.timbrata_uscita).toISOString();
+                          updateData.timbratura_uscita = new Date(timbrForm.timbrata_uscita).toISOString();
                         } else {
-                          updateData.timbrata_uscita = null;
+                          updateData.timbratura_uscita = null;
                         }
                         updateTimbraturaMutation.mutate({
                           id: editingTimbratura.id,
