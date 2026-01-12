@@ -579,6 +579,11 @@ export default function TurniDipendente() {
   // Completa attività
   const completaAttivitaMutation = useMutation({
     mutationFn: async ({ turno, attivitaNome, importoPagato, turnoStraordinarioId }) => {
+      // PROTEZIONE: Verifica che il turno sia iniziato prima di permettere il completamento
+      if (!turno.timbratura_entrata) {
+        throw new Error('Devi prima timbrare l\'entrata per completare questa attività');
+      }
+
       const data = {
         dipendente_id: currentUser.id,
         dipendente_nome: currentUser.nome_cognome || currentUser.full_name,
@@ -601,6 +606,10 @@ export default function TurniDipendente() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attivita-completate'] });
       queryClient.invalidateQueries({ queryKey: ['all-form-data-dipendente'] });
+    },
+    onError: (error) => {
+      setTimbraturaMessage({ type: 'error', text: error.message });
+      setTimeout(() => setTimbraturaMessage(null), 3000);
     }
   });
 
