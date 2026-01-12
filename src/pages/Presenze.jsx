@@ -67,14 +67,56 @@ export default function Presenze() {
     });
   };
 
+  // Determina turni che devono ancora iniziare oggi
+  const getTurniProssimiPerStore = (storeId) => {
+    const now = currentTime;
+    const todayStr = format(now, 'yyyy-MM-dd');
+
+    return turni
+      .filter(turno => {
+        if (turno.store_id !== storeId) return false;
+        if (turno.data !== todayStr) return false;
+
+        try {
+          const [oraInizioH, oraInizioM] = turno.ora_inizio.split(':').map(Number);
+          const inizioDate = new Date(now);
+          inizioDate.setHours(oraInizioH, oraInizioM, 0, 0);
+
+          return inizioDate > now;
+        } catch (error) {
+          return false;
+        }
+      })
+      .map(turno => {
+        const [oraInizioH, oraInizioM] = turno.ora_inizio.split(':').map(Number);
+        const inizioDate = new Date(now);
+        inizioDate.setHours(oraInizioH, oraInizioM, 0, 0);
+        
+        const diffMs = inizioDate - now;
+        const diffHours = diffMs / (1000 * 60 * 60);
+        const diffMinutes = (diffMs / (1000 * 60)) % 60;
+
+        return {
+          ...turno,
+          inizioDate,
+          diffHours: Math.floor(diffHours),
+          diffMinutes: Math.floor(diffMinutes),
+          diffTotal: diffHours
+        };
+      })
+      .sort((a, b) => a.diffTotal - b.diffTotal);
+  };
+
   const storeStats = stores.map(store => {
     const turniAttivi = getTurniAttiviPerStore(store.id);
+    const turniProssimi = getTurniProssimiPerStore(store.id);
     const timbrati = turniAttivi.filter(t => t.timbrata_entrata).length;
     const nonTimbrati = turniAttivi.filter(t => !t.timbrata_entrata).length;
 
     return {
       store,
       turniAttivi,
+      turniProssimi,
       timbrati,
       nonTimbrati,
       totale: turniAttivi.length
@@ -134,7 +176,7 @@ export default function Presenze() {
 
         {/* Store List */}
         <div className="grid grid-cols-1 gap-4">
-          {storeStats.map(({ store, turniAttivi, timbrati, nonTimbrati, totale }) => (
+          {storeStats.map(({ store, turniAttivi, turniProssimi, timbrati, nonTimbrati, totale }) => (
             <NeumorphicCard key={store.id} className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -216,6 +258,48 @@ export default function Presenze() {
                   <div className="flex items-center gap-1">
                     <div className="w-3 h-3 rounded-full bg-orange-500"></div>
                     <span className="text-slate-600">{nonTimbrati} non timbrati</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Prossimi Turni */}
+              {turniProssimi.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-slate-200">
+                  <h3 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    Prossimi Turni Oggi
+                  </h3>
+                  <div className="space-y-2">
+                    {turniProssimi.map(turno => (
+                      <div
+                        key={turno.id}
+                        className="neumorphic-pressed p-3 rounded-xl flex items-center justify-between bg-slate-50"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-medium text-slate-700 text-sm">{turno.dipendente_nome}</p>
+                            <span className="px-2 py-0.5 rounded text-xs font-medium bg-slate-200 text-slate-700">
+                              {turno.ruolo}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-slate-600">
+                            <span>{turno.ora_inizio} - {turno.ora_fine}</span>
+                            {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
+                              <span className="text-slate-500">({turno.tipo_turno})</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="px-3 py-1 rounded-lg bg-blue-100">
+                            <p className="text-xs font-bold text-blue-700">
+                              {turno.diffHours > 0 && `${turno.diffHours}h `}
+                              {turno.diffMinutes}m
+                            </p>
+                            <p className="text-xs text-blue-600">tra</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
