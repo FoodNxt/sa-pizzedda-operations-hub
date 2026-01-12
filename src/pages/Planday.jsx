@@ -137,9 +137,25 @@ export default function Planday() {
   const { data: turniTimbrature = [] } = useQuery({
     queryKey: ['turni-timbrature', dateFrom, dateTo],
     queryFn: async () => {
-      return base44.entities.TurnoPlanday.filter({
+      // Prendi turni nel range + turni con timbratura attiva (senza uscita)
+      const turniRange = await base44.entities.TurnoPlanday.filter({
         data: { $gte: dateFrom, $lte: dateTo }
       });
+      
+      const turniAttivi = await base44.entities.TurnoPlanday.filter({
+        timbrata_entrata: { $ne: null },
+        timbrata_uscita: null
+      });
+      
+      // Combina ed elimina duplicati
+      const allShifts = [...turniRange];
+      turniAttivi.forEach(t => {
+        if (!allShifts.find(s => s.id === t.id)) {
+          allShifts.push(t);
+        }
+      });
+      
+      return allShifts;
     },
     enabled: mainView === 'timbrature',
   });
