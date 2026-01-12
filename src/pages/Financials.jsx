@@ -721,9 +721,26 @@ export default function Financials() {
       let itemRevenue = 0;
       let itemOrders = 0;
       
-      // Always calculate % Store based on UNFILTERED Store and Delivery channels
-      const itemStoreRevenue = item.sourceType_store || 0;
-      const itemDeliveryRevenue = item.sourceType_delivery || 0;
+      // Calculate % Store based on MAPPED channels
+      const channels = [
+        { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+        { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+        { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+        { key: 'store', revenue: item.sourceType_store || 0 }
+      ];
+      
+      let itemStoreRevenue = 0;
+      let itemDeliveryRevenue = 0;
+      
+      channels.forEach(ch => {
+        const mappedKey = channelMapping[ch.key] || ch.key;
+        if (mappedKey.toLowerCase() === 'store') {
+          itemStoreRevenue += ch.revenue;
+        } else if (mappedKey.toLowerCase() === 'delivery') {
+          itemDeliveryRevenue += ch.revenue;
+        }
+      });
+      
       const itemTotalChannelRevenue = itemStoreRevenue + itemDeliveryRevenue;
 
       // Channel filter
