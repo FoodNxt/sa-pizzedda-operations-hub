@@ -2669,9 +2669,9 @@ export default function Financials() {
                           
                           return (
                             <tr key={day.date} className="border-b border-slate-200">
-                              <td className="p-3 text-slate-700 font-medium text-sm">
-                                {safeFormatDate(safeParseDate(day.date), 'EEEE dd/MM')}
-                              </td>
+                             <td className="p-3 text-slate-700 font-medium text-sm">
+                               {day.date ? safeFormatDate(safeParseDate(day.date + 'T00:00:00'), 'EEEE dd/MM') : 'N/A'}
+                             </td>
                               <td className="p-3 text-right text-slate-700 font-bold text-sm">
                                 €{formatCurrency(day.revenue)}
                               </td>
