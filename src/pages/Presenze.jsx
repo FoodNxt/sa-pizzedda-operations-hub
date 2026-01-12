@@ -27,16 +27,16 @@ export default function Presenze() {
     queryKey: ['turni-oggi'],
     queryFn: async () => {
       const oggi = new Date().toISOString().split('T')[0];
-      
+
       // Prendi turni di oggi + turni timbrati ancora aperti (senza uscita)
       const turniOggi = await base44.entities.TurnoPlanday.filter({
         data: oggi,
         stato: { $ne: 'annullato' }
       });
-      
+
       const turniAperti = await base44.entities.TurnoPlanday.filter({
-        timbrata_entrata: { $ne: null },
-        timbrata_uscita: null
+        timbratura_entrata: { $ne: null },
+        timbratura_uscita: null
       });
       
       // Combina ed elimina duplicati
@@ -128,8 +128,8 @@ export default function Presenze() {
   const storeStats = stores.map(store => {
     const turniAttivi = getTurniAttiviPerStore(store.id);
     const turniProssimi = getTurniProssimiPerStore(store.id);
-    const timbrati = turniAttivi.filter(t => t.timbrata_entrata).length;
-    const nonTimbrati = turniAttivi.filter(t => !t.timbrata_entrata).length;
+    const timbrati = turniAttivi.filter(t => t.timbratura_entrata).length;
+    const nonTimbrati = turniAttivi.filter(t => !t.timbratura_entrata).length;
 
     return {
       store,
@@ -245,13 +245,13 @@ export default function Presenze() {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        {turno.timbrata_entrata ? (
+                        {turno.timbratura_entrata ? (
                           <div className="flex items-center gap-2 text-green-600">
                             <CheckCircle className="w-5 h-5" />
                             <div className="text-right">
                               <p className="text-xs font-medium">Entrata Timbrata</p>
                               <p className="text-xs">
-                                {format(parseISO(turno.timbrata_entrata), 'HH:mm', { locale: it })}
+                                {format(parseISO(turno.timbratura_entrata), 'HH:mm', { locale: it })}
                               </p>
                             </div>
                           </div>

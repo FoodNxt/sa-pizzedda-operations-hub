@@ -143,8 +143,8 @@ export default function Planday() {
       });
       
       const turniAttivi = await base44.entities.TurnoPlanday.filter({
-        timbrata_entrata: { $ne: null },
-        timbrata_uscita: null
+        timbratura_entrata: { $ne: null },
+        timbratura_uscita: null
       });
       
       // Combina ed elimina duplicati
@@ -1217,16 +1217,16 @@ export default function Planday() {
 
   const calcolaOreEffettive = (turno) => {
     // Se non c'è timbro entrata, non possiamo calcolare
-    if (!turno.timbrata_entrata) return null;
+    if (!turno.timbratura_entrata) return null;
     
     const stato = getTimbraturaTipo(turno);
-    const entrata = moment(turno.timbrata_entrata);
+    const entrata = moment(turno.timbratura_entrata);
     
     let minutiEffettivi = 0;
     
-    if (turno.timbrata_uscita) {
+    if (turno.timbratura_uscita) {
       // Se c'è uscita, calcola normalmente
-      const uscita = moment(turno.timbrata_uscita);
+      const uscita = moment(turno.timbratura_uscita);
       minutiEffettivi = uscita.diff(entrata, 'minutes');
     } else if (stato.tipo === 'mancata_uscita') {
       // Se uscita mancata, usa l'ora fine turno prevista meno penalità
@@ -1264,7 +1264,7 @@ export default function Planday() {
     }
     
     // Mancata timbratura entrata (se il turno è finito)
-    if (!turno.timbrata_entrata && turnoEnd.isBefore(now)) {
+    if (!turno.timbratura_entrata && turnoEnd.isBefore(now)) {
       const penalita = calcolaPenalitaMancata();
       return { 
         tipo: 'mancata', 
@@ -1278,7 +1278,7 @@ export default function Planday() {
     }
     
     // Mancata timbratura uscita (se sono passate X ore dalla fine turno)
-    if (turno.timbrata_entrata && !turno.timbrata_uscita && now.isAfter(limiteUscitaMancata)) {
+    if (turno.timbratura_entrata && !turno.timbratura_uscita && now.isAfter(limiteUscitaMancata)) {
       const penalita = calcolaPenalitaMancata();
       return {
         tipo: 'mancata_uscita',
@@ -1292,11 +1292,11 @@ export default function Planday() {
     }
     
     // Turno in corso
-    if (!turno.timbrata_entrata) {
+    if (!turno.timbratura_entrata) {
       return { tipo: 'in_corso', color: 'text-yellow-600', bg: 'bg-yellow-100', label: 'In attesa', ritardoReale: 0, ritardoConteggiato: 0 };
     }
     
-    const timbrataEntrata = moment(turno.timbrata_entrata);
+    const timbrataEntrata = moment(turno.timbratura_entrata);
     const ritardoReale = timbrataEntrata.diff(turnoStart, 'minutes');
     
     if (ritardoReale <= 0) {
@@ -1503,21 +1503,21 @@ export default function Planday() {
   };
 
   const timbratureStats = useMemo(() => {
-    const turniConTimbratura = filteredTurniTimbrature.filter(t => t.timbrata_entrata);
+    const turniConTimbratura = filteredTurniTimbrature.filter(t => t.timbratura_entrata);
     const turniSenzaTimbratura = filteredTurniTimbrature.filter(t => {
       const stato = getTimbraturaTipo(t);
       return stato.tipo === 'mancata' || stato.tipo === 'mancata_uscita';
     });
     const turniInRitardo = turniConTimbratura.filter(t => {
-      if (!t.timbrata_entrata) return false;
-      const oraInizio = moment(`${t.data} ${t.ora_inizio}`);
-      const timbrataEntrata = moment(t.timbrata_entrata);
+    if (!t.timbratura_entrata) return false;
+    const oraInizio = moment(`${t.data} ${t.ora_inizio}`);
+    const timbrataEntrata = moment(t.timbratura_entrata);
       return timbrataEntrata.isAfter(oraInizio);
     });
     
     const totaleMinutiRitardo = turniInRitardo.reduce((sum, t) => {
       const oraInizio = moment(`${t.data} ${t.ora_inizio}`);
-      const timbrataEntrata = moment(t.timbrata_entrata);
+      const timbrataEntrata = moment(t.timbratura_entrata);
       return sum + timbrataEntrata.diff(oraInizio, 'minutes');
     }, 0);
 
@@ -3309,10 +3309,10 @@ export default function Planday() {
                               {turno.ora_inizio}-{turno.ora_fine}
                             </td>
                             <td className="p-2 text-xs">
-                              {turno.timbrata_entrata ? (
+                              {turno.timbratura_entrata ? (
                                 <div className="whitespace-nowrap">
                                   <div className="font-medium text-slate-800">
-                                    {moment(turno.timbrata_entrata).format('HH:mm')}
+                                    {moment(turno.timbratura_entrata).format('HH:mm')}
                                   </div>
                                   {turno.posizione_entrata && (
                                     <div className="text-[10px] text-slate-400 flex items-center gap-1">
@@ -3328,9 +3328,9 @@ export default function Planday() {
                               )}
                             </td>
                             <td className="p-2 text-xs whitespace-nowrap">
-                              {turno.timbrata_uscita ? (
+                              {turno.timbratura_uscita ? (
                                 <div className="font-medium text-slate-800">
-                                  {moment(turno.timbrata_uscita).format('HH:mm')}
+                                  {moment(turno.timbratura_uscita).format('HH:mm')}
                                 </div>
                               ) : (
                                 <span className="text-slate-400">-</span>
@@ -3389,8 +3389,8 @@ export default function Planday() {
                                 onClick={() => {
                                   setEditingTimbratura(turno);
                                   setTimbrForm({
-                                    timbrata_entrata: turno.timbrata_entrata ? moment(turno.timbrata_entrata).format('YYYY-MM-DDTHH:mm') : '',
-                                    timbrata_uscita: turno.timbrata_uscita ? moment(turno.timbrata_uscita).format('YYYY-MM-DDTHH:mm') : ''
+                                    timbrata_entrata: turno.timbratura_entrata ? moment(turno.timbratura_entrata).format('YYYY-MM-DDTHH:mm') : '',
+                                    timbrata_uscita: turno.timbratura_uscita ? moment(turno.timbratura_uscita).format('YYYY-MM-DDTHH:mm') : ''
                                   });
                                 }}
                                 className="nav-button p-1.5 rounded-lg hover:bg-blue-50"
