@@ -503,11 +503,15 @@ export default function Financials() {
       }
     }
 
-    // Calculate % in Store
-    const storeChannel = channelBreakdown.find(ch => ch.name.toLowerCase() === 'store');
-    const deliveryChannel = channelBreakdown.find(ch => ch.name.toLowerCase() === 'delivery');
-    const storeRevenue = storeChannel?.value || 0;
-    const deliveryRevenue = deliveryChannel?.value || 0;
+    // Calculate % in Store (ALWAYS from unfiltered Store and Delivery data)
+    let storeRevenue = 0;
+    let deliveryRevenue = 0;
+    
+    filtered.forEach(item => {
+      storeRevenue += item.sourceType_store || 0;
+      deliveryRevenue += item.sourceType_delivery || 0;
+    });
+    
     const totalChannelRevenue = storeRevenue + deliveryRevenue;
     const percentInStore = totalChannelRevenue > 0 ? (storeRevenue / totalChannelRevenue) * 100 : 0;
 
@@ -2637,12 +2641,16 @@ export default function Financials() {
                         <tr className="border-b-2 border-blue-600">
                           <th className="text-left p-3 text-slate-600 font-medium text-sm">Giorno</th>
                           <th className="text-right p-3 text-slate-600 font-medium text-sm">Revenue</th>
+                          <th className="text-right p-3 text-slate-600 font-medium text-sm">Media</th>
                           <th className="text-right p-3 text-slate-600 font-medium text-sm">vs Media</th>
                           <th className="text-right p-3 text-slate-600 font-medium text-sm">Scontrino Medio</th>
+                          <th className="text-right p-3 text-slate-600 font-medium text-sm">Media</th>
                           <th className="text-right p-3 text-slate-600 font-medium text-sm">vs Media</th>
                           <th className="text-right p-3 text-slate-600 font-medium text-sm">Ordini</th>
+                          <th className="text-right p-3 text-slate-600 font-medium text-sm">Media</th>
                           <th className="text-right p-3 text-slate-600 font-medium text-sm">vs Media</th>
                           <th className="text-right p-3 text-slate-600 font-medium text-sm">% Store</th>
+                          <th className="text-right p-3 text-slate-600 font-medium text-sm">Media</th>
                           <th className="text-right p-3 text-slate-600 font-medium text-sm">vs Media</th>
                         </tr>
                       </thead>
@@ -2669,11 +2677,14 @@ export default function Financials() {
                           
                           return (
                             <tr key={day.date} className="border-b border-slate-200">
-                             <td className="p-3 text-slate-700 font-medium text-sm">
-                               {day.date ? safeFormatDate(safeParseDate(day.date + 'T00:00:00'), 'EEEE dd/MM') : 'N/A'}
-                             </td>
+                              <td className="p-3 text-slate-700 font-medium text-sm">
+                                {day.date ? safeFormatDate(safeParseDate(day.date + 'T00:00:00'), 'EEEE dd/MM') : 'N/A'}
+                              </td>
                               <td className="p-3 text-right text-slate-700 font-bold text-sm">
                                 €{formatCurrency(day.revenue)}
+                              </td>
+                              <td className="p-3 text-right text-slate-500 text-xs">
+                                €{formatCurrency(dayAvg.revenue)}
                               </td>
                               <td className={`p-3 text-right text-xs font-medium ${revenueDiff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                 {revenueDiff >= 0 ? '+' : ''}{revenueDiffPercent.toFixed(1)}%
@@ -2681,17 +2692,26 @@ export default function Financials() {
                               <td className="p-3 text-right text-slate-700 font-bold text-sm">
                                 €{formatCurrency(avgOrderValue)}
                               </td>
+                              <td className="p-3 text-right text-slate-500 text-xs">
+                                €{formatCurrency(dayAvg.avgOrderValue)}
+                              </td>
                               <td className={`p-3 text-right text-xs font-medium ${avgDiff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                 {avgDiff >= 0 ? '+' : ''}{avgDiffPercent.toFixed(1)}%
                               </td>
                               <td className="p-3 text-right text-slate-700 font-bold text-sm">
                                 {day.orders}
                               </td>
+                              <td className="p-3 text-right text-slate-500 text-xs">
+                                {dayAvg.orders.toFixed(0)}
+                              </td>
                               <td className={`p-3 text-right text-xs font-medium ${ordersDiff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                 {ordersDiff >= 0 ? '+' : ''}{ordersDiffPercent.toFixed(1)}%
                               </td>
                               <td className="p-3 text-right text-slate-700 font-bold text-sm">
                                 {percentStore.toFixed(1)}%
+                              </td>
+                              <td className="p-3 text-right text-slate-500 text-xs">
+                                {dayAvg.percentStore.toFixed(1)}%
                               </td>
                               <td className={`p-3 text-right text-xs font-medium ${percentStoreDiff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                 {percentStoreDiff >= 0 ? '+' : ''}{percentStoreDiff.toFixed(1)}pp
