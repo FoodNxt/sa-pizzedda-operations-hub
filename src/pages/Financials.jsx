@@ -6,6 +6,7 @@ import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, subDays, isAfter, isBefore, parseISO, isValid, addDays, subYears, eachDayOfInterval } from 'date-fns';
 import ProtectedPage from "../components/ProtectedPage";
+import { formatCurrency, formatEuro } from "../components/utils/formatCurrency";
 
 export default function Financials() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -1116,7 +1117,7 @@ export default function Financials() {
                 <p className="text-xs text-slate-500 mb-1">Revenue</p>
                 <div className="flex items-baseline gap-2">
                   <p className="text-lg font-bold text-slate-800">
-                    €{(processedData.comparisonData.totalRevenue / 1000).toFixed(1)}k
+                    €{formatCurrency(processedData.comparisonData.totalRevenue / 1000, 1)}k
                   </p>
                   <p className={`text-xs font-medium ${
                     processedData.comparisonData.revenueDiff >= 0 ? 'text-green-600' : 'text-red-600'
@@ -1146,7 +1147,7 @@ export default function Financials() {
                 <p className="text-xs text-slate-500 mb-1">Scontrino Medio</p>
                 <div className="flex items-baseline gap-2">
                   <p className="text-lg font-bold text-slate-800">
-                    €{processedData.comparisonData.avgOrderValue.toFixed(2)}
+                    €{formatCurrency(processedData.comparisonData.avgOrderValue)}
                   </p>
                   <p className={`text-xs font-medium ${
                     processedData.comparisonData.avgOrderValueDiff >= 0 ? 'text-green-600' : 'text-red-600'
@@ -1222,7 +1223,7 @@ export default function Financials() {
                 <DollarSign className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
               </div>
               <h3 className="text-lg lg:text-xl font-bold text-slate-800 mb-1">
-                €{(processedData.totalRevenue / 1000).toFixed(1)}k
+                €{formatCurrency(processedData.totalRevenue / 1000, 1)}k
               </h3>
               <p className="text-xs text-slate-500">Revenue</p>
             </div>
@@ -1246,7 +1247,7 @@ export default function Financials() {
                 <DollarSign className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
               </div>
               <h3 className="text-lg lg:text-xl font-bold text-slate-800 mb-1">
-                €{processedData.avgOrderValue.toFixed(2)}
+                €{formatCurrency(processedData.avgOrderValue)}
               </h3>
               <p className="text-xs text-slate-500">Medio</p>
             </div>
@@ -1355,14 +1356,14 @@ export default function Financials() {
                         width={60}
                       />
                       <Tooltip 
-                        contentStyle={{ 
-                          background: 'rgba(248, 250, 252, 0.95)', 
-                          border: 'none',
-                          borderRadius: '12px',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                          fontSize: '11px'
-                        }}
-                        formatter={(value) => `€${value.toFixed(2)}`}
+                       contentStyle={{ 
+                         background: 'rgba(248, 250, 252, 0.95)', 
+                         border: 'none',
+                         borderRadius: '12px',
+                         boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                         fontSize: '11px'
+                       }}
+                       formatter={(value) => `€${formatCurrency(value)}`}
                       />
                       <Legend wrapperStyle={{ fontSize: '10px' }} />
                       {stores.filter(s => selectedStoresForTrend.includes(s.id)).map((store, idx) => (
@@ -1416,59 +1417,57 @@ export default function Financials() {
                           width={50}
                         />
                       )}
-                      {showAvgValue && (
-                        <YAxis 
-                          yAxisId="right" 
-                          orientation="right"
-                          stroke="#22c55e"
-                          tick={{ fontSize: 11 }}
-                          width={50}
-                        />
-                      )}
+                      <YAxis 
+                        yAxisId="right" 
+                        orientation="right"
+                        stroke="#22c55e"
+                        tick={{ fontSize: 11 }}
+                        width={50}
+                      />
                       <Tooltip 
-                        contentStyle={{ 
-                          background: 'rgba(248, 250, 252, 0.95)', 
-                          border: 'none',
-                          borderRadius: '12px',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                          fontSize: '11px'
-                        }}
-                        formatter={(value) => `€${value.toFixed(2)}`}
+                       contentStyle={{ 
+                         background: 'rgba(248, 250, 252, 0.95)', 
+                         border: 'none',
+                         borderRadius: '12px',
+                         boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                         fontSize: '11px'
+                       }}
+                       formatter={(value) => `€${formatCurrency(value)}`}
                       />
                       <Legend wrapperStyle={{ fontSize: '11px' }} />
                       {showRevenue && (
-                        <Line 
-                          yAxisId="left"
-                          type="monotone" 
-                          dataKey="revenue" 
-                          stroke="#3b82f6" 
-                          strokeWidth={2} 
-                          name="Revenue" 
-                          dot={{ fill: '#3b82f6', r: 3 }}
-                        />
+                       <Line 
+                         yAxisId="left"
+                         type="monotone" 
+                         dataKey="revenue" 
+                         stroke="#3b82f6" 
+                         strokeWidth={2} 
+                         name="Revenue" 
+                         dot={{ fill: '#3b82f6', r: 3 }}
+                       />
                       )}
                       {showTrendline && showRevenue && (
-                        <Line 
-                          yAxisId="left"
-                          type="monotone" 
-                          dataKey="trend" 
-                          stroke="#8b5cf6" 
-                          strokeWidth={2} 
-                          strokeDasharray="5 5"
-                          name="Trendline" 
-                          dot={false}
-                        />
+                       <Line 
+                         yAxisId="left"
+                         type="monotone" 
+                         dataKey="trend" 
+                         stroke="#8b5cf6" 
+                         strokeWidth={2} 
+                         strokeDasharray="5 5"
+                         name="Trendline" 
+                         dot={false}
+                       />
                       )}
                       {showAvgValue && (
-                        <Line 
-                          yAxisId="right"
-                          type="monotone" 
-                          dataKey="avgValue" 
-                          stroke="#22c55e" 
-                          strokeWidth={2} 
-                          name="Medio"
-                          dot={{ fill: '#22c55e', r: 2 }}
-                        />
+                       <Line 
+                         yAxisId="right"
+                         type="monotone" 
+                         dataKey="avgValue" 
+                         stroke="#22c55e" 
+                         strokeWidth={2} 
+                         name="Medio"
+                         dot={{ fill: '#22c55e', r: 2 }}
+                       />
                       )}
                     </LineChart>
                   </ResponsiveContainer>
@@ -1503,21 +1502,21 @@ export default function Financials() {
                         width={60}
                       />
                       <Tooltip 
-                        contentStyle={{ 
-                          background: 'rgba(248, 250, 252, 0.95)', 
-                          border: 'none',
-                          borderRadius: '12px',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                          fontSize: '11px'
-                        }}
-                        formatter={(value) => `€${value.toFixed(2)}`}
+                       contentStyle={{ 
+                         background: 'rgba(248, 250, 252, 0.95)', 
+                         border: 'none',
+                         borderRadius: '12px',
+                         boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                         fontSize: '11px'
+                       }}
+                       formatter={(value) => `€${formatCurrency(value)}`}
                       />
                       <Legend wrapperStyle={{ fontSize: '11px' }} />
                       <Bar 
-                        dataKey="revenue" 
-                        fill="url(#storeGradient)" 
-                        name="Revenue" 
-                        radius={[8, 8, 0, 0]} 
+                       dataKey="revenue" 
+                       fill="url(#storeGradient)" 
+                       name="Revenue" 
+                       radius={[8, 8, 0, 0]} 
                       />
                       <defs>
                         <linearGradient id="storeGradient" x1="0" y1="0" x2="0" y2="1">
@@ -1544,28 +1543,29 @@ export default function Financials() {
               <table className="w-full min-w-[500px]">
                 <thead>
                   <tr className="border-b border-slate-300">
-                    <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Locale</th>
-                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Revenue</th>
-                    {processedData.comparisonData && (
-                      <>
-                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Rev Conf</th>
-                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
-                      </>
-                    )}
-                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ordini</th>
-                    {processedData.comparisonData && (
-                      <>
-                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ord Conf</th>
-                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
-                      </>
-                    )}
-                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">€ Medio</th>
-                    {processedData.comparisonData && (
-                      <>
-                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Med Conf</th>
-                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
-                      </>
-                    )}
+                   <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Locale</th>
+                   <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Revenue</th>
+                   {processedData.comparisonData && (
+                     <>
+                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Rev Conf</th>
+                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                     </>
+                   )}
+                   <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ordini</th>
+                   {processedData.comparisonData && (
+                     <>
+                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ord Conf</th>
+                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                     </>
+                   )}
+                   <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">€ Medio</th>
+                   {processedData.comparisonData && (
+                     <>
+                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Med Conf</th>
+                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                     </>
+                   )}
+                   <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">% Tot</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1581,11 +1581,11 @@ export default function Financials() {
                     return (
                       <tr key={index} className="border-b border-slate-200">
                         <td className="p-2 lg:p-3 text-slate-700 font-medium text-sm">{store.name}</td>
-                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm font-bold">€{store.revenue.toFixed(2)}</td>
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm font-bold">€{formatCurrency(store.revenue)}</td>
                         {processedData.comparisonData && (
                           <>
                             <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
-                              €{compareStore ? compareStore.revenue.toFixed(2) : '0.00'}
+                              €{compareStore ? formatCurrency(compareStore.revenue) : '0,00'}
                             </td>
                             <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
                               revDiff >= 0 ? 'text-green-600' : 'text-red-600'
@@ -1607,11 +1607,11 @@ export default function Financials() {
                             </td>
                           </>
                         )}
-                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm font-bold">€{store.avgValue.toFixed(2)}</td>
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm font-bold">€{formatCurrency(store.avgValue)}</td>
                         {processedData.comparisonData && (
                           <>
                             <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
-                              €{compareStore ? compareStore.avgValue.toFixed(2) : '0.00'}
+                              €{compareStore ? formatCurrency(compareStore.avgValue) : '0,00'}
                             </td>
                             <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
                               avgDiff >= 0 ? 'text-green-600' : 'text-red-600'
@@ -1620,6 +1620,9 @@ export default function Financials() {
                             </td>
                           </>
                         )}
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
+                          {((store.revenue / processedData.totalRevenue) * 100).toFixed(1)}%
+                        </td>
                       </tr>
                     );
                   })}
@@ -1675,28 +1678,29 @@ export default function Financials() {
               <table className="w-full min-w-[450px]">
                 <thead>
                   <tr className="border-b border-slate-300">
-                    <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Canale</th>
-                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Revenue</th>
-                    {processedData.comparisonData && (
-                      <>
-                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Rev Conf</th>
-                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
-                      </>
-                    )}
-                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ordini</th>
-                    {processedData.comparisonData && (
-                      <>
-                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ord Conf</th>
-                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
-                      </>
-                    )}
-                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">€ Medio</th>
-                    {processedData.comparisonData && (
-                      <>
-                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Med Conf</th>
-                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
-                      </>
-                    )}
+                   <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Canale</th>
+                   <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Revenue</th>
+                   {processedData.comparisonData && (
+                     <>
+                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Rev Conf</th>
+                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                     </>
+                   )}
+                   <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ordini</th>
+                   {processedData.comparisonData && (
+                     <>
+                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ord Conf</th>
+                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                     </>
+                   )}
+                   <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">€ Medio</th>
+                   {processedData.comparisonData && (
+                     <>
+                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Med Conf</th>
+                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                     </>
+                   )}
+                   <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">% Tot</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1714,11 +1718,11 @@ export default function Financials() {
                     return (
                       <tr key={index} className="border-b border-slate-200">
                         <td className="p-2 lg:p-3 text-slate-700 font-medium text-sm">{channel.name}</td>
-                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm font-bold">€{channel.value.toFixed(2)}</td>
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm font-bold">€{formatCurrency(channel.value)}</td>
                         {processedData.comparisonData && (
                           <>
                             <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
-                              €{compareChannel ? compareChannel.value.toFixed(2) : '0.00'}
+                              €{compareChannel ? formatCurrency(compareChannel.value) : '0,00'}
                             </td>
                             <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
                               revDiff >= 0 ? 'text-green-600' : 'text-red-600'
@@ -1740,11 +1744,11 @@ export default function Financials() {
                             </td>
                           </>
                         )}
-                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm font-bold">€{channelAvg.toFixed(2)}</td>
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm font-bold">€{formatCurrency(channelAvg)}</td>
                         {processedData.comparisonData && (
                           <>
                             <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
-                              €{compareChannel ? compareAvg.toFixed(2) : '0.00'}
+                              €{compareChannel ? formatCurrency(compareAvg) : '0,00'}
                             </td>
                             <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
                               avgDiff >= 0 ? 'text-green-600' : 'text-red-600'
@@ -1753,6 +1757,9 @@ export default function Financials() {
                             </td>
                           </>
                         )}
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
+                          {((channel.value / processedData.totalRevenue) * 100).toFixed(1)}%
+                        </td>
                       </tr>
                     );
                   })}
@@ -1810,28 +1817,29 @@ export default function Financials() {
               <table className="w-full min-w-[600px]">
                 <thead>
                   <tr className="border-b-2 border-blue-600">
-                    <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">App</th>
-                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Revenue</th>
-                    {processedData.comparisonData && (
-                      <>
-                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Rev Conf</th>
-                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
-                      </>
-                    )}
-                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ordini</th>
-                    {processedData.comparisonData && (
-                      <>
-                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ord Conf</th>
-                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
-                      </>
-                    )}
-                    <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">€ Medio</th>
-                    {processedData.comparisonData && (
-                      <>
-                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Med Conf</th>
-                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
-                      </>
-                    )}
+                   <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">App</th>
+                   <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Revenue</th>
+                   {processedData.comparisonData && (
+                     <>
+                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Rev Conf</th>
+                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                     </>
+                   )}
+                   <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ordini</th>
+                   {processedData.comparisonData && (
+                     <>
+                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ord Conf</th>
+                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                     </>
+                   )}
+                   <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">€ Medio</th>
+                   {processedData.comparisonData && (
+                     <>
+                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Med Conf</th>
+                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                     </>
+                   )}
+                   <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">% Tot</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1858,12 +1866,12 @@ export default function Financials() {
                           </div>
                         </td>
                         <td className="p-2 lg:p-3 text-right text-slate-700 font-bold text-sm">
-                          €{app.value.toFixed(2)}
+                          €{formatCurrency(app.value)}
                         </td>
                         {processedData.comparisonData && (
                           <>
                             <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
-                              €{compareApp ? compareApp.value.toFixed(2) : '0.00'}
+                              €{compareApp ? formatCurrency(compareApp.value) : '0,00'}
                             </td>
                             <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
                               revDiff >= 0 ? 'text-green-600' : 'text-red-600'
@@ -1888,12 +1896,12 @@ export default function Financials() {
                           </>
                         )}
                         <td className="p-2 lg:p-3 text-right text-slate-700 font-bold text-sm">
-                          €{appAvg.toFixed(2)}
+                          €{formatCurrency(appAvg)}
                         </td>
                         {processedData.comparisonData && (
                           <>
                             <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
-                              €{compareApp ? compareAvg.toFixed(2) : '0.00'}
+                              €{compareApp ? formatCurrency(compareAvg) : '0,00'}
                             </td>
                             <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
                               avgDiff >= 0 ? 'text-green-600' : 'text-red-600'
@@ -1902,6 +1910,9 @@ export default function Financials() {
                             </td>
                           </>
                         )}
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
+                          {((app.value / processedData.totalRevenue) * 100).toFixed(1)}%
+                        </td>
                       </tr>
                     );
                   })}
@@ -2014,25 +2025,25 @@ export default function Financials() {
                         </div>
                       </td>
                       <td className="p-2 lg:p-3 text-right text-slate-700 font-bold text-sm">
-                        €{method.revenue.toFixed(2)}
+                       €{formatCurrency(method.revenue)}
                       </td>
                       {processedData.comparisonData && (
-                        <>
-                          <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">-</td>
-                          <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">-</td>
-                        </>
+                       <>
+                         <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">-</td>
+                         <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">-</td>
+                       </>
                       )}
                       <td className="p-2 lg:p-3 text-right text-slate-700 font-bold text-sm">
-                        {method.orders}
+                       {method.orders}
                       </td>
                       {processedData.comparisonData && (
-                        <>
-                          <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">-</td>
-                          <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">-</td>
-                        </>
+                       <>
+                         <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">-</td>
+                         <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">-</td>
+                       </>
                       )}
                       <td className="p-2 lg:p-3 text-right text-slate-700 font-bold text-sm">
-                        €{method.avgValue.toFixed(2)}
+                       €{formatCurrency(method.avgValue)}
                       </td>
                       {processedData.comparisonData && (
                         <>
