@@ -25,6 +25,7 @@ export default function Financials() {
   const [compareEndDate, setCompareEndDate] = useState('');
   const [selectedChannels, setSelectedChannels] = useState([]);
   const [selectedApps, setSelectedApps] = useState([]);
+  const [selectedPaymentMethods, setSelectedPaymentMethods] = useState([]);
   
   // Confronto Mensile State
   const [periodo1Store, setPeriodo1Store] = useState('all');
@@ -105,6 +106,14 @@ export default function Financials() {
     if (startDate || endDate) {
       cutoffDate = startDate ? safeParseDate(startDate + 'T00:00:00') : new Date(0);
       endFilterDate = endDate ? safeParseDate(endDate + 'T23:59:59') : new Date();
+    } else if (dateRange === 'currentweek') {
+      const now = new Date();
+      const dayOfWeek = now.getDay();
+      const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      cutoffDate = new Date(now);
+      cutoffDate.setDate(now.getDate() + diffToMonday);
+      cutoffDate.setHours(0, 0, 0, 0);
+      endFilterDate = new Date();
     } else {
       const days = parseInt(dateRange, 10);
       cutoffDate = subDays(new Date(), days);
@@ -126,6 +135,42 @@ export default function Financials() {
       
       return true;
     });
+
+    // Apply payment method filter
+    if (selectedPaymentMethods.length > 0) {
+      filtered = filtered.map(item => {
+        let filteredRevenue = 0;
+        let filteredOrders = 0;
+        
+        selectedPaymentMethods.forEach(method => {
+          if (method === 'Bancomat') {
+            filteredRevenue += item.moneyType_bancomat || 0;
+            filteredOrders += item.moneyType_bancomat_orders || 0;
+          } else if (method === 'Contanti') {
+            filteredRevenue += item.moneyType_cash || 0;
+            filteredOrders += item.moneyType_cash_orders || 0;
+          } else if (method === 'Online') {
+            filteredRevenue += item.moneyType_online || 0;
+            filteredOrders += item.moneyType_online_orders || 0;
+          } else if (method === 'Satispay') {
+            filteredRevenue += item.moneyType_satispay || 0;
+            filteredOrders += item.moneyType_satispay_orders || 0;
+          } else if (method === 'Carta di Credito') {
+            filteredRevenue += item.moneyType_credit_card || 0;
+            filteredOrders += item.moneyType_credit_card_orders || 0;
+          } else if (method === 'Punti Fidelity') {
+            filteredRevenue += item.moneyType_fidelity_card_points || 0;
+            filteredOrders += item.moneyType_fidelity_card_points_orders || 0;
+          }
+        });
+        
+        return {
+          ...item,
+          total_revenue: filteredRevenue,
+          total_orders: filteredOrders
+        };
+      });
+    }
 
     const totalRevenue = filtered.reduce((sum, item) => 
       sum + (item.total_revenue || 0), 0
@@ -458,7 +503,7 @@ export default function Financials() {
       deliveryAppBreakdown,
       comparisonData
     };
-  }, [iPraticoData, selectedStore, dateRange, startDate, endDate, selectedStoresForTrend, channelMapping, appMapping, compareMode, compareStartDate, compareEndDate, selectedChannels, selectedApps]);
+  }, [iPraticoData, selectedStore, dateRange, startDate, endDate, selectedStoresForTrend, channelMapping, appMapping, compareMode, compareStartDate, compareEndDate, selectedChannels, selectedApps, selectedPaymentMethods]);
 
   // Payment Methods Analysis
   const paymentMethodsData = useMemo(() => {
@@ -774,18 +819,7 @@ export default function Financials() {
             }`}
           >
             <TrendingUp className="w-4 h-4" />
-            Overview
-          </button>
-          <button
-            onClick={() => setActiveTab('payments')}
-            className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
-              activeTab === 'payments'
-                ? 'neumorphic-pressed bg-blue-50 text-blue-700'
-                : 'neumorphic-flat text-slate-600 hover:text-slate-800'
-            }`}
-          >
-            <CreditCard className="w-4 h-4" />
-            Metodi Pagamento
+            Fatturato
           </button>
           <button
             onClick={() => setActiveTab('confronto_mensile')}
@@ -836,6 +870,7 @@ export default function Financials() {
                 className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
               >
                 <option value="7">Ultimi 7 giorni</option>
+                <option value="currentweek">Settimana in corso</option>
                 <option value="30">Ultimi 30 giorni</option>
                 <option value="90">Ultimi 90 giorni</option>
                 <option value="365">Ultimo anno</option>
@@ -963,6 +998,39 @@ export default function Financials() {
                 {selectedApps.length > 0 && (
                   <button
                     onClick={() => setSelectedApps([])}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500 text-white flex items-center gap-1"
+                  >
+                    <X className="w-3 h-3" /> Tutti
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm text-slate-600 mb-2 block">Metodi di Pagamento (Selezione Multipla)</label>
+              <div className="flex flex-wrap gap-2">
+                {['Bancomat', 'Contanti', 'Online', 'Satispay', 'Carta di Credito', 'Punti Fidelity'].map(method => (
+                  <button
+                    key={method}
+                    onClick={() => {
+                      setSelectedPaymentMethods(prev => 
+                        prev.includes(method) 
+                          ? prev.filter(m => m !== method) 
+                          : [...prev, method]
+                      );
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      selectedPaymentMethods.length === 0 || selectedPaymentMethods.includes(method)
+                        ? 'bg-purple-500 text-white'
+                        : 'bg-slate-200 text-slate-600'
+                    }`}
+                  >
+                    {method}
+                  </button>
+                ))}
+                {selectedPaymentMethods.length > 0 && (
+                  <button
+                    onClick={() => setSelectedPaymentMethods([])}
                     className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500 text-white flex items-center gap-1"
                   >
                     <X className="w-3 h-3" /> Tutti
@@ -1710,8 +1778,8 @@ export default function Financials() {
         </>
         )}
 
-        {/* Payment Methods Tab */}
-        {activeTab === 'payments' && (
+        {/* Payment Methods Tab - REMOVED, now a filter in overview */}
+        {activeTab === 'payments_old_removed' && (
           <>
             <NeumorphicCard className="p-4 lg:p-6">
               <div className="flex items-center gap-2 mb-4">
