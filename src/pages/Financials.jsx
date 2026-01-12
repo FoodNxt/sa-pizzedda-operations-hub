@@ -529,8 +529,74 @@ export default function Financials() {
     const totalRevenue = breakdown.reduce((sum, m) => sum + m.value, 0);
     const totalOrders = breakdown.reduce((sum, m) => sum + m.orders, 0);
 
-    return { breakdown, totalRevenue, totalOrders };
-  }, [iPraticoData, selectedStore, dateRange, startDate, endDate]);
+    // Calculate comparison data for payment methods
+    let comparisonBreakdown = null;
+    if (compareMode !== 'none' && cutoffDate && endFilterDate) {
+      let compareStart, compareEnd;
+      
+      if (compareMode === 'previous') {
+        const daysDiff = Math.ceil((endFilterDate - cutoffDate) / (1000 * 60 * 60 * 24));
+        compareEnd = subDays(cutoffDate, 1);
+        compareStart = subDays(compareEnd, daysDiff);
+      } else if (compareMode === 'lastyear') {
+        compareStart = subYears(cutoffDate, 1);
+        compareEnd = subYears(endFilterDate, 1);
+      } else if (compareMode === 'custom' && compareStartDate && compareEndDate) {
+        compareStart = safeParseDate(compareStartDate + 'T00:00:00');
+        compareEnd = safeParseDate(compareEndDate + 'T23:59:59');
+      }
+      
+      if (compareStart && compareEnd) {
+        const compareFiltered = iPraticoData.filter(item => {
+          if (!item.order_date) return false;
+          const itemDateStart = safeParseDate(item.order_date + 'T00:00:00');
+          const itemDateEnd = safeParseDate(item.order_date + 'T23:59:59');
+          if (!itemDateStart || !itemDateEnd) return false;
+          if (isBefore(itemDateEnd, compareStart)) return false;
+          if (isAfter(itemDateStart, compareEnd)) return false;
+          if (selectedStore !== 'all' && item.store_id !== selectedStore) return false;
+          return true;
+        });
+
+        const comparePaymentMethods = {};
+        compareFiltered.forEach(item => {
+          const methods = [
+            { key: 'bancomat', revenue: item.moneyType_bancomat || 0, orders: item.moneyType_bancomat_orders || 0, label: 'Bancomat' },
+            { key: 'cash', revenue: item.moneyType_cash || 0, orders: item.moneyType_cash_orders || 0, label: 'Contanti' },
+            { key: 'online', revenue: item.moneyType_online || 0, orders: item.moneyType_online_orders || 0, label: 'Online' },
+            { key: 'satispay', revenue: item.moneyType_satispay || 0, orders: item.moneyType_satispay_orders || 0, label: 'Satispay' },
+            { key: 'credit_card', revenue: item.moneyType_credit_card || 0, orders: item.moneyType_credit_card_orders || 0, label: 'Carta di Credito' },
+            { key: 'fidelity_card_points', revenue: item.moneyType_fidelity_card_points || 0, orders: item.moneyType_fidelity_card_points_orders || 0, label: 'Punti Fidelity' }
+          ];
+          
+          methods.forEach(method => {
+            if (method.revenue > 0 || method.orders > 0) {
+              if (!comparePaymentMethods[method.key]) {
+                comparePaymentMethods[method.key] = { 
+                  name: method.label, 
+                  value: 0, 
+                  orders: 0 
+                };
+              }
+              comparePaymentMethods[method.key].value += method.revenue;
+              comparePaymentMethods[method.key].orders += method.orders;
+            }
+          });
+        });
+
+        comparisonBreakdown = Object.values(comparePaymentMethods)
+          .sort((a, b) => b.value - a.value)
+          .map(m => ({
+            name: m.name,
+            value: parseFloat(m.value.toFixed(2)),
+            orders: m.orders,
+            avgValue: m.orders > 0 ? parseFloat((m.value / m.orders).toFixed(2)) : 0
+          }));
+      }
+    }
+
+    return { breakdown, totalRevenue, totalOrders, comparisonBreakdown };
+  }, [iPraticoData, selectedStore, dateRange, startDate, endDate, compareMode, compareStartDate, compareEndDate]);
 
   const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4'];
 
@@ -1593,6 +1659,44 @@ export default function Financials() {
                     </div>
                   </div>
                 )}
+
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block">Confronta con</label>
+                  <select
+                    value={compareMode}
+                    onChange={(e) => setCompareMode(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                  >
+                    <option value="none">Nessun confronto</option>
+                    <option value="previous">Periodo Precedente</option>
+                    <option value="lastyear">Anno Scorso</option>
+                    <option value="custom">Personalizzato</option>
+                  </select>
+                </div>
+
+                {compareMode === 'custom' && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-sm text-slate-600 mb-2 block">Confronta Da</label>
+                      <input
+                        type="date"
+                        value={compareStartDate}
+                        onChange={(e) => setCompareStartDate(e.target.value)}
+                        className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm text-slate-600 mb-2 block">Confronta A</label>
+                      <input
+                        type="date"
+                        value={compareEndDate}
+                        onChange={(e) => setCompareEndDate(e.target.value)}
+                        className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </NeumorphicCard>
 
@@ -1700,45 +1804,63 @@ export default function Financials() {
                     <tr className="border-b-2 border-green-600">
                       <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Metodo</th>
                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Revenue</th>
+                      {paymentMethodsData.comparisonBreakdown && (
+                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Rev Confronto</th>
+                      )}
+                      {paymentMethodsData.comparisonBreakdown && (
+                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
+                      )}
                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ordini</th>
                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">€ Medio</th>
                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">% Revenue</th>
-                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">% Ordini</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {paymentMethodsData.breakdown.map((method, index) => (
-                      <tr key={index} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
-                        <td className="p-2 lg:p-3">
-                          <div className="flex items-center gap-2">
-                            <div 
-                              className="w-3 h-3 rounded-full flex-shrink-0" 
-                              style={{ background: PAYMENT_COLORS[index % PAYMENT_COLORS.length] }}
-                            />
-                            <span className="text-slate-700 font-medium text-sm">{method.name}</span>
-                          </div>
-                        </td>
-                        <td className="p-2 lg:p-3 text-right text-slate-700 font-bold text-sm">
-                          €{method.value.toFixed(2)}
-                        </td>
-                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
-                          {method.orders}
-                        </td>
-                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
-                          €{method.avgValue.toFixed(2)}
-                        </td>
-                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
-                          {paymentMethodsData.totalRevenue > 0 
-                            ? ((method.value / paymentMethodsData.totalRevenue) * 100).toFixed(1) 
-                            : 0}%
-                        </td>
-                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
-                          {paymentMethodsData.totalOrders > 0 
-                            ? ((method.orders / paymentMethodsData.totalOrders) * 100).toFixed(1) 
-                            : 0}%
-                        </td>
-                      </tr>
-                    ))}
+                    {paymentMethodsData.breakdown.map((method, index) => {
+                      const compareMethod = paymentMethodsData.comparisonBreakdown?.find(m => m.name === method.name);
+                      const revDiff = compareMethod ? method.value - compareMethod.value : 0;
+                      const revDiffPercent = compareMethod && compareMethod.value > 0 ? (revDiff / compareMethod.value) * 100 : 0;
+                      
+                      return (
+                        <tr key={index} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                          <td className="p-2 lg:p-3">
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="w-3 h-3 rounded-full flex-shrink-0" 
+                                style={{ background: PAYMENT_COLORS[index % PAYMENT_COLORS.length] }}
+                              />
+                              <span className="text-slate-700 font-medium text-sm">{method.name}</span>
+                            </div>
+                          </td>
+                          <td className="p-2 lg:p-3 text-right text-slate-700 font-bold text-sm">
+                            €{method.value.toFixed(2)}
+                          </td>
+                          {paymentMethodsData.comparisonBreakdown && (
+                            <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
+                              €{compareMethod ? compareMethod.value.toFixed(2) : '0.00'}
+                            </td>
+                          )}
+                          {paymentMethodsData.comparisonBreakdown && (
+                            <td className={`p-2 lg:p-3 text-right text-sm font-bold ${
+                              revDiff >= 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {revDiff >= 0 ? '+' : ''}{revDiffPercent.toFixed(1)}%
+                            </td>
+                          )}
+                          <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
+                            {method.orders}
+                          </td>
+                          <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
+                            €{method.avgValue.toFixed(2)}
+                          </td>
+                          <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
+                            {paymentMethodsData.totalRevenue > 0 
+                              ? ((method.value / paymentMethodsData.totalRevenue) * 100).toFixed(1) 
+                              : 0}%
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
