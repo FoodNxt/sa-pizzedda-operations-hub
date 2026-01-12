@@ -267,11 +267,58 @@ export default function FormTracker() {
       });
     });
     
-    return Array.from(formsSet).map(formPage => {
-      const completion = checkFormCompletion(formPage, shift.dipendente_nome, shift.store_name, selectedDate);
+    // Converti il set in array con info sulla posizione_turno
+    const formsArray = [];
+    const formsWithPosition = new Map();
+    
+    matchingSchemas.forEach(schema => {
+      if (!schema.slots) return;
+      
+      schema.slots.forEach(slot => {
+        if (!slot.richiede_form || !slot.form_page) return;
+        
+        // Se è necessario in ogni turno, aggiungi con la posizione specificata
+        if (slot.necessario_in_ogni_turno && slot.posizione_turno) {
+          const key = `${slot.form_page}_${slot.posizione_turno}`;
+          if (!formsWithPosition.has(key)) {
+            formsWithPosition.set(key, {
+              formPage: slot.form_page,
+              posizioneTurno: slot.posizione_turno
+            });
+          }
+        } else if (formsSet.has(slot.form_page)) {
+          // Slot senza posizione specifica - già nel set
+          const key = `${slot.form_page}_none`;
+          if (!formsWithPosition.has(key)) {
+            formsWithPosition.set(key, {
+              formPage: slot.form_page,
+              posizioneTurno: null
+            });
+          }
+        }
+      });
+    });
+    
+    // Se non abbiamo trovato slot con posizione, usa il set originale
+    if (formsWithPosition.size === 0) {
+      return Array.from(formsSet).map(formPage => {
+        const completion = checkFormCompletion(formPage, shift.dipendente_nome, shift.store_name, selectedDate, shift.id, null);
+        return {
+          formPage,
+          formName: getFormName(formPage),
+          posizioneTurno: null,
+          ...completion
+        };
+      });
+    }
+    
+    return Array.from(formsWithPosition.values()).map(({ formPage, posizioneTurno }) => {
+      const completion = checkFormCompletion(formPage, shift.dipendente_nome, shift.store_name, selectedDate, shift.id, posizioneTurno);
+      const posLabel = posizioneTurno === 'inizio' ? ' (Inizio)' : posizioneTurno === 'fine' ? ' (Fine)' : '';
       return {
         formPage,
-        formName: getFormName(formPage),
+        formName: getFormName(formPage) + posLabel,
+        posizioneTurno,
         ...completion
       };
     });
