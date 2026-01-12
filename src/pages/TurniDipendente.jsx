@@ -2140,17 +2140,45 @@ export default function TurniDipendente() {
                   .filter(form => !attivita.some(a => a.form_page === form.page))
                   .every(f => f.completato);
                 const tuttoCompleto = !haAttivita || (allAttivitaComplete && formNonAssociatiComplete);
-                const canTimbraUscita = prossimoTurnoStatus.canTimbra && tuttoCompleto;
+                
+                // Trova attività non completate
+                const attivitaNonComplete = attivita.filter(att => {
+                  const isFormActivity = att.form_page || att.richiede_form;
+                  const isCorsoActivity = att.corsi_ids?.length > 0;
+                  if (isFormActivity) {
+                    const completatoViaPagina = attivitaCompletate.some(ac => {
+                      if (ac.turno_id !== prossimoTurno.id || ac.form_page !== att.form_page) return false;
+                      if (att.posizione_turno && ac.posizione_turno) return ac.posizione_turno === att.posizione_turno;
+                      if (att.ora_inizio && ac.ora_attivita) return ac.ora_attivita === att.ora_inizio;
+                      return true;
+                    });
+                    if (completatoViaPagina) return false;
+                    return !formDovuti.some(f => f.page === att.form_page && f.completato);
+                  }
+                  if (isCorsoActivity) return false;
+                  return !isAttivitaCompletata(prossimoTurno.id, att.nome, att.posizione_turno, att.ora_inizio);
+                });
+                
+                const handleTimbraUscita = () => {
+                  if (haAttivita && !tuttoCompleto) {
+                    const listaAttivita = attivitaNonComplete.map(a => `• ${a.nome}`).join('\n');
+                    const conferma = window.confirm(
+                      `⚠️ ATTENZIONE\n\nHai ancora attività non completate:\n\n${listaAttivita}\n\nSei sicuro di voler timbrare l'uscita?`
+                    );
+                    if (!conferma) return;
+                  }
+                  handleTimbra(prossimoTurno, 'uscita');
+                };
                 
                 return (
                   <>
                     <NeumorphicButton
-                      onClick={() => handleTimbra(prossimoTurno, 'uscita')}
+                      onClick={handleTimbraUscita}
                       variant="primary"
                       className={`w-full flex items-center justify-center gap-2 py-4 text-lg ${
-                        !canTimbraUscita ? 'opacity-50 cursor-not-allowed' : 'bg-gradient-to-r from-green-500 to-green-600'
+                        !prossimoTurnoStatus.canTimbra ? 'opacity-50 cursor-not-allowed' : 'bg-gradient-to-r from-green-500 to-green-600'
                       }`}
-                      disabled={!canTimbraUscita || loadingGPS || timbraMutation.isPending}
+                      disabled={!prossimoTurnoStatus.canTimbra || loadingGPS || timbraMutation.isPending}
                     >
                       {loadingGPS ? (
                         <Loader2 className="w-6 h-6 animate-spin" />
@@ -2159,12 +2187,21 @@ export default function TurniDipendente() {
                       )}
                       Timbra Uscita
                     </NeumorphicButton>
-                    {!canTimbraUscita && (
+                    {!prossimoTurnoStatus.canTimbra && (
                       <p className="text-sm text-center mt-2 text-orange-600 font-medium">
-                        {haAttivita && !tuttoCompleto 
-                          ? '⚠️ Completa tutte le attività prima di timbrare l\'uscita'
-                          : prossimoTurnoStatus.reason}
+                        {prossimoTurnoStatus.reason}
                       </p>
+                    )}
+                    {haAttivita && !tuttoCompleto && prossimoTurnoStatus.canTimbra && (
+                      <div className="mt-3 p-3 bg-orange-100 rounded-xl border border-orange-300">
+                        <p className="text-sm text-orange-800 flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4" />
+                          Attività non completate: {attivitaNonComplete.length}
+                        </p>
+                        <p className="text-xs text-orange-700 mt-1">
+                          Puoi timbrare ma ricorda di completare le attività
+                        </p>
+                      </div>
                     )}
                   </>
                 );
