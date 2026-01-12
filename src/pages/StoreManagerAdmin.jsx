@@ -144,11 +144,10 @@ export default function StoreManagerAdmin() {
     );
     const numOrdiniSbagliati = storeOrdini.length;
 
-    // Ritardi - usa TurnoPlanday con minuti_ritardo
+    // Ritardi - somma tutti i minuti_ritardo dei turni del mese
     const storeShifts = turniPlanday.filter(t => 
       t.store_id === storeId && 
-      moment(t.data).isBetween(monthStart, monthEnd, 'day', '[]') &&
-      t.minuti_ritardo > 0
+      moment(t.data).isBetween(monthStart, monthEnd, 'day', '[]')
     );
     const totaleRitardi = storeShifts.reduce((acc, t) => acc + (t.minuti_ritardo || 0), 0);
 
