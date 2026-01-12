@@ -230,15 +230,18 @@ export default function Preparazioni() {
             <div className="neumorphic-flat p-5 rounded-xl">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-[#6b6b6b]">Elenco Preparazioni</h3>
-                <NeumorphicButton
+                <button
                   type="button"
-                  onClick={addPreparazione}
-                  className="flex items-center gap-2"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    addPreparazione();
+                  }}
+                  className="nav-button px-4 py-2 rounded-xl text-slate-700 font-medium flex items-center gap-2"
                   disabled={saving}
                 >
                   <Plus className="w-4 h-4" />
                   Aggiungi
-                </NeumorphicButton>
+                </button>
               </div>
 
               <div className="space-y-3">
