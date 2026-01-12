@@ -30,6 +30,11 @@ export default function Financials() {
   const [selectedPaymentMethods, setSelectedPaymentMethods] = useState([]);
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState(null);
+  const [weeklySelectedChannels, setWeeklySelectedChannels] = useState([]);
+  const [weeklySelectedApps, setWeeklySelectedApps] = useState([]);
+  const [weeklySelectedPayments, setWeeklySelectedPayments] = useState([]);
+  const [showWeeklySettings, setShowWeeklySettings] = useState(false);
+  const [historicalAvgDays, setHistoricalAvgDays] = useState(90);
   
   // Confronto Mensile State
   const [periodo1Store, setPeriodo1Store] = useState('all');
@@ -677,7 +682,7 @@ export default function Financials() {
     return { breakdown, totalRevenue, totalOrders, comparisonBreakdown };
   }, [iPraticoData, selectedStore, dateRange, startDate, endDate, compareMode, compareStartDate, compareEndDate]);
 
-  // Weekly aggregation
+  // Weekly aggregation with filters
   const weeklyData = useMemo(() => {
     let filtered = iPraticoData;
     if (selectedStore !== 'all') {
@@ -710,10 +715,91 @@ export default function Financials() {
         };
       }
 
-      weeklyMap[weekKey].revenue += item.total_revenue || 0;
-      weeklyMap[weekKey].orders += item.total_orders || 0;
-      weeklyMap[weekKey].storeRevenue += item.sourceType_store || 0;
-      weeklyMap[weekKey].totalChannelRevenue += (item.sourceType_store || 0) + (item.sourceType_delivery || 0);
+      // Apply filters for weekly aggregation
+      let itemRevenue = 0;
+      let itemOrders = 0;
+      let itemStoreRevenue = 0;
+      let itemTotalChannelRevenue = 0;
+
+      // Channel filter
+      if (weeklySelectedChannels.length === 0) {
+        itemRevenue = item.total_revenue || 0;
+        itemOrders = item.total_orders || 0;
+        itemStoreRevenue = item.sourceType_store || 0;
+        itemTotalChannelRevenue = (item.sourceType_store || 0) + (item.sourceType_delivery || 0);
+      } else {
+        const channels = [
+          { key: 'delivery', revenue: item.sourceType_delivery || 0, orders: item.sourceType_delivery_orders || 0 },
+          { key: 'takeaway', revenue: item.sourceType_takeaway || 0, orders: item.sourceType_takeaway_orders || 0 },
+          { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0, orders: item.sourceType_takeawayOnSite_orders || 0 },
+          { key: 'store', revenue: item.sourceType_store || 0, orders: item.sourceType_store_orders || 0 }
+        ];
+        
+        channels.forEach(ch => {
+          const mappedKey = channelMapping[ch.key] || ch.key;
+          if (weeklySelectedChannels.includes(mappedKey)) {
+            itemRevenue += ch.revenue;
+            itemOrders += ch.orders;
+            if (ch.key === 'store') itemStoreRevenue += ch.revenue;
+            if (ch.key === 'store' || ch.key === 'delivery') itemTotalChannelRevenue += ch.revenue;
+          }
+        });
+      }
+
+      // App filter
+      if (weeklySelectedApps.length > 0) {
+        itemRevenue = 0;
+        itemOrders = 0;
+        const apps = [
+          { key: 'glovo', revenue: item.sourceApp_glovo || 0, orders: item.sourceApp_glovo_orders || 0 },
+          { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0, orders: item.sourceApp_deliveroo_orders || 0 },
+          { key: 'justeat', revenue: item.sourceApp_justeat || 0, orders: item.sourceApp_justeat_orders || 0 },
+          { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0, orders: item.sourceApp_onlineordering_orders || 0 },
+          { key: 'ordertable', revenue: item.sourceApp_ordertable || 0, orders: item.sourceApp_ordertable_orders || 0 },
+          { key: 'tabesto', revenue: item.sourceApp_tabesto || 0, orders: item.sourceApp_tabesto_orders || 0 },
+          { key: 'store', revenue: item.sourceApp_store || 0, orders: item.sourceApp_store_orders || 0 }
+        ];
+        
+        apps.forEach(app => {
+          const mappedKey = appMapping[app.key] || app.key;
+          if (weeklySelectedApps.includes(mappedKey)) {
+            itemRevenue += app.revenue;
+            itemOrders += app.orders;
+          }
+        });
+      }
+
+      // Payment method filter
+      if (weeklySelectedPayments.length > 0) {
+        itemRevenue = 0;
+        itemOrders = 0;
+        weeklySelectedPayments.forEach(method => {
+          if (method === 'Bancomat') {
+            itemRevenue += item.moneyType_bancomat || 0;
+            itemOrders += item.moneyType_bancomat_orders || 0;
+          } else if (method === 'Contanti') {
+            itemRevenue += item.moneyType_cash || 0;
+            itemOrders += item.moneyType_cash_orders || 0;
+          } else if (method === 'Online') {
+            itemRevenue += item.moneyType_online || 0;
+            itemOrders += item.moneyType_online_orders || 0;
+          } else if (method === 'Satispay') {
+            itemRevenue += item.moneyType_satispay || 0;
+            itemOrders += item.moneyType_satispay_orders || 0;
+          } else if (method === 'Carta di Credito') {
+            itemRevenue += item.moneyType_credit_card || 0;
+            itemOrders += item.moneyType_credit_card_orders || 0;
+          } else if (method === 'Punti Fidelity') {
+            itemRevenue += item.moneyType_fidelity_card_points || 0;
+            itemOrders += item.moneyType_fidelity_card_points_orders || 0;
+          }
+        });
+      }
+
+      weeklyMap[weekKey].revenue += itemRevenue;
+      weeklyMap[weekKey].orders += itemOrders;
+      weeklyMap[weekKey].storeRevenue += itemStoreRevenue;
+      weeklyMap[weekKey].totalChannelRevenue += itemTotalChannelRevenue;
 
       // Daily breakdown
       const dayKey = item.order_date;
@@ -726,10 +812,10 @@ export default function Financials() {
           totalChannelRevenue: 0
         };
       }
-      weeklyMap[weekKey].days[dayKey].revenue += item.total_revenue || 0;
-      weeklyMap[weekKey].days[dayKey].orders += item.total_orders || 0;
-      weeklyMap[weekKey].days[dayKey].storeRevenue += item.sourceType_store || 0;
-      weeklyMap[weekKey].days[dayKey].totalChannelRevenue += (item.sourceType_store || 0) + (item.sourceType_delivery || 0);
+      weeklyMap[weekKey].days[dayKey].revenue += itemRevenue;
+      weeklyMap[weekKey].days[dayKey].orders += itemOrders;
+      weeklyMap[weekKey].days[dayKey].storeRevenue += itemStoreRevenue;
+      weeklyMap[weekKey].days[dayKey].totalChannelRevenue += itemTotalChannelRevenue;
     });
 
     return Object.values(weeklyMap)
@@ -740,7 +826,37 @@ export default function Financials() {
         dailyData: Object.values(week.days).sort((a, b) => a.date.localeCompare(b.date))
       }))
       .sort((a, b) => b.weekStart.localeCompare(a.weekStart));
-  }, [iPraticoData, selectedStore]);
+  }, [iPraticoData, selectedStore, weeklySelectedChannels, weeklySelectedApps, weeklySelectedPayments, channelMapping, appMapping]);
+
+  // Historical averages for weekly view
+  const historicalAverages = useMemo(() => {
+    const cutoffDate = subDays(new Date(), historicalAvgDays);
+    
+    let filtered = iPraticoData.filter(item => {
+      if (!item.order_date) return false;
+      const itemDate = safeParseDate(item.order_date);
+      if (!itemDate) return false;
+      return itemDate >= cutoffDate;
+    });
+
+    if (selectedStore !== 'all') {
+      filtered = filtered.filter(item => item.store_id === selectedStore);
+    }
+
+    const totalRevenue = filtered.reduce((sum, item) => sum + (item.total_revenue || 0), 0);
+    const totalOrders = filtered.reduce((sum, item) => sum + (item.total_orders || 0), 0);
+    const totalStoreRevenue = filtered.reduce((sum, item) => sum + (item.sourceType_store || 0), 0);
+    const totalChannelRevenue = filtered.reduce((sum, item) => sum + ((item.sourceType_store || 0) + (item.sourceType_delivery || 0)), 0);
+
+    const uniqueDays = new Set(filtered.map(item => item.order_date)).size;
+
+    return {
+      revenue: uniqueDays > 0 ? totalRevenue / uniqueDays : 0,
+      orders: uniqueDays > 0 ? totalOrders / uniqueDays : 0,
+      avgOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,
+      percentStore: totalChannelRevenue > 0 ? (totalStoreRevenue / totalChannelRevenue) * 100 : 0
+    };
+  }, [iPraticoData, selectedStore, historicalAvgDays]);
 
   // Calculate min/max for color scale
   const weeklyStats = useMemo(() => {
@@ -2180,22 +2296,151 @@ export default function Financials() {
         {activeTab === 'weekly' && (
           <>
             <NeumorphicCard className="p-4 lg:p-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 gap-4">
                 <h2 className="text-lg font-bold text-slate-800">Analisi Settimanale</h2>
-                <div>
-                  <label className="text-sm text-slate-600 mb-2 block">Negozio</label>
-                  <select
-                    value={selectedStore}
-                    onChange={(e) => setSelectedStore(e.target.value)}
-                    className="neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none text-sm"
-                  >
-                    <option value="all">Tutti i Locali</option>
-                    {stores.map(store => (
-                      <option key={store.id} value={store.id}>{store.name}</option>
-                    ))}
-                  </select>
+                <div className="flex flex-wrap gap-3">
+                  <div>
+                    <label className="text-sm text-slate-600 mb-2 block">Negozio</label>
+                    <select
+                      value={selectedStore}
+                      onChange={(e) => setSelectedStore(e.target.value)}
+                      className="neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none text-sm"
+                    >
+                      <option value="all">Tutti i Locali</option>
+                      {stores.map(store => (
+                        <option key={store.id} value={store.id}>{store.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="self-end">
+                    <button
+                      onClick={() => setShowWeeklySettings(!showWeeklySettings)}
+                      className="px-4 py-2 rounded-xl bg-slate-200 text-slate-700 hover:bg-slate-300 transition-colors text-sm font-medium flex items-center gap-2"
+                    >
+                      <Settings className="w-4 h-4" />
+                      Filtri & Impostazioni
+                    </button>
+                  </div>
                 </div>
               </div>
+
+              {showWeeklySettings && (
+                <NeumorphicCard pressed className="p-4 mb-4 bg-blue-50 space-y-4">
+                  <div>
+                    <label className="text-sm text-slate-600 mb-2 block font-medium">Canali</label>
+                    <div className="flex flex-wrap gap-2">
+                      {allChannels.map(channel => (
+                        <button
+                          key={channel}
+                          onClick={() => {
+                            setWeeklySelectedChannels(prev => 
+                              prev.includes(channel) 
+                                ? prev.filter(c => c !== channel) 
+                                : [...prev, channel]
+                            );
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                            weeklySelectedChannels.length === 0 || weeklySelectedChannels.includes(channel)
+                              ? 'bg-blue-500 text-white'
+                              : 'bg-slate-200 text-slate-600'
+                          }`}
+                        >
+                          {channel.charAt(0).toUpperCase() + channel.slice(1)}
+                        </button>
+                      ))}
+                      {weeklySelectedChannels.length > 0 && (
+                        <button
+                          onClick={() => setWeeklySelectedChannels([])}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500 text-white flex items-center gap-1"
+                        >
+                          <X className="w-3 h-3" /> Reset
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm text-slate-600 mb-2 block font-medium">App Delivery</label>
+                    <div className="flex flex-wrap gap-2">
+                      {allApps.map(app => (
+                        <button
+                          key={app}
+                          onClick={() => {
+                            setWeeklySelectedApps(prev => 
+                              prev.includes(app) 
+                                ? prev.filter(a => a !== app) 
+                                : [...prev, app]
+                            );
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                            weeklySelectedApps.length === 0 || weeklySelectedApps.includes(app)
+                              ? 'bg-green-500 text-white'
+                              : 'bg-slate-200 text-slate-600'
+                          }`}
+                        >
+                          {app.charAt(0).toUpperCase() + app.slice(1)}
+                        </button>
+                      ))}
+                      {weeklySelectedApps.length > 0 && (
+                        <button
+                          onClick={() => setWeeklySelectedApps([])}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500 text-white flex items-center gap-1"
+                        >
+                          <X className="w-3 h-3" /> Reset
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm text-slate-600 mb-2 block font-medium">Metodi di Pagamento</label>
+                    <div className="flex flex-wrap gap-2">
+                      {['Bancomat', 'Contanti', 'Online', 'Satispay', 'Carta di Credito', 'Punti Fidelity'].map(method => (
+                        <button
+                          key={method}
+                          onClick={() => {
+                            setWeeklySelectedPayments(prev => 
+                              prev.includes(method) 
+                                ? prev.filter(m => m !== method) 
+                                : [...prev, method]
+                            );
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                            weeklySelectedPayments.length === 0 || weeklySelectedPayments.includes(method)
+                              ? 'bg-purple-500 text-white'
+                              : 'bg-slate-200 text-slate-600'
+                          }`}
+                        >
+                          {method}
+                        </button>
+                      ))}
+                      {weeklySelectedPayments.length > 0 && (
+                        <button
+                          onClick={() => setWeeklySelectedPayments([])}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500 text-white flex items-center gap-1"
+                        >
+                          <X className="w-3 h-3" /> Reset
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="border-t border-slate-300 pt-4">
+                    <label className="text-sm text-slate-600 mb-2 block font-medium">Media Storica (giorni)</label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        min="7"
+                        max="365"
+                        value={historicalAvgDays}
+                        onChange={(e) => setHistoricalAvgDays(parseInt(e.target.value) || 90)}
+                        className="w-24 neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
+                      />
+                      <span className="text-xs text-slate-500">giorni per calcolo media</span>
+                    </div>
+                  </div>
+                </NeumorphicCard>
+              )}
 
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[700px]">
@@ -2255,9 +2500,14 @@ export default function Financials() {
               return (
                 <NeumorphicCard className="p-4 lg:p-6 bg-blue-50">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-slate-800">
-                      Dettaglio Giornaliero - Settimana {safeFormatDate(safeParseDate(week.weekStart), 'dd/MM/yyyy')}
-                    </h3>
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-800">
+                        Dettaglio Giornaliero - Settimana {safeFormatDate(safeParseDate(week.weekStart), 'dd/MM/yyyy')}
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Media storica calcolata su {historicalAvgDays} giorni
+                      </p>
+                    </div>
                     <button
                       onClick={() => setSelectedWeek(null)}
                       className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
@@ -2267,14 +2517,18 @@ export default function Financials() {
                   </div>
 
                   <div className="overflow-x-auto">
-                    <table className="w-full min-w-[600px]">
+                    <table className="w-full min-w-[800px]">
                       <thead>
                         <tr className="border-b-2 border-blue-600">
                           <th className="text-left p-3 text-slate-600 font-medium text-sm">Giorno</th>
                           <th className="text-right p-3 text-slate-600 font-medium text-sm">Revenue</th>
+                          <th className="text-right p-3 text-slate-600 font-medium text-sm">vs Media</th>
                           <th className="text-right p-3 text-slate-600 font-medium text-sm">Scontrino Medio</th>
+                          <th className="text-right p-3 text-slate-600 font-medium text-sm">vs Media</th>
                           <th className="text-right p-3 text-slate-600 font-medium text-sm">Ordini</th>
+                          <th className="text-right p-3 text-slate-600 font-medium text-sm">vs Media</th>
                           <th className="text-right p-3 text-slate-600 font-medium text-sm">% Store</th>
+                          <th className="text-right p-3 text-slate-600 font-medium text-sm">vs Media</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2282,42 +2536,88 @@ export default function Financials() {
                           const avgOrderValue = day.orders > 0 ? day.revenue / day.orders : 0;
                           const percentStore = day.totalChannelRevenue > 0 ? (day.storeRevenue / day.totalChannelRevenue) * 100 : 0;
                           
+                          const revenueDiff = day.revenue - historicalAverages.revenue;
+                          const revenueDiffPercent = historicalAverages.revenue > 0 ? (revenueDiff / historicalAverages.revenue) * 100 : 0;
+                          
+                          const avgDiff = avgOrderValue - historicalAverages.avgOrderValue;
+                          const avgDiffPercent = historicalAverages.avgOrderValue > 0 ? (avgDiff / historicalAverages.avgOrderValue) * 100 : 0;
+                          
+                          const ordersDiff = day.orders - historicalAverages.orders;
+                          const ordersDiffPercent = historicalAverages.orders > 0 ? (ordersDiff / historicalAverages.orders) * 100 : 0;
+                          
+                          const percentStoreDiff = percentStore - historicalAverages.percentStore;
+                          
                           return (
                             <tr key={day.date} className="border-b border-slate-200">
                               <td className="p-3 text-slate-700 font-medium text-sm">
-                                {safeFormatDate(safeParseDate(day.date), 'EEEE dd/MM/yyyy')}
+                                {safeFormatDate(safeParseDate(day.date), 'EEEE dd/MM')}
                               </td>
                               <td className="p-3 text-right text-slate-700 font-bold text-sm">
                                 €{formatCurrency(day.revenue)}
                               </td>
+                              <td className={`p-3 text-right text-xs font-medium ${revenueDiff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {revenueDiff >= 0 ? '+' : ''}{revenueDiffPercent.toFixed(1)}%
+                              </td>
                               <td className="p-3 text-right text-slate-700 font-bold text-sm">
                                 €{formatCurrency(avgOrderValue)}
+                              </td>
+                              <td className={`p-3 text-right text-xs font-medium ${avgDiff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {avgDiff >= 0 ? '+' : ''}{avgDiffPercent.toFixed(1)}%
                               </td>
                               <td className="p-3 text-right text-slate-700 font-bold text-sm">
                                 {day.orders}
                               </td>
+                              <td className={`p-3 text-right text-xs font-medium ${ordersDiff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {ordersDiff >= 0 ? '+' : ''}{ordersDiffPercent.toFixed(1)}%
+                              </td>
                               <td className="p-3 text-right text-slate-700 font-bold text-sm">
                                 {percentStore.toFixed(1)}%
+                              </td>
+                              <td className={`p-3 text-right text-xs font-medium ${percentStoreDiff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {percentStoreDiff >= 0 ? '+' : ''}{percentStoreDiff.toFixed(1)}pp
                               </td>
                             </tr>
                           );
                         })}
                       </tbody>
                       <tfoot>
-                        <tr className="border-t-2 border-blue-600 bg-blue-50">
+                        <tr className="border-t-2 border-blue-600 bg-blue-100">
                           <td className="p-3 font-bold text-slate-800 text-sm">Totale Settimana</td>
                           <td className="p-3 text-right font-bold text-blue-700 text-sm">
                             €{formatCurrency(week.revenue / 1000, 1)}k
                           </td>
+                          <td className="p-3"></td>
                           <td className="p-3 text-right font-bold text-blue-700 text-sm">
                             €{formatCurrency(week.avgOrderValue)}
                           </td>
+                          <td className="p-3"></td>
                           <td className="p-3 text-right font-bold text-blue-700 text-sm">
                             {week.orders}
                           </td>
+                          <td className="p-3"></td>
                           <td className="p-3 text-right font-bold text-blue-700 text-sm">
                             {week.percentStore.toFixed(1)}%
                           </td>
+                          <td className="p-3"></td>
+                        </tr>
+                        <tr className="bg-slate-50">
+                          <td className="p-3 font-medium text-slate-700 text-sm">Media Storica ({historicalAvgDays}gg)</td>
+                          <td className="p-3 text-right font-medium text-slate-600 text-sm">
+                            €{formatCurrency(historicalAverages.revenue)}
+                          </td>
+                          <td className="p-3"></td>
+                          <td className="p-3 text-right font-medium text-slate-600 text-sm">
+                            €{formatCurrency(historicalAverages.avgOrderValue)}
+                          </td>
+                          <td className="p-3"></td>
+                          <td className="p-3 text-right font-medium text-slate-600 text-sm">
+                            {historicalAverages.orders.toFixed(0)}
+                          </td>
+                          <td className="p-3"></td>
+                          <td className="p-3 text-right font-medium text-slate-600 text-sm">
+                            {historicalAverages.percentStore.toFixed(1)}%
+                          </td>
+                          <td className="p-3"></td>
                         </tr>
                       </tfoot>
                     </table>

@@ -24,6 +24,7 @@ export default function ProdottiVenduti() {
   const [trendView, setTrendView] = useState('chart'); // 'chart' or 'table'
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [compareEnabled, setCompareEnabled] = useState(false);
+  const [compareMode, setCompareMode] = useState('custom');
   const [compareStartDate, setCompareStartDate] = useState('');
   const [compareEndDate, setCompareEndDate] = useState('');
 
@@ -86,7 +87,70 @@ export default function ProdottiVenduti() {
 
   // Comparison period data
   const comparisonData = useMemo(() => {
-    if (!compareEnabled || !compareStartDate || !compareEndDate) return [];
+    if (!compareEnabled) return [];
+
+    let compareStart, compareEnd;
+
+    if (compareMode === 'previous') {
+      // Calculate current period length
+      let currentStart, currentEnd;
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      if (dateRange === 'custom' && startDate && endDate) {
+        currentStart = new Date(startDate);
+        currentEnd = new Date(endDate);
+      } else if (dateRange === 'month') {
+        currentStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        currentEnd = today;
+      } else if (dateRange === 'week') {
+        currentStart = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+        currentEnd = today;
+      } else {
+        currentStart = today;
+        currentEnd = today;
+      }
+
+      const daysDiff = Math.ceil((currentEnd - currentStart) / (1000 * 60 * 60 * 24));
+      compareEnd = new Date(currentStart.getTime() - 24 * 60 * 60 * 1000);
+      compareStart = new Date(compareEnd.getTime() - daysDiff * 24 * 60 * 60 * 1000);
+
+      compareStart = compareStart.toISOString().split('T')[0];
+      compareEnd = compareEnd.toISOString().split('T')[0];
+    } else if (compareMode === 'lastmonth') {
+      const now = new Date();
+      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+      compareStart = lastMonth.toISOString().split('T')[0];
+      compareEnd = lastMonthEnd.toISOString().split('T')[0];
+    } else if (compareMode === 'lastyear') {
+      let currentStart, currentEnd;
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      if (dateRange === 'custom' && startDate && endDate) {
+        currentStart = new Date(startDate);
+        currentEnd = new Date(endDate);
+      } else if (dateRange === 'month') {
+        currentStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        currentEnd = today;
+      } else if (dateRange === 'week') {
+        currentStart = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+        currentEnd = today;
+      } else {
+        currentStart = today;
+        currentEnd = today;
+      }
+
+      compareStart = new Date(currentStart.getFullYear() - 1, currentStart.getMonth(), currentStart.getDate()).toISOString().split('T')[0];
+      compareEnd = new Date(currentEnd.getFullYear() - 1, currentEnd.getMonth(), currentEnd.getDate()).toISOString().split('T')[0];
+    } else if (compareMode === 'custom') {
+      if (!compareStartDate || !compareEndDate) return [];
+      compareStart = compareStartDate;
+      compareEnd = compareEndDate;
+    } else {
+      return [];
+    }
 
     let filtered = prodottiVenduti;
 
@@ -96,11 +160,11 @@ export default function ProdottiVenduti() {
 
     filtered = filtered.filter(p => {
       const dataStr = p.data_vendita?.split('T')[0] || p.data_vendita;
-      return dataStr >= compareStartDate && dataStr <= compareEndDate;
+      return dataStr >= compareStart && dataStr <= compareEnd;
     });
 
     return filtered;
-  }, [prodottiVenduti, selectedStore, compareEnabled, compareStartDate, compareEndDate]);
+  }, [prodottiVenduti, selectedStore, compareEnabled, compareMode, compareStartDate, compareEndDate, dateRange, startDate, endDate]);
 
   // Calculate totals by product (aggregate by flavor)
   const productTotals = useMemo(() => {
@@ -327,26 +391,44 @@ export default function ProdottiVenduti() {
           </label>
 
           {compareEnabled && (
-            <div className="flex flex-wrap gap-3">
+            <div className="space-y-3">
               <div>
-                <label className="text-xs text-[#9b9b9b] mb-1 block">Periodo confronto - Da</label>
-                <input
-                  type="date"
-                  value={compareStartDate}
-                  onChange={(e) => setCompareStartDate(e.target.value)}
-                  className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
-                />
+                <label className="text-xs text-[#9b9b9b] mb-1 block">Tipo Confronto</label>
+                <select
+                  value={compareMode}
+                  onChange={(e) => setCompareMode(e.target.value)}
+                  className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
+                >
+                  <option value="previous">Periodo Precedente</option>
+                  <option value="lastmonth">Mese Precedente</option>
+                  <option value="lastyear">Anno Precedente</option>
+                  <option value="custom">Personalizzato</option>
+                </select>
               </div>
 
-              <div>
-                <label className="text-xs text-[#9b9b9b] mb-1 block">Periodo confronto - A</label>
-                <input
-                  type="date"
-                  value={compareEndDate}
-                  onChange={(e) => setCompareEndDate(e.target.value)}
-                  className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
-                />
-              </div>
+              {compareMode === 'custom' && (
+                <div className="flex flex-wrap gap-3">
+                  <div>
+                    <label className="text-xs text-[#9b9b9b] mb-1 block">Periodo confronto - Da</label>
+                    <input
+                      type="date"
+                      value={compareStartDate}
+                      onChange={(e) => setCompareStartDate(e.target.value)}
+                      className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-[#9b9b9b] mb-1 block">Periodo confronto - A</label>
+                    <input
+                      type="date"
+                      value={compareEndDate}
+                      onChange={(e) => setCompareEndDate(e.target.value)}
+                      className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
