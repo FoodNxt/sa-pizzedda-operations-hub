@@ -578,7 +578,7 @@ export default function TurniDipendente() {
 
   // Completa attività
   const completaAttivitaMutation = useMutation({
-    mutationFn: async ({ turno, attivitaNome, importoPagato, turnoStraordinarioId }) => {
+    mutationFn: async ({ turno, attivitaNome, importoPagato, turnoStraordinarioId, posizioneTurno, oraAttivita }) => {
       // PROTEZIONE: Verifica che il turno sia iniziato prima di permettere il completamento
       if (!turno.timbratura_entrata) {
         throw new Error('Devi prima timbrare l\'entrata per completare questa attività');
@@ -594,6 +594,12 @@ export default function TurniDipendente() {
         completato_at: new Date().toISOString()
       };
 
+      if (posizioneTurno) {
+        data.posizione_turno = posizioneTurno;
+      }
+      if (oraAttivita) {
+        data.ora_attivita = oraAttivita;
+      }
       if (importoPagato !== undefined) {
         data.importo_pagato = importoPagato;
       }
@@ -1316,10 +1322,22 @@ export default function TurniDipendente() {
     return [...attivitaInizio, ...attivitaNormali, ...attivitaFine];
   };
   
-  const isAttivitaCompletata = (turnoId, attivitaNome) => {
-    return attivitaCompletate.some(ac => 
-      ac.turno_id === turnoId && ac.attivita_nome === attivitaNome
-    );
+  const isAttivitaCompletata = (turnoId, attivitaNome, posizioneTurno = null, oraAttivita = null) => {
+    return attivitaCompletate.some(ac => {
+      if (ac.turno_id !== turnoId || ac.attivita_nome !== attivitaNome) return false;
+      
+      // Se l'attività ha una posizione specifica (inizio/fine), verifica anche quella
+      if (posizioneTurno && ac.posizione_turno) {
+        return ac.posizione_turno === posizioneTurno;
+      }
+      
+      // Se l'attività ha un orario specifico, verifica anche quello
+      if (oraAttivita && ac.ora_attivita) {
+        return ac.ora_attivita === oraAttivita;
+      }
+      
+      return true;
+    });
   };
   
   const getCorsoNome = (corsoId) => {
@@ -1699,15 +1717,27 @@ export default function TurniDipendente() {
                   const isFormActivity = att.form_page || att.richiede_form;
                   const isCorsoActivity = att.corsi_ids?.length > 0;
                   if (isFormActivity) {
-                    // Controlla prima per form_page in AttivitaCompletata
-                    const completatoViaPagina = attivitaCompletate.some(ac => 
-                      ac.turno_id === prossimoTurno.id && ac.form_page === att.form_page
-                    );
+                    // Controlla prima per form_page in AttivitaCompletata con posizione e ora
+                    const completatoViaPagina = attivitaCompletate.some(ac => {
+                      if (ac.turno_id !== prossimoTurno.id || ac.form_page !== att.form_page) return false;
+                      
+                      // Se l'attività ha posizione_turno, verifica anche quella
+                      if (att.posizione_turno && ac.posizione_turno) {
+                        return ac.posizione_turno === att.posizione_turno;
+                      }
+                      
+                      // Se l'attività ha ora_inizio, verifica anche quella
+                      if (att.ora_inizio && ac.ora_attivita) {
+                        return ac.ora_attivita === att.ora_inizio;
+                      }
+                      
+                      return true;
+                    });
                     if (completatoViaPagina) return true;
                     return formDovuti.some(f => f.page === att.form_page && f.completato);
                   }
                   if (isCorsoActivity) return true; // Corsi sono opzionali
-                  return isAttivitaCompletata(prossimoTurno.id, att.nome);
+                  return isAttivitaCompletata(prossimoTurno.id, att.nome, att.posizione_turno, att.ora_inizio);
                 });
                 const formNonAssociatiComplete = formDovuti
                   .filter(form => !attivita.some(a => a.form_page === form.page))
@@ -1737,9 +1767,13 @@ export default function TurniDipendente() {
                         const isFormActivity = att.form_page || att.richiede_form;
                         const isCorsoActivity = att.corsi_ids?.length > 0;
                         const isCompleted = isFormActivity 
-                          ? (attivitaCompletate.some(ac => ac.turno_id === prossimoTurno.id && ac.form_page === att.form_page) || 
-                             formDovuti.some(f => f.page === att.form_page && f.completato))
-                          : isAttivitaCompletata(prossimoTurno.id, att.nome);
+                          ? (attivitaCompletate.some(ac => {
+                              if (ac.turno_id !== prossimoTurno.id || ac.form_page !== att.form_page) return false;
+                              if (att.posizione_turno && ac.posizione_turno) return ac.posizione_turno === att.posizione_turno;
+                              if (att.ora_inizio && ac.ora_attivita) return ac.ora_attivita === att.ora_inizio;
+                              return true;
+                            }) || formDovuti.some(f => f.page === att.form_page && f.completato))
+                          : isAttivitaCompletata(prossimoTurno.id, att.nome, att.posizione_turno, att.ora_inizio);
                         
                         return (
                           <div key={`att-${idx}-${att.nome}`} className={`p-3 rounded-xl ${isCompleted ? 'bg-green-100 border-2 border-green-300' : 'bg-white border-2 border-blue-200'} shadow-sm`}>
@@ -1787,7 +1821,12 @@ export default function TurniDipendente() {
                                 )}
                                  {!isFormActivity && !isCorsoActivity && !att.isPagamentoStraordinari && (
                                    <button
-                                     onClick={() => completaAttivitaMutation.mutate({ turno: prossimoTurno, attivitaNome: att.nome })}
+                                     onClick={() => completaAttivitaMutation.mutate({ 
+                                       turno: prossimoTurno, 
+                                       attivitaNome: att.nome,
+                                       posizioneTurno: att.posizione_turno,
+                                       oraAttivita: att.ora_inizio
+                                     })}
                                      disabled={completaAttivitaMutation.isPending}
                                      className="flex-1 px-4 py-2.5 bg-green-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-green-600 shadow-sm"
                                    >
@@ -2080,18 +2119,30 @@ export default function TurniDipendente() {
                 const haAttivita = attivita.length > 0;
                 
                 const allAttivitaComplete = attivita.every(att => {
-                  const isFormActivity = att.form_page || att.richiede_form;
-                  const isCorsoActivity = att.corsi_ids?.length > 0;
-                  if (isFormActivity) {
-                    // Controlla prima per form_page in AttivitaCompletata
-                    const completatoViaPagina = attivitaCompletate.some(ac => 
-                      ac.turno_id === prossimoTurno.id && ac.form_page === att.form_page
-                    );
-                    if (completatoViaPagina) return true;
-                    return formDovuti.some(f => f.page === att.form_page && f.completato);
-                  }
-                  if (isCorsoActivity) return true;
-                  return isAttivitaCompletata(prossimoTurno.id, att.nome);
+                const isFormActivity = att.form_page || att.richiede_form;
+                const isCorsoActivity = att.corsi_ids?.length > 0;
+                if (isFormActivity) {
+                  // Controlla prima per form_page in AttivitaCompletata con posizione e ora
+                  const completatoViaPagina = attivitaCompletate.some(ac => {
+                    if (ac.turno_id !== prossimoTurno.id || ac.form_page !== att.form_page) return false;
+
+                    // Se l'attività ha posizione_turno, verifica anche quella
+                    if (att.posizione_turno && ac.posizione_turno) {
+                      return ac.posizione_turno === att.posizione_turno;
+                    }
+
+                    // Se l'attività ha ora_inizio, verifica anche quella
+                    if (att.ora_inizio && ac.ora_attivita) {
+                      return ac.ora_attivita === att.ora_inizio;
+                    }
+
+                    return true;
+                  });
+                  if (completatoViaPagina) return true;
+                  return formDovuti.some(f => f.page === att.form_page && f.completato);
+                }
+                if (isCorsoActivity) return true;
+                return isAttivitaCompletata(prossimoTurno.id, att.nome, att.posizione_turno, att.ora_inizio);
                 });
                 const formNonAssociatiComplete = formDovuti
                   .filter(form => !attivita.some(a => a.form_page === form.page))
