@@ -2569,7 +2569,8 @@ export default function Financials() {
                   </thead>
                   <tbody>
                     {weeklyData.map((week, index) => {
-                      const weekEnd = addDays(safeParseDate(week.weekStart), 6);
+                      const weekStartParsed = week.weekStart ? safeParseDate(week.weekStart + 'T00:00:00') : null;
+                      const weekEnd = weekStartParsed ? addDays(weekStartParsed, 6) : null;
                       
                       return (
                         <tr 
@@ -2578,7 +2579,7 @@ export default function Financials() {
                           onClick={() => setSelectedWeek(selectedWeek === week.weekStart ? null : week.weekStart)}
                         >
                           <td className="p-3 text-slate-700 font-medium text-sm">
-                            {safeFormatDate(safeParseDate(week.weekStart), 'dd/MM')} - {safeFormatDate(weekEnd, 'dd/MM/yyyy')}
+                            {week.weekStart && weekEnd ? `${safeFormatDate(safeParseDate(week.weekStart + 'T00:00:00'), 'dd/MM')} - ${safeFormatDate(weekEnd, 'dd/MM/yyyy')}` : week.weekStart}
                           </td>
                           <td className={`p-3 text-right font-bold text-sm ${weeklyStats ? getColorForValue(week.revenue, weeklyStats.revenue.min, weeklyStats.revenue.max) : ''}`}>
                             €{formatCurrency(week.revenue / 1000, 1)}k
@@ -2616,10 +2617,10 @@ export default function Financials() {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <h3 className="text-lg font-bold text-slate-800">
-                        Dettaglio Giornaliero - Settimana {safeFormatDate(safeParseDate(week.weekStart), 'dd/MM/yyyy')}
+                        Dettaglio Giornaliero - Settimana {week.weekStart ? safeFormatDate(safeParseDate(week.weekStart + 'T00:00:00'), 'dd/MM/yyyy') : ''}
                       </h3>
                       <p className="text-xs text-slate-500 mt-1">
-                        Media storica calcolata su {historicalAvgDays} giorni
+                        Media storica calcolata su {historicalAvgDays} giorni per giorno della settimana
                       </p>
                     </div>
                     <button
