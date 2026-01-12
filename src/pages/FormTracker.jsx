@@ -104,12 +104,21 @@ export default function FormTracker() {
     return false;
   }, [normalizeNameForMatch]);
 
-  const checkFormCompletion = useCallback((formPage, employeeName, storeName, date, turnoId) => {
+  const checkFormCompletion = useCallback((formPage, employeeName, storeName, date, turnoId, posizioneTurno = null) => {
     // METODO PRINCIPALE: Controlla AttivitaCompletata per turno_id e form_page
     if (turnoId) {
-      const completata = attivitaCompletate.find(ac => 
-        ac.turno_id === turnoId && ac.form_page === formPage
-      );
+      const completata = attivitaCompletate.find(ac => {
+        // Match turno_id e form_page
+        if (ac.turno_id !== turnoId || ac.form_page !== formPage) return false;
+        
+        // Se è specificata una posizione_turno (inizio/fine), deve matchare
+        if (posizioneTurno) {
+          return ac.posizione_turno === posizioneTurno;
+        }
+        
+        // Se non è specificata posizione_turno, accetta qualsiasi
+        return true;
+      });
       if (completata) {
         return { completed: true, data: completata };
       }
