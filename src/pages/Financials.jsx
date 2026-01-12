@@ -835,7 +835,7 @@ export default function Financials() {
     
     let filtered = iPraticoData.filter(item => {
       if (!item.order_date) return false;
-      const itemDate = safeParseDate(item.order_date);
+      const itemDate = item.order_date ? safeParseDate(item.order_date + 'T00:00:00') : null;
       if (!itemDate) return false;
       return itemDate >= cutoffDate;
     });
@@ -848,7 +848,7 @@ export default function Financials() {
     const dayOfWeekData = {};
     
     filtered.forEach(item => {
-      const itemDate = safeParseDate(item.order_date);
+      const itemDate = item.order_date ? safeParseDate(item.order_date + 'T00:00:00') : null;
       if (!itemDate) return;
       
       const dayOfWeek = itemDate.getDay();
@@ -894,7 +894,7 @@ export default function Financials() {
     
     let filtered = iPraticoData.filter(item => {
       if (!item.order_date) return false;
-      const itemDate = safeParseDate(item.order_date);
+      const itemDate = item.order_date ? safeParseDate(item.order_date + 'T00:00:00') : null;
       if (!itemDate) return false;
       return itemDate >= cutoffDate;
     });
@@ -906,7 +906,7 @@ export default function Financials() {
     const dayOfWeekData = {};
     
     filtered.forEach(item => {
-      const itemDate = safeParseDate(item.order_date);
+      const itemDate = item.order_date ? safeParseDate(item.order_date + 'T00:00:00') : null;
       if (!itemDate) return;
       
       const dayOfWeek = itemDate.getDay();
