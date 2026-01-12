@@ -112,7 +112,10 @@ export default function ConteggioCassa() {
             completato_at: new Date().toISOString()
           };
           
-          if (posizioneTurno) activityData.posizione_turno = posizioneTurno;
+          // IMPORTANTE: posizione_turno è obbligatorio per distinguere inizio/fine turno
+          if (posizioneTurno) {
+            activityData.posizione_turno = posizioneTurno;
+          }
           if (oraAttivita) activityData.ora_attivita = oraAttivita;
           
           await base44.entities.AttivitaCompletata.create(activityData);
