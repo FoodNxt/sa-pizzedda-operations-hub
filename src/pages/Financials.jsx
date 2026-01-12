@@ -814,10 +814,32 @@ export default function Financials() {
         });
       }
 
+      // Calculate mapped store/delivery revenue for % Store
+      let mappedStoreRevenue = 0;
+      let mappedDeliveryRevenue = 0;
+      
+      const channelsForMapping = [
+        { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+        { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+        { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+        { key: 'store', revenue: item.sourceType_store || 0 }
+      ];
+      
+      channelsForMapping.forEach(ch => {
+        const mappedKey = channelMapping[ch.key] || ch.key;
+        if (mappedKey.toLowerCase() === 'store') {
+          mappedStoreRevenue += ch.revenue;
+        } else if (mappedKey.toLowerCase() === 'delivery') {
+          mappedDeliveryRevenue += ch.revenue;
+        }
+      });
+      
+      const mappedTotalChannelRevenue = mappedStoreRevenue + mappedDeliveryRevenue;
+
       weeklyMap[weekKey].revenue += itemRevenue;
       weeklyMap[weekKey].orders += itemOrders;
-      weeklyMap[weekKey].storeRevenue += itemStoreRevenue;
-      weeklyMap[weekKey].totalChannelRevenue += itemTotalChannelRevenue;
+      weeklyMap[weekKey].storeRevenue += mappedStoreRevenue;
+      weeklyMap[weekKey].totalChannelRevenue += mappedTotalChannelRevenue;
 
       // Daily breakdown
       const dayKey = item.order_date;
@@ -832,8 +854,8 @@ export default function Financials() {
       }
       weeklyMap[weekKey].days[dayKey].revenue += itemRevenue;
       weeklyMap[weekKey].days[dayKey].orders += itemOrders;
-      weeklyMap[weekKey].days[dayKey].storeRevenue += itemStoreRevenue;
-      weeklyMap[weekKey].days[dayKey].totalChannelRevenue += itemTotalChannelRevenue;
+      weeklyMap[weekKey].days[dayKey].storeRevenue += mappedStoreRevenue;
+      weeklyMap[weekKey].days[dayKey].totalChannelRevenue += mappedTotalChannelRevenue;
     });
 
     return Object.values(weeklyMap)
@@ -943,10 +965,30 @@ export default function Financials() {
             });
           }
           
+          // Calculate store revenue using channel mapping
+          let mappedStoreRevenue = 0;
+          let mappedDeliveryRevenue = 0;
+          
+          const channelsForMapping = [
+            { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+            { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+            { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+            { key: 'store', revenue: item.sourceType_store || 0 }
+          ];
+          
+          channelsForMapping.forEach(ch => {
+            const mappedKey = channelMapping[ch.key] || ch.key;
+            if (mappedKey.toLowerCase() === 'store') {
+              mappedStoreRevenue += ch.revenue;
+            } else if (mappedKey.toLowerCase() === 'delivery') {
+              mappedDeliveryRevenue += ch.revenue;
+            }
+          });
+          
           dayOfWeekData[dayOfWeek].revenue.push(itemRevenue);
           dayOfWeekData[dayOfWeek].orders.push(itemOrders);
-          dayOfWeekData[dayOfWeek].storeRevenue.push(item.sourceType_store || 0);
-          dayOfWeekData[dayOfWeek].totalChannelRevenue.push((item.sourceType_store || 0) + (item.sourceType_delivery || 0));
+          dayOfWeekData[dayOfWeek].storeRevenue.push(mappedStoreRevenue);
+          dayOfWeekData[dayOfWeek].totalChannelRevenue.push(mappedStoreRevenue + mappedDeliveryRevenue);
         });
         
         dayOfWeekAveragesByStore[storeId] = {};
@@ -1078,10 +1120,30 @@ export default function Financials() {
           });
         }
         
+        // Calculate store revenue using channel mapping
+        let mappedStoreRevenue = 0;
+        let mappedDeliveryRevenue = 0;
+        
+        const channelsForMapping = [
+          { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+          { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+          { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+          { key: 'store', revenue: item.sourceType_store || 0 }
+        ];
+        
+        channelsForMapping.forEach(ch => {
+          const mappedKey = channelMapping[ch.key] || ch.key;
+          if (mappedKey.toLowerCase() === 'store') {
+            mappedStoreRevenue += ch.revenue;
+          } else if (mappedKey.toLowerCase() === 'delivery') {
+            mappedDeliveryRevenue += ch.revenue;
+          }
+        });
+        
         dayOfWeekData[dayOfWeek].revenue.push(itemRevenue);
         dayOfWeekData[dayOfWeek].orders.push(itemOrders);
-        dayOfWeekData[dayOfWeek].storeRevenue.push(item.sourceType_store || 0);
-        dayOfWeekData[dayOfWeek].totalChannelRevenue.push((item.sourceType_store || 0) + (item.sourceType_delivery || 0));
+        dayOfWeekData[dayOfWeek].storeRevenue.push(mappedStoreRevenue);
+        dayOfWeekData[dayOfWeek].totalChannelRevenue.push(mappedStoreRevenue + mappedDeliveryRevenue);
       });
 
       const averages = {};
