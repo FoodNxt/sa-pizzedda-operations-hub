@@ -503,15 +503,11 @@ export default function Financials() {
       }
     }
 
-    // Calculate % in Store (ALWAYS from unfiltered Store and Delivery data)
-    let storeRevenue = 0;
-    let deliveryRevenue = 0;
-    
-    filtered.forEach(item => {
-      storeRevenue += item.sourceType_store || 0;
-      deliveryRevenue += item.sourceType_delivery || 0;
-    });
-    
+    // Calculate % in Store from filtered channel data
+    const storeChannel = channelBreakdown.find(ch => ch.name.toLowerCase() === 'store');
+    const deliveryChannel = channelBreakdown.find(ch => ch.name.toLowerCase() === 'delivery');
+    const storeRevenue = storeChannel?.value || 0;
+    const deliveryRevenue = deliveryChannel?.value || 0;
     const totalChannelRevenue = storeRevenue + deliveryRevenue;
     const percentInStore = totalChannelRevenue > 0 ? (storeRevenue / totalChannelRevenue) * 100 : 0;
 
@@ -844,53 +840,252 @@ export default function Financials() {
       return itemDate >= cutoffDate;
     });
 
-    if (selectedStore !== 'all') {
-      filtered = filtered.filter(item => item.store_id === selectedStore);
-    }
-
-    // Group by day of week (0 = Sunday, 1 = Monday, etc.)
-    const dayOfWeekData = {};
-    
-    filtered.forEach(item => {
-      const itemDate = item.order_date ? safeParseDate(item.order_date + 'T00:00:00') : null;
-      if (!itemDate) return;
+    if (selectedStore === 'all') {
+      // When "all stores" - calculate average per store, then sum them
+      const storeIds = [...new Set(filtered.map(item => item.store_id))];
+      const dayOfWeekAveragesByStore = {};
       
-      const dayOfWeek = itemDate.getDay();
+      storeIds.forEach(storeId => {
+        const storeFiltered = filtered.filter(item => item.store_id === storeId);
+        const dayOfWeekData = {};
+        
+        storeFiltered.forEach(item => {
+          const itemDate = item.order_date ? safeParseDate(item.order_date + 'T00:00:00') : null;
+          if (!itemDate) return;
+          
+          const dayOfWeek = itemDate.getDay();
+          
+          if (!dayOfWeekData[dayOfWeek]) {
+            dayOfWeekData[dayOfWeek] = {
+              revenue: [],
+              orders: [],
+              storeRevenue: [],
+              totalChannelRevenue: []
+            };
+          }
+          
+          // Apply filters
+          let itemRevenue = 0;
+          let itemOrders = 0;
+          
+          if (weeklySelectedChannels.length === 0 && weeklySelectedApps.length === 0 && weeklySelectedPayments.length === 0) {
+            itemRevenue = item.total_revenue || 0;
+            itemOrders = item.total_orders || 0;
+          } else if (weeklySelectedPayments.length > 0) {
+            weeklySelectedPayments.forEach(method => {
+              if (method === 'Bancomat') {
+                itemRevenue += item.moneyType_bancomat || 0;
+                itemOrders += item.moneyType_bancomat_orders || 0;
+              } else if (method === 'Contanti') {
+                itemRevenue += item.moneyType_cash || 0;
+                itemOrders += item.moneyType_cash_orders || 0;
+              } else if (method === 'Online') {
+                itemRevenue += item.moneyType_online || 0;
+                itemOrders += item.moneyType_online_orders || 0;
+              } else if (method === 'Satispay') {
+                itemRevenue += item.moneyType_satispay || 0;
+                itemOrders += item.moneyType_satispay_orders || 0;
+              } else if (method === 'Carta di Credito') {
+                itemRevenue += item.moneyType_credit_card || 0;
+                itemOrders += item.moneyType_credit_card_orders || 0;
+              } else if (method === 'Punti Fidelity') {
+                itemRevenue += item.moneyType_fidelity_card_points || 0;
+                itemOrders += item.moneyType_fidelity_card_points_orders || 0;
+              }
+            });
+          } else if (weeklySelectedApps.length > 0) {
+            const apps = [
+              { key: 'glovo', revenue: item.sourceApp_glovo || 0, orders: item.sourceApp_glovo_orders || 0 },
+              { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0, orders: item.sourceApp_deliveroo_orders || 0 },
+              { key: 'justeat', revenue: item.sourceApp_justeat || 0, orders: item.sourceApp_justeat_orders || 0 },
+              { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0, orders: item.sourceApp_onlineordering_orders || 0 },
+              { key: 'ordertable', revenue: item.sourceApp_ordertable || 0, orders: item.sourceApp_ordertable_orders || 0 },
+              { key: 'tabesto', revenue: item.sourceApp_tabesto || 0, orders: item.sourceApp_tabesto_orders || 0 },
+              { key: 'store', revenue: item.sourceApp_store || 0, orders: item.sourceApp_store_orders || 0 }
+            ];
+            apps.forEach(app => {
+              const mappedKey = appMapping[app.key] || app.key;
+              if (weeklySelectedApps.includes(mappedKey)) {
+                itemRevenue += app.revenue;
+                itemOrders += app.orders;
+              }
+            });
+          } else if (weeklySelectedChannels.length > 0) {
+            const channels = [
+              { key: 'delivery', revenue: item.sourceType_delivery || 0, orders: item.sourceType_delivery_orders || 0 },
+              { key: 'takeaway', revenue: item.sourceType_takeaway || 0, orders: item.sourceType_takeaway_orders || 0 },
+              { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0, orders: item.sourceType_takeawayOnSite_orders || 0 },
+              { key: 'store', revenue: item.sourceType_store || 0, orders: item.sourceType_store_orders || 0 }
+            ];
+            channels.forEach(ch => {
+              const mappedKey = channelMapping[ch.key] || ch.key;
+              if (weeklySelectedChannels.includes(mappedKey)) {
+                itemRevenue += ch.revenue;
+                itemOrders += ch.orders;
+              }
+            });
+          }
+          
+          dayOfWeekData[dayOfWeek].revenue.push(itemRevenue);
+          dayOfWeekData[dayOfWeek].orders.push(itemOrders);
+          dayOfWeekData[dayOfWeek].storeRevenue.push(item.sourceType_store || 0);
+          dayOfWeekData[dayOfWeek].totalChannelRevenue.push((item.sourceType_store || 0) + (item.sourceType_delivery || 0));
+        });
+        
+        dayOfWeekAveragesByStore[storeId] = {};
+        Object.entries(dayOfWeekData).forEach(([dayOfWeek, data]) => {
+          const count = data.revenue.length;
+          const totalRevenue = data.revenue.reduce((sum, v) => sum + v, 0);
+          const totalOrders = data.orders.reduce((sum, v) => sum + v, 0);
+          const totalStoreRevenue = data.storeRevenue.reduce((sum, v) => sum + v, 0);
+          const totalChannelRevenue = data.totalChannelRevenue.reduce((sum, v) => sum + v, 0);
+          
+          dayOfWeekAveragesByStore[storeId][dayOfWeek] = {
+            revenue: count > 0 ? totalRevenue / count : 0,
+            orders: count > 0 ? totalOrders / count : 0,
+            avgOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,
+            percentStore: totalChannelRevenue > 0 ? (totalStoreRevenue / totalChannelRevenue) * 100 : 0
+          };
+        });
+      });
       
-      if (!dayOfWeekData[dayOfWeek]) {
-        dayOfWeekData[dayOfWeek] = {
-          revenue: [],
-          orders: [],
-          storeRevenue: [],
-          totalChannelRevenue: []
+      // Sum averages across all stores
+      const averages = {};
+      [0, 1, 2, 3, 4, 5, 6].forEach(dayOfWeek => {
+        let totalRevenue = 0;
+        let totalOrders = 0;
+        let totalAvgOrderValue = 0;
+        let totalPercentStore = 0;
+        let storeCount = 0;
+        
+        storeIds.forEach(storeId => {
+          if (dayOfWeekAveragesByStore[storeId]?.[dayOfWeek]) {
+            const storeAvg = dayOfWeekAveragesByStore[storeId][dayOfWeek];
+            totalRevenue += storeAvg.revenue;
+            totalOrders += storeAvg.orders;
+            totalAvgOrderValue += storeAvg.avgOrderValue;
+            totalPercentStore += storeAvg.percentStore;
+            storeCount++;
+          }
+        });
+        
+        averages[dayOfWeek] = {
+          revenue: totalRevenue,
+          orders: totalOrders,
+          avgOrderValue: storeCount > 0 ? totalAvgOrderValue / storeCount : 0,
+          percentStore: storeCount > 0 ? totalPercentStore / storeCount : 0
         };
-      }
+      });
       
-      dayOfWeekData[dayOfWeek].revenue.push(item.total_revenue || 0);
-      dayOfWeekData[dayOfWeek].orders.push(item.total_orders || 0);
-      dayOfWeekData[dayOfWeek].storeRevenue.push(item.sourceType_store || 0);
-      dayOfWeekData[dayOfWeek].totalChannelRevenue.push((item.sourceType_store || 0) + (item.sourceType_delivery || 0));
-    });
-
-    // Calculate averages for each day of week
-    const averages = {};
-    Object.entries(dayOfWeekData).forEach(([dayOfWeek, data]) => {
-      const count = data.revenue.length;
-      const totalRevenue = data.revenue.reduce((sum, v) => sum + v, 0);
-      const totalOrders = data.orders.reduce((sum, v) => sum + v, 0);
-      const totalStoreRevenue = data.storeRevenue.reduce((sum, v) => sum + v, 0);
-      const totalChannelRevenue = data.totalChannelRevenue.reduce((sum, v) => sum + v, 0);
+      return averages;
+    } else {
+      // Single store - calculate normally
+      filtered = filtered.filter(item => item.store_id === selectedStore);
       
-      averages[dayOfWeek] = {
-        revenue: count > 0 ? totalRevenue / count : 0,
-        orders: count > 0 ? totalOrders / count : 0,
-        avgOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,
-        percentStore: totalChannelRevenue > 0 ? (totalStoreRevenue / totalChannelRevenue) * 100 : 0
-      };
-    });
+      const dayOfWeekData = {};
+      
+      filtered.forEach(item => {
+        const itemDate = item.order_date ? safeParseDate(item.order_date + 'T00:00:00') : null;
+        if (!itemDate) return;
+        
+        const dayOfWeek = itemDate.getDay();
+        
+        if (!dayOfWeekData[dayOfWeek]) {
+          dayOfWeekData[dayOfWeek] = {
+            revenue: [],
+            orders: [],
+            storeRevenue: [],
+            totalChannelRevenue: []
+          };
+        }
+        
+        // Apply filters
+        let itemRevenue = 0;
+        let itemOrders = 0;
+        
+        if (weeklySelectedChannels.length === 0 && weeklySelectedApps.length === 0 && weeklySelectedPayments.length === 0) {
+          itemRevenue = item.total_revenue || 0;
+          itemOrders = item.total_orders || 0;
+        } else if (weeklySelectedPayments.length > 0) {
+          weeklySelectedPayments.forEach(method => {
+            if (method === 'Bancomat') {
+              itemRevenue += item.moneyType_bancomat || 0;
+              itemOrders += item.moneyType_bancomat_orders || 0;
+            } else if (method === 'Contanti') {
+              itemRevenue += item.moneyType_cash || 0;
+              itemOrders += item.moneyType_cash_orders || 0;
+            } else if (method === 'Online') {
+              itemRevenue += item.moneyType_online || 0;
+              itemOrders += item.moneyType_online_orders || 0;
+            } else if (method === 'Satispay') {
+              itemRevenue += item.moneyType_satispay || 0;
+              itemOrders += item.moneyType_satispay_orders || 0;
+            } else if (method === 'Carta di Credito') {
+              itemRevenue += item.moneyType_credit_card || 0;
+              itemOrders += item.moneyType_credit_card_orders || 0;
+            } else if (method === 'Punti Fidelity') {
+              itemRevenue += item.moneyType_fidelity_card_points || 0;
+              itemOrders += item.moneyType_fidelity_card_points_orders || 0;
+            }
+          });
+        } else if (weeklySelectedApps.length > 0) {
+          const apps = [
+            { key: 'glovo', revenue: item.sourceApp_glovo || 0, orders: item.sourceApp_glovo_orders || 0 },
+            { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0, orders: item.sourceApp_deliveroo_orders || 0 },
+            { key: 'justeat', revenue: item.sourceApp_justeat || 0, orders: item.sourceApp_justeat_orders || 0 },
+            { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0, orders: item.sourceApp_onlineordering_orders || 0 },
+            { key: 'ordertable', revenue: item.sourceApp_ordertable || 0, orders: item.sourceApp_ordertable_orders || 0 },
+            { key: 'tabesto', revenue: item.sourceApp_tabesto || 0, orders: item.sourceApp_tabesto_orders || 0 },
+            { key: 'store', revenue: item.sourceApp_store || 0, orders: item.sourceApp_store_orders || 0 }
+          ];
+          apps.forEach(app => {
+            const mappedKey = appMapping[app.key] || app.key;
+            if (weeklySelectedApps.includes(mappedKey)) {
+              itemRevenue += app.revenue;
+              itemOrders += app.orders;
+            }
+          });
+        } else if (weeklySelectedChannels.length > 0) {
+          const channels = [
+            { key: 'delivery', revenue: item.sourceType_delivery || 0, orders: item.sourceType_delivery_orders || 0 },
+            { key: 'takeaway', revenue: item.sourceType_takeaway || 0, orders: item.sourceType_takeaway_orders || 0 },
+            { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0, orders: item.sourceType_takeawayOnSite_orders || 0 },
+            { key: 'store', revenue: item.sourceType_store || 0, orders: item.sourceType_store_orders || 0 }
+          ];
+          channels.forEach(ch => {
+            const mappedKey = channelMapping[ch.key] || ch.key;
+            if (weeklySelectedChannels.includes(mappedKey)) {
+              itemRevenue += ch.revenue;
+              itemOrders += ch.orders;
+            }
+          });
+        }
+        
+        dayOfWeekData[dayOfWeek].revenue.push(itemRevenue);
+        dayOfWeekData[dayOfWeek].orders.push(itemOrders);
+        dayOfWeekData[dayOfWeek].storeRevenue.push(item.sourceType_store || 0);
+        dayOfWeekData[dayOfWeek].totalChannelRevenue.push((item.sourceType_store || 0) + (item.sourceType_delivery || 0));
+      });
 
-    return averages;
-  }, [iPraticoData, selectedStore, historicalAvgDays]);
+      const averages = {};
+      Object.entries(dayOfWeekData).forEach(([dayOfWeek, data]) => {
+        const count = data.revenue.length;
+        const totalRevenue = data.revenue.reduce((sum, v) => sum + v, 0);
+        const totalOrders = data.orders.reduce((sum, v) => sum + v, 0);
+        const totalStoreRevenue = data.storeRevenue.reduce((sum, v) => sum + v, 0);
+        const totalChannelRevenue = data.totalChannelRevenue.reduce((sum, v) => sum + v, 0);
+        
+        averages[dayOfWeek] = {
+          revenue: count > 0 ? totalRevenue / count : 0,
+          orders: count > 0 ? totalOrders / count : 0,
+          avgOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,
+          percentStore: totalChannelRevenue > 0 ? (totalStoreRevenue / totalChannelRevenue) * 100 : 0
+        };
+      });
+
+      return averages;
+    }
+  }, [iPraticoData, selectedStore, historicalAvgDays, weeklySelectedChannels, weeklySelectedApps, weeklySelectedPayments, channelMapping, appMapping]);
 
   // Daily chart data (day of week analysis)
   const dailyChartData = useMemo(() => {
