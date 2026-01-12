@@ -387,21 +387,13 @@ export default function TurniDipendente() {
 
   const timbraMutation = useMutation({
     mutationFn: async ({ turnoId, tipo, posizione }) => {
-      const turno = turni.find(t => t.id === turnoId) || turniFuturi.find(t => t.id === turnoId);
-      if (!turno) throw new Error('Turno non trovato');
-
-      const updateData = {};
-      if (tipo === 'entrata') {
-        updateData.timbratura_entrata = new Date().toISOString();
-        updateData.posizione_entrata = posizione;
-        updateData.stato = 'in_corso';
-      } else {
-        updateData.timbratura_uscita = new Date().toISOString();
-        updateData.posizione_uscita = posizione;
-        updateData.stato = 'completato';
-      }
-
-      return base44.entities.TurnoPlanday.update(turnoId, updateData);
+      // Usa backend function per ottenere timestamp dal server
+      const response = await base44.functions.invoke('timbraTurno', {
+        turnoId,
+        tipo,
+        posizione
+      });
+      return response.data;
     },
     onSuccess: async (_, variables) => {
       // Invalida e aspetta il refetch dei dati
