@@ -695,7 +695,7 @@ export default function Financials() {
 
     filtered.forEach(item => {
       if (!item.order_date) return;
-      const date = safeParseDate(item.order_date);
+      const date = item.order_date ? safeParseDate(item.order_date + 'T00:00:00') : null;
       if (!date) return;
 
       const weekStart = new Date(date);
@@ -2652,7 +2652,7 @@ export default function Financials() {
                           const percentStore = day.totalChannelRevenue > 0 ? (day.storeRevenue / day.totalChannelRevenue) * 100 : 0;
                           
                           // Get historical average for this specific day of week
-                          const dayDate = safeParseDate(day.date);
+                          const dayDate = day.date ? safeParseDate(day.date + 'T00:00:00') : null;
                           const dayOfWeek = dayDate ? dayDate.getDay() : 0;
                           const dayAvg = historicalAveragesByDayOfWeek[dayOfWeek] || { revenue: 0, orders: 0, avgOrderValue: 0, percentStore: 0 };
                           
