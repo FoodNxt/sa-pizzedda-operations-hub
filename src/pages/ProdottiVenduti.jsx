@@ -23,6 +23,9 @@ export default function ProdottiVenduti() {
   const [selectedTrendProduct, setSelectedTrendProduct] = useState(null);
   const [trendView, setTrendView] = useState('chart'); // 'chart' or 'table'
   const [selectedCategories, setSelectedCategories] = useState([]);
+  const [compareEnabled, setCompareEnabled] = useState(false);
+  const [compareStartDate, setCompareStartDate] = useState('');
+  const [compareEndDate, setCompareEndDate] = useState('');
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -81,6 +84,24 @@ export default function ProdottiVenduti() {
     return filtered;
   }, [prodottiVenduti, selectedStore, dateRange, startDate, endDate]);
 
+  // Comparison period data
+  const comparisonData = useMemo(() => {
+    if (!compareEnabled || !compareStartDate || !compareEndDate) return [];
+
+    let filtered = prodottiVenduti;
+
+    if (selectedStore !== 'all') {
+      filtered = filtered.filter(p => p.store_id === selectedStore);
+    }
+
+    filtered = filtered.filter(p => {
+      const dataStr = p.data_vendita?.split('T')[0] || p.data_vendita;
+      return dataStr >= compareStartDate && dataStr <= compareEndDate;
+    });
+
+    return filtered;
+  }, [prodottiVenduti, selectedStore, compareEnabled, compareStartDate, compareEndDate]);
+
   // Calculate totals by product (aggregate by flavor)
   const productTotals = useMemo(() => {
     const totals = {};
@@ -102,6 +123,62 @@ export default function ProdottiVenduti() {
     return Object.values(totals)
       .sort((a, b) => b.total - a.total);
   }, [filteredData]);
+
+  // Comparison period totals
+  const comparisonTotals = useMemo(() => {
+    if (!compareEnabled || comparisonData.length === 0) return {};
+    
+    const totals = {};
+    
+    comparisonData.forEach(record => {
+      const flavor = record.flavor;
+      if (!flavor) return;
+      
+      if (!totals[flavor]) {
+        totals[flavor] = {
+          name: flavor,
+          total: 0,
+          category: record.category || 'altro'
+        };
+      }
+      totals[flavor].total += record.total_pizzas_sold || 0;
+    });
+
+    return totals;
+  }, [comparisonData, compareEnabled]);
+
+  // Category aggregations
+  const categoryTotals = useMemo(() => {
+    const totals = {};
+    
+    productTotals.forEach(product => {
+      const cat = product.category || 'altro';
+      if (!totals[cat]) {
+        totals[cat] = { category: cat, total: 0, products: [] };
+      }
+      totals[cat].total += product.total;
+      totals[cat].products.push(product.name);
+    });
+
+    return Object.values(totals).sort((a, b) => b.total - a.total);
+  }, [productTotals]);
+
+  // Comparison category totals
+  const comparisonCategoryTotals = useMemo(() => {
+    if (!compareEnabled) return {};
+    
+    const totals = {};
+    
+    Object.values(comparisonTotals).forEach(product => {
+      const cat = product.category || 'altro';
+      if (!totals[cat]) {
+        totals[cat] = 0;
+      }
+      totals[cat] += product.total;
+    });
+
+    return totals;
+  }, [comparisonTotals, compareEnabled]);
 
   // Top 10 products
   const top10Products = productTotals.slice(0, 10);
@@ -159,6 +236,16 @@ export default function ProdottiVenduti() {
   const activeProducts = productTotals.filter(p => p.total > 0).length;
   const avgPerProduct = activeProducts > 0 ? (totalSales / activeProducts).toFixed(1) : 0;
 
+  // Comparison stats
+  const comparisonTotalSales = compareEnabled ? Object.values(comparisonTotals).reduce((sum, p) => sum + p.total, 0) : 0;
+  const comparisonActiveProducts = compareEnabled ? Object.values(comparisonTotals).filter(p => p.total > 0).length : 0;
+  const comparisonAvgPerProduct = compareEnabled && comparisonActiveProducts > 0 ? (comparisonTotalSales / comparisonActiveProducts).toFixed(1) : 0;
+
+  // Deltas
+  const deltaSales = compareEnabled ? totalSales - comparisonTotalSales : 0;
+  const deltaActiveProducts = compareEnabled ? activeProducts - comparisonActiveProducts : 0;
+  const deltaAvg = compareEnabled ? (parseFloat(avgPerProduct) - parseFloat(comparisonAvgPerProduct)).toFixed(1) : 0;
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -171,58 +258,99 @@ export default function ProdottiVenduti() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-6">
-        <NeumorphicCard className="px-4 py-2">
-          <select
-            value={selectedStore}
-            onChange={(e) => setSelectedStore(e.target.value)}
-            className="bg-transparent text-[#6b6b6b] outline-none"
-          >
-            <option value="all">Tutti i Negozi</option>
-            {stores.map(store => (
-              <option key={store.id} value={store.id}>{store.name}</option>
-            ))}
-          </select>
-        </NeumorphicCard>
+      <NeumorphicCard className="p-4">
+        <div className="flex flex-wrap gap-3 mb-4">
+          <div>
+            <label className="text-xs text-[#9b9b9b] mb-1 block">Negozio</label>
+            <select
+              value={selectedStore}
+              onChange={(e) => setSelectedStore(e.target.value)}
+              className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
+            >
+              <option value="all">Tutti i Negozi</option>
+              {stores.map(store => (
+                <option key={store.id} value={store.id}>{store.name}</option>
+              ))}
+            </select>
+          </div>
 
-        <NeumorphicCard className="px-4 py-2">
-          <select
-            value={dateRange}
-            onChange={(e) => setDateRange(e.target.value)}
-            className="bg-transparent text-[#6b6b6b] outline-none"
-          >
-            <option value="today">Oggi</option>
-            <option value="week">Ultima Settimana</option>
-            <option value="month">Questo Mese</option>
-            <option value="all">Tutto</option>
-            <option value="custom">Personalizzato</option>
-          </select>
-        </NeumorphicCard>
+          <div>
+            <label className="text-xs text-[#9b9b9b] mb-1 block">Periodo</label>
+            <select
+              value={dateRange}
+              onChange={(e) => setDateRange(e.target.value)}
+              className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
+            >
+              <option value="today">Oggi</option>
+              <option value="week">Ultima Settimana</option>
+              <option value="month">Questo Mese</option>
+              <option value="all">Tutto</option>
+              <option value="custom">Personalizzato</option>
+            </select>
+          </div>
 
-        {dateRange === 'custom' && (
-          <>
-            <NeumorphicCard className="px-4 py-2 flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-[#9b9b9b]" />
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="bg-transparent text-[#6b6b6b] outline-none text-sm"
-              />
-            </NeumorphicCard>
+          {dateRange === 'custom' && (
+            <>
+              <div>
+                <label className="text-xs text-[#9b9b9b] mb-1 block">Da</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
+                />
+              </div>
 
-            <NeumorphicCard className="px-4 py-2 flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-[#9b9b9b]" />
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="bg-transparent text-[#6b6b6b] outline-none text-sm"
-              />
-            </NeumorphicCard>
-          </>
-        )}
-      </div>
+              <div>
+                <label className="text-xs text-[#9b9b9b] mb-1 block">A</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
+                />
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Comparison Toggle */}
+        <div className="border-t border-slate-200 pt-4">
+          <label className="flex items-center gap-2 mb-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={compareEnabled}
+              onChange={(e) => setCompareEnabled(e.target.checked)}
+              className="w-4 h-4"
+            />
+            <span className="text-sm font-medium text-[#6b6b6b]">Confronta con altro periodo</span>
+          </label>
+
+          {compareEnabled && (
+            <div className="flex flex-wrap gap-3">
+              <div>
+                <label className="text-xs text-[#9b9b9b] mb-1 block">Periodo confronto - Da</label>
+                <input
+                  type="date"
+                  value={compareStartDate}
+                  onChange={(e) => setCompareStartDate(e.target.value)}
+                  className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-[#9b9b9b] mb-1 block">Periodo confronto - A</label>
+                <input
+                  type="date"
+                  value={compareEndDate}
+                  onChange={(e) => setCompareEndDate(e.target.value)}
+                  className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </NeumorphicCard>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -232,6 +360,15 @@ export default function ProdottiVenduti() {
           </div>
           <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">{totalSales}</h3>
           <p className="text-sm text-[#9b9b9b]">Vendite Totali</p>
+          {compareEnabled && comparisonTotalSales > 0 && (
+            <div className="mt-2">
+              <div className={`text-sm font-medium ${deltaSales >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {deltaSales >= 0 ? <TrendingUp className="w-4 h-4 inline" /> : <TrendingDown className="w-4 h-4 inline" />}
+                {deltaSales >= 0 ? '+' : ''}{deltaSales} ({((deltaSales / comparisonTotalSales) * 100).toFixed(1)}%)
+              </div>
+              <div className="text-xs text-slate-400">vs {comparisonTotalSales}</div>
+            </div>
+          )}
         </NeumorphicCard>
 
         <NeumorphicCard className="p-6 text-center">
@@ -240,6 +377,15 @@ export default function ProdottiVenduti() {
           </div>
           <h3 className="text-3xl font-bold text-green-600 mb-1">{activeProducts}</h3>
           <p className="text-sm text-[#9b9b9b]">Prodotti Venduti</p>
+          {compareEnabled && comparisonActiveProducts > 0 && (
+            <div className="mt-2">
+              <div className={`text-sm font-medium ${deltaActiveProducts >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {deltaActiveProducts >= 0 ? <TrendingUp className="w-4 h-4 inline" /> : <TrendingDown className="w-4 h-4 inline" />}
+                {deltaActiveProducts >= 0 ? '+' : ''}{deltaActiveProducts}
+              </div>
+              <div className="text-xs text-slate-400">vs {comparisonActiveProducts}</div>
+            </div>
+          )}
         </NeumorphicCard>
 
         <NeumorphicCard className="p-6 text-center">
@@ -248,6 +394,15 @@ export default function ProdottiVenduti() {
           </div>
           <h3 className="text-3xl font-bold text-blue-600 mb-1">{avgPerProduct}</h3>
           <p className="text-sm text-[#9b9b9b]">Media per Prodotto</p>
+          {compareEnabled && comparisonAvgPerProduct > 0 && (
+            <div className="mt-2">
+              <div className={`text-sm font-medium ${deltaAvg >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {deltaAvg >= 0 ? <TrendingUp className="w-4 h-4 inline" /> : <TrendingDown className="w-4 h-4 inline" />}
+                {deltaAvg >= 0 ? '+' : ''}{deltaAvg}
+              </div>
+              <div className="text-xs text-slate-400">vs {comparisonAvgPerProduct}</div>
+            </div>
+          )}
         </NeumorphicCard>
 
         <NeumorphicCard className="p-6 text-center">
@@ -257,6 +412,11 @@ export default function ProdottiVenduti() {
           <h3 className="text-3xl font-bold text-purple-600 mb-1">{filteredData.length}</h3>
           <p className="text-sm text-[#9b9b9b]">Record Filtrati</p>
           <p className="text-xs text-slate-400 mt-1">({prodottiVenduti.length} totali caricati)</p>
+          {compareEnabled && (
+            <div className="mt-2">
+              <div className="text-xs text-slate-400">vs {comparisonData.length} record</div>
+            </div>
+          )}
         </NeumorphicCard>
       </div>
 
@@ -382,6 +542,71 @@ export default function ProdottiVenduti() {
         </NeumorphicCard>
       )}
 
+      {/* Category Breakdown */}
+      {categoryTotals.length > 0 && (
+        <NeumorphicCard className="p-6">
+          <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">📊 Vendite per Categoria</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b-2 border-[#8b7355]">
+                  <th className="text-left p-3 text-[#9b9b9b] font-medium">Categoria</th>
+                  <th className="text-right p-3 text-[#9b9b9b] font-medium">Quantità</th>
+                  <th className="text-right p-3 text-[#9b9b9b] font-medium">% del Totale</th>
+                  {compareEnabled && comparisonTotalSales > 0 && (
+                    <>
+                      <th className="text-right p-3 text-[#9b9b9b] font-medium">Periodo Confronto</th>
+                      <th className="text-right p-3 text-[#9b9b9b] font-medium">Delta</th>
+                    </>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {categoryTotals.map((cat) => {
+                  const comparisonTotal = compareEnabled ? (comparisonCategoryTotals[cat.category] || 0) : 0;
+                  const delta = compareEnabled ? cat.total - comparisonTotal : 0;
+                  
+                  return (
+                    <tr key={cat.category} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
+                      <td className="p-3">
+                        <span className="font-bold text-[#6b6b6b] capitalize">{cat.category}</span>
+                        <div className="text-xs text-slate-400 mt-0.5">
+                          {cat.products.length} prodott{cat.products.length === 1 ? 'o' : 'i'}
+                        </div>
+                      </td>
+                      <td className="p-3 text-right">
+                        <span className="font-bold text-[#8b7355] text-lg">{cat.total}</span>
+                      </td>
+                      <td className="p-3 text-right">
+                        <span className="text-[#6b6b6b]">
+                          {((cat.total / totalSales) * 100).toFixed(1)}%
+                        </span>
+                      </td>
+                      {compareEnabled && comparisonTotalSales > 0 && (
+                        <>
+                          <td className="p-3 text-right">
+                            <span className="text-slate-500">{comparisonTotal}</span>
+                          </td>
+                          <td className="p-3 text-right">
+                            <div className={`font-medium ${delta >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {delta >= 0 ? <TrendingUp className="w-4 h-4 inline" /> : <TrendingDown className="w-4 h-4 inline" />}
+                              {delta >= 0 ? '+' : ''}{delta}
+                              {comparisonTotal > 0 && (
+                                <span className="text-xs ml-1">({((delta / comparisonTotal) * 100).toFixed(1)}%)</span>
+                              )}
+                            </div>
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </NeumorphicCard>
+      )}
+
       {/* Search */}
       <NeumorphicCard className="p-4">
         <div className="flex items-center gap-3">
@@ -443,27 +668,38 @@ export default function ProdottiVenduti() {
               </tr>
             </thead>
             <tbody>
-              {categoryFilteredProducts.map((product, index) => (
-                <tr key={product.name} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
-                  <td className="p-3 text-[#9b9b9b]">{index + 1}</td>
-                  <td className="p-3">
-                    <div>
-                      <span className="font-medium text-[#6b6b6b]">{product.name}</span>
-                      <span className="ml-2 text-xs text-[#9b9b9b] px-2 py-0.5 rounded-full bg-slate-100">
-                        {product.category}
+              {categoryFilteredProducts.map((product, index) => {
+                const comparisonProduct = compareEnabled ? comparisonTotals[product.name] : null;
+                const comparisonTotal = comparisonProduct?.total || 0;
+                const delta = compareEnabled ? product.total - comparisonTotal : 0;
+                
+                return (
+                  <tr key={product.name} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
+                    <td className="p-3 text-[#9b9b9b]">{index + 1}</td>
+                    <td className="p-3">
+                      <div>
+                        <span className="font-medium text-[#6b6b6b]">{product.name}</span>
+                        <span className="ml-2 text-xs text-[#9b9b9b] px-2 py-0.5 rounded-full bg-slate-100">
+                          {product.category}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="p-3 text-right">
+                      <span className="font-bold text-[#8b7355]">{product.total}</span>
+                      {compareEnabled && comparisonTotal > 0 && (
+                        <div className={`text-xs font-medium mt-1 ${delta >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {delta >= 0 ? '+' : ''}{delta} ({((delta / comparisonTotal) * 100).toFixed(1)}%)
+                        </div>
+                      )}
+                    </td>
+                    <td className="p-3 text-right">
+                      <span className="text-[#6b6b6b]">
+                        {categoryFilteredTotal > 0 ? ((product.total / categoryFilteredTotal) * 100).toFixed(1) : 0}%
                       </span>
-                    </div>
-                  </td>
-                  <td className="p-3 text-right">
-                    <span className="font-bold text-[#8b7355]">{product.total}</span>
-                  </td>
-                  <td className="p-3 text-right">
-                    <span className="text-[#6b6b6b]">
-                      {categoryFilteredTotal > 0 ? ((product.total / categoryFilteredTotal) * 100).toFixed(1) : 0}%
-                    </span>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
