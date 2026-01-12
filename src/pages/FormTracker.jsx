@@ -243,12 +243,17 @@ export default function FormTracker() {
       schema.slots.forEach(slot => {
         if (!slot.richiede_form || !slot.form_page) return;
         
+        // Se è necessario in ogni turno con posizione specifica (inizio/fine), non usare il Set semplice
+        // perché potrebbe esserci lo stesso form sia a inizio che a fine turno
+        if (slot.necessario_in_ogni_turno && slot.posizione_turno) {
+          // Gestito separatamente sotto per preservare la posizione
+          return;
+        }
+        
         // Check if slot overlaps with shift time
         if (schema.usa_minuti_relativi) {
           // For relative minutes, always include if it's within shift duration
-          if (slot.necessario_in_ogni_turno) {
-            formsSet.add(slot.form_page);
-          }
+          formsSet.add(slot.form_page);
         } else {
           // For absolute times, check overlap
           const slotStart = timeToMinutes(slot.ora_inizio);
@@ -258,11 +263,6 @@ export default function FormTracker() {
           if (slotStart < shiftEnd && slotEnd > shiftStart) {
             formsSet.add(slot.form_page);
           }
-        }
-        
-        // Always include if necessary in every shift
-        if (slot.necessario_in_ogni_turno) {
-          formsSet.add(slot.form_page);
         }
       });
     });
