@@ -1813,7 +1813,7 @@ export default function TurniDipendente() {
                                 )}
                                 {isFormActivity && (
                                   <Link 
-                                    to={createPageUrl(att.form_page) + '?redirect=TurniDipendente&turno_id=' + prossimoTurno.id + '&attivita=' + encodeURIComponent(att.nome) + '&store_id=' + prossimoTurno.store_id}
+                                    to={createPageUrl(att.form_page) + '?redirect=TurniDipendente&turno_id=' + prossimoTurno.id + '&attivita=' + encodeURIComponent(att.nome) + '&store_id=' + prossimoTurno.store_id + (att.posizione_turno ? '&posizione_turno=' + att.posizione_turno : '') + (att.ora_inizio ? '&ora_attivita=' + att.ora_inizio : '')}
                                     className="flex-1 px-4 py-2.5 bg-blue-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-blue-600 shadow-sm"
                                   >
                                     <FileText className="w-4 h-4" /> Compila Form

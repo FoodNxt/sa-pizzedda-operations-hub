@@ -98,7 +98,10 @@ export default function ConteggioCassa() {
       // Segna attività come completata se viene da un turno
       if (turnoId && attivitaNome) {
         try {
-          await base44.entities.AttivitaCompletata.create({
+          const posizioneTurno = urlParams.get('posizione_turno');
+          const oraAttivita = urlParams.get('ora_attivita');
+          
+          const activityData = {
             dipendente_id: currentUser.id,
             dipendente_nome: currentUser.nome_cognome || currentUser.full_name,
             turno_id: turnoId,
@@ -107,7 +110,12 @@ export default function ConteggioCassa() {
             attivita_nome: decodeURIComponent(attivitaNome),
             form_page: 'ConteggioCassa',
             completato_at: new Date().toISOString()
-          });
+          };
+          
+          if (posizioneTurno) activityData.posizione_turno = posizioneTurno;
+          if (oraAttivita) activityData.ora_attivita = oraAttivita;
+          
+          await base44.entities.AttivitaCompletata.create(activityData);
         } catch (error) {
           console.error('Error marking activity as completed:', error);
         }
