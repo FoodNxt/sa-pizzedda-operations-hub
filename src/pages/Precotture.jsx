@@ -121,15 +121,15 @@ export default function Precotture() {
       setConfermato(true);
       setMostraRisultato(true);
       
-      // Aspetta che i dati siano ricaricati prima del redirect
-      await queryClient.refetchQueries({ queryKey: ['attivita-completate'] });
-      await queryClient.refetchQueries({ queryKey: ['all-form-data-dipendente'] });
+      // Invalida le query per forzare il reload
+      queryClient.invalidateQueries({ queryKey: ['attivita-completate'] });
+      queryClient.invalidateQueries({ queryKey: ['all-form-data-dipendente'] });
       
-      // Redirect dopo che i dati sono stati ricaricati
+      // Redirect dopo un delay per permettere il salvataggio
       if (redirectTo) {
         setTimeout(() => {
           navigate(createPageUrl(redirectTo));
-        }, 1500);
+        }, 2500);
       }
     },
     onError: (error) => {

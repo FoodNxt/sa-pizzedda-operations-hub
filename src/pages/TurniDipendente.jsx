@@ -237,13 +237,15 @@ export default function TurniDipendente() {
     queryKey: ['attivita-completate', currentUser?.id],
     queryFn: async () => {
       const ultimiTreGiorni = moment().subtract(3, 'days').format('YYYY-MM-DD');
-      return base44.entities.AttivitaCompletata.filter({ 
+      const result = await base44.entities.AttivitaCompletata.filter({ 
         dipendente_id: currentUser.id,
         turno_data: { $gte: ultimiTreGiorni }
       });
+      console.log('Attività completate caricate:', result);
+      return result;
     },
     enabled: !!currentUser?.id,
-    staleTime: 10000,
+    staleTime: 0,
   });
 
   const { data: tipoTurnoConfigs = [] } = useQuery({
@@ -1937,23 +1939,28 @@ export default function TurniDipendente() {
                                   return true;
                                 });
 
-                                if (!attivitaCompl || attivitaCompl.rosse_da_fare === undefined) return null;
+                                console.log('Precotture - att:', att);
+                                console.log('Precotture - attivitaCompl trovata:', attivitaCompl);
+                                console.log('Precotture - tutte attività completate:', attivitaCompletate.filter(ac => ac.form_page === 'Precotture'));
+
+                                if (!attivitaCompl) return null;
+                                if (attivitaCompl.rosse_da_fare === undefined || attivitaCompl.rosse_da_fare === null) return null;
 
                                 return (
                                   <div className="mt-3 p-3 bg-orange-50 rounded-xl border border-orange-200">
                                     <div className="flex items-center gap-2 mb-2">
                                       <Pizza className="w-4 h-4 text-orange-600" />
                                       <span className="text-sm font-bold text-orange-800">
-                                        Precotture da preparare
+                                        Risultato Calcolo
                                       </span>
                                     </div>
                                     <div className="bg-white p-3 rounded-lg">
                                       <div className="flex justify-between items-center">
-                                        <span className="text-sm text-slate-700">Teglie Rosse</span>
+                                        <span className="text-sm text-slate-700">Teglie Rosse da fare</span>
                                         <span className="text-2xl font-bold text-orange-600">{attivitaCompl.rosse_da_fare}</span>
                                       </div>
                                       {attivitaCompl.turno_precotture && (
-                                        <div className="mt-2 text-xs text-slate-500">
+                                        <div className="mt-2 text-xs text-slate-500 capitalize">
                                           Turno: {attivitaCompl.turno_precotture}
                                         </div>
                                       )}
