@@ -42,6 +42,11 @@ export default function Costi() {
     queryFn: () => base44.entities.CostoUtenze.list(),
   });
 
+  const { data: nomiUtenze = [] } = useQuery({
+    queryKey: ['nomi-utenze'],
+    queryFn: () => base44.entities.NomeUtenza.list(),
+  });
+
   const { data: dipendenti = [] } = useQuery({
     queryKey: ['costi-dipendente'],
     queryFn: () => base44.entities.CostoDipendente.list(),
@@ -109,7 +114,7 @@ export default function Costi() {
     setShowAddForm(false);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Validazione base
     if (activeTab === 'affitto' && (!formData.store_id || !formData.affitto_mensile)) {
       alert('Compila tutti i campi obbligatori (Store e Affitto Mensile)');
@@ -118,6 +123,24 @@ export default function Costi() {
     if (activeTab === 'utenze' && (!formData.store_id || !formData.costo_mensile_stimato)) {
       alert('Compila tutti i campi obbligatori (Store e Costo Mensile)');
       return;
+    }
+    
+    // Per le utenze, salva il nome se è nuovo
+    if (activeTab === 'utenze' && formData.nome_utenza) {
+      const nomeEsiste = nomiUtenze.find(n => n.nome === formData.nome_utenza);
+      if (!nomeEsiste) {
+        try {
+          await base44.entities.NomeUtenza.create({ nome: formData.nome_utenza, utilizzi: 1 });
+        } catch (error) {
+          console.error('Error saving nome utenza:', error);
+        }
+      } else {
+        try {
+          await base44.entities.NomeUtenza.update(nomeEsiste.id, { utilizzi: (nomeEsiste.utilizzi || 0) + 1 });
+        } catch (error) {
+          console.error('Error updating utilizzi:', error);
+        }
+      }
     }
     if (activeTab === 'dipendenti' && (!formData.tipologia || !formData.costo_orario)) {
       alert('Compila tutti i campi obbligatori (Tipologia e Costo Orario)');
@@ -335,6 +358,28 @@ export default function Costi() {
                   </select>
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Nome Utenza</label>
+                  <div className="flex gap-2">
+                    <select
+                      value={formData.nome_utenza || ''}
+                      onChange={(e) => setFormData({ ...formData, nome_utenza: e.target.value })}
+                      className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    >
+                      <option value="">Seleziona o crea nuovo...</option>
+                      {nomiUtenze.map(nome => (
+                        <option key={nome.id} value={nome.nome}>{nome.nome}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      value={formData.nome_utenza_custom || ''}
+                      onChange={(e) => setFormData({ ...formData, nome_utenza: e.target.value, nome_utenza_custom: e.target.value })}
+                      placeholder="o scrivi nuovo nome"
+                      className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    />
+                  </div>
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Costo Mensile Stimato (€)</label>
                   <input
                     type="number"
@@ -363,7 +408,14 @@ export default function Costi() {
               {utenze.map(item => (
                 <div key={item.id} className="neumorphic-flat p-4 rounded-xl flex items-center justify-between">
                   <div>
-                    <p className="font-bold text-slate-800">{item.store_name}</p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-bold text-slate-800">{item.store_name}</p>
+                      {item.nome_utenza && (
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                          {item.nome_utenza}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-sm text-slate-600">{formatEuro(item.costo_mensile_stimato)}/mese</p>
                     {item.note && <p className="text-xs text-slate-500 mt-1">{item.note}</p>}
                   </div>

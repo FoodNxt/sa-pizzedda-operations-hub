@@ -368,6 +368,11 @@ const navigationStructure = [
         icon: BarChart3,
       },
       {
+        title: "Activation",
+        url: createPageUrl("Activation"),
+        icon: Zap,
+      },
+      {
         title: "Configurazione",
         url: createPageUrl("MarketingSettings"),
         icon: Settings,
