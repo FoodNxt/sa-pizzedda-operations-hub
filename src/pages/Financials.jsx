@@ -194,7 +194,7 @@ export default function Financials() {
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
     // Generate ALL days in range (including zero-revenue days)
-    const allDaysInRange = cutoffDate && endFilterDate 
+    const allDaysInRange = cutoffDate && endFilterDate && isValid(cutoffDate) && isValid(endFilterDate)
       ? eachDayOfInterval({ start: cutoffDate, end: endFilterDate })
       : [];
 
@@ -202,8 +202,10 @@ export default function Financials() {
     
     // Initialize all days with 0
     allDaysInRange.forEach(day => {
-      const dateStr = format(day, 'yyyy-MM-dd');
-      revenueByDate[dateStr] = { date: dateStr, revenue: 0, orders: 0 };
+      if (isValid(day)) {
+        const dateStr = format(day, 'yyyy-MM-dd');
+        revenueByDate[dateStr] = { date: dateStr, revenue: 0, orders: 0 };
+      }
     });
     
     // Fill in actual data
@@ -704,6 +706,7 @@ export default function Financials() {
       weekStart.setDate(weekStart.getDate() + diff);
       weekStart.setHours(0, 0, 0, 0);
 
+      if (!isValid(weekStart)) return;
       const weekKey = format(weekStart, 'yyyy-MM-dd');
 
       if (!weeklyMap[weekKey]) {
