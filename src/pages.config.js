@@ -1,6 +1,7 @@
 import ATS from './pages/ATS';
 import Academy from './pages/Academy';
 import AcademyAdmin from './pages/AcademyAdmin';
+import Activation from './pages/Activation';
 import Alerts from './pages/Alerts';
 import AnalisiSprechi from './pages/AnalisiSprechi';
 import Assenze from './pages/Assenze';
@@ -110,7 +111,6 @@ import ValutazionePulizie from './pages/ValutazionePulizie';
 import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSetup from './pages/ZapierSetup';
-import Activation from './pages/Activation';
 import __Layout from './Layout.jsx';
 
 
@@ -118,6 +118,7 @@ export const PAGES = {
     "ATS": ATS,
     "Academy": Academy,
     "AcademyAdmin": AcademyAdmin,
+    "Activation": Activation,
     "Alerts": Alerts,
     "AnalisiSprechi": AnalisiSprechi,
     "Assenze": Assenze,
@@ -227,7 +228,6 @@ export const PAGES = {
     "ZapierProdottiVenduti": ZapierProdottiVenduti,
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSetup": ZapierSetup,
-    "Activation": Activation,
 }
 
 export const pagesConfig = {

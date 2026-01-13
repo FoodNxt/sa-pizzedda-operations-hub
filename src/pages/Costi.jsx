@@ -18,10 +18,12 @@ import {
   Save
 } from "lucide-react";
 import { formatEuro } from "../components/utils/formatCurrency";
+import moment from 'moment';
 
 export default function Costi() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("affitto");
+  const [activeTab, setActiveTab] = useState("budget");
+  const [selectedMonth, setSelectedMonth] = useState(moment().format('YYYY-MM'));
   const [editingItem, setEditingItem] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState({});
@@ -75,6 +77,16 @@ export default function Costi() {
   const { data: iPraticoData = [] } = useQuery({
     queryKey: ['ipratico'],
     queryFn: () => base44.entities.iPratico.list('-order_date', 1000),
+  });
+
+  const { data: turni = [] } = useQuery({
+    queryKey: ['turni-planday'],
+    queryFn: () => base44.entities.TurnoPlanday.list(),
+  });
+
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ['all-users'],
+    queryFn: () => base44.entities.User.list(),
   });
 
   // Mutations
@@ -202,6 +214,7 @@ export default function Costi() {
   }, 0);
 
   const tabs = [
+    { id: 'budget', label: 'Budget', icon: TrendingUp },
     { id: 'affitto', label: 'Affitto', icon: Home },
     { id: 'utenze', label: 'Utenze', icon: Zap },
     { id: 'dipendenti', label: 'Dipendenti', icon: Users },
