@@ -219,6 +219,7 @@ export default function GestioneAccessoPagine() {
     { value: 'ControlloPuliziaStoreManager', label: 'Controllo Pulizia Store Manager', category: 'Pulizie' },
     { value: 'OrdiniSbagliati', label: 'Ordini Sbagliati', category: 'Delivery' },
     { value: 'MatchingOrdiniSbagliati', label: 'Matching Ordini Sbagliati', category: 'Delivery' },
+    { value: 'PianoQuarter', label: 'Piano Quarter', category: 'Delivery' },
     { value: 'ZapierSetup', label: 'Zapier Reviews', category: 'Zapier' },
     { value: 'ShiftsSetup', label: 'Zapier Shifts', category: 'Zapier' },
     { value: 'OrderItemsSetup', label: 'Zapier Orders', category: 'Zapier' },
