@@ -214,11 +214,16 @@ export default function Employees() {
       let employeeShifts = shifts.filter(s => {
         if (s.dipendente_nome !== employeeName) return false;
 
+        // Exclude future shifts
+        if (!s.data) return false;
+        const shiftDate = safeParseDate(s.data);
+        if (!shiftDate) return false;
+        
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+        if (shiftDate > today) return false;
+
         if (startDate || endDate) {
-          if (!s.data) return false;
-          const shiftDate = safeParseDate(s.data);
-          if (!shiftDate) return false;
-            
           const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
           const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
 
