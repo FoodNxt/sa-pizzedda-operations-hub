@@ -61,6 +61,7 @@ export default function MateriePrime() {
     quantita_critica: '',
     quantita_ordine: '',
     prezzo_unitario: '',
+    iva_percentuale: 22,
     fornitore: '',
     categoria: 'Ingredienti base',
     note: '',
@@ -145,6 +146,7 @@ export default function MateriePrime() {
       quantita_critica: '',
       quantita_ordine: '',
       prezzo_unitario: '',
+      iva_percentuale: 22,
       fornitore: '',
       categoria: 'Ingredienti base',
       note: '',
@@ -217,6 +219,7 @@ export default function MateriePrime() {
       quantita_critica: product.quantita_critica || product.quantita_minima || '',
       quantita_ordine: product.quantita_ordine || '',
       prezzo_unitario: product.prezzo_unitario || '',
+      iva_percentuale: product.iva_percentuale || 22,
       fornitore: product.fornitore || '',
       categoria: product.categoria === 'Condimenti' ? 'Ingredienti pronti' : (product.categoria || 'Ingredienti base'),
       note: product.note || '',
@@ -274,6 +277,7 @@ export default function MateriePrime() {
       quantita_critica: parseFloat(parseFloat(formData.quantita_critica).toFixed(2)),
       quantita_ordine: parseFloat(parseFloat(formData.quantita_ordine).toFixed(2)),
       prezzo_unitario: formData.prezzo_unitario ? parseFloat(parseFloat(formData.prezzo_unitario).toFixed(2)) : null,
+      iva_percentuale: formData.iva_percentuale ? parseFloat(formData.iva_percentuale) : null,
       peso_dimensione_unita: formData.peso_dimensione_unita ? parseFloat(parseFloat(formData.peso_dimensione_unita).toFixed(2)) : null,
       unita_misura_peso: formData.peso_dimensione_unita ? formData.unita_misura_peso : null,
       unita_per_confezione: formData.unita_per_confezione ? parseFloat(parseFloat(formData.unita_per_confezione).toFixed(2)) : null,
@@ -859,7 +863,7 @@ export default function MateriePrime() {
                     <div>
                       <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
                         <Euro className="w-4 h-4" />
-                        Prezzo
+                        Prezzo netto IVA
                       </label>
                       <input
                         type="number"
@@ -873,6 +877,46 @@ export default function MateriePrime() {
                         💡 Per confezione/cassa
                       </p>
                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-2 block">
+                        IVA
+                      </label>
+                      <select
+                        value={[4, 10, 22].includes(formData.iva_percentuale) ? formData.iva_percentuale : 'custom'}
+                        onChange={(e) => {
+                          if (e.target.value === 'custom') {
+                            setFormData({ ...formData, iva_percentuale: '' });
+                          } else {
+                            setFormData({ ...formData, iva_percentuale: parseFloat(e.target.value) });
+                          }
+                        }}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                      >
+                        <option value="4">4%</option>
+                        <option value="10">10%</option>
+                        <option value="22">22%</option>
+                        <option value="custom">Altro...</option>
+                      </select>
+                    </div>
+                    
+                    {![4, 10, 22].includes(formData.iva_percentuale) && (
+                      <div>
+                        <label className="text-sm font-medium text-slate-700 mb-2 block">
+                          IVA Custom (%)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={formData.iva_percentuale}
+                          onChange={(e) => setFormData({ ...formData, iva_percentuale: parseFloat(e.target.value) || 0 })}
+                          placeholder="es. 5"
+                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <button
