@@ -18,11 +18,12 @@ moment.locale('it');
 const RUOLI = ["Pizzaiolo", "Cassiere", "Store Manager"];
 
 export default function PlandayStoreManager() {
-  const [currentView, setCurrentView] = useState('turni'); // 'turni' o 'richieste'
+  const [currentView, setCurrentView] = useState('turni'); // 'turni', 'richieste', 'prove'
   const [selectedStore, setSelectedStore] = useState('');
   const [weekStart, setWeekStart] = useState(moment().startOf('isoWeek'));
   const [showForm, setShowForm] = useState(false);
   const [editingTurno, setEditingTurno] = useState(null);
+  const [showCandidatoForm, setShowCandidatoForm] = useState(false);
   const [turnoForm, setTurnoForm] = useState({
     store_id: '',
     data: '',
@@ -31,6 +32,14 @@ export default function PlandayStoreManager() {
     ruolo: 'Pizzaiolo',
     dipendente_id: '',
     tipo_turno: 'Normale',
+    note: ''
+  });
+  const [candidatoForm, setCandidatoForm] = useState({
+    nome: '',
+    cognome: '',
+    telefono: '',
+    posizione: 'Pizzaiolo',
+    store_preferito: '',
     note: ''
   });
 
@@ -206,6 +215,23 @@ export default function PlandayStoreManager() {
     mutationFn: (id) => base44.entities.TurnoPlanday.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['turni-store-manager'] });
+    },
+  });
+
+  const createCandidatoMutation = useMutation({
+    mutationFn: (data) => base44.entities.Candidato.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['candidati-planday'] });
+      setCandidatoForm({
+        nome: '',
+        cognome: '',
+        telefono: '',
+        posizione: 'Pizzaiolo',
+        store_preferito: '',
+        note: ''
+      });
+      setShowCandidatoForm(false);
+      alert('Candidato aggiunto con successo!');
     },
   });
 
@@ -407,6 +433,14 @@ export default function PlandayStoreManager() {
                   {scambiTurni.length}
                 </span>
               )}
+            </NeumorphicButton>
+            <NeumorphicButton 
+              onClick={() => setCurrentView('prove')}
+              variant={currentView === 'prove' ? 'primary' : 'default'}
+              className="flex items-center gap-2"
+            >
+              <Users className="w-4 h-4" />
+              Prove
             </NeumorphicButton>
           </div>
         </div>
@@ -672,6 +706,197 @@ export default function PlandayStoreManager() {
               candidati={candidati}
             />
           </>
+        )}
+
+        {/* Vista Prove */}
+        {currentView === 'prove' && (
+          <NeumorphicCard className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-blue-500" />
+                  Candidati per Prove
+                </h2>
+                <p className="text-sm text-slate-500 mt-1">
+                  Aggiungi candidati che andranno a popolare la pagina ATS
+                </p>
+              </div>
+              <NeumorphicButton
+                onClick={() => setShowCandidatoForm(true)}
+                variant="primary"
+                className="flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Nuovo Candidato
+              </NeumorphicButton>
+            </div>
+
+            {/* Form Candidato */}
+            {showCandidatoForm && (
+              <NeumorphicCard className="p-6 mb-6 bg-blue-50">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-slate-800">Aggiungi Candidato</h3>
+                  <button onClick={() => setShowCandidatoForm(false)} className="nav-button p-2 rounded-lg">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Nome *</label>
+                    <input
+                      type="text"
+                      value={candidatoForm.nome}
+                      onChange={(e) => setCandidatoForm({ ...candidatoForm, nome: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      placeholder="Mario"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Cognome *</label>
+                    <input
+                      type="text"
+                      value={candidatoForm.cognome}
+                      onChange={(e) => setCandidatoForm({ ...candidatoForm, cognome: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      placeholder="Rossi"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Telefono *</label>
+                    <input
+                      type="tel"
+                      value={candidatoForm.telefono}
+                      onChange={(e) => setCandidatoForm({ ...candidatoForm, telefono: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      placeholder="+39 123 456 7890"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Posizione *</label>
+                    <select
+                      value={candidatoForm.posizione}
+                      onChange={(e) => setCandidatoForm({ ...candidatoForm, posizione: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    >
+                      <option value="Pizzaiolo">Pizzaiolo</option>
+                      <option value="Cassiere">Cassiere</option>
+                      <option value="Store Manager">Store Manager</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Store Preferito</label>
+                  <select
+                    value={candidatoForm.store_preferito}
+                    onChange={(e) => setCandidatoForm({ ...candidatoForm, store_preferito: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                  >
+                    <option value="">-- Nessuna preferenza --</option>
+                    {myStores.map(store => (
+                      <option key={store.id} value={store.id}>{store.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="mb-4">
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Note</label>
+                  <textarea
+                    value={candidatoForm.note}
+                    onChange={(e) => setCandidatoForm({ ...candidatoForm, note: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none h-24"
+                    placeholder="Note aggiuntive sul candidato..."
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <NeumorphicButton onClick={() => setShowCandidatoForm(false)} className="flex-1">
+                    Annulla
+                  </NeumorphicButton>
+                  <NeumorphicButton
+                    onClick={() => {
+                      if (!candidatoForm.nome || !candidatoForm.cognome || !candidatoForm.telefono) {
+                        alert('Compila tutti i campi obbligatori');
+                        return;
+                      }
+                      createCandidatoMutation.mutate({
+                        ...candidatoForm,
+                        prova_dipendente_id: currentUser?.id,
+                        prova_dipendente_nome: currentUser?.nome_cognome || currentUser?.full_name
+                      });
+                    }}
+                    variant="primary"
+                    className="flex-1 flex items-center justify-center gap-2"
+                    disabled={createCandidatoMutation.isPending}
+                  >
+                    <Save className="w-4 h-4" />
+                    Salva Candidato
+                  </NeumorphicButton>
+                </div>
+              </NeumorphicCard>
+            )}
+
+            {/* Lista Candidati */}
+            <div className="space-y-3">
+              {candidati.length === 0 ? (
+                <div className="text-center py-12">
+                  <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <p className="text-slate-500">Nessun candidato inserito</p>
+                </div>
+              ) : (
+                candidati.map(candidato => (
+                  <div key={candidato.id} className="neumorphic-pressed p-4 rounded-xl">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="font-bold text-slate-800 text-lg">
+                          {candidato.nome} {candidato.cognome}
+                        </h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2 text-sm">
+                          <div className="text-slate-600">
+                            📞 {candidato.telefono}
+                          </div>
+                          <div className="text-slate-600">
+                            👤 {candidato.posizione}
+                          </div>
+                          {candidato.store_preferito && (
+                            <div className="text-slate-600">
+                              📍 {getStoreName(candidato.store_preferito)}
+                            </div>
+                          )}
+                          <div>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                              candidato.stato === 'nuovo' ? 'bg-blue-100 text-blue-800' :
+                              candidato.stato === 'in_valutazione' ? 'bg-yellow-100 text-yellow-800' :
+                              candidato.stato === 'prova_programmata' ? 'bg-purple-100 text-purple-800' :
+                              candidato.stato === 'assunto' ? 'bg-green-100 text-green-800' :
+                              'bg-red-100 text-red-800'
+                            }`}>
+                              {candidato.stato === 'nuovo' ? 'Nuovo' :
+                               candidato.stato === 'in_valutazione' ? 'In valutazione' :
+                               candidato.stato === 'prova_programmata' ? 'Prova programmata' :
+                               candidato.stato === 'assunto' ? 'Assunto' : 'Scartato'}
+                            </span>
+                          </div>
+                        </div>
+                        {candidato.note && (
+                          <p className="text-sm text-slate-500 mt-2">{candidato.note}</p>
+                        )}
+                        {candidato.prova_dipendente_nome && (
+                          <p className="text-xs text-slate-400 mt-2">
+                            Inserito da: {candidato.prova_dipendente_nome}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </NeumorphicCard>
         )}
 
         {/* Vista Richieste Scambi */}
