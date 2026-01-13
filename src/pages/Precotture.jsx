@@ -203,7 +203,7 @@ export default function Precotture() {
             />
           </div>
 
-          {selectedStore && rossePresenti !== '' && !confermato && (
+          {selectedStore && rossePresenti !== '' && risultato && !risultato.error && !confermato && (
             <NeumorphicButton
               onClick={() => confermaMutation.mutate()}
               variant="primary"
