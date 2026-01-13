@@ -15,15 +15,19 @@ import {
   Trash2,
   Edit,
   X,
-  Save
+  Save,
+  ChevronDown,
+  ChevronRight
 } from "lucide-react";
 import { formatEuro } from "../components/utils/formatCurrency";
 import moment from 'moment';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 
 export default function Costi() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("budget");
   const [selectedMonth, setSelectedMonth] = useState(moment().format('YYYY-MM'));
+  const [expandedDetails, setExpandedDetails] = useState({});
   const [editingItem, setEditingItem] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState({});
@@ -374,33 +378,167 @@ export default function Costi() {
                   </div>
 
                   <div className="space-y-2 text-sm">
-                    <div className="flex justify-between items-center py-2 border-b border-slate-200">
-                      <span className="text-slate-600">Affitto</span>
-                      <span className="font-medium text-slate-800">{formatEuro(costoAffitto)}</span>
+                    {/* Affitto */}
+                    <div className="border-b border-slate-200">
+                      <button
+                        onClick={() => setExpandedDetails({...expandedDetails, [`${storeId}-affitto`]: !expandedDetails[`${storeId}-affitto`]})}
+                        className="w-full flex justify-between items-center py-2 hover:bg-slate-50 rounded transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          {expandedDetails[`${storeId}-affitto`] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                          <span className="text-slate-600">Affitto</span>
+                        </div>
+                        <span className="font-medium text-slate-800">{formatEuro(costoAffitto)}</span>
+                      </button>
+                      {expandedDetails[`${storeId}-affitto`] && affitto && (
+                        <div className="pl-6 pb-2 text-xs text-slate-500">
+                          <p>Affitto mensile: {formatEuro(affitto.affitto_mensile)}</p>
+                          {affitto.note && <p className="mt-1">Note: {affitto.note}</p>}
+                        </div>
+                      )}
                     </div>
-                    <div className="flex justify-between items-center py-2 border-b border-slate-200">
-                      <span className="text-slate-600">Utenze</span>
-                      <span className="font-medium text-slate-800">{formatEuro(costoUtenze)}</span>
+
+                    {/* Utenze */}
+                    <div className="border-b border-slate-200">
+                      <button
+                        onClick={() => setExpandedDetails({...expandedDetails, [`${storeId}-utenze`]: !expandedDetails[`${storeId}-utenze`]})}
+                        className="w-full flex justify-between items-center py-2 hover:bg-slate-50 rounded transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          {expandedDetails[`${storeId}-utenze`] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                          <span className="text-slate-600">Utenze</span>
+                        </div>
+                        <span className="font-medium text-slate-800">{formatEuro(costoUtenze)}</span>
+                      </button>
+                      {expandedDetails[`${storeId}-utenze`] && utenzeStore.length > 0 && (
+                        <div className="pl-6 pb-2 space-y-1">
+                          {utenzeStore.map(u => (
+                            <div key={u.id} className="text-xs text-slate-500 flex justify-between">
+                              <span>{u.nome_utenza || 'Utenza'}</span>
+                              <span>{formatEuro(u.costo_mensile_stimato)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <div className="flex justify-between items-center py-2 border-b border-slate-200">
-                      <span className="text-slate-600">Materie Prime (COGS)</span>
-                      <span className="font-medium text-slate-800">{formatEuro(costoMateriePrime)}</span>
+
+                    {/* COGS */}
+                    <div className="border-b border-slate-200">
+                      <button
+                        onClick={() => setExpandedDetails({...expandedDetails, [`${storeId}-cogs`]: !expandedDetails[`${storeId}-cogs`]})}
+                        className="w-full flex justify-between items-center py-2 hover:bg-slate-50 rounded transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          {expandedDetails[`${storeId}-cogs`] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                          <span className="text-slate-600">Materie Prime (COGS)</span>
+                        </div>
+                        <span className="font-medium text-slate-800">{formatEuro(costoMateriePrime)}</span>
+                      </button>
+                      {expandedDetails[`${storeId}-cogs`] && (
+                        <div className="pl-6 pb-2 space-y-1">
+                          {ordini.filter(o => o.store_id === storeId && o.data_arrivo?.startsWith(selectedMonth)).map(ord => (
+                            <div key={ord.id} className="text-xs text-slate-500 flex justify-between">
+                              <span>{ord.fornitore || 'Ordine'} - {ord.data_arrivo}</span>
+                              <span>{formatEuro(ord.totale_ordine)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <div className="flex justify-between items-center py-2 border-b border-slate-200">
-                      <span className="text-slate-600">Personale</span>
-                      <span className="font-medium text-slate-800">{formatEuro(costoPersonale)}</span>
+
+                    {/* Personale */}
+                    <div className="border-b border-slate-200">
+                      <button
+                        onClick={() => setExpandedDetails({...expandedDetails, [`${storeId}-personale`]: !expandedDetails[`${storeId}-personale`]})}
+                        className="w-full flex justify-between items-center py-2 hover:bg-slate-50 rounded transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          {expandedDetails[`${storeId}-personale`] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                          <span className="text-slate-600">Personale</span>
+                        </div>
+                        <span className="font-medium text-slate-800">{formatEuro(costoPersonale)}</span>
+                      </button>
+                      {expandedDetails[`${storeId}-personale`] && (
+                        <div className="pl-6 pb-2 text-xs text-slate-500">
+                          <p>Ore lavorate totali: {turniMese.reduce((sum, t) => {
+                            if (!t.timbratura_entrata || !t.timbratura_uscita) return sum;
+                            const ore = (new Date(t.timbratura_uscita) - new Date(t.timbratura_entrata)) / (1000 * 60 * 60);
+                            return sum + ore;
+                          }, 0).toFixed(1)} ore</p>
+                          <p className="mt-1">Turni completati: {turniMese.length}</p>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex justify-between items-center py-2 border-b border-slate-200">
-                      <span className="text-slate-600">Subscriptions</span>
-                      <span className="font-medium text-slate-800">{formatEuro(totaleSubscriptions)}</span>
+
+                    {/* Subscriptions */}
+                    <div className="border-b border-slate-200">
+                      <button
+                        onClick={() => setExpandedDetails({...expandedDetails, [`${storeId}-subscriptions`]: !expandedDetails[`${storeId}-subscriptions`]})}
+                        className="w-full flex justify-between items-center py-2 hover:bg-slate-50 rounded transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          {expandedDetails[`${storeId}-subscriptions`] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                          <span className="text-slate-600">Subscriptions</span>
+                        </div>
+                        <span className="font-medium text-slate-800">{formatEuro(totaleSubscriptions)}</span>
+                      </button>
+                      {expandedDetails[`${storeId}-subscriptions`] && subscriptions.length > 0 && (
+                        <div className="pl-6 pb-2 space-y-1">
+                          {subscriptions.map(s => (
+                            <div key={s.id} className="text-xs text-slate-500 flex justify-between">
+                              <span>{s.nome} ({s.periodo})</span>
+                              <span>{formatEuro(s.periodo === 'annuale' ? s.costo / 12 : s.costo)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <div className="flex justify-between items-center py-2 border-b border-slate-200">
-                      <span className="text-slate-600">Commissioni Pagamento</span>
-                      <span className="font-medium text-slate-800">{formatEuro(costoCommissioni)}</span>
+
+                    {/* Commissioni */}
+                    <div className="border-b border-slate-200">
+                      <button
+                        onClick={() => setExpandedDetails({...expandedDetails, [`${storeId}-commissioni`]: !expandedDetails[`${storeId}-commissioni`]})}
+                        className="w-full flex justify-between items-center py-2 hover:bg-slate-50 rounded transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          {expandedDetails[`${storeId}-commissioni`] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                          <span className="text-slate-600">Commissioni Pagamento</span>
+                        </div>
+                        <span className="font-medium text-slate-800">{formatEuro(costoCommissioni)}</span>
+                      </button>
+                      {expandedDetails[`${storeId}-commissioni`] && (
+                        <div className="pl-6 pb-2 space-y-1">
+                          {commissioni.map(c => (
+                            <div key={c.id} className="text-xs text-slate-500 flex justify-between">
+                              <span>{c.metodo_pagamento} {c.app_delivery && `(${c.app_delivery})`} - {c.percentuale}%</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <div className="flex justify-between items-center py-2 border-b border-slate-200">
-                      <span className="text-slate-600">Marketing Ads</span>
-                      <span className="font-medium text-slate-800">{formatEuro(costoAds)}</span>
+
+                    {/* Ads */}
+                    <div className="border-b border-slate-200">
+                      <button
+                        onClick={() => setExpandedDetails({...expandedDetails, [`${storeId}-ads`]: !expandedDetails[`${storeId}-ads`]})}
+                        className="w-full flex justify-between items-center py-2 hover:bg-slate-50 rounded transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          {expandedDetails[`${storeId}-ads`] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                          <span className="text-slate-600">Marketing Ads</span>
+                        </div>
+                        <span className="font-medium text-slate-800">{formatEuro(costoAds)}</span>
+                      </button>
+                      {expandedDetails[`${storeId}-ads`] && budgetAds.length > 0 && (
+                        <div className="pl-6 pb-2 space-y-1">
+                          {budgetAds.map(b => (
+                            <div key={b.id} className="text-xs text-slate-500 flex justify-between">
+                              <span>{b.piattaforma}</span>
+                              <span>{formatEuro(b.budget_mensile)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
