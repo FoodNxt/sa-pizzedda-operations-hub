@@ -358,7 +358,7 @@ export default function PlandayStoreView({
             <button onClick={() => { setQuickAddPopup(null); setSelectedTurno(null); }} className="text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
           </div>
           <div className="text-xs text-slate-500 mb-3">
-            {moment(quickAddPopup.day).format('dddd DD MMMM')} {quickAddPopup.dipendenteId ? `- ${users.find(u => u.id === quickAddPopup.dipendenteId)?.nome_cognome || ''}` : ''}
+            {quickAddPopup.day && moment(quickAddPopup.day).isValid() ? moment(quickAddPopup.day).format('dddd DD MMMM') : 'Data non valida'} {quickAddPopup.dipendenteId ? `- ${users.find(u => u.id === quickAddPopup.dipendenteId)?.nome_cognome || ''}` : ''}
           </div>
           <div className="space-y-2">
             <select value={quickForm.store_id} onChange={(e) => setQuickForm({ ...quickForm, store_id: e.target.value })} className="w-full neumorphic-pressed px-2 py-1 rounded-lg text-sm outline-none">

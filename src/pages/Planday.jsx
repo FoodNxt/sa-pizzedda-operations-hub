@@ -449,7 +449,7 @@ export default function Planday() {
 
               let emailSubject = emailTemplate.oggetto
                 .replace(/\{\{nome_dipendente\}\}/g, variables.dipendente_nome)
-                .replace(/\{\{data\}\}/g, moment(variables.data).format('DD/MM/YYYY'));
+                .replace(/\{\{data\}\}/g, variables.data && moment(variables.data).isValid() ? moment(variables.data).format('DD/MM/YYYY') : 'N/A');
 
               await base44.integrations.Core.SendEmail({
                 to: dipendente.email,
@@ -983,6 +983,7 @@ export default function Planday() {
       // Salta la settimana modello stessa
       if (!currentWeekStart.isSame(weekStart)) {
         for (const turno of turniSettimana) {
+          if (!turno.data || !moment(turno.data).isValid()) continue;
           const turnoDay = moment(turno.data).isoWeekday(); // 1=Lun, 7=Dom
           const newDate = currentWeekStart.clone().isoWeekday(turnoDay);
           
@@ -2485,7 +2486,7 @@ export default function Planday() {
 
               <div className="mb-3 p-3 bg-blue-50 rounded-xl">
                 <div className="text-sm text-blue-800">
-                  <strong>Data:</strong> {moment(quickTurnoPopup.day).format('dddd DD MMMM YYYY')}
+                  <strong>Data:</strong> {quickTurnoPopup.day && moment(quickTurnoPopup.day).isValid() ? moment(quickTurnoPopup.day).format('dddd DD MMMM YYYY') : 'N/A'}
                 </div>
                 <div className="text-sm text-blue-800">
                   <strong>Orario:</strong> {turnoForm.ora_inizio} - {turnoForm.ora_fine}
@@ -2736,7 +2737,7 @@ export default function Planday() {
                       return;
                     }
 
-                    const turniModello = turni.map(t => ({
+                    const turniModello = turni.filter(t => t.data && moment(t.data).isValid()).map(t => ({
                       giorno_settimana: moment(t.data).isoWeekday(),
                       store_id: t.store_id,
                       ora_inizio: t.ora_inizio,
@@ -2892,6 +2893,7 @@ export default function Planday() {
 
                     while (currentWeekStart.isSameOrBefore(endApply)) {
                       for (const turnoModello of modello.turni_modello) {
+                        if (!turnoModello.giorno_settimana || turnoModello.giorno_settimana < 1 || turnoModello.giorno_settimana > 7) continue;
                         const newDate = currentWeekStart.clone().isoWeekday(turnoModello.giorno_settimana);
                         
                         if (newDate.isSameOrAfter(startApply) && newDate.isSameOrBefore(endApply)) {
@@ -3172,7 +3174,7 @@ export default function Planday() {
                       <strong>{editingTimbratura.dipendente_nome}</strong>
                     </p>
                     <p className="text-xs text-slate-500">
-                      {moment(editingTimbratura.data).format('DD/MM/YYYY')} • {editingTimbratura.ora_inizio}-{editingTimbratura.ora_fine}
+                      {editingTimbratura.data && moment(editingTimbratura.data).isValid() ? moment(editingTimbratura.data).format('DD/MM/YYYY') : 'N/A'} • {editingTimbratura.ora_inizio}-{editingTimbratura.ora_fine}
                     </p>
                   </div>
 
@@ -3270,10 +3272,10 @@ export default function Planday() {
                           <tr key={turno.id} className={`border-b border-slate-100 hover:bg-slate-50 ${stato.tipo === 'mancata' || stato.tipo === 'mancata_uscita' ? 'bg-red-50' : ''}`}>
                             <td className="p-2">
                               <div className="text-xs font-medium text-slate-800 whitespace-nowrap">
-                                {moment(turno.data).format('DD/MM/YY')}
+                                {turno.data && moment(turno.data).isValid() ? moment(turno.data).format('DD/MM/YY') : 'N/A'}
                               </div>
                               <div className="text-[10px] text-slate-500">
-                                {moment(turno.data).format('ddd')}
+                                {turno.data && moment(turno.data).isValid() ? moment(turno.data).format('ddd') : '-'}
                               </div>
                             </td>
                             <td className="p-2">
@@ -3312,7 +3314,7 @@ export default function Planday() {
                               {turno.timbratura_entrata ? (
                                 <div className="whitespace-nowrap">
                                   <div className="font-medium text-slate-800">
-                                    {moment(turno.timbratura_entrata).format('HH:mm')}
+                                    {turno.timbratura_entrata && moment(turno.timbratura_entrata).isValid() ? moment(turno.timbratura_entrata).format('HH:mm') : 'N/A'}
                                   </div>
                                   {turno.posizione_entrata && (
                                     <div className="text-[10px] text-slate-400 flex items-center gap-1">
@@ -3330,7 +3332,7 @@ export default function Planday() {
                             <td className="p-2 text-xs whitespace-nowrap">
                               {turno.timbratura_uscita ? (
                                 <div className="font-medium text-slate-800">
-                                  {moment(turno.timbratura_uscita).format('HH:mm')}
+                                  {turno.timbratura_uscita && moment(turno.timbratura_uscita).isValid() ? moment(turno.timbratura_uscita).format('HH:mm') : 'N/A'}
                                 </div>
                               ) : (
                                 <span className="text-slate-400">-</span>
@@ -3389,8 +3391,8 @@ export default function Planday() {
                                 onClick={() => {
                                   setEditingTimbratura(turno);
                                   setTimbrForm({
-                                    timbrata_entrata: turno.timbratura_entrata ? moment(turno.timbratura_entrata).format('YYYY-MM-DDTHH:mm') : '',
-                                    timbrata_uscita: turno.timbratura_uscita ? moment(turno.timbratura_uscita).format('YYYY-MM-DDTHH:mm') : ''
+                                   timbrata_entrata: turno.timbratura_entrata && moment(turno.timbratura_entrata).isValid() ? moment(turno.timbratura_entrata).format('YYYY-MM-DDTHH:mm') : '',
+                                   timbrata_uscita: turno.timbratura_uscita && moment(turno.timbratura_uscita).isValid() ? moment(turno.timbratura_uscita).format('YYYY-MM-DDTHH:mm') : ''
                                   });
                                 }}
                                 className="nav-button p-1.5 rounded-lg hover:bg-blue-50"
@@ -3709,7 +3711,7 @@ export default function Planday() {
                         <div><span className="text-slate-500">Dipendente:</span> <strong>{turno.dipendente_nome}</strong></div>
                         <div><span className="text-slate-500">Ruolo:</span> <strong>{turno.ruolo}</strong></div>
                         <div><span className="text-slate-500">Store:</span> <strong>{storeName}</strong></div>
-                        <div><span className="text-slate-500">Data:</span> <strong>{moment(turno.data).format('DD/MM/YYYY')}</strong></div>
+                        <div><span className="text-slate-500">Data:</span> <strong>{turno.data && moment(turno.data).isValid() ? moment(turno.data).format('DD/MM/YYYY') : 'N/A'}</strong></div>
                         <div><span className="text-slate-500">Orario:</span> <strong>{turno.ora_inizio}-{turno.ora_fine}</strong></div>
                         <div><span className="text-slate-500">Giorno:</span> <strong>{dayNames[turnoDayOfWeek]}</strong></div>
                         <div><span className="text-slate-500">Sequenza:</span> <strong className={turnoSequence === 'first' ? 'text-yellow-600' : 'text-indigo-600'}>{turnoSequence === 'first' ? '☀️ Mattina (1°)' : '🌙 Sera (2°)'}</strong></div>
