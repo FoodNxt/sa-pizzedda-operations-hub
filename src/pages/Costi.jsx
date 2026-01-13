@@ -131,12 +131,14 @@ export default function Costi() {
       if (!nomeEsiste) {
         try {
           await base44.entities.NomeUtenza.create({ nome: formData.nome_utenza, utilizzi: 1 });
+          queryClient.invalidateQueries({ queryKey: ['nomi-utenze'] });
         } catch (error) {
           console.error('Error saving nome utenza:', error);
         }
       } else {
         try {
           await base44.entities.NomeUtenza.update(nomeEsiste.id, { utilizzi: (nomeEsiste.utilizzi || 0) + 1 });
+          queryClient.invalidateQueries({ queryKey: ['nomi-utenze'] });
         } catch (error) {
           console.error('Error updating utilizzi:', error);
         }
