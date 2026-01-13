@@ -72,6 +72,11 @@ export default function Costi() {
     queryFn: () => base44.entities.BudgetMarketing.list(),
   });
 
+  const { data: iPraticoData = [] } = useQuery({
+    queryKey: ['ipratico'],
+    queryFn: () => base44.entities.iPratico.list('-order_date', 1000),
+  });
+
   // Mutations
   const createMutation = useMutation({
     mutationFn: ({ entity, data }) => base44.entities[entity].create(data),
@@ -144,8 +149,8 @@ export default function Costi() {
         }
       }
     }
-    if (activeTab === 'dipendenti' && (!formData.tipologia || !formData.costo_orario)) {
-      alert('Compila tutti i campi obbligatori (Tipologia e Costo Orario)');
+    if (activeTab === 'dipendenti' && (!formData.livello || !formData.costo_orario)) {
+      alert('Compila tutti i campi obbligatori (Livello e Costo Orario)');
       return;
     }
     if (activeTab === 'subscriptions' && (!formData.nome || !formData.costo || !formData.periodo)) {
@@ -459,17 +464,16 @@ export default function Costi() {
             {showAddForm && (
               <div className="neumorphic-pressed p-4 rounded-xl mb-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Tipologia</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Livello (1-7)</label>
                   <select
-                    value={formData.tipologia || ''}
-                    onChange={(e) => setFormData({ ...formData, tipologia: e.target.value })}
+                    value={formData.livello || ''}
+                    onChange={(e) => setFormData({ ...formData, livello: parseInt(e.target.value) })}
                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
                   >
-                    <option value="">Seleziona tipologia</option>
-                    <option value="Pizzaiolo">Pizzaiolo</option>
-                    <option value="Cassiere">Cassiere</option>
-                    <option value="Store Manager">Store Manager</option>
-                    <option value="Altro">Altro</option>
+                    <option value="">Seleziona livello</option>
+                    {[1, 2, 3, 4, 5, 6, 7].map(level => (
+                      <option key={level} value={level}>Livello {level}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -502,7 +506,7 @@ export default function Costi() {
               {dipendenti.map(item => (
                 <div key={item.id} className="neumorphic-flat p-4 rounded-xl flex items-center justify-between">
                   <div>
-                    <p className="font-bold text-slate-800">{item.tipologia}</p>
+                    <p className="font-bold text-slate-800">Livello {item.livello}</p>
                     <p className="text-sm text-slate-600">{formatEuro(item.costo_orario)}/ora</p>
                     {item.note && <p className="text-xs text-slate-500 mt-1">{item.note}</p>}
                   </div>
@@ -649,13 +653,28 @@ export default function Costi() {
               <div className="neumorphic-pressed p-4 rounded-xl mb-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Metodo di Pagamento</label>
-                  <input
-                    type="text"
+                  <select
                     value={formData.metodo_pagamento || ''}
                     onChange={(e) => setFormData({ ...formData, metodo_pagamento: e.target.value })}
-                    placeholder="es: Carta di Credito, PayPal"
                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                  />
+                  >
+                    <option value="">Seleziona metodo</option>
+                    {(() => {
+                      const metodi = new Set();
+                      iPraticoData.forEach(record => {
+                        Object.keys(record).forEach(key => {
+                          if (key.startsWith('moneyType_') && !key.endsWith('_orders')) {
+                            const metodo = key.replace('moneyType_', '').replace(/_/g, ' ');
+                            metodi.add(metodo.charAt(0).toUpperCase() + metodo.slice(1));
+                          }
+                        });
+                      });
+                      return Array.from(metodi).sort().map(metodo => (
+                        <option key={metodo} value={metodo}>{metodo}</option>
+                      ));
+                    })()}
+                  </select>
+                  <p className="text-xs text-slate-500 mt-1">Metodi importati da iPratico</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Percentuale Commissione (%)</label>

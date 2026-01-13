@@ -32,6 +32,7 @@ export default function UsersManagement() {
   const [formData, setFormData] = useState({
     nome_cognome: '',
     user_type: 'dipendente',
+    livello: null,
     ruoli_dipendente: [],
     assigned_stores: [],
     primary_stores: [],
@@ -92,6 +93,7 @@ export default function UsersManagement() {
     setFormData({
       nome_cognome: user.nome_cognome || '',
       user_type: user.user_type || 'dipendente',
+      livello: user.livello || null,
       ruoli_dipendente: user.ruoli_dipendente || [],
       assigned_stores: user.assigned_stores || [],
       primary_stores: user.primary_stores || [],
@@ -137,6 +139,7 @@ export default function UsersManagement() {
     setFormData({
       nome_cognome: '',
       user_type: 'dipendente',
+      livello: null,
       ruoli_dipendente: [],
       assigned_stores: [],
       primary_stores: [],
@@ -927,6 +930,22 @@ export default function UsersManagement() {
                         <option value="dipendente">Dipendente</option>
                         <option value="manager">Manager</option>
                         <option value="admin">Amministratore</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                        Livello (1-7)
+                      </label>
+                      <select
+                        value={formData.livello || ''}
+                        onChange={(e) => setFormData({ ...formData, livello: e.target.value ? parseInt(e.target.value) : null })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                      >
+                        <option value="">-- Seleziona Livello --</option>
+                        {[1, 2, 3, 4, 5, 6, 7].map(level => (
+                          <option key={level} value={level}>Livello {level}</option>
+                        ))}
                       </select>
                     </div>
 
