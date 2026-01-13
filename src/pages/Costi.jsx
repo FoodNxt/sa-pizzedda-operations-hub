@@ -677,6 +677,31 @@ export default function Costi() {
                   <p className="text-xs text-slate-500 mt-1">Metodi importati da iPratico</p>
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">App Delivery (opzionale)</label>
+                  <select
+                    value={formData.app_delivery || ''}
+                    onChange={(e) => setFormData({ ...formData, app_delivery: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                  >
+                    <option value="">Tutte le app</option>
+                    {(() => {
+                      const apps = new Set();
+                      iPraticoData.forEach(record => {
+                        Object.keys(record).forEach(key => {
+                          if (key.startsWith('sourceApp_') && !key.endsWith('_orders')) {
+                            const app = key.replace('sourceApp_', '');
+                            apps.add(app.charAt(0).toUpperCase() + app.slice(1));
+                          }
+                        });
+                      });
+                      return Array.from(apps).sort().map(app => (
+                        <option key={app} value={app}>{app}</option>
+                      ));
+                    })()}
+                  </select>
+                  <p className="text-xs text-slate-500 mt-1">Lascia vuoto per applicare a tutte le app</p>
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Percentuale Commissione (%)</label>
                   <input
                     type="number"
@@ -707,7 +732,14 @@ export default function Costi() {
               {commissioni.map(item => (
                 <div key={item.id} className="neumorphic-flat p-4 rounded-xl flex items-center justify-between">
                   <div>
-                    <p className="font-bold text-slate-800">{item.metodo_pagamento}</p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-bold text-slate-800">{item.metodo_pagamento}</p>
+                      {item.app_delivery && (
+                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                          {item.app_delivery}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-sm text-slate-600">{item.percentuale}%</p>
                     {item.note && <p className="text-xs text-slate-500 mt-1">{item.note}</p>}
                   </div>
