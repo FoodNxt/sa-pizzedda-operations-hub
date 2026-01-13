@@ -337,6 +337,11 @@ const navigationStructure = [
         title: "Matching Ordini Sbagliati",
         url: createPageUrl("MatchingOrdiniSbagliati"),
         icon: LinkIcon,
+      },
+      {
+        title: "Piano Quarter",
+        url: createPageUrl("PianoQuarter"),
+        icon: Calendar,
       }
     ]
   },
