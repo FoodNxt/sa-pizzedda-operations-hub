@@ -1501,7 +1501,7 @@ export default function Financials() {
                 } else {
                   const days = parseInt(dateRange, 10);
                   const from = subDays(new Date(), days);
-                  periodText = `${format(from, 'dd/MM/yyyy')} → ${format(new Date(), 'dd/MM/yyyy')}`;
+                  periodText = isValid(from) ? `${format(from, 'dd/MM/yyyy')} → ${format(new Date(), 'dd/MM/yyyy')}` : 'Periodo non valido';
                 }
                 
                 let compareText = '';
