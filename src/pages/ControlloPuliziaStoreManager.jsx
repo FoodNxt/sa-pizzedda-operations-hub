@@ -175,7 +175,7 @@ export default function ControlloPuliziaStoreManager() {
       const inspectionData = {
         store_name: store.name,
         store_id: store.id,
-        inspection_date: new Date().toISOString(),
+        inspection_date: undefined,
         inspector_name: currentUser.nome_cognome || currentUser.full_name || currentUser.email,
         inspector_role: 'Store Manager',
         analysis_status: 'processing',
