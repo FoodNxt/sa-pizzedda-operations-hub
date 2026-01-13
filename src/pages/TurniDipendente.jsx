@@ -1930,7 +1930,7 @@ export default function TurniDipendente() {
                               })()}
 
                               {/* Mostra precotture se attività completata */}
-                              {isCompleted && att.form_page === 'Precotture' && (() => {
+                              {att.form_page === 'Precotture' && (() => {
                                 // Trova l'attività completata corrispondente a questa attività
                                 const attivitaCompl = attivitaCompletate.find(ac => {
                                   if (ac.turno_id !== prossimoTurno.id || ac.form_page !== 'Precotture') return false;
@@ -1947,21 +1947,26 @@ export default function TurniDipendente() {
                                 if (attivitaCompl.rosse_da_fare === undefined || attivitaCompl.rosse_da_fare === null) return null;
 
                                 return (
-                                  <div className="mt-3 p-3 bg-orange-50 rounded-xl border border-orange-200">
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <Pizza className="w-4 h-4 text-orange-600" />
-                                      <span className="text-sm font-bold text-orange-800">
-                                        Risultato Calcolo
+                                  <div className="mt-3 p-3 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl border-2 border-orange-300 shadow-md">
+                                    <div className="flex items-center gap-2 mb-3">
+                                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
+                                        <Pizza className="w-5 h-5 text-white" />
+                                      </div>
+                                      <span className="text-sm font-bold text-orange-900">
+                                        Risultato Calcolo Precotture
                                       </span>
                                     </div>
-                                    <div className="bg-white p-3 rounded-lg">
+                                    <div className="bg-white p-4 rounded-lg shadow-sm">
                                       <div className="flex justify-between items-center">
-                                        <span className="text-sm text-slate-700">Teglie Rosse da fare</span>
-                                        <span className="text-2xl font-bold text-orange-600">{attivitaCompl.rosse_da_fare}</span>
+                                        <span className="text-sm font-medium text-slate-700">Teglie Rosse da preparare</span>
+                                        <span className="text-3xl font-bold text-orange-600">{attivitaCompl.rosse_da_fare}</span>
                                       </div>
                                       {attivitaCompl.turno_precotture && (
-                                        <div className="mt-2 text-xs text-slate-500 capitalize">
-                                          Turno: {attivitaCompl.turno_precotture}
+                                        <div className="mt-3 pt-3 border-t border-orange-200">
+                                          <div className="flex items-center justify-between">
+                                            <span className="text-xs text-slate-600">Turno</span>
+                                            <span className="text-sm font-bold text-orange-800 capitalize">{attivitaCompl.turno_precotture}</span>
+                                          </div>
                                         </div>
                                       )}
                                     </div>
