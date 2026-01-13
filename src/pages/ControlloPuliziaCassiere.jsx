@@ -158,12 +158,12 @@ export default function ControlloPuliziaCassiere() {
       setUploadProgress('Creazione ispezione...');
 
       const store = stores.find(s => s.id === selectedStore);
-      const inspectionData = {
-        store_name: store.name,
-        store_id: store.id,
-        inspection_date: new Date().toISOString(),
-        inspector_name: currentUser.nome_cognome || currentUser.full_name || currentUser.email,
-        inspector_role: 'Cassiere',
+       const inspectionData = {
+         store_name: store.name,
+         store_id: store.id,
+         inspection_date: undefined,
+         inspector_name: currentUser.nome_cognome || currentUser.full_name || currentUser.email,
+         inspector_role: 'Cassiere',
         analysis_status: 'processing',
         inspection_type: 'cassiere',
         domande_risposte: domande.map(d => ({
