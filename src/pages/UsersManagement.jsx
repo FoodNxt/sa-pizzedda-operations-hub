@@ -974,6 +974,22 @@ export default function UsersManagement() {
 
                     <div>
                       <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                        Livello (1-7)
+                      </label>
+                      <select
+                        value={formData.livello || ''}
+                        onChange={(e) => setFormData({ ...formData, livello: e.target.value ? parseInt(e.target.value) : null })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                      >
+                        <option value="">-- Seleziona Livello --</option>
+                        {[1, 2, 3, 4, 5, 6, 7].map(level => (
+                          <option key={level} value={level}>Livello {level}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
                         Gruppo Contrattuale <span className="text-red-600">*</span>
                       </label>
                       <select
@@ -987,8 +1003,6 @@ export default function UsersManagement() {
                         <option value="CM">CM - Chiamata</option>
                       </select>
                     </div>
-                    
-                    {/* Removed 'Ruolo/Funzione' input field */}
 
                     <div>
                       <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
