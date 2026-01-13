@@ -260,14 +260,13 @@ export default function Segnalazioni() {
       const dipendente = dipendenti.find(d => d.id === selectedDipendenteLettera);
 
       await base44.entities.LetteraRichiamo.create({
-        dipendente_id: selectedDipendenteLettera,
-        dipendente_nome: dipendente?.nome_cognome || dipendente?.full_name || dipendente?.email || '',
-        motivo: `Segnalazione: ${selectedSegnalazione?.descrizione || 'N/A'}`,
-        contenuto: testoLettera,
-        gravita: 'media',
-        data_emissione: new Date().toISOString(),
-        emessa_da: user?.nome_cognome || user?.full_name || user?.email,
-        stato: 'emessa'
+        user_id: selectedDipendenteLettera,
+        user_email: dipendente?.email || '',
+        user_name: dipendente?.nome_cognome || dipendente?.full_name || dipendente?.email || '',
+        tipo_lettera: 'lettera_richiamo',
+        contenuto_lettera: testoLettera,
+        data_invio: new Date().toISOString(),
+        status: 'inviata'
       });
 
       alert('✅ Lettera di richiamo inviata');
@@ -565,58 +564,79 @@ export default function Segnalazioni() {
 
                     {/* Admin Actions */}
                     {isAdmin && (
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        <NeumorphicButton
-                          onClick={() => handleUpdateStato(segnalazione.id, segnalazione.stato === 'risolta' ? 'aperta' : 'risolta')}
-                          variant={segnalazione.stato === 'risolta' ? 'default' : 'primary'}
-                          className="text-sm flex items-center gap-1"
-                        >
-                          {segnalazione.stato === 'risolta' ? (
-                            <>
-                              <XCircle className="w-4 h-4" />
-                              Riapri
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle className="w-4 h-4" />
-                              Risolvi
-                            </>
-                          )}
-                        </NeumorphicButton>
-
-                        <NeumorphicButton
-                          onClick={() => {
-                            setSelectedSegnalazione(segnalazione);
-                            setShowCommentModal(true);
-                          }}
-                          className="text-sm flex items-center gap-1 text-blue-600"
-                        >
-                          <MessageSquare className="w-4 h-4" />
-                          Commenta
-                        </NeumorphicButton>
+                      <div className="space-y-3 mt-3">
+                        {/* Assegna Responsabile */}
+                        {!segnalazione.responsabile_id && segnalazione.stato !== 'risolta' && (
+                          <div className="flex items-center gap-2">
+                            <label className="text-sm font-medium text-slate-700">Assegna a:</label>
+                            <select
+                              onChange={(e) => handleAssignResponsabile(segnalazione, e.target.value)}
+                              className="neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none flex-1"
+                              defaultValue=""
+                            >
+                              <option value="">Seleziona dipendente...</option>
+                              {dipendenti.map(dip => (
+                                <option key={dip.id} value={dip.id}>
+                                  {dip.nome_cognome || dip.full_name || dip.email}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
                         
-                        <NeumorphicButton
-                          onClick={() => {
-                            setSelectedSegnalazione(segnalazione);
-                            setShowLetteraModal(true);
-                          }}
-                          className="text-sm flex items-center gap-1 text-orange-600"
-                        >
-                          <FileText className="w-4 h-4" />
-                          Lettera Richiamo
-                        </NeumorphicButton>
+                        <div className="flex flex-wrap gap-2">
+                          <NeumorphicButton
+                            onClick={() => handleUpdateStato(segnalazione.id, segnalazione.stato === 'risolta' ? 'aperta' : 'risolta')}
+                            variant={segnalazione.stato === 'risolta' ? 'default' : 'primary'}
+                            className="text-sm flex items-center gap-1"
+                          >
+                            {segnalazione.stato === 'risolta' ? (
+                              <>
+                                <XCircle className="w-4 h-4" />
+                                Riapri
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle className="w-4 h-4" />
+                                Risolvi
+                              </>
+                            )}
+                          </NeumorphicButton>
 
-                        <NeumorphicButton
-                          onClick={() => {
-                            if (confirm('Eliminare questa segnalazione?')) {
-                              deleteMutation.mutate(segnalazione.id);
-                            }
-                          }}
-                          className="text-sm flex items-center gap-1 text-red-600"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Elimina
-                        </NeumorphicButton>
+                          <NeumorphicButton
+                            onClick={() => {
+                              setSelectedSegnalazione(segnalazione);
+                              setShowCommentModal(true);
+                            }}
+                            className="text-sm flex items-center gap-1 text-blue-600"
+                          >
+                            <MessageSquare className="w-4 h-4" />
+                            Commenta
+                          </NeumorphicButton>
+                          
+                          <NeumorphicButton
+                            onClick={() => {
+                              setSelectedSegnalazione(segnalazione);
+                              setShowLetteraModal(true);
+                            }}
+                            className="text-sm flex items-center gap-1 text-orange-600"
+                          >
+                            <FileText className="w-4 h-4" />
+                            Lettera Richiamo
+                          </NeumorphicButton>
+
+                          <NeumorphicButton
+                            onClick={() => {
+                              if (confirm('Eliminare questa segnalazione?')) {
+                                deleteMutation.mutate(segnalazione.id);
+                              }
+                            }}
+                            className="text-sm flex items-center gap-1 text-red-600"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Elimina
+                          </NeumorphicButton>
+                        </div>
                       </div>
                     )}
 
