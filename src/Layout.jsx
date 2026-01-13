@@ -123,6 +123,11 @@ const navigationStructure = [
         icon: Euro,
       },
       {
+        title: "Costi",
+        url: createPageUrl("Costi"),
+        icon: TrendingUp,
+      },
+      {
         title: "Forms",
         url: createPageUrl("FinancialForms"),
         icon: FileText,

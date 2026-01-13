@@ -167,6 +167,7 @@ export default function GestioneAccessoPagine() {
     { value: 'Financials', label: 'Financials', category: 'Financials' },
     { value: 'ChannelComparison', label: 'Channel Comparison', category: 'Financials' },
     { value: 'StoricoCassa', label: 'Storico Cassa', category: 'Financials' },
+    { value: 'Costi', label: 'Costi', category: 'Financials' },
     { value: 'FinancialForms', label: 'Financial Forms', category: 'Financials' },
     { value: 'Inventory', label: 'Inventory Dashboard', category: 'Inventory' },
     { value: 'MateriePrime', label: 'Materie Prime', category: 'Inventory' },

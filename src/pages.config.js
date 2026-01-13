@@ -109,6 +109,7 @@ import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSetup from './pages/ZapierSetup';
 import PianoQuarter from './pages/PianoQuarter';
+import Costi from './pages/Costi';
 import __Layout from './Layout.jsx';
 
 
@@ -224,6 +225,7 @@ export const PAGES = {
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSetup": ZapierSetup,
     "PianoQuarter": PianoQuarter,
+    "Costi": Costi,
 }
 
 export const pagesConfig = {
