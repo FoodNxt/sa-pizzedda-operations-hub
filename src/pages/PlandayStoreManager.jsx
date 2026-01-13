@@ -892,7 +892,7 @@ export default function PlandayStoreManager() {
                               Inserito da: {candidato.prova_dipendente_nome}
                             </p>
                           )}
-                          {candidato.prova_data && (
+                          {candidato.prova_data && moment(candidato.prova_data).isValid() && (
                             <p className="text-xs text-blue-600 mt-1">
                               📅 Prova: {moment(candidato.prova_data).format('DD/MM/YYYY')} {candidato.prova_ora_inizio && `alle ${candidato.prova_ora_inizio}`}
                             </p>
@@ -1017,7 +1017,7 @@ function ScambioTurnoCard({ turnoRichiedente, scambio, currentUser, queryClient,
           </div>
 
           <p className="text-xs text-slate-400 mt-2">
-            Richiesto il {moment(scambio.data_richiesta).format('DD/MM/YYYY HH:mm')}
+            Richiesto il {scambio.data_richiesta && moment(scambio.data_richiesta).isValid() ? moment(scambio.data_richiesta).format('DD/MM/YYYY HH:mm') : 'N/A'}
           </p>
         </div>
         
