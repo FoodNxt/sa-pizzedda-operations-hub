@@ -440,7 +440,7 @@ export default function Planday() {
               
               let emailBody = emailTemplate.corpo
                 .replace(/\{\{nome_dipendente\}\}/g, variables.dipendente_nome)
-                .replace(/\{\{data\}\}/g, moment(variables.data).format('DD/MM/YYYY'))
+                .replace(/\{\{data\}\}/g, variables.data && moment(variables.data).isValid() ? moment(variables.data).format('DD/MM/YYYY') : 'N/A')
                 .replace(/\{\{ora_inizio\}\}/g, variables.ora_inizio)
                 .replace(/\{\{ora_fine\}\}/g, variables.ora_fine)
                 .replace(/\{\{ruolo\}\}/g, variables.ruolo)
