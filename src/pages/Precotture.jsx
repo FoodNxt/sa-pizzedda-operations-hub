@@ -56,44 +56,22 @@ export default function Precotture() {
         throw new Error('Risultato del calcolo non valido');
       }
       
-      return { rosseDaFare: risultato.rosseDaFare, turno: risultato.turno, store };
-
-      // Segna attività come completata
-      if (turnoId && attivitaNome && user) {
-        // Estrai posizione_turno e ora_attivita dai parametri URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const posizioneTurno = urlParams.get('posizione_turno');
-        const oraAttivita = urlParams.get('ora_attivita');
-        
-        const attivitaData = {
-          dipendente_id: user.id,
-          dipendente_nome: user.nome_cognome || user.full_name,
-          turno_id: turnoId,
-          turno_data: new Date().toISOString().split('T')[0],
-          store_id: store.id,
-          attivita_nome: decodeURIComponent(attivitaNome),
-          form_page: 'Precotture',
-          completato_at: new Date().toISOString()
-        };
-        
-        // Aggiungi posizione_turno e ora_attivita se presenti (per distinguere tra Precotture pranzo/pomeriggio)
-        if (posizioneTurno) {
-          attivitaData.posizione_turno = posizioneTurno;
-        }
-        if (oraAttivita) {
-          attivitaData.ora_attivita = oraAttivita;
-        }
-        
-        await base44.entities.AttivitaCompletata.create(attivitaData);
-      }
+      // Estrai parametri URL PRIMA del return
+      const urlParams = new URLSearchParams(window.location.search);
+      const posizioneTurno = urlParams.get('posizione_turno');
+      const oraAttivita = urlParams.get('ora_attivita');
+      
+      return { 
+        rosseDaFare: risultato.rosseDaFare, 
+        turno: risultato.turno, 
+        store,
+        posizioneTurno,
+        oraAttivita
+      };
     },
     onSuccess: async (result) => {
       // Segna attività come completata
       if (turnoId && attivitaNome && user) {
-        const urlParams = new URLSearchParams(window.location.search);
-        const posizioneTurno = urlParams.get('posizione_turno');
-        const oraAttivita = urlParams.get('ora_attivita');
-        
         const attivitaData = {
           dipendente_id: user.id,
           dipendente_nome: user.nome_cognome || user.full_name,
@@ -107,14 +85,15 @@ export default function Precotture() {
           turno_precotture: result.turno
         };
         
-        if (posizioneTurno) {
-          attivitaData.posizione_turno = posizioneTurno;
+        // Usa i parametri dal result della mutation
+        if (result.posizioneTurno) {
+          attivitaData.posizione_turno = result.posizioneTurno;
         }
-        if (oraAttivita) {
-          attivitaData.ora_attivita = oraAttivita;
+        if (result.oraAttivita) {
+          attivitaData.ora_attivita = result.oraAttivita;
         }
         
-        console.log('Salvando attività completata:', attivitaData);
+        console.log('Salvando attività completata Precotture con distinzione:', attivitaData);
         await base44.entities.AttivitaCompletata.create(attivitaData);
       }
       
