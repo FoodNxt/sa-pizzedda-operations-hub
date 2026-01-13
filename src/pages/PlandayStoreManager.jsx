@@ -848,52 +848,60 @@ export default function PlandayStoreManager() {
                   <p className="text-slate-500">Nessun candidato inserito</p>
                 </div>
               ) : (
-                candidati.map(candidato => (
-                  <div key={candidato.id} className="neumorphic-pressed p-4 rounded-xl">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-bold text-slate-800 text-lg">
-                          {candidato.nome} {candidato.cognome}
-                        </h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2 text-sm">
-                          <div className="text-slate-600">
-                            📞 {candidato.telefono}
-                          </div>
-                          <div className="text-slate-600">
-                            👤 {candidato.posizione}
-                          </div>
-                          {candidato.store_preferito && (
+                candidati.map(candidato => {
+                  if (!candidato) return null;
+                  return (
+                    <div key={candidato.id} className="neumorphic-pressed p-4 rounded-xl">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-bold text-slate-800 text-lg">
+                            {candidato.nome} {candidato.cognome}
+                          </h3>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2 text-sm">
                             <div className="text-slate-600">
-                              📍 {getStoreName(candidato.store_preferito)}
+                              📞 {candidato.telefono || 'N/A'}
                             </div>
-                          )}
-                          <div>
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                              candidato.stato === 'nuovo' ? 'bg-blue-100 text-blue-800' :
-                              candidato.stato === 'in_valutazione' ? 'bg-yellow-100 text-yellow-800' :
-                              candidato.stato === 'prova_programmata' ? 'bg-purple-100 text-purple-800' :
-                              candidato.stato === 'assunto' ? 'bg-green-100 text-green-800' :
-                              'bg-red-100 text-red-800'
-                            }`}>
-                              {candidato.stato === 'nuovo' ? 'Nuovo' :
-                               candidato.stato === 'in_valutazione' ? 'In valutazione' :
-                               candidato.stato === 'prova_programmata' ? 'Prova programmata' :
-                               candidato.stato === 'assunto' ? 'Assunto' : 'Scartato'}
-                            </span>
+                            <div className="text-slate-600">
+                              👤 {candidato.posizione || 'N/A'}
+                            </div>
+                            {candidato.store_preferito && (
+                              <div className="text-slate-600">
+                                📍 {getStoreName(candidato.store_preferito) || 'N/A'}
+                              </div>
+                            )}
+                            <div>
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                candidato.stato === 'nuovo' ? 'bg-blue-100 text-blue-800' :
+                                candidato.stato === 'in_valutazione' ? 'bg-yellow-100 text-yellow-800' :
+                                candidato.stato === 'prova_programmata' ? 'bg-purple-100 text-purple-800' :
+                                candidato.stato === 'assunto' ? 'bg-green-100 text-green-800' :
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {candidato.stato === 'nuovo' ? 'Nuovo' :
+                                 candidato.stato === 'in_valutazione' ? 'In valutazione' :
+                                 candidato.stato === 'prova_programmata' ? 'Prova programmata' :
+                                 candidato.stato === 'assunto' ? 'Assunto' : 'Scartato'}
+                              </span>
+                            </div>
                           </div>
+                          {candidato.note && (
+                            <p className="text-sm text-slate-500 mt-2">{candidato.note}</p>
+                          )}
+                          {candidato.prova_dipendente_nome && (
+                            <p className="text-xs text-slate-400 mt-2">
+                              Inserito da: {candidato.prova_dipendente_nome}
+                            </p>
+                          )}
+                          {candidato.prova_data && (
+                            <p className="text-xs text-blue-600 mt-1">
+                              📅 Prova: {moment(candidato.prova_data).format('DD/MM/YYYY')} {candidato.prova_ora_inizio && `alle ${candidato.prova_ora_inizio}`}
+                            </p>
+                          )}
                         </div>
-                        {candidato.note && (
-                          <p className="text-sm text-slate-500 mt-2">{candidato.note}</p>
-                        )}
-                        {candidato.prova_dipendente_nome && (
-                          <p className="text-xs text-slate-400 mt-2">
-                            Inserito da: {candidato.prova_dipendente_nome}
-                          </p>
-                        )}
                       </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </NeumorphicCard>
