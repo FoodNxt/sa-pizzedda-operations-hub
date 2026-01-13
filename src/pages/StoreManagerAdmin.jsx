@@ -123,6 +123,8 @@ export default function StoreManagerAdmin() {
     // Fatturato
     const storeIPratico = iPraticoData.filter(i => 
       i.store_id === storeId && 
+      i.order_date &&
+      moment(i.order_date).isValid() &&
       moment(i.order_date).isBetween(monthStart, monthEnd, 'day', '[]')
     );
     const fatturato = storeIPratico.reduce((acc, i) => acc + (i.total_revenue || 0), 0);
@@ -130,6 +132,8 @@ export default function StoreManagerAdmin() {
     // Recensioni
     const storeReviews = reviews.filter(r => 
       r.store_id === storeId && 
+      r.review_date &&
+      moment(r.review_date).isValid() &&
       moment(r.review_date).isBetween(monthStart, monthEnd, 'day', '[]')
     );
     const mediaRecensioni = storeReviews.length > 0 
@@ -138,15 +142,20 @@ export default function StoreManagerAdmin() {
     const numRecensioni = storeReviews.length;
 
     // Ordini sbagliati
-    const storeOrdini = ordiniSbagliati.filter(o => 
-      o.store_id === storeId && 
-      moment(o.order_date || o.created_date).isBetween(monthStart, monthEnd, 'day', '[]')
-    );
+    const storeOrdini = ordiniSbagliati.filter(o => {
+      const date = o.order_date || o.created_date;
+      return o.store_id === storeId && 
+        date &&
+        moment(date).isValid() &&
+        moment(date).isBetween(monthStart, monthEnd, 'day', '[]');
+    });
     const numOrdiniSbagliati = storeOrdini.length;
 
     // Ritardi - somma tutti i minuti_ritardo dei turni del mese
     const storeShifts = turniPlanday.filter(t => 
       t.store_id === storeId && 
+      t.data &&
+      moment(t.data).isValid() &&
       moment(t.data).isBetween(monthStart, monthEnd, 'day', '[]')
     );
     const totaleRitardi = storeShifts.reduce((acc, t) => acc + (t.minuti_ritardo || 0), 0);
@@ -154,6 +163,8 @@ export default function StoreManagerAdmin() {
     // Pulizie - calcola media di tutti i form pulizia completati per il locale
     const storePulizie = pulizie.filter(p => 
       p.store_id === storeId && 
+      p.inspection_date &&
+      moment(p.inspection_date).isValid() &&
       moment(p.inspection_date).isBetween(monthStart, monthEnd, 'day', '[]') &&
       p.analysis_status === 'completed'
     );

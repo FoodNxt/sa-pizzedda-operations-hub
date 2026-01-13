@@ -34,7 +34,7 @@ function TurnoAltroDisplay({ turnoId, richiestoANome, getStoreName }) {
         {richiestoANome} RICEVE:
       </p>
       <p className="font-medium text-slate-700 text-sm">
-        {moment(turnoAltro.data).format('ddd DD/MM')}
+        {turnoAltro.data && moment(turnoAltro.data).isValid() ? moment(turnoAltro.data).format('ddd DD/MM') : 'N/A'}
       </p>
       <div className="text-xs text-slate-600 mt-1">
         🕐 {turnoAltro.ora_inizio} - {turnoAltro.ora_fine}
@@ -75,7 +75,7 @@ function TurniCoinvoltiDisplay({ turniIds, getStoreName }) {
       {turni.map(turno => (
         <div key={turno.id} className="text-xs bg-white rounded p-2 border border-blue-100">
           <div className="font-medium text-slate-700">
-            {moment(turno.data).format('ddd DD/MM/YYYY')}
+            {turno.data && moment(turno.data).isValid() ? moment(turno.data).format('ddd DD/MM/YYYY') : 'N/A'}
           </div>
           <div className="text-slate-600 mt-1">
             🕐 {turno.ora_inizio} - {turno.ora_fine} • {turno.ruolo}
@@ -446,7 +446,7 @@ export default function Assenze() {
                           </span>
                         </div>
                         <div className="text-sm text-slate-600 space-y-1">
-                          <p>📅 Dal {moment(request.data_inizio).format('DD/MM/YYYY')} al {moment(request.data_fine).format('DD/MM/YYYY')}</p>
+                          <p>📅 Dal {request.data_inizio && moment(request.data_inizio).isValid() ? moment(request.data_inizio).format('DD/MM/YYYY') : 'N/A'} al {request.data_fine && moment(request.data_fine).isValid() ? moment(request.data_fine).format('DD/MM/YYYY') : 'N/A'}</p>
                           {request.motivo && <p>💬 {request.motivo}</p>}
                           <p className="text-xs text-slate-400">Turni coinvolti: {request.turni_coinvolti?.length || 0}</p>
                           {request.turni_resi_liberi && <p className="text-xs text-green-600">✓ Turni resi disponibili</p>}
@@ -502,7 +502,7 @@ export default function Assenze() {
                           </span>
                         </div>
                         <div className="text-sm text-slate-600 space-y-1">
-                          <p>📅 Dal {moment(request.data_inizio).format('DD/MM/YYYY')} {request.data_fine && `al ${moment(request.data_fine).format('DD/MM/YYYY')}`}</p>
+                          <p>📅 Dal {request.data_inizio && moment(request.data_inizio).isValid() ? moment(request.data_inizio).format('DD/MM/YYYY') : 'N/A'} {request.data_fine && moment(request.data_fine).isValid() && `al ${moment(request.data_fine).format('DD/MM/YYYY')}`}</p>
                           {request.descrizione && <p>💬 {request.descrizione}</p>}
 
                           {/* Turni coinvolti */}
@@ -860,7 +860,7 @@ export default function Assenze() {
                           </span>
                         </div>
                         <div className="text-sm text-slate-600 space-y-1">
-                          <p>📅 {moment(richiesta.data_turno).format('dddd DD MMMM YYYY')}</p>
+                          <p>📅 {richiesta.data_turno && moment(richiesta.data_turno).isValid() ? moment(richiesta.data_turno).format('dddd DD MMMM YYYY') : 'N/A'}</p>
                           <p>🕐 {richiesta.ora_inizio} - {richiesta.ora_fine}</p>
                           <p>👤 {richiesta.ruolo}</p>
                           <p>📍 {richiesta.store_name}</p>
