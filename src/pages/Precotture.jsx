@@ -48,10 +48,18 @@ export default function Precotture() {
     mutationFn: async () => {
       const store = stores.find(s => s.id === selectedStore);
       
+      if (!store) {
+        throw new Error('Store non trovato');
+      }
+      
+      if (!risultato || risultato.error) {
+        throw new Error('Risultato del calcolo non valido');
+      }
+      
       // Salva la preparazione
       await base44.entities.Preparazioni.create({
         store_id: selectedStore,
-        store_name: store?.name,
+        store_name: store.name,
         created_by: user?.email || user?.nome_cognome || user?.full_name,
         rosse_preparate: risultato.rosseDaFare,
         bianche_preparate: 0,
@@ -85,6 +93,10 @@ export default function Precotture() {
         }, 2000);
       }
     },
+    onError: (error) => {
+      alert('Errore nel salvataggio: ' + error.message);
+      console.error('Errore precotture:', error);
+    }
   });
 
   const { data: impasti = [] } = useQuery({
@@ -203,25 +215,32 @@ export default function Precotture() {
             />
           </div>
 
-          {selectedStore && rossePresenti !== '' && risultato && !risultato.error && !confermato && (
-            <NeumorphicButton
-              onClick={() => confermaMutation.mutate()}
-              variant="primary"
-              className="w-full flex items-center justify-center gap-2 mt-4"
-              disabled={confermaMutation.isPending}
-            >
-              {confermaMutation.isPending ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Salvataggio...
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="w-5 h-5" />
-                  Invia
-                </>
+          {selectedStore && rossePresenti !== '' && (
+            <>
+              {risultato && !risultato.error && !confermato && (
+                <NeumorphicButton
+                  onClick={() => {
+                    setMostraRisultato(true);
+                    confermaMutation.mutate();
+                  }}
+                  variant="primary"
+                  className="w-full flex items-center justify-center gap-2 mt-4"
+                  disabled={confermaMutation.isPending}
+                >
+                  {confermaMutation.isPending ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Salvataggio...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-5 h-5" />
+                      Invia
+                    </>
+                  )}
+                </NeumorphicButton>
               )}
-            </NeumorphicButton>
+            </>
           )}
         </NeumorphicCard>
 

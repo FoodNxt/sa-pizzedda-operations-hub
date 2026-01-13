@@ -22,6 +22,7 @@ import ControlloPuliziaPizzaiolo from './pages/ControlloPuliziaPizzaiolo';
 import ControlloPuliziaStoreManager from './pages/ControlloPuliziaStoreManager';
 import ControlloPulizieMaster from './pages/ControlloPulizieMaster';
 import ControlloStoreManager from './pages/ControlloStoreManager';
+import Costi from './pages/Costi';
 import CreaCorso from './pages/CreaCorso';
 import DailyRevenueAggregation from './pages/DailyRevenueAggregation';
 import Dashboard from './pages/Dashboard';
@@ -76,6 +77,7 @@ import OreLavorate from './pages/OreLavorate';
 import OverviewContratti from './pages/OverviewContratti';
 import Pause from './pages/Pause';
 import Payroll from './pages/Payroll';
+import PianoQuarter from './pages/PianoQuarter';
 import Planday from './pages/Planday';
 import PlandayStoreManager from './pages/PlandayStoreManager';
 import Precotture from './pages/Precotture';
@@ -108,8 +110,6 @@ import ValutazionePulizie from './pages/ValutazionePulizie';
 import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSetup from './pages/ZapierSetup';
-import PianoQuarter from './pages/PianoQuarter';
-import Costi from './pages/Costi';
 import __Layout from './Layout.jsx';
 
 
@@ -138,6 +138,7 @@ export const PAGES = {
     "ControlloPuliziaStoreManager": ControlloPuliziaStoreManager,
     "ControlloPulizieMaster": ControlloPulizieMaster,
     "ControlloStoreManager": ControlloStoreManager,
+    "Costi": Costi,
     "CreaCorso": CreaCorso,
     "DailyRevenueAggregation": DailyRevenueAggregation,
     "Dashboard": Dashboard,
@@ -192,6 +193,7 @@ export const PAGES = {
     "OverviewContratti": OverviewContratti,
     "Pause": Pause,
     "Payroll": Payroll,
+    "PianoQuarter": PianoQuarter,
     "Planday": Planday,
     "PlandayStoreManager": PlandayStoreManager,
     "Precotture": Precotture,
@@ -224,8 +226,6 @@ export const PAGES = {
     "ZapierProdottiVenduti": ZapierProdottiVenduti,
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSetup": ZapierSetup,
-    "PianoQuarter": PianoQuarter,
-    "Costi": Costi,
 }
 
 export const pagesConfig = {
