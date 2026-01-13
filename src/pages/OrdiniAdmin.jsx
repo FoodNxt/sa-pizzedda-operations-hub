@@ -126,6 +126,11 @@ export default function OrdiniAdmin() {
                                  product.assigned_stores.includes(reading.store_id);
       if (!isAssignedToStore) return;
       
+      // Verifica se il prodotto è in uso per questo store
+      const isInUsoForStore = product.in_uso_per_store?.[reading.store_id] === true || 
+                              (!product.in_uso_per_store?.[reading.store_id] && product.in_uso === true);
+      if (!isInUsoForStore) return;
+      
       const quantitaCritica = product.store_specific_quantita_critica?.[reading.store_id] || product.quantita_critica || product.quantita_minima || 0;
       const quantitaOrdine = product.store_specific_quantita_ordine?.[reading.store_id] || product.quantita_ordine || 0;
       
