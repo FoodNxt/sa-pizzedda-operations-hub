@@ -808,14 +808,14 @@ export default function Assenze() {
                               richiestoANome={scambio.richiesto_a_nome}
                               getStoreName={getStoreName}
                             />
-                          </div>
+                            </div>
 
-                          <p className="text-xs text-slate-400 mt-2">
-                            Richiesto il {moment(scambio.data_richiesta).format('DD/MM/YYYY HH:mm')}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                            <p className="text-xs text-slate-400 mt-2">
+                            Richiesto il {scambio.data_richiesta && moment(scambio.data_richiesta).isValid() ? moment(scambio.data_richiesta).format('DD/MM/YYYY HH:mm') : 'N/A'}
+                            </p>
+                            </div>
+                            </div>
+                            </div>
                   );
                 })}
                     </div>
