@@ -23,6 +23,7 @@ export default function Precotture() {
   const [selectedStore, setSelectedStore] = useState('');
   const [rossePresenti, setRossePresenti] = useState('');
   const [confermato, setConfermato] = useState(false);
+  const [mostraRisultato, setMostraRisultato] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -73,6 +74,7 @@ export default function Precotture() {
     },
     onSuccess: () => {
       setConfermato(true);
+      setMostraRisultato(true);
       queryClient.invalidateQueries({ queryKey: ['attivita-completate'] });
       queryClient.invalidateQueries({ queryKey: ['preparazioni-storico'] });
       
@@ -200,9 +202,30 @@ export default function Precotture() {
               className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
             />
           </div>
+
+          {selectedStore && rossePresenti !== '' && !confermato && (
+            <NeumorphicButton
+              onClick={() => confermaMutation.mutate()}
+              variant="primary"
+              className="w-full flex items-center justify-center gap-2 mt-4"
+              disabled={confermaMutation.isPending}
+            >
+              {confermaMutation.isPending ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Salvataggio...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-5 h-5" />
+                  Invia
+                </>
+              )}
+            </NeumorphicButton>
+          )}
         </NeumorphicCard>
 
-        {risultato && (
+        {mostraRisultato && risultato && (
           <>
             {risultato.error ? (
               <NeumorphicCard className="p-6 bg-orange-50 border-2 border-orange-400">
@@ -241,35 +264,7 @@ export default function Precotture() {
                     <p className="text-sm font-medium text-green-700">Precotture Rosse da preparare</p>
                   </div>
                   
-                  <p className="text-4xl font-bold text-green-800 mb-4">{risultato.rosseDaFare}</p>
-
-                  {!confermato && (
-                    <NeumorphicButton
-                      onClick={() => confermaMutation.mutate()}
-                      variant="primary"
-                      className="w-full flex items-center justify-center gap-2"
-                      disabled={confermaMutation.isPending}
-                    >
-                      {confermaMutation.isPending ? (
-                        <>
-                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          Salvataggio...
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle className="w-5 h-5" />
-                          Invia
-                        </>
-                      )}
-                    </NeumorphicButton>
-                  )}
-
-                  {confermato && (
-                    <div className="flex items-center justify-center gap-2 text-green-700 font-medium">
-                      <CheckCircle className="w-5 h-5" />
-                      Salvato con successo!
-                    </div>
-                  )}
+                  <p className="text-4xl font-bold text-green-800">{risultato.rosseDaFare}</p>
                 </div>
               </NeumorphicCard>
             )}
