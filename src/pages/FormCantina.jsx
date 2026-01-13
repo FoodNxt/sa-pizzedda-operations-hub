@@ -241,7 +241,11 @@ export default function FormCantina() {
               </label>
               <div className="flex flex-wrap gap-2">
                 {stores
-                  .filter(store => !currentUser?.assigned_stores || currentUser.assigned_stores.length === 0 || currentUser.assigned_stores.includes(store.id))
+                  .filter(store => {
+                    if (currentUser?.user_type === 'admin' || currentUser?.user_type === 'manager') return true;
+                    // I dipendenti possono sempre vedere tutti i locali
+                    return true;
+                  })
                   .map(store => (
                     <button
                       key={store.id}
