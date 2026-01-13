@@ -257,13 +257,29 @@ export default function ControlloConsumi() {
 
   const datesSorted = Object.keys(datiGiornalieriPerProdotto).sort().reverse();
 
-  // Calcola consumi teorici da ProdottiVenduti
+  // Calcola consumi teorici da ProdottiVenduti + statistiche debug
   const consumiTeoriciPerGiorno = {};
-  filteredVendite.forEach(vendita => {
-    const ricetta = ricette.find(r => r.nome_prodotto === vendita.flavor);
-    if (!ricetta || !ricetta.ingredienti) return;
+  const debugStats = {
+    totalePizzeVendute: 0,
+    pizzeConRicetta: 0,
+    pizzeSenzaRicetta: 0,
+    ricetteNonTrovate: new Set()
+  };
 
+  filteredVendite.forEach(vendita => {
     const qty = vendita.total_pizzas_sold || 0;
+    debugStats.totalePizzeVendute += qty;
+
+    const ricetta = ricette.find(r => r.nome_prodotto === vendita.flavor);
+    if (!ricetta || !ricetta.ingredienti) {
+      debugStats.pizzeSenzaRicetta += qty;
+      if (vendita.flavor) {
+        debugStats.ricetteNonTrovate.add(vendita.flavor);
+      }
+      return;
+    }
+
+    debugStats.pizzeConRicetta += qty;
     const date = vendita.data_vendita;
 
     if (!consumiTeoriciPerGiorno[date]) {
@@ -563,10 +579,37 @@ export default function ControlloConsumi() {
 
         {/* Tabella Consumi Teorici */}
         {activeTab === 'consumi_teorici' && (
-          <NeumorphicCard className="p-6">
-            <h2 className="text-xl font-bold text-slate-700 mb-4">
-              Consumi Teorici per {viewMode === 'daily' ? 'Giorno' : viewMode === 'weekly' ? 'Settimana' : 'Mese'}
-            </h2>
+          <>
+            {/* Statistiche Debug */}
+            {debugStats.pizzeSenzaRicetta > 0 && (
+              <NeumorphicCard className="p-4 mb-4 bg-orange-50 border-l-4 border-orange-500">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-orange-600 mt-0.5" />
+                  <div className="flex-1">
+                    <h3 className="font-bold text-orange-900 mb-1">Attenzione: Ricette Mancanti</h3>
+                    <p className="text-sm text-orange-800 mb-2">
+                      <strong>{debugStats.pizzeSenzaRicetta}</strong> pizze su <strong>{debugStats.totalePizzeVendute}</strong> non hanno una ricetta corrispondente e non sono state incluse nel calcolo dei consumi teorici.
+                    </p>
+                    <p className="text-xs text-orange-700">
+                      <strong>Pizze senza ricetta:</strong> {Array.from(debugStats.ricetteNonTrovate).join(', ')}
+                    </p>
+                    <p className="text-xs text-orange-600 mt-1">
+                      💡 Crea le ricette mancanti nella sezione "Ricette" per includere queste pizze nel calcolo.
+                    </p>
+                  </div>
+                </div>
+              </NeumorphicCard>
+            )}
+
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-700">
+                  Consumi Teorici per {viewMode === 'daily' ? 'Giorno' : viewMode === 'weekly' ? 'Settimana' : 'Mese'}
+                </h2>
+                <div className="text-sm text-slate-600">
+                  {debugStats.pizzeConRicetta} / {debugStats.totalePizzeVendute} pizze processate
+                </div>
+              </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -614,7 +657,8 @@ export default function ControlloConsumi() {
                 Nessun dato disponibile per il periodo selezionato
               </div>
             )}
-          </NeumorphicCard>
+            </NeumorphicCard>
+          </>
         )}
 
         {/* Modal Impostazioni */}
