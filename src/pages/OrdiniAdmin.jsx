@@ -120,6 +120,12 @@ export default function OrdiniAdmin() {
       const store = stores.find(s => s.id === reading.store_id);
       if (!store) return;
       
+      // Verifica se il prodotto è assegnato a questo store
+      const isAssignedToStore = !product.assigned_stores || 
+                                 product.assigned_stores.length === 0 || 
+                                 product.assigned_stores.includes(reading.store_id);
+      if (!isAssignedToStore) return;
+      
       const quantitaCritica = product.store_specific_quantita_critica?.[reading.store_id] || product.quantita_critica || product.quantita_minima || 0;
       const quantitaOrdine = product.store_specific_quantita_ordine?.[reading.store_id] || product.quantita_ordine || 0;
       
