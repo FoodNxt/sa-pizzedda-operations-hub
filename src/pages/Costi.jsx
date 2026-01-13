@@ -234,6 +234,181 @@ export default function Costi() {
           <p className="text-slate-500 mt-1">Gestisci tutti i costi aziendali</p>
         </div>
 
+        {/* Budget Tab */}
+        {activeTab === 'budget' && (
+          <NeumorphicCard className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-slate-800">Budget Mensile per Locale</h2>
+              <input
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
+              />
+            </div>
+
+            {stores.map(store => {
+              const storeId = store.id;
+              const storeName = store.name;
+
+              // Ricavi da iPratico
+              const ricaviMese = iPraticoData
+                .filter(r => r.store_id === storeId && r.order_date?.startsWith(selectedMonth))
+                .reduce((sum, r) => sum + (r.total_revenue || 0), 0);
+
+              // Affitto
+              const affitto = affitti.find(a => a.store_id === storeId);
+              const costoAffitto = affitto?.affitto_mensile || 0;
+
+              // Utenze
+              const utenzeStore = utenze.filter(u => u.store_id === storeId);
+              const costoUtenze = utenzeStore.reduce((sum, u) => sum + (u.costo_mensile_stimato || 0), 0);
+
+              // COGS (ordini arrivati del mese per questo store)
+              const costoMateriePrime = ordini
+                .filter(o => o.store_id === storeId && o.data_arrivo?.startsWith(selectedMonth))
+                .reduce((sum, o) => sum + (o.totale_ordine || 0), 0);
+
+              // Personale (ore da Planday * costo orario per livello)
+              const turniMese = turni.filter(t => 
+                t.store_id === storeId && 
+                t.data?.startsWith(selectedMonth) &&
+                t.timbratura_entrata &&
+                t.timbratura_uscita
+              );
+
+              const costoPersonale = turniMese.reduce((sum, turno) => {
+                const dipendente = allUsers.find(u => u.id === turno.dipendente_id);
+                if (!dipendente?.livello) return sum;
+
+                const costoLivello = dipendenti.find(d => d.livello === dipendente.livello);
+                if (!costoLivello) return sum;
+
+                const entrata = new Date(turno.timbratura_entrata);
+                const uscita = new Date(turno.timbratura_uscita);
+                const oreLavorate = (uscita - entrata) / (1000 * 60 * 60);
+
+                return sum + (oreLavorate * costoLivello.costo_orario);
+              }, 0);
+
+              // Subscriptions (calcolate mensilmente)
+              const costoSubscriptions = subscriptions
+                .filter(s => s.periodo === 'mensile')
+                .reduce((sum, s) => sum + (s.costo || 0), 0);
+              const costoSubscriptionsAnnuali = subscriptions
+                .filter(s => s.periodo === 'annuale')
+                .reduce((sum, s) => sum + ((s.costo || 0) / 12), 0);
+              const totaleSubscriptions = costoSubscriptions + costoSubscriptionsAnnuali;
+
+              // Commissioni (calcolate sui pagamenti iPratico)
+              const datiPagamenti = iPraticoData.filter(r => r.store_id === storeId && r.order_date?.startsWith(selectedMonth));
+              const costoCommissioni = datiPagamenti.reduce((sum, record) => {
+                let totCommissioni = 0;
+                
+                Object.keys(record).forEach(key => {
+                  if (key.startsWith('moneyType_') && !key.endsWith('_orders')) {
+                    const metodo = key.replace('moneyType_', '').replace(/_/g, ' ');
+                    const metodoFormatted = metodo.charAt(0).toUpperCase() + metodo.slice(1);
+                    const importo = record[key] || 0;
+
+                    // Trova app da sourceApp
+                    let appDelivery = null;
+                    Object.keys(record).forEach(appKey => {
+                      if (appKey.startsWith('sourceApp_') && !appKey.endsWith('_orders') && record[appKey] > 0) {
+                        const app = appKey.replace('sourceApp_', '');
+                        if (!appDelivery) appDelivery = app.charAt(0).toUpperCase() + app.slice(1);
+                      }
+                    });
+
+                    // Cerca commissione specifica per app + metodo
+                    let commissioneApplicabile = commissioni.find(c => 
+                      c.metodo_pagamento === metodoFormatted && 
+                      c.app_delivery === appDelivery
+                    );
+
+                    // Altrimenti cerca commissione generale per metodo (senza app)
+                    if (!commissioneApplicabile) {
+                      commissioneApplicabile = commissioni.find(c => 
+                        c.metodo_pagamento === metodoFormatted && 
+                        !c.app_delivery
+                      );
+                    }
+
+                    if (commissioneApplicabile) {
+                      totCommissioni += importo * (commissioneApplicabile.percentuale / 100);
+                    }
+                  }
+                });
+
+                return sum + totCommissioni;
+              }, 0);
+
+              // Ads (budget mensile)
+              const costoAds = budgetAds.reduce((sum, b) => sum + (b.budget_mensile || 0), 0);
+
+              // Totali
+              const totCosti = costoAffitto + costoUtenze + costoMateriePrime + costoPersonale + totaleSubscriptions + costoCommissioni + costoAds;
+              const margine = ricaviMese - totCosti;
+              const marginePerc = ricaviMese > 0 ? ((margine / ricaviMese) * 100) : 0;
+
+              return (
+                <div key={storeId} className="neumorphic-flat p-6 rounded-xl mb-4">
+                  <h3 className="text-lg font-bold text-slate-800 mb-4">{storeName}</h3>
+                  
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="neumorphic-pressed p-4 rounded-xl">
+                      <p className="text-xs text-slate-500 mb-1">Ricavi</p>
+                      <p className="text-2xl font-bold text-green-600">{formatEuro(ricaviMese)}</p>
+                    </div>
+                    <div className="neumorphic-pressed p-4 rounded-xl">
+                      <p className="text-xs text-slate-500 mb-1">Costi Totali</p>
+                      <p className="text-2xl font-bold text-red-600">{formatEuro(totCosti)}</p>
+                    </div>
+                  </div>
+
+                  <div className={`neumorphic-pressed p-4 rounded-xl mb-4 ${margine >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+                    <p className="text-xs text-slate-500 mb-1">Margine</p>
+                    <p className={`text-2xl font-bold ${margine >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                      {formatEuro(margine)} ({marginePerc.toFixed(1)}%)
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between items-center py-2 border-b border-slate-200">
+                      <span className="text-slate-600">Affitto</span>
+                      <span className="font-medium text-slate-800">{formatEuro(costoAffitto)}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-slate-200">
+                      <span className="text-slate-600">Utenze</span>
+                      <span className="font-medium text-slate-800">{formatEuro(costoUtenze)}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-slate-200">
+                      <span className="text-slate-600">Materie Prime (COGS)</span>
+                      <span className="font-medium text-slate-800">{formatEuro(costoMateriePrime)}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-slate-200">
+                      <span className="text-slate-600">Personale</span>
+                      <span className="font-medium text-slate-800">{formatEuro(costoPersonale)}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-slate-200">
+                      <span className="text-slate-600">Subscriptions</span>
+                      <span className="font-medium text-slate-800">{formatEuro(totaleSubscriptions)}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-slate-200">
+                      <span className="text-slate-600">Commissioni Pagamento</span>
+                      <span className="font-medium text-slate-800">{formatEuro(costoCommissioni)}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-slate-200">
+                      <span className="text-slate-600">Marketing Ads</span>
+                      <span className="font-medium text-slate-800">{formatEuro(costoAds)}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </NeumorphicCard>
+        )}
+
         {/* Tabs */}
         <div className="flex gap-2 overflow-x-auto pb-2">
           {tabs.map(tab => {
