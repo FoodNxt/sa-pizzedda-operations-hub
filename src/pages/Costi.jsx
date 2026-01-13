@@ -254,18 +254,25 @@ export default function Costi() {
               const storeId = store.id;
               const storeName = store.name;
 
+              // Calcolo pro rata
+              const dataOggi = new Date();
+              const meseSelezionato = moment(selectedMonth);
+              const ultimoGiornoMese = meseSelezionato.daysInMonth();
+              const giornoCorrente = meseSelezionato.isSame(dataOggi, 'month') ? dataOggi.getDate() : ultimoGiornoMese;
+              const proRata = giornoCorrente / ultimoGiornoMese;
+
               // Ricavi da iPratico
               const ricaviMese = iPraticoData
                 .filter(r => r.store_id === storeId && r.order_date?.startsWith(selectedMonth))
                 .reduce((sum, r) => sum + (r.total_revenue || 0), 0);
 
-              // Affitto
+              // Affitto (pro rata)
               const affitto = affitti.find(a => a.store_id === storeId);
-              const costoAffitto = affitto?.affitto_mensile || 0;
+              const costoAffitto = (affitto?.affitto_mensile || 0) * proRata;
 
-              // Utenze
+              // Utenze (pro rata)
               const utenzeStore = utenze.filter(u => u.store_id === storeId);
-              const costoUtenze = utenzeStore.reduce((sum, u) => sum + (u.costo_mensile_stimato || 0), 0);
+              const costoUtenze = utenzeStore.reduce((sum, u) => sum + (u.costo_mensile_stimato || 0), 0) * proRata;
 
               // COGS (ordini arrivati del mese per questo store)
               const costoMateriePrime = ordini
@@ -294,13 +301,13 @@ export default function Costi() {
                 return sum + (oreLavorate * costoLivello.costo_orario);
               }, 0);
 
-              // Subscriptions (calcolate mensilmente)
+              // Subscriptions (calcolate mensilmente con pro rata)
               const costoSubscriptions = subscriptions
                 .filter(s => s.periodo === 'mensile')
-                .reduce((sum, s) => sum + (s.costo || 0), 0);
+                .reduce((sum, s) => sum + (s.costo || 0), 0) * proRata;
               const costoSubscriptionsAnnuali = subscriptions
                 .filter(s => s.periodo === 'annuale')
-                .reduce((sum, s) => sum + ((s.costo || 0) / 12), 0);
+                .reduce((sum, s) => sum + ((s.costo || 0) / 12), 0) * proRata;
               const totaleSubscriptions = costoSubscriptions + costoSubscriptionsAnnuali;
 
               // Commissioni (calcolate sui pagamenti iPratico)
@@ -346,8 +353,8 @@ export default function Costi() {
                 return sum + totCommissioni;
               }, 0);
 
-              // Ads (budget mensile)
-              const costoAds = budgetAds.reduce((sum, b) => sum + (b.budget_mensile || 0), 0);
+              // Ads (budget mensile con pro rata)
+              const costoAds = budgetAds.reduce((sum, b) => sum + (b.budget_mensile || 0), 0) * proRata;
 
               // Totali
               const totCosti = costoAffitto + costoUtenze + costoMateriePrime + costoPersonale + totaleSubscriptions + costoCommissioni + costoAds;
@@ -366,6 +373,7 @@ export default function Costi() {
                     <div className="neumorphic-pressed p-4 rounded-xl">
                       <p className="text-xs text-slate-500 mb-1">Costi Totali</p>
                       <p className="text-2xl font-bold text-red-600">{formatEuro(totCosti)}</p>
+                      <p className="text-xs text-slate-400 mt-1">Pro rata: {giornoCorrente}/{ultimoGiornoMese} giorni</p>
                     </div>
                   </div>
 
