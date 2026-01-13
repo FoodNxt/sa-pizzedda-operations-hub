@@ -1929,42 +1929,15 @@ export default function TurniDipendente() {
 
                               {/* Mostra precotture se attività completata */}
                               {isCompleted && att.form_page === 'Precotture' && (() => {
-                                const gestioneImpasti = allFormData.GestioneImpasti || [];
-                                
-                                const ora = new Date().getHours();
-                                const minuti = new Date().getMinutes();
-                                const oraDecimale = ora + minuti / 60;
-                                
-                                let turno;
-                                if (oraDecimale >= 9.5 && oraDecimale <= 13) {
-                                  turno = 'pranzo';
-                                } else if (oraDecimale > 13 && oraDecimale <= 16.5) {
-                                  turno = 'pomeriggio';
-                                } else if (oraDecimale > 16.5 && oraDecimale <= 22) {
-                                  turno = 'cena';
-                                } else {
-                                  return null;
-                                }
+                                // Trova l'attività completata corrispondente a questa attività
+                                const attivitaCompl = attivitaCompletate.find(ac => {
+                                  if (ac.turno_id !== prossimoTurno.id || ac.form_page !== 'Precotture') return false;
+                                  if (att.posizione_turno && ac.posizione_turno) return ac.posizione_turno === att.posizione_turno;
+                                  if (att.ora_inizio && ac.ora_attivita) return ac.ora_attivita === att.ora_inizio;
+                                  return true;
+                                });
 
-                                const giorni = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
-                                const oggi = new Date().getDay();
-                                const giornoNome = giorni[oggi];
-                                
-                                const storeImpasti = gestioneImpasti.filter(i => i.store_id === prossimoTurno.store_id);
-                                const datiOggi = storeImpasti.find(imp => imp.giorno_settimana === giornoNome);
-
-                                if (!datiOggi) return null;
-
-                                let rosseRichieste = 0;
-                                if (turno === 'pranzo') {
-                                  rosseRichieste = datiOggi.pranzo_rosse || 0;
-                                } else if (turno === 'pomeriggio') {
-                                  rosseRichieste = datiOggi.pomeriggio_rosse || 0;
-                                } else if (turno === 'cena') {
-                                  rosseRichieste = datiOggi.cena_rosse || 0;
-                                }
-
-                                if (rosseRichieste === 0) return null;
+                                if (!attivitaCompl || attivitaCompl.rosse_da_fare === undefined) return null;
 
                                 return (
                                   <div className="mt-3 p-3 bg-orange-50 rounded-xl border border-orange-200">
@@ -1977,8 +1950,13 @@ export default function TurniDipendente() {
                                     <div className="bg-white p-3 rounded-lg">
                                       <div className="flex justify-between items-center">
                                         <span className="text-sm text-slate-700">Teglie Rosse</span>
-                                        <span className="text-2xl font-bold text-orange-600">{rosseRichieste}</span>
+                                        <span className="text-2xl font-bold text-orange-600">{attivitaCompl.rosse_da_fare}</span>
                                       </div>
+                                      {attivitaCompl.turno_precotture && (
+                                        <div className="mt-2 text-xs text-slate-500">
+                                          Turno: {attivitaCompl.turno_precotture}
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
                                 );
