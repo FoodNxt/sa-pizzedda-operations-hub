@@ -110,6 +110,32 @@ export default function Costi() {
   };
 
   const handleSave = () => {
+    // Validazione base
+    if (activeTab === 'affitto' && (!formData.store_id || !formData.affitto_mensile)) {
+      alert('Compila tutti i campi obbligatori (Store e Affitto Mensile)');
+      return;
+    }
+    if (activeTab === 'utenze' && (!formData.store_id || !formData.costo_mensile_stimato)) {
+      alert('Compila tutti i campi obbligatori (Store e Costo Mensile)');
+      return;
+    }
+    if (activeTab === 'dipendenti' && (!formData.tipologia || !formData.costo_orario)) {
+      alert('Compila tutti i campi obbligatori (Tipologia e Costo Orario)');
+      return;
+    }
+    if (activeTab === 'subscriptions' && (!formData.nome || !formData.costo || !formData.periodo)) {
+      alert('Compila tutti i campi obbligatori (Nome, Costo e Periodo)');
+      return;
+    }
+    if (activeTab === 'commissioni' && (!formData.metodo_pagamento || !formData.percentuale)) {
+      alert('Compila tutti i campi obbligatori (Metodo e Percentuale)');
+      return;
+    }
+    if (activeTab === 'ads' && (!formData.piattaforma || !formData.budget_mensile)) {
+      alert('Compila tutti i campi obbligatori (Piattaforma e Budget)');
+      return;
+    }
+
     const entityMap = {
       'affitto': 'CostoAffitto',
       'utenze': 'CostoUtenze',
