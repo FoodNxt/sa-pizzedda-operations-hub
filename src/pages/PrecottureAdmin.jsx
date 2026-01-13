@@ -194,10 +194,16 @@ export default function PrecottureAdmin() {
       cena_rosse: Math.round(totale * (percCena / 100))
     };
 
-    if (existing) {
-      await updateMutation.mutateAsync({ id: existing.id, data: payload });
-    } else {
-      await createMutation.mutateAsync(payload);
+    try {
+      if (existing) {
+        await updateMutation.mutateAsync({ id: existing.id, data: payload });
+      } else {
+        await createMutation.mutateAsync(payload);
+      }
+      setEditingRow(null);
+      setEditData({});
+    } catch (error) {
+      alert('Errore durante il salvataggio: ' + error.message);
     }
   };
 
