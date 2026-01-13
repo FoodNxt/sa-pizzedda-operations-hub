@@ -2438,7 +2438,7 @@ export default function TurniDipendente() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="font-medium text-slate-800">
-                            {moment(ferie.data_inizio).format('DD/MM/YYYY')} - {moment(ferie.data_fine).format('DD/MM/YYYY')}
+                            {ferie.data_inizio && moment(ferie.data_inizio).isValid() ? moment(ferie.data_inizio).format('DD/MM/YYYY') : 'N/A'} - {ferie.data_fine && moment(ferie.data_fine).isValid() ? moment(ferie.data_fine).format('DD/MM/YYYY') : 'N/A'}
                           </p>
                           {ferie.motivo && <p className="text-sm text-slate-500">{ferie.motivo}</p>}
                         </div>
@@ -2544,8 +2544,8 @@ export default function TurniDipendente() {
                   {mieMalattie.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).map(malattia => {
                     // Calcola scadenza certificato (5 giorni dall'ultimo giorno di malattia)
                     const dataFine = malattia.data_fine || malattia.data_inizio;
-                    const scadenzaCertificato = moment(dataFine).add(5, 'days');
-                    const giorniRimanenti = scadenzaCertificato.diff(moment(), 'days');
+                    const scadenzaCertificato = dataFine && moment(dataFine).isValid() ? moment(dataFine).add(5, 'days') : null;
+                    const giorniRimanenti = scadenzaCertificato ? scadenzaCertificato.diff(moment(), 'days') : 0;
                     const isScaduto = giorniRimanenti < 0;
                     const needsCertificato = !malattia.certificato_url && (malattia.stato === 'non_certificata' || malattia.stato === 'in_attesa_verifica');
                     
@@ -2554,8 +2554,8 @@ export default function TurniDipendente() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <p className="font-medium text-slate-800">
-                            {moment(malattia.data_inizio).format('DD/MM/YYYY')}
-                            {malattia.data_fine && ` - ${moment(malattia.data_fine).format('DD/MM/YYYY')}`}
+                            {malattia.data_inizio && moment(malattia.data_inizio).isValid() ? moment(malattia.data_inizio).format('DD/MM/YYYY') : 'N/A'}
+                            {malattia.data_fine && moment(malattia.data_fine).isValid() && ` - ${moment(malattia.data_fine).format('DD/MM/YYYY')}`}
                           </p>
                           {malattia.descrizione && <p className="text-sm text-slate-500">{malattia.descrizione}</p>}
                           {malattia.certificato_url ? (
@@ -2581,7 +2581,7 @@ export default function TurniDipendente() {
                                       : `Scade tra ${giorniRimanenti} giorn${giorniRimanenti === 1 ? 'o' : 'i'}`}
                                   </p>
                                   <p className="text-xs text-orange-600 mt-1">
-                                    Carica il certificato entro il {scadenzaCertificato.format('DD/MM/YYYY')}
+                                   Carica il certificato entro il {scadenzaCertificato ? scadenzaCertificato.format('DD/MM/YYYY') : 'N/A'}
                                   </p>
                                 </div>
                               )}
@@ -2709,7 +2709,7 @@ export default function TurniDipendente() {
                             </div>
 
                             <p className="text-xs text-slate-400 mt-2">
-                              Richiesto il {moment(scambio.data_richiesta).format('DD/MM/YYYY HH:mm')}
+                             Richiesto il {scambio.data_richiesta && moment(scambio.data_richiesta).isValid() ? moment(scambio.data_richiesta).format('DD/MM/YYYY HH:mm') : 'N/A'}
                             </p>
                           </div>
                           <div className="flex flex-col gap-2 ml-3">
@@ -2821,7 +2821,7 @@ export default function TurniDipendente() {
                         </div>
 
                         <p className="text-xs text-slate-400 mt-2">
-                          Richiesto il {moment(scambio.data_richiesta).format('DD/MM/YYYY HH:mm')}
+                          Richiesto il {scambio.data_richiesta && moment(scambio.data_richiesta).isValid() ? moment(scambio.data_richiesta).format('DD/MM/YYYY HH:mm') : 'N/A'}
                         </p>
                       </div>
                       <div className="flex flex-col gap-2 ml-3">

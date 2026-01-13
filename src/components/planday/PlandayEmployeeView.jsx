@@ -317,7 +317,7 @@ export default function PlandayEmployeeView({
             <h4 className="font-bold text-slate-800">{selectedTurno ? 'Modifica Turno' : 'Nuovo Turno'}</h4>
             <button onClick={() => { setQuickPopup(null); setSelectedTurno(null); }} className="text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
           </div>
-          <div className="text-xs text-slate-500 mb-3">{moment(quickPopup.day).format('dddd DD MMMM')}</div>
+          <div className="text-xs text-slate-500 mb-3">{quickPopup.day && moment(quickPopup.day).isValid() ? moment(quickPopup.day).format('dddd DD MMMM') : 'Data non valida'}</div>
           <div className="space-y-2">
             <div className="grid grid-cols-2 gap-2">
               <input type="time" value={quickForm.ora_inizio} onChange={(e) => setQuickForm({ ...quickForm, ora_inizio: e.target.value })} className="neumorphic-pressed px-2 py-1 rounded-lg text-sm outline-none" />
