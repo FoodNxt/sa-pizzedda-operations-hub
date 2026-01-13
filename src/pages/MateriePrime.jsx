@@ -1210,6 +1210,7 @@ export default function MateriePrime() {
                           Prezzo {getSortIcon('prezzo_unitario')}
                         </div>
                       </th>
+                      <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">IVA</th>
                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">€/Unità</th>
                       <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Stato</th>
                       <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">In Uso</th>
@@ -1249,6 +1250,9 @@ export default function MateriePrime() {
                           </td>
                           <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
                             {product.prezzo_unitario ? `€${parseFloat(product.prezzo_unitario).toFixed(2)}` : '-'}
+                          </td>
+                          <td className="p-2 lg:p-3 text-center text-slate-700 text-sm">
+                            {product.iva_percentuale ? `${product.iva_percentuale}%` : '22%'}
                           </td>
                           <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
                             {(() => {
