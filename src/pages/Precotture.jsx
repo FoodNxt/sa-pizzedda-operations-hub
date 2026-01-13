@@ -56,26 +56,16 @@ export default function Precotture() {
         throw new Error('Risultato del calcolo non valido');
       }
       
-      // Salva la preparazione (nota: l'entità Preparazioni richiede campi diversi da quelli del form Precotture)
-      // Questa entità non è quella corretta per le precotture - dovrebbe essere un'entità diversa
-      // Per ora salviamo i dati minimali richiesti
-      const dataOra = new Date().toISOString();
-      
-      // Salviamo le rosse come prima preparazione
-      if (risultato.rosseDaFare > 0) {
-        await base44.entities.Preparazioni.create({
-          store_id: selectedStore,
-          store_name: store.name,
-          data_rilevazione: dataOra,
-          rilevato_da: user?.nome_cognome || user?.full_name || user?.email,
-          tipo_preparazione: 'Salsiccia', // Valore di default per soddisfare il campo required
-          peso_grammi: risultato.rosseDaFare * 250 // Approssimazione: 250g per pizza
-        });
-      }
+      return { rosseDaFare: risultato.rosseDaFare, turno: risultato.turno, store };
 
       // Segna attività come completata
       if (turnoId && attivitaNome && user) {
-        await base44.entities.AttivitaCompletata.create({
+        // Estrai posizione_turno e ora_attivita dai parametri URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const posizioneTurno = urlParams.get('posizione_turno');
+        const oraAttivita = urlParams.get('ora_attivita');
+        
+        const attivitaData = {
           dipendente_id: user.id,
           dipendente_nome: user.nome_cognome || user.full_name,
           turno_id: turnoId,
@@ -84,14 +74,52 @@ export default function Precotture() {
           attivita_nome: decodeURIComponent(attivitaNome),
           form_page: 'Precotture',
           completato_at: new Date().toISOString()
-        });
+        };
+        
+        // Aggiungi posizione_turno e ora_attivita se presenti (per distinguere tra Precotture pranzo/pomeriggio)
+        if (posizioneTurno) {
+          attivitaData.posizione_turno = posizioneTurno;
+        }
+        if (oraAttivita) {
+          attivitaData.ora_attivita = oraAttivita;
+        }
+        
+        await base44.entities.AttivitaCompletata.create(attivitaData);
       }
     },
-    onSuccess: () => {
+    onSuccess: async (result) => {
+      // Segna attività come completata
+      if (turnoId && attivitaNome && user) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const posizioneTurno = urlParams.get('posizione_turno');
+        const oraAttivita = urlParams.get('ora_attivita');
+        
+        const attivitaData = {
+          dipendente_id: user.id,
+          dipendente_nome: user.nome_cognome || user.full_name,
+          turno_id: turnoId,
+          turno_data: new Date().toISOString().split('T')[0],
+          store_id: result.store.id,
+          attivita_nome: decodeURIComponent(attivitaNome),
+          form_page: 'Precotture',
+          completato_at: new Date().toISOString(),
+          rosse_da_fare: result.rosseDaFare,
+          turno_precotture: result.turno
+        };
+        
+        if (posizioneTurno) {
+          attivitaData.posizione_turno = posizioneTurno;
+        }
+        if (oraAttivita) {
+          attivitaData.ora_attivita = oraAttivita;
+        }
+        
+        await base44.entities.AttivitaCompletata.create(attivitaData);
+      }
+      
       setConfermato(true);
       setMostraRisultato(true);
       queryClient.invalidateQueries({ queryKey: ['attivita-completate'] });
-      queryClient.invalidateQueries({ queryKey: ['preparazioni-storico'] });
       
       // Redirect dopo un breve delay
       if (redirectTo) {
