@@ -1497,7 +1497,7 @@ export default function Financials() {
                   const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
                   const monday = new Date(now);
                   monday.setDate(now.getDate() + diffToMonday);
-                  periodText = `${format(monday, 'dd/MM/yyyy')} → ${format(now, 'dd/MM/yyyy')}`;
+                  periodText = isValid(monday) && isValid(now) ? `${format(monday, 'dd/MM/yyyy')} → ${format(now, 'dd/MM/yyyy')}` : 'Settimana corrente';
                 } else {
                   const days = parseInt(dateRange, 10);
                   const from = subDays(new Date(), days);
