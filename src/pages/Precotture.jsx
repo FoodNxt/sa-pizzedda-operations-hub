@@ -114,18 +114,22 @@ export default function Precotture() {
           attivitaData.ora_attivita = oraAttivita;
         }
         
+        console.log('Salvando attività completata:', attivitaData);
         await base44.entities.AttivitaCompletata.create(attivitaData);
       }
       
       setConfermato(true);
       setMostraRisultato(true);
-      queryClient.invalidateQueries({ queryKey: ['attivita-completate'] });
       
-      // Redirect dopo un breve delay
+      // Aspetta che i dati siano ricaricati prima del redirect
+      await queryClient.refetchQueries({ queryKey: ['attivita-completate'] });
+      await queryClient.refetchQueries({ queryKey: ['all-form-data-dipendente'] });
+      
+      // Redirect dopo che i dati sono stati ricaricati
       if (redirectTo) {
         setTimeout(() => {
           navigate(createPageUrl(redirectTo));
-        }, 2000);
+        }, 1500);
       }
     },
     onError: (error) => {
