@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 import { formatEuro } from "../components/utils/formatCurrency";
 import moment from 'moment';
-import { ChevronDown, ChevronRight } from 'lucide-react';
 
 export default function Costi() {
   const queryClient = useQueryClient();
