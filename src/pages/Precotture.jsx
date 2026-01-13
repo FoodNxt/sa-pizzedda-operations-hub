@@ -45,9 +45,20 @@ export default function Precotture() {
 
   const confermaMutation = useMutation({
     mutationFn: async () => {
+      const store = stores.find(s => s.id === selectedStore);
+      
+      // Salva la preparazione
+      await base44.entities.Preparazioni.create({
+        store_id: selectedStore,
+        store_name: store?.name,
+        created_by: user?.email || user?.nome_cognome || user?.full_name,
+        rosse_preparate: risultato.rosseDaFare,
+        bianche_preparate: 0,
+        turno: risultato.turno
+      });
+
       // Segna attività come completata
       if (turnoId && attivitaNome && user) {
-        const store = stores.find(s => s.id === selectedStore);
         await base44.entities.AttivitaCompletata.create({
           dipendente_id: user.id,
           dipendente_nome: user.nome_cognome || user.full_name,
@@ -63,6 +74,7 @@ export default function Precotture() {
     onSuccess: () => {
       setConfermato(true);
       queryClient.invalidateQueries({ queryKey: ['attivita-completate'] });
+      queryClient.invalidateQueries({ queryKey: ['preparazioni-storico'] });
       
       // Redirect dopo un breve delay
       if (redirectTo) {
@@ -231,7 +243,7 @@ export default function Precotture() {
                   
                   <p className="text-4xl font-bold text-green-800 mb-4">{risultato.rosseDaFare}</p>
 
-                  {!confermato && turnoId && attivitaNome && (
+                  {!confermato && (
                     <NeumorphicButton
                       onClick={() => confermaMutation.mutate()}
                       variant="primary"
@@ -241,12 +253,12 @@ export default function Precotture() {
                       {confermaMutation.isPending ? (
                         <>
                           <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          Confermo...
+                          Salvataggio...
                         </>
                       ) : (
                         <>
                           <CheckCircle className="w-5 h-5" />
-                          Conferma Calcolo
+                          Invia
                         </>
                       )}
                     </NeumorphicButton>
@@ -255,7 +267,7 @@ export default function Precotture() {
                   {confermato && (
                     <div className="flex items-center justify-center gap-2 text-green-700 font-medium">
                       <CheckCircle className="w-5 h-5" />
-                      Confermato!
+                      Salvato con successo!
                     </div>
                   )}
                 </div>
