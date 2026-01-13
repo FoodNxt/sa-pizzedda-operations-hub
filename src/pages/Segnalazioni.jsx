@@ -45,7 +45,15 @@ export default function Segnalazioni() {
 
   const { data: segnalazioni = [] } = useQuery({
     queryKey: ['segnalazioni'],
-    queryFn: () => base44.entities.Segnalazione.list('-data_segnalazione'),
+    queryFn: async () => {
+      const all = await base44.entities.Segnalazione.list('-data_segnalazione');
+      // Filtra per dipendenti: mostra solo le proprie segnalazioni
+      if (!isAdmin && !isStoreManager && user?.id) {
+        return all.filter(s => s.dipendente_id === user.id);
+      }
+      return all;
+    },
+    enabled: !!user,
   });
 
   const { data: dipendenti = [] } = useQuery({
@@ -121,7 +129,9 @@ export default function Segnalazioni() {
     const store = stores.find(s => s.id === formData.store_id);
 
     const data = {
-      ...formData,
+      store_id: formData.store_id,
+      foto_url: formData.foto_url,
+      descrizione: formData.descrizione,
       store_name: store?.name || '',
       dipendente_id: user.id,
       dipendente_nome: user.nome_cognome || user.full_name || user.email,
@@ -129,7 +139,8 @@ export default function Segnalazioni() {
       stato: 'aperta'
     };
 
-    createMutation.mutate(data);
+    console.log('Salvando segnalazione:', data);
+    await createMutation.mutateAsync(data);
   };
 
   const handleAssignResponsabile = (segnalazione, responsabileId) => {
@@ -199,15 +210,9 @@ export default function Segnalazioni() {
   };
 
   const groupedSegnalazioni = React.useMemo(() => {
-    // Per i dipendenti (non admin e non store manager), mostra solo le proprie segnalazioni
-    let baseSegnalazioni = segnalazioni;
-    if (!isAdmin && !isStoreManager && user?.id) {
-      baseSegnalazioni = segnalazioni.filter(s => s.dipendente_id === user.id);
-    }
-
     const filtered = activeTab === 'aperte' 
-      ? baseSegnalazioni.filter(s => s.stato !== 'risolta')
-      : baseSegnalazioni.filter(s => s.stato === 'risolta');
+      ? segnalazioni.filter(s => s.stato !== 'risolta')
+      : segnalazioni.filter(s => s.stato === 'risolta');
 
     const grouped = {};
     filtered.forEach(seg => {
@@ -219,7 +224,7 @@ export default function Segnalazioni() {
     });
 
     return grouped;
-  }, [segnalazioni, activeTab, isAdmin, isStoreManager, user?.id]);
+  }, [segnalazioni, activeTab]);
 
   const handleCaricaTemplate = () => {
     if (!selectedTemplate || !selectedDipendenteLettera) {
@@ -250,17 +255,18 @@ export default function Segnalazioni() {
       return;
     }
 
+    setLoadingLettera(true);
     try {
       const dipendente = dipendenti.find(d => d.id === selectedDipendenteLettera);
 
       await base44.entities.LetteraRichiamo.create({
         dipendente_id: selectedDipendenteLettera,
         dipendente_nome: dipendente?.nome_cognome || dipendente?.full_name || dipendente?.email || '',
-        motivo: `Segnalazione: ${selectedSegnalazione.descrizione}`,
+        motivo: `Segnalazione: ${selectedSegnalazione?.descrizione || 'N/A'}`,
         contenuto: testoLettera,
         gravita: 'media',
         data_emissione: new Date().toISOString(),
-        emessa_da: user.nome_cognome || user.full_name || user.email,
+        emessa_da: user?.nome_cognome || user?.full_name || user?.email,
         stato: 'emessa'
       });
 
@@ -272,7 +278,9 @@ export default function Segnalazioni() {
       setSelectedTemplate('');
     } catch (error) {
       console.error('Errore invio lettera:', error);
-      alert('❌ Errore nell\'invio della lettera');
+      alert('❌ Errore nell\'invio della lettera: ' + error.message);
+    } finally {
+      setLoadingLettera(false);
     }
   };
 
@@ -813,16 +821,24 @@ export default function Segnalazioni() {
                         setSelectedTemplate('');
                       }}
                       className="flex-1"
+                      disabled={loadingLettera}
                     >
                       Indietro
                     </NeumorphicButton>
                     <NeumorphicButton
                       onClick={handleInviaLettera}
                       variant="primary"
+                      disabled={loadingLettera}
                       className="flex-1 flex items-center justify-center gap-2"
                     >
-                      <Save className="w-4 h-4" />
-                      Invia Lettera
+                      {loadingLettera ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4" />
+                          Invia Lettera
+                        </>
+                      )}
                     </NeumorphicButton>
                   </div>
                 </>
