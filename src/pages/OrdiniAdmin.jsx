@@ -49,6 +49,9 @@ export default function OrdiniAdmin() {
   const [searchTerm, setSearchTerm] = useState('');
   const [collapsedInCorso, setCollapsedInCorso] = useState({});
   const [collapsedArrivati, setCollapsedArrivati] = useState({});
+  const [searchTermModal, setSearchTermModal] = useState('');
+  const [showRegoleForm, setShowRegoleForm] = useState(false);
+  const [editingRegola, setEditingRegola] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -87,6 +90,11 @@ export default function OrdiniAdmin() {
     queryFn: () => base44.entities.OrdineFornitore.filter({ status: 'completato' }),
   });
 
+  const { data: regoleOrdini = [] } = useQuery({
+    queryKey: ['regole-ordini'],
+    queryFn: () => base44.entities.RegolaOrdine.filter({ attivo: true }),
+  });
+
   const createOrderMutation = useMutation({
     mutationFn: (order) => base44.entities.OrdineFornitore.create(order),
     onSuccess: () => {
@@ -103,6 +111,31 @@ export default function OrdiniAdmin() {
       queryClient.invalidateQueries({ queryKey: ['ordini-inviati'] });
       queryClient.invalidateQueries({ queryKey: ['ordini-completati'] });
       alert('✅ Ordine eliminato!');
+    },
+  });
+
+  const createRegolaMutation = useMutation({
+    mutationFn: (regola) => base44.entities.RegolaOrdine.create(regola),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['regole-ordini'] });
+      setShowRegoleForm(false);
+      setEditingRegola(null);
+    },
+  });
+
+  const updateRegolaMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.RegolaOrdine.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['regole-ordini'] });
+      setShowRegoleForm(false);
+      setEditingRegola(null);
+    },
+  });
+
+  const deleteRegolaMutation = useMutation({
+    mutationFn: (regolaId) => base44.entities.RegolaOrdine.delete(regolaId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['regole-ordini'] });
     },
   });
 
@@ -361,6 +394,7 @@ Sa Pizzedda`,
     { id: 'suggeriti', label: 'Ordini Suggeriti', icon: Package },
     { id: 'inviati', label: 'Ordini Inviati', icon: Send },
     { id: 'completati', label: 'Ordini Arrivati', icon: CheckCircle },
+    { id: 'regole', label: 'Regole Ordini', icon: Calendar },
     { id: 'analisi', label: 'Analisi Ordini', icon: BarChart3 }
   ];
 
@@ -1007,6 +1041,96 @@ Sa Pizzedda`,
           </div>
         )}
 
+        {/* Regole Ordini Tab */}
+        {activeTab === 'regole' && (
+          <div className="space-y-4">
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-800">Regole Ordini Prodotti</h2>
+                  <p className="text-sm text-slate-500 mt-1">Definisci in quali giorni della settimana ogni prodotto può essere ordinato</p>
+                </div>
+                <NeumorphicButton
+                  onClick={() => {
+                    setEditingRegola({ 
+                      prodotto_id: '', 
+                      giorni_settimana: [], 
+                      note: '',
+                      attivo: true 
+                    });
+                    setShowRegoleForm(true);
+                  }}
+                  variant="primary"
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Nuova Regola
+                </NeumorphicButton>
+              </div>
+
+              {regoleOrdini.length === 0 ? (
+                <div className="text-center py-12">
+                  <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <p className="text-slate-500">Nessuna regola configurata</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b-2 border-blue-600">
+                        <th className="text-left p-3 text-slate-600 font-medium">Prodotto</th>
+                        <th className="text-left p-3 text-slate-600 font-medium">Giorni Ordinabili</th>
+                        <th className="text-left p-3 text-slate-600 font-medium">Note</th>
+                        <th className="text-right p-3 text-slate-600 font-medium">Azioni</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {regoleOrdini.map(regola => {
+                        const giorni = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'];
+                        const giorniLabel = regola.giorni_settimana
+                          .sort((a, b) => a - b)
+                          .map(g => giorni[g])
+                          .join(', ');
+                        
+                        return (
+                          <tr key={regola.id} className="border-b border-slate-200">
+                            <td className="p-3 text-slate-800 font-medium">{regola.nome_prodotto}</td>
+                            <td className="p-3 text-slate-700">{giorniLabel}</td>
+                            <td className="p-3 text-slate-600 text-sm">{regola.note || '-'}</td>
+                            <td className="p-3 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => {
+                                    setEditingRegola(regola);
+                                    setShowRegoleForm(true);
+                                  }}
+                                  className="nav-button p-2 rounded-lg hover:bg-blue-50"
+                                >
+                                  <Edit className="w-4 h-4 text-blue-600" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (confirm('Eliminare questa regola?')) {
+                                      deleteRegolaMutation.mutate(regola.id);
+                                    }
+                                  }}
+                                  className="nav-button p-2 rounded-lg hover:bg-red-50"
+                                >
+                                  <Trash2 className="w-4 h-4 text-red-600" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </NeumorphicCard>
+          </div>
+        )}
+
         {/* Ordini Completati Tab */}
         {activeTab === 'completati' && (
           <div className="space-y-4">
@@ -1254,44 +1378,56 @@ Sa Pizzedda`,
                     </NeumorphicButton>
                   </div>
                   <div className="space-y-2">
-                    {editingOrder.prodotti.map((prod, idx) => {
+                    {editingOrder.prodotti
+                      .filter(prod => !searchTermModal || prod.nome_prodotto.toLowerCase().includes(searchTermModal.toLowerCase()))
+                      .map((prod, idx) => {
                       const prezzoConIVA = prod.prezzo_unitario * (1 + ((prod.iva_percentuale ?? 22) / 100));
+                      const totaleNetto = prod.prezzo_unitario * prod.quantita_ordinata;
+                      const totaleConIVA = prezzoConIVA * prod.quantita_ordinata;
+
                       return (
-                      <div key={idx} className={`neumorphic-pressed p-3 rounded-xl grid grid-cols-3 gap-2 items-center ${prod.isExtra ? 'border-2 border-purple-300' : ''}`}>
-                        <div>
-                          <p className="text-sm font-medium text-slate-800">{prod.nome_prodotto}</p>
-                          <p className="text-xs text-slate-500">IVA {prod.iva_percentuale ?? 22}%</p>
-                          {prod.isExtra && (
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 mt-1 inline-block">
-                              Extra
-                            </span>
-                          )}
-                        </div>
-                        <div>
-                          <label className="text-xs text-slate-500">Quantità</label>
-                          <input
-                            type="number"
-                            value={prod.quantita_ordinata}
-                            onChange={(e) => {
-                              const newProdotti = [...editingOrder.prodotti];
-                              newProdotti[idx].quantita_ordinata = parseFloat(e.target.value) || 0;
-                              const newTotaleNetto = newProdotti.reduce((sum, p) => sum + (p.prezzo_unitario * p.quantita_ordinata), 0);
-                              const newTotaleConIVA = newProdotti.reduce((sum, p) => {
-                                const pIVA = p.prezzo_unitario * (1 + ((p.iva_percentuale ?? 22) / 100));
-                                return sum + (pIVA * p.quantita_ordinata);
-                              }, 0);
-                              setEditingOrder({ ...editingOrder, prodotti: newProdotti, totale_ordine: newTotaleNetto, totale_ordine_con_iva: newTotaleConIVA });
-                            }}
-                            className="w-full neumorphic-pressed px-2 py-1 rounded-lg text-sm text-slate-700 outline-none"
-                          />
-                          <p className="text-xs text-slate-500">{prod.unita_misura}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs text-slate-500">€{prod.prezzo_unitario.toFixed(2)}/u (netto)</p>
-                          <p className="text-xs text-slate-500">€{prezzoConIVA.toFixed(2)}/u (+IVA)</p>
-                          <p className="text-sm font-bold text-blue-600">
-                            €{(prezzoConIVA * prod.quantita_ordinata).toFixed(2)}
-                          </p>
+                     <div key={idx} className={`neumorphic-pressed p-3 rounded-xl ${prod.isExtra ? 'border-2 border-purple-300' : ''}`}>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
+                          <div>
+                            <p className="text-sm font-medium text-slate-800">{prod.nome_prodotto}</p>
+                            <p className="text-xs text-slate-500">IVA {prod.iva_percentuale ?? 22}%</p>
+                            {prod.isExtra && (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 mt-1 inline-block">
+                                Extra
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            <label className="text-xs text-slate-500">Quantità</label>
+                            <input
+                              type="number"
+                              value={prod.quantita_ordinata}
+                              onChange={(e) => {
+                                const newProdotti = [...editingOrder.prodotti];
+                                const actualIdx = editingOrder.prodotti.findIndex(p => p.prodotto_id === prod.prodotto_id);
+                                newProdotti[actualIdx].quantita_ordinata = parseFloat(e.target.value) || 0;
+                                const newTotaleNetto = newProdotti.reduce((sum, p) => sum + (p.prezzo_unitario * p.quantita_ordinata), 0);
+                                const newTotaleConIVA = newProdotti.reduce((sum, p) => {
+                                  const pIVA = p.prezzo_unitario * (1 + ((p.iva_percentuale ?? 22) / 100));
+                                  return sum + (pIVA * p.quantita_ordinata);
+                                }, 0);
+                                setEditingOrder({ ...editingOrder, prodotti: newProdotti, totale_ordine: newTotaleNetto, totale_ordine_con_iva: newTotaleConIVA });
+                              }}
+                              className="w-full neumorphic-pressed px-2 py-1 rounded-lg text-sm text-slate-700 outline-none"
+                            />
+                            <p className="text-xs text-slate-500">{prod.unita_misura}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-500">Prezzo Unitario</p>
+                            <p className="text-sm font-medium text-slate-700">€{prod.prezzo_unitario.toFixed(2)}</p>
+                            <p className="text-xs text-slate-400">(netto IVA)</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-slate-500">Totale Netto</p>
+                            <p className="text-sm font-bold text-slate-700">€{totaleNetto.toFixed(2)}</p>
+                            <p className="text-xs text-slate-500 mt-1">Totale +IVA</p>
+                            <p className="text-base font-bold text-blue-600">€{totaleConIVA.toFixed(2)}</p>
+                          </div>
                         </div>
                       </div>
                     );
@@ -1993,6 +2129,121 @@ Sa Pizzedda`,
                   >
                     <Send className="w-5 h-5" />
                     Invia Email e Segna Inviato
+                  </NeumorphicButton>
+                </div>
+              </div>
+            </NeumorphicCard>
+          </div>
+        )}
+
+        {/* Modal Regola Ordine */}
+        {showRegoleForm && editingRegola && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800">
+                  {editingRegola.id ? 'Modifica Regola' : 'Nuova Regola Ordine'}
+                </h2>
+                <button onClick={() => { setShowRegoleForm(false); setEditingRegola(null); }} className="nav-button p-2 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Prodotto</label>
+                  <select
+                    value={editingRegola.prodotto_id}
+                    onChange={(e) => {
+                      const prodId = e.target.value;
+                      const prod = products.find(p => p.id === prodId);
+                      setEditingRegola({ 
+                        ...editingRegola, 
+                        prodotto_id: prodId,
+                        nome_prodotto: prod?.nome_prodotto || ''
+                      });
+                    }}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    disabled={!!editingRegola.id}
+                  >
+                    <option value="">Seleziona un prodotto</option>
+                    {products
+                      .filter(p => !regoleOrdini.some(r => r.prodotto_id === p.id && r.id !== editingRegola.id))
+                      .sort((a, b) => a.nome_prodotto.localeCompare(b.nome_prodotto))
+                      .map(prod => (
+                        <option key={prod.id} value={prod.id}>{prod.nome_prodotto}</option>
+                      ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Giorni in cui può essere ordinato</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'].map((giorno, idx) => {
+                      const isSelected = editingRegola.giorni_settimana?.includes(idx);
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                            const newGiorni = isSelected
+                              ? editingRegola.giorni_settimana.filter(g => g !== idx)
+                              : [...(editingRegola.giorni_settimana || []), idx];
+                            setEditingRegola({ ...editingRegola, giorni_settimana: newGiorni });
+                          }}
+                          className={`p-3 rounded-xl text-sm font-medium transition-all ${
+                            isSelected
+                              ? 'neumorphic-pressed bg-blue-50 text-blue-700 border-2 border-blue-300'
+                              : 'neumorphic-flat text-slate-600 hover:bg-slate-50'
+                          }`}
+                        >
+                          {giorno.substring(0, 3)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    Seleziona i giorni in cui questo prodotto può essere ordinato
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Note (opzionale)</label>
+                  <textarea
+                    value={editingRegola.note || ''}
+                    onChange={(e) => setEditingRegola({ ...editingRegola, note: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none h-20 resize-none"
+                    placeholder="Es: Consegna solo il martedì e venerdì"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <NeumorphicButton 
+                    onClick={() => { setShowRegoleForm(false); setEditingRegola(null); }} 
+                    className="flex-1"
+                  >
+                    Annulla
+                  </NeumorphicButton>
+                  <NeumorphicButton
+                    onClick={() => {
+                      if (!editingRegola.prodotto_id || !editingRegola.giorni_settimana?.length) {
+                        alert('Seleziona un prodotto e almeno un giorno');
+                        return;
+                      }
+                      
+                      if (editingRegola.id) {
+                        updateRegolaMutation.mutate({ 
+                          id: editingRegola.id, 
+                          data: editingRegola 
+                        });
+                      } else {
+                        createRegolaMutation.mutate(editingRegola);
+                      }
+                    }}
+                    variant="primary"
+                    className="flex-1"
+                    disabled={createRegolaMutation.isPending || updateRegolaMutation.isPending}
+                  >
+                    {editingRegola.id ? 'Salva Modifiche' : 'Crea Regola'}
                   </NeumorphicButton>
                 </div>
               </div>
