@@ -1397,7 +1397,7 @@ Sa Pizzedda`,
                       Nessun prodotto trovato
                     </div>
                   )}
-                  </div>
+                  
                   <div className="space-y-2">
                     {editingOrder.prodotti
                       .filter(prod => !searchTermModal || prod.nome_prodotto.toLowerCase().includes(searchTermModal.toLowerCase()))
