@@ -44,6 +44,7 @@ export default function OrdiniAdmin() {
   const [selectedProduct, setSelectedProduct] = useState('all');
   const [expandedStoresSuggeriti, setExpandedStoresSuggeriti] = useState({});
   const [expandedStoresCompletati, setExpandedStoresCompletati] = useState({});
+  const [expandedFornitori, setExpandedFornitori] = useState({});
 
   const queryClient = useQueryClient();
 
@@ -651,70 +652,116 @@ Sa Pizzedda`,
         {/* Ordini Inviati Tab */}
         {activeTab === 'inviati' && (
           <div className="space-y-4">
-            <NeumorphicCard className="p-6">
-              <h2 className="text-xl font-bold text-slate-800 mb-4">Ordini Inviati ({ordiniInviati.length})</h2>
-              {ordiniInviati.length === 0 ? (
-                <p className="text-center text-slate-500 py-8">Nessun ordine inviato</p>
-              ) : (
-                <div className="space-y-3">
-                  {ordiniInviati
-                    .filter(o => selectedStore === 'all' || o.store_id === selectedStore)
-                    .map(ordine => (
-                      <div key={ordine.id} className="neumorphic-pressed p-4 rounded-xl">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1">
-                            <h3 className="font-bold text-slate-800">{ordine.store_name}</h3>
-                            <p className="text-sm text-slate-500">{ordine.fornitore}</p>
-                            <p className="text-xs text-slate-400">
-                              Inviato: {format(parseISO(ordine.data_invio), 'dd/MM/yyyy HH:mm', { locale: it })}
-                            </p>
-                          </div>
+            {ordiniInviati.length === 0 ? (
+              <NeumorphicCard className="p-12 text-center">
+                <Package className="w-16 h-16 text-slate-300 mx-auto mb-4 opacity-50" />
+                <h3 className="text-xl font-bold text-slate-800 mb-2">Nessun ordine inviato</h3>
+                <p className="text-slate-500">Gli ordini inviati appariranno qui</p>
+              </NeumorphicCard>
+            ) : (
+              (() => {
+                // Group orders by supplier
+                const ordersBySupplier = {};
+                ordiniInviati
+                  .filter(o => selectedStore === 'all' || o.store_id === selectedStore)
+                  .forEach(ordine => {
+                    if (!ordersBySupplier[ordine.fornitore]) {
+                      ordersBySupplier[ordine.fornitore] = [];
+                    }
+                    ordersBySupplier[ordine.fornitore].push(ordine);
+                  });
+
+                return Object.entries(ordersBySupplier).map(([fornitore, ordini]) => {
+                  const isExpanded = expandedFornitori[fornitore];
+                  const totalOrders = ordini.length;
+                  const totalValue = ordini.reduce((sum, o) => sum + o.totale_ordine, 0);
+
+                  return (
+                    <NeumorphicCard key={fornitore} className="overflow-hidden">
+                      <button
+                        onClick={() => setExpandedFornitori(prev => ({ ...prev, [fornitore]: !prev[fornitore] }))}
+                        className="w-full p-6 text-left hover:bg-slate-50 transition-colors"
+                      >
+                        <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="text-right">
-                              <p className="text-xl font-bold text-blue-600">€{ordine.totale_ordine.toFixed(2)}</p>
-                              <p className="text-xs text-slate-500">{ordine.prodotti.length} prodotti</p>
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                              <Truck className="w-5 h-5 text-white" />
                             </div>
-                            <button
-                              onClick={() => {
-                                if (confirm('Eliminare questo ordine?')) {
-                                  deleteOrderMutation.mutate(ordine.id);
-                                }
-                              }}
-                              className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4 text-red-600" />
-                            </button>
+                            <div>
+                              <h2 className="text-lg font-bold text-slate-800">{fornitore}</h2>
+                              <p className="text-xs text-slate-500">{totalOrders} ordini • €{totalValue.toFixed(2)}</p>
+                            </div>
                           </div>
+                          {isExpanded ? (
+                            <ChevronDown className="w-5 h-5 text-slate-600" />
+                          ) : (
+                            <ChevronRight className="w-5 h-5 text-slate-600" />
+                          )}
                         </div>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b border-slate-300">
-                                <th className="text-left p-2 text-slate-600 font-medium text-xs">Prodotto</th>
-                                <th className="text-right p-2 text-slate-600 font-medium text-xs">Quantità</th>
-                                <th className="text-right p-2 text-slate-600 font-medium text-xs">Prezzo</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {ordine.prodotti.filter(prod => prod.quantita_ordinata > 0).map((prod, idx) => (
-                                <tr key={idx} className="border-b border-slate-200">
-                                  <td className="p-2 text-slate-700">{prod.nome_prodotto}</td>
-                                  <td className="p-2 text-right text-slate-700">
-                                    {prod.quantita_ordinata} {prod.unita_misura}
-                                  </td>
-                                  <td className="p-2 text-right text-slate-600">
-                                    €{(prod.prezzo_unitario * prod.quantita_ordinata).toFixed(2)}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                      </button>
+
+                      {isExpanded && (
+                        <div className="p-6 pt-0 space-y-3">
+                          {ordini.map(ordine => (
+                            <div key={ordine.id} className="neumorphic-pressed p-4 rounded-xl">
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex-1">
+                                  <h3 className="font-bold text-slate-800">{ordine.store_name}</h3>
+                                  <p className="text-xs text-slate-400">
+                                    Inviato: {format(parseISO(ordine.data_invio), 'dd/MM/yyyy HH:mm', { locale: it })}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <div className="text-right">
+                                    <p className="text-xl font-bold text-blue-600">€{ordine.totale_ordine.toFixed(2)}</p>
+                                    <p className="text-xs text-slate-500">{ordine.prodotti.filter(p => p.quantita_ordinata > 0).length} prodotti</p>
+                                  </div>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (confirm('Eliminare questo ordine?')) {
+                                        deleteOrderMutation.mutate(ordine.id);
+                                      }
+                                    }}
+                                    className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
+                                  >
+                                    <Trash2 className="w-4 h-4 text-red-600" />
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                  <thead>
+                                    <tr className="border-b border-slate-300">
+                                      <th className="text-left p-2 text-slate-600 font-medium text-xs">Prodotto</th>
+                                      <th className="text-right p-2 text-slate-600 font-medium text-xs">Quantità</th>
+                                      <th className="text-right p-2 text-slate-600 font-medium text-xs">Prezzo</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {ordine.prodotti.filter(prod => prod.quantita_ordinata > 0).map((prod, idx) => (
+                                      <tr key={idx} className="border-b border-slate-200">
+                                        <td className="p-2 text-slate-700">{prod.nome_prodotto}</td>
+                                        <td className="p-2 text-right text-slate-700">
+                                          {prod.quantita_ordinata} {prod.unita_misura}
+                                        </td>
+                                        <td className="p-2 text-right text-slate-600">
+                                          €{(prod.prezzo_unitario * prod.quantita_ordinata).toFixed(2)}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      </div>
-                    ))}
-                </div>
-              )}
-            </NeumorphicCard>
+                      )}
+                    </NeumorphicCard>
+                  );
+                });
+              })()
+            )}
           </div>
         )}
 
