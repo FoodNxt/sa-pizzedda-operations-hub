@@ -880,6 +880,9 @@ Sa Pizzedda`,
                                   <div className="flex-1">
                                     <p className="text-sm font-bold text-slate-500">{ordine.fornitore}</p>
                                     <p className="text-xs text-slate-400">
+                                      Inviato: {format(parseISO(ordine.data_invio), 'dd/MM/yyyy HH:mm', { locale: it })}
+                                    </p>
+                                    <p className="text-xs text-slate-400">
                                       Completato: {format(parseISO(ordine.data_completamento), 'dd/MM/yyyy HH:mm', { locale: it })}
                                     </p>
                                     <p className="text-xs text-slate-400">Da: {ordine.completato_da}</p>
@@ -912,7 +915,7 @@ Sa Pizzedda`,
                                       </tr>
                                     </thead>
                                     <tbody>
-                                      {ordine.prodotti.map((prod, idx) => {
+                                      {ordine.prodotti.filter(prod => prod.quantita_ordinata > 0).map((prod, idx) => {
                                         const isDifferent = prod.quantita_ricevuta !== prod.quantita_ordinata;
                                         return (
                                           <tr key={idx} className={`border-b border-slate-200 ${isDifferent ? 'bg-orange-50' : ''}`}>
