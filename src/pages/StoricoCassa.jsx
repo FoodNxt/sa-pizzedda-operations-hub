@@ -247,7 +247,10 @@ export default function StoricoCassa() {
       // Get cash payments for this store on this date
       const pagamentiContanti = iPraticoData
         .filter(i => i.store_id === store.id && i.order_date === verificaDate)
-        .reduce((sum, i) => sum + (i.moneyType_cash || 0), 0);
+        .reduce((sum, i) => {
+          const cashAmount = parseFloat(i.moneyType_cash) || 0;
+          return sum + cashAmount;
+        }, 0);
 
       // Get prelievi for this store on this date
       const prelieviGiorno = prelievi

@@ -36,6 +36,7 @@ export default function Inventory() {
   const [historyProduct, setHistoryProduct] = useState(null);
   const [selectedFormCompletion, setSelectedFormCompletion] = useState(null);
   const [expandedStores, setExpandedStores] = useState({});
+  const [storeSearchTerms, setStoreSearchTerms] = useState({});
   
   const queryClient = useQueryClient();
 
@@ -155,6 +156,15 @@ export default function Inventory() {
       ...prev,
       [storeId]: !prev[storeId]
     }));
+  };
+
+  const filterProductsBySearch = (items, storeId) => {
+    const searchTerm = storeSearchTerms[storeId]?.toLowerCase() || '';
+    if (!searchTerm) return items;
+    return items.filter(item => 
+      item.nome_prodotto?.toLowerCase().includes(searchTerm) ||
+      item.store_name?.toLowerCase().includes(searchTerm)
+    );
   };
 
   // Calculate orders needed - products below critical quantity
@@ -541,42 +551,62 @@ export default function Inventory() {
                     {/* Expanded content */}
                     {isExpanded && (
                       <div className="p-4 lg:p-6 pt-0 space-y-6">
-                        {storeGroup.critical.length > 0 && (
+                        {/* Search bar for this store */}
+                        <div className="sticky top-0 bg-[#e0e5ec] z-10 pb-3">
+                          <input
+                            type="text"
+                            placeholder="🔍 Cerca prodotti in questo locale..."
+                            value={storeSearchTerms[storeGroup.storeId] || ''}
+                            onChange={(e) => setStoreSearchTerms(prev => ({
+                              ...prev,
+                              [storeGroup.storeId]: e.target.value
+                            }))}
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                          />
+                        </div>
+
+                        {filterProductsBySearch(storeGroup.critical, storeGroup.storeId).length > 0 && (
                           <div>
                             <div className="flex items-center gap-2 mb-3">
                               <AlertTriangle className="w-5 h-5 text-red-600" />
-                              <h4 className="font-bold text-slate-800">Critici ({storeGroup.critical.length})</h4>
+                              <h4 className="font-bold text-slate-800">
+                                Critici ({filterProductsBySearch(storeGroup.critical, storeGroup.storeId).length})
+                              </h4>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                              {storeGroup.critical.map(item => (
+                              {filterProductsBySearch(storeGroup.critical, storeGroup.storeId).map(item => (
                                 <ProductCard key={`${item.store_id}-${item.prodotto_id}`} item={item} status="critical" />
                               ))}
                             </div>
                           </div>
                         )}
                         
-                        {storeGroup.warning.length > 0 && (
+                        {filterProductsBySearch(storeGroup.warning, storeGroup.storeId).length > 0 && (
                           <div>
                             <div className="flex items-center gap-2 mb-3">
                               <AlertTriangle className="w-5 h-5 text-yellow-600" />
-                              <h4 className="font-bold text-slate-800">Warning ({storeGroup.warning.length})</h4>
+                              <h4 className="font-bold text-slate-800">
+                                Warning ({filterProductsBySearch(storeGroup.warning, storeGroup.storeId).length})
+                              </h4>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                              {storeGroup.warning.map(item => (
+                              {filterProductsBySearch(storeGroup.warning, storeGroup.storeId).map(item => (
                                 <ProductCard key={`${item.store_id}-${item.prodotto_id}`} item={item} status="warning" />
                               ))}
                             </div>
                           </div>
                         )}
                         
-                        {storeGroup.ok.length > 0 && (
+                        {filterProductsBySearch(storeGroup.ok, storeGroup.storeId).length > 0 && (
                           <div>
                             <div className="flex items-center gap-2 mb-3">
                               <CheckCircle className="w-5 h-5 text-green-600" />
-                              <h4 className="font-bold text-slate-800">OK ({storeGroup.ok.length})</h4>
+                              <h4 className="font-bold text-slate-800">
+                                OK ({filterProductsBySearch(storeGroup.ok, storeGroup.storeId).length})
+                              </h4>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                              {storeGroup.ok.map(item => (
+                              {filterProductsBySearch(storeGroup.ok, storeGroup.storeId).map(item => (
                                 <ProductCard key={`${item.store_id}-${item.prodotto_id}`} item={item} status="ok" />
                               ))}
                             </div>
