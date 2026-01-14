@@ -184,7 +184,7 @@ export default function PulizieMatch() {
           ruolo: ruoloResponsabile,
           data_turno: lastShift.data,
           ora_fine_turno: lastShift.ora_fine,
-          compilato_da: inspection.compiled_by_name || inspection.user_email || 'N/A'
+          compilato_da: inspection.inspector_name || 'N/A'
         });
         });
       });
