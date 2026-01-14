@@ -18,7 +18,8 @@ import {
   ChevronDown,
   ChevronRight,
   Camera,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Plus
 } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
@@ -184,7 +185,17 @@ export default function OrdiniAdmin() {
 
   const openOrderEditor = (storeName, storeId, supplierName, orders) => {
     const fornitore = getFornitoreByName(supplierName);
-    const prodotti = orders.map(order => ({
+    
+    // Filter out products that already have a pending order
+    const prodottiSenzaOrdineInCorso = orders.filter(order => {
+      const hasPendingOrder = ordiniInviati.some(o => 
+        o.store_id === storeId &&
+        o.prodotti.some(p => p.prodotto_id === order.product.id)
+      );
+      return !hasPendingOrder;
+    });
+
+    const prodotti = prodottiSenzaOrdineInCorso.map(order => ({
       prodotto_id: order.product.id,
       nome_prodotto: order.nome_prodotto,
       quantita_ordinata: order.quantita_ordine,
@@ -215,8 +226,26 @@ export default function OrdiniAdmin() {
   const saveOrderAsSent = async () => {
     if (!editingOrder) return;
 
+    // Filter out products with quantity 0
+    const prodottiFiltrati = editingOrder.prodotti.filter(p => p.quantita_ordinata > 0);
+    
+    if (prodottiFiltrati.length === 0) {
+      alert('Aggiungi almeno un prodotto con quantità > 0');
+      return;
+    }
+
+    // Recalculate totals with filtered products
+    const totaleNettoFiltrato = prodottiFiltrati.reduce((sum, p) => sum + (p.prezzo_unitario * p.quantita_ordinata), 0);
+    const totaleConIVAFiltrato = prodottiFiltrati.reduce((sum, p) => {
+      const prezzoConIVA = p.prezzo_unitario * (1 + (p.iva_percentuale / 100));
+      return sum + (prezzoConIVA * p.quantita_ordinata);
+    }, 0);
+
     const orderData = {
       ...editingOrder,
+      prodotti: prodottiFiltrati,
+      totale_ordine: totaleNettoFiltrato,
+      totale_ordine_con_iva: totaleConIVAFiltrato,
       status: 'inviato',
       data_invio: new Date().toISOString()
     };
@@ -667,7 +696,7 @@ Sa Pizzedda`,
                               </tr>
                             </thead>
                             <tbody>
-                              {ordine.prodotti.map((prod, idx) => (
+                              {ordine.prodotti.filter(prod => prod.quantita_ordinata > 0).map((prod, idx) => (
                                 <tr key={idx} className="border-b border-slate-200">
                                   <td className="p-2 text-slate-700">{prod.nome_prodotto}</td>
                                   <td className="p-2 text-right text-slate-700">
@@ -895,15 +924,56 @@ Sa Pizzedda`,
                 </div>
 
                 <div>
-                  <h3 className="font-bold text-slate-800 mb-2">Prodotti Ordinati</h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-bold text-slate-800">Prodotti Ordinati</h3>
+                    <NeumorphicButton
+                      onClick={() => {
+                        // Get all products from this supplier
+                        const prodottiDelFornitore = products.filter(p => 
+                          p.fornitore === editingOrder.fornitore && 
+                          !editingOrder.prodotti.some(ep => ep.prodotto_id === p.id)
+                        );
+                        
+                        if (prodottiDelFornitore.length === 0) {
+                          alert('Nessun altro prodotto disponibile per questo fornitore');
+                          return;
+                        }
+
+                        const nuoviProdotti = prodottiDelFornitore.map(p => ({
+                          prodotto_id: p.id,
+                          nome_prodotto: p.nome_prodotto,
+                          quantita_ordinata: 0,
+                          quantita_ricevuta: 0,
+                          unita_misura: p.unita_misura,
+                          prezzo_unitario: p.prezzo_unitario || 0,
+                          iva_percentuale: p.iva_percentuale || 22,
+                          isExtra: true
+                        }));
+
+                        setEditingOrder({
+                          ...editingOrder,
+                          prodotti: [...editingOrder.prodotti, ...nuoviProdotti]
+                        });
+                      }}
+                      className="flex items-center gap-2 text-sm"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Aggiungi Prodotti
+                    </NeumorphicButton>
+                  </div>
                   <div className="space-y-2">
                     {editingOrder.prodotti.map((prod, idx) => {
                       const prezzoConIVA = prod.prezzo_unitario * (1 + ((prod.iva_percentuale || 22) / 100));
                       return (
-                      <div key={idx} className="neumorphic-pressed p-3 rounded-xl grid grid-cols-3 gap-2 items-center">
+                      <div key={idx} className={`neumorphic-pressed p-3 rounded-xl grid grid-cols-3 gap-2 items-center ${prod.isExtra ? 'border-2 border-purple-300' : ''}`}>
                         <div>
                           <p className="text-sm font-medium text-slate-800">{prod.nome_prodotto}</p>
                           <p className="text-xs text-slate-500">IVA {prod.iva_percentuale || 22}%</p>
+                          {prod.isExtra && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 mt-1 inline-block">
+                              Extra
+                            </span>
+                          )}
                         </div>
                         <div>
                           <label className="text-xs text-slate-500">Quantità</label>

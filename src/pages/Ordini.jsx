@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Package, CheckCircle, AlertTriangle, X, Camera, Upload, Loader2, Volume2 } from 'lucide-react';
+import { Package, CheckCircle, AlertTriangle, X, Camera, Upload, Loader2, Volume2, ChevronDown, ChevronRight } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { format, parseISO } from 'date-fns';
@@ -15,6 +15,7 @@ export default function Ordini() {
   const [ddtPhotos, setDdtPhotos] = useState([]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [playingAudio, setPlayingAudio] = useState(null);
+  const [expandedStores, setExpandedStores] = useState({});
   const queryClient = useQueryClient();
 
   const { data: materiePrime = [] } = useQuery({
