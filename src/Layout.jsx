@@ -316,6 +316,11 @@ const navigationStructure = [
         icon: ClipboardCheck,
       },
       {
+        title: "Match Pulizie",
+        url: createPageUrl("PulizieMatch"),
+        icon: UserCheck,
+      },
+      {
         title: "Form Pulizia",
         url: createPageUrl("FormPulizia"),
         icon: Camera,

@@ -81,9 +81,10 @@ export default function PulizieMatch() {
 
         // Find attrezzatura
         const attrezzatura = attrezzature.find(a => a.nome === domanda.attrezzatura);
-        if (!attrezzatura || !attrezzatura.ruolo_responsabile) return;
+        if (!attrezzatura || !attrezzatura.ruoli_responsabili || attrezzatura.ruoli_responsabili.length === 0) return;
 
-        const ruoloResponsabile = attrezzatura.ruolo_responsabile;
+        // Process each responsible role
+        attrezzatura.ruoli_responsabili.forEach(ruoloResponsabile => {
         const dataCompilazione = new Date(inspection.data_compilazione);
 
         // Find last shift before inspection for this role and store
@@ -131,6 +132,7 @@ export default function PulizieMatch() {
           ruolo: ruoloResponsabile,
           data_turno: lastShift.data,
           ora_fine_turno: lastShift.ora_fine
+        });
         });
       });
     });
