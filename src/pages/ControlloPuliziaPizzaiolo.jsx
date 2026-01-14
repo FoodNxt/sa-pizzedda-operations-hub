@@ -166,20 +166,51 @@ export default function ControlloPuliziaPizzaiolo() {
         setError(`Rispondi alla domanda: ${domanda.domanda_testo}`);
         return;
       }
+      if (domanda.tipo_controllo === 'scelta_multipla' && domanda.richiedi_foto_multipla === 'sempre' && !photos[`${domanda.id}_foto`]) {
+        setError(`Carica la foto per: ${domanda.domanda_testo}`);
+        return;
+      }
+      if (domanda.tipo_controllo === 'scelta_multipla' && 
+          domanda.richiedi_foto_multipla === 'condizionale' && 
+          risposte[domanda.id] === domanda.risposta_richiede_foto && 
+          !photos[`${domanda.id}_foto`]) {
+        setError(`Carica la foto richiesta`);
+        return;
+      }
     }
 
     setUploading(true);
     setUploadProgress('Caricamento foto in corso...');
 
     try {
+      console.log('=== INIZIO SUBMIT PULIZIE PIZZAIOLO ===');
+      
       const uploadedUrls = {};
       const fotoDomande = domande.filter(d => d.tipo_controllo === 'foto');
       for (const domanda of fotoDomande) {
         const file = photos[domanda.id];
         if (file) {
+          console.log(`Caricamento foto: ${domanda.attrezzatura}`);
           setUploadProgress(`Caricamento ${domanda.attrezzatura}...`);
           const { file_url } = await base44.integrations.Core.UploadFile({ file });
           uploadedUrls[domanda.id] = file_url;
+        }
+      }
+
+      // Upload conditional photos
+      const domandeMultipleConFoto = domande.filter(d => 
+        d.tipo_controllo === 'scelta_multipla' && 
+        (d.richiedi_foto_multipla === 'sempre' || 
+         (d.richiedi_foto_multipla === 'condizionale' && risposte[d.id] === d.risposta_richiede_foto))
+      );
+      
+      for (const domanda of domandeMultipleConFoto) {
+        const file = photos[`${domanda.id}_foto`];
+        if (file) {
+          console.log(`Caricamento foto condizionale`);
+          setUploadProgress(`Caricamento foto...`);
+          const { file_url } = await base44.integrations.Core.UploadFile({ file });
+          uploadedUrls[`${domanda.id}_foto`] = file_url;
         }
       }
 
@@ -187,71 +218,53 @@ export default function ControlloPuliziaPizzaiolo() {
 
       const store = stores.find(s => s.id === selectedStore);
       const inspectionData = {
-        store_name: store.name,
-        store_id: store.id,
-        inspection_date: undefined,
+        store_name: store?.name || '',
+        store_id: store?.id || selectedStore,
+        inspection_date: new Date().toISOString(),
         inspector_name: currentUser.nome_cognome || currentUser.full_name || currentUser.email,
         inspector_role: 'Pizzaiolo',
         analysis_status: 'processing',
         inspection_type: 'pizzaiolo',
         domande_risposte: domande.map(d => ({
           domanda_id: d.id,
-          domanda_testo: d.domanda_testo || (d.tipo_controllo === 'foto' ? `Foto: ${d.attrezzatura}` : d.testo_domanda),
+          domanda_testo: d.domanda_testo || (d.tipo_controllo === 'foto' ? `Foto: ${d.attrezzatura}` : ''),
           tipo_controllo: d.tipo_controllo,
-          tipo_controllo_ai: d.tipo_controllo_ai,
-          risposta: d.tipo_controllo === 'foto' ? (uploadedUrls[d.id] || null) : (risposte[d.id] || null),
-          attrezzatura: d.attrezzatura,
-          prompt_ai: d.prompt_ai
-        })).filter(d => {
-          // Include all questions that have a response
-          if (d.tipo_controllo === 'foto') return !!d.risposta;
-          return true; // Keep all multiple choice questions
-        })
+          risposta: d.tipo_controllo === 'foto' ? uploadedUrls[d.id] : risposte[d.id],
+          foto_aggiuntiva: uploadedUrls[`${d.id}_foto`] || null,
+          attrezzatura: d.attrezzatura || null,
+          prompt_ai: d.prompt_ai || null
+        })).filter(d => d.risposta !== null && d.risposta !== undefined)
       };
 
-      const equipmentPhotos = {};
-      fotoDomande.forEach(d => {
-        if (uploadedUrls[d.id]) {
-          const key = d.attrezzatura.toLowerCase().replace(/\s+/g, '_');
-          inspectionData[`${key}_foto_url`] = uploadedUrls[d.id];
-          equipmentPhotos[key] = uploadedUrls[d.id];
-        }
-      });
-
+      console.log('Creazione ispezione...');
       const inspection = await base44.entities.CleaningInspection.create(inspectionData);
+      console.log('Ispezione creata:', inspection.id);
 
-      setUploadProgress('Avvio analisi AI in background...');
+      setUploadProgress('Avvio analisi AI...');
 
       base44.functions.invoke('analyzeCleaningInspection', {
         inspection_id: inspection.id,
         domande_risposte: inspectionData.domande_risposte
-      }).catch(error => {
-        console.error('Error starting AI analysis:', error);
-      });
+      }).catch(err => console.error('Errore AI:', err));
 
-      // Segna attività come completata se viene da un turno
-      if (turnoId && attivitaNome && currentUser) {
-        const posizioneTurno = urlParams.get('posizione_turno');
-        const oraAttivita = urlParams.get('ora_attivita');
-        
+      if (turnoId && attivitaNome) {
         await base44.entities.AttivitaCompletata.create({
           dipendente_id: currentUser.id,
           dipendente_nome: currentUser.nome_cognome || currentUser.full_name,
           turno_id: turnoId,
           turno_data: new Date().toISOString().split('T')[0],
-          store_id: store.id,
+          store_id: store?.id || selectedStore,
           attivita_nome: decodeURIComponent(attivitaNome),
           form_page: 'ControlloPuliziaPizzaiolo',
-          completato_at: new Date().toISOString(),
-          posizione_turno: posizioneTurno || undefined,
-          ora_attivita: oraAttivita || undefined
+          completato_at: new Date().toISOString()
         });
       }
 
+      console.log('=== SUBMIT COMPLETATO ===');
       navigate(createPageUrl(redirectTo || 'TurniDipendente'));
     } catch (error) {
-      console.error('Errore durante il salvataggio:', error);
-      setError(`Errore: ${error.message}`);
+      console.error('=== ERRORE SUBMIT ===', error);
+      setError(`Errore: ${error.message || 'Errore sconosciuto'}`);
       setUploading(false);
     }
   };
@@ -264,6 +277,11 @@ export default function ControlloPuliziaPizzaiolo() {
     for (const domanda of domandeObbligatorie) {
       if (domanda.tipo_controllo === 'foto' && !photos[domanda.id]) return false;
       if (domanda.tipo_controllo === 'scelta_multipla' && !risposte[domanda.id]) return false;
+      if (domanda.tipo_controllo === 'scelta_multipla' && domanda.richiedi_foto_multipla === 'sempre' && !photos[`${domanda.id}_foto`]) return false;
+      if (domanda.tipo_controllo === 'scelta_multipla' && 
+          domanda.richiedi_foto_multipla === 'condizionale' && 
+          risposte[domanda.id] === domanda.risposta_richiede_foto && 
+          !photos[`${domanda.id}_foto`]) return false;
     }
     return true;
   };
@@ -472,6 +490,60 @@ export default function ControlloPuliziaPizzaiolo() {
                           </label>
                         ))}
                       </div>
+
+                      {/* Photo upload for multiple choice */}
+                      {(domanda.richiedi_foto_multipla === 'sempre' || 
+                        (domanda.richiedi_foto_multipla === 'condizionale' && risposte[domanda.id] === domanda.risposta_richiede_foto)) && (
+                        <div className="mt-4 pt-4 border-t border-slate-200">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Camera className="w-5 h-5 text-[#8b7355]" />
+                            <h4 className="font-bold text-[#6b6b6b] text-sm">
+                              Foto richiesta
+                              {domanda.richiedi_foto_multipla === 'sempre' && <span className="text-red-600 ml-1">*</span>}
+                            </h4>
+                          </div>
+
+                          {previews[`${domanda.id}_foto`] ? (
+                            <div className="relative">
+                              <img 
+                                src={previews[`${domanda.id}_foto`]} 
+                                alt="Foto risposta"
+                                className="w-full h-48 object-cover rounded-lg"
+                              />
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  setPhotos(prev => {
+                                    const newPhotos = {...prev};
+                                    delete newPhotos[`${domanda.id}_foto`];
+                                    return newPhotos;
+                                  });
+                                  setPreviews(prev => {
+                                    const newPreviews = {...prev};
+                                    delete newPreviews[`${domanda.id}_foto`];
+                                    return newPreviews;
+                                  });
+                                }}
+                                className="absolute top-2 right-2 neumorphic-flat p-2 rounded-full text-red-600"
+                                disabled={uploading}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setActiveCamera(`${domanda.id}_foto`)}
+                              className="w-full neumorphic-flat p-6 rounded-lg text-center"
+                              disabled={uploading}
+                            >
+                              <Camera className="w-6 h-6 text-[#9b9b9b] mx-auto mb-2" />
+                              <p className="text-sm text-[#9b9b9b]">Scatta Foto</p>
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
