@@ -77,6 +77,30 @@ export default function FormsDipendente() {
       color: "from-teal-500 to-cyan-600"
     },
     {
+      title: "Prelievi",
+      description: "Registra prelievi dalla cassa",
+      icon: DollarSign,
+      url: "FormPrelievi",
+      color: "from-red-500 to-orange-600",
+      requiresStoreManager: true
+    },
+    {
+      title: "Depositi",
+      description: "Registra depositi alla cassa",
+      icon: DollarSign,
+      url: "FormDeposito",
+      color: "from-green-500 to-teal-600",
+      requiresStoreManager: true
+    },
+    {
+      title: "Pagamenti Contanti",
+      description: "Registra pagamenti in contanti",
+      icon: DollarSign,
+      url: "FormPagamentiContanti",
+      color: "from-blue-500 to-indigo-600",
+      requiresStoreManager: true
+    },
+    {
       title: "Feedback P2P",
       description: "Dai feedback ai tuoi colleghi",
       icon: Users,
@@ -181,7 +205,15 @@ export default function FormsDipendente() {
   const formsPages = getFormsPages();
 
   // Filter forms based on config
-  let filteredForms = forms.filter(form => formsPages.includes(form.url));
+  let filteredForms = forms.filter(form => {
+    // Check if in formsPages config
+    if (!formsPages.includes(form.url)) return false;
+    
+    // Check if requires Store Manager role
+    if (form.requiresStoreManager && !userRoles.includes('Store Manager')) return false;
+    
+    return true;
+  });
 
   // Add ValutazioneProvaForm for users with abilitato_prove
   if (user?.abilitato_prove) {
