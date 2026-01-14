@@ -19,7 +19,7 @@ export default function PulizieMatch() {
 
   const { data: inspections = [] } = useQuery({
     queryKey: ['cleaning-inspections'],
-    queryFn: () => base44.entities.CleaningInspection.list('-data_compilazione', 500),
+    queryFn: () => base44.entities.CleaningInspection.list('-inspection_date', 500),
   });
 
   const { data: attrezzature = [] } = useQuery({
@@ -68,7 +68,7 @@ export default function PulizieMatch() {
 
     // Filter inspections by period and store
     let filteredInspections = inspections.filter(insp => {
-      const inspDate = new Date(insp.data_compilazione);
+      const inspDate = new Date(insp.inspection_date);
       const storeMatch = selectedStore === 'all' || insp.store_id === selectedStore;
       const dateMatch = inspDate >= startDate && inspDate <= endDate;
       return storeMatch && dateMatch;
@@ -357,7 +357,7 @@ export default function PulizieMatch() {
                                 <p className="font-medium text-[#6b6b6b]">
                                   {detail.attrezzatura}
                                   <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
-                                    detail.stato === 'Pulito' 
+                                    detail.stato === 'pulito' 
                                       ? 'bg-green-100 text-green-700' 
                                       : 'bg-red-100 text-red-700'
                                   }`}>
