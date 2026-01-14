@@ -75,19 +75,29 @@ export default function PulizieMatch() {
     });
 
     console.log('Processing', filteredInspections.length, 'inspections');
+    console.log('Total attrezzature:', attrezzature.length);
+    console.log('Total turni:', turni.length);
     
     filteredInspections.forEach(inspection => {
-      console.log('Inspection:', inspection.id, 'Store:', inspection.store_name, 'Domande:', inspection.domande_risposte?.length);
+      console.log('Inspection:', inspection.id, 'Store:', inspection.store_name, 'Date:', inspection.inspection_date, 'Domande:', inspection.domande_risposte?.length);
       
       inspection.domande_risposte?.forEach(domanda => {
         console.log('Domanda:', domanda.attrezzatura, 'Tipo:', domanda.tipo_controllo);
         
         // Skip if no attrezzatura or if not a foto question
-        if (!domanda.attrezzatura || domanda.tipo_controllo !== 'foto') return;
+        if (!domanda.attrezzatura || domanda.tipo_controllo !== 'foto') {
+          console.log('Skipped - no attrezzatura or not foto');
+          return;
+        }
 
         // Find attrezzatura
         const attrezzatura = attrezzature.find(a => a.nome === domanda.attrezzatura);
-        if (!attrezzatura || !attrezzatura.ruoli_responsabili || attrezzatura.ruoli_responsabili.length === 0) return;
+        console.log('Found attrezzatura:', attrezzatura?.nome, 'Ruoli:', attrezzatura?.ruoli_responsabili);
+        
+        if (!attrezzatura || !attrezzatura.ruoli_responsabili || attrezzatura.ruoli_responsabili.length === 0) {
+          console.log('Skipped - no attrezzatura config or no ruoli');
+          return;
+        }
 
         // Get the status from inspection fields
         const normalizeAttrezzatura = (name) => {
@@ -108,27 +118,42 @@ export default function PulizieMatch() {
         const correctedField = `${normalizedName}_corrected_status`;
         const statoPulizia = inspection[correctedField] || inspection[statusField];
 
-        if (!statoPulizia) return;
+        console.log('Status fields:', statusField, correctedField, 'Status:', statoPulizia);
+        console.log('All inspection fields:', Object.keys(inspection));
+
+        if (!statoPulizia) {
+          console.log('Skipped - no status found');
+          return;
+        }
 
         // Process each responsible role
         attrezzatura.ruoli_responsabili.forEach(ruoloResponsabile => {
         const dataCompilazione = new Date(inspection.inspection_date);
 
-        // Find last shift before inspection for this role and store
-        const lastShift = turni
-          .filter(t => 
-            t.store_id === inspection.store_id &&
-            t.ruolo === ruoloResponsabile &&
-            t.dipendente_id &&
-            new Date(t.data + 'T' + t.ora_fine) <= dataCompilazione
-          )
-          .sort((a, b) => {
-            const dateA = new Date(a.data + 'T' + a.ora_fine);
-            const dateB = new Date(b.data + 'T' + b.ora_fine);
-            return dateB - dateA;
-          })[0];
+        console.log('Looking for shift - Ruolo:', ruoloResponsabile, 'Store:', inspection.store_id, 'Before:', dataCompilazione);
 
-        if (!lastShift) return;
+        // Find last shift before inspection for this role and store
+        const candidateShifts = turni.filter(t => 
+          t.store_id === inspection.store_id &&
+          t.ruolo === ruoloResponsabile &&
+          t.dipendente_id &&
+          new Date(t.data + 'T' + t.ora_fine) <= dataCompilazione
+        );
+
+        console.log('Candidate shifts found:', candidateShifts.length);
+
+        const lastShift = candidateShifts.sort((a, b) => {
+          const dateA = new Date(a.data + 'T' + a.ora_fine);
+          const dateB = new Date(b.data + 'T' + b.ora_fine);
+          return dateB - dateA;
+        })[0];
+
+        if (!lastShift) {
+          console.log('No shift found for', ruoloResponsabile);
+          return;
+        }
+        
+        console.log('Found shift:', lastShift.dipendente_nome, lastShift.data, lastShift.ora_fine);
 
         const employeeId = lastShift.dipendente_id;
         const employeeName = lastShift.dipendente_nome;
