@@ -713,10 +713,22 @@ Sa Pizzedda`,
                                 </div>
                                 <div className="flex items-center gap-3">
                                   <div className="text-right">
-                                    <p className="text-sm text-slate-500 line-through">€{ordine.totale_ordine.toFixed(2)}</p>
-                                    <p className="text-xl font-bold text-blue-600">€{(ordine.totale_ordine_con_iva || ordine.totale_ordine).toFixed(2)}</p>
-                                    <p className="text-xs text-green-700 font-medium">IVA inclusa</p>
-                                    <p className="text-xs text-slate-500 mt-1">{ordine.prodotti.filter(p => p.quantita_ordinata > 0).length} prodotti</p>
+                                    {(() => {
+                                      const totaleCalcolato = ordine.prodotti
+                                        .filter(p => p.quantita_ordinata > 0)
+                                        .reduce((sum, p) => {
+                                          const prezzoConIVA = (p.prezzo_unitario || 0) * (1 + ((p.iva_percentuale ?? 22) / 100));
+                                          return sum + (prezzoConIVA * p.quantita_ordinata);
+                                        }, 0);
+                                      return (
+                                        <>
+                                          <p className="text-sm text-slate-500 line-through">€{ordine.totale_ordine.toFixed(2)}</p>
+                                          <p className="text-xl font-bold text-blue-600">€{totaleCalcolato.toFixed(2)}</p>
+                                          <p className="text-xs text-green-700 font-medium">IVA inclusa</p>
+                                          <p className="text-xs text-slate-500 mt-1">{ordine.prodotti.filter(p => p.quantita_ordinata > 0).length} prodotti</p>
+                                        </>
+                                      );
+                                    })()}
                                   </div>
                                   <button
                                     onClick={(e) => {
