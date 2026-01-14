@@ -640,20 +640,6 @@ Sa Pizzedda`,
                               </div>
                             </div>
 
-                            {/* Search Bar */}
-                            <div className="mb-4">
-                              <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                <input
-                                  type="text"
-                                  placeholder="Cerca prodotto..."
-                                  value={searchTerm}
-                                  onChange={(e) => setSearchTerm(e.target.value)}
-                                  className="w-full neumorphic-pressed pl-10 pr-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                                />
-                              </div>
-                            </div>
-
                             {(() => {
                               // Separate products into categories
                               const prodottiInCorso = [];
@@ -661,9 +647,10 @@ Sa Pizzedda`,
                               const prodottiNormali = [];
                               
                               orders.forEach(order => {
-                                // Check if there's already an order for this product
+                                // Check if there's already an order for this product FROM THIS SUPPLIER
                                 const hasPendingOrder = ordiniInviati.some(o => 
                                   o.store_id === storeId &&
+                                  o.fornitore === supplier &&
                                   o.prodotti.some(p => p.prodotto_id === order.product.id)
                                 );
                                 
@@ -672,14 +659,9 @@ Sa Pizzedda`,
                                     new Date(o.data_completamento).toDateString() === new Date().toDateString();
                                   return completedToday &&
                                     o.store_id === storeId &&
+                                    o.fornitore === supplier &&
                                     o.prodotti.some(p => p.prodotto_id === order.product.id);
                                 });
-                                
-                                // Apply search filter
-                                const matchesSearch = !searchTerm || 
-                                  order.nome_prodotto.toLowerCase().includes(searchTerm.toLowerCase());
-                                
-                                if (!matchesSearch) return;
                                 
                                 if (hasPendingOrder) {
                                   prodottiInCorso.push(order);
