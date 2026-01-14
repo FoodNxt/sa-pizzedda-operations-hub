@@ -79,65 +79,55 @@ export default function ConteggioCassa() {
     setSaving(true);
     setSaveSuccess(false);
 
-    try {
-      const store = stores.find(s => s.id === selectedStore);
-      const now = new Date().toISOString();
+    const store = stores.find(s => s.id === selectedStore);
+    const now = new Date().toISOString();
 
-      await base44.entities.ConteggioCassa.create({
-        store_name: store.name,
-        store_id: store.id,
-        data_conteggio: now,
-        rilevato_da: currentUser?.nome_cognome || currentUser?.full_name || currentUser?.email || 'N/A',
-        valore_conteggio: parseFloat(valoreConteggio)
-      });
+    await base44.entities.ConteggioCassa.create({
+      store_name: store.name,
+      store_id: store.id,
+      data_conteggio: now,
+      rilevato_da: currentUser?.nome_cognome || currentUser?.full_name || currentUser?.email || 'N/A',
+      valore_conteggio: parseFloat(valoreConteggio)
+    });
 
-      setSaveSuccess(true);
+    setSaveSuccess(true);
+    
+    queryClient.invalidateQueries({ queryKey: ['conteggi-cassa'] });
+
+    // Segna attività come completata se viene da un turno
+    if (turnoId && attivitaNome && currentUser) {
+      const posizioneTurno = urlParams.get('posizione_turno');
+      const oraAttivita = urlParams.get('ora_attivita');
       
-      queryClient.invalidateQueries({ queryKey: ['conteggi-cassa'] });
-
-      // Segna attività come completata se viene da un turno
-      if (turnoId && attivitaNome) {
-        try {
-          const posizioneTurno = urlParams.get('posizione_turno');
-          const oraAttivita = urlParams.get('ora_attivita');
-          
-          const activityData = {
-            dipendente_id: currentUser.id,
-            dipendente_nome: currentUser.nome_cognome || currentUser.full_name,
-            turno_id: turnoId,
-            turno_data: new Date().toISOString().split('T')[0],
-            store_id: store.id,
-            attivita_nome: decodeURIComponent(attivitaNome),
-            form_page: 'ConteggioCassa',
-            completato_at: new Date().toISOString()
-          };
-          
-          // IMPORTANTE: posizione_turno è obbligatorio per distinguere inizio/fine turno
-          if (posizioneTurno) {
-            activityData.posizione_turno = posizioneTurno;
-          }
-          if (oraAttivita) activityData.ora_attivita = oraAttivita;
-          
-          await base44.entities.AttivitaCompletata.create(activityData);
-        } catch (error) {
-          console.error('Error marking activity as completed:', error);
-        }
+      const activityData = {
+        dipendente_id: currentUser.id,
+        dipendente_nome: currentUser.nome_cognome || currentUser.full_name,
+        turno_id: turnoId,
+        turno_data: new Date().toISOString().split('T')[0],
+        store_id: store.id,
+        attivita_nome: decodeURIComponent(attivitaNome),
+        form_page: 'ConteggioCassa',
+        completato_at: new Date().toISOString()
+      };
+      
+      if (posizioneTurno) {
+        activityData.posizione_turno = posizioneTurno;
       }
-
-      // Redirect dopo un breve delay
-      setTimeout(() => {
-        if (redirectTo) {
-          navigate(createPageUrl(redirectTo));
-        } else {
-          setSaveSuccess(false);
-          setValoreConteggio('');
-          setSelectedStore('');
-        }
-      }, 1500);
-    } catch (error) {
-      console.error('Error saving conteggio:', error);
-      alert('Errore durante il salvataggio: ' + error.message);
+      if (oraAttivita) activityData.ora_attivita = oraAttivita;
+      
+      await base44.entities.AttivitaCompletata.create(activityData);
     }
+
+    // Redirect dopo un breve delay
+    setTimeout(() => {
+      if (redirectTo) {
+        navigate(createPageUrl(redirectTo));
+      } else {
+        setSaveSuccess(false);
+        setValoreConteggio('');
+        setSelectedStore('');
+      }
+    }, 1500);
 
     setSaving(false);
   };
