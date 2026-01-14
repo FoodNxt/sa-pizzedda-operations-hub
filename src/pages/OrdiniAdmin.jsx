@@ -1340,6 +1340,20 @@ Sa Pizzedda`,
                 </div>
 
                 <div>
+                  {/* Search Bar */}
+                  <div className="mb-4">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder="Cerca prodotto..."
+                        value={searchTermModal}
+                        onChange={(e) => setSearchTermModal(e.target.value)}
+                        className="w-full neumorphic-pressed pl-10 pr-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                      />
+                    </div>
+                  </div>
+
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="font-bold text-slate-800">Prodotti Ordinati</h3>
                     <NeumorphicButton
@@ -1377,6 +1391,12 @@ Sa Pizzedda`,
                       Aggiungi Prodotti
                     </NeumorphicButton>
                   </div>
+                  
+                  {searchTermModal && editingOrder.prodotti.filter(prod => prod.nome_prodotto.toLowerCase().includes(searchTermModal.toLowerCase())).length === 0 && (
+                    <div className="text-center py-4 text-slate-500 text-sm">
+                      Nessun prodotto trovato
+                    </div>
+                  )}
                   </div>
                   <div className="space-y-2">
                     {editingOrder.prodotti
