@@ -663,10 +663,11 @@ Sa Pizzedda`,
                                     o.prodotti.some(p => p.prodotto_id === order.product.id);
                                 });
                                 
-                                if (hasPendingOrder) {
-                                  prodottiInCorso.push(order);
-                                } else if (hasArrivedToday) {
+                                // Priority: arrived today > in progress > normal
+                                if (hasArrivedToday) {
                                   prodottiArrivatiOggi.push(order);
+                                } else if (hasPendingOrder) {
+                                  prodottiInCorso.push(order);
                                 } else {
                                   prodottiNormali.push(order);
                                 }
@@ -750,47 +751,17 @@ Sa Pizzedda`,
                                         )}
                                       </button>
                                       {!isInCorsoCollapsed && (
-                                        <div className="mt-2 overflow-x-auto">
-                                          <table className="w-full min-w-[500px]">
-                                            <tbody>
-                                              {prodottiInCorso.map((order, idx) => {
-                                                const prezzoUnitario = order.product.prezzo_unitario || 0;
-                                                const ivaPerc = order.product.iva_percentuale ?? 22;
-                                                const prezzoUnitarioConIVA = prezzoUnitario * (1 + (ivaPerc / 100));
-                                                const totaleRigaConIVA = prezzoUnitarioConIVA * order.quantita_ordine;
-
-                                                return (
-                                                  <tr key={idx} className="border-b border-slate-200 bg-yellow-50">
-                                                    <td className="p-2 text-sm text-slate-700">
-                                                      {order.nome_prodotto}
-                                                      <div className="flex items-center gap-1 mt-1">
-                                                        <AlertTriangle className="w-3 h-3 text-orange-600" />
-                                                        <span className="text-xs text-orange-600 font-medium">Ordine in corso</span>
-                                                      </div>
-                                                    </td>
-                                                    <td className="p-2 text-sm text-right text-red-600 font-bold">
-                                                      {order.quantita_rilevata} {order.unita_misura}
-                                                    </td>
-                                                    <td className="p-2 text-sm text-right text-slate-500">
-                                                      {order.quantita_critica} {order.unita_misura}
-                                                    </td>
-                                                    <td className="p-2 text-sm text-right font-bold text-green-600">
-                                                      {order.quantita_ordine} {order.unita_misura}
-                                                    </td>
-                                                    <td className="p-2 text-sm text-right text-slate-500">
-                                                      {ivaPerc}%
-                                                    </td>
-                                                    <td className="p-2 text-sm text-right text-slate-600">
-                                                      {prezzoUnitario > 0 ? `€${prezzoUnitario.toFixed(2)}` : '-'}
-                                                    </td>
-                                                    <td className="p-2 text-sm text-right font-bold text-blue-600">
-                                                      {totaleRigaConIVA > 0 ? `€${totaleRigaConIVA.toFixed(2)}` : '-'}
-                                                    </td>
-                                                  </tr>
-                                                );
-                                              })}
-                                            </tbody>
-                                          </table>
+                                        <div className="mt-2 space-y-1">
+                                          {prodottiInCorso.map((order, idx) => (
+                                            <div key={idx} className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                                              <div className="flex items-center justify-between">
+                                                <span className="text-sm text-slate-700">{order.nome_prodotto}</span>
+                                                <span className="text-sm font-bold text-orange-600">
+                                                  {order.quantita_ordine} {order.unita_misura}
+                                                </span>
+                                              </div>
+                                            </div>
+                                          ))}
                                         </div>
                                       )}
                                     </div>
@@ -816,47 +787,17 @@ Sa Pizzedda`,
                                         )}
                                       </button>
                                       {!isArrivatiCollapsed && (
-                                        <div className="mt-2 overflow-x-auto">
-                                          <table className="w-full min-w-[500px]">
-                                            <tbody>
-                                              {prodottiArrivatiOggi.map((order, idx) => {
-                                                const prezzoUnitario = order.product.prezzo_unitario || 0;
-                                                const ivaPerc = order.product.iva_percentuale ?? 22;
-                                                const prezzoUnitarioConIVA = prezzoUnitario * (1 + (ivaPerc / 100));
-                                                const totaleRigaConIVA = prezzoUnitarioConIVA * order.quantita_ordine;
-
-                                                return (
-                                                  <tr key={idx} className="border-b border-slate-200 bg-green-50">
-                                                    <td className="p-2 text-sm text-slate-700">
-                                                      {order.nome_prodotto}
-                                                      <div className="flex items-center gap-1 mt-1">
-                                                        <CheckCircle className="w-3 h-3 text-green-600" />
-                                                        <span className="text-xs text-green-600 font-medium">Arrivato oggi</span>
-                                                      </div>
-                                                    </td>
-                                                    <td className="p-2 text-sm text-right text-red-600 font-bold">
-                                                      {order.quantita_rilevata} {order.unita_misura}
-                                                    </td>
-                                                    <td className="p-2 text-sm text-right text-slate-500">
-                                                      {order.quantita_critica} {order.unita_misura}
-                                                    </td>
-                                                    <td className="p-2 text-sm text-right font-bold text-green-600">
-                                                      {order.quantita_ordine} {order.unita_misura}
-                                                    </td>
-                                                    <td className="p-2 text-sm text-right text-slate-500">
-                                                      {ivaPerc}%
-                                                    </td>
-                                                    <td className="p-2 text-sm text-right text-slate-600">
-                                                      {prezzoUnitario > 0 ? `€${prezzoUnitario.toFixed(2)}` : '-'}
-                                                    </td>
-                                                    <td className="p-2 text-sm text-right font-bold text-blue-600">
-                                                      {totaleRigaConIVA > 0 ? `€${totaleRigaConIVA.toFixed(2)}` : '-'}
-                                                    </td>
-                                                  </tr>
-                                                );
-                                              })}
-                                            </tbody>
-                                          </table>
+                                        <div className="mt-2 space-y-1">
+                                          {prodottiArrivatiOggi.map((order, idx) => (
+                                            <div key={idx} className="p-3 bg-green-50 rounded-lg border border-green-200">
+                                              <div className="flex items-center justify-between">
+                                                <span className="text-sm text-slate-700">{order.nome_prodotto}</span>
+                                                <span className="text-sm font-bold text-green-600">
+                                                  {order.quantita_ordine} {order.unita_misura}
+                                                </span>
+                                              </div>
+                                            </div>
+                                          ))}
                                         </div>
                                       )}
                                     </div>
