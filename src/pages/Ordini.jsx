@@ -50,10 +50,19 @@ export default function Ordini() {
   // Filter orders by user's assigned stores
   const myOrders = useMemo(() => {
     if (!currentUser) return [];
+    
+    // Admin e manager vedono tutti gli ordini
+    if (currentUser.user_type === 'admin' || currentUser.user_type === 'manager') {
+      return ordiniInviati;
+    }
+    
+    // Dipendenti vedono ordini dei loro locali assegnati
     const assignedStores = currentUser.assigned_stores || [];
     
+    if (assignedStores.length === 0) return [];
+    
     return ordiniInviati.filter(order => 
-      assignedStores.length === 0 || assignedStores.includes(order.store_name)
+      assignedStores.includes(order.store_id)
     );
   }, [ordiniInviati, currentUser]);
 
