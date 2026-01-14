@@ -717,7 +717,9 @@ Sa Pizzedda`,
                                       const totaleCalcolato = ordine.prodotti
                                         .filter(p => p.quantita_ordinata > 0)
                                         .reduce((sum, p) => {
-                                          const prezzoConIVA = (p.prezzo_unitario || 0) * (1 + ((p.iva_percentuale ?? 22) / 100));
+                                          const currentProduct = products.find(prod => prod.id === p.prodotto_id);
+                                          const ivaCorrente = currentProduct?.iva_percentuale ?? p.iva_percentuale ?? 22;
+                                          const prezzoConIVA = (p.prezzo_unitario || 0) * (1 + (ivaCorrente / 100));
                                           return sum + (prezzoConIVA * p.quantita_ordinata);
                                         }, 0);
                                       return (
@@ -755,14 +757,17 @@ Sa Pizzedda`,
                                   </thead>
                                   <tbody>
                                     {ordine.prodotti.filter(prod => prod.quantita_ordinata > 0).map((prod, idx) => {
-                                      const prezzoUnitarioConIVA = (prod.prezzo_unitario || 0) * (1 + ((prod.iva_percentuale ?? 22) / 100));
+                                      // Get current IVA from products
+                                      const currentProduct = products.find(p => p.id === prod.prodotto_id);
+                                      const ivaCorrente = currentProduct?.iva_percentuale ?? prod.iva_percentuale ?? 22;
+                                      const prezzoUnitarioConIVA = (prod.prezzo_unitario || 0) * (1 + (ivaCorrente / 100));
                                       const totaleConIVA = prezzoUnitarioConIVA * prod.quantita_ordinata;
-                                      
+
                                       return (
                                       <tr key={idx} className="border-b border-slate-200">
                                         <td className="p-2 text-slate-700">
                                           {prod.nome_prodotto}
-                                          <span className="text-xs text-slate-400 ml-1">(IVA {prod.iva_percentuale ?? 22}%)</span>
+                                          <span className="text-xs text-slate-400 ml-1">(IVA {ivaCorrente}%)</span>
                                         </td>
                                         <td className="p-2 text-right text-slate-700">
                                           {prod.quantita_ordinata} {prod.unita_misura}
