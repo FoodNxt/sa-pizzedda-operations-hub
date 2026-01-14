@@ -183,7 +183,8 @@ export default function PulizieMatch() {
           store_name: inspection.store_name,
           ruolo: ruoloResponsabile,
           data_turno: lastShift.data,
-          ora_fine_turno: lastShift.ora_fine
+          ora_fine_turno: lastShift.ora_fine,
+          compilato_da: inspection.compiled_by_name || inspection.user_email || 'N/A'
         });
         });
       });
@@ -394,6 +395,9 @@ export default function PulizieMatch() {
                                 </p>
                                 <p className="text-xs text-[#9b9b9b]">
                                   Turno: {format(parseISO(detail.data_turno), 'dd/MM/yyyy', { locale: it })} fino alle {detail.ora_fine_turno}
+                                </p>
+                                <p className="text-xs text-[#9b9b9b]">
+                                  Rilevato da: <span className="font-medium text-slate-700">{detail.compilato_da}</span>
                                 </p>
                               </div>
                               <div className="text-right text-xs text-[#9b9b9b]">
