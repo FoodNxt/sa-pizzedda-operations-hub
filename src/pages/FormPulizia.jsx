@@ -23,7 +23,9 @@ export default function FormPulizia() {
     richiesto: true,
     attivo: true,
     prompt_ai: '',
-    richiede_foto: false
+    richiede_foto: false,
+    richiedi_foto_multipla: 'no',
+    risposta_richiede_foto: ''
   });
 
   const queryClient = useQueryClient();
@@ -79,7 +81,9 @@ export default function FormPulizia() {
       richiesto: true,
       attivo: true,
       prompt_ai: '',
-      richiede_foto: false
+      richiede_foto: false,
+      richiedi_foto_multipla: 'no',
+      risposta_richiede_foto: ''
     });
     setEditingQuestion(null);
     setShowQuestionForm(false);
@@ -99,7 +103,9 @@ export default function FormPulizia() {
       richiesto: domanda.richiesto !== false,
       attivo: domanda.attivo !== false,
       prompt_ai: domanda.prompt_ai || '',
-      richiede_foto: domanda.richiede_foto || false
+      richiede_foto: domanda.richiede_foto || false,
+      richiedi_foto_multipla: domanda.richiedi_foto_multipla || 'no',
+      risposta_richiede_foto: domanda.risposta_richiede_foto || ''
     });
     setShowQuestionForm(true);
   };
@@ -475,18 +481,45 @@ export default function FormPulizia() {
                           </p>
                         </div>
 
-                        <div className="flex items-center gap-3 neumorphic-pressed p-4 rounded-xl">
-                          <input
-                            type="checkbox"
-                            id="richiede_foto"
-                            checked={questionForm.richiede_foto || false}
-                            onChange={(e) => setQuestionForm({...questionForm, richiede_foto: e.target.checked})}
-                            className="w-5 h-5 rounded"
-                          />
-                          <label htmlFor="richiede_foto" className="text-sm font-medium text-[#6b6b6b]">
-                            Richiedi anche una foto oltre alla risposta multipla
+                        <div>
+                          <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                            Richiedi Foto
                           </label>
+                          <select
+                            value={questionForm.richiedi_foto_multipla}
+                            onChange={(e) => {
+                              const newValue = e.target.value;
+                              setQuestionForm({
+                                ...questionForm,
+                                richiedi_foto_multipla: newValue,
+                                risposta_richiede_foto: newValue === 'condizionale' ? questionForm.risposta_richiede_foto : ''
+                              });
+                            }}
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                          >
+                            <option value="no">No</option>
+                            <option value="sempre">Sempre (obbligatoria)</option>
+                            <option value="condizionale">Solo in base alla risposta</option>
+                          </select>
                         </div>
+
+                        {questionForm.richiedi_foto_multipla === 'condizionale' && (
+                          <div>
+                            <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                              Risposta che richiede foto
+                            </label>
+                            <select
+                              value={questionForm.risposta_richiede_foto}
+                              onChange={(e) => setQuestionForm({...questionForm, risposta_richiede_foto: e.target.value})}
+                              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                            >
+                              <option value="">Seleziona risposta</option>
+                              {questionForm.opzioni_risposta.filter(o => o.trim()).map((opz, idx) => (
+                                <option key={idx} value={opz}>{opz}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
                       </>
                     )}
 
