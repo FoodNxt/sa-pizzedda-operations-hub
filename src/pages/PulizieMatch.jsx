@@ -169,7 +169,7 @@ export default function PulizieMatch() {
   }, [filteredResults]);
 
   return (
-    <ProtectedPage pageName="ValutazionePulizie">
+    <ProtectedPage pageName="PulizieMatch">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">🎯 Match Pulizie</h1>

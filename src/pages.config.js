@@ -88,6 +88,7 @@ import Presenze from './pages/Presenze';
 import ProdottiVenduti from './pages/ProdottiVenduti';
 import Produttivita from './pages/Produttivita';
 import ProfiloDipendente from './pages/ProfiloDipendente';
+import PulizieMatch from './pages/PulizieMatch';
 import QuantitaMinime from './pages/QuantitaMinime';
 import RecalculateShifts from './pages/RecalculateShifts';
 import RegolamentoDipendenti from './pages/RegolamentoDipendenti';
@@ -111,7 +112,6 @@ import ValutazionePulizie from './pages/ValutazionePulizie';
 import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSetup from './pages/ZapierSetup';
-import PulizieMatch from './pages/PulizieMatch';
 import __Layout from './Layout.jsx';
 
 
@@ -206,6 +206,7 @@ export const PAGES = {
     "ProdottiVenduti": ProdottiVenduti,
     "Produttivita": Produttivita,
     "ProfiloDipendente": ProfiloDipendente,
+    "PulizieMatch": PulizieMatch,
     "QuantitaMinime": QuantitaMinime,
     "RecalculateShifts": RecalculateShifts,
     "RegolamentoDipendenti": RegolamentoDipendenti,
@@ -229,7 +230,6 @@ export const PAGES = {
     "ZapierProdottiVenduti": ZapierProdottiVenduti,
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSetup": ZapierSetup,
-    "PulizieMatch": PulizieMatch,
 }
 
 export const pagesConfig = {
