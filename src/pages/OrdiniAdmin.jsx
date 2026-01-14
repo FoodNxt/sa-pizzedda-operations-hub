@@ -1029,7 +1029,7 @@ Sa Pizzedda`,
                       <div key={idx} className={`neumorphic-pressed p-3 rounded-xl grid grid-cols-3 gap-2 items-center ${prod.isExtra ? 'border-2 border-purple-300' : ''}`}>
                         <div>
                           <p className="text-sm font-medium text-slate-800">{prod.nome_prodotto}</p>
-                          <p className="text-xs text-slate-500">IVA {prod.iva_percentuale || 22}%</p>
+                          <p className="text-xs text-slate-500">IVA {prod.iva_percentuale ?? 22}%</p>
                           {prod.isExtra && (
                             <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 mt-1 inline-block">
                               Extra
@@ -1677,7 +1677,7 @@ Sa Pizzedda`,
                       <div key={idx} className="neumorphic-pressed p-3 rounded-xl grid grid-cols-3 gap-2 items-center">
                         <div>
                           <p className="text-sm font-medium text-slate-800">{prod.nome_prodotto}</p>
-                          <p className="text-xs text-slate-500">IVA {prod.iva_percentuale || 22}%</p>
+                          <p className="text-xs text-slate-500">IVA {prod.iva_percentuale ?? 22}%</p>
                         </div>
                         <div>
                           <label className="text-xs text-slate-500">Quantità</label>
