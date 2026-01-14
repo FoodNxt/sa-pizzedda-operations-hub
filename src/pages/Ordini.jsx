@@ -154,7 +154,9 @@ export default function Ordini() {
   };
 
   const allProductsConfirmed = selectedOrder 
-    ? selectedOrder.prodotti.every(prod => confirmedProducts[prod.prodotto_id])
+    ? selectedOrder.prodotti
+        .filter(p => p.quantita_ordinata > 0)
+        .every(prod => confirmedProducts[prod.prodotto_id])
     : false;
 
   const speakProductName = async (productName) => {
