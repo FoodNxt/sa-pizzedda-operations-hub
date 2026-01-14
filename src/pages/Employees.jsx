@@ -271,7 +271,15 @@ export default function Employees() {
       const avgLateMinutes = employeeShifts.length > 0 ? totalLateMinutes / employeeShifts.length : 0;
       const numeroRitardi = employeeShifts.filter(s => s.in_ritardo === true).length;
       const percentualeRitardi = employeeShifts.length > 0 ? (numeroRitardi / employeeShifts.length) * 100 : 0;
-      const numeroTimbratureMancate = employeeShifts.filter(s => s.stato === 'programmato' && new Date(s.data) < new Date()).length;
+      // Only count missing clock-ins for past shifts (not future shifts)
+      const numeroTimbratureMancate = employeeShifts.filter(s => {
+        if (s.stato !== 'programmato') return false;
+        const shiftDate = safeParseDate(s.data);
+        if (!shiftDate) return false;
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+        return shiftDate < today;
+      }).length;
 
       const mentions = filteredReviews.filter(r => r.employee_mentioned === user.id);
       const positiveMentions = mentions.filter(r => r.rating >= 4).length;
