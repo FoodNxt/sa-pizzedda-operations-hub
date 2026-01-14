@@ -74,8 +74,14 @@ export default function PulizieMatch() {
       return storeMatch && dateMatch;
     });
 
+    console.log('Processing', filteredInspections.length, 'inspections');
+    
     filteredInspections.forEach(inspection => {
+      console.log('Inspection:', inspection.id, 'Store:', inspection.store_name, 'Domande:', inspection.domande_risposte?.length);
+      
       inspection.domande_risposte?.forEach(domanda => {
+        console.log('Domanda:', domanda.attrezzatura, 'Tipo:', domanda.tipo_controllo);
+        
         // Skip if no attrezzatura or if not a foto question
         if (!domanda.attrezzatura || domanda.tipo_controllo !== 'foto') return;
 
