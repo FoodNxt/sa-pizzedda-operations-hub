@@ -19,7 +19,8 @@ import {
   ChevronRight,
   Camera,
   Image as ImageIcon,
-  Plus
+  Plus,
+  Search
 } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
@@ -45,6 +46,9 @@ export default function OrdiniAdmin() {
   const [expandedStoresSuggeriti, setExpandedStoresSuggeriti] = useState({});
   const [expandedStoresCompletati, setExpandedStoresCompletati] = useState({});
   const [expandedFornitori, setExpandedFornitori] = useState({});
+  const [searchTerm, setSearchTerm] = useState('');
+  const [collapsedInCorso, setCollapsedInCorso] = useState({});
+  const [collapsedArrivati, setCollapsedArrivati] = useState({});
 
   const queryClient = useQueryClient();
 
@@ -187,13 +191,22 @@ export default function OrdiniAdmin() {
   const openOrderEditor = (storeName, storeId, supplierName, orders) => {
     const fornitore = getFornitoreByName(supplierName);
     
-    // Filter out products that already have a pending order
+    // Filter out products that already have a pending order OR arrived today
     const prodottiSenzaOrdineInCorso = orders.filter(order => {
       const hasPendingOrder = ordiniInviati.some(o => 
         o.store_id === storeId &&
         o.prodotti.some(p => p.prodotto_id === order.product.id)
       );
-      return !hasPendingOrder;
+      
+      const hasArrivedToday = ordiniCompletati.some(o => {
+        const completedToday = o.data_completamento && 
+          new Date(o.data_completamento).toDateString() === new Date().toDateString();
+        return completedToday &&
+          o.store_id === storeId &&
+          o.prodotti.some(p => p.prodotto_id === order.product.id);
+      });
+      
+      return !hasPendingOrder && !hasArrivedToday;
     });
 
     const prodotti = prodottiSenzaOrdineInCorso.map(order => ({
@@ -449,10 +462,28 @@ Sa Pizzedda`,
                         const isSending = sendingEmail[emailKey];
                         const wasSent = emailSent[emailKey];
                         
-                        const totaleOrdineNettoIVA = orders.reduce((sum, order) => {
+                        // Filter out products with pending orders or arrived today for totals
+                        const ordersForTotal = orders.filter(order => {
+                          const hasPendingOrder = ordiniInviati.some(o => 
+                            o.store_id === storeId &&
+                            o.prodotti.some(p => p.prodotto_id === order.product.id)
+                          );
+
+                          const hasArrivedToday = ordiniCompletati.some(o => {
+                            const completedToday = o.data_completamento && 
+                              new Date(o.data_completamento).toDateString() === new Date().toDateString();
+                            return completedToday &&
+                              o.store_id === storeId &&
+                              o.prodotti.some(p => p.prodotto_id === order.product.id);
+                          });
+
+                          return !hasPendingOrder && !hasArrivedToday;
+                        });
+
+                        const totaleOrdineNettoIVA = ordersForTotal.reduce((sum, order) => {
                           return sum + (order.product.prezzo_unitario || 0) * order.quantita_ordine;
                         }, 0);
-                        const totaleOrdineConIVA = orders.reduce((sum, order) => {
+                        const totaleOrdineConIVA = ordersForTotal.reduce((sum, order) => {
                           const prezzoUnitario = order.product.prezzo_unitario || 0;
                           const ivaPerc = order.product.iva_percentuale ?? 22;
                           const prezzoConIVA = prezzoUnitario * (1 + (ivaPerc / 100));
@@ -575,68 +606,248 @@ Sa Pizzedda`,
                               </div>
                             </div>
 
-                            <div className="overflow-x-auto">
-                              <table className="w-full min-w-[500px]">
-                                <thead>
-                                  <tr className="border-b border-slate-300">
-                                    <th className="text-left p-2 text-slate-600 font-medium text-xs">Prodotto</th>
-                                    <th className="text-right p-2 text-slate-600 font-medium text-xs">Attuale</th>
-                                    <th className="text-right p-2 text-slate-600 font-medium text-xs">Critica</th>
-                                    <th className="text-right p-2 text-slate-600 font-medium text-xs">Da Ordinare</th>
-                                    <th className="text-right p-2 text-slate-600 font-medium text-xs">IVA</th>
-                                    <th className="text-right p-2 text-slate-600 font-medium text-xs">Prezzo Unit.</th>
-                                    <th className="text-right p-2 text-slate-600 font-medium text-xs">Totale+IVA</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {orders.map((order, idx) => {
-                                   const prezzoUnitario = order.product.prezzo_unitario || 0;
-                                   const ivaPerc = order.product.iva_percentuale ?? 22;
-                                   const prezzoUnitarioConIVA = prezzoUnitario * (1 + (ivaPerc / 100));
-                                   const totaleRiga = prezzoUnitario * order.quantita_ordine;
-                                   const totaleRigaConIVA = prezzoUnitarioConIVA * order.quantita_ordine;
-
-                                   // Check if there's already an order for this product
-                                   const hasPendingOrder = ordiniInviati.some(o => 
-                                     o.store_id === storeId &&
-                                     o.prodotti.some(p => p.prodotto_id === order.product.id)
-                                   );
-
-                                   return (
-                                     <tr key={idx} className={`border-b border-slate-200 ${hasPendingOrder ? 'bg-yellow-50' : ''}`}>
-                                       <td className="p-2 text-sm text-slate-700">
-                                         {order.nome_prodotto}
-                                         {hasPendingOrder && (
-                                           <div className="flex items-center gap-1 mt-1">
-                                             <AlertTriangle className="w-3 h-3 text-orange-600" />
-                                             <span className="text-xs text-orange-600 font-medium">Ordine in corso</span>
-                                           </div>
-                                         )}
-                                       </td>
-                                       <td className="p-2 text-sm text-right text-red-600 font-bold">
-                                         {order.quantita_rilevata} {order.unita_misura}
-                                       </td>
-                                       <td className="p-2 text-sm text-right text-slate-500">
-                                         {order.quantita_critica} {order.unita_misura}
-                                       </td>
-                                       <td className="p-2 text-sm text-right font-bold text-green-600">
-                                         {order.quantita_ordine} {order.unita_misura}
-                                       </td>
-                                       <td className="p-2 text-sm text-right text-slate-500">
-                                         {ivaPerc}%
-                                       </td>
-                                       <td className="p-2 text-sm text-right text-slate-600">
-                                         {prezzoUnitario > 0 ? `€${prezzoUnitario.toFixed(2)}` : '-'}
-                                       </td>
-                                       <td className="p-2 text-sm text-right font-bold text-blue-600">
-                                         {totaleRigaConIVA > 0 ? `€${totaleRigaConIVA.toFixed(2)}` : '-'}
-                                       </td>
-                                     </tr>
-                                   );
-                                  })}
-                                </tbody>
-                              </table>
+                            {/* Search Bar */}
+                            <div className="mb-4">
+                              <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                <input
+                                  type="text"
+                                  placeholder="Cerca prodotto..."
+                                  value={searchTerm}
+                                  onChange={(e) => setSearchTerm(e.target.value)}
+                                  className="w-full neumorphic-pressed pl-10 pr-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                                />
+                              </div>
                             </div>
+
+                            {(() => {
+                              // Separate products into categories
+                              const prodottiInCorso = [];
+                              const prodottiArrivatiOggi = [];
+                              const prodottiNormali = [];
+                              
+                              orders.forEach(order => {
+                                // Check if there's already an order for this product
+                                const hasPendingOrder = ordiniInviati.some(o => 
+                                  o.store_id === storeId &&
+                                  o.prodotti.some(p => p.prodotto_id === order.product.id)
+                                );
+                                
+                                const hasArrivedToday = ordiniCompletati.some(o => {
+                                  const completedToday = o.data_completamento && 
+                                    new Date(o.data_completamento).toDateString() === new Date().toDateString();
+                                  return completedToday &&
+                                    o.store_id === storeId &&
+                                    o.prodotti.some(p => p.prodotto_id === order.product.id);
+                                });
+                                
+                                // Apply search filter
+                                const matchesSearch = !searchTerm || 
+                                  order.nome_prodotto.toLowerCase().includes(searchTerm.toLowerCase());
+                                
+                                if (!matchesSearch) return;
+                                
+                                if (hasPendingOrder) {
+                                  prodottiInCorso.push(order);
+                                } else if (hasArrivedToday) {
+                                  prodottiArrivatiOggi.push(order);
+                                } else {
+                                  prodottiNormali.push(order);
+                                }
+                              });
+                              
+                              const collapseKey = `${storeId}-${supplier}`;
+                              const isInCorsoCollapsed = collapsedInCorso[collapseKey] !== false;
+                              const isArrivatiCollapsed = collapsedArrivati[collapseKey] !== false;
+                              
+                              return (
+                                <div className="space-y-3">
+                                  {/* Prodotti da ordinare (normali) */}
+                                  {prodottiNormali.length > 0 && (
+                                    <div className="overflow-x-auto">
+                                      <table className="w-full min-w-[500px]">
+                                        <thead>
+                                          <tr className="border-b border-slate-300">
+                                            <th className="text-left p-2 text-slate-600 font-medium text-xs">Prodotto</th>
+                                            <th className="text-right p-2 text-slate-600 font-medium text-xs">Attuale</th>
+                                            <th className="text-right p-2 text-slate-600 font-medium text-xs">Critica</th>
+                                            <th className="text-right p-2 text-slate-600 font-medium text-xs">Da Ordinare</th>
+                                            <th className="text-right p-2 text-slate-600 font-medium text-xs">IVA</th>
+                                            <th className="text-right p-2 text-slate-600 font-medium text-xs">Prezzo Unit.</th>
+                                            <th className="text-right p-2 text-slate-600 font-medium text-xs">Totale+IVA</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {prodottiNormali.map((order, idx) => {
+                                            const prezzoUnitario = order.product.prezzo_unitario || 0;
+                                            const ivaPerc = order.product.iva_percentuale ?? 22;
+                                            const prezzoUnitarioConIVA = prezzoUnitario * (1 + (ivaPerc / 100));
+                                            const totaleRiga = prezzoUnitario * order.quantita_ordine;
+                                            const totaleRigaConIVA = prezzoUnitarioConIVA * order.quantita_ordine;
+
+                                            return (
+                                              <tr key={idx} className="border-b border-slate-200">
+                                                <td className="p-2 text-sm text-slate-700">{order.nome_prodotto}</td>
+                                                <td className="p-2 text-sm text-right text-red-600 font-bold">
+                                                  {order.quantita_rilevata} {order.unita_misura}
+                                                </td>
+                                                <td className="p-2 text-sm text-right text-slate-500">
+                                                  {order.quantita_critica} {order.unita_misura}
+                                                </td>
+                                                <td className="p-2 text-sm text-right font-bold text-green-600">
+                                                  {order.quantita_ordine} {order.unita_misura}
+                                                </td>
+                                                <td className="p-2 text-sm text-right text-slate-500">
+                                                  {ivaPerc}%
+                                                </td>
+                                                <td className="p-2 text-sm text-right text-slate-600">
+                                                  {prezzoUnitario > 0 ? `€${prezzoUnitario.toFixed(2)}` : '-'}
+                                                </td>
+                                                <td className="p-2 text-sm text-right font-bold text-blue-600">
+                                                  {totaleRigaConIVA > 0 ? `€${totaleRigaConIVA.toFixed(2)}` : '-'}
+                                                </td>
+                                              </tr>
+                                            );
+                                          })}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Prodotti con ordine in corso (collapsible) */}
+                                  {prodottiInCorso.length > 0 && (
+                                    <div className="mt-4">
+                                      <button
+                                        onClick={() => setCollapsedInCorso(prev => ({ ...prev, [collapseKey]: !prev[collapseKey] }))}
+                                        className="w-full flex items-center justify-between p-3 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors border border-yellow-200"
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          <AlertTriangle className="w-4 h-4 text-orange-600" />
+                                          <span className="text-sm font-medium text-orange-700">
+                                            Ordine in corso ({prodottiInCorso.length})
+                                          </span>
+                                        </div>
+                                        {isInCorsoCollapsed ? (
+                                          <ChevronRight className="w-4 h-4 text-orange-600" />
+                                        ) : (
+                                          <ChevronDown className="w-4 h-4 text-orange-600" />
+                                        )}
+                                      </button>
+                                      {!isInCorsoCollapsed && (
+                                        <div className="mt-2 overflow-x-auto">
+                                          <table className="w-full min-w-[500px]">
+                                            <tbody>
+                                              {prodottiInCorso.map((order, idx) => {
+                                                const prezzoUnitario = order.product.prezzo_unitario || 0;
+                                                const ivaPerc = order.product.iva_percentuale ?? 22;
+                                                const prezzoUnitarioConIVA = prezzoUnitario * (1 + (ivaPerc / 100));
+                                                const totaleRigaConIVA = prezzoUnitarioConIVA * order.quantita_ordine;
+
+                                                return (
+                                                  <tr key={idx} className="border-b border-slate-200 bg-yellow-50">
+                                                    <td className="p-2 text-sm text-slate-700">
+                                                      {order.nome_prodotto}
+                                                      <div className="flex items-center gap-1 mt-1">
+                                                        <AlertTriangle className="w-3 h-3 text-orange-600" />
+                                                        <span className="text-xs text-orange-600 font-medium">Ordine in corso</span>
+                                                      </div>
+                                                    </td>
+                                                    <td className="p-2 text-sm text-right text-red-600 font-bold">
+                                                      {order.quantita_rilevata} {order.unita_misura}
+                                                    </td>
+                                                    <td className="p-2 text-sm text-right text-slate-500">
+                                                      {order.quantita_critica} {order.unita_misura}
+                                                    </td>
+                                                    <td className="p-2 text-sm text-right font-bold text-green-600">
+                                                      {order.quantita_ordine} {order.unita_misura}
+                                                    </td>
+                                                    <td className="p-2 text-sm text-right text-slate-500">
+                                                      {ivaPerc}%
+                                                    </td>
+                                                    <td className="p-2 text-sm text-right text-slate-600">
+                                                      {prezzoUnitario > 0 ? `€${prezzoUnitario.toFixed(2)}` : '-'}
+                                                    </td>
+                                                    <td className="p-2 text-sm text-right font-bold text-blue-600">
+                                                      {totaleRigaConIVA > 0 ? `€${totaleRigaConIVA.toFixed(2)}` : '-'}
+                                                    </td>
+                                                  </tr>
+                                                );
+                                              })}
+                                            </tbody>
+                                          </table>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                  
+                                  {/* Prodotti arrivati oggi (collapsible) */}
+                                  {prodottiArrivatiOggi.length > 0 && (
+                                    <div className="mt-4">
+                                      <button
+                                        onClick={() => setCollapsedArrivati(prev => ({ ...prev, [collapseKey]: !prev[collapseKey] }))}
+                                        className="w-full flex items-center justify-between p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors border border-green-200"
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          <CheckCircle className="w-4 h-4 text-green-600" />
+                                          <span className="text-sm font-medium text-green-700">
+                                            Arrivato oggi ({prodottiArrivatiOggi.length})
+                                          </span>
+                                        </div>
+                                        {isArrivatiCollapsed ? (
+                                          <ChevronRight className="w-4 h-4 text-green-600" />
+                                        ) : (
+                                          <ChevronDown className="w-4 h-4 text-green-600" />
+                                        )}
+                                      </button>
+                                      {!isArrivatiCollapsed && (
+                                        <div className="mt-2 overflow-x-auto">
+                                          <table className="w-full min-w-[500px]">
+                                            <tbody>
+                                              {prodottiArrivatiOggi.map((order, idx) => {
+                                                const prezzoUnitario = order.product.prezzo_unitario || 0;
+                                                const ivaPerc = order.product.iva_percentuale ?? 22;
+                                                const prezzoUnitarioConIVA = prezzoUnitario * (1 + (ivaPerc / 100));
+                                                const totaleRigaConIVA = prezzoUnitarioConIVA * order.quantita_ordine;
+
+                                                return (
+                                                  <tr key={idx} className="border-b border-slate-200 bg-green-50">
+                                                    <td className="p-2 text-sm text-slate-700">
+                                                      {order.nome_prodotto}
+                                                      <div className="flex items-center gap-1 mt-1">
+                                                        <CheckCircle className="w-3 h-3 text-green-600" />
+                                                        <span className="text-xs text-green-600 font-medium">Arrivato oggi</span>
+                                                      </div>
+                                                    </td>
+                                                    <td className="p-2 text-sm text-right text-red-600 font-bold">
+                                                      {order.quantita_rilevata} {order.unita_misura}
+                                                    </td>
+                                                    <td className="p-2 text-sm text-right text-slate-500">
+                                                      {order.quantita_critica} {order.unita_misura}
+                                                    </td>
+                                                    <td className="p-2 text-sm text-right font-bold text-green-600">
+                                                      {order.quantita_ordine} {order.unita_misura}
+                                                    </td>
+                                                    <td className="p-2 text-sm text-right text-slate-500">
+                                                      {ivaPerc}%
+                                                    </td>
+                                                    <td className="p-2 text-sm text-right text-slate-600">
+                                                      {prezzoUnitario > 0 ? `€${prezzoUnitario.toFixed(2)}` : '-'}
+                                                    </td>
+                                                    <td className="p-2 text-sm text-right font-bold text-blue-600">
+                                                      {totaleRigaConIVA > 0 ? `€${totaleRigaConIVA.toFixed(2)}` : '-'}
+                                                    </td>
+                                                  </tr>
+                                                );
+                                              })}
+                                            </tbody>
+                                          </table>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </div>
                           );
                         })}
