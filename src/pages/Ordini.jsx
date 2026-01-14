@@ -229,8 +229,10 @@ export default function Ordini() {
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-2xl font-bold text-green-600">€{ordine.totale_ordine.toFixed(2)}</p>
-                          <p className="text-xs text-[#9b9b9b]">{ordine.prodotti.length} prodotti</p>
+                          <p className="text-sm text-[#9b9b9b] line-through">€{ordine.totale_ordine.toFixed(2)}</p>
+                          <p className="text-2xl font-bold text-green-600">€{(ordine.totale_ordine_con_iva || ordine.totale_ordine).toFixed(2)}</p>
+                          <p className="text-xs text-green-700 font-medium">IVA inclusa</p>
+                          <p className="text-xs text-[#9b9b9b] mt-1">{ordine.prodotti.length} prodotti</p>
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-2 mt-3">
@@ -271,8 +273,10 @@ export default function Ordini() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xl font-bold text-green-600">€{ordine.totale_ordine.toFixed(2)}</p>
-                      <p className="text-xs text-[#9b9b9b]">{ordine.prodotti.length} prodotti</p>
+                      <p className="text-sm text-[#9b9b9b] line-through">€{ordine.totale_ordine.toFixed(2)}</p>
+                      <p className="text-xl font-bold text-green-600">€{(ordine.totale_ordine_con_iva || ordine.totale_ordine).toFixed(2)}</p>
+                      <p className="text-xs text-green-700 font-medium">IVA inclusa</p>
+                      <p className="text-xs text-[#9b9b9b] mt-1">{ordine.prodotti.length} prodotti</p>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-1 mt-2">

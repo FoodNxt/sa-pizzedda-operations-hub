@@ -713,8 +713,10 @@ Sa Pizzedda`,
                                 </div>
                                 <div className="flex items-center gap-3">
                                   <div className="text-right">
-                                    <p className="text-xl font-bold text-blue-600">€{ordine.totale_ordine.toFixed(2)}</p>
-                                    <p className="text-xs text-slate-500">{ordine.prodotti.filter(p => p.quantita_ordinata > 0).length} prodotti</p>
+                                    <p className="text-sm text-slate-500 line-through">€{ordine.totale_ordine.toFixed(2)}</p>
+                                    <p className="text-xl font-bold text-blue-600">€{(ordine.totale_ordine_con_iva || ordine.totale_ordine).toFixed(2)}</p>
+                                    <p className="text-xs text-green-700 font-medium">IVA inclusa</p>
+                                    <p className="text-xs text-slate-500 mt-1">{ordine.prodotti.filter(p => p.quantita_ordinata > 0).length} prodotti</p>
                                   </div>
                                   <button
                                     onClick={(e) => {
@@ -735,21 +737,33 @@ Sa Pizzedda`,
                                     <tr className="border-b border-slate-300">
                                       <th className="text-left p-2 text-slate-600 font-medium text-xs">Prodotto</th>
                                       <th className="text-right p-2 text-slate-600 font-medium text-xs">Quantità</th>
-                                      <th className="text-right p-2 text-slate-600 font-medium text-xs">Prezzo</th>
+                                      <th className="text-right p-2 text-slate-600 font-medium text-xs">Prezzo Unit.</th>
+                                      <th className="text-right p-2 text-slate-600 font-medium text-xs">Totale</th>
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {ordine.prodotti.filter(prod => prod.quantita_ordinata > 0).map((prod, idx) => (
+                                    {ordine.prodotti.filter(prod => prod.quantita_ordinata > 0).map((prod, idx) => {
+                                      const prezzoUnitarioConIVA = (prod.prezzo_unitario || 0) * (1 + ((prod.iva_percentuale || 22) / 100));
+                                      const totaleConIVA = prezzoUnitarioConIVA * prod.quantita_ordinata;
+                                      
+                                      return (
                                       <tr key={idx} className="border-b border-slate-200">
-                                        <td className="p-2 text-slate-700">{prod.nome_prodotto}</td>
+                                        <td className="p-2 text-slate-700">
+                                          {prod.nome_prodotto}
+                                          <span className="text-xs text-slate-400 ml-1">(IVA {prod.iva_percentuale || 22}%)</span>
+                                        </td>
                                         <td className="p-2 text-right text-slate-700">
                                           {prod.quantita_ordinata} {prod.unita_misura}
                                         </td>
                                         <td className="p-2 text-right text-slate-600">
-                                          €{(prod.prezzo_unitario * prod.quantita_ordinata).toFixed(2)}
+                                          €{prezzoUnitarioConIVA.toFixed(2)}
+                                        </td>
+                                        <td className="p-2 text-right font-bold text-blue-600">
+                                          €{totaleConIVA.toFixed(2)}
                                         </td>
                                       </tr>
-                                    ))}
+                                    );
+                                    })}
                                   </tbody>
                                 </table>
                               </div>
