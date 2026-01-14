@@ -171,83 +171,89 @@ export default function ControlloPuliziaPizzaiolo() {
     setUploading(true);
     setUploadProgress('Caricamento foto in corso...');
 
-    const uploadedUrls = {};
-    const fotoDomande = domande.filter(d => d.tipo_controllo === 'foto');
-    for (const domanda of fotoDomande) {
-      const file = photos[domanda.id];
-      if (file) {
-        setUploadProgress(`Caricamento ${domanda.attrezzatura}...`);
-        const { file_url } = await base44.integrations.Core.UploadFile({ file });
-        uploadedUrls[domanda.id] = file_url;
+    try {
+      const uploadedUrls = {};
+      const fotoDomande = domande.filter(d => d.tipo_controllo === 'foto');
+      for (const domanda of fotoDomande) {
+        const file = photos[domanda.id];
+        if (file) {
+          setUploadProgress(`Caricamento ${domanda.attrezzatura}...`);
+          const { file_url } = await base44.integrations.Core.UploadFile({ file });
+          uploadedUrls[domanda.id] = file_url;
+        }
       }
-    }
 
-    setUploadProgress('Creazione ispezione...');
+      setUploadProgress('Creazione ispezione...');
 
-    const store = stores.find(s => s.id === selectedStore);
-    const inspectionData = {
-      store_name: store.name,
-      store_id: store.id,
-      inspection_date: undefined,
-      inspector_name: currentUser.nome_cognome || currentUser.full_name || currentUser.email,
-      inspector_role: 'Pizzaiolo',
-      analysis_status: 'processing',
-      inspection_type: 'pizzaiolo',
-      domande_risposte: domande.map(d => ({
-        domanda_id: d.id,
-        domanda_testo: d.domanda_testo || (d.tipo_controllo === 'foto' ? `Foto: ${d.attrezzatura}` : d.testo_domanda),
-        tipo_controllo: d.tipo_controllo,
-        tipo_controllo_ai: d.tipo_controllo_ai,
-        risposta: d.tipo_controllo === 'foto' ? (uploadedUrls[d.id] || null) : (risposte[d.id] || null),
-        attrezzatura: d.attrezzatura,
-        prompt_ai: d.prompt_ai
-      })).filter(d => {
-        // Include all questions that have a response
-        if (d.tipo_controllo === 'foto') return !!d.risposta;
-        return true; // Keep all multiple choice questions
-      })
-    };
-
-    const equipmentPhotos = {};
-    fotoDomande.forEach(d => {
-      if (uploadedUrls[d.id]) {
-        const key = d.attrezzatura.toLowerCase().replace(/\s+/g, '_');
-        inspectionData[`${key}_foto_url`] = uploadedUrls[d.id];
-        equipmentPhotos[key] = uploadedUrls[d.id];
-      }
-    });
-
-    const inspection = await base44.entities.CleaningInspection.create(inspectionData);
-
-    setUploadProgress('Avvio analisi AI in background...');
-
-    base44.functions.invoke('analyzeCleaningInspection', {
-      inspection_id: inspection.id,
-      domande_risposte: inspectionData.domande_risposte
-    }).catch(error => {
-      console.error('Error starting AI analysis:', error);
-    });
-
-    // Segna attività come completata se viene da un turno
-    if (turnoId && attivitaNome && currentUser) {
-      const posizioneTurno = urlParams.get('posizione_turno');
-      const oraAttivita = urlParams.get('ora_attivita');
-      
-      await base44.entities.AttivitaCompletata.create({
-        dipendente_id: currentUser.id,
-        dipendente_nome: currentUser.nome_cognome || currentUser.full_name,
-        turno_id: turnoId,
-        turno_data: new Date().toISOString().split('T')[0],
+      const store = stores.find(s => s.id === selectedStore);
+      const inspectionData = {
+        store_name: store.name,
         store_id: store.id,
-        attivita_nome: decodeURIComponent(attivitaNome),
-        form_page: 'ControlloPuliziaPizzaiolo',
-        completato_at: new Date().toISOString(),
-        posizione_turno: posizioneTurno || undefined,
-        ora_attivita: oraAttivita || undefined
-      });
-    }
+        inspection_date: undefined,
+        inspector_name: currentUser.nome_cognome || currentUser.full_name || currentUser.email,
+        inspector_role: 'Pizzaiolo',
+        analysis_status: 'processing',
+        inspection_type: 'pizzaiolo',
+        domande_risposte: domande.map(d => ({
+          domanda_id: d.id,
+          domanda_testo: d.domanda_testo || (d.tipo_controllo === 'foto' ? `Foto: ${d.attrezzatura}` : d.testo_domanda),
+          tipo_controllo: d.tipo_controllo,
+          tipo_controllo_ai: d.tipo_controllo_ai,
+          risposta: d.tipo_controllo === 'foto' ? (uploadedUrls[d.id] || null) : (risposte[d.id] || null),
+          attrezzatura: d.attrezzatura,
+          prompt_ai: d.prompt_ai
+        })).filter(d => {
+          // Include all questions that have a response
+          if (d.tipo_controllo === 'foto') return !!d.risposta;
+          return true; // Keep all multiple choice questions
+        })
+      };
 
-    navigate(createPageUrl(redirectTo || 'TurniDipendente'));
+      const equipmentPhotos = {};
+      fotoDomande.forEach(d => {
+        if (uploadedUrls[d.id]) {
+          const key = d.attrezzatura.toLowerCase().replace(/\s+/g, '_');
+          inspectionData[`${key}_foto_url`] = uploadedUrls[d.id];
+          equipmentPhotos[key] = uploadedUrls[d.id];
+        }
+      });
+
+      const inspection = await base44.entities.CleaningInspection.create(inspectionData);
+
+      setUploadProgress('Avvio analisi AI in background...');
+
+      base44.functions.invoke('analyzeCleaningInspection', {
+        inspection_id: inspection.id,
+        domande_risposte: inspectionData.domande_risposte
+      }).catch(error => {
+        console.error('Error starting AI analysis:', error);
+      });
+
+      // Segna attività come completata se viene da un turno
+      if (turnoId && attivitaNome && currentUser) {
+        const posizioneTurno = urlParams.get('posizione_turno');
+        const oraAttivita = urlParams.get('ora_attivita');
+        
+        await base44.entities.AttivitaCompletata.create({
+          dipendente_id: currentUser.id,
+          dipendente_nome: currentUser.nome_cognome || currentUser.full_name,
+          turno_id: turnoId,
+          turno_data: new Date().toISOString().split('T')[0],
+          store_id: store.id,
+          attivita_nome: decodeURIComponent(attivitaNome),
+          form_page: 'ControlloPuliziaPizzaiolo',
+          completato_at: new Date().toISOString(),
+          posizione_turno: posizioneTurno || undefined,
+          ora_attivita: oraAttivita || undefined
+        });
+      }
+
+      navigate(createPageUrl(redirectTo || 'TurniDipendente'));
+    } catch (error) {
+      console.error('Errore durante il salvataggio:', error);
+      setError(`Errore: ${error.message}`);
+      setUploading(false);
+    }
   };
 
   const canSubmit = () => {
