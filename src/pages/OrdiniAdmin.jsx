@@ -203,7 +203,7 @@ export default function OrdiniAdmin() {
       quantita_ricevuta: 0,
       unita_misura: order.unita_misura,
       prezzo_unitario: order.product.prezzo_unitario || 0,
-      iva_percentuale: order.product.iva_percentuale || 22
+      iva_percentuale: order.product.iva_percentuale ?? 22
     }));
 
     const totaleOrdineNettoIVA = prodotti.reduce((sum, p) => sum + (p.prezzo_unitario * p.quantita_ordinata), 0);
@@ -262,7 +262,7 @@ export default function OrdiniAdmin() {
       quantita_ordinata: order.quantita_ordine,
       unita_misura: order.unita_misura,
       prezzo_unitario: order.product.prezzo_unitario || 0,
-      iva_percentuale: order.product.iva_percentuale || 22
+      iva_percentuale: order.product.iva_percentuale ?? 22
     }));
 
     const productList = prodotti.map(p => 
@@ -309,7 +309,7 @@ Sa Pizzedda`,
       // Salva ordine come inviato
       const totaleOrdineNettoIVA = emailTemplate.prodotti.reduce((sum, p) => sum + (p.prezzo_unitario * p.quantita_ordinata), 0);
       const totaleOrdineConIVA = emailTemplate.prodotti.reduce((sum, p) => {
-        const prezzoConIVA = p.prezzo_unitario * (1 + ((p.iva_percentuale || 22) / 100));
+        const prezzoConIVA = p.prezzo_unitario * (1 + ((p.iva_percentuale ?? 22) / 100));
         return sum + (prezzoConIVA * p.quantita_ordinata);
       }, 0);
       
@@ -454,7 +454,7 @@ Sa Pizzedda`,
                         }, 0);
                         const totaleOrdineConIVA = orders.reduce((sum, order) => {
                           const prezzoUnitario = order.product.prezzo_unitario || 0;
-                          const ivaPerc = order.product.iva_percentuale || 22;
+                          const ivaPerc = order.product.iva_percentuale ?? 22;
                           const prezzoConIVA = prezzoUnitario * (1 + (ivaPerc / 100));
                           return sum + (prezzoConIVA * order.quantita_ordine);
                         }, 0);
@@ -591,7 +591,7 @@ Sa Pizzedda`,
                                 <tbody>
                                   {orders.map((order, idx) => {
                                    const prezzoUnitario = order.product.prezzo_unitario || 0;
-                                   const ivaPerc = order.product.iva_percentuale || 22;
+                                   const ivaPerc = order.product.iva_percentuale ?? 22;
                                    const prezzoUnitarioConIVA = prezzoUnitario * (1 + (ivaPerc / 100));
                                    const totaleRiga = prezzoUnitario * order.quantita_ordine;
                                    const totaleRigaConIVA = prezzoUnitarioConIVA * order.quantita_ordine;
@@ -743,14 +743,14 @@ Sa Pizzedda`,
                                   </thead>
                                   <tbody>
                                     {ordine.prodotti.filter(prod => prod.quantita_ordinata > 0).map((prod, idx) => {
-                                      const prezzoUnitarioConIVA = (prod.prezzo_unitario || 0) * (1 + ((prod.iva_percentuale || 22) / 100));
+                                      const prezzoUnitarioConIVA = (prod.prezzo_unitario || 0) * (1 + ((prod.iva_percentuale ?? 22) / 100));
                                       const totaleConIVA = prezzoUnitarioConIVA * prod.quantita_ordinata;
                                       
                                       return (
                                       <tr key={idx} className="border-b border-slate-200">
                                         <td className="p-2 text-slate-700">
                                           {prod.nome_prodotto}
-                                          <span className="text-xs text-slate-400 ml-1">(IVA {prod.iva_percentuale || 22}%)</span>
+                                          <span className="text-xs text-slate-400 ml-1">(IVA {prod.iva_percentuale ?? 22}%)</span>
                                         </td>
                                         <td className="p-2 text-right text-slate-700">
                                           {prod.quantita_ordinata} {prod.unita_misura}
@@ -1007,7 +1007,7 @@ Sa Pizzedda`,
                           quantita_ricevuta: 0,
                           unita_misura: p.unita_misura,
                           prezzo_unitario: p.prezzo_unitario || 0,
-                          iva_percentuale: p.iva_percentuale || 22,
+                          iva_percentuale: p.iva_percentuale ?? 22,
                           isExtra: true
                         }));
 
@@ -1024,7 +1024,7 @@ Sa Pizzedda`,
                   </div>
                   <div className="space-y-2">
                     {editingOrder.prodotti.map((prod, idx) => {
-                      const prezzoConIVA = prod.prezzo_unitario * (1 + ((prod.iva_percentuale || 22) / 100));
+                      const prezzoConIVA = prod.prezzo_unitario * (1 + ((prod.iva_percentuale ?? 22) / 100));
                       return (
                       <div key={idx} className={`neumorphic-pressed p-3 rounded-xl grid grid-cols-3 gap-2 items-center ${prod.isExtra ? 'border-2 border-purple-300' : ''}`}>
                         <div>
@@ -1046,7 +1046,7 @@ Sa Pizzedda`,
                               newProdotti[idx].quantita_ordinata = parseFloat(e.target.value) || 0;
                               const newTotaleNetto = newProdotti.reduce((sum, p) => sum + (p.prezzo_unitario * p.quantita_ordinata), 0);
                               const newTotaleConIVA = newProdotti.reduce((sum, p) => {
-                                const pIVA = p.prezzo_unitario * (1 + ((p.iva_percentuale || 22) / 100));
+                                const pIVA = p.prezzo_unitario * (1 + ((p.iva_percentuale ?? 22) / 100));
                                 return sum + (pIVA * p.quantita_ordinata);
                               }, 0);
                               setEditingOrder({ ...editingOrder, prodotti: newProdotti, totale_ordine: newTotaleNetto, totale_ordine_con_iva: newTotaleConIVA });
@@ -1672,7 +1672,7 @@ Sa Pizzedda`,
                   <h3 className="text-sm font-bold text-slate-700 mb-3">Prodotti da Ordinare</h3>
                   <div className="space-y-2">
                     {emailTemplate.prodotti.map((prod, idx) => {
-                      const prezzoConIVA = prod.prezzo_unitario * (1 + ((prod.iva_percentuale || 22) / 100));
+                      const prezzoConIVA = prod.prezzo_unitario * (1 + ((prod.iva_percentuale ?? 22) / 100));
                       return (
                       <div key={idx} className="neumorphic-pressed p-3 rounded-xl grid grid-cols-3 gap-2 items-center">
                         <div>
@@ -1725,7 +1725,7 @@ Sa Pizzedda`,
                     </p>
                     <p className="text-sm font-bold text-blue-700">
                       Totale con IVA: €{emailTemplate.prodotti.reduce((sum, p) => {
-                        const prezzoConIVA = p.prezzo_unitario * (1 + ((p.iva_percentuale || 22) / 100));
+                      const prezzoConIVA = p.prezzo_unitario * (1 + ((p.iva_percentuale ?? 22) / 100));
                         return sum + (prezzoConIVA * p.quantita_ordinata);
                       }, 0).toFixed(2)}
                     </p>
