@@ -231,12 +231,13 @@ export default function Ordini() {
                         <div className="text-right">
                           {(() => {
                             const totaleCalcolato = ordine.prodotti.reduce((sum, p) => {
-                              const prezzoConIVA = (p.prezzo_unitario || 0) * (1 + ((p.iva_percentuale ?? 22) / 100));
+                              const currentProduct = materiePrime.find(prod => prod.id === p.prodotto_id);
+                              const ivaCorrente = currentProduct?.iva_percentuale ?? p.iva_percentuale ?? 22;
+                              const prezzoConIVA = (p.prezzo_unitario || 0) * (1 + (ivaCorrente / 100));
                               return sum + (prezzoConIVA * p.quantita_ordinata);
                             }, 0);
                             return (
                               <>
-                                <p className="text-sm text-[#9b9b9b] line-through">€{ordine.totale_ordine.toFixed(2)}</p>
                                 <p className="text-2xl font-bold text-green-600">€{totaleCalcolato.toFixed(2)}</p>
                                 <p className="text-xs text-green-700 font-medium">IVA inclusa</p>
                                 <p className="text-xs text-[#9b9b9b] mt-1">{ordine.prodotti.length} prodotti</p>
@@ -285,12 +286,13 @@ export default function Ordini() {
                     <div className="text-right">
                       {(() => {
                         const totaleCalcolato = ordine.prodotti.reduce((sum, p) => {
-                          const prezzoConIVA = (p.prezzo_unitario || 0) * (1 + ((p.iva_percentuale ?? 22) / 100));
+                          const currentProduct = materiePrime.find(prod => prod.id === p.prodotto_id);
+                          const ivaCorrente = currentProduct?.iva_percentuale ?? p.iva_percentuale ?? 22;
+                          const prezzoConIVA = (p.prezzo_unitario || 0) * (1 + (ivaCorrente / 100));
                           return sum + (prezzoConIVA * p.quantita_ordinata);
                         }, 0);
                         return (
                           <>
-                            <p className="text-sm text-[#9b9b9b] line-through">€{ordine.totale_ordine.toFixed(2)}</p>
                             <p className="text-xl font-bold text-green-600">€{totaleCalcolato.toFixed(2)}</p>
                             <p className="text-xs text-green-700 font-medium">IVA inclusa</p>
                             <p className="text-xs text-[#9b9b9b] mt-1">{ordine.prodotti.length} prodotti</p>
