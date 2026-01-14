@@ -360,7 +360,7 @@ export default function Ordini() {
               </div>
 
               <div className="space-y-3 mb-6">
-                {selectedOrder.prodotti.map((prod) => {
+                {selectedOrder.prodotti.filter(p => p.quantita_ordinata > 0).map((prod) => {
                   const receivedQty = receivedQuantities[prod.prodotto_id] || 0;
                   const isMatch = receivedQty === prod.quantita_ordinata;
                   const isConfirmed = confirmedProducts[prod.prodotto_id];
