@@ -244,18 +244,21 @@ export default function StoricoCassa() {
       const primoConteggio = conteggiGiorno[0];
       const ultimoConteggio = conteggiGiorno[conteggiGiorno.length - 1];
 
-      // Get cash payments for this store on this date - somma TUTTI i record per questo store/data
-      const pagamentiContanti = iPraticoData
-        .filter(i => {
-          const storeMatch = i.store_id === store.id;
-          const dateMatch = i.order_date === verificaDate;
-          return storeMatch && dateMatch;
-        })
-        .reduce((sum, i) => {
-          const cashAmount = parseFloat(i.moneyType_cash) || 0;
-          console.log(`iPratico record - Store: ${i.store_name}, Date: ${i.order_date}, Cash: ${cashAmount}`);
-          return sum + cashAmount;
-        }, 0);
+      // Get cash payments for this store on this date
+      const recordsIPratico = iPraticoData.filter(i => {
+        const storeMatch = i.store_id === store.id;
+        const dateMatch = i.order_date === verificaDate;
+        console.log(`Checking iPratico - Store: ${i.store_name} (${i.store_id}) vs ${store.name} (${store.id}), Date: ${i.order_date} vs ${verificaDate}, Match: ${storeMatch && dateMatch}`);
+        return storeMatch && dateMatch;
+      });
+      
+      console.log(`Found ${recordsIPratico.length} iPratico records for ${store.name} on ${verificaDate}`);
+      
+      const pagamentiContanti = recordsIPratico.reduce((sum, i) => {
+        const cashAmount = parseFloat(i.moneyType_cash) || 0;
+        console.log(`iPratico cash: ${cashAmount} from record ${i.id}`);
+        return sum + cashAmount;
+      }, 0);
       
       console.log(`Total cash for ${store.name} on ${verificaDate}: €${pagamentiContanti}`);
 
