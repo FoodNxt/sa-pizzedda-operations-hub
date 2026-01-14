@@ -95,7 +95,7 @@ export default function ProtectedPage({ children, pageName, requiredUserTypes = 
 
         // Common forms and core pages that should always be accessible to dipendenti (without needing explicit config)
         const commonForms = ['FormInventario', 'FormCantina', 'Impasto', 'Preparazioni', 'Precotture', 'ControlloPuliziaCassiere', 'ControlloPuliziaPizzaiolo', 'ControlloPuliziaStoreManager', 'ConteggioCassa', 'FormPreparazioni', 'FormDeposito', 'FormPrelievi', 'FormTeglieButtate', 'FormSprechi'];
-        const corePages = ['TurniDipendente', 'ProfiloDipendente'];
+        const corePages = ['TurniDipendente', 'ProfiloDipendente', 'Academy', 'ContrattiDipendente'];
 
         const hasAccess = allowedPages.includes(pageName) || (normalizedUserType === 'dipendente' && (commonForms.includes(pageName) || corePages.includes(pageName)));
 
