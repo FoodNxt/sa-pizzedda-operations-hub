@@ -66,6 +66,27 @@ export default function Ordini() {
     );
   }, [ordiniInviati, currentUser]);
 
+  // Group orders by store (for dipendente view)
+  const ordiniPerStore = useMemo(() => {
+    if (!currentUser || currentUser.user_type === 'admin' || currentUser.user_type === 'manager') {
+      return null;
+    }
+
+    const grouped = {};
+    myOrders.forEach(ordine => {
+      if (!grouped[ordine.store_id]) {
+        grouped[ordine.store_id] = {
+          store_id: ordine.store_id,
+          store_name: ordine.store_name,
+          ordini: []
+        };
+      }
+      grouped[ordine.store_id].ordini.push(ordine);
+    });
+
+    return Object.values(grouped).sort((a, b) => a.store_name.localeCompare(b.store_name));
+  }, [myOrders, currentUser]);
+
   const openOrderDetail = (order) => {
     setSelectedOrder(order);
     const initialQuantities = {};
@@ -178,7 +199,59 @@ export default function Ordini() {
             <h3 className="text-xl font-bold text-[#6b6b6b] mb-2">Nessun ordine in attesa</h3>
             <p className="text-[#9b9b9b]">Non ci sono ordini da gestire per i tuoi locali</p>
           </NeumorphicCard>
+        ) : ordiniPerStore ? (
+          /* Vista dipendente - raggruppata per store */
+          <div className="space-y-6">
+            {ordiniPerStore.map(storeGroup => (
+              <NeumorphicCard key={storeGroup.store_id} className="p-6">
+                <div className="flex items-center gap-3 mb-4 pb-3 border-b-2 border-blue-200">
+                  <div className="neumorphic-flat w-12 h-12 rounded-xl flex items-center justify-center">
+                    <Package className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-[#6b6b6b]">{storeGroup.store_name}</h2>
+                    <p className="text-sm text-[#9b9b9b]">{storeGroup.ordini.length} ordini in attesa</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {storeGroup.ordini.map(ordine => (
+                    <div 
+                      key={ordine.id}
+                      onClick={() => openOrderDetail(ordine)}
+                      className="neumorphic-pressed p-5 rounded-xl cursor-pointer hover:shadow-xl transition-all"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h3 className="text-2xl font-bold text-blue-600 mb-1">{ordine.fornitore}</h3>
+                          <p className="text-xs text-[#9b9b9b]">
+                            Inviato: {format(parseISO(ordine.data_invio), 'dd/MM/yyyy HH:mm', { locale: it })}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-green-600">€{ordine.totale_ordine.toFixed(2)}</p>
+                          <p className="text-xs text-[#9b9b9b]">{ordine.prodotti.length} prodotti</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {ordine.prodotti.slice(0, 4).map((prod, idx) => (
+                          <span key={idx} className="px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-100 text-blue-700">
+                            {prod.nome_prodotto}
+                          </span>
+                        ))}
+                        {ordine.prodotti.length > 4 && (
+                          <span className="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-100 text-slate-600">
+                            +{ordine.prodotti.length - 4} altri
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </NeumorphicCard>
+            ))}
+          </div>
         ) : (
+          /* Vista admin/manager - lista semplice */
           <NeumorphicCard className="p-6">
             <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">Ordini da Ricevere</h2>
             <div className="space-y-3">
@@ -191,7 +264,7 @@ export default function Ordini() {
                   <div className="flex items-start justify-between mb-2">
                     <div>
                       <h3 className="font-bold text-[#6b6b6b]">{ordine.store_name}</h3>
-                      <p className="text-sm text-[#9b9b9b]">{ordine.fornitore}</p>
+                      <p className="text-lg font-bold text-blue-600">{ordine.fornitore}</p>
                       <p className="text-xs text-[#9b9b9b]">
                         Inviato: {format(parseISO(ordine.data_invio), 'dd/MM/yyyy HH:mm', { locale: it })}
                       </p>
