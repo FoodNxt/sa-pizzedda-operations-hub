@@ -451,11 +451,11 @@ export default function PrecottureAdmin() {
     return [0, Math.ceil(maxValue * 1.1)];
   }, [teglieChartData]);
 
-  // Media ultimi 30 giorni per giorno della settimana (per store selezionato in configurazione)
-  const mediaUltimi30Giorni = useMemo(() => {
+  // Media ultimi giorni per giorno della settimana (per store selezionato in configurazione)
+  const calcMediaUltimiGiorni = (numGiorni) => {
     if (!selectedStore) return {};
     
-    const thirtyDaysAgo = moment().subtract(30, 'days').format('YYYY-MM-DD');
+    const daysAgo = moment().subtract(numGiorni, 'days').format('YYYY-MM-DD');
     const today = moment().format('YYYY-MM-DD');
     
     const dayMapping = {
@@ -470,7 +470,7 @@ export default function PrecottureAdmin() {
     
     const filtered = prodottiVenduti.filter(p => {
       if (p.store_id !== selectedStore) return false;
-      if (p.data_vendita < thirtyDaysAgo || p.data_vendita > today) return false;
+      if (p.data_vendita < daysAgo || p.data_vendita > today) return false;
       if (!teglieConfig.categorie.includes(p.category)) return false;
       return true;
     });
@@ -504,7 +504,11 @@ export default function PrecottureAdmin() {
     });
 
     return result;
-  }, [prodottiVenduti, selectedStore, teglieConfig]);
+  };
+
+  const mediaUltimi30Giorni = useMemo(() => calcMediaUltimiGiorni(30), [prodottiVenduti, selectedStore, teglieConfig]);
+  const mediaUltimi60Giorni = useMemo(() => calcMediaUltimiGiorni(60), [prodottiVenduti, selectedStore, teglieConfig]);
+  const mediaUltimi90Giorni = useMemo(() => calcMediaUltimiGiorni(90), [prodottiVenduti, selectedStore, teglieConfig]);
 
   return (
     <ProtectedPage pageName="PrecottureAdmin" requiredUserTypes={['admin']}>
@@ -655,7 +659,9 @@ export default function PrecottureAdmin() {
                   <thead>
                     <tr className="border-b-2 border-slate-200">
                       <th className="text-left py-3 px-2 font-semibold text-slate-700">Giorno</th>
-                      <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-blue-50">Media<br/>Ultimi 30gg</th>
+                      <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-blue-50">Media<br/>30gg</th>
+                      <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-indigo-50">Media<br/>60gg</th>
+                      <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-cyan-50">Media<br/>90gg</th>
                       <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-red-50">Pranzo<br/>Rosse</th>
                       <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-red-50">Pomeriggio<br/>Rosse</th>
                       <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-red-50">Cena<br/>Rosse</th>
@@ -669,7 +675,10 @@ export default function PrecottureAdmin() {
                     {giorni.map((giorno, idx) => {
                       const data = getDataForDay(giorno);
                       const isEditing = editingRow === giorno;
-                      const mediaGiorno = parseFloat(mediaUltimi30Giorni[giorno]) || 0;
+                      const mediaGiorno30 = parseFloat(mediaUltimi30Giorni[giorno]) || 0;
+                      const mediaGiorno60 = parseFloat(mediaUltimi60Giorni[giorno]) || 0;
+                      const mediaGiorno90 = parseFloat(mediaUltimi90Giorni[giorno]) || 0;
+                      const mediaGiorno = mediaGiorno30;
                       
                       let totaleGiorno;
                       if (isEditing) {
@@ -696,7 +705,13 @@ export default function PrecottureAdmin() {
                             </div>
                           </td>
                           <td className="text-center py-2 px-2 font-medium text-blue-700 bg-blue-50">
-                            {mediaGiorno > 0 ? mediaGiorno.toFixed(1) : '-'}
+                            {mediaGiorno30 > 0 ? mediaGiorno30.toFixed(1) : '-'}
+                          </td>
+                          <td className="text-center py-2 px-2 font-medium text-indigo-700 bg-indigo-50">
+                            {mediaGiorno60 > 0 ? mediaGiorno60.toFixed(1) : '-'}
+                          </td>
+                          <td className="text-center py-2 px-2 font-medium text-cyan-700 bg-cyan-50">
+                            {mediaGiorno90 > 0 ? mediaGiorno90.toFixed(1) : '-'}
                           </td>
                           {isEditing ? (
                             <>
