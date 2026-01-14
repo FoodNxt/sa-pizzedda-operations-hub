@@ -5,8 +5,39 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Camera, Upload, CheckCircle, AlertCircle, Loader2, ClipboardCheck } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
-import CameraCapture from "../components/camera/CameraCapture";
 import VoiceButton from "../components/VoiceButton";
+
+// Usa file picker nativo al posto di CameraCapture per maggiore compatibilità
+const SimpleCameraCapture = ({ onCapture, onClose }) => {
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      onCapture(file);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[200] p-4">
+      <NeumorphicCard className="p-6 max-w-md w-full">
+        <h3 className="text-xl font-bold text-[#6b6b6b] mb-4">Scatta o Carica Foto</h3>
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleFileChange}
+          className="w-full mb-4"
+          autoFocus
+        />
+        <button
+          onClick={onClose}
+          className="w-full neumorphic-flat px-6 py-3 rounded-xl text-[#6b6b6b]"
+        >
+          Annulla
+        </button>
+      </NeumorphicCard>
+    </div>
+  );
+};
 
 export default function ControlloPuliziaCassiere() {
   const navigate = useNavigate();
@@ -522,7 +553,7 @@ export default function ControlloPuliziaCassiere() {
 
       {/* Camera Modal */}
       {activeCamera && (
-        <CameraCapture
+        <SimpleCameraCapture
           onCapture={(file) => handlePhotoCapture(activeCamera, file)}
           onClose={() => setActiveCamera(null)}
         />
