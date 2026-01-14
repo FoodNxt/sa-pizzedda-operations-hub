@@ -75,17 +75,38 @@ export default function PulizieMatch() {
     });
 
     filteredInspections.forEach(inspection => {
-      inspection.domande?.forEach(domanda => {
-        // Skip if no attrezzatura
-        if (!domanda.attrezzatura) return;
+      inspection.domande_risposte?.forEach(domanda => {
+        // Skip if no attrezzatura or if not a foto question
+        if (!domanda.attrezzatura || domanda.tipo_controllo !== 'foto') return;
 
         // Find attrezzatura
         const attrezzatura = attrezzature.find(a => a.nome === domanda.attrezzatura);
         if (!attrezzatura || !attrezzatura.ruoli_responsabili || attrezzatura.ruoli_responsabili.length === 0) return;
 
+        // Get the status from inspection fields
+        const normalizeAttrezzatura = (name) => {
+          const map = {
+            'Forno': 'forno',
+            'Impastatrice': 'impastatrice',
+            'Tavolo da lavoro': 'tavolo_lavoro',
+            'Frigo': 'frigo',
+            'Cassa': 'cassa',
+            'Lavandino': 'lavandino',
+            'Tavolette Takeaway': 'tavolette_takeaway'
+          };
+          return map[name] || name?.toLowerCase().replace(/\s+/g, '_') || '';
+        };
+
+        const normalizedName = normalizeAttrezzatura(domanda.attrezzatura);
+        const statusField = `${normalizedName}_pulizia_status`;
+        const correctedField = `${normalizedName}_corrected_status`;
+        const statoPulizia = inspection[correctedField] || inspection[statusField];
+
+        if (!statoPulizia) return;
+
         // Process each responsible role
         attrezzatura.ruoli_responsabili.forEach(ruoloResponsabile => {
-        const dataCompilazione = new Date(inspection.data_compilazione);
+        const dataCompilazione = new Date(inspection.inspection_date);
 
         // Find last shift before inspection for this role and store
         const lastShift = turni
@@ -116,7 +137,7 @@ export default function PulizieMatch() {
           };
         }
 
-        const isPulito = domanda.stato_pulizia === 'Pulito';
+        const isPulito = statoPulizia === 'pulito';
         
         if (isPulito) {
           results[employeeId].puliti++;
@@ -126,8 +147,8 @@ export default function PulizieMatch() {
 
         results[employeeId].details.push({
           attrezzatura: domanda.attrezzatura,
-          stato: domanda.stato_pulizia,
-          data_compilazione: inspection.data_compilazione,
+          stato: statoPulizia,
+          data_compilazione: inspection.inspection_date,
           store_name: inspection.store_name,
           ruolo: ruoloResponsabile,
           data_turno: lastShift.data,
