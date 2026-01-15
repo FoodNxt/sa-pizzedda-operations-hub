@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
+import ProtectedPage from "../components/ProtectedPage";
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 
@@ -152,13 +153,14 @@ export default function FormPreparazioni() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-4">
-      <div className="mb-4">
-        <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
-          Form Preparazioni
-        </h1>
-        <p className="text-sm text-slate-500">Registra le preparazioni effettuate</p>
-      </div>
+    <ProtectedPage pageName="FormPreparazioni">
+      <div className="max-w-5xl mx-auto space-y-4">
+        <div className="mb-4">
+          <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
+            Form Preparazioni
+          </h1>
+          <p className="text-sm text-slate-500">Registra le preparazioni effettuate</p>
+        </div>
 
       {saveSuccess && (
         <NeumorphicCard className="p-4 bg-green-50 border-2 border-green-400">
@@ -352,6 +354,7 @@ export default function FormPreparazioni() {
           )}
         </NeumorphicCard>
       )}
-    </div>
+      </div>
+    </ProtectedPage>
   );
 }
