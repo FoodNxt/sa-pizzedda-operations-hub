@@ -79,57 +79,67 @@ export default function ConteggioCassa() {
     setSaving(true);
     setSaveSuccess(false);
 
-    const store = stores.find(s => s.id === selectedStore);
-    const now = new Date().toISOString();
+    try {
+      console.log('=== INIZIO SUBMIT CONTEGGIO CASSA ===');
+      const store = stores.find(s => s.id === selectedStore);
+      const now = new Date().toISOString();
 
-    await base44.entities.ConteggioCassa.create({
-      store_name: store.name,
-      store_id: store.id,
-      data_conteggio: now,
-      rilevato_da: currentUser?.nome_cognome || currentUser?.full_name || currentUser?.email || 'N/A',
-      valore_conteggio: parseFloat(valoreConteggio)
-    });
-
-    setSaveSuccess(true);
-    
-    queryClient.invalidateQueries({ queryKey: ['conteggi-cassa'] });
-
-    // Segna attività come completata se viene da un turno
-    if (turnoId && attivitaNome && currentUser) {
-      const posizioneTurno = urlParams.get('posizione_turno');
-      const oraAttivita = urlParams.get('ora_attivita');
-      
-      const activityData = {
-        dipendente_id: currentUser.id,
-        dipendente_nome: currentUser.nome_cognome || currentUser.full_name,
-        turno_id: turnoId,
-        turno_data: new Date().toISOString().split('T')[0],
-        store_id: store.id,
-        attivita_nome: decodeURIComponent(attivitaNome),
-        form_page: 'ConteggioCassa',
-        completato_at: new Date().toISOString()
+      const conteggioCassaData = {
+        store_name: store?.name || 'Store sconosciuto',
+        store_id: selectedStore,
+        data_conteggio: now,
+        rilevato_da: currentUser?.nome_cognome || currentUser?.full_name || currentUser?.email || 'Operatore',
+        valore_conteggio: parseFloat(valoreConteggio)
       };
-      
-      if (posizioneTurno) {
-        activityData.posizione_turno = posizioneTurno;
+
+      console.log('Dati conteggio:', conteggioCassaData);
+      await base44.entities.ConteggioCassa.create(conteggioCassaData);
+      console.log('Conteggio cassa salvato');
+
+      setSaveSuccess(true);
+      queryClient.invalidateQueries({ queryKey: ['conteggi-cassa'] });
+
+      // Segna attività come completata
+      if (turnoId && attivitaNome && currentUser) {
+        const activityData = {
+          dipendente_id: currentUser.id,
+          dipendente_nome: currentUser.nome_cognome || currentUser.full_name || 'Dipendente',
+          turno_id: turnoId,
+          turno_data: new Date().toISOString().split('T')[0],
+          store_id: selectedStore,
+          attivita_nome: decodeURIComponent(attivitaNome),
+          form_page: 'ConteggioCassa',
+          completato_at: new Date().toISOString()
+        };
+        
+        const posizioneTurno = urlParams.get('posizione_turno');
+        const oraAttivita = urlParams.get('ora_attivita');
+        if (posizioneTurno) activityData.posizione_turno = posizioneTurno;
+        if (oraAttivita) activityData.ora_attivita = oraAttivita;
+        
+        console.log('Salvataggio attività completata');
+        await base44.entities.AttivitaCompletata.create(activityData);
       }
-      if (oraAttivita) activityData.ora_attivita = oraAttivita;
-      
-      await base44.entities.AttivitaCompletata.create(activityData);
+
+      console.log('=== SUBMIT CONTEGGIO CASSA COMPLETATO ===');
+
+      // Redirect dopo un breve delay
+      setTimeout(() => {
+        if (redirectTo) {
+          navigate(createPageUrl(redirectTo));
+        } else {
+          setSaveSuccess(false);
+          setValoreConteggio('');
+          setSelectedStore('');
+        }
+      }, 1500);
+
+      setSaving(false);
+    } catch (error) {
+      console.error('=== ERRORE SUBMIT CONTEGGIO CASSA ===', error);
+      alert(`Errore: ${error.message || 'Errore sconosciuto'}`);
+      setSaving(false);
     }
-
-    // Redirect dopo un breve delay
-    setTimeout(() => {
-      if (redirectTo) {
-        navigate(createPageUrl(redirectTo));
-      } else {
-        setSaveSuccess(false);
-        setValoreConteggio('');
-        setSelectedStore('');
-      }
-    }, 1500);
-
-    setSaving(false);
   };
 
 
