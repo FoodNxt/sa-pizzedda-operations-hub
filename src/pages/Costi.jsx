@@ -59,7 +59,10 @@ export default function Costi() {
 
   const { data: ordini = [] } = useQuery({
     queryKey: ['ordini-fornitori'],
-    queryFn: () => base44.entities.OrdineFornitore.filter({ stato: 'arrivato' }),
+    queryFn: async () => {
+      const allOrdini = await base44.entities.OrdineFornitore.list();
+      return allOrdini.filter(o => o.stato === 'arrivato' || o.stato === 'Arrivato');
+    },
   });
 
   const { data: subscriptions = [] } = useQuery({
