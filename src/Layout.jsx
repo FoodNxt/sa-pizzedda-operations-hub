@@ -181,6 +181,11 @@ const navigationStructure = [
         icon: Pizza,
       },
       {
+        title: "Preparazioni",
+        url: createPageUrl("PreparazioniAdmin"),
+        icon: ChefHat,
+      },
+      {
         title: "Ordini Fornitori",
         url: createPageUrl("OrdiniAdmin"),
         icon: ShoppingCart,
