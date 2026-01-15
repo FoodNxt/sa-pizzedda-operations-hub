@@ -100,17 +100,20 @@ export default function FormPreparazioni() {
     setSaveSuccess(false);
 
     try {
+      console.log('=== INIZIO SUBMIT PREPARAZIONI ===');
       const store = stores.find(s => s.id === selectedStore);
       const now = new Date().toISOString();
 
       const records = validPreparazioni.map(prep => ({
-        store_name: store.name,
-        store_id: store.id,
+        store_name: store?.name || 'Store sconosciuto',
+        store_id: selectedStore,
         data_rilevazione: now,
-        rilevato_da: currentUser?.nome_cognome || currentUser?.full_name || currentUser?.email || 'N/A',
+        rilevato_da: currentUser?.nome_cognome || currentUser?.full_name || currentUser?.email || 'Operatore',
         tipo_preparazione: prep.tipo,
         peso_grammi: parseFloat(prep.peso)
       }));
+      
+      console.log(`Preparazioni da salvare: ${records.length}`);
 
       await base44.entities.Preparazioni.bulkCreate(records);
 
@@ -118,34 +121,34 @@ export default function FormPreparazioni() {
       
       queryClient.invalidateQueries({ queryKey: ['preparazioni'] });
 
-      // Segna attività come completata se viene da un turno
+      // Segna attività come completata
       if (turnoId && attivitaNome) {
-        try {
-          await base44.entities.AttivitaCompletata.create({
-            dipendente_id: currentUser.id,
-            dipendente_nome: currentUser.nome_cognome || currentUser.full_name,
-            turno_id: turnoId,
-            turno_data: new Date().toISOString().split('T')[0],
-            store_id: selectedStore,
-            attivita_nome: decodeURIComponent(attivitaNome),
-            form_page: 'FormPreparazioni',
-            completato_at: new Date().toISOString()
-          });
-        } catch (error) {
-          console.error('Error marking activity as completed:', error);
-        }
+        const attivitaData = {
+          dipendente_id: currentUser.id,
+          dipendente_nome: currentUser.nome_cognome || currentUser.full_name || 'Dipendente',
+          turno_id: turnoId,
+          turno_data: new Date().toISOString().split('T')[0],
+          store_id: selectedStore,
+          attivita_nome: decodeURIComponent(attivitaNome),
+          form_page: 'FormPreparazioni',
+          completato_at: new Date().toISOString()
+        };
+        
+        console.log('Salvataggio attività completata');
+        await base44.entities.AttivitaCompletata.create(attivitaData);
       }
+      
+      console.log('=== SUBMIT PREPARAZIONI COMPLETATO ===');
 
       // Redirect dopo un breve delay
       setTimeout(() => {
         navigate(createPageUrl(redirectTo || 'TurniDipendente'));
       }, 1500);
     } catch (error) {
-      console.error('Error saving:', error);
-      alert('Errore durante il salvataggio: ' + error.message);
+      console.error('=== ERRORE SUBMIT PREPARAZIONI ===', error);
+      alert(`Errore: ${error.message || 'Errore sconosciuto'}`);
+      setSaving(false);
     }
-
-    setSaving(false);
   };
 
   return (

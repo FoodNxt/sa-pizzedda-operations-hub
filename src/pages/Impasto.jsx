@@ -126,23 +126,21 @@ export default function Impasto() {
     onSuccess: async () => {
       setCalcoloConfermato(true);
 
-      // Segna attività come completata se viene da un turno
+      // Segna attività come completata
       if (turnoId && attivitaNome && user) {
-        try {
-          const store = stores.find(s => s.id === selectedStore);
-          await base44.entities.AttivitaCompletata.create({
-            dipendente_id: user.id,
-            dipendente_nome: user.nome_cognome || user.full_name,
-            turno_id: turnoId,
-            turno_data: new Date().toISOString().split('T')[0],
-            store_id: store.id,
-            attivita_nome: decodeURIComponent(attivitaNome),
-            form_page: 'Impasto',
-            completato_at: new Date().toISOString()
-          });
-        } catch (error) {
-          console.error('Error marking activity as completed:', error);
-        }
+        const attivitaData = {
+          dipendente_id: user.id,
+          dipendente_nome: user.nome_cognome || user.full_name || 'Dipendente',
+          turno_id: turnoId,
+          turno_data: new Date().toISOString().split('T')[0],
+          store_id: selectedStore,
+          attivita_nome: decodeURIComponent(attivitaNome),
+          form_page: 'Impasto',
+          completato_at: new Date().toISOString()
+        };
+        
+        console.log('Salvataggio attività completata');
+        await base44.entities.AttivitaCompletata.create(attivitaData);
       }
 
       // Redirect dopo un breve delay
@@ -221,17 +219,28 @@ export default function Impasto() {
   const handleCalcolaImpasto = async () => {
     if (!risultato) return;
     
-    const store = stores.find(s => s.id === selectedStore);
-    await logMutation.mutateAsync({
-      store_id: selectedStore,
-      store_name: store?.name || '',
-      data_calcolo: new Date().toISOString(),
-      operatore: user?.full_name || user?.email || '',
-      barelle_in_frigo: risultato.barelleInFrigo,
-      palline_presenti: risultato.pallinePresenti,
-      fabbisogno_3_giorni: risultato.totaleProssimi3Giorni,
-      impasto_suggerito: risultato.impastoNecessario
-    });
+    try {
+      console.log('=== INIZIO SUBMIT IMPASTO ===');
+      const store = stores.find(s => s.id === selectedStore);
+      
+      const logData = {
+        store_id: selectedStore,
+        store_name: store?.name || 'Store sconosciuto',
+        data_calcolo: new Date().toISOString(),
+        operatore: user?.nome_cognome || user?.full_name || user?.email || 'Operatore',
+        barelle_in_frigo: risultato.barelleInFrigo,
+        palline_presenti: risultato.pallinePresenti,
+        fabbisogno_3_giorni: risultato.totaleProssimi3Giorni,
+        impasto_suggerito: risultato.impastoNecessario
+      };
+      
+      console.log('Dati calcolo impasto:', logData);
+      await logMutation.mutateAsync(logData);
+      console.log('=== SUBMIT IMPASTO COMPLETATO ===');
+    } catch (error) {
+      console.error('=== ERRORE SUBMIT IMPASTO ===', error);
+      throw error;
+    }
   };
 
   // Reset conferma quando cambiano i dati

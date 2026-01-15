@@ -105,26 +105,34 @@ export default function FormInventario() {
       const store = stores.find(s => s.id === selectedStore);
       const now = new Date().toISOString();
       
-      const rilevazioni = Object.entries(quantities)
-        .filter(([_, qty]) => qty !== '' && qty !== null && qty !== undefined)
-        .map(([productId, qty]) => {
-          const product = products.find(p => p.id === productId);
-          const quantitaRilevata = parseFloat(qty);
-          
-          return {
-            store_name: store.name,
-            store_id: store.id,
-            data_rilevazione: now,
-            rilevato_da: currentUser?.nome_cognome || currentUser?.full_name || currentUser?.email || 'N/A',
-            prodotto_id: productId,
-            nome_prodotto: product.nome_prodotto,
-            quantita_rilevata: quantitaRilevata,
-            unita_misura: product.unita_misura,
-            quantita_minima: product.quantita_minima,
-            sotto_minimo: quantitaRilevata < product.quantita_minima,
-            note: ''
-          };
-        });
+      console.log('=== INIZIO SUBMIT INVENTARIO ===');
+      
+      const rilevazioni = [];
+      for (const [productId, qty] of Object.entries(quantities)) {
+        if (qty === '' || qty === null || qty === undefined) continue;
+        
+        const product = products.find(p => p.id === productId);
+        if (!product) continue;
+        
+        const quantitaRilevata = parseFloat(qty);
+        const rilevazione = {
+          store_name: store.name,
+          store_id: store.id,
+          data_rilevazione: now,
+          rilevato_da: currentUser?.nome_cognome || currentUser?.full_name || currentUser?.email || 'Operatore',
+          prodotto_id: productId,
+          nome_prodotto: product.nome_prodotto,
+          quantita_rilevata: quantitaRilevata,
+          unita_misura: product.unita_misura,
+          quantita_minima: product.quantita_minima,
+          sotto_minimo: quantitaRilevata < product.quantita_minima
+        };
+        
+        if (product.note) rilevazione.note = product.note;
+        rilevazioni.push(rilevazione);
+      }
+      
+      console.log(`Rilevazioni da salvare: ${rilevazioni.length}`);
 
       await base44.entities.RilevazioneInventario.bulkCreate(rilevazioni);
 
@@ -134,21 +142,22 @@ export default function FormInventario() {
 
       // Segna attività come completata se viene da un turno
       if (turnoId && attivitaNome) {
-        try {
-          await base44.entities.AttivitaCompletata.create({
-            dipendente_id: currentUser.id,
-            dipendente_nome: currentUser.nome_cognome || currentUser.full_name,
-            turno_id: turnoId,
-            turno_data: new Date().toISOString().split('T')[0],
-            store_id: selectedStore,
-            attivita_nome: decodeURIComponent(attivitaNome),
-            form_page: 'FormInventario',
-            completato_at: new Date().toISOString()
-          });
-        } catch (error) {
-          console.error('Error marking activity as completed:', error);
-        }
+        const attivitaData = {
+          dipendente_id: currentUser.id,
+          dipendente_nome: currentUser.nome_cognome || currentUser.full_name || 'Dipendente',
+          turno_id: turnoId,
+          turno_data: new Date().toISOString().split('T')[0],
+          store_id: selectedStore,
+          attivita_nome: decodeURIComponent(attivitaNome),
+          form_page: 'FormInventario',
+          completato_at: new Date().toISOString()
+        };
+        
+        console.log('Salvataggio attività completata');
+        await base44.entities.AttivitaCompletata.create(attivitaData);
       }
+      
+      console.log('=== SUBMIT INVENTARIO COMPLETATO ===');
 
       // Redirect dopo un breve delay
       setTimeout(() => {
@@ -160,11 +169,10 @@ export default function FormInventario() {
         }
       }, 1500);
     } catch (error) {
-      console.error('Error saving inventory:', error);
-      alert('Errore durante il salvataggio: ' + error.message);
+      console.error('=== ERRORE SUBMIT INVENTARIO ===', error);
+      alert(`Errore: ${error.message || 'Errore sconosciuto'}`);
+      setSaving(false);
     }
-
-    setSaving(false);
   };
 
   const productsByCategory = products.reduce((acc, product) => {
