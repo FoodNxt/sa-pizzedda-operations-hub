@@ -245,22 +245,15 @@ export default function StoricoCassa() {
       const ultimoConteggio = conteggiGiorno[conteggiGiorno.length - 1];
 
       // Get cash payments for this store on this date
-      const recordsIPratico = iPraticoData.filter(i => {
-        const storeMatch = i.store_id === store.id;
-        const dateMatch = i.order_date === verificaDate;
-        console.log(`Checking iPratico - Store: ${i.store_name} (${i.store_id}) vs ${store.name} (${store.id}), Date: ${i.order_date} vs ${verificaDate}, Match: ${storeMatch && dateMatch}`);
-        return storeMatch && dateMatch;
-      });
+      const iPraticoGiorno = iPraticoData.filter(i => 
+        i.store_id === store.id && i.order_date === verificaDate
+      );
       
-      console.log(`Found ${recordsIPratico.length} iPratico records for ${store.name} on ${verificaDate}`);
-      
-      const pagamentiContanti = recordsIPratico.reduce((sum, i) => {
-        const cashAmount = parseFloat(i.moneyType_cash) || 0;
-        console.log(`iPratico cash: ${cashAmount} from record ${i.id}`);
-        return sum + cashAmount;
+      // Somma tutti i contanti dalla colonna moneyType_cash
+      const pagamentiContanti = iPraticoGiorno.reduce((sum, record) => {
+        const contanti = parseFloat(record.moneyType_cash) || 0;
+        return sum + contanti;
       }, 0);
-      
-      console.log(`Total cash for ${store.name} on ${verificaDate}: €${pagamentiContanti}`);
 
       // Get prelievi for this store on this date
       const prelieviGiorno = prelievi

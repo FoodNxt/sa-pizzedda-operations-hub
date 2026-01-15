@@ -61,7 +61,7 @@ export default function Costi() {
     queryKey: ['ordini-fornitori'],
     queryFn: async () => {
       const allOrdini = await base44.entities.OrdineFornitore.list();
-      return allOrdini.filter(o => o.stato === 'arrivato' || o.stato === 'Arrivato');
+      return allOrdini.filter(o => o.status === 'completato');
     },
   });
 
@@ -277,9 +277,9 @@ export default function Costi() {
               const utenzeStore = utenze.filter(u => u.store_id === storeId);
               const costoUtenze = utenzeStore.reduce((sum, u) => sum + (u.costo_mensile_stimato || 0), 0) * proRata;
 
-              // COGS (ordini arrivati del mese per questo store)
+              // COGS (ordini completati del mese per questo store)
               const costoMateriePrime = ordini
-                .filter(o => o.store_id === storeId && o.data_arrivo?.startsWith(selectedMonth))
+                .filter(o => o.store_id === storeId && o.data_completamento?.startsWith(selectedMonth))
                 .reduce((sum, o) => sum + (o.totale_ordine || 0), 0);
 
               // Personale (ore da Planday * costo orario per livello)
@@ -446,9 +446,9 @@ export default function Costi() {
                       </button>
                       {expandedDetails[`${storeId}-cogs`] && (
                         <div className="pl-6 pb-2 space-y-1">
-                          {ordini.filter(o => o.store_id === storeId && o.data_arrivo?.startsWith(selectedMonth)).map(ord => (
+                          {ordini.filter(o => o.store_id === storeId && o.data_completamento?.startsWith(selectedMonth)).map(ord => (
                             <div key={ord.id} className="text-xs text-slate-500 flex justify-between">
-                              <span>{ord.fornitore || 'Ordine'} - {ord.data_arrivo}</span>
+                              <span>{ord.fornitore || 'Ordine'} - {ord.data_completamento?.split('T')[0]}</span>
                               <span>{formatEuro(ord.totale_ordine)}</span>
                             </div>
                           ))}
