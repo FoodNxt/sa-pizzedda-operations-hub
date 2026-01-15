@@ -115,13 +115,15 @@ export default function Financials() {
     let endFilterDate;
     
     if (dateRange === 'today') {
-      const today = new Date();
-      cutoffDate = new Date(today.setHours(0, 0, 0, 0));
-      endFilterDate = new Date(today.setHours(23, 59, 59, 999));
+      cutoffDate = new Date();
+      cutoffDate.setHours(0, 0, 0, 0);
+      endFilterDate = new Date();
+      endFilterDate.setHours(23, 59, 59, 999);
     } else if (dateRange === 'yesterday') {
-      const yesterday = subDays(new Date(), 1);
-      cutoffDate = new Date(yesterday.setHours(0, 0, 0, 0));
-      endFilterDate = new Date(yesterday.setHours(23, 59, 59, 999));
+      cutoffDate = subDays(new Date(), 1);
+      cutoffDate.setHours(0, 0, 0, 0);
+      endFilterDate = subDays(new Date(), 1);
+      endFilterDate.setHours(23, 59, 59, 999);
     } else if (startDate || endDate) {
       cutoffDate = startDate ? safeParseDate(startDate + 'T00:00:00') : new Date(0);
       endFilterDate = endDate ? safeParseDate(endDate + 'T23:59:59') : new Date();
@@ -562,13 +564,15 @@ export default function Financials() {
     let endFilterDate;
     
     if (dateRange === 'today') {
-      const today = new Date();
-      cutoffDate = new Date(today.setHours(0, 0, 0, 0));
-      endFilterDate = new Date(today.setHours(23, 59, 59, 999));
+      cutoffDate = new Date();
+      cutoffDate.setHours(0, 0, 0, 0);
+      endFilterDate = new Date();
+      endFilterDate.setHours(23, 59, 59, 999);
     } else if (dateRange === 'yesterday') {
-      const yesterday = subDays(new Date(), 1);
-      cutoffDate = new Date(yesterday.setHours(0, 0, 0, 0));
-      endFilterDate = new Date(yesterday.setHours(23, 59, 59, 999));
+      cutoffDate = subDays(new Date(), 1);
+      cutoffDate.setHours(0, 0, 0, 0);
+      endFilterDate = subDays(new Date(), 1);
+      endFilterDate.setHours(23, 59, 59, 999);
     } else if (startDate || endDate) {
       cutoffDate = startDate ? safeParseDate(startDate + 'T00:00:00') : new Date(0);
       endFilterDate = endDate ? safeParseDate(endDate + 'T23:59:59') : new Date();
