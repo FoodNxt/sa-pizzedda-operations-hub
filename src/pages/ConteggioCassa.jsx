@@ -126,11 +126,15 @@ export default function ConteggioCassa() {
       // Redirect dopo un breve delay
       setTimeout(() => {
         if (redirectTo) {
-          navigate(createPageUrl(redirectTo));
+          const url = new URL(window.location.origin + createPageUrl(redirectTo));
+          if (turnoId) url.searchParams.set('turno_id', turnoId);
+          navigate(url.pathname + url.search);
         } else {
           setSaveSuccess(false);
           setValoreConteggio('');
-          setSelectedStore('');
+          if (!preselectedStoreId) {
+            setSelectedStore('');
+          }
         }
       }, 1500);
 

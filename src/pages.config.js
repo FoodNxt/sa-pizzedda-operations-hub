@@ -84,6 +84,7 @@ import PlandayStoreManager from './pages/PlandayStoreManager';
 import Precotture from './pages/Precotture';
 import PrecottureAdmin from './pages/PrecottureAdmin';
 import Preparazioni from './pages/Preparazioni';
+import PreparazioniAdmin from './pages/PreparazioniAdmin';
 import Presenze from './pages/Presenze';
 import ProdottiVenduti from './pages/ProdottiVenduti';
 import Produttivita from './pages/Produttivita';
@@ -112,7 +113,6 @@ import ValutazionePulizie from './pages/ValutazionePulizie';
 import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSetup from './pages/ZapierSetup';
-import PreparazioniAdmin from './pages/PreparazioniAdmin';
 import __Layout from './Layout.jsx';
 
 
@@ -203,6 +203,7 @@ export const PAGES = {
     "Precotture": Precotture,
     "PrecottureAdmin": PrecottureAdmin,
     "Preparazioni": Preparazioni,
+    "PreparazioniAdmin": PreparazioniAdmin,
     "Presenze": Presenze,
     "ProdottiVenduti": ProdottiVenduti,
     "Produttivita": Produttivita,
@@ -231,7 +232,6 @@ export const PAGES = {
     "ZapierProdottiVenduti": ZapierProdottiVenduti,
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSetup": ZapierSetup,
-    "PreparazioniAdmin": PreparazioniAdmin,
 }
 
 export const pagesConfig = {
