@@ -57,22 +57,30 @@ export default function FormSprechi() {
 
   const createSprecoMutation = useMutation({
     mutationFn: async (data) => {
+      console.log('=== INIZIO SUBMIT SPRECHI ===');
+      console.log('Dati spreco:', data);
+      
       const spreco = await base44.entities.Spreco.create(data);
+      console.log('Spreco salvato:', spreco.id);
       
       // Se viene da un turno, registra l'attività
-      if (turnoId && attivitaNome) {
-        await base44.entities.AttivitaCompletata.create({
+      if (turnoId && attivitaNome && currentUser) {
+        const attivitaData = {
           dipendente_id: currentUser.id,
-          dipendente_nome: currentUser.nome_cognome || currentUser.full_name,
+          dipendente_nome: currentUser.nome_cognome || currentUser.full_name || 'Dipendente',
           turno_id: turnoId,
           turno_data: new Date().toISOString().split('T')[0],
-          store_id: storeId,
-          attivita_nome: attivitaNome,
+          store_id: data.store_id,
+          attivita_nome: decodeURIComponent(attivitaNome),
           form_page: 'FormSprechi',
           completato_at: new Date().toISOString()
-        });
+        };
+        
+        console.log('Salvataggio attività completata');
+        await base44.entities.AttivitaCompletata.create(attivitaData);
       }
       
+      console.log('=== SUBMIT SPRECHI COMPLETATO ===');
       return spreco;
     },
     onSuccess: () => {
@@ -83,30 +91,41 @@ export default function FormSprechi() {
         navigate(createPageUrl(redirectPage || 'TurniDipendente'));
       }, 1500);
     },
+    onError: (error) => {
+      console.error('=== ERRORE SUBMIT SPRECHI ===', error);
+      alert(`Errore: ${error.message || 'Errore sconosciuto'}`);
+      setSaving(false);
+    }
   });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
 
-    const prodotto = ricette.find(r => r.id === selectedProdotto);
-    const store = stores.find(s => s.id === (storeId || currentUser?.store_assegnato || currentUser?.stores_assegnati?.[0]));
+    try {
+      const prodotto = ricette.find(r => r.id === selectedProdotto);
+      const userStoreId = storeId || currentUser?.store_assegnato || currentUser?.stores_assegnati?.[0];
+      const store = stores.find(s => s.id === userStoreId);
 
-    const data = {
-      store_id: store?.id || storeId,
-      store_name: store?.name || '',
-      data_rilevazione: new Date().toISOString(),
-      rilevato_da: currentUser.email,
-      prodotto_id: selectedProdotto,
-      prodotto_nome: prodotto?.nome_prodotto || '',
-      tipo_prodotto: 'ricetta',
-      quantita_grammi: parseFloat(quantita) * 1000, // Converti in grammi (assumendo kg)
-      motivo: motivoSpreco,
-      costo_unitario: prodotto?.costo_unitario || 0
-    };
+      const data = {
+        store_id: userStoreId,
+        store_name: store?.name || 'Store sconosciuto',
+        data_rilevazione: new Date().toISOString(),
+        rilevato_da: currentUser?.nome_cognome || currentUser?.full_name || currentUser?.email || 'Operatore',
+        prodotto_id: selectedProdotto,
+        prodotto_nome: prodotto?.nome_prodotto || 'Prodotto sconosciuto',
+        tipo_prodotto: 'ricetta',
+        quantita_grammi: parseFloat(quantita) * 1000,
+        motivo: motivoSpreco,
+        costo_unitario: prodotto?.costo_unitario || 0
+      };
 
-    createSprecoMutation.mutate(data);
-    setSaving(false);
+      createSprecoMutation.mutate(data);
+    } catch (error) {
+      console.error('=== ERRORE PREPARAZIONE DATI SPRECHI ===', error);
+      alert(`Errore: ${error.message || 'Errore sconosciuto'}`);
+      setSaving(false);
+    }
   };
 
   const userStoreId = storeId || currentUser?.store_assegnato || currentUser?.stores_assegnati?.[0];

@@ -149,6 +149,13 @@ export default function FormsDipendente() {
       icon: AlertTriangle,
       url: "Segnalazioni",
       color: "from-orange-500 to-red-600"
+    },
+    {
+      title: "Sprechi",
+      description: "Registra prodotti sprecati",
+      icon: Trash2,
+      url: "FormSprechi",
+      color: "from-red-500 to-orange-600"
     }
   ];
 
