@@ -255,6 +255,7 @@ export default function GestioneAccessoPagine() {
     { value: 'ConteggioCassa', label: '✅ Conteggio Cassa', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
     { value: 'FormTeglieButtate', label: '✅ Teglie Buttate', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
     { value: 'Preparazioni', label: '✅ Preparazioni', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+    { value: 'FormPreparazioni', label: '✅ Form Preparazioni', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
     { value: 'Impasto', label: '✅ Impasto', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
     { value: 'Precotture', label: '✅ Precotture', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
     { value: 'FeedbackP2P', label: '✅ Feedback P2P', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
