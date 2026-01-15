@@ -114,7 +114,15 @@ export default function Financials() {
     let cutoffDate;
     let endFilterDate;
     
-    if (startDate || endDate) {
+    if (dateRange === 'today') {
+      const today = new Date();
+      cutoffDate = new Date(today.setHours(0, 0, 0, 0));
+      endFilterDate = new Date(today.setHours(23, 59, 59, 999));
+    } else if (dateRange === 'yesterday') {
+      const yesterday = subDays(new Date(), 1);
+      cutoffDate = new Date(yesterday.setHours(0, 0, 0, 0));
+      endFilterDate = new Date(yesterday.setHours(23, 59, 59, 999));
+    } else if (startDate || endDate) {
       cutoffDate = startDate ? safeParseDate(startDate + 'T00:00:00') : new Date(0);
       endFilterDate = endDate ? safeParseDate(endDate + 'T23:59:59') : new Date();
     } else if (dateRange === 'currentweek') {
@@ -553,7 +561,15 @@ export default function Financials() {
     let cutoffDate;
     let endFilterDate;
     
-    if (startDate || endDate) {
+    if (dateRange === 'today') {
+      const today = new Date();
+      cutoffDate = new Date(today.setHours(0, 0, 0, 0));
+      endFilterDate = new Date(today.setHours(23, 59, 59, 999));
+    } else if (dateRange === 'yesterday') {
+      const yesterday = subDays(new Date(), 1);
+      cutoffDate = new Date(yesterday.setHours(0, 0, 0, 0));
+      endFilterDate = new Date(yesterday.setHours(23, 59, 59, 999));
+    } else if (startDate || endDate) {
       cutoffDate = startDate ? safeParseDate(startDate + 'T00:00:00') : new Date(0);
       endFilterDate = endDate ? safeParseDate(endDate + 'T23:59:59') : new Date();
     } else {
@@ -1548,14 +1564,26 @@ export default function Financials() {
               <select
                 value={dateRange}
                 onChange={(e) => {
-                  setDateRange(e.target.value);
-                  if (e.target.value !== 'custom') {
+                  const value = e.target.value;
+                  setDateRange(value);
+                  if (value !== 'custom') {
                     setStartDate('');
                     setEndDate('');
+                  }
+                  if (value === 'today') {
+                    const today = format(new Date(), 'yyyy-MM-dd');
+                    setStartDate(today);
+                    setEndDate(today);
+                  } else if (value === 'yesterday') {
+                    const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+                    setStartDate(yesterday);
+                    setEndDate(yesterday);
                   }
                 }}
                 className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
               >
+                <option value="today">Oggi</option>
+                <option value="yesterday">Ieri</option>
                 <option value="7">Ultimi 7 giorni</option>
                 <option value="currentweek">Settimana in corso</option>
                 <option value="30">Ultimi 30 giorni</option>
