@@ -93,11 +93,15 @@ export default function ProtectedPage({ children, pageName, requiredUserTypes = 
           }
         }
 
-        // Common forms and core pages that should always be accessible to dipendenti (without needing explicit config)
-        const commonForms = ['FormInventario', 'FormCantina', 'Impasto', 'Preparazioni', 'Precotture', 'ControlloPuliziaCassiere', 'ControlloPuliziaPizzaiolo', 'ControlloPuliziaStoreManager', 'ConteggioCassa', 'FormPreparazioni', 'FormDeposito', 'FormPrelievi', 'FormTeglieButtate', 'FormSprechi'];
-        const corePages = ['TurniDipendente', 'ProfiloDipendente', 'Academy', 'ContrattiDipendente'];
+        // Common forms and core pages that should ALWAYS be accessible to dipendenti with roles
+        const commonForms = ['FormInventario', 'FormCantina', 'Impasto', 'Preparazioni', 'FormPreparazioni', 'Precotture', 'ControlloPuliziaCassiere', 'ControlloPuliziaPizzaiolo', 'ControlloPuliziaStoreManager', 'ConteggioCassa', 'FormDeposito', 'FormPrelievi', 'FormTeglieButtate', 'FormSprechi', 'FormPagamentiContanti', 'FormSpostamenti', 'Ordini'];
+        const corePages = ['TurniDipendente', 'ProfiloDipendente', 'Academy', 'ContrattiDipendente', 'FormsDipendente', 'Valutazione', 'Segnalazioni', 'AssistenteDipendente'];
 
-        const hasAccess = allowedPages.includes(pageName) || (normalizedUserType === 'dipendente' && (commonForms.includes(pageName) || corePages.includes(pageName)));
+        // Per dipendenti CON ruoli assegnati, permettere sempre l'accesso a forms e core pages
+        const userRoles = user?.ruoli_dipendente || [];
+        const shouldAllowCommonAccess = normalizedUserType === 'dipendente' && userRoles.length > 0;
+
+        const hasAccess = allowedPages.includes(pageName) || (shouldAllowCommonAccess && (commonForms.includes(pageName) || corePages.includes(pageName)));
 
         if (!hasAccess) {
           // Redirect to first allowed page
