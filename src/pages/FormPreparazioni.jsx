@@ -62,12 +62,14 @@ export default function FormPreparazioni() {
     queryFn: () => base44.entities.Preparazioni.list('-data_rilevazione', 100),
   });
 
-  const tipiPreparazione = [
-    'Salsiccia',
-    'Crema di Gorgonzola',
-    'Crema di pecorino',
-    'Patate'
-  ];
+  const { data: tipiPreparazioneConfig = [] } = useQuery({
+    queryKey: ['tipi-preparazione'],
+    queryFn: () => base44.entities.TipoPreparazione.list('ordine', 100),
+  });
+
+  const tipiPreparazione = tipiPreparazioneConfig
+    .filter(t => t.attivo)
+    .map(t => t.nome);
 
   const addPreparazione = () => {
     setPreparazioni([...preparazioni, { tipo: '', peso: '' }]);
