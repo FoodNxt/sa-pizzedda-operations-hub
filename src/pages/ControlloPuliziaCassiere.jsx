@@ -228,31 +228,37 @@ export default function ControlloPuliziaCassiere() {
       console.log('Preparazione dati ispezione...');
 
       const store = stores.find(s => s.id === selectedStore);
+      
+      // Build clean domande_risposte array
+      const domandeRisposte = [];
+      for (const d of domande) {
+        const risposta = d.tipo_controllo === 'foto' ? uploadedUrls[d.id] : risposte[d.id];
+        if (risposta) {
+          const item = {
+            domanda_id: d.id,
+            domanda_testo: d.domanda_testo || `Foto: ${d.attrezzatura || 'Attrezzatura'}`,
+            tipo_controllo: d.tipo_controllo,
+            risposta: risposta
+          };
+          
+          // Add optional fields only if they exist
+          if (d.attrezzatura) item.attrezzatura = d.attrezzatura;
+          if (d.prompt_ai) item.prompt_ai = d.prompt_ai;
+          if (uploadedUrls[`${d.id}_foto`]) item.foto_aggiuntiva = uploadedUrls[`${d.id}_foto`];
+          
+          domandeRisposte.push(item);
+        }
+      }
+
       const inspectionData = {
-        store_name: store?.name || '',
-        store_id: store?.id || selectedStore,
+        store_name: store?.name || 'Store sconosciuto',
+        store_id: selectedStore,
         inspection_date: new Date().toISOString(),
-        inspector_name: currentUser.nome_cognome || currentUser.full_name || currentUser.email,
+        inspector_name: currentUser.nome_cognome || currentUser.full_name || currentUser.email || 'Ispettore',
         inspector_role: 'Cassiere',
         analysis_status: 'processing',
         inspection_type: 'cassiere',
-        domande_risposte: domande.map(d => {
-          const risposta = d.tipo_controllo === 'foto' 
-            ? uploadedUrls[d.id] 
-            : risposte[d.id];
-          
-          const fotoAggiuntiva = uploadedUrls[`${d.id}_foto`];
-          
-          return {
-            domanda_id: d.id,
-            domanda_testo: d.domanda_testo || (d.tipo_controllo === 'foto' ? `Foto: ${d.attrezzatura}` : ''),
-            tipo_controllo: d.tipo_controllo,
-            risposta: risposta || null,
-            foto_aggiuntiva: fotoAggiuntiva || null,
-            attrezzatura: d.attrezzatura || null,
-            prompt_ai: d.prompt_ai || null
-          };
-        }).filter(d => d.risposta !== null)
+        domande_risposte: domandeRisposte
       };
 
       console.log('Dati ispezione preparati:', JSON.stringify(inspectionData, null, 2));
