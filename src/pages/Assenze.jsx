@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
-import { Calendar, Thermometer, Check, X, Clock, FileText, User, AlertCircle, Copy, Loader2, Users, ArrowRightLeft, CheckCircle, MapPin, Edit } from "lucide-react";
+import { Calendar, Thermometer, Check, X, Clock, FileText, User, AlertCircle, Copy, Loader2, Users, ArrowRightLeft, CheckCircle, MapPin, Edit, ChevronDown, ChevronRight } from "lucide-react";
 import moment from "moment";
 
 // Componente per mostrare il turno dell'altro dipendente
@@ -94,6 +94,11 @@ export default function Assenze() {
   const [activeTab, setActiveTab] = useState('ferie');
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [approvalMode, setApprovalMode] = useState(null); // 'ferie_only' o 'ferie_liberi'
+  const [expandedSections, setExpandedSections] = useState({
+    ferie_attesa: true,
+    ferie_approvate: false,
+    ferie_rifiutate: false
+  });
   const queryClient = useQueryClient();
 
   // Richieste turni liberi
