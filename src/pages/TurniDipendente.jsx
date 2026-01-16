@@ -572,7 +572,7 @@ export default function TurniDipendente() {
 
   // Completa attività
   const completaAttivitaMutation = useMutation({
-    mutationFn: async ({ turno, attivitaNome, importoPagato, turnoStraordinarioId, posizioneTurno, oraAttivita }) => {
+    mutationFn: async ({ turno, attivitaNome, importoPagato, turnoStraordinarioId, oraAttivita }) => {
       // PROTEZIONE: Verifica che il turno sia iniziato prima di permettere il completamento
       if (!turno.timbratura_entrata) {
         throw new Error('Devi prima timbrare l\'entrata per completare questa attività');
@@ -588,9 +588,6 @@ export default function TurniDipendente() {
         completato_at: new Date().toISOString()
       };
 
-      if (posizioneTurno) {
-        data.posizione_turno = posizioneTurno;
-      }
       if (oraAttivita) {
         data.ora_attivita = oraAttivita;
       }
@@ -1315,21 +1312,17 @@ export default function TurniDipendente() {
     return [...attivitaInizio, ...attivitaNormali, ...attivitaFine];
   };
   
-  const isAttivitaCompletata = (turnoId, attivitaNome, posizioneTurno = null, oraAttivita = null) => {
+  const isAttivitaCompletata = (turnoId, attivitaNome, oraAttivita = null) => {
     return attivitaCompletate.some(ac => {
       if (ac.turno_id !== turnoId || ac.attivita_nome !== attivitaNome) return false;
       
-      // Se l'attività ha una posizione specifica (inizio/fine), verifica anche quella
-      if (posizioneTurno && ac.posizione_turno) {
-        return ac.posizione_turno === posizioneTurno;
-      }
-      
-      // Se l'attività ha un orario specifico, verifica anche quello
+      // Se l'attività ha un orario specifico, verifica anche quello (per distinguere attività duplicate)
       if (oraAttivita && ac.ora_attivita) {
         return ac.ora_attivita === oraAttivita;
       }
       
-      return true;
+      // Se non c'è ora_attivita specifica, considera completata
+      return !oraAttivita || !ac.ora_attivita;
     });
   };
   
@@ -1806,7 +1799,7 @@ export default function TurniDipendente() {
                                 )}
                                 {isFormActivity && (
                                   <Link 
-                                    to={createPageUrl(att.form_page) + '?redirect=TurniDipendente&turno_id=' + prossimoTurno.id + '&attivita=' + encodeURIComponent(att.nome) + '&store_id=' + prossimoTurno.store_id + (att.posizione_turno ? '&posizione_turno=' + att.posizione_turno : '') + (att.ora_inizio ? '&ora_attivita=' + att.ora_inizio : '')}
+                                    to={createPageUrl(att.form_page) + '?redirect=TurniDipendente&turno_id=' + prossimoTurno.id + '&attivita=' + encodeURIComponent(att.nome) + '&store_id=' + prossimoTurno.store_id + (att.ora_inizio ? '&ora_attivita=' + att.ora_inizio : '')}
                                     className="flex-1 px-4 py-2.5 bg-blue-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-blue-600 shadow-sm"
                                   >
                                     <FileText className="w-4 h-4" /> Compila Form
@@ -1817,7 +1810,6 @@ export default function TurniDipendente() {
                                      onClick={() => completaAttivitaMutation.mutate({ 
                                        turno: prossimoTurno, 
                                        attivitaNome: att.nome,
-                                       posizioneTurno: att.posizione_turno,
                                        oraAttivita: att.ora_inizio
                                      })}
                                      disabled={completaAttivitaMutation.isPending}
@@ -2000,7 +1992,7 @@ export default function TurniDipendente() {
                               </span>
                             ) : prossimoTurno.timbratura_entrata ? (
                              <Link 
-                               to={createPageUrl(form.page) + '?redirect=TurniDipendente&turno_id=' + prossimoTurno.id + '&attivita=' + encodeURIComponent(form.nome) + '&store_id=' + prossimoTurno.store_id}
+                               to={createPageUrl(form.page) + '?redirect=TurniDipendente&turno_id=' + prossimoTurno.id + '&attivita=' + encodeURIComponent(form.nome) + '&store_id=' + prossimoTurno.store_id + '&ora_attivita=manual'}
                                className="px-4 py-2.5 bg-blue-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-blue-600 shadow-sm"
                              >
                                <FileText className="w-4 h-4" /> Compila Form
@@ -2103,27 +2095,21 @@ export default function TurniDipendente() {
                 const isFormActivity = att.form_page || att.richiede_form;
                 const isCorsoActivity = att.corsi_ids?.length > 0;
                 if (isFormActivity) {
-                  // Controlla prima per form_page in AttivitaCompletata con posizione e ora
-                  const completatoViaPagina = attivitaCompletate.some(ac => {
-                    if (ac.turno_id !== prossimoTurno.id || ac.form_page !== att.form_page) return false;
+                  // Controlla per attivita_nome + ora_attivita in AttivitaCompletata
+                  return attivitaCompletate.some(ac => {
+                    if (ac.turno_id !== prossimoTurno.id || ac.attivita_nome !== att.nome) return false;
 
-                    // Se l'attività ha posizione_turno, verifica anche quella
-                    if (att.posizione_turno && ac.posizione_turno) {
-                      return ac.posizione_turno === att.posizione_turno;
-                    }
-
-                    // Se l'attività ha ora_inizio, verifica anche quella
+                    // Se l'attività ha ora_inizio, verifica anche l'ora_attivita
                     if (att.ora_inizio && ac.ora_attivita) {
                       return ac.ora_attivita === att.ora_inizio;
                     }
 
-                    return true;
+                    // Se non c'è ora, basta il nome
+                    return !att.ora_inizio || !ac.ora_attivita;
                   });
-                  if (completatoViaPagina) return true;
-                  return formDovuti.some(f => f.page === att.form_page && f.completato);
                 }
                 if (isCorsoActivity) return true;
-                return isAttivitaCompletata(prossimoTurno.id, att.nome, att.posizione_turno, att.ora_inizio);
+                return isAttivitaCompletata(prossimoTurno.id, att.nome, att.ora_inizio);
                 });
                 const formNonAssociatiComplete = formDovuti
                   .filter(form => !attivita.some(a => a.form_page === form.page))
@@ -2135,17 +2121,15 @@ export default function TurniDipendente() {
                   const isFormActivity = att.form_page || att.richiede_form;
                   const isCorsoActivity = att.corsi_ids?.length > 0;
                   if (isFormActivity) {
-                    const completatoViaPagina = attivitaCompletate.some(ac => {
-                      if (ac.turno_id !== prossimoTurno.id || ac.form_page !== att.form_page) return false;
-                      if (att.posizione_turno && ac.posizione_turno) return ac.posizione_turno === att.posizione_turno;
+                    // Controlla per attivita_nome + ora_attivita
+                    return !attivitaCompletate.some(ac => {
+                      if (ac.turno_id !== prossimoTurno.id || ac.attivita_nome !== att.nome) return false;
                       if (att.ora_inizio && ac.ora_attivita) return ac.ora_attivita === att.ora_inizio;
-                      return true;
+                      return !att.ora_inizio || !ac.ora_attivita;
                     });
-                    if (completatoViaPagina) return false;
-                    return !formDovuti.some(f => f.page === att.form_page && f.completato);
                   }
                   if (isCorsoActivity) return false;
-                  return !isAttivitaCompletata(prossimoTurno.id, att.nome, att.posizione_turno, att.ora_inizio);
+                  return !isAttivitaCompletata(prossimoTurno.id, att.nome, att.ora_inizio);
                 });
                 
                 const handleTimbraUscita = () => {

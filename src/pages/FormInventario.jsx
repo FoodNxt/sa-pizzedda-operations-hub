@@ -158,17 +158,14 @@ export default function FormInventario() {
       
       queryClient.invalidateQueries({ queryKey: ['rilevazioni-inventario'] });
 
-      // Segna attività come completata se viene da un turno - SOLO SE NON ESISTE GIÀ
+      // Segna attività come completata - SOLO SE NON ESISTE GIÀ con stesso nome + ora
       if (turnoId && attivitaNome) {
-        const posizioneTurno = urlParams.get('posizione_turno');
         const oraAttivita = urlParams.get('ora_attivita');
         
         const filter = {
           turno_id: turnoId,
-          attivita_nome: decodeURIComponent(attivitaNome),
-          form_page: 'FormInventario'
+          attivita_nome: decodeURIComponent(attivitaNome)
         };
-        if (posizioneTurno) filter.posizione_turno = posizioneTurno;
         if (oraAttivita) filter.ora_attivita = oraAttivita;
         
         const esistente = await base44.entities.AttivitaCompletata.filter(filter);
@@ -185,13 +182,10 @@ export default function FormInventario() {
             completato_at: new Date().toISOString()
           };
           
-          if (posizioneTurno) attivitaData.posizione_turno = posizioneTurno;
           if (oraAttivita) attivitaData.ora_attivita = oraAttivita;
           
-          console.log('Salvataggio attività completata FormInventario con distinzione:', attivitaData);
+          console.log('Salvataggio attività FormInventario:', attivitaData);
           await base44.entities.AttivitaCompletata.create(attivitaData);
-        } else {
-          console.log('Attività FormInventario già completata per questi parametri specifici');
         }
       }
       

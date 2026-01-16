@@ -70,30 +70,19 @@ export default function Precotture() {
       };
     },
     onSuccess: async (result) => {
-      // Segna attività come completata - SOLO UNA con posizione_turno e ora_attivita specifici
+      // Segna attività come completata - SOLO SE NON ESISTE GIÀ con stesso nome + ora
       if (turnoId && attivitaNome && user) {
-        // Prima verifica se esiste già un'attività completata con ESATTAMENTE gli stessi parametri
         const urlParams = new URLSearchParams(window.location.search);
-        const posizioneTurno = urlParams.get('posizione_turno');
         const oraAttivita = urlParams.get('ora_attivita');
         
         const filter = {
           turno_id: turnoId,
-          attivita_nome: decodeURIComponent(attivitaNome),
-          form_page: 'Precotture'
+          attivita_nome: decodeURIComponent(attivitaNome)
         };
-        
-        // Aggiungi filtri specifici se presenti
-        if (posizioneTurno) {
-          filter.posizione_turno = posizioneTurno;
-        }
-        if (oraAttivita) {
-          filter.ora_attivita = oraAttivita;
-        }
+        if (oraAttivita) filter.ora_attivita = oraAttivita;
         
         const esistente = await base44.entities.AttivitaCompletata.filter(filter);
         
-        // Solo se NON esiste già, crea la nuova attività completata
         if (esistente.length === 0) {
           const attivitaData = {
             dipendente_id: user.id,
@@ -108,17 +97,10 @@ export default function Precotture() {
             turno_precotture: result.turno
           };
           
-          if (posizioneTurno) {
-            attivitaData.posizione_turno = posizioneTurno;
-          }
-          if (oraAttivita) {
-            attivitaData.ora_attivita = oraAttivita;
-          }
+          if (oraAttivita) attivitaData.ora_attivita = oraAttivita;
           
-          console.log('Salvando attività completata Precotture con distinzione:', attivitaData);
+          console.log('Salvando attività Precotture:', attivitaData);
           await base44.entities.AttivitaCompletata.create(attivitaData);
-        } else {
-          console.log('Attività Precotture già completata per questi parametri specifici');
         }
       }
       

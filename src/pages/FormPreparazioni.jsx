@@ -124,21 +124,37 @@ export default function FormPreparazioni() {
       
       queryClient.invalidateQueries({ queryKey: ['preparazioni'] });
 
-      // Segna attività come completata
+      // Segna attività come completata - SOLO SE NON ESISTE GIÀ con stesso nome attività e ora
       if (turnoId && attivitaNome) {
-        const attivitaData = {
-          dipendente_id: currentUser.id,
-          dipendente_nome: currentUser.nome_cognome || currentUser.full_name || 'Dipendente',
-          turno_id: turnoId,
-          turno_data: new Date().toISOString().split('T')[0],
-          store_id: selectedStore,
-          attivita_nome: decodeURIComponent(attivitaNome),
-          form_page: 'FormPreparazioni',
-          completato_at: new Date().toISOString()
-        };
+        const oraAttivita = urlParams.get('ora_attivita');
         
-        console.log('Salvataggio attività completata');
-        await base44.entities.AttivitaCompletata.create(attivitaData);
+        const filter = {
+          turno_id: turnoId,
+          attivita_nome: decodeURIComponent(attivitaNome)
+        };
+        if (oraAttivita) filter.ora_attivita = oraAttivita;
+        
+        const esistente = await base44.entities.AttivitaCompletata.filter(filter);
+        
+        if (esistente.length === 0) {
+          const attivitaData = {
+            dipendente_id: currentUser.id,
+            dipendente_nome: currentUser.nome_cognome || currentUser.full_name || 'Dipendente',
+            turno_id: turnoId,
+            turno_data: new Date().toISOString().split('T')[0],
+            store_id: selectedStore,
+            attivita_nome: decodeURIComponent(attivitaNome),
+            form_page: 'FormPreparazioni',
+            completato_at: new Date().toISOString()
+          };
+          
+          if (oraAttivita) attivitaData.ora_attivita = oraAttivita;
+          
+          console.log('Salvataggio attività completata FormPreparazioni con ora:', attivitaData);
+          await base44.entities.AttivitaCompletata.create(attivitaData);
+        } else {
+          console.log('Attività FormPreparazioni già completata');
+        }
       }
       
       console.log('=== SUBMIT PREPARAZIONI COMPLETATO ===');
