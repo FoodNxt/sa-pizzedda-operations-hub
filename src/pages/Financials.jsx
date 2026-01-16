@@ -157,7 +157,7 @@ export default function Financials() {
       return true;
     });
 
-    // Apply payment method filter
+    // Apply filters in priority order: payment methods > apps > channels
     if (selectedPaymentMethods.length > 0) {
       filtered = filtered.map(item => {
         let filteredRevenue = 0;
@@ -191,6 +191,61 @@ export default function Financials() {
           total_orders: filteredOrders
         };
       });
+    } else if (selectedApps.length > 0) {
+      filtered = filtered.map(item => {
+        let filteredRevenue = 0;
+        let filteredOrders = 0;
+        
+        const apps = [
+          { key: 'glovo', revenue: item.sourceApp_glovo || 0, orders: item.sourceApp_glovo_orders || 0 },
+          { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0, orders: item.sourceApp_deliveroo_orders || 0 },
+          { key: 'justeat', revenue: item.sourceApp_justeat || 0, orders: item.sourceApp_justeat_orders || 0 },
+          { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0, orders: item.sourceApp_onlineordering_orders || 0 },
+          { key: 'ordertable', revenue: item.sourceApp_ordertable || 0, orders: item.sourceApp_ordertable_orders || 0 },
+          { key: 'tabesto', revenue: item.sourceApp_tabesto || 0, orders: item.sourceApp_tabesto_orders || 0 },
+          { key: 'store', revenue: item.sourceApp_store || 0, orders: item.sourceApp_store_orders || 0 }
+        ];
+        
+        apps.forEach(app => {
+          const mappedKey = appMapping[app.key] || app.key;
+          if (selectedApps.includes(mappedKey)) {
+            filteredRevenue += app.revenue;
+            filteredOrders += app.orders;
+          }
+        });
+        
+        return {
+          ...item,
+          total_revenue: filteredRevenue,
+          total_orders: filteredOrders
+        };
+      });
+    } else if (selectedChannels.length > 0) {
+      filtered = filtered.map(item => {
+        let filteredRevenue = 0;
+        let filteredOrders = 0;
+        
+        const channels = [
+          { key: 'delivery', revenue: item.sourceType_delivery || 0, orders: item.sourceType_delivery_orders || 0 },
+          { key: 'takeaway', revenue: item.sourceType_takeaway || 0, orders: item.sourceType_takeaway_orders || 0 },
+          { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0, orders: item.sourceType_takeawayOnSite_orders || 0 },
+          { key: 'store', revenue: item.sourceType_store || 0, orders: item.sourceType_store_orders || 0 }
+        ];
+        
+        channels.forEach(ch => {
+          const mappedKey = channelMapping[ch.key] || ch.key;
+          if (selectedChannels.includes(mappedKey)) {
+            filteredRevenue += ch.revenue;
+            filteredOrders += ch.orders;
+          }
+        });
+        
+        return {
+          ...item,
+          total_revenue: filteredRevenue,
+          total_orders: filteredOrders
+        };
+      });
     }
 
     const totalRevenue = filtered.reduce((sum, item) => 
@@ -203,20 +258,23 @@ export default function Financials() {
     
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-    // Generate ALL days in range (including zero-revenue days)
-    const allDaysInRange = cutoffDate && endFilterDate && isValid(cutoffDate) && isValid(endFilterDate)
-      ? eachDayOfInterval({ start: cutoffDate, end: endFilterDate })
-      : [];
-
+    // Generate days in range (limit to prevent browser freeze)
     const revenueByDate = {};
     
-    // Initialize all days with 0
-    allDaysInRange.forEach(day => {
-      if (isValid(day)) {
-        const dateStr = format(day, 'yyyy-MM-dd');
-        revenueByDate[dateStr] = { date: dateStr, revenue: 0, orders: 0 };
+    if (cutoffDate && endFilterDate && isValid(cutoffDate) && isValid(endFilterDate)) {
+      const daysDiff = Math.ceil((endFilterDate - cutoffDate) / (1000 * 60 * 60 * 24));
+      
+      // Solo se il range è ragionevole (max 730 giorni = 2 anni)
+      if (daysDiff <= 730) {
+        const allDaysInRange = eachDayOfInterval({ start: cutoffDate, end: endFilterDate });
+        allDaysInRange.forEach(day => {
+          if (isValid(day)) {
+            const dateStr = format(day, 'yyyy-MM-dd');
+            revenueByDate[dateStr] = { date: dateStr, revenue: 0, orders: 0 };
+          }
+        });
       }
-    });
+    }
     
     // Fill in actual data
     filtered.forEach(item => {
