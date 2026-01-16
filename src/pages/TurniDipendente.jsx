@@ -1164,9 +1164,8 @@ export default function TurniDipendente() {
       if (!configSequences.includes(turnoSequence)) return;
       
       // METODO PRINCIPALE: Controlla AttivitaCompletata tramite form_page e turno_id
-      const completatoInAttivita = attivitaCompletate.some(ac => 
-        ac.turno_id === turno.id && ac.form_page === config.form_page
-      );
+      // CRITICAL: NON basta controllare solo turno_id e form_page, perché potrebbero esserci più attività dello stesso tipo
+      const completatoInAttivita = false; // Non usato più, usa il check nelle attività
       
       formDovuti.push({ nome: config.form_name, page: config.form_page, completato: completatoInAttivita });
     });

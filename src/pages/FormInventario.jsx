@@ -158,21 +158,41 @@ export default function FormInventario() {
       
       queryClient.invalidateQueries({ queryKey: ['rilevazioni-inventario'] });
 
-      // Segna attività come completata se viene da un turno
+      // Segna attività come completata se viene da un turno - SOLO SE NON ESISTE GIÀ
       if (turnoId && attivitaNome) {
-        const attivitaData = {
-          dipendente_id: currentUser.id,
-          dipendente_nome: currentUser.nome_cognome || currentUser.full_name || 'Dipendente',
-          turno_id: turnoId,
-          turno_data: new Date().toISOString().split('T')[0],
-          store_id: selectedStore,
-          attivita_nome: decodeURIComponent(attivitaNome),
-          form_page: 'FormInventario',
-          completato_at: new Date().toISOString()
-        };
+        const posizioneTurno = urlParams.get('posizione_turno');
+        const oraAttivita = urlParams.get('ora_attivita');
         
-        console.log('Salvataggio attività completata');
-        await base44.entities.AttivitaCompletata.create(attivitaData);
+        const filter = {
+          turno_id: turnoId,
+          attivita_nome: decodeURIComponent(attivitaNome),
+          form_page: 'FormInventario'
+        };
+        if (posizioneTurno) filter.posizione_turno = posizioneTurno;
+        if (oraAttivita) filter.ora_attivita = oraAttivita;
+        
+        const esistente = await base44.entities.AttivitaCompletata.filter(filter);
+        
+        if (esistente.length === 0) {
+          const attivitaData = {
+            dipendente_id: currentUser.id,
+            dipendente_nome: currentUser.nome_cognome || currentUser.full_name || 'Dipendente',
+            turno_id: turnoId,
+            turno_data: new Date().toISOString().split('T')[0],
+            store_id: selectedStore,
+            attivita_nome: decodeURIComponent(attivitaNome),
+            form_page: 'FormInventario',
+            completato_at: new Date().toISOString()
+          };
+          
+          if (posizioneTurno) attivitaData.posizione_turno = posizioneTurno;
+          if (oraAttivita) attivitaData.ora_attivita = oraAttivita;
+          
+          console.log('Salvataggio attività completata FormInventario con distinzione:', attivitaData);
+          await base44.entities.AttivitaCompletata.create(attivitaData);
+        } else {
+          console.log('Attività FormInventario già completata per questi parametri specifici');
+        }
       }
       
       console.log('=== SUBMIT INVENTARIO COMPLETATO ===');

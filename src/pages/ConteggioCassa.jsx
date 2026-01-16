@@ -99,26 +99,42 @@ export default function ConteggioCassa() {
       setSaveSuccess(true);
       queryClient.invalidateQueries({ queryKey: ['conteggi-cassa'] });
 
-      // Segna attività come completata
+      // Segna attività come completata - SOLO SE NON ESISTE GIÀ con gli stessi parametri
       if (turnoId && attivitaNome && currentUser) {
-        const activityData = {
-          dipendente_id: currentUser.id,
-          dipendente_nome: currentUser.nome_cognome || currentUser.full_name || 'Dipendente',
-          turno_id: turnoId,
-          turno_data: new Date().toISOString().split('T')[0],
-          store_id: selectedStore,
-          attivita_nome: decodeURIComponent(attivitaNome),
-          form_page: 'ConteggioCassa',
-          completato_at: new Date().toISOString()
-        };
-        
         const posizioneTurno = urlParams.get('posizione_turno');
         const oraAttivita = urlParams.get('ora_attivita');
-        if (posizioneTurno) activityData.posizione_turno = posizioneTurno;
-        if (oraAttivita) activityData.ora_attivita = oraAttivita;
         
-        console.log('Salvataggio attività completata');
-        await base44.entities.AttivitaCompletata.create(activityData);
+        // Verifica se esiste già
+        const filter = {
+          turno_id: turnoId,
+          attivita_nome: decodeURIComponent(attivitaNome),
+          form_page: 'ConteggioCassa'
+        };
+        if (posizioneTurno) filter.posizione_turno = posizioneTurno;
+        if (oraAttivita) filter.ora_attivita = oraAttivita;
+        
+        const esistente = await base44.entities.AttivitaCompletata.filter(filter);
+        
+        if (esistente.length === 0) {
+          const activityData = {
+            dipendente_id: currentUser.id,
+            dipendente_nome: currentUser.nome_cognome || currentUser.full_name || 'Dipendente',
+            turno_id: turnoId,
+            turno_data: new Date().toISOString().split('T')[0],
+            store_id: selectedStore,
+            attivita_nome: decodeURIComponent(attivitaNome),
+            form_page: 'ConteggioCassa',
+            completato_at: new Date().toISOString()
+          };
+          
+          if (posizioneTurno) activityData.posizione_turno = posizioneTurno;
+          if (oraAttivita) activityData.ora_attivita = oraAttivita;
+          
+          console.log('Salvataggio attività completata ConteggioCassa con distinzione:', activityData);
+          await base44.entities.AttivitaCompletata.create(activityData);
+        } else {
+          console.log('Attività ConteggioCassa già completata per questi parametri specifici');
+        }
       }
 
       console.log('=== SUBMIT CONTEGGIO CASSA COMPLETATO ===');
