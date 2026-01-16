@@ -451,6 +451,12 @@ const navigationStructure = [
         icon: Users,
       },
       {
+        title: "Form Debug",
+        url: createPageUrl("FormDebug"),
+        icon: ClipboardCheck,
+        requiredUserType: ["admin"]
+      },
+      {
         title: "Gestione Accesso Pagine",
         url: createPageUrl("GestioneAccessoPagine"),
         icon: CheckSquare,
