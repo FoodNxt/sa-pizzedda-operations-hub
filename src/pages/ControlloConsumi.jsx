@@ -185,20 +185,45 @@ export default function ControlloConsumi() {
           risultato[subKey].quantita += subIngredienti[subKey].quantita;
         });
       } else {
-        // È una materia prima: calcola quantità in pezzi
-        let quantitaPezzi = ing.quantita * moltiplicatore;
-        
-        // Trova la materia prima per convertire in confezioni
+        // È una materia prima
         const materiaPrima = materiePrime.find(m => m.id === ing.materia_prima_id || m.nome_prodotto === ing.nome_prodotto);
         
-        // Converti pezzi in confezioni se necessario
-        let quantitaFinale = quantitaPezzi;
+        let quantitaBase = ing.quantita * moltiplicatore;
         let unitaMisuraFinale = ing.unita_misura;
+        let quantitaFinale = quantitaBase;
         
-        if (materiaPrima && materiaPrima.unita_per_confezione && materiaPrima.unita_per_confezione > 1) {
-          // Converti da pezzi a confezioni
-          quantitaFinale = quantitaPezzi / materiaPrima.unita_per_confezione;
-          unitaMisuraFinale = materiaPrima.unita_misura || 'confezioni';
+        if (materiaPrima) {
+          // CASO 1: Materia prima con peso/dimensione unitaria (es. mozzarella 2.5kg, estathe 24 lattine)
+          if (materiaPrima.peso_dimensione_unita && materiaPrima.unita_misura_peso) {
+            // Converti l'unità della ricetta in quella della materia prima
+            let quantitaConvertita = quantitaBase;
+            
+            // Conversione grammi -> kg
+            if (ing.unita_misura === 'g' && materiaPrima.unita_misura_peso === 'kg') {
+              quantitaConvertita = quantitaBase / 1000;
+            }
+            // Conversione ml -> litri
+            else if (ing.unita_misura === 'ml' && materiaPrima.unita_misura_peso === 'litri') {
+              quantitaConvertita = quantitaBase / 1000;
+            }
+            // Conversione kg -> g (se necessario)
+            else if (ing.unita_misura === 'kg' && materiaPrima.unita_misura_peso === 'g') {
+              quantitaConvertita = quantitaBase * 1000;
+            }
+            // Conversione litri -> ml (se necessario)
+            else if (ing.unita_misura === 'litri' && materiaPrima.unita_misura_peso === 'ml') {
+              quantitaConvertita = quantitaBase * 1000;
+            }
+            
+            // Calcola quanti pezzi/unità servono
+            quantitaFinale = quantitaConvertita / materiaPrima.peso_dimensione_unita;
+            unitaMisuraFinale = materiaPrima.unita_misura;
+          }
+          // CASO 2: Materia prima con unità per confezione (es. 24 lattine per confezione)
+          else if (materiaPrima.unita_per_confezione && materiaPrima.unita_per_confezione > 1) {
+            quantitaFinale = quantitaBase / materiaPrima.unita_per_confezione;
+            unitaMisuraFinale = materiaPrima.unita_misura || 'confezioni';
+          }
         }
         
         if (!risultato[key]) {
