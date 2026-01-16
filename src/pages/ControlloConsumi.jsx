@@ -539,6 +539,47 @@ export default function ControlloConsumi() {
   });
   stats.prodottiMonitorati = prodottiSet.size;
 
+  // Calcola dati dettagliati mozzarella per periodo corrente
+  const mozzarellaDetails = {};
+  const mozzarellaProducts = materiePrime.filter(m => 
+    m.nome_prodotto.toLowerCase().includes('mozzarella')
+  );
+  
+  mozzarellaProducts.forEach(mozz => {
+    const datiMozz = {
+      nome: mozz.nome_prodotto,
+      pesoUnitario: mozz.peso_dimensione_unita,
+      unitaMisura: mozz.unita_misura,
+      giornaliero: []
+    };
+
+    datesSorted.forEach(date => {
+      const prod = datiGiornalieriPerProdotto[date]?.[mozz.id];
+      if (!prod) return;
+
+      // Calcola grammi venduti dal calcolo quantità venduta
+      const grammiVenduti = quantitaVendutePerGiorno[date]?.[mozz.id]?.quantita || 0;
+      const kgVenduti = grammiVenduti / 1000;
+      const pezziVenduti = prod.qtyVenduta;
+
+      datiMozz.giornaliero.push({
+        data: date,
+        qtyIniziale: prod.qtyIniziale,
+        grammiVenduti,
+        kgVenduti,
+        pezziVenduti,
+        qtyArrivata: prod.qtyArrivata,
+        qtyFinale: prod.qtyFinale,
+        qtyAttesa: prod.qtyIniziale - prod.qtyVenduta + prod.qtyArrivata,
+        delta: prod.delta
+      });
+    });
+
+    if (datiMozz.giornaliero.length > 0) {
+      mozzarellaDetails[mozz.id] = datiMozz;
+    }
+  });
+
   return (
     <ProtectedPage pageName="ControlloConsumi">
       <div className="max-w-7xl mx-auto space-y-4">
