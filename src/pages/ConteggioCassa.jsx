@@ -125,7 +125,7 @@ export default function ConteggioCassa() {
           
           if (oraAttivita) activityData.ora_attivita = oraAttivita;
           
-          console.log('Salvataggio attività ConteggioCassa:', attivitaData);
+          console.log('Salvataggio attività ConteggioCassa:', activityData);
           await base44.entities.AttivitaCompletata.create(activityData);
         }
       }

@@ -37,6 +37,7 @@ import FeedbackP2P from './pages/FeedbackP2P';
 import FinancialForms from './pages/FinancialForms';
 import Financials from './pages/Financials';
 import FormCantina from './pages/FormCantina';
+import FormDebug from './pages/FormDebug';
 import FormDeposito from './pages/FormDeposito';
 import FormInventario from './pages/FormInventario';
 import FormPagamentiContanti from './pages/FormPagamentiContanti';
@@ -113,7 +114,6 @@ import ValutazionePulizie from './pages/ValutazionePulizie';
 import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSetup from './pages/ZapierSetup';
-import FormDebug from './pages/FormDebug';
 import __Layout from './Layout.jsx';
 
 
@@ -157,6 +157,7 @@ export const PAGES = {
     "FinancialForms": FinancialForms,
     "Financials": Financials,
     "FormCantina": FormCantina,
+    "FormDebug": FormDebug,
     "FormDeposito": FormDeposito,
     "FormInventario": FormInventario,
     "FormPagamentiContanti": FormPagamentiContanti,
@@ -233,7 +234,6 @@ export const PAGES = {
     "ZapierProdottiVenduti": ZapierProdottiVenduti,
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSetup": ZapierSetup,
-    "FormDebug": FormDebug,
 }
 
 export const pagesConfig = {
