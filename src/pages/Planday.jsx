@@ -32,7 +32,7 @@ const COLORI_RUOLO_LIGHT = {
   "Store Manager": "bg-purple-100 border-purple-300 text-purple-800"
 };
 
-const DEFAULT_TIPI_TURNO = ["Normale", "Straordinario", "Formazione", "Affiancamento", "Apertura", "Chiusura"];
+const DEFAULT_TIPI_TURNO = ["Normale", "Straordinario", "Formazione", "Affiancamento", "Apertura", "Chiusura", "Ferie", "Malattia (Certificata)", "Malattia (Non Certificata)", "Permesso"];
 
 export default function Planday() {
   const [mainView, setMainView] = useState('turni'); // 'turni' or 'timbrature'

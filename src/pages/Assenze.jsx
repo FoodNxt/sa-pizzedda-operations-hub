@@ -209,6 +209,17 @@ export default function Assenze() {
   const [changingTipoTurno, setChangingTipoTurno] = useState(null);
   const [newTipoTurno, setNewTipoTurno] = useState('');
 
+  const { data: tipoTurnoConfigs = [] } = useQuery({
+    queryKey: ['tipo-turno-configs'],
+    queryFn: () => base44.entities.TipoTurnoConfig.list(),
+  });
+
+  const tipiTurnoDisponibili = React.useMemo(() => {
+    const defaultTipi = ["Normale", "Straordinario", "Formazione", "Affiancamento", "Apertura", "Chiusura", "Ferie", "Malattia (Certificata)", "Malattia (Non Certificata)", "Permesso"];
+    const tipiFromConfigs = tipoTurnoConfigs.map(c => c.tipo_turno);
+    return [...new Set([...defaultTipi, ...tipiFromConfigs])];
+  }, [tipoTurnoConfigs]);
+
   const createTurnoMutation = useMutation({
     mutationFn: (data) => base44.entities.TurnoPlanday.create(data),
     onSuccess: () => {
@@ -522,6 +533,17 @@ export default function Assenze() {
                       </div>
                       
                       <div className="flex flex-col gap-2">
+                        {request.turni_coinvolti && request.turni_coinvolti.length > 0 && (
+                          <button
+                            onClick={() => {
+                              setChangingTipoTurno(request);
+                              setNewTipoTurno('');
+                            }}
+                            className="px-3 py-1.5 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 flex items-center gap-1"
+                          >
+                            <Edit className="w-3 h-3" /> Modifica Tipo
+                          </button>
+                        )}
                         {(request.stato === 'non_certificata' || request.stato === 'in_attesa_verifica') && request.certificato_url && (
                           <>
                             <button
@@ -971,11 +993,9 @@ export default function Assenze() {
                       className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
                     >
                       <option value="">Seleziona...</option>
-                      <option value="Malattia (Non Certificata)">Malattia (Non Certificata)</option>
-                      <option value="Malattia (Certificata)">Malattia (Certificata)</option>
-                      <option value="Ferie">Ferie</option>
-                      <option value="Normale">Normale</option>
-                      <option value="Permesso">Permesso</option>
+                      {tipiTurnoDisponibili.map(tipo => (
+                        <option key={tipo} value={tipo}>{tipo}</option>
+                      ))}
                     </select>
                   </div>
 
