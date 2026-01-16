@@ -338,11 +338,13 @@ export default function Planday() {
   });
   const [selectedModello, setSelectedModello] = useState('');
   
-  // Tipi turno personalizzati
-  const [tipiTurno, setTipiTurno] = useState(() => {
-    const saved = localStorage.getItem('tipi_turno');
-    return saved ? JSON.parse(saved) : DEFAULT_TIPI_TURNO;
-  });
+  // Tipi turno personalizzati - caricati dal database
+  const tipiTurno = useMemo(() => {
+    const tipiFromConfigs = tipoTurnoConfigs.map(c => c.tipo_turno);
+    const allTipi = [...new Set([...DEFAULT_TIPI_TURNO, ...tipiFromConfigs])];
+    return allTipi;
+  }, [tipoTurnoConfigs]);
+  
   const [newTipoTurno, setNewTipoTurno] = useState('');
   const [showTipiTurnoSection, setShowTipiTurnoSection] = useState(false);
   
@@ -889,21 +891,33 @@ export default function Planday() {
     setSelectedModello(modelloId);
   };
 
-  // Gestione tipi turno
-  const addTipoTurno = () => {
-    if (newTipoTurno.trim() && !tipiTurno.includes(newTipoTurno.trim())) {
-      const updated = [...tipiTurno, newTipoTurno.trim()];
-      setTipiTurno(updated);
-      localStorage.setItem('tipi_turno', JSON.stringify(updated));
-      setNewTipoTurno('');
-    }
+  // Gestione tipi turno - salvati nel database
+  const addTipoTurno = async () => {
+    if (!newTipoTurno.trim() || tipiTurno.includes(newTipoTurno.trim())) return;
+    
+    // Crea configurazione nel database per questo tipo turno
+    await saveTipoConfigMutation.mutateAsync({
+      tipo_turno: newTipoTurno.trim(),
+      mostra_attivita: true,
+      richiede_timbratura: true,
+      richiede_form: true
+    });
+    
+    setNewTipoTurno('');
   };
 
-  const deleteTipoTurno = (tipo) => {
-    if (tipiTurno.length <= 1) return; // Almeno 1 tipo deve rimanere
-    const updated = tipiTurno.filter(t => t !== tipo);
-    setTipiTurno(updated);
-    localStorage.setItem('tipi_turno', JSON.stringify(updated));
+  const deleteTipoTurno = async (tipo) => {
+    // Non permettere eliminazione dei tipi di default
+    if (DEFAULT_TIPI_TURNO.includes(tipo)) {
+      alert('Non puoi eliminare i tipi turno predefiniti');
+      return;
+    }
+    
+    // Trova e elimina la configurazione per questo tipo
+    const configToDelete = tipoTurnoConfigs.find(c => c.tipo_turno === tipo);
+    if (configToDelete) {
+      await deleteTipoConfigMutation.mutateAsync(configToDelete.id);
+    }
   };
 
   const updateColoreTipoTurno = (tipo, colore) => {
