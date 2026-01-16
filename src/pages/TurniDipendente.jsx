@@ -485,9 +485,9 @@ export default function TurniDipendente() {
 
   const richiestaFerieMutation = useMutation({
     mutationFn: async (data) => {
-      // Trova turni nel range date
+      // Trova turni nel range date (solo turni del dipendente corrente)
       const turniCoinvolti = turniFuturi.filter(t => {
-        return t.data >= data.data_inizio && t.data <= data.data_fine;
+        return t.dipendente_id === currentUser.id && t.data >= data.data_inizio && t.data <= data.data_fine;
       }).map(t => t.id);
 
       return base44.entities.RichiestaFerie.create({
