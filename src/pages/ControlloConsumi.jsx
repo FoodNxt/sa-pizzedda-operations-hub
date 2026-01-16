@@ -308,7 +308,8 @@ export default function ControlloConsumi() {
 
     const aggregated = {};
     
-    // Aggrega i dati giornalieri per periodo
+    // Raggruppa date per periodo
+    const datesByPeriod = {};
     Object.keys(datiGiornalieriPerProdotto).forEach(date => {
       const d = parseISO(date);
       let periodoKey;
@@ -320,36 +321,70 @@ export default function ControlloConsumi() {
         periodoKey = format(d, 'yyyy-MM');
       }
 
+      if (!datesByPeriod[periodoKey]) {
+        datesByPeriod[periodoKey] = [];
+      }
+      datesByPeriod[periodoKey].push(date);
+    });
+
+    // Per ogni periodo, aggrega i dati
+    Object.keys(datesByPeriod).forEach(periodoKey => {
+      const datesInPeriod = datesByPeriod[periodoKey].sort();
+      
       if (!aggregated[periodoKey]) {
         aggregated[periodoKey] = {};
       }
 
-      const prodotti = datiGiornalieriPerProdotto[date];
-      Object.keys(prodotti).forEach(prodId => {
-        const prod = prodotti[prodId];
-        
-        if (!aggregated[periodoKey][prodId]) {
+      // Per ogni prodotto, aggrega attraverso tutte le date del periodo
+      const allProdIds = new Set();
+      datesInPeriod.forEach(date => {
+        Object.keys(datiGiornalieriPerProdotto[date] || {}).forEach(prodId => {
+          allProdIds.add(prodId);
+        });
+      });
+
+      allProdIds.forEach(prodId => {
+        let qtyInizialeFirst = null;
+        let qtyFinaleLast = null;
+        let qtyVenditaTotale = 0;
+        let qtyArrivataTotale = 0;
+        let nome = '';
+        let unita_misura = '';
+
+        datesInPeriod.forEach(date => {
+          const prod = datiGiornalieriPerProdotto[date]?.[prodId];
+          if (!prod) return;
+
+          if (!nome) nome = prod.nome;
+          if (!unita_misura) unita_misura = prod.unita_misura;
+
+          // Prima qty iniziale del periodo
+          if (qtyInizialeFirst === null) {
+            qtyInizialeFirst = prod.qtyIniziale;
+          }
+
+          // Ultima qty finale del periodo
+          qtyFinaleLast = prod.qtyFinale;
+
+          // Accumula vendite e arrivi
+          qtyVenditaTotale += prod.qtyVenduta;
+          qtyArrivataTotale += prod.qtyArrivata;
+        });
+
+        if (qtyInizialeFirst !== null && qtyFinaleLast !== null) {
+          const attesa = qtyInizialeFirst - qtyVenditaTotale + qtyArrivataTotale;
+          const delta = qtyFinaleLast - attesa;
+
           aggregated[periodoKey][prodId] = {
-            nome: prod.nome,
-            unita_misura: prod.unita_misura,
-            qtyIniziale: 0,
-            qtyVenduta: 0,
-            qtyArrivata: 0,
-            qtyFinale: 0,
-            delta: 0
+            nome,
+            unita_misura,
+            qtyIniziale: qtyInizialeFirst,
+            qtyVenduta: qtyVenditaTotale,
+            qtyArrivata: qtyArrivataTotale,
+            qtyFinale: qtyFinaleLast,
+            delta
           };
         }
-
-        // Accumula i valori
-        aggregated[periodoKey][prodId].qtyVenduta += prod.qtyVenduta;
-        aggregated[periodoKey][prodId].qtyArrivata += prod.qtyArrivata;
-        aggregated[periodoKey][prodId].delta += prod.delta;
-        
-        // Per iniziale e finale prendiamo il primo e ultimo valore del periodo
-        if (aggregated[periodoKey][prodId].qtyIniziale === 0) {
-          aggregated[periodoKey][prodId].qtyIniziale = prod.qtyIniziale;
-        }
-        aggregated[periodoKey][prodId].qtyFinale = prod.qtyFinale;
       });
     });
 
