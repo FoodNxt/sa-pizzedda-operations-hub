@@ -57,11 +57,12 @@ export default function FormInventario() {
     },
   });
 
-  // Filter products by selected store
+  // Filter products by selected store - only show products "in uso" and one per nome_interno
   const products = React.useMemo(() => {
     if (!selectedStore) return allProducts;
     
-    return allProducts.filter(p => {
+    // First filter by store and in_uso status
+    const filteredByStore = allProducts.filter(p => {
       // Check if product is "in uso" for this specific store
       if (p.in_uso_per_store && p.in_uso_per_store[selectedStore] === false) {
         return false;
@@ -74,6 +75,23 @@ export default function FormInventario() {
       
       return true;
     });
+    
+    // Then keep only one product per nome_interno (prioritize products with in_uso_per_store[selectedStore] = true)
+    const uniqueProducts = filteredByStore.reduce((acc, product) => {
+      const existing = acc.find(p => p.nome_interno === product.nome_interno);
+      if (!existing) {
+        acc.push(product);
+      } else {
+        // If exists, prioritize the one with in_uso_per_store[selectedStore] = true
+        if (product.in_uso_per_store?.[selectedStore] === true && existing.in_uso_per_store?.[selectedStore] !== true) {
+          const index = acc.indexOf(existing);
+          acc[index] = product;
+        }
+      }
+      return acc;
+    }, []);
+    
+    return uniqueProducts;
   }, [allProducts, selectedStore]);
 
   const handleQuantityChange = (productId, value) => {
@@ -319,14 +337,18 @@ export default function FormInventario() {
                         <div className="flex-1 min-w-0">
                           <h3 className="font-bold text-slate-800 text-base">{product.nome_interno || product.nome_prodotto}</h3>
                           <p className="text-sm text-slate-500">
-                            {product.unita_misura}
+                            {product.unita_misura === 'confezioni' || product.unita_misura === 'pacchi' 
+                              ? `${product.unita_misura} chiuse` 
+                              : product.unita_misura}
                           </p>
                         </div>
                       </div>
 
                       <div>
                         <label className="text-sm font-medium text-slate-700 mb-2 block">
-                          Quantità ({product.unita_misura})
+                          Quantità ({product.unita_misura === 'confezioni' || product.unita_misura === 'pacchi' 
+                            ? `${product.unita_misura} chiuse` 
+                            : product.unita_misura})
                         </label>
                         <input
                           type="number"
