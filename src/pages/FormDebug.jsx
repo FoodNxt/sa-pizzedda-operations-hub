@@ -21,6 +21,43 @@ export default function FormDebug() {
     note: ''
   });
 
+  // Lista dei form disponibili nell'app
+  const availableForms = [
+    'FormInventario',
+    'ConteggioCassa',
+    'FormPreparazioni',
+    'Precotture',
+    'Impasto',
+    'ControlloPuliziaCassiere',
+    'ControlloPuliziaPizzaiolo',
+    'ControlloPuliziaStoreManager',
+    'FormCantina',
+    'FormTeglieButtate',
+    'FormSprechi',
+    'FormDeposito',
+    'FormPrelievi',
+    'FormPagamentiContanti',
+    'FormSpostamenti',
+    'Ordini'
+  ];
+
+  // Lista delle entità disponibili
+  const availableEntities = [
+    'RilevazioneInventario',
+    'ConteggioCassa',
+    'Preparazioni',
+    'GestioneImpasti',
+    'CleaningInspection',
+    'RilevazioneInventarioCantina',
+    'TeglieButtate',
+    'Spreco',
+    'Deposito',
+    'Prelievo',
+    'PagamentoContanti',
+    'Spostamento',
+    'OrdineFornitore'
+  ];
+
   const { data: testCases = [], isLoading: loadingCases } = useQuery({
     queryKey: ['form-test-cases'],
     queryFn: () => base44.entities.FormTestCase.list('-created_date'),
@@ -372,26 +409,32 @@ export default function FormDebug() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="text-sm font-medium text-slate-700 mb-2 block">Nome Form</label>
-                  <input
-                    type="text"
+                  <select
                     value={formData.form_name}
                     onChange={(e) => setFormData({ ...formData, form_name: e.target.value })}
                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                    placeholder="es: FormInventario"
                     required
-                  />
+                  >
+                    <option value="">Seleziona un form...</option>
+                    {availableForms.map(form => (
+                      <option key={form} value={form}>{form}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
                   <label className="text-sm font-medium text-slate-700 mb-2 block">Nome Entità</label>
-                  <input
-                    type="text"
+                  <select
                     value={formData.entity_name}
                     onChange={(e) => setFormData({ ...formData, entity_name: e.target.value })}
                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                    placeholder="es: RilevazioneInventario"
                     required
-                  />
+                  >
+                    <option value="">Seleziona un'entità...</option>
+                    {availableEntities.map(entity => (
+                      <option key={entity} value={entity}>{entity}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
