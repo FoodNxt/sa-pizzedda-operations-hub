@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DollarSign, TrendingUp, Filter, Calendar, X, Settings, Eye, EyeOff, Save, CreditCard, Wallet, ChevronUp, ChevronDown, BarChart3 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { format, subDays, isAfter, isBefore, parseISO, isValid, addDays, subYears, eachDayOfInterval } from 'date-fns';
+import { format, subDays, isAfter, isBefore, parseISO, isValid, addDays, subYears } from 'date-fns';
 import ProtectedPage from "../components/ProtectedPage";
 import { formatCurrency, formatEuro } from "../components/utils/formatCurrency";
 
@@ -12,6 +12,7 @@ export default function Financials() {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedStore, setSelectedStore] = useState('all');
   const [dateRange, setDateRange] = useState('30');
+  const [selectedMonth, setSelectedMonth] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [showRevenue, setShowRevenue] = useState(true);
@@ -258,25 +259,9 @@ export default function Financials() {
     
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-    // Generate days in range (limit to prevent browser freeze)
+    // Build revenue by date using ONLY days with actual data (no initialization)
     const revenueByDate = {};
     
-    if (cutoffDate && endFilterDate && isValid(cutoffDate) && isValid(endFilterDate)) {
-      const daysDiff = Math.ceil((endFilterDate - cutoffDate) / (1000 * 60 * 60 * 24));
-      
-      // Solo se il range è ragionevole (max 730 giorni = 2 anni)
-      if (daysDiff <= 730) {
-        const allDaysInRange = eachDayOfInterval({ start: cutoffDate, end: endFilterDate });
-        allDaysInRange.forEach(day => {
-          if (isValid(day)) {
-            const dateStr = format(day, 'yyyy-MM-dd');
-            revenueByDate[dateStr] = { date: dateStr, revenue: 0, orders: 0 };
-          }
-        });
-      }
-    }
-    
-    // Fill in actual data
     filtered.forEach(item => {
       if (!item.order_date) return;
       const date = item.order_date;
@@ -1628,6 +1613,7 @@ export default function Financials() {
                 onChange={(e) => {
                   const value = e.target.value;
                   setDateRange(value);
+                  setSelectedMonth('');
                   if (value !== 'custom') {
                     setStartDate('');
                     setEndDate('');
@@ -1651,9 +1637,31 @@ export default function Financials() {
                 <option value="30">Ultimi 30 giorni</option>
                 <option value="90">Ultimi 90 giorni</option>
                 <option value="365">Ultimo anno</option>
+                <option value="month">Mese Specifico</option>
                 <option value="custom">Personalizzato</option>
               </select>
             </div>
+
+            {dateRange === 'month' && (
+              <div>
+                <label className="text-sm text-slate-600 mb-2 block">Seleziona Mese</label>
+                <input
+                  type="month"
+                  value={selectedMonth}
+                  onChange={(e) => {
+                    setSelectedMonth(e.target.value);
+                    if (e.target.value) {
+                      const [year, month] = e.target.value.split('-');
+                      const firstDay = new Date(parseInt(year), parseInt(month) - 1, 1);
+                      const lastDay = new Date(parseInt(year), parseInt(month), 0);
+                      setStartDate(format(firstDay, 'yyyy-MM-dd'));
+                      setEndDate(format(lastDay, 'yyyy-MM-dd'));
+                    }
+                  }}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                />
+              </div>
+            )}
 
             {dateRange === 'custom' && (
               <div className="grid grid-cols-2 gap-3">
