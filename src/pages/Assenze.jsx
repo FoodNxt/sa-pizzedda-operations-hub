@@ -53,13 +53,13 @@ function TurnoAltroDisplay({ turnoId, richiestoANome, getStoreName }) {
 }
 
 // Componente per mostrare turni coinvolti
-function TurniCoinvoltiDisplay({ turniIds, getStoreName }) {
+function TurniCoinvoltiDisplay({ turniIds, dipendenteId, getStoreName }) {
   const { data: turni = [], isLoading } = useQuery({
-    queryKey: ['turni-coinvolti', turniIds],
+    queryKey: ['turni-coinvolti', turniIds, dipendenteId],
     queryFn: async () => {
       if (!turniIds || turniIds.length === 0) return [];
       const allTurni = await base44.entities.TurnoPlanday.list();
-      return allTurni.filter(t => turniIds.includes(t.id));
+      return allTurni.filter(t => turniIds.includes(t.id) && t.dipendente_id === dipendenteId);
     },
     enabled: !!turniIds && turniIds.length > 0,
   });
@@ -509,7 +509,7 @@ export default function Assenze() {
                           {request.turni_coinvolti && request.turni_coinvolti.length > 0 && (
                             <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
                               <p className="text-xs font-bold text-blue-700 mb-2">Turni coinvolti:</p>
-                              <TurniCoinvoltiDisplay turniIds={request.turni_coinvolti} getStoreName={getStoreName} />
+                              <TurniCoinvoltiDisplay turniIds={request.turni_coinvolti} dipendenteId={request.dipendente_id} getStoreName={getStoreName} />
                             </div>
                           )}
 
