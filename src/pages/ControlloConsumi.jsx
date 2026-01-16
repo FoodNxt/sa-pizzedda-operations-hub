@@ -157,6 +157,49 @@ export default function ControlloConsumi() {
     );
   });
 
+  // Funzione ricorsiva per espandere ingredienti (inclusi semilavorati)
+  const espandiIngredienti = (ingredienti, moltiplicatore = 1) => {
+    const risultato = {};
+    
+    if (!ingredienti || ingredienti.length === 0) return risultato;
+    
+    ingredienti.forEach(ing => {
+      const key = ing.materia_prima_id || ing.nome_prodotto;
+      
+      // Verifica se è un semilavorato
+      const ricettaSemilavorato = ricette.find(r => 
+        (r.id === ing.materia_prima_id || r.nome_prodotto === ing.nome_prodotto) && r.is_semilavorato
+      );
+      
+      if (ricettaSemilavorato && ricettaSemilavorato.ingredienti) {
+        // È un semilavorato: espandi ricorsivamente i suoi ingredienti
+        const subIngredienti = espandiIngredienti(ricettaSemilavorato.ingredienti, moltiplicatore * ing.quantita);
+        Object.keys(subIngredienti).forEach(subKey => {
+          if (!risultato[subKey]) {
+            risultato[subKey] = {
+              nome: subIngredienti[subKey].nome,
+              quantita: 0,
+              unita_misura: subIngredienti[subKey].unita_misura
+            };
+          }
+          risultato[subKey].quantita += subIngredienti[subKey].quantita;
+        });
+      } else {
+        // È una materia prima: aggiungi direttamente
+        if (!risultato[key]) {
+          risultato[key] = {
+            nome: ing.nome_prodotto,
+            quantita: 0,
+            unita_misura: ing.unita_misura
+          };
+        }
+        risultato[key].quantita += (ing.quantita * moltiplicatore);
+      }
+    });
+    
+    return risultato;
+  };
+
   // Calcola quantità vendute per giorno e prodotto (da prodotti venduti)
   const quantitaVendutePerGiorno = {};
   filteredVendite.forEach(vendita => {
@@ -170,16 +213,18 @@ export default function ControlloConsumi() {
       quantitaVendutePerGiorno[date] = {};
     }
 
-    ricetta.ingredienti.forEach(ing => {
-      const key = ing.materia_prima_id || ing.nome_prodotto;
+    // Espandi ingredienti ricorsivamente
+    const ingredientiEspansi = espandiIngredienti(ricetta.ingredienti, qty);
+    
+    Object.keys(ingredientiEspansi).forEach(key => {
       if (!quantitaVendutePerGiorno[date][key]) {
         quantitaVendutePerGiorno[date][key] = {
-          nome: ing.nome_prodotto,
+          nome: ingredientiEspansi[key].nome,
           quantita: 0,
-          unita_misura: ing.unita_misura
+          unita_misura: ingredientiEspansi[key].unita_misura
         };
       }
-      quantitaVendutePerGiorno[date][key].quantita += (ing.quantita * qty);
+      quantitaVendutePerGiorno[date][key].quantita += ingredientiEspansi[key].quantita;
     });
   });
 
@@ -263,77 +308,49 @@ export default function ControlloConsumi() {
 
     const aggregated = {};
     
-    // Raggruppa per prodotto
-    const prodottiData = {};
-    
-    Object.keys(inventariPerProdotto).forEach(prodottoId => {
-      if (!selectedProducts.includes(prodottoId)) return;
-
-      const invs = inventariPerProdotto[prodottoId];
-      
-      // Trova inventario iniziale (giorno prima del periodo) e finale (ultimo del periodo)
-      let invIniziale = null;
-      let invFinale = null;
-      
-      invs.forEach(inv => {
-        const date = inv.data_rilevazione.split('T')[0];
-        const dayBeforeStart = format(subDays(parseISO(startDate), 1), 'yyyy-MM-dd');
-        
-        if (date === dayBeforeStart) {
-          invIniziale = inv;
-        }
-        if (date >= startDate && date <= endDate) {
-          if (!invFinale || date > invFinale.data_rilevazione.split('T')[0]) {
-            invFinale = inv;
-          }
-        }
-      });
-
-      if (!invIniziale || !invFinale) return;
-
-      // Calcola vendite totali nel periodo
-      let qtyVenditaTotale = 0;
-      Object.keys(quantitaVendutePerGiorno).forEach(date => {
-        if (date >= startDate && date <= endDate) {
-          qtyVenditaTotale += quantitaVendutePerGiorno[date]?.[prodottoId]?.quantita || 0;
-        }
-      });
-
-      // Calcola arrivi totali nel periodo
-      let qtyArrivataTotale = 0;
-      Object.keys(ordiniPerGiorno).forEach(date => {
-        if (date >= startDate && date <= endDate) {
-          qtyArrivataTotale += ordiniPerGiorno[date]?.[prodottoId]?.quantita || 0;
-        }
-      });
-
-      const qtyIniziale = invIniziale.quantita_rilevata;
-      const qtyFinale = invFinale.quantita_rilevata;
-      const attesa = qtyIniziale - qtyVenditaTotale + qtyArrivataTotale;
-      const delta = qtyFinale - attesa;
-
-      // Determina periodo
+    // Aggrega i dati giornalieri per periodo
+    Object.keys(datiGiornalieriPerProdotto).forEach(date => {
+      const d = parseISO(date);
       let periodoKey;
+      
       if (mode === 'weekly') {
-        const weekStart = startOfWeek(parseISO(startDate), { weekStartsOn: 1 });
+        const weekStart = startOfWeek(d, { weekStartsOn: 1 });
         periodoKey = format(weekStart, 'yyyy-MM-dd');
       } else if (mode === 'monthly') {
-        periodoKey = format(parseISO(startDate), 'yyyy-MM');
+        periodoKey = format(d, 'yyyy-MM');
       }
 
       if (!aggregated[periodoKey]) {
         aggregated[periodoKey] = {};
       }
 
-      aggregated[periodoKey][prodottoId] = {
-        nome: invIniziale.nome_prodotto,
-        unita_misura: invIniziale.unita_misura,
-        qtyIniziale,
-        qtyVenduta: qtyVenditaTotale,
-        qtyArrivata: qtyArrivataTotale,
-        qtyFinale,
-        delta
-      };
+      const prodotti = datiGiornalieriPerProdotto[date];
+      Object.keys(prodotti).forEach(prodId => {
+        const prod = prodotti[prodId];
+        
+        if (!aggregated[periodoKey][prodId]) {
+          aggregated[periodoKey][prodId] = {
+            nome: prod.nome,
+            unita_misura: prod.unita_misura,
+            qtyIniziale: 0,
+            qtyVenduta: 0,
+            qtyArrivata: 0,
+            qtyFinale: 0,
+            delta: 0
+          };
+        }
+
+        // Accumula i valori
+        aggregated[periodoKey][prodId].qtyVenduta += prod.qtyVenduta;
+        aggregated[periodoKey][prodId].qtyArrivata += prod.qtyArrivata;
+        aggregated[periodoKey][prodId].delta += prod.delta;
+        
+        // Per iniziale e finale prendiamo il primo e ultimo valore del periodo
+        if (aggregated[periodoKey][prodId].qtyIniziale === 0) {
+          aggregated[periodoKey][prodId].qtyIniziale = prod.qtyIniziale;
+        }
+        aggregated[periodoKey][prodId].qtyFinale = prod.qtyFinale;
+      });
     });
 
     const dates = Object.keys(aggregated).sort().reverse();
@@ -373,16 +390,18 @@ export default function ControlloConsumi() {
       consumiTeoriciPerGiorno[date] = {};
     }
 
-    ricetta.ingredienti.forEach(ing => {
-      const key = ing.materia_prima_id || ing.nome_prodotto;
+    // Espandi ingredienti ricorsivamente per consumi teorici
+    const ingredientiEspansi = espandiIngredienti(ricetta.ingredienti, qty);
+    
+    Object.keys(ingredientiEspansi).forEach(key => {
       if (!consumiTeoriciPerGiorno[date][key]) {
         consumiTeoriciPerGiorno[date][key] = {
-          nome: ing.nome_prodotto,
+          nome: ingredientiEspansi[key].nome,
           quantita: 0,
-          unita_misura: ing.unita_misura
+          unita_misura: ingredientiEspansi[key].unita_misura
         };
       }
-      consumiTeoriciPerGiorno[date][key].quantita += (ing.quantita * qty);
+      consumiTeoriciPerGiorno[date][key].quantita += ingredientiEspansi[key].quantita;
     });
   });
 
