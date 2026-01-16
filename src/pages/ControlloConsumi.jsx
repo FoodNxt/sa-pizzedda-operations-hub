@@ -185,31 +185,15 @@ export default function ControlloConsumi() {
           risultato[subKey].quantita += subIngredienti[subKey].quantita;
         });
       } else {
-        // È una materia prima: converti unità se necessario
-        const materiaPrima = materiePrime.find(m => m.id === ing.materia_prima_id || m.nome_prodotto === ing.nome_prodotto);
-        
-        let quantitaConvertita = ing.quantita * moltiplicatore;
-        let unitaMisuraFinale = ing.unita_misura;
-        
-        // Se la materia prima ha unità per confezione, converti
-        if (materiaPrima && materiaPrima.unita_per_confezione && materiaPrima.unita_misura_interna) {
-          // Se l'ingrediente è espresso in unità interne (es. lattine) e la materia prima è in confezioni
-          if (ing.unita_misura === materiaPrima.unita_misura_interna && 
-              materiaPrima.unita_misura !== materiaPrima.unita_misura_interna) {
-            // Converti da unità interne a unità principale (es. da lattine a confezioni)
-            quantitaConvertita = quantitaConvertita / materiaPrima.unita_per_confezione;
-            unitaMisuraFinale = materiaPrima.unita_misura;
-          }
-        }
-        
+        // È una materia prima: aggiungi direttamente
         if (!risultato[key]) {
           risultato[key] = {
             nome: ing.nome_prodotto,
             quantita: 0,
-            unita_misura: unitaMisuraFinale
+            unita_misura: ing.unita_misura
           };
         }
-        risultato[key].quantita += quantitaConvertita;
+        risultato[key].quantita += (ing.quantita * moltiplicatore);
       }
     });
     
