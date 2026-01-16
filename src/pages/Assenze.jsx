@@ -52,6 +52,27 @@ function TurnoAltroDisplay({ turnoId, richiestoANome, getStoreName }) {
   );
 }
 
+// Componente per contare turni coinvolti
+function TurniCoinvoltiCountDisplay({ turniIds, dipendenteId }) {
+  const { data: turni = [], isLoading } = useQuery({
+    queryKey: ['turni-coinvolti-count', turniIds, dipendenteId],
+    queryFn: async () => {
+      if (!turniIds || turniIds.length === 0) return [];
+      const allTurni = await base44.entities.TurnoPlanday.list();
+      return allTurni.filter(t => turniIds.includes(t.id) && t.dipendente_id === dipendenteId);
+    },
+    enabled: !!turniIds && turniIds.length > 0,
+  });
+
+  if (isLoading) {
+    return <Loader2 className="w-4 h-4 animate-spin text-blue-600 inline" />;
+  }
+
+  return (
+    <p className="text-xs text-slate-400">Turni coinvolti: {turni.length}</p>
+  );
+}
+
 // Componente per mostrare turni coinvolti
 function TurniCoinvoltiDisplay({ turniIds, dipendenteId, getStoreName }) {
   const { data: turni = [], isLoading } = useQuery({
@@ -459,7 +480,11 @@ export default function Assenze() {
                         <div className="text-sm text-slate-600 space-y-1">
                           <p>📅 Dal {request.data_inizio && moment(request.data_inizio).isValid() ? moment(request.data_inizio).format('DD/MM/YYYY') : 'N/A'} al {request.data_fine && moment(request.data_fine).isValid() ? moment(request.data_fine).format('DD/MM/YYYY') : 'N/A'}</p>
                           {request.motivo && <p>💬 {request.motivo}</p>}
-                          <p className="text-xs text-slate-400">Turni coinvolti: {request.turni_coinvolti?.length || 0}</p>
+                          {request.turni_coinvolti && request.turni_coinvolti.length > 0 && (
+                            <div className="mt-2">
+                              <TurniCoinvoltiCountDisplay turniIds={request.turni_coinvolti} dipendenteId={request.dipendente_id} />
+                            </div>
+                          )}
                           {request.turni_resi_liberi && <p className="text-xs text-green-600">✓ Turni resi disponibili</p>}
                         </div>
                       </div>
