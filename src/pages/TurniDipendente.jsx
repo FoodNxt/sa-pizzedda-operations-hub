@@ -38,7 +38,7 @@ export default function TurniDipendente() {
   const [showFerieModal, setShowFerieModal] = useState(false);
   const [showMalattiaModal, setShowMalattiaModal] = useState(false);
   const [ferieForm, setFerieForm] = useState({ data_inizio: '', data_fine: '', motivo: '' });
-  const [malattiaForm, setMalattiaForm] = useState({ data_inizio: '', descrizione: '', certificato: null });
+  const [malattiaForm, setMalattiaForm] = useState({ data_inizio: '', data_fine: '', descrizione: '', certificato: null });
   const [uploadingCertificato, setUploadingCertificato] = useState(false);
   const [uploadingCertificatoForId, setUploadingCertificatoForId] = useState(null);
   const [gpsPermissionStatus, setGpsPermissionStatus] = useState('unknown');
@@ -511,9 +511,12 @@ export default function TurniDipendente() {
 
   const richiestaMalattiaMutation = useMutation({
     mutationFn: async (data) => {
-      // Trova turni del giorno
-      const oggi = data.data_inizio;
-      const turniCoinvolti = turniFuturi.filter(t => t.data === oggi).map(t => t.id);
+      // Trova turni nel range date (solo turni del dipendente corrente)
+      const turniCoinvolti = turniFuturi.filter(t => 
+        t.dipendente_id === currentUser.id &&
+        t.data >= data.data_inizio && 
+        t.data <= data.data_fine
+      ).map(t => t.id);
 
       // Aggiorna turni come Malattia (Non Certificata)
       for (const turnoId of turniCoinvolti) {
@@ -527,6 +530,7 @@ export default function TurniDipendente() {
         dipendente_nome: currentUser.nome_cognome || currentUser.full_name,
         dipendente_email: currentUser.email,
         data_inizio: data.data_inizio,
+        data_fine: data.data_fine,
         descrizione: data.descrizione,
         certificato_url: data.certificato_url,
         turni_coinvolti: turniCoinvolti,
@@ -537,7 +541,7 @@ export default function TurniDipendente() {
       queryClient.invalidateQueries({ queryKey: ['turni-dipendente'] });
       queryClient.invalidateQueries({ queryKey: ['turni-futuri'] });
       setShowMalattiaModal(false);
-      setMalattiaForm({ data_inizio: '', descrizione: '', certificato: null });
+      setMalattiaForm({ data_inizio: '', data_fine: '', descrizione: '', certificato: null });
       setTimbraturaMessage({ type: 'success', text: 'Malattia segnalata!' });
       setTimeout(() => setTimbraturaMessage(null), 3000);
     }
@@ -2439,13 +2443,23 @@ export default function TurniDipendente() {
                 <Thermometer className="w-5 h-5 text-red-500" />
                 Segnala Malattia
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Data</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Data Inizio</label>
                   <input
                     type="date"
                     value={malattiaForm.data_inizio}
                     onChange={(e) => setMalattiaForm({ ...malattiaForm, data_inizio: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Data Fine</label>
+                  <input
+                    type="date"
+                    value={malattiaForm.data_fine}
+                    onChange={(e) => setMalattiaForm({ ...malattiaForm, data_fine: e.target.value })}
+                    min={malattiaForm.data_inizio}
                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
                   />
                 </div>
@@ -2460,6 +2474,15 @@ export default function TurniDipendente() {
                   />
                 </div>
               </div>
+              {malattiaForm.data_inizio && malattiaForm.data_fine && (
+                <p className="text-sm text-blue-600 mt-2">
+                  Turni coinvolti: {turniFuturi.filter(t => 
+                    t.dipendente_id === currentUser.id &&
+                    t.data >= malattiaForm.data_inizio && 
+                    t.data <= malattiaForm.data_fine
+                  ).length}
+                </p>
+              )}
               <div className="mt-4">
                 <label className="block text-sm font-medium text-slate-700 mb-1">Certificato Medico (opzionale)</label>
                 <div className="neumorphic-pressed p-4 rounded-xl">
@@ -2501,7 +2524,7 @@ export default function TurniDipendente() {
                 onClick={() => richiestaMalattiaMutation.mutate(malattiaForm)}
                 variant="primary"
                 className="mt-4"
-                disabled={!malattiaForm.data_inizio || richiestaMalattiaMutation.isPending}
+                disabled={!malattiaForm.data_inizio || !malattiaForm.data_fine || richiestaMalattiaMutation.isPending}
               >
                 {richiestaMalattiaMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Invia Segnalazione'}
               </NeumorphicButton>
