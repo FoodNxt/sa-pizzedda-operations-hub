@@ -185,15 +185,30 @@ export default function ControlloConsumi() {
           risultato[subKey].quantita += subIngredienti[subKey].quantita;
         });
       } else {
-        // È una materia prima: aggiungi direttamente
+        // È una materia prima: calcola quantità in pezzi
+        let quantitaPezzi = ing.quantita * moltiplicatore;
+        
+        // Trova la materia prima per convertire in confezioni
+        const materiaPrima = materiePrime.find(m => m.id === ing.materia_prima_id || m.nome_prodotto === ing.nome_prodotto);
+        
+        // Converti pezzi in confezioni se necessario
+        let quantitaFinale = quantitaPezzi;
+        let unitaMisuraFinale = ing.unita_misura;
+        
+        if (materiaPrima && materiaPrima.unita_per_confezione && materiaPrima.unita_per_confezione > 1) {
+          // Converti da pezzi a confezioni
+          quantitaFinale = quantitaPezzi / materiaPrima.unita_per_confezione;
+          unitaMisuraFinale = materiaPrima.unita_misura || 'confezioni';
+        }
+        
         if (!risultato[key]) {
           risultato[key] = {
             nome: ing.nome_prodotto,
             quantita: 0,
-            unita_misura: ing.unita_misura
+            unita_misura: unitaMisuraFinale
           };
         }
-        risultato[key].quantita += (ing.quantita * moltiplicatore);
+        risultato[key].quantita += quantitaFinale;
       }
     });
     
