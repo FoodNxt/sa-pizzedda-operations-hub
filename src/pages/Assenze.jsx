@@ -229,27 +229,30 @@ export default function Assenze() {
   });
 
   const handleApproveFerie = async (request, mode) => {
+    // Filtra solo i turni effettivamente assegnati al dipendente
+    const turniAssegnati = turniPlanday.filter(t => 
+      (request.turni_coinvolti || []).includes(t.id) && 
+      t.dipendente_id === request.dipendente_id
+    );
+
     // Aggiorna i turni coinvolti
-    for (const turnoId of (request.turni_coinvolti || [])) {
-      const turno = turniPlanday.find(t => t.id === turnoId);
-      if (turno) {
-        if (mode === 'ferie_liberi') {
-          // Crea copia del turno come libero
-          await createTurnoMutation.mutateAsync({
-            ...turno,
-            id: undefined,
-            dipendente_id: '',
-            dipendente_nome: '',
-            tipo_turno: 'Normale',
-            note: `Turno liberato per ferie di ${request.dipendente_nome}`
-          });
-        }
-        // Aggiorna turno originale come Ferie
-        await updateTurnoMutation.mutateAsync({
-          id: turnoId,
-          data: { tipo_turno: 'Ferie' }
+    for (const turno of turniAssegnati) {
+      if (mode === 'ferie_liberi') {
+        // Crea copia del turno come libero
+        await createTurnoMutation.mutateAsync({
+          ...turno,
+          id: undefined,
+          dipendente_id: '',
+          dipendente_nome: '',
+          tipo_turno: 'Normale',
+          note: `Turno liberato per ferie di ${request.dipendente_nome}`
         });
       }
+      // Aggiorna turno originale come Ferie
+      await updateTurnoMutation.mutateAsync({
+        id: turno.id,
+        data: { tipo_turno: 'Ferie' }
+      });
     }
 
     // Approva la richiesta
@@ -276,10 +279,15 @@ export default function Assenze() {
   };
 
   const handleVerifyMalattia = async (request, approved) => {
+    // Filtra solo i turni effettivamente assegnati al dipendente
+    const turniAssegnati = turniPlanday.filter(t => 
+      (request.turni_coinvolti || []).includes(t.id) && 
+      t.dipendente_id === request.dipendente_id
+    );
+
     // Aggiorna i turni coinvolti e crea turni liberi se approvato
-    for (const turnoId of (request.turni_coinvolti || [])) {
-      const turno = turniPlanday.find(t => t.id === turnoId);
-      if (turno && approved) {
+    for (const turno of turniAssegnati) {
+      if (approved) {
         // Crea turno libero per sostituzione
         await createTurnoMutation.mutateAsync({
           store_id: turno.store_id,
@@ -297,7 +305,7 @@ export default function Assenze() {
       }
       
       await updateTurnoMutation.mutateAsync({
-        id: turnoId,
+        id: turno.id,
         data: { 
           tipo_turno: approved ? 'Malattia (Certificata)' : 'Malattia (Non Certificata)'
         }
@@ -437,7 +445,7 @@ export default function Assenze() {
         {activeTab === 'ferie' && (
           <NeumorphicCard className="p-6">
             <h2 className="text-xl font-bold text-slate-800 mb-4">Richieste Ferie</h2>
-            
+
             {loadingFerie ? (
               <div className="text-center py-8">
                 <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto" />
@@ -445,49 +453,159 @@ export default function Assenze() {
             ) : richiesteFerie.length === 0 ? (
               <p className="text-slate-500 text-center py-8">Nessuna richiesta di ferie</p>
             ) : (
-              <div className="space-y-3">
-                {richiesteFerie.map(request => (
-                  <div key={request.id} className="neumorphic-pressed p-4 rounded-xl">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <User className="w-4 h-4 text-slate-500" />
-                          <span className="font-bold text-slate-800">{request.dipendente_nome}</span>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatoColor(request.stato)}`}>
-                            {getStatoLabel(request.stato)}
-                          </span>
-                        </div>
-                        <div className="text-sm text-slate-600 space-y-1">
-                          <p>📅 Dal {request.data_inizio && moment(request.data_inizio).isValid() ? moment(request.data_inizio).format('DD/MM/YYYY') : 'N/A'} al {request.data_fine && moment(request.data_fine).isValid() ? moment(request.data_fine).format('DD/MM/YYYY') : 'N/A'}</p>
-                          {request.motivo && <p>💬 {request.motivo}</p>}
-                          {request.turni_coinvolti && request.turni_coinvolti.length > 0 && (
-                            <div className="mt-2">
-                              <TurniCoinvoltiCountDisplay turniIds={request.turni_coinvolti} dipendenteId={request.dipendente_id} allTurni={turniPlanday} />
-                            </div>
-                          )}
-                          {request.turni_resi_liberi && <p className="text-xs text-green-600">✓ Turni resi disponibili</p>}
-                        </div>
+              <div className="space-y-4">
+                {/* In Attesa */}
+                {richiesteFerie.filter(r => r.stato === 'in_attesa').length > 0 && (
+                  <div>
+                    <button
+                      onClick={() => setExpandedSections(prev => ({ ...prev, ferie_attesa: !prev.ferie_attesa }))}
+                      className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-yellow-50 border-2 border-yellow-200 hover:bg-yellow-100 transition-all mb-2"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Clock className="w-5 h-5 text-yellow-600" />
+                        <span className="font-bold text-slate-800">In Attesa</span>
+                        <span className="bg-yellow-200 text-yellow-800 text-xs px-2 py-0.5 rounded-full font-medium">
+                          {richiesteFerie.filter(r => r.stato === 'in_attesa').length}
+                        </span>
                       </div>
-                      
-                      {request.stato === 'in_attesa' && (
-                        <div className="flex flex-col gap-2">
-                          <button
-                            onClick={() => { setSelectedRequest(request); setApprovalMode('select'); }}
-                            className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 flex items-center gap-1"
-                          >
-                            <Check className="w-3 h-3" /> Approva
-                          </button>
-                          <button
-                            onClick={() => handleRejectFerie(request)}
-                            className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 flex items-center gap-1"
-                          >
-                            <X className="w-3 h-3" /> Rifiuta
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                      {expandedSections.ferie_attesa ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                    </button>
+
+                    {expandedSections.ferie_attesa && (
+                      <div className="space-y-3 ml-4">
+                        {richiesteFerie.filter(r => r.stato === 'in_attesa').map(request => (
+                          <div key={request.id} className="neumorphic-pressed p-4 rounded-xl">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <User className="w-4 h-4 text-slate-500" />
+                                  <span className="font-bold text-slate-800">{request.dipendente_nome}</span>
+                                </div>
+                                <div className="text-sm text-slate-600 space-y-1">
+                                  <p>📅 Dal {request.data_inizio && moment(request.data_inizio).isValid() ? moment(request.data_inizio).format('DD/MM/YYYY') : 'N/A'} al {request.data_fine && moment(request.data_fine).isValid() ? moment(request.data_fine).format('DD/MM/YYYY') : 'N/A'}</p>
+                                  {request.motivo && <p>💬 {request.motivo}</p>}
+                                  {request.turni_coinvolti && request.turni_coinvolti.length > 0 && (
+                                    <div className="mt-2">
+                                      <TurniCoinvoltiCountDisplay turniIds={request.turni_coinvolti} dipendenteId={request.dipendente_id} allTurni={turniPlanday} />
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col gap-2">
+                                <button
+                                  onClick={() => { setSelectedRequest(request); setApprovalMode('select'); }}
+                                  className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 flex items-center gap-1"
+                                >
+                                  <Check className="w-3 h-3" /> Approva
+                                </button>
+                                <button
+                                  onClick={() => handleRejectFerie(request)}
+                                  className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 flex items-center gap-1"
+                                >
+                                  <X className="w-3 h-3" /> Rifiuta
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                ))}
+                )}
+
+                {/* Confermate */}
+                {richiesteFerie.filter(r => r.stato === 'approvata').length > 0 && (
+                  <div>
+                    <button
+                      onClick={() => setExpandedSections(prev => ({ ...prev, ferie_approvate: !prev.ferie_approvate }))}
+                      className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-green-50 border-2 border-green-200 hover:bg-green-100 transition-all mb-2"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Check className="w-5 h-5 text-green-600" />
+                        <span className="font-bold text-slate-800">Confermate</span>
+                        <span className="bg-green-200 text-green-800 text-xs px-2 py-0.5 rounded-full font-medium">
+                          {richiesteFerie.filter(r => r.stato === 'approvata').length}
+                        </span>
+                      </div>
+                      {expandedSections.ferie_approvate ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                    </button>
+
+                    {expandedSections.ferie_approvate && (
+                      <div className="space-y-3 ml-4">
+                        {richiesteFerie.filter(r => r.stato === 'approvata').map(request => (
+                          <div key={request.id} className="neumorphic-pressed p-4 rounded-xl opacity-80">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <User className="w-4 h-4 text-slate-500" />
+                                  <span className="font-bold text-slate-800">{request.dipendente_nome}</span>
+                                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Approvata</span>
+                                </div>
+                                <div className="text-sm text-slate-600 space-y-1">
+                                  <p>📅 Dal {request.data_inizio && moment(request.data_inizio).isValid() ? moment(request.data_inizio).format('DD/MM/YYYY') : 'N/A'} al {request.data_fine && moment(request.data_fine).isValid() ? moment(request.data_fine).format('DD/MM/YYYY') : 'N/A'}</p>
+                                  {request.motivo && <p>💬 {request.motivo}</p>}
+                                  {request.turni_coinvolti && request.turni_coinvolti.length > 0 && (
+                                    <div className="mt-2">
+                                      <TurniCoinvoltiCountDisplay turniIds={request.turni_coinvolti} dipendenteId={request.dipendente_id} allTurni={turniPlanday} />
+                                    </div>
+                                  )}
+                                  {request.turni_resi_liberi && <p className="text-xs text-green-600">✓ Turni resi disponibili</p>}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Rifiutate */}
+                {richiesteFerie.filter(r => r.stato === 'rifiutata').length > 0 && (
+                  <div>
+                    <button
+                      onClick={() => setExpandedSections(prev => ({ ...prev, ferie_rifiutate: !prev.ferie_rifiutate }))}
+                      className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-red-50 border-2 border-red-200 hover:bg-red-100 transition-all mb-2"
+                    >
+                      <div className="flex items-center gap-3">
+                        <X className="w-5 h-5 text-red-600" />
+                        <span className="font-bold text-slate-800">Rifiutate</span>
+                        <span className="bg-red-200 text-red-800 text-xs px-2 py-0.5 rounded-full font-medium">
+                          {richiesteFerie.filter(r => r.stato === 'rifiutata').length}
+                        </span>
+                      </div>
+                      {expandedSections.ferie_rifiutate ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                    </button>
+
+                    {expandedSections.ferie_rifiutate && (
+                      <div className="space-y-3 ml-4">
+                        {richiesteFerie.filter(r => r.stato === 'rifiutata').map(request => (
+                          <div key={request.id} className="neumorphic-pressed p-4 rounded-xl opacity-70">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <User className="w-4 h-4 text-slate-500" />
+                                  <span className="font-bold text-slate-800">{request.dipendente_nome}</span>
+                                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Rifiutata</span>
+                                </div>
+                                <div className="text-sm text-slate-600 space-y-1">
+                                  <p>📅 Dal {request.data_inizio && moment(request.data_inizio).isValid() ? moment(request.data_inizio).format('DD/MM/YYYY') : 'N/A'} al {request.data_fine && moment(request.data_fine).isValid() ? moment(request.data_fine).format('DD/MM/YYYY') : 'N/A'}</p>
+                                  {request.motivo && <p>💬 {request.motivo}</p>}
+                                  {request.turni_coinvolti && request.turni_coinvolti.length > 0 && (
+                                    <div className="mt-2">
+                                      <TurniCoinvoltiCountDisplay turniIds={request.turni_coinvolti} dipendenteId={request.dipendente_id} allTurni={turniPlanday} />
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </NeumorphicCard>
