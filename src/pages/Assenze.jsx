@@ -52,44 +52,24 @@ function TurnoAltroDisplay({ turnoId, richiestoANome, getStoreName }) {
   );
 }
 
-// Componente per contare turni coinvolti
-function TurniCoinvoltiCountDisplay({ turniIds, dipendenteId }) {
-  const { data: turni = [], isLoading } = useQuery({
-    queryKey: ['turni-coinvolti-count', turniIds, dipendenteId],
-    queryFn: async () => {
-      if (!turniIds || turniIds.length === 0) return [];
-      const allTurni = await base44.entities.TurnoPlanday.list();
-      return allTurni.filter(t => turniIds.includes(t.id) && t.dipendente_id === dipendenteId);
-    },
-    enabled: !!turniIds && turniIds.length > 0,
-  });
-
-  if (isLoading) {
-    return <Loader2 className="w-4 h-4 animate-spin text-blue-600 inline" />;
-  }
+// Componente per contare turni coinvolti - usa dati già caricati
+function TurniCoinvoltiCountDisplay({ turniIds, dipendenteId, allTurni }) {
+  const turniEffettivi = allTurni.filter(t => 
+    turniIds?.includes(t.id) && t.dipendente_id === dipendenteId
+  );
 
   return (
-    <p className="text-xs text-slate-400">Turni coinvolti: {turni.length}</p>
+    <p className="text-xs text-slate-400">Turni coinvolti: {turniEffettivi.length}</p>
   );
 }
 
-// Componente per mostrare turni coinvolti
-function TurniCoinvoltiDisplay({ turniIds, dipendenteId, getStoreName }) {
-  const { data: turni = [], isLoading } = useQuery({
-    queryKey: ['turni-coinvolti', turniIds, dipendenteId],
-    queryFn: async () => {
-      if (!turniIds || turniIds.length === 0) return [];
-      const allTurni = await base44.entities.TurnoPlanday.list();
-      return allTurni.filter(t => turniIds.includes(t.id) && t.dipendente_id === dipendenteId);
-    },
-    enabled: !!turniIds && turniIds.length > 0,
-  });
+// Componente per mostrare turni coinvolti - usa dati già caricati
+function TurniCoinvoltiDisplay({ turniIds, dipendenteId, getStoreName, allTurni }) {
+  const turni = allTurni.filter(t => 
+    turniIds?.includes(t.id) && t.dipendente_id === dipendenteId
+  );
 
-  if (isLoading) {
-    return <Loader2 className="w-4 h-4 animate-spin text-blue-600" />;
-  }
-
-  if (turni.length === 0) return <p className="text-xs text-slate-500">Nessun turno trovato</p>;
+  if (turni.length === 0) return <p className="text-xs text-slate-500">Nessun turno assegnato trovato</p>;
 
   return (
     <div className="space-y-2">
@@ -482,7 +462,7 @@ export default function Assenze() {
                           {request.motivo && <p>💬 {request.motivo}</p>}
                           {request.turni_coinvolti && request.turni_coinvolti.length > 0 && (
                             <div className="mt-2">
-                              <TurniCoinvoltiCountDisplay turniIds={request.turni_coinvolti} dipendenteId={request.dipendente_id} />
+                              <TurniCoinvoltiCountDisplay turniIds={request.turni_coinvolti} dipendenteId={request.dipendente_id} allTurni={turniPlanday} />
                             </div>
                           )}
                           {request.turni_resi_liberi && <p className="text-xs text-green-600">✓ Turni resi disponibili</p>}
@@ -545,7 +525,7 @@ export default function Assenze() {
                           {request.turni_coinvolti && request.turni_coinvolti.length > 0 && (
                             <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
                               <p className="text-xs font-bold text-blue-700 mb-2">Turni coinvolti:</p>
-                              <TurniCoinvoltiDisplay turniIds={request.turni_coinvolti} dipendenteId={request.dipendente_id} getStoreName={getStoreName} />
+                              <TurniCoinvoltiDisplay turniIds={request.turni_coinvolti} dipendenteId={request.dipendente_id} getStoreName={getStoreName} allTurni={turniPlanday} />
                             </div>
                           )}
 
