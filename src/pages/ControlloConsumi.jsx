@@ -5,7 +5,7 @@ import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
 import { Package, TrendingUp, TrendingDown, Truck, AlertTriangle, Settings, X } from "lucide-react";
-import { format, parseISO, startOfDay, subDays } from "date-fns";
+import { format, parseISO, startOfDay, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import { it } from 'date-fns/locale';
 
 export default function ControlloConsumi() {
@@ -257,6 +257,93 @@ export default function ControlloConsumi() {
 
   const datesSorted = Object.keys(datiGiornalieriPerProdotto).sort().reverse();
 
+  // Calcola dati aggregati settimanali/mensili per Confronto Consumi
+  const calculateAggregatedConfronto = (mode) => {
+    if (mode === 'daily') return { data: datiGiornalieriPerProdotto, dates: datesSorted };
+
+    const aggregated = {};
+    
+    // Raggruppa per prodotto
+    const prodottiData = {};
+    
+    Object.keys(inventariPerProdotto).forEach(prodottoId => {
+      if (!selectedProducts.includes(prodottoId)) return;
+
+      const invs = inventariPerProdotto[prodottoId];
+      
+      // Trova inventario iniziale (giorno prima del periodo) e finale (ultimo del periodo)
+      let invIniziale = null;
+      let invFinale = null;
+      
+      invs.forEach(inv => {
+        const date = inv.data_rilevazione.split('T')[0];
+        const dayBeforeStart = format(subDays(parseISO(startDate), 1), 'yyyy-MM-dd');
+        
+        if (date === dayBeforeStart) {
+          invIniziale = inv;
+        }
+        if (date >= startDate && date <= endDate) {
+          if (!invFinale || date > invFinale.data_rilevazione.split('T')[0]) {
+            invFinale = inv;
+          }
+        }
+      });
+
+      if (!invIniziale || !invFinale) return;
+
+      // Calcola vendite totali nel periodo
+      let qtyVenditaTotale = 0;
+      Object.keys(quantitaVendutePerGiorno).forEach(date => {
+        if (date >= startDate && date <= endDate) {
+          qtyVenditaTotale += quantitaVendutePerGiorno[date]?.[prodottoId]?.quantita || 0;
+        }
+      });
+
+      // Calcola arrivi totali nel periodo
+      let qtyArrivataTotale = 0;
+      Object.keys(ordiniPerGiorno).forEach(date => {
+        if (date >= startDate && date <= endDate) {
+          qtyArrivataTotale += ordiniPerGiorno[date]?.[prodottoId]?.quantita || 0;
+        }
+      });
+
+      const qtyIniziale = invIniziale.quantita_rilevata;
+      const qtyFinale = invFinale.quantita_rilevata;
+      const attesa = qtyIniziale - qtyVenditaTotale + qtyArrivataTotale;
+      const delta = qtyFinale - attesa;
+
+      // Determina periodo
+      let periodoKey;
+      if (mode === 'weekly') {
+        const weekStart = startOfWeek(parseISO(startDate), { weekStartsOn: 1 });
+        periodoKey = format(weekStart, 'yyyy-MM-dd');
+      } else if (mode === 'monthly') {
+        periodoKey = format(parseISO(startDate), 'yyyy-MM');
+      }
+
+      if (!aggregated[periodoKey]) {
+        aggregated[periodoKey] = {};
+      }
+
+      aggregated[periodoKey][prodottoId] = {
+        nome: invIniziale.nome_prodotto,
+        unita_misura: invIniziale.unita_misura,
+        qtyIniziale,
+        qtyVenduta: qtyVenditaTotale,
+        qtyArrivata: qtyArrivataTotale,
+        qtyFinale,
+        delta
+      };
+    });
+
+    const dates = Object.keys(aggregated).sort().reverse();
+    return { data: aggregated, dates };
+  };
+
+  const confrontoAggregato = calculateAggregatedConfronto(viewMode);
+  const datiConfrontoView = confrontoAggregato.data;
+  const dateConfrontoSorted = confrontoAggregato.dates;
+
   // Calcola consumi teorici da ProdottiVenduti + statistiche debug
   const consumiTeoriciPerGiorno = {};
   const debugStats = {
@@ -443,29 +530,27 @@ export default function ControlloConsumi() {
           </div>
         </NeumorphicCard>
 
-        {/* View Mode Selector (solo per Consumi Teorici) */}
-        {activeTab === 'consumi_teorici' && (
-          <NeumorphicCard className="p-4">
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-slate-700">Vista:</span>
-              <div className="flex gap-2">
-                {['daily', 'weekly', 'monthly'].map(mode => (
-                  <button
-                    key={mode}
-                    onClick={() => setViewMode(mode)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      viewMode === mode
-                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                        : 'neumorphic-flat text-slate-600'
-                    }`}
-                  >
-                    {mode === 'daily' ? 'Giornaliera' : mode === 'weekly' ? 'Settimanale' : 'Mensile'}
-                  </button>
-                ))}
-              </div>
+        {/* View Mode Selector */}
+        <NeumorphicCard className="p-4">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-slate-700">Vista:</span>
+            <div className="flex gap-2">
+              {['daily', 'weekly', 'monthly'].map(mode => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    viewMode === mode
+                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                      : 'neumorphic-flat text-slate-600'
+                  }`}
+                >
+                  {mode === 'daily' ? 'Giornaliera' : mode === 'weekly' ? 'Settimanale' : 'Mensile'}
+                </button>
+              ))}
             </div>
-          </NeumorphicCard>
-        )}
+          </div>
+        </NeumorphicCard>
 
         {/* Statistiche */}
         {activeTab === 'confronto' && (
@@ -520,15 +605,19 @@ export default function ControlloConsumi() {
         </div>
         )}
 
-        {/* Tabella dati giornalieri */}
+        {/* Tabella dati confronto */}
         {activeTab === 'confronto' && (
           <NeumorphicCard className="p-6">
-          <h2 className="text-xl font-bold text-slate-700 mb-4">Dettaglio Giornaliero per Prodotto</h2>
+          <h2 className="text-xl font-bold text-slate-700 mb-4">
+            Dettaglio {viewMode === 'daily' ? 'Giornaliero' : viewMode === 'weekly' ? 'Settimanale' : 'Mensile'} per Prodotto
+          </h2>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b-2 border-slate-300">
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Data</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">
+                    {viewMode === 'daily' ? 'Data' : viewMode === 'weekly' ? 'Settimana' : 'Mese'}
+                  </th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Prodotto</th>
                   <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Qty Iniziale</th>
                   <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Qty Venduta</th>
@@ -539,8 +628,8 @@ export default function ControlloConsumi() {
                 </tr>
               </thead>
               <tbody>
-                {datesSorted.map(date => {
-                  const prodotti = datiGiornalieriPerProdotto[date] || {};
+                {dateConfrontoSorted.map(date => {
+                  const prodotti = datiConfrontoView[date] || {};
                   
                   return Object.keys(prodotti).map(prodId => {
                     const prod = prodotti[prodId];
@@ -549,7 +638,14 @@ export default function ControlloConsumi() {
 
                     return (
                       <tr key={`${date}-${prodId}`} className="border-b border-slate-100 hover:bg-slate-50">
-                        <td className="py-3 px-4 text-sm text-slate-600">{format(parseISO(date), 'dd/MM/yyyy')}</td>
+                        <td className="py-3 px-4 text-sm text-slate-600">
+                          {viewMode === 'daily' 
+                            ? format(parseISO(date), 'dd/MM/yyyy')
+                            : viewMode === 'weekly'
+                            ? `${format(parseISO(date), 'dd/MM/yyyy')}`
+                            : format(parseISO(date + '-01'), 'MMMM yyyy', { locale: it })
+                          }
+                        </td>
                         <td className="py-3 px-4 text-sm text-slate-700 font-medium">{prod.nome}</td>
                         <td className="py-3 px-4 text-sm text-slate-700 text-right">{prod.qtyIniziale.toFixed(2)}</td>
                         <td className="py-3 px-4 text-sm text-orange-600 text-right font-medium">-{prod.qtyVenduta.toFixed(2)}</td>
@@ -569,7 +665,7 @@ export default function ControlloConsumi() {
             </table>
           </div>
 
-          {datesSorted.length === 0 && (
+          {dateConfrontoSorted.length === 0 && (
             <div className="text-center py-8 text-slate-500">
               Nessun dato disponibile per il periodo selezionato
             </div>
