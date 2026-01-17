@@ -232,9 +232,6 @@ export default function Valutazione() {
        ? myCleaningInspections.reduce((sum, i) => sum + (i.overall_score || 0), 0) / myCleaningInspections.length
        : 0;
 
-     // Calculate total delay minutes (using minuti_ritardo_conteggiato like Store Manager)
-     const totalDelayMinutes = myTurni.reduce((acc, t) => acc + (t.minuti_ritardo_conteggiato || 0), 0);
-
     // Calculate overall score (same formula as admin page)
     let overallScore = 100;
     
