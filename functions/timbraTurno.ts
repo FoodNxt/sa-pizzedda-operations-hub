@@ -84,6 +84,31 @@ Deno.serve(async (req) => {
 
     const updatedTurno = await base44.asServiceRole.entities.TurnoPlanday.update(turnoId, updateData);
 
+    // Se è una timbratura entrata con ritardo, crea anche il record RitardoDipendente
+    if (tipo === 'entrata' && updateData.in_ritardo) {
+      const existingRitardo = await base44.asServiceRole.entities.RitardoDipendente.filter({ turno_id: turnoId });
+
+      const ritardoData = {
+        turno_id: turnoId,
+        dipendente_id: turno.dipendente_id,
+        dipendente_nome: turno.dipendente_nome,
+        store_id: turno.store_id,
+        store_nome: turno.store_nome,
+        data: turno.data,
+        ora_inizio_prevista: turno.ora_inizio,
+        ora_timbratura_entrata: serverTimestamp,
+        minuti_ritardo_reale: updateData.minuti_ritardo_reale,
+        minuti_ritardo_conteggiato: updateData.minuti_ritardo_conteggiato,
+        ruolo: turno.ruolo
+      };
+
+      if (existingRitardo.length > 0) {
+        await base44.asServiceRole.entities.RitardoDipendente.update(existingRitardo[0].id, ritardoData);
+      } else {
+        await base44.asServiceRole.entities.RitardoDipendente.create(ritardoData);
+      }
+    }
+
     return Response.json({
       success: true,
       turno: updatedTurno,
