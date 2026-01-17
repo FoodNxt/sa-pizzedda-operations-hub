@@ -100,7 +100,7 @@ export default function ControlloPuliziaPizzaiolo() {
       
       // Filtra domande per ruolo Pizzaiolo
       const domandePerRuolo = allDomande.filter(d => 
-        d.attiva !== false && 
+        d.attivo !== false && 
         d.ruoli_assegnati?.includes('Pizzaiolo')
       );
       
