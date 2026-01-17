@@ -66,42 +66,60 @@ export default function Ritardi() {
 
   // Filter turni by date and store
   const filteredTurni = useMemo(() => {
-    return turni.filter(t => {
-      // Deve avere timbratura entrata
-      if (!t.timbratura_entrata) return false;
-      
-      // Calcola ritardo reale (usa campo se presente, altrimenti calcola)
-      let minutiRitardoReale = t.minuti_ritardo_reale || t.minuti_ritardo || 0;
-      
-      // Se non c'è ritardo registrato, prova a calcolarlo al volo
-      if (minutiRitardoReale === 0 && t.ora_inizio) {
-        try {
-          const clockInTime = new Date(t.timbratura_entrata);
-          const [oraInizioHH, oraInizioMM] = t.ora_inizio.split(':').map(Number);
-          const scheduledStart = new Date(clockInTime);
-          scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
-          const delayMs = clockInTime - scheduledStart;
-          minutiRitardoReale = Math.floor(delayMs / 60000);
-        } catch (e) {
-          // Skip in caso di errore
+    return turni
+      .map(t => {
+        // Calcola ritardo reale (usa campo se presente, altrimenti calcola)
+        let minutiRitardoReale = t.minuti_ritardo_reale || 0;
+        let minutiRitardoConteggiato = t.minuti_ritardo_conteggiato || 0;
+        
+        // Se non c'è ritardo registrato, prova a calcolarlo al volo
+        if (minutiRitardoReale === 0 && t.timbratura_entrata && t.ora_inizio) {
+          try {
+            const clockInTime = new Date(t.timbratura_entrata);
+            const [oraInizioHH, oraInizioMM] = t.ora_inizio.split(':').map(Number);
+            const scheduledStart = new Date(clockInTime);
+            scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
+            const delayMs = clockInTime - scheduledStart;
+            minutiRitardoReale = Math.max(0, Math.floor(delayMs / 60000));
+            
+            // Calcola anche il conteggiato con la policy
+            if (minutiRitardoReale >= 1 && minutiRitardoReale <= 5) {
+              minutiRitardoConteggiato = 0;
+            } else if (minutiRitardoReale >= 6 && minutiRitardoReale <= 15) {
+              minutiRitardoConteggiato = 15;
+            } else if (minutiRitardoReale > 15) {
+              minutiRitardoConteggiato = minutiRitardoReale;
+            }
+          } catch (e) {
+            // Skip in caso di errore
+          }
         }
-      }
-      
-      // Deve avere ritardo
-      if (minutiRitardoReale <= 0) return false;
-      
-      // Filtro store
-      const matchStore = selectedStore === "all" || t.store_id === selectedStore;
-      if (!matchStore) return false;
-      
-      // Filtro data
-      if (dateRangeStart) {
-        const turnoDate = new Date(t.data);
-        if (turnoDate < dateRangeStart) return false;
-      }
-      
-      return true;
-    });
+        
+        return {
+          ...t,
+          minuti_ritardo_reale: minutiRitardoReale,
+          minuti_ritardo_conteggiato: minutiRitardoConteggiato
+        };
+      })
+      .filter(t => {
+        // Deve avere timbratura entrata
+        if (!t.timbratura_entrata) return false;
+        
+        // Deve avere ritardo
+        if (t.minuti_ritardo_reale <= 0) return false;
+        
+        // Filtro store
+        const matchStore = selectedStore === "all" || t.store_id === selectedStore;
+        if (!matchStore) return false;
+        
+        // Filtro data
+        if (dateRangeStart) {
+          const turnoDate = new Date(t.data);
+          if (turnoDate < dateRangeStart) return false;
+        }
+        
+        return true;
+      });
   }, [turni, selectedStore, dateRangeStart]);
 
   // Calcola statistiche per store
