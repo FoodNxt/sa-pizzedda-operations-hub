@@ -178,7 +178,7 @@ export default function StoreManagerAdmin() {
       }
     });
 
-    // Pulizie - calcola media degli overall_score dei form pulizia completati
+    // Pulizie - calcola media degli score dai form pulizia completati
     const storePulizie = pulizie.filter(p => 
       p.store_id === storeId && 
       p.inspection_date &&
@@ -187,39 +187,40 @@ export default function StoreManagerAdmin() {
       p.analysis_status === 'completed'
     );
     
-    // Per ogni form, usa overall_score se presente, altrimenti calcola da domande_risposte
+    // Per ogni form, calcola lo score contando gli stati di pulizia
     const scores = storePulizie.map(inspection => {
-      if (inspection.overall_score !== null && inspection.overall_score !== undefined) {
-        return inspection.overall_score;
-      }
+      let equipmentScores = [];
       
-      // Fallback: calcola da domande_risposte
-      if (!inspection.domande_risposte || inspection.domande_risposte.length === 0) return null;
+      // Elenco di tutte le attrezzature possibili
+      const equipmentList = [
+        'forno', 'impastatrice', 'tavolo_lavoro', 'frigo', 'cassa', 'lavandino',
+        'tavolette_takeaway', 'colonna_frigo_1', 'colonna_frigo_2', 'banco_da_lavoro_inox_grande',
+        'banco_da_lavoro_inox_piccolo', 'pavimenti_ed_angoli', 'tavoli_sala_clienti', 'vetrata_ingresso',
+        'stendipizza', 'barelle_palline_piccole', 'barelle_impasto_grande', 'teglie', 'sottovuotatrice',
+        'abbattitore', 'frigo_doppio', 'frigo_bibite'
+      ];
       
-      let totalScore = 0;
-      let count = 0;
-      
-      inspection.domande_risposte.forEach(risposta => {
-        if (!risposta.attrezzatura) return;
+      equipmentList.forEach(equipment => {
+        const statusKey = `${equipment}_pulizia_status`;
+        const correctedKey = `${equipment}_corrected`;
+        const correctedStatusKey = `${equipment}_corrected_status`;
         
-        const equipmentKey = risposta.attrezzatura.toLowerCase().replace(/\s+/g, '_');
-        const status = inspection[`${equipmentKey}_corrected`]
-          ? inspection[`${equipmentKey}_corrected_status`]
-          : inspection[`${equipmentKey}_pulizia_status`];
+        const status = inspection[correctedKey] 
+          ? inspection[correctedStatusKey]
+          : inspection[statusKey];
         
         if (status === 'pulito') {
-          totalScore += 100;
-          count++;
+          equipmentScores.push(100);
         } else if (status === 'medio') {
-          totalScore += 50;
-          count++;
+          equipmentScores.push(50);
         } else if (status === 'sporco') {
-          totalScore += 0;
-          count++;
+          equipmentScores.push(0);
         }
       });
       
-      return count > 0 ? totalScore / count : null;
+      return equipmentScores.length > 0 
+        ? equipmentScores.reduce((sum, s) => sum + s, 0) / equipmentScores.length 
+        : null;
     }).filter(s => s !== null);
     
     const mediaPulizie = scores.length > 0
