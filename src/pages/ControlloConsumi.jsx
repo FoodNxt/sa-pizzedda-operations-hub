@@ -608,11 +608,6 @@ export default function ControlloConsumi() {
       const prod = datiGiornalieriPerProdotto[date]?.[mozz.id];
       if (!prod) return;
 
-      // Calcola grammi venduti dal calcolo quantità venduta
-      const grammiVenduti = quantitaVendutePerGiorno[date]?.[mozz.id]?.quantita || 0;
-      const kgVenduti = grammiVenduti / 1000;
-      const pezziVenduti = prod.qtyVenduta;
-
       // Calcola breakdown per prodotto venduto (usa espandiIngredientiGrammi per avere grammi originali)
       const breakdown = [];
       filteredVendite.filter(v => v.data_vendita === date).forEach(vendita => {
@@ -632,6 +627,11 @@ export default function ControlloConsumi() {
           });
         }
       });
+
+      // Calcola grammi venduti dalla somma del breakdown (così è coerente)
+      const grammiVenduti = breakdown.reduce((sum, item) => sum + item.grammiTotali, 0);
+      const kgVenduti = grammiVenduti / 1000;
+      const pezziVenduti = prod.qtyVenduta;
 
       datiMozz.giornaliero.push({
         data: date,
