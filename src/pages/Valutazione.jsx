@@ -101,55 +101,28 @@ export default function Valutazione() {
     }
   };
 
-  // Filter shifts for current user with date range
-   const myShifts = useMemo(() => {
-     if (!user || !shifts.length) return [];
-     return shifts.filter(s => {
-       // Match by user ID
-       if (s.dipendente_id !== user.id) return false;
-       // Apply date filter
-       try {
-         const shiftDate = new Date(s.data);
-         return shiftDate >= filterDate;
-       } catch (e) {
-         return true;
-       }
-     });
-   }, [user, shifts, filterDate]);
-
-   // Fetch TurnoPlanday for proper delay calculation
-   const { data: turniPlanday = [] } = useQuery({
-     queryKey: ['turni-planday'],
-     queryFn: () => base44.entities.TurnoPlanday.list('-data'),
-   });
-
-   // Fetch cleaning inspections
+  // Fetch cleaning inspections
    const { data: cleaningInspections = [] } = useQuery({
      queryKey: ['cleaning-inspections'],
      queryFn: () => base44.entities.CleaningInspection.list('-inspection_date'),
    });
 
-   // Use TurnoPlanday instead of shifts for correct delay data
-   const myTurni = useMemo(() => {
-     if (!user || !turniPlanday.length) return [];
-     return turniPlanday.filter(t => {
-       // Match by user ID
-       if (t.dipendente_id !== user.id) return false;
-       // Apply date filter
-       try {
-         const turnoDate = new Date(t.data);
-         return turnoDate >= filterDate;
-       } catch (e) {
-         return true;
-       }
-     });
-   }, [user, turniPlanday, filterDate]);
-
-  // Calculate user store IDs
+  // Calculate user store IDs (SAME AS DASHBOARDSTOREMANAGER)
   const userStoreIds = useMemo(() => {
     if (!user || !shifts.length) return [];
-    return [...new Set(shifts.filter(s => s.employee_id_external === user.employee_id_external || s.dipendente_id === user.id).map(s => s.store_id).filter(Boolean))];
+    return [...new Set(shifts.filter(s => s.employee_id_external === user.employee_id_external).map(s => s.store_id).filter(Boolean))];
   }, [user, shifts]);
+
+  // Filter shifts for current user with date range (SAME AS DASHBOARDSTOREMANAGER)
+   const myShifts = useMemo(() => {
+     if (!user || !shifts.length) return [];
+     const monthStart = filterDate;
+     const monthEnd = new Date();
+     return shifts.filter(s => {
+       const date = new Date(s.shift_date);
+       return s.employee_id_external === user.employee_id_external && date >= monthStart && date <= monthEnd;
+     });
+   }, [user, shifts, filterDate]);
 
   // Filter reviews assigned to current user with date range
   const myReviews = useMemo(() => {
