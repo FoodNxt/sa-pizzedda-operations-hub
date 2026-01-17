@@ -43,28 +43,34 @@ export default function Produttivita() {
     queryFn: () => base44.entities.TipoTurnoConfig.list(),
   });
 
-  // Estrai tipi turno unici dai turni esistenti + config
+  // Estrai tipi turno unici da config + turni esistenti
   const availableTipiTurno = useMemo(() => {
-    const uniqueTipi = new Set();
+    const tipiMap = new Map();
     
-    // Aggiungi tipi dai turni effettivi
+    // Prima aggiungi tutti i tipi dalla config
+    tipiTurnoConfig.forEach(config => {
+      if (config.is_active !== false && config.nome) {
+        tipiMap.set(config.nome, {
+          nome: config.nome,
+          colore: config.colore || '#94a3b8',
+          is_active: true
+        });
+      }
+    });
+    
+    // Poi aggiungi tipi dai turni effettivi (se non già presenti)
     allShifts.forEach(shift => {
-      if (shift.tipo_turno) {
-        uniqueTipi.add(shift.tipo_turno);
+      if (shift.tipo_turno && !tipiMap.has(shift.tipo_turno)) {
+        const config = tipiTurnoConfig.find(t => t.nome === shift.tipo_turno);
+        tipiMap.set(shift.tipo_turno, {
+          nome: shift.tipo_turno,
+          colore: config?.colore || '#94a3b8',
+          is_active: config?.is_active !== false
+        });
       }
     });
 
-    // Crea array con info complete
-    const tipiList = Array.from(uniqueTipi).map(nome => {
-      const config = tipiTurnoConfig.find(t => t.nome === nome);
-      return {
-        nome,
-        colore: config?.colore || '#94a3b8',
-        is_active: config?.is_active !== false
-      };
-    });
-
-    return tipiList.filter(t => t.is_active);
+    return Array.from(tipiMap.values()).sort((a, b) => a.nome.localeCompare(b.nome));
   }, [allShifts, tipiTurnoConfig]);
 
   // Inizializza tipi turno inclusi con tutti i tipi disponibili
