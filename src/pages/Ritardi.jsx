@@ -68,11 +68,10 @@ export default function Ritardi() {
   const filteredTurni = useMemo(() => {
     return turni
       .map(t => {
-        // Usa i valori dal database se presenti, altrimenti calcola
+        // Prendo minuti_ritardo_reale dal database, o lo calcolo se non c'è
         let minutiRitardoReale = t.minuti_ritardo_reale || 0;
-        let minutiRitardoConteggiato = t.minuti_ritardo_conteggiato || 0;
         
-        // Se non c'è ritardo registrato nel database, calcolalo al volo
+        // Se non c'è ritardo reale nel database, calcolalo
         if (minutiRitardoReale === 0 && t.timbratura_entrata && t.ora_inizio) {
           try {
             const clockInTime = new Date(t.timbratura_entrata);
@@ -81,20 +80,20 @@ export default function Ritardi() {
             scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
             const delayMs = clockInTime - scheduledStart;
             minutiRitardoReale = Math.max(0, Math.floor(delayMs / 60000));
-            
-            // Calcola anche il conteggiato se non è già salvato
-            if (minutiRitardoConteggiato === 0 && minutiRitardoReale > 0) {
-              if (minutiRitardoReale >= 1 && minutiRitardoReale <= 5) {
-                minutiRitardoConteggiato = 0;
-              } else if (minutiRitardoReale >= 6 && minutiRitardoReale <= 15) {
-                minutiRitardoConteggiato = 15;
-              } else if (minutiRitardoReale > 15) {
-                minutiRitardoConteggiato = Math.ceil(minutiRitardoReale / 15) * 15;
-              }
-            }
           } catch (e) {
             // Skip in caso di errore
           }
+        }
+        
+        // SEMPRE ricalcola il conteggiato basandosi sul reale (ignora il valore nel database)
+        // Policy: 1-5min = 0, 6-15min = 15, >15min = arrotonda al quarto d'ora superiore
+        let minutiRitardoConteggiato = 0;
+        if (minutiRitardoReale >= 1 && minutiRitardoReale <= 5) {
+          minutiRitardoConteggiato = 0;
+        } else if (minutiRitardoReale >= 6 && minutiRitardoReale <= 15) {
+          minutiRitardoConteggiato = 15;
+        } else if (minutiRitardoReale > 15) {
+          minutiRitardoConteggiato = Math.ceil(minutiRitardoReale / 15) * 15;
         }
         
         return {
