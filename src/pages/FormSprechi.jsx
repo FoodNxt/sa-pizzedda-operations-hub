@@ -127,6 +127,18 @@ export default function FormSprechi() {
       const userStoreId = storeId || currentUser?.store_assegnato || currentUser?.stores_assegnati?.[0];
       const store = stores.find(s => s.id === userStoreId);
 
+      // Determina il tipo di prodotto
+      let tipo_prodotto = 'ricetta';
+      let costo_unitario = prodotto?.costo_unitario || 0;
+      
+      if (!ricette.find(r => r.id === selectedProdotto)) {
+        // È una materia prima
+        tipo_prodotto = 'materia_prima';
+        costo_unitario = prodotto?.prezzo_unitario || 0;
+      } else if (prodotto?.is_semilavorato) {
+        tipo_prodotto = 'semilavorato';
+      }
+
       const data = {
         store_id: userStoreId,
         store_name: store?.name || 'Store sconosciuto',
@@ -134,10 +146,10 @@ export default function FormSprechi() {
         rilevato_da: currentUser?.nome_cognome || currentUser?.full_name || currentUser?.email || 'Operatore',
         prodotto_id: selectedProdotto,
         prodotto_nome: prodotto?.nome_prodotto || 'Prodotto sconosciuto',
-        tipo_prodotto: 'ricetta',
+        tipo_prodotto,
         quantita_grammi: parseFloat(quantita) * 1000,
         motivo: motivoSpreco,
-        costo_unitario: prodotto?.costo_unitario || 0
+        costo_unitario
       };
 
       createSprecoMutation.mutate(data);
