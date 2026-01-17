@@ -115,6 +115,11 @@ export default function StoreManagerAdmin() {
     queryFn: () => base44.entities.CleaningInspection.filter({})
   });
 
+  const { data: cleaningConfigs = [] } = useQuery({
+    queryKey: ['pulizie-configs'],
+    queryFn: () => base44.entities.PulizieConfig.list()
+  });
+
   // Calculate actual results per store for selected month
   const getActualResults = (storeId) => {
     const monthStart = moment(selectedMonth, 'YYYY-MM').startOf('month');
