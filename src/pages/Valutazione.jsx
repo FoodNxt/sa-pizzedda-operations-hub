@@ -50,6 +50,12 @@ export default function Valutazione() {
     queryFn: () => base44.entities.WrongOrder.list('-created_date'),
   });
 
+  // Fetch wrong order matches
+  const { data: wrongOrderMatches = [] } = useQuery({
+    queryKey: ['wrong-order-matches'],
+    queryFn: () => base44.entities.WrongOrderMatch.list(),
+  });
+
   // Match shifts and reviews by nome_cognome from User entity
   React.useEffect(() => {
     if (user) {
@@ -151,9 +157,14 @@ export default function Valutazione() {
   const myWrongOrders = useMemo(() => {
     if (!user || !wrongOrders.length) return [];
     const userDisplayName = (user.nome_cognome || user.full_name || '').toLowerCase().trim();
+
+    // Find all matches for this employee
+    const matchedOrderIds = wrongOrderMatches
+      .filter(m => m.matched_employee_name?.toLowerCase().trim() === userDisplayName)
+      .map(m => m.wrong_order_id);
+
     return wrongOrders.filter(wo => {
-      if (!wo.assigned_employee_name) return false;
-      if (wo.assigned_employee_name.toLowerCase().trim() !== userDisplayName) return false;
+      if (!matchedOrderIds.includes(wo.id)) return false;
       // Apply date filter
       try {
         const orderDate = new Date(wo.created_date || wo.order_date);
@@ -162,7 +173,7 @@ export default function Valutazione() {
         return true;
       }
     }).sort((a, b) => new Date(b.created_date || b.order_date) - new Date(a.created_date || a.order_date));
-  }, [user, wrongOrders, filterDate]);
+  }, [user, wrongOrders, wrongOrderMatches, filterDate]);
 
   // Filter data for current employee
   const employeeData = useMemo(() => {
