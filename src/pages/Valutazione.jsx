@@ -210,19 +210,26 @@ export default function Valutazione() {
       ? googleReviews.reduce((sum, r) => sum + r.rating, 0) / googleReviews.length
       : 0;
 
-    // Calculate cleaning score (same as Store Manager)
-    const myCleaningInspections = cleaningInspections.filter(i => {
-      if (i.inspector_name !== (user.nome_cognome || user.full_name)) return false;
-      try {
-        const inspDate = new Date(i.inspection_date);
-        return inspDate >= filterDate;
-      } catch (e) {
-        return true;
-      }
-    });
-    const avgCleaningScore = myCleaningInspections.length > 0
-      ? myCleaningInspections.reduce((sum, i) => sum + (i.overall_score || 0), 0) / myCleaningInspections.length
-      : 0;
+    // Get user's store IDs from their shifts
+     const userStoreIds = [...new Set(myTurni.map(t => t.store_id).filter(Boolean))];
+
+     // Calculate cleaning score (same as Store Manager - based on stores where user works)
+     const myCleaningInspections = cleaningInspections.filter(i => {
+       // Include inspections from the stores where the user works
+       if (!userStoreIds.includes(i.store_id)) return false;
+       try {
+         const inspDate = new Date(i.inspection_date);
+         return inspDate >= filterDate;
+       } catch (e) {
+         return true;
+       }
+     });
+     const avgCleaningScore = myCleaningInspections.length > 0
+       ? myCleaningInspections.reduce((sum, i) => sum + (i.overall_score || 0), 0) / myCleaningInspections.length
+       : 0;
+
+     // Calculate total delay minutes (using minuti_ritardo_conteggiato like Store Manager)
+     const totalDelayMinutes = myTurni.reduce((acc, t) => acc + (t.minuti_ritardo_conteggiato || 0), 0);
 
     // Calculate overall score (same formula as admin page)
     let overallScore = 100;
@@ -466,7 +473,7 @@ export default function Valutazione() {
                     <span className="font-medium text-[#6b6b6b]">{safeFormatDateLocale(shift.data)}</span>
                     {shift.store_name && <span className="text-sm text-[#9b9b9b]">• {shift.store_name}</span>}
                   </div>
-                  <span className="text-lg font-bold text-red-600">+{shift.minuti_ritardo || 0} min</span>
+                  <span className="text-lg font-bold text-red-600">+{shift.minuti_ritardo_conteggiato || 0} min</span>
                 </div>
                 <div className="text-sm text-[#9b9b9b]">
                 <strong>Previsto:</strong> {shift.ora_inizio || 'N/A'} → <strong>Effettivo:</strong> {shift.timbratura_entrata ? safeFormatTime(shift.timbratura_entrata) : 'N/A'}
