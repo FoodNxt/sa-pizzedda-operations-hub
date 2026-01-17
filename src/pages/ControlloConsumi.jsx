@@ -468,13 +468,16 @@ export default function ControlloConsumi() {
 
     // Espandi ingredienti ricorsivamente per consumi teorici
     const ingredientiEspansi = espandiIngredienti(ricetta.ingredienti, qty);
-    
+
     Object.keys(ingredientiEspansi).forEach(key => {
       if (!consumiTeoriciPerGiorno[date][key]) {
+        const materiaPrima = materiePrime.find(m => m.id === key || m.nome_prodotto === ingredientiEspansi[key].nome);
         consumiTeoriciPerGiorno[date][key] = {
           nome: ingredientiEspansi[key].nome,
           quantita: 0,
-          unita_misura: ingredientiEspansi[key].unita_misura
+          unita_misura: ingredientiEspansi[key].unita_misura,
+          peso_dimensione_unita: materiaPrima?.peso_dimensione_unita,
+          unita_misura_peso: materiaPrima?.unita_misura_peso
         };
       }
       consumiTeoriciPerGiorno[date][key].quantita += ingredientiEspansi[key].quantita;
@@ -507,7 +510,9 @@ export default function ControlloConsumi() {
           aggregated[key][prodId] = {
             nome: data[date][prodId].nome,
             quantita: 0,
-            unita_misura: data[date][prodId].unita_misura
+            unita_misura: data[date][prodId].unita_misura,
+            peso_dimensione_unita: data[date][prodId].peso_dimensione_unita,
+            unita_misura_peso: data[date][prodId].unita_misura_peso
           };
         }
         aggregated[key][prodId].quantita += data[date][prodId].quantita;
@@ -968,12 +973,13 @@ export default function ControlloConsumi() {
                     <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Materia Prima</th>
                     <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Quantità Consumata</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">UM</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Confezione/Pezzo</th>
                   </tr>
                 </thead>
                 <tbody>
                   {datesConsumiSorted.map(date => {
                     const prodotti = consumiAggregati[date] || {};
-                    
+
                     return Object.keys(prodotti).map(prodId => {
                       const prod = prodotti[prodId];
 
@@ -992,6 +998,12 @@ export default function ControlloConsumi() {
                             {prod.quantita.toFixed(2)}
                           </td>
                           <td className="py-3 px-4 text-sm text-slate-500">{prod.unita_misura}</td>
+                          <td className="py-3 px-4 text-sm text-slate-500">
+                            {prod.peso_dimensione_unita && prod.unita_misura_peso 
+                              ? `${prod.peso_dimensione_unita} ${prod.unita_misura_peso}`
+                              : '-'
+                            }
+                          </td>
                         </tr>
                       );
                     });
