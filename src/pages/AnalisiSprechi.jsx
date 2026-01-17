@@ -30,6 +30,14 @@ export default function AnalisiSprechi() {
     motivi_disponibili: []
   });
   const [newMotivo, setNewMotivo] = useState('');
+  const [showSprechiForm, setShowSprechiForm] = useState(false);
+  const [sprechiForm, setSprechiForm] = useState({
+    store_id: '',
+    data_rilevazione: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+    prodotto_id: '',
+    quantita_grammi: '',
+    motivo: ''
+  });
 
   const queryClient = useQueryClient();
 
@@ -80,6 +88,47 @@ export default function AnalisiSprechi() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sprechi-configs'] });
       setShowSprechiConfig(false);
+    },
+  });
+
+  const saveSprecoMutation = useMutation({
+    mutationFn: async (sprecoData) => {
+      const user = await base44.auth.me();
+      const store = stores.find(s => s.id === sprecoData.store_id);
+      
+      // Trova il prodotto per determinare tipo e costo
+      let prodotto = materiePrime.find(m => m.id === sprecoData.prodotto_id);
+      let tipo_prodotto = 'materia_prima';
+      let costo_unitario = prodotto?.prezzo_unitario || 0;
+      
+      if (!prodotto) {
+        prodotto = ricette.find(r => r.id === sprecoData.prodotto_id);
+        if (prodotto) {
+          tipo_prodotto = prodotto.is_semilavorato ? 'semilavorato' : 'ricetta';
+          costo_unitario = prodotto.costo_unitario || 0;
+        }
+      }
+
+      return base44.entities.Spreco.create({
+        ...sprecoData,
+        store_name: store?.name || '',
+        prodotto_nome: prodotto?.nome_prodotto || '',
+        tipo_prodotto,
+        costo_unitario,
+        rilevato_da: user.email,
+        quantita_grammi: parseFloat(sprecoData.quantita_grammi)
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sprechi'] });
+      setShowSprechiForm(false);
+      setSprechiForm({
+        store_id: '',
+        data_rilevazione: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+        prodotto_id: '',
+        quantita_grammi: '',
+        motivo: ''
+      });
     },
   });
 
@@ -336,6 +385,14 @@ export default function AnalisiSprechi() {
     });
   };
 
+  const handleSaveSpreco = () => {
+    if (!sprechiForm.store_id || !sprechiForm.prodotto_id || !sprechiForm.quantita_grammi || !sprechiForm.motivo) {
+      alert('Compila tutti i campi obbligatori');
+      return;
+    }
+    saveSprecoMutation.mutate(sprechiForm);
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -346,13 +403,22 @@ export default function AnalisiSprechi() {
             <h1 className="text-3xl font-bold text-[#6b6b6b]">Analisi Sprechi</h1>
           </div>
           {activeTab === 'sprechi' && (
-            <button
-              onClick={handleOpenSprechiConfig}
-              className="neumorphic-flat px-4 py-2 rounded-xl text-[#6b6b6b] hover:text-blue-600 transition-colors flex items-center gap-2"
-            >
-              <Settings className="w-5 h-5" />
-              Configura Sprechi
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowSprechiForm(true)}
+                className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-xl transition-colors flex items-center gap-2 shadow-lg"
+              >
+                <Plus className="w-5 h-5" />
+                Nuovo Spreco
+              </button>
+              <button
+                onClick={handleOpenSprechiConfig}
+                className="neumorphic-flat px-4 py-2 rounded-xl text-[#6b6b6b] hover:text-blue-600 transition-colors flex items-center gap-2"
+              >
+                <Settings className="w-5 h-5" />
+                Configura
+              </button>
+            </div>
           )}
         </div>
         <p className="text-[#9b9b9b]">Analizza l'andamento delle teglie buttate e degli sprechi</p>
@@ -751,6 +817,137 @@ export default function AnalisiSprechi() {
             )}
           </NeumorphicCard>
         </>
+      )}
+
+      {/* Sprechi Form Modal */}
+      {showSprechiForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <NeumorphicCard className="bg-white p-6 max-w-xl w-full">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-[#6b6b6b]">Registra Spreco</h2>
+              <button
+                onClick={() => setShowSprechiForm(false)}
+                className="neumorphic-flat p-2 rounded-lg text-[#9b9b9b] hover:text-[#6b6b6b]"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-[#6b6b6b] mb-2">Negozio *</label>
+                <select
+                  value={sprechiForm.store_id}
+                  onChange={(e) => setSprechiForm({ ...sprechiForm, store_id: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                >
+                  <option value="">Seleziona negozio</option>
+                  {stores.map(store => (
+                    <option key={store.id} value={store.id}>{store.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#6b6b6b] mb-2">Data e Ora *</label>
+                <input
+                  type="datetime-local"
+                  value={sprechiForm.data_rilevazione}
+                  onChange={(e) => setSprechiForm({ ...sprechiForm, data_rilevazione: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#6b6b6b] mb-2">Prodotto *</label>
+                <select
+                  value={sprechiForm.prodotto_id}
+                  onChange={(e) => setSprechiForm({ ...sprechiForm, prodotto_id: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                >
+                  <option value="">Seleziona prodotto</option>
+                  {activeSprechiConfig?.prodotti_abilitati?.length > 0 ? (
+                    activeSprechiConfig.prodotti_abilitati.map(p => (
+                      <option key={p.prodotto_id} value={p.prodotto_id}>
+                        {p.nome} ({p.tipo})
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <optgroup label="Materie Prime">
+                        {materiePrime.filter(m => m.attivo).map(m => (
+                          <option key={m.id} value={m.id}>{m.nome_prodotto}</option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Ricette">
+                        {ricette.filter(r => r.attivo && !r.is_semilavorato).map(r => (
+                          <option key={r.id} value={r.id}>{r.nome_prodotto}</option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Semilavorati">
+                        {ricette.filter(r => r.attivo && r.is_semilavorato).map(r => (
+                          <option key={r.id} value={r.id}>{r.nome_prodotto}</option>
+                        ))}
+                      </optgroup>
+                    </>
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#6b6b6b] mb-2">Quantità (grammi) *</label>
+                <input
+                  type="number"
+                  value={sprechiForm.quantita_grammi}
+                  onChange={(e) => setSprechiForm({ ...sprechiForm, quantita_grammi: e.target.value })}
+                  placeholder="es. 250"
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#6b6b6b] mb-2">Motivo *</label>
+                {activeSprechiConfig?.motivi_disponibili?.length > 0 ? (
+                  <select
+                    value={sprechiForm.motivo}
+                    onChange={(e) => setSprechiForm({ ...sprechiForm, motivo: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                  >
+                    <option value="">Seleziona motivo</option>
+                    {activeSprechiConfig.motivi_disponibili.map((motivo, idx) => (
+                      <option key={idx} value={motivo}>{motivo}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={sprechiForm.motivo}
+                    onChange={(e) => setSprechiForm({ ...sprechiForm, motivo: e.target.value })}
+                    placeholder="es. Scaduto, Bruciato, Caduto..."
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                  />
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+                <button
+                  onClick={() => setShowSprechiForm(false)}
+                  className="neumorphic-flat px-6 py-3 rounded-xl text-[#6b6b6b] hover:text-[#9b9b9b]"
+                >
+                  Annulla
+                </button>
+                <button
+                  onClick={handleSaveSpreco}
+                  disabled={saveSprecoMutation.isPending}
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-xl font-medium flex items-center gap-2 shadow-lg disabled:opacity-50"
+                >
+                  <Save className="w-5 h-5" />
+                  {saveSprecoMutation.isPending ? 'Salvataggio...' : 'Salva Spreco'}
+                </button>
+              </div>
+            </div>
+          </NeumorphicCard>
+        </div>
       )}
 
       {/* Sprechi Config Modal */}

@@ -56,6 +56,11 @@ export default function ControlloConsumi() {
     queryFn: () => base44.entities.MateriePrime.list()
   });
 
+  const { data: sprechi = [] } = useQuery({
+    queryKey: ['sprechi'],
+    queryFn: () => base44.entities.Spreco.list()
+  });
+
   // Helper: determina il tipo di prodotto
   const getProductType = (prodottoId, nomeProdotto) => {
     // Cerca in materie prime
@@ -115,6 +120,13 @@ export default function ControlloConsumi() {
   const filteredVendite = prodottiVenduti.filter(v => {
     const matchStore = selectedStore === "all" || v.store_id === selectedStore;
     const matchDate = v.data_vendita >= startDate && v.data_vendita <= endDate;
+    return matchStore && matchDate;
+  });
+
+  const filteredSprechi = sprechi.filter(s => {
+    const matchStore = selectedStore === "all" || s.store_id === selectedStore;
+    const dataSpreco = s.data_rilevazione.split('T')[0];
+    const matchDate = dataSpreco >= startDate && dataSpreco <= endDate;
     return matchStore && matchDate;
   });
 
@@ -638,6 +650,17 @@ export default function ControlloConsumi() {
       const kgVenduti = grammiVenduti / 1000;
       const pezziVenduti = prod.qtyVenduta;
 
+      // Calcola sprechi per questo prodotto in questa data
+      const sprechiProdotto = filteredSprechi.filter(s => {
+        const dataSpreco = s.data_rilevazione.split('T')[0];
+        return dataSpreco === date && s.prodotto_id === mozz.id;
+      });
+      const totaleSprechiGrammi = sprechiProdotto.reduce((sum, s) => sum + (s.quantita_grammi || 0), 0);
+      const totaleSprechiKg = totaleSprechiGrammi / 1000;
+      const totaleSprechiPezzi = mozz.pesoUnitario && mozz.pesoUnitario > 0 
+        ? totaleSprechiKg / mozz.pesoUnitario 
+        : 0;
+
       datiMozz.giornaliero.push({
         data: date,
         qtyIniziale: prod.qtyIniziale,
@@ -645,6 +668,9 @@ export default function ControlloConsumi() {
         kgVenduti,
         pezziVenduti,
         qtyArrivata: prod.qtyArrivata,
+        sprechiGrammi: totaleSprechiGrammi,
+        sprechiKg: totaleSprechiKg,
+        sprechiPezzi: totaleSprechiPezzi,
         qtyFinale: prod.qtyFinale,
         qtyAttesa: prod.qtyIniziale - prod.qtyVenduta + prod.qtyArrivata,
         delta: prod.delta,
@@ -853,6 +879,7 @@ export default function ControlloConsumi() {
                                 <th className="text-right py-2 px-3">Grammi Venduti<br/><span className="text-xs font-normal">(ricette)</span></th>
                                 <th className="text-right py-2 px-3">Kg Venduti</th>
                                 <th className="text-right py-2 px-3">Pezzi Venduti<br/><span className="text-xs font-normal">(calcolati)</span></th>
+                                <th className="text-right py-2 px-3">Sprechi<br/><span className="text-xs font-normal">({mozz.unitaMisura})</span></th>
                                 <th className="text-right py-2 px-3">Qty Arrivata<br/><span className="text-xs font-normal">({mozz.unitaMisura})</span></th>
                                 <th className="text-right py-2 px-3">Qty Attesa<br/><span className="text-xs font-normal">({mozz.unitaMisura})</span></th>
                                 <th className="text-right py-2 px-3">Qty Finale<br/><span className="text-xs font-normal">({mozz.unitaMisura})</span></th>
@@ -880,6 +907,14 @@ export default function ControlloConsumi() {
                                       <td className="py-2 px-3 text-right text-orange-600">{day.grammiVenduti.toFixed(0)} g</td>
                                       <td className="py-2 px-3 text-right text-orange-600 font-medium">{day.kgVenduti.toFixed(2)} kg</td>
                                       <td className="py-2 px-3 text-right text-orange-700 font-bold">-{day.pezziVenduti.toFixed(2)}</td>
+                                      <td className="py-2 px-3 text-right text-red-600">
+                                        {day.sprechiPezzi > 0 ? (
+                                          <div>
+                                            <div className="font-medium">-{day.sprechiPezzi.toFixed(2)}</div>
+                                            <div className="text-xs">({day.sprechiKg.toFixed(2)} kg)</div>
+                                          </div>
+                                        ) : '-'}
+                                      </td>
                                       <td className="py-2 px-3 text-right text-blue-600 font-medium">+{day.qtyArrivata.toFixed(2)}</td>
                                       <td className="py-2 px-3 text-right text-slate-600">{day.qtyAttesa.toFixed(2)}</td>
                                       <td className="py-2 px-3 text-right font-bold">{day.qtyFinale.toFixed(2)}</td>
