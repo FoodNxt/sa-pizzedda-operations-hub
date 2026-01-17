@@ -40,6 +40,16 @@ Deno.serve(async (req) => {
       updateData.timbratura_entrata = serverTimestamp;
       updateData.posizione_entrata = posizione;
       updateData.stato = 'in_corso';
+      
+      // CALCOLA RITARDO
+      const clockInTime = new Date(serverTimestamp);
+      const [oraInizioHH, oraInizioMM] = turno.ora_inizio.split(':').map(Number);
+      const scheduledStart = new Date(clockInTime);
+      scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
+      const delayMs = clockInTime - scheduledStart;
+      const delayMinutes = Math.floor(delayMs / 60000);
+      updateData.in_ritardo = delayMinutes > 0;
+      updateData.minuti_ritardo = delayMinutes > 0 ? delayMinutes : 0;
     } else if (tipo === 'uscita') {
       // Verifica che ci sia una timbratura entrata
       if (!turno.timbratura_entrata) {
