@@ -374,25 +374,51 @@ export default function ValutazionePulizie() {
   };
 
   const handleSaveManualEdit = async () => {
-    if (!editingPhoto || !manualStatus) return;
+     if (!editingPhoto || !manualStatus) return;
 
-    const { inspection, attrezzatura } = editingPhoto;
+     const { inspection, attrezzatura } = editingPhoto;
 
-    // Calcola lo score complessivo aggiornato
-    const updatedInspection = {
-      ...inspection,
-      [`${attrezzatura}_corrected_status`]: manualStatus
-    };
-    const newScore = calculateScore(updatedInspection);
+     // Calcola lo score complessivo aggiornato
+     const updatedInspection = {
+       ...inspection,
+       [`${attrezzatura}_corrected_status`]: manualStatus
+     };
+     const newScore = calculateScore(updatedInspection);
 
-    const updateData = {
-      [`${attrezzatura}_corrected`]: true,
-      [`${attrezzatura}_corrected_status`]: manualStatus,
-      [`${attrezzatura}_correction_note`]: manualNote,
-      overall_score: newScore
-    };
+     const updateData = {
+       [`${attrezzatura}_corrected`]: true,
+       [`${attrezzatura}_corrected_status`]: manualStatus,
+       [`${attrezzatura}_correction_note`]: manualNote,
+       overall_score: newScore
+     };
 
-    await updateInspectionMutation.mutateAsync({ id: inspection.id, data: updateData });
+     await updateInspectionMutation.mutateAsync({ id: inspection.id, data: updateData });
+   };
+
+  // Salva overall_score per tutti i form che non lo hanno
+  const handleSaveAllMissingScores = async () => {
+    const inspectionsWithoutScore = inspections.filter(i => !i.overall_score);
+
+    if (inspectionsWithoutScore.length === 0) {
+      alert('Tutti i form hanno già lo score calcolato');
+      return;
+    }
+
+    if (!confirm(`Calcolare e salvare lo score per ${inspectionsWithoutScore.length} form?`)) return;
+
+    try {
+      for (const inspection of inspectionsWithoutScore) {
+        const score = calculateScore(inspection);
+        await updateInspectionMutation.mutateAsync({ 
+          id: inspection.id, 
+          data: { overall_score: score }
+        });
+      }
+      alert(`✅ Score salvato per ${inspectionsWithoutScore.length} form`);
+    } catch (error) {
+      console.error('Error saving scores:', error);
+      alert('❌ Errore nel salvataggio');
+    }
   };
 
   return (
