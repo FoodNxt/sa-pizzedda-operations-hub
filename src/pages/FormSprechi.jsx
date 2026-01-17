@@ -56,23 +56,41 @@ export default function FormSprechi() {
   const motiviDisponibili = activeConfig?.motivi_disponibili || [];
 
   const prodottiFiltrati = useMemo(() => {
-    if (prodottiAbilitati.length === 0) {
-      // Se nessun prodotto configurato, mostra tutti (come admin)
-      return [
-        ...materiePrime.filter(m => m.attivo),
-        ...ricette.filter(r => r.attivo && !r.is_semilavorato),
-        ...ricette.filter(r => r.attivo && r.is_semilavorato)
-      ];
-    }
-    // Altrimenti mostra solo i configurati
-    return prodottiAbilitati
-      .map(p => {
+    const grouped = {};
+    
+    if (prodottiAbilitati.length > 0) {
+      // Se ci sono prodotti abilitati specifici, usali
+      prodottiAbilitati.forEach(p => {
+        let item = null;
         if (p.tipo === 'materia_prima') {
-          return materiePrime.find(m => m.id === p.prodotto_id);
+          item = materiePrime.find(m => m.id === p.prodotto_id);
+        } else {
+          item = ricette.find(r => r.id === p.prodotto_id);
         }
-        return ricette.find(r => r.id === p.prodotto_id);
-      })
-      .filter(p => p && p.attivo !== false);
+        if (item && item.attivo) {
+          if (!grouped[p.tipo]) grouped[p.tipo] = [];
+          grouped[p.tipo].push(item);
+        }
+      });
+    } else {
+      // Altrimenti, usa tutte le materie prime e ricette attive (come admin)
+      const activeMateriePrime = materiePrime.filter(m => m.attivo);
+      if (activeMateriePrime.length > 0) {
+        grouped.materia_prima = activeMateriePrime;
+      }
+
+      const activeRicette = ricette.filter(r => r.attivo && !r.is_semilavorato);
+      if (activeRicette.length > 0) {
+        grouped.ricetta = activeRicette;
+      }
+
+      const activeSemilavorati = ricette.filter(r => r.attivo && r.is_semilavorato);
+      if (activeSemilavorati.length > 0) {
+        grouped.semilavorato = activeSemilavorati;
+      }
+    }
+    
+    return grouped;
   }, [prodottiAbilitati, materiePrime, ricette]);
 
   const createSprecoMutation = useMutation({
@@ -123,21 +141,49 @@ export default function FormSprechi() {
     setSaving(true);
 
     try {
-      const prodotto = ricette.find(r => r.id === selectedProdotto);
+      // Trova il prodotto in tutte le categorie
+      let prodotto = null;
+      let tipo_prodotto = '';
+      let costo_unitario = 0;
+
+      for (const tipo in prodottiFiltrati) {
+        const found = prodottiFiltrati[tipo].find(p => p.id === selectedProdotto);
+        if (found) {
+          prodotto = found;
+          tipo_prodotto = tipo;
+          break;
+        }
+      }
+
+      if (!prodotto) {
+        throw new Error('Prodotto non trovato');
+      }
+
+      // Calcola quantita_grammi in base al tipo di prodotto
+      let calculatedQuantitaGrammi = 0;
+      if (tipo_prodotto === 'ricetta' || tipo_prodotto === 'semilavorato') {
+        // Per ricette e semilavorati: quantita * peso unitario
+        calculatedQuantitaGrammi = parseFloat(quantita) * (prodotto.peso_gr_unitario || 0);
+      } else if (tipo_prodotto === 'materia_prima') {
+        // Per materie prime: quantita * peso_dimensione_unita (convertito a grammi)
+        let baseGramsPerUnit = prodotto.peso_dimensione_unita || 0;
+        if (prodotto.unita_misura_peso === 'kg') {
+          baseGramsPerUnit *= 1000;
+        } else if (prodotto.unita_misura_peso === 'litri') {
+          baseGramsPerUnit *= 1000;
+        }
+        calculatedQuantitaGrammi = parseFloat(quantita) * baseGramsPerUnit;
+      }
+
+      // Determina il costo unitario
+      if (tipo_prodotto === 'materia_prima') {
+        costo_unitario = prodotto.prezzo_unitario || 0;
+      } else {
+        costo_unitario = prodotto.costo_unitario || 0;
+      }
+
       const userStoreId = storeId || currentUser?.store_assegnato || currentUser?.stores_assegnati?.[0];
       const store = stores.find(s => s.id === userStoreId);
-
-      // Determina il tipo di prodotto
-      let tipo_prodotto = 'ricetta';
-      let costo_unitario = prodotto?.costo_unitario || 0;
-      
-      if (!ricette.find(r => r.id === selectedProdotto)) {
-        // È una materia prima
-        tipo_prodotto = 'materia_prima';
-        costo_unitario = prodotto?.prezzo_unitario || 0;
-      } else if (prodotto?.is_semilavorato) {
-        tipo_prodotto = 'semilavorato';
-      }
 
       const data = {
         store_id: userStoreId,
@@ -145,9 +191,9 @@ export default function FormSprechi() {
         data_rilevazione: new Date().toISOString(),
         rilevato_da: currentUser?.nome_cognome || currentUser?.full_name || currentUser?.email || 'Operatore',
         prodotto_id: selectedProdotto,
-        prodotto_nome: prodotto?.nome_prodotto || 'Prodotto sconosciuto',
+        prodotto_nome: prodotto.nome_prodotto || 'Prodotto sconosciuto',
         tipo_prodotto,
-        quantita_grammi: parseFloat(quantita) * 1000,
+        quantita_grammi: calculatedQuantitaGrammi,
         motivo: motivoSpreco,
         costo_unitario
       };
@@ -217,30 +263,43 @@ export default function FormSprechi() {
                 className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
               >
                 <option value="">Seleziona prodotto...</option>
-                {prodottiFiltrati.map(prod => (
-                  <option key={prod.id} value={prod.id}>
-                    {prod.nome_prodotto} {prod.tipo_teglia !== 'nessuna' && `(${prod.tipo_teglia})`}
-                  </option>
+                {Object.entries(prodottiFiltrati).map(([tipo, prodotti]) => (
+                  <optgroup key={tipo} label={
+                    tipo === 'materia_prima' ? 'Materie Prime' :
+                    tipo === 'ricetta' ? 'Ricette' :
+                    tipo === 'semilavorato' ? 'Semilavorati' :
+                    tipo
+                  }>
+                    {prodotti.map(prod => (
+                      <option key={prod.id} value={prod.id}>
+                        {prod.nome_prodotto} 
+                        {tipo === 'ricetta' || tipo === 'semilavorato' ? 
+                          ` (${prod.peso_gr_unitario || 0}g)` :
+                          ` (${prod.peso_dimensione_unita || 0}${prod.unita_misura_peso || 'g'})`
+                        }
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </div>
 
             <div>
               <label className="text-sm font-medium text-slate-700 mb-2 block">
-                Quantità (pezzi/teglie) *
+                Quantità (grammi) *
               </label>
               <input
                 type="number"
-                step="1"
-                min="1"
+                step="0.1"
+                min="0.1"
                 value={quantita}
                 onChange={(e) => setQuantita(e.target.value)}
                 required
-                placeholder="Es. 2 (per 2 teglie o 2 prodotti)"
+                placeholder="Es. 250"
                 className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
               />
               <p className="text-xs text-slate-500 mt-1">
-                Inserisci il numero di pezzi/teglie sprecate
+                Inserisci la quantità in grammi
               </p>
             </div>
 
