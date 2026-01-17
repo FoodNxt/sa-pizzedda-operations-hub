@@ -43,13 +43,37 @@ export default function Produttivita() {
     queryFn: () => base44.entities.TipoTurnoConfig.list(),
   });
 
+  // Estrai tipi turno unici dai turni esistenti + config
+  const availableTipiTurno = useMemo(() => {
+    const uniqueTipi = new Set();
+    
+    // Aggiungi tipi dai turni effettivi
+    allShifts.forEach(shift => {
+      if (shift.tipo_turno) {
+        uniqueTipi.add(shift.tipo_turno);
+      }
+    });
+
+    // Crea array con info complete
+    const tipiList = Array.from(uniqueTipi).map(nome => {
+      const config = tipiTurnoConfig.find(t => t.nome === nome);
+      return {
+        nome,
+        colore: config?.colore || '#94a3b8',
+        is_active: config?.is_active !== false
+      };
+    });
+
+    return tipiList.filter(t => t.is_active);
+  }, [allShifts, tipiTurnoConfig]);
+
   // Inizializza tipi turno inclusi con tutti i tipi disponibili
   React.useEffect(() => {
-    if (includedTipiTurno.length === 0 && tipiTurnoConfig.length > 0) {
-      const tipi = tipiTurnoConfig.map(t => t.nome);
+    if (includedTipiTurno.length === 0 && availableTipiTurno.length > 0) {
+      const tipi = availableTipiTurno.map(t => t.nome);
       setIncludedTipiTurno(tipi);
     }
-  }, [tipiTurnoConfig]);
+  }, [availableTipiTurno]);
 
   // Filtra turni in base ai tipi selezionati
   const filteredShifts = useMemo(() => {
@@ -1187,9 +1211,9 @@ export default function Produttivita() {
                     Seleziona quali tipi di turno includere nel calcolo delle ore lavorate
                   </p>
                   <div className="space-y-2">
-                    {tipiTurnoConfig.length > 0 ? (
-                      tipiTurnoConfig.filter(t => t.is_active !== false).map(tipo => (
-                        <label key={tipo.id} className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 rounded-lg transition-colors">
+                    {availableTipiTurno.length > 0 ? (
+                      availableTipiTurno.map(tipo => (
+                        <label key={tipo.nome} className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 rounded-lg transition-colors">
                           <input
                             type="checkbox"
                             checked={includedTipiTurno.includes(tipo.nome)}
@@ -1204,14 +1228,14 @@ export default function Produttivita() {
                           />
                           <div 
                             className="w-4 h-4 rounded flex-shrink-0" 
-                            style={{ backgroundColor: tipo.colore || '#94a3b8' }}
+                            style={{ backgroundColor: tipo.colore }}
                           />
-                          <span className="font-medium text-[#6b6b6b] text-sm">{tipo.nome || 'Senza nome'}</span>
+                          <span className="font-medium text-[#6b6b6b] text-sm">{tipo.nome}</span>
                         </label>
                       ))
                     ) : (
                       <p className="text-sm text-slate-500 text-center py-4">
-                        Nessun tipo di turno configurato. Vai in Planday per configurare i tipi di turno.
+                        Nessun tipo di turno trovato nei turni esistenti.
                       </p>
                     )}
                   </div>
