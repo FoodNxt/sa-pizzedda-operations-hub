@@ -790,21 +790,64 @@ export default function ControlloConsumi() {
                         </tr>
                       </thead>
                       <tbody>
-                        {mozz.giornaliero.map(day => (
-                          <tr key={day.data} className="border-b border-slate-100 hover:bg-slate-50">
-                            <td className="py-2 px-3">{format(parseISO(day.data), 'dd/MM/yyyy')}</td>
-                            <td className="py-2 px-3 text-right font-medium">{day.qtyIniziale.toFixed(2)}</td>
-                            <td className="py-2 px-3 text-right text-orange-600">{day.grammiVenduti.toFixed(0)} g</td>
-                            <td className="py-2 px-3 text-right text-orange-600 font-medium">{day.kgVenduti.toFixed(2)} kg</td>
-                            <td className="py-2 px-3 text-right text-orange-700 font-bold">-{day.pezziVenduti.toFixed(2)}</td>
-                            <td className="py-2 px-3 text-right text-blue-600 font-medium">+{day.qtyArrivata.toFixed(2)}</td>
-                            <td className="py-2 px-3 text-right text-slate-600">{day.qtyAttesa.toFixed(2)}</td>
-                            <td className="py-2 px-3 text-right font-bold">{day.qtyFinale.toFixed(2)}</td>
-                            <td className={`py-2 px-3 text-right font-bold ${day.delta > 0 ? 'text-green-600' : day.delta < 0 ? 'text-red-600' : 'text-slate-600'}`}>
-                              {day.delta > 0 ? '+' : ''}{day.delta.toFixed(2)}
-                            </td>
-                          </tr>
-                        ))}
+                        {mozz.giornaliero.map(day => {
+                          const rowKey = `${mozzId}-${day.data}`;
+                          const isExpanded = expandedMozzarellaRows[rowKey];
+                          return (
+                            <React.Fragment key={day.data}>
+                              <tr className="border-b border-slate-100 hover:bg-slate-50">
+                                <td className="py-2 px-3">
+                                  <button
+                                    onClick={() => setExpandedMozzarellaRows(prev => ({ ...prev, [rowKey]: !prev[rowKey] }))}
+                                    className="flex items-center gap-2 text-blue-600 hover:text-blue-800"
+                                  >
+                                    <span className="text-xs">{isExpanded ? '▼' : '▶'}</span>
+                                    {format(parseISO(day.data), 'dd/MM/yyyy')}
+                                  </button>
+                                </td>
+                                <td className="py-2 px-3 text-right font-medium">{day.qtyIniziale.toFixed(2)}</td>
+                                <td className="py-2 px-3 text-right text-orange-600">{day.grammiVenduti.toFixed(0)} g</td>
+                                <td className="py-2 px-3 text-right text-orange-600 font-medium">{day.kgVenduti.toFixed(2)} kg</td>
+                                <td className="py-2 px-3 text-right text-orange-700 font-bold">-{day.pezziVenduti.toFixed(2)}</td>
+                                <td className="py-2 px-3 text-right text-blue-600 font-medium">+{day.qtyArrivata.toFixed(2)}</td>
+                                <td className="py-2 px-3 text-right text-slate-600">{day.qtyAttesa.toFixed(2)}</td>
+                                <td className="py-2 px-3 text-right font-bold">{day.qtyFinale.toFixed(2)}</td>
+                                <td className={`py-2 px-3 text-right font-bold ${day.delta > 0 ? 'text-green-600' : day.delta < 0 ? 'text-red-600' : 'text-slate-600'}`}>
+                                  {day.delta > 0 ? '+' : ''}{day.delta.toFixed(2)}
+                                </td>
+                              </tr>
+                              {isExpanded && day.breakdown && day.breakdown.length > 0 && (
+                                <tr>
+                                  <td colSpan="9" className="bg-slate-50 p-4">
+                                    <div className="text-sm">
+                                      <p className="font-bold text-slate-700 mb-2">📋 Breakdown Calcolo Grammi Venduti:</p>
+                                      <div className="space-y-1 ml-4">
+                                        {day.breakdown.map((item, idx) => (
+                                          <div key={idx} className="flex items-center justify-between text-slate-600">
+                                            <span>
+                                              <span className="font-medium text-slate-800">{item.nomeProdotto}</span>
+                                              {' × '}
+                                              <span className="font-medium text-blue-600">{item.quantitaVenduta}</span>
+                                              {' pezzi × '}
+                                              <span className="text-orange-600">{item.grammiPerUnita.toFixed(2)} g/pezzo</span>
+                                            </span>
+                                            <span className="font-bold text-orange-700">
+                                              = {item.grammiTotali.toFixed(0)} g
+                                            </span>
+                                          </div>
+                                        ))}
+                                        <div className="border-t border-slate-300 mt-2 pt-2 flex justify-between font-bold text-slate-800">
+                                          <span>TOTALE:</span>
+                                          <span className="text-orange-700">{day.grammiVenduti.toFixed(0)} g</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
