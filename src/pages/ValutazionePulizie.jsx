@@ -377,11 +377,19 @@ export default function ValutazionePulizie() {
     if (!editingPhoto || !manualStatus) return;
 
     const { inspection, attrezzatura } = editingPhoto;
-    
+
+    // Calcola lo score complessivo aggiornato
+    const updatedInspection = {
+      ...inspection,
+      [`${attrezzatura}_corrected_status`]: manualStatus
+    };
+    const newScore = calculateScore(updatedInspection);
+
     const updateData = {
       [`${attrezzatura}_corrected`]: true,
       [`${attrezzatura}_corrected_status`]: manualStatus,
-      [`${attrezzatura}_correction_note`]: manualNote
+      [`${attrezzatura}_correction_note`]: manualNote,
+      overall_score: newScore
     };
 
     await updateInspectionMutation.mutateAsync({ id: inspection.id, data: updateData });
