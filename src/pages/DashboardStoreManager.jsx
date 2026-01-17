@@ -900,11 +900,11 @@ export default function DashboardStoreManager() {
                   metrics.monthWrongOrders.map(order => (
                     <div key={order.id} className="neumorphic-pressed p-4 rounded-xl">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="font-bold text-red-700">#{order.order_id || 'N/A'} • {order.platform}</span>
-                        <span className="text-xs text-slate-500">
-                          {new Date(order.order_date).toLocaleDateString('it-IT')}
-                        </span>
-                      </div>
+                         <span className="font-bold text-red-700">#{order.order_id || 'N/A'} • {order.platform}</span>
+                         <span className="text-xs text-slate-500">
+                           {new Date(order.order_date).toLocaleDateString('it-IT')} {new Date(order.order_date).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                         </span>
+                       </div>
                       {(() => {
                         const matches = wrongOrderMatches.filter(m => m.wrong_order_id === order.id);
                         return matches.length > 0 ? (
