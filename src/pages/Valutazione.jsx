@@ -2,17 +2,18 @@ import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import {
-  AlertCircle,
-  Clock,
-  Star,
-  TrendingUp,
-  Eye,
-  X,
-  User,
-  Calendar,
-  AlertTriangle,
-  Filter
-} from 'lucide-react';
+   AlertCircle,
+   Clock,
+   Star,
+   TrendingUp,
+   Eye,
+   X,
+   User,
+   Calendar,
+   AlertTriangle,
+   Filter,
+   Sparkles
+ } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { parseISO, isValid, format as formatDate, subDays, subMonths } from 'date-fns';
 import { it } from 'date-fns/locale';
@@ -122,6 +123,12 @@ export default function Valutazione() {
      queryFn: () => base44.entities.TurnoPlanday.list('-data'),
    });
 
+   // Fetch cleaning inspections
+   const { data: cleaningInspections = [] } = useQuery({
+     queryKey: ['cleaning-inspections'],
+     queryFn: () => base44.entities.CleaningInspection.list('-inspection_date'),
+   });
+
    // Use TurnoPlanday instead of shifts for correct delay data
    const myTurni = useMemo(() => {
      if (!user || !turniPlanday.length) return [];
@@ -203,6 +210,20 @@ export default function Valutazione() {
       ? googleReviews.reduce((sum, r) => sum + r.rating, 0) / googleReviews.length
       : 0;
 
+    // Calculate cleaning score (same as Store Manager)
+    const myCleaningInspections = cleaningInspections.filter(i => {
+      if (i.inspector_name !== (user.nome_cognome || user.full_name)) return false;
+      try {
+        const inspDate = new Date(i.inspection_date);
+        return inspDate >= filterDate;
+      } catch (e) {
+        return true;
+      }
+    });
+    const avgCleaningScore = myCleaningInspections.length > 0
+      ? myCleaningInspections.reduce((sum, i) => sum + (i.overall_score || 0), 0) / myCleaningInspections.length
+      : 0;
+
     // Calculate overall score (same formula as admin page)
     let overallScore = 100;
     
@@ -252,9 +273,11 @@ export default function Valutazione() {
       totalShifts,
       latePercentage,
       averageRating,
+      avgCleaningScore,
+      myCleaningInspections,
       overallScore: Math.round(overallScore)
     };
-    }, [user, matchedEmployee, myTurni, myReviews, myWrongOrders]);
+    }, [user, matchedEmployee, myTurni, myReviews, myWrongOrders, cleaningInspections, filterDate]);
 
   if (userLoading) {
     return (
@@ -390,15 +413,29 @@ export default function Valutazione() {
         </NeumorphicCard>
 
         <NeumorphicCard className="p-3 sm:p-4 text-center col-span-2 md:col-span-1">
-          <div className="neumorphic-flat w-10 h-10 sm:w-12 sm:h-12 rounded-full mx-auto mb-2 sm:mb-3 flex items-center justify-center">
-            <Star className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 fill-blue-600" />
-          </div>
-          <h3 className="text-xl sm:text-2xl font-bold text-blue-600 mb-1">
-            {employeeData.averageRating > 0 ? employeeData.averageRating.toFixed(1) : '-'}
-          </h3>
-          <p className="text-[10px] sm:text-xs text-[#9b9b9b]">Rating Medio</p>
-        </NeumorphicCard>
-      </div>
+           <div className="neumorphic-flat w-10 h-10 sm:w-12 sm:h-12 rounded-full mx-auto mb-2 sm:mb-3 flex items-center justify-center">
+             <Star className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 fill-blue-600" />
+           </div>
+           <h3 className="text-xl sm:text-2xl font-bold text-blue-600 mb-1">
+             {employeeData.averageRating > 0 ? employeeData.averageRating.toFixed(1) : '-'}
+           </h3>
+           <p className="text-[10px] sm:text-xs text-[#9b9b9b]">Rating Medio</p>
+         </NeumorphicCard>
+
+         <NeumorphicCard className="p-3 sm:p-4 text-center col-span-2 md:col-span-1">
+           <div className="neumorphic-flat w-10 h-10 sm:w-12 sm:h-12 rounded-full mx-auto mb-2 sm:mb-3 flex items-center justify-center">
+             <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-600 fill-cyan-600" />
+           </div>
+           <h3 className={`text-xl sm:text-2xl font-bold mb-1 ${
+             employeeData.avgCleaningScore >= 80 ? 'text-green-600' :
+             employeeData.avgCleaningScore >= 60 ? 'text-yellow-600' :
+             'text-red-600'
+           }`}>
+             {employeeData.avgCleaningScore > 0 ? Math.round(employeeData.avgCleaningScore) : '-'}
+           </h3>
+           <p className="text-[10px] sm:text-xs text-[#9b9b9b]">Score Pulizie</p>
+         </NeumorphicCard>
+        </div>
 
       {/* Turni in Ritardo */}
       <NeumorphicCard className="p-6">
@@ -432,7 +469,8 @@ export default function Valutazione() {
                   <span className="text-lg font-bold text-red-600">+{shift.minuti_ritardo || 0} min</span>
                 </div>
                 <div className="text-sm text-[#9b9b9b]">
-                  <strong>Previsto:</strong> {shift.ora_inizio || 'N/A'} → <strong>Effettivo:</strong> {shift.timbratura_entrata ? safeFormatTime(shift.timbratura_entrata) : 'N/A'}
+                <strong>Previsto:</strong> {shift.ora_inizio || 'N/A'} → <strong>Effettivo:</strong> {shift.timbratura_entrata ? safeFormatTime(shift.timbratura_entrata) : 'N/A'}
+                {shift.minuti_ritardo_conteggiato && <div className="mt-1 text-xs">Minuti conteggiati: {shift.minuti_ritardo_conteggiato}</div>}
                 </div>
               </div>
             ))}
@@ -548,8 +586,54 @@ export default function Valutazione() {
         )}
       </NeumorphicCard>
 
+      {/* Score Pulizie */}
+       {employeeData.myCleaningInspections && employeeData.myCleaningInspections.length > 0 && (
+         <NeumorphicCard className="p-6">
+           <div className="flex items-center justify-between mb-4">
+             <div className="flex items-center gap-3">
+               <Sparkles className="w-6 h-6 text-cyan-600" />
+               <h2 className="text-xl font-bold text-[#6b6b6b]">
+                 {expandedView === 'cleanings' ? 'Tutti i Controlli Pulizie' : 'Ultimi 5 Controlli Pulizie'}
+               </h2>
+             </div>
+             {employeeData.myCleaningInspections.length > 5 && (
+               <button
+                 onClick={() => setExpandedView(expandedView === 'cleanings' ? null : 'cleanings')}
+                 className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-2"
+               >
+                 {expandedView === 'cleanings' ? <><X className="w-4 h-4" />Chiudi</> : <><Eye className="w-4 h-4" />Vedi tutti ({employeeData.myCleaningInspections.length})</>}
+               </button>
+             )}
+           </div>
+
+           <div className={`space-y-3 ${expandedView === 'cleanings' ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
+             {(expandedView === 'cleanings' ? employeeData.myCleaningInspections : employeeData.myCleaningInspections.slice(0, 5)).map((inspection, index) => (
+               <div key={`${inspection.id}-${index}`} className="neumorphic-pressed p-4 rounded-xl">
+                 <div className="flex items-center justify-between mb-2">
+                   <div className="flex items-center gap-2">
+                     <Calendar className="w-4 h-4 text-[#9b9b9b]" />
+                     <span className="font-medium text-[#6b6b6b]">{safeFormatDateLocale(inspection.inspection_date)}</span>
+                     {inspection.store_name && <span className="text-sm text-[#9b9b9b]">• {inspection.store_name}</span>}
+                   </div>
+                   <span className={`px-3 py-1 rounded-full text-sm font-bold ${
+                     inspection.overall_score >= 80 ? 'bg-green-100 text-green-700' :
+                     inspection.overall_score >= 60 ? 'bg-yellow-100 text-yellow-700' :
+                     'bg-red-100 text-red-700'
+                   }`}>
+                     {inspection.overall_score || 0}/100
+                   </span>
+                 </div>
+                 <div className="text-xs text-[#9b9b9b]">
+                   <strong>Ruolo:</strong> {inspection.inspector_role}
+                 </div>
+               </div>
+             ))}
+           </div>
+         </NeumorphicCard>
+       )}
+
       {/* Recensioni Google */}
-      <NeumorphicCard className="p-6">
+       <NeumorphicCard className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
