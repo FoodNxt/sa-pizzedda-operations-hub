@@ -53,9 +53,9 @@ export default function Produttivita() {
 
   // Filtra turni in base ai tipi selezionati
   const filteredShifts = useMemo(() => {
-    if (includedTipiTurno.length === 0) return allShifts;
+    if (includedTipiTurno.length === 0) return [];
     return allShifts.filter(shift => 
-      includedTipiTurno.includes(shift.tipo_turno) || !shift.tipo_turno
+      includedTipiTurno.includes(shift.tipo_turno)
     );
   }, [allShifts, includedTipiTurno]);
 
@@ -1188,7 +1188,7 @@ export default function Produttivita() {
                   </p>
                   <div className="space-y-2">
                     {tipiTurnoConfig.length > 0 ? (
-                      tipiTurnoConfig.map(tipo => (
+                      tipiTurnoConfig.filter(t => t.is_active !== false).map(tipo => (
                         <label key={tipo.id} className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 rounded-lg transition-colors">
                           <input
                             type="checkbox"
@@ -1200,15 +1200,13 @@ export default function Produttivita() {
                                 setIncludedTipiTurno(prev => prev.filter(t => t !== tipo.nome));
                               }
                             }}
-                            className="w-5 h-5 rounded"
+                            className="w-5 h-5 rounded flex-shrink-0"
                           />
-                          <div className="flex items-center gap-2 flex-1">
-                            <div 
-                              className="w-4 h-4 rounded flex-shrink-0" 
-                              style={{ backgroundColor: tipo.colore || '#94a3b8' }}
-                            />
-                            <span className="font-medium text-[#6b6b6b]">{tipo.nome}</span>
-                          </div>
+                          <div 
+                            className="w-4 h-4 rounded flex-shrink-0" 
+                            style={{ backgroundColor: tipo.colore || '#94a3b8' }}
+                          />
+                          <span className="font-medium text-[#6b6b6b] text-sm">{tipo.nome || 'Senza nome'}</span>
                         </label>
                       ))
                     ) : (
