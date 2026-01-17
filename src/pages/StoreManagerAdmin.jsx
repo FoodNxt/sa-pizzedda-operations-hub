@@ -215,6 +215,9 @@ export default function StoreManagerAdmin() {
         
         const status = inspection[correctedField] || inspection[statusField];
         
+        // Skip if status is not set or is non_valutabile
+        if (!status || status === 'non_valutabile') return;
+        
         let score = 0;
         if (status === 'pulito') {
           score = puliziConfig.punteggio_pulito;
