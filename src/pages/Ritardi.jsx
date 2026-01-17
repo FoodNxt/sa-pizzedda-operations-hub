@@ -52,7 +52,8 @@ export default function Ritardi() {
     return turni.filter(t => {
       const matchStore = selectedStore === "all" || t.store_id === selectedStore;
       const matchDate = !dateRangeStart || new Date(t.data) >= dateRangeStart;
-      return matchStore && matchDate && t.in_ritardo === true;
+      const hasRitardo = t.in_ritardo === true && (t.minuti_ritardo || 0) > 0;
+      return matchStore && matchDate && hasRitardo && t.timbratura_entrata; // Solo turni con timbratura
     });
   }, [turni, selectedStore, dateRangeStart]);
 
