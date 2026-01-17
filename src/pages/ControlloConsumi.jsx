@@ -22,6 +22,7 @@ export default function ControlloConsumi() {
     semilavorati: true,
     prodotti_finiti: true
   });
+  const [expandedMozzarellaRows, setExpandedMozzarellaRows] = useState({});
 
   // Fetch data
   const { data: stores = [] } = useQuery({
