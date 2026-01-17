@@ -62,6 +62,11 @@ export default function ControlloConsumi() {
     queryFn: () => base44.entities.Spreco.list()
   });
 
+  const { data: users = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => base44.entities.User.list()
+  });
+
   // Helper: determina il tipo di prodotto
   const getProductType = (prodottoId, nomeProdotto) => {
     // Cerca in materie prime
@@ -712,6 +717,10 @@ export default function ControlloConsumi() {
             inv.prodotto_id === mozz.id && inv.data_rilevazione.split('T')[0] === lastDate
           );
 
+          // Trova nomi operatori
+          const firstOperatore = firstInventario ? users.find(u => u.email === firstInventario.created_by) : null;
+          const lastOperatore = lastInventario ? users.find(u => u.email === lastInventario.created_by) : null;
+
           // Qty iniziale: dall'inventario del primo giorno
           const firstProd = datiGiornalieriPerProdotto[firstDate]?.[mozz.id];
           const qtyIniziale = firstProd ? firstProd.qtyIniziale : 0;
@@ -789,11 +798,13 @@ export default function ControlloConsumi() {
             breakdown: allBreakdown,
             firstInventario: firstInventario ? {
               data: firstInventario.data_rilevazione.split('T')[0],
-              operatore: firstInventario.created_by
+              timestamp: firstInventario.data_rilevazione,
+              operatore: firstOperatore?.nome_cognome || firstOperatore?.full_name || firstInventario.created_by
             } : null,
             lastInventario: lastInventario ? {
               data: lastInventario.data_rilevazione.split('T')[0],
-              operatore: lastInventario.created_by
+              timestamp: lastInventario.data_rilevazione,
+              operatore: lastOperatore?.nome_cognome || lastOperatore?.full_name || lastInventario.created_by
             } : null
           });
         });
@@ -1082,14 +1093,14 @@ export default function ControlloConsumi() {
                                                   {periodo.firstInventario && (
                                                     <div>
                                                       <p className="font-medium text-slate-700">Inizio Periodo:</p>
-                                                      <p className="text-slate-600">Data: {format(parseISO(periodo.firstInventario.data), 'dd/MM/yyyy')}</p>
+                                                      <p className="text-slate-600">Data: {format(parseISO(periodo.firstInventario.timestamp), 'dd/MM/yyyy HH:mm')}</p>
                                                       <p className="text-slate-600">Operatore: {periodo.firstInventario.operatore}</p>
                                                     </div>
                                                   )}
                                                   {periodo.lastInventario && (
                                                     <div>
                                                       <p className="font-medium text-slate-700">Fine Periodo:</p>
-                                                      <p className="text-slate-600">Data: {format(parseISO(periodo.lastInventario.data), 'dd/MM/yyyy')}</p>
+                                                      <p className="text-slate-600">Data: {format(parseISO(periodo.lastInventario.timestamp), 'dd/MM/yyyy HH:mm')}</p>
                                                       <p className="text-slate-600">Operatore: {periodo.lastInventario.operatore}</p>
                                                     </div>
                                                   )}
