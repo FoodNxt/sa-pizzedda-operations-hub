@@ -23,6 +23,7 @@ export default function ControlloConsumi() {
     prodotti_finiti: true
   });
   const [expandedMozzarellaRows, setExpandedMozzarellaRows] = useState({});
+  const [expandedProducts, setExpandedProducts] = useState({});
 
   // Fetch data
   const { data: stores = [] } = useQuery({
@@ -820,57 +821,74 @@ export default function ControlloConsumi() {
         {activeTab === 'confronto' && Object.keys(mozzarellaDetails).length > 0 && (
           <NeumorphicCard className="p-6">
             <h2 className="text-xl font-bold text-slate-700 mb-4">📊 Dettaglio Prodotti Chiave</h2>
-            {Object.keys(mozzarellaDetails).map(mozzId => {
-              const mozz = mozzarellaDetails[mozzId];
-              return (
-                <div key={mozzId} className="mb-6 last:mb-0">
-                  <h3 className="font-bold text-lg text-slate-800 mb-3">{mozz.nome}</h3>
-                  <p className="text-sm text-slate-600 mb-3">
-                    Peso unitario: <span className="font-bold">{mozz.pesoUnitario} {mozz.unitaMisura === 'pezzi' ? 'kg/pezzo' : ''}</span>
-                  </p>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b-2 border-slate-300">
-                          <th className="text-left py-2 px-3">Data</th>
-                          <th className="text-right py-2 px-3">Qty Iniziale<br/><span className="text-xs font-normal">(pezzi)</span></th>
-                          <th className="text-right py-2 px-3">Grammi Venduti<br/><span className="text-xs font-normal">(ricette)</span></th>
-                          <th className="text-right py-2 px-3">Kg Venduti</th>
-                          <th className="text-right py-2 px-3">Pezzi Venduti<br/><span className="text-xs font-normal">(calcolati)</span></th>
-                          <th className="text-right py-2 px-3">Qty Arrivata<br/><span className="text-xs font-normal">(pezzi)</span></th>
-                          <th className="text-right py-2 px-3">Qty Attesa<br/><span className="text-xs font-normal">(pezzi)</span></th>
-                          <th className="text-right py-2 px-3">Qty Finale<br/><span className="text-xs font-normal">(pezzi)</span></th>
-                          <th className="text-right py-2 px-3">Delta</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {mozz.giornaliero.map(day => {
-                          const rowKey = `${mozzId}-${day.data}`;
-                          const isExpanded = expandedMozzarellaRows[rowKey];
-                          return (
-                            <React.Fragment key={day.data}>
-                              <tr className="border-b border-slate-100 hover:bg-slate-50">
-                                <td className="py-2 px-3">
-                                  <button
-                                    onClick={() => setExpandedMozzarellaRows(prev => ({ ...prev, [rowKey]: !prev[rowKey] }))}
-                                    className="flex items-center gap-2 text-blue-600 hover:text-blue-800"
-                                  >
-                                    <span className="text-xs">{isExpanded ? '▼' : '▶'}</span>
-                                    {format(parseISO(day.data), 'dd/MM/yyyy')}
-                                  </button>
-                                </td>
-                                <td className="py-2 px-3 text-right font-medium">{day.qtyIniziale.toFixed(2)}</td>
-                                <td className="py-2 px-3 text-right text-orange-600">{day.grammiVenduti.toFixed(0)} g</td>
-                                <td className="py-2 px-3 text-right text-orange-600 font-medium">{day.kgVenduti.toFixed(2)} kg</td>
-                                <td className="py-2 px-3 text-right text-orange-700 font-bold">-{day.pezziVenduti.toFixed(2)}</td>
-                                <td className="py-2 px-3 text-right text-blue-600 font-medium">+{day.qtyArrivata.toFixed(2)}</td>
-                                <td className="py-2 px-3 text-right text-slate-600">{day.qtyAttesa.toFixed(2)}</td>
-                                <td className="py-2 px-3 text-right font-bold">{day.qtyFinale.toFixed(2)}</td>
-                                <td className={`py-2 px-3 text-right font-bold ${day.delta > 0 ? 'text-green-600' : day.delta < 0 ? 'text-red-600' : 'text-slate-600'}`}>
-                                  {day.delta > 0 ? '+' : ''}{day.delta.toFixed(2)}
-                                </td>
+            <div className="space-y-4">
+              {Object.keys(mozzarellaDetails).map(mozzId => {
+                const mozz = mozzarellaDetails[mozzId];
+                const isExpanded = expandedProducts[mozzId];
+                return (
+                  <div key={mozzId} className="neumorphic-pressed rounded-lg">
+                    <button
+                      onClick={() => setExpandedProducts(prev => ({ ...prev, [mozzId]: !prev[mozzId] }))}
+                      className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg">{isExpanded ? '▼' : '▶'}</span>
+                        <div>
+                          <h3 className="font-bold text-lg text-slate-800">{mozz.nome}</h3>
+                          <p className="text-sm text-slate-600">
+                            Peso unitario: <span className="font-bold">{mozz.pesoUnitario} {mozz.unitaMisura === 'pezzi' ? 'kg/pezzo' : ''}</span>
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                    
+                    {isExpanded && (
+                      <div className="p-4 pt-0">
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b-2 border-slate-300">
+                                <th className="text-left py-2 px-3">Data</th>
+                                <th className="text-right py-2 px-3">Qty Iniziale<br/><span className="text-xs font-normal">({mozz.unitaMisura})</span></th>
+                                <th className="text-right py-2 px-3">Grammi Venduti<br/><span className="text-xs font-normal">(ricette)</span></th>
+                                <th className="text-right py-2 px-3">Kg Venduti</th>
+                                <th className="text-right py-2 px-3">Pezzi Venduti<br/><span className="text-xs font-normal">(calcolati)</span></th>
+                                <th className="text-right py-2 px-3">Qty Arrivata<br/><span className="text-xs font-normal">({mozz.unitaMisura})</span></th>
+                                <th className="text-right py-2 px-3">Qty Attesa<br/><span className="text-xs font-normal">({mozz.unitaMisura})</span></th>
+                                <th className="text-right py-2 px-3">Qty Finale<br/><span className="text-xs font-normal">({mozz.unitaMisura})</span></th>
+                                <th className="text-right py-2 px-3">Delta<br/><span className="text-xs font-normal">({mozz.unitaMisura} | %)</span></th>
                               </tr>
-                              {isExpanded && day.breakdown && day.breakdown.length > 0 && (
+                            </thead>
+                            <tbody>
+                              {mozz.giornaliero.map(day => {
+                                const rowKey = `${mozzId}-${day.data}`;
+                                const isRowExpanded = expandedMozzarellaRows[rowKey];
+                                const deltaPercent = day.pezziVenduti !== 0 ? (day.delta / day.pezziVenduti * 100) : 0;
+                                return (
+                                  <React.Fragment key={day.data}>
+                                    <tr className="border-b border-slate-100 hover:bg-slate-50">
+                                      <td className="py-2 px-3">
+                                        <button
+                                          onClick={() => setExpandedMozzarellaRows(prev => ({ ...prev, [rowKey]: !prev[rowKey] }))}
+                                          className="flex items-center gap-2 text-blue-600 hover:text-blue-800"
+                                        >
+                                          <span className="text-xs">{isRowExpanded ? '▼' : '▶'}</span>
+                                          {format(parseISO(day.data), 'dd/MM/yyyy')}
+                                        </button>
+                                      </td>
+                                      <td className="py-2 px-3 text-right font-medium">{day.qtyIniziale.toFixed(2)}</td>
+                                      <td className="py-2 px-3 text-right text-orange-600">{day.grammiVenduti.toFixed(0)} g</td>
+                                      <td className="py-2 px-3 text-right text-orange-600 font-medium">{day.kgVenduti.toFixed(2)} kg</td>
+                                      <td className="py-2 px-3 text-right text-orange-700 font-bold">-{day.pezziVenduti.toFixed(2)}</td>
+                                      <td className="py-2 px-3 text-right text-blue-600 font-medium">+{day.qtyArrivata.toFixed(2)}</td>
+                                      <td className="py-2 px-3 text-right text-slate-600">{day.qtyAttesa.toFixed(2)}</td>
+                                      <td className="py-2 px-3 text-right font-bold">{day.qtyFinale.toFixed(2)}</td>
+                                      <td className={`py-2 px-3 text-right ${day.delta > 0 ? 'text-green-600' : day.delta < 0 ? 'text-red-600' : 'text-slate-600'}`}>
+                                        <div className="font-bold">{day.delta > 0 ? '+' : ''}{day.delta.toFixed(2)}</div>
+                                        <div className="text-xs">({deltaPercent > 0 ? '+' : ''}{deltaPercent.toFixed(1)}%)</div>
+                                      </td>
+                                    </tr>
+                                    {isRowExpanded && day.breakdown && day.breakdown.length > 0 && (
                                 <tr>
                                   <td colSpan="9" className="bg-slate-50 p-4">
                                     <div className="text-sm">
@@ -900,16 +918,19 @@ export default function ControlloConsumi() {
                                 </tr>
                               )}
                             </React.Fragment>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              );
-            })}
-          </NeumorphicCard>
-        )}
+                            );
+                            })}
+                            </tbody>
+                            </table>
+                            </div>
+                            </div>
+                            )}
+                            </div>
+                            );
+                            })}
+                            </div>
+                            </NeumorphicCard>
+                            )}
 
         {/* Tabella dati confronto */}
         {activeTab === 'confronto' && (
