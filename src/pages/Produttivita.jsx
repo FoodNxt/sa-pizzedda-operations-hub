@@ -1187,29 +1187,35 @@ export default function Produttivita() {
                     Seleziona quali tipi di turno includere nel calcolo delle ore lavorate
                   </p>
                   <div className="space-y-2">
-                    {tipiTurnoConfig.map(tipo => (
-                      <label key={tipo.id} className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 rounded-lg transition-colors">
-                        <input
-                          type="checkbox"
-                          checked={includedTipiTurno.includes(tipo.nome)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setIncludedTipiTurno(prev => [...prev, tipo.nome]);
-                            } else {
-                              setIncludedTipiTurno(prev => prev.filter(t => t !== tipo.nome));
-                            }
-                          }}
-                          className="w-5 h-5 rounded"
-                        />
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-4 h-4 rounded" 
-                            style={{ backgroundColor: tipo.colore || '#94a3b8' }}
+                    {tipiTurnoConfig.length > 0 ? (
+                      tipiTurnoConfig.map(tipo => (
+                        <label key={tipo.id} className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 rounded-lg transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={includedTipiTurno.includes(tipo.nome)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setIncludedTipiTurno(prev => [...prev, tipo.nome]);
+                              } else {
+                                setIncludedTipiTurno(prev => prev.filter(t => t !== tipo.nome));
+                              }
+                            }}
+                            className="w-5 h-5 rounded"
                           />
-                          <span className="font-medium text-[#6b6b6b]">{tipo.nome}</span>
-                        </div>
-                      </label>
-                    ))}
+                          <div className="flex items-center gap-2 flex-1">
+                            <div 
+                              className="w-4 h-4 rounded flex-shrink-0" 
+                              style={{ backgroundColor: tipo.colore || '#94a3b8' }}
+                            />
+                            <span className="font-medium text-[#6b6b6b]">{tipo.nome}</span>
+                          </div>
+                        </label>
+                      ))
+                    ) : (
+                      <p className="text-sm text-slate-500 text-center py-4">
+                        Nessun tipo di turno configurato. Vai in Planday per configurare i tipi di turno.
+                      </p>
+                    )}
                   </div>
                   {includedTipiTurno.length === 0 && (
                     <p className="text-xs text-red-600 mt-2">
