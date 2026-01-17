@@ -704,6 +704,14 @@ export default function ControlloConsumi() {
           const firstDate = datesInPeriod[0];
           const lastDate = datesInPeriod[datesInPeriod.length - 1];
 
+          // Trova inventari effettivi del primo e ultimo giorno
+          const firstInventario = filteredInventari.find(inv => 
+            inv.prodotto_id === mozz.id && inv.data_rilevazione.split('T')[0] === firstDate
+          );
+          const lastInventario = filteredInventari.find(inv => 
+            inv.prodotto_id === mozz.id && inv.data_rilevazione.split('T')[0] === lastDate
+          );
+
           // Qty iniziale: dall'inventario del primo giorno
           const firstProd = datiGiornalieriPerProdotto[firstDate]?.[mozz.id];
           const qtyIniziale = firstProd ? firstProd.qtyIniziale : 0;
@@ -778,7 +786,15 @@ export default function ControlloConsumi() {
             qtyFinale,
             qtyAttesa,
             delta,
-            breakdown: allBreakdown
+            breakdown: allBreakdown,
+            firstInventario: firstInventario ? {
+              data: firstInventario.data_rilevazione.split('T')[0],
+              operatore: firstInventario.created_by
+            } : null,
+            lastInventario: lastInventario ? {
+              data: lastInventario.data_rilevazione.split('T')[0],
+              operatore: lastInventario.created_by
+            } : null
           });
         });
       }
@@ -1055,11 +1071,34 @@ export default function ControlloConsumi() {
                                         <div className="text-xs">({deltaPercent > 0 ? '+' : ''}{deltaPercent.toFixed(1)}%)</div>
                                       </td>
                                     </tr>
-                                    {isRowExpanded && periodo.breakdown && periodo.breakdown.length > 0 && (
-                                <tr>
-                                  <td colSpan="10" className="bg-slate-50 p-4">
-                                    <div className="text-sm">
-                                      <p className="font-bold text-slate-700 mb-2">📋 Breakdown Calcolo Grammi Venduti:</p>
+                                    {isRowExpanded && (
+                                      <tr>
+                                        <td colSpan="10" className="bg-slate-50 p-4">
+                                          <div className="text-sm space-y-4">
+                                            {prodottiChiaveViewMode !== 'daily' && (periodo.firstInventario || periodo.lastInventario) && (
+                                              <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                                                <p className="font-bold text-blue-800 mb-2">📅 Dettaglio Form Inventario:</p>
+                                                <div className="grid grid-cols-2 gap-4 ml-4 text-xs">
+                                                  {periodo.firstInventario && (
+                                                    <div>
+                                                      <p className="font-medium text-slate-700">Inizio Periodo:</p>
+                                                      <p className="text-slate-600">Data: {format(parseISO(periodo.firstInventario.data), 'dd/MM/yyyy')}</p>
+                                                      <p className="text-slate-600">Operatore: {periodo.firstInventario.operatore}</p>
+                                                    </div>
+                                                  )}
+                                                  {periodo.lastInventario && (
+                                                    <div>
+                                                      <p className="font-medium text-slate-700">Fine Periodo:</p>
+                                                      <p className="text-slate-600">Data: {format(parseISO(periodo.lastInventario.data), 'dd/MM/yyyy')}</p>
+                                                      <p className="text-slate-600">Operatore: {periodo.lastInventario.operatore}</p>
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            )}
+                                            {periodo.breakdown && periodo.breakdown.length > 0 && (
+                                              <>
+                                                <p className="font-bold text-slate-700 mb-2">📋 Breakdown Calcolo Grammi Venduti:</p>
                                       <div className="space-y-1 ml-4">
                                         {periodo.breakdown.map((item, idx) => (
                                           <div key={idx} className="flex items-center justify-between text-slate-600">
@@ -1080,6 +1119,8 @@ export default function ControlloConsumi() {
                                           <span className="text-orange-700">{periodo.grammiVenduti.toFixed(0)} g</span>
                                         </div>
                                       </div>
+                                      </>
+                                      )}
                                     </div>
                                   </td>
                                 </tr>
