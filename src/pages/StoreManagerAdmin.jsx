@@ -183,63 +183,17 @@ export default function StoreManagerAdmin() {
       }
     });
 
-    // Pulizie - calcola media degli score dei singoli form completati
-    // Usa la stessa logica di ValutazionePulizie.calculateScore
-    const puliziConfig = cleaningConfigs?.find(c => c.is_active) || {
-      metodo_calcolo: 'media',
-      punteggio_pulito: 100,
-      punteggio_sporco: 0,
-      punteggio_risposta_corretta: 100,
-      punteggio_risposta_errata: 0
-    };
-
+    // Pulizie - legge lo score complessivo salvato dai form completati
     const storePulizie = pulizie.filter(p => 
       p.store_id === storeId && 
       p.inspection_date &&
       moment(p.inspection_date).isValid() &&
       moment(p.inspection_date).isBetween(monthStart, monthEnd, 'day', '[]') &&
-      p.analysis_status === 'completed'
+      p.analysis_status === 'completed' &&
+      p.overall_score !== null && p.overall_score !== undefined
     );
     
-    // Calcola lo score di ogni form (come fa ValutazionePulizie)
-    const calculateInspectionScore = (inspection) => {
-      if (!inspection.domande_risposte || inspection.domande_risposte.length === 0) return 0;
-      
-      let totalScore = 0;
-      let totalWeight = 0;
-      
-      inspection.domande_risposte.forEach(domanda => {
-        let score = 0;
-        
-        if (domanda.tipo_controllo === 'foto') {
-          const attrezzatura = domanda.attrezzatura?.toLowerCase().replace(/\s+/g, '_');
-          const statusField = `${attrezzatura}_pulizia_status`;
-          const correctedField = `${attrezzatura}_corrected_status`;
-          
-          const status = inspection[correctedField] || inspection[statusField];
-          
-          if (status === 'pulito') {
-            score = puliziConfig.punteggio_pulito;
-          } else if (status === 'sporco') {
-            score = puliziConfig.punteggio_sporco;
-          }
-        } else if (domanda.tipo_controllo === 'scelta_multipla') {
-          // Usa risposta_corretta da domanda_risposte (pre-calcolata dall'AI)
-          if (domanda.risposta_corretta === true) {
-            score = puliziConfig.punteggio_risposta_corretta || 100;
-          } else if (domanda.risposta_corretta === false) {
-            score = puliziConfig.punteggio_risposta_errata || 0;
-          }
-        }
-        
-        totalScore += score;
-        totalWeight += 1;
-      });
-      
-      return totalWeight > 0 ? totalScore / totalWeight : 0;
-    };
-    
-    const scores = storePulizie.map(calculateInspectionScore).filter(s => s > 0);
+    const scores = storePulizie.map(p => p.overall_score).filter(s => s > 0);
     const mediaPulizie = scores.length > 0
       ? scores.reduce((sum, s) => sum + s, 0) / scores.length
       : null;
