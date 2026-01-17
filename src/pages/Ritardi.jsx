@@ -111,7 +111,7 @@ export default function Ritardi() {
     stores.forEach(store => {
       const turniStore = filteredTurni.filter(t => t.store_id === store.id);
       const totalRitardi = turniStore.length;
-      const minutiReali = turniStore.reduce((sum, t) => sum + (t.minuti_ritardo_reale || t.minuti_ritardo || 0), 0);
+      const minutiReali = turniStore.reduce((sum, t) => sum + (t.minuti_ritardo_reale || 0), 0);
       const minutiConteggiati = turniStore.reduce((sum, t) => sum + (t.minuti_ritardo_conteggiato || 0), 0);
       
       stats[store.id] = {
@@ -149,7 +149,7 @@ export default function Ritardi() {
       }
 
       stats[turno.dipendente_id].totalRitardi++;
-      stats[turno.dipendente_id].minutiReali += turno.minuti_ritardo_reale || turno.minuti_ritardo || 0;
+      stats[turno.dipendente_id].minutiReali += turno.minuti_ritardo_reale || 0;
       stats[turno.dipendente_id].minutiConteggiati += turno.minuti_ritardo_conteggiato || 0;
 
       // Per store
@@ -162,7 +162,7 @@ export default function Ritardi() {
         };
       }
       stats[turno.dipendente_id].turniPerStore[turno.store_id].count++;
-      stats[turno.dipendente_id].turniPerStore[turno.store_id].minutiReali += turno.minuti_ritardo_reale || turno.minuti_ritardo || 0;
+      stats[turno.dipendente_id].turniPerStore[turno.store_id].minutiReali += turno.minuti_ritardo_reale || 0;
       stats[turno.dipendente_id].turniPerStore[turno.store_id].minutiConteggiati += turno.minuti_ritardo_conteggiato || 0;
     });
 
@@ -192,7 +192,7 @@ export default function Ritardi() {
         };
       }
       grouped[date].totalRitardi++;
-      grouped[date].minutiReali += turno.minuti_ritardo_reale || turno.minuti_ritardo || 0;
+      grouped[date].minutiReali += turno.minuti_ritardo_reale || 0;
       grouped[date].minutiConteggiati += turno.minuti_ritardo_conteggiato || 0;
     });
 
@@ -208,7 +208,7 @@ export default function Ritardi() {
   // Statistiche complessive
   const overallStats = useMemo(() => {
     const totalRitardi = filteredTurni.length;
-    const minutiReali = filteredTurni.reduce((sum, t) => sum + (t.minuti_ritardo_reale || t.minuti_ritardo || 0), 0);
+    const minutiReali = filteredTurni.reduce((sum, t) => sum + (t.minuti_ritardo_reale || 0), 0);
     const minutiConteggiati = filteredTurni.reduce((sum, t) => sum + (t.minuti_ritardo_conteggiato || 0), 0);
     const oreReali = (minutiReali / 60).toFixed(1);
     const oreConteggiate = (minutiConteggiati / 60).toFixed(1);
@@ -590,10 +590,10 @@ export default function Ritardi() {
                 </thead>
                 <tbody>
                   {[...filteredTurni]
-                    .sort((a, b) => (b.minuti_ritardo_conteggiato || b.minuti_ritardo || 0) - (a.minuti_ritardo_conteggiato || a.minuti_ritardo || 0))
+                    .sort((a, b) => (b.minuti_ritardo_conteggiato || 0) - (a.minuti_ritardo_conteggiato || 0))
                     .slice(0, 10)
                     .map(turno => {
-                      const minutiReali = turno.minuti_ritardo_reale || turno.minuti_ritardo || 0;
+                      const minutiReali = turno.minuti_ritardo_reale || 0;
                       const minutiConteggiati = turno.minuti_ritardo_conteggiato || 0;
                       const store = stores.find(s => s.id === turno.store_id);
                       
