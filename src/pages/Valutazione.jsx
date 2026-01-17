@@ -191,6 +191,7 @@ export default function Valutazione() {
         totalShifts: 0,
         latePercentage: 0,
         averageRating: 0,
+        totalDelayMinutes: 0,
         overallScore: 0
       };
     }
@@ -201,6 +202,9 @@ export default function Valutazione() {
 
      // Count only shifts with both clock-in and clock-out
      const totalShifts = myTurni.filter(t => t.timbratura_entrata && t.timbratura_uscita).length;
+
+     // Calculate TOTAL delay minutes (same as Store Manager dashboard)
+     const totalDelayMinutes = myTurni.reduce((acc, t) => acc + (t.minuti_ritardo_conteggiato || 0), 0);
      const latePercentage = totalShifts > 0
        ? (lateShifts.length / totalShifts) * 100
        : 0;
@@ -282,6 +286,7 @@ export default function Valutazione() {
       averageRating,
       avgCleaningScore,
       myCleaningInspections,
+      totalDelayMinutes,
       overallScore: Math.round(overallScore)
     };
     }, [user, matchedEmployee, myTurni, myReviews, myWrongOrders, cleaningInspections, filterDate]);
@@ -391,8 +396,8 @@ export default function Valutazione() {
           <div className="neumorphic-flat w-10 h-10 sm:w-12 sm:h-12 rounded-full mx-auto mb-2 sm:mb-3 flex items-center justify-center">
             <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
           </div>
-          <h3 className="text-xl sm:text-2xl font-bold text-red-600 mb-1">{employeeData.lateShifts.length}</h3>
-          <p className="text-[10px] sm:text-xs text-[#9b9b9b]">Ritardi</p>
+          <h3 className="text-xl sm:text-2xl font-bold text-red-600 mb-1">{employeeData.totalDelayMinutes}</h3>
+          <p className="text-[10px] sm:text-xs text-[#9b9b9b]">Minuti Ritardo</p>
         </NeumorphicCard>
 
         <NeumorphicCard className="p-3 sm:p-4 text-center">
