@@ -23,6 +23,22 @@ export default function Ritardi() {
     queryFn: () => base44.entities.TurnoPlanday.list('-data', 2000)
   });
 
+  const [isRecalculating, setIsRecalculating] = useState(false);
+
+  const handleRecalculateDelays = async () => {
+    setIsRecalculating(true);
+    try {
+      const result = await base44.functions.invoke('calculateShiftDelay', {});
+      alert(`✅ ${result.data.message}`);
+      // Refresh data
+      window.location.reload();
+    } catch (error) {
+      alert(`❌ Errore: ${error.message}`);
+    } finally {
+      setIsRecalculating(false);
+    }
+  };
+
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
     queryFn: () => base44.entities.User.list()
@@ -51,10 +67,26 @@ export default function Ritardi() {
   // Filter turni by date and store
   const filteredTurni = useMemo(() => {
     return turni.filter(t => {
-      // Deve avere timbratura entrata E minuti di ritardo
-      if (!t.timbratura_entrata || !t.minuti_ritardo || t.minuti_ritardo <= 0) {
-        return false;
+      // Deve avere timbratura entrata
+      if (!t.timbratura_entrata) return false;
+      
+      // Calcola ritardo al volo se non presente
+      let minutiRitardo = t.minuti_ritardo || 0;
+      if (!t.minuti_ritardo && t.ora_inizio) {
+        try {
+          const clockInTime = new Date(t.timbratura_entrata);
+          const [oraInizioHH, oraInizioMM] = t.ora_inizio.split(':').map(Number);
+          const scheduledStart = new Date(clockInTime);
+          scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
+          const delayMs = clockInTime - scheduledStart;
+          minutiRitardo = Math.floor(delayMs / 60000);
+        } catch (e) {
+          // Skip in caso di errore
+        }
       }
+      
+      // Deve avere ritardo
+      if (minutiRitardo <= 0) return false;
       
       // Filtro store
       const matchStore = selectedStore === "all" || t.store_id === selectedStore;
