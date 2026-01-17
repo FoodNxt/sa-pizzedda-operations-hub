@@ -70,23 +70,11 @@ export default function Ritardi() {
       // Deve avere timbratura entrata
       if (!t.timbratura_entrata) return false;
       
-      // Calcola ritardo al volo se non presente
-      let minutiRitardo = t.minuti_ritardo || 0;
-      if (!t.minuti_ritardo && t.ora_inizio) {
-        try {
-          const clockInTime = new Date(t.timbratura_entrata);
-          const [oraInizioHH, oraInizioMM] = t.ora_inizio.split(':').map(Number);
-          const scheduledStart = new Date(clockInTime);
-          scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
-          const delayMs = clockInTime - scheduledStart;
-          minutiRitardo = Math.floor(delayMs / 60000);
-        } catch (e) {
-          // Skip in caso di errore
-        }
-      }
+      // Usa minuti_ritardo_reale se disponibile, altrimenti fallback su minuti_ritardo
+      const minutiRitardoReale = t.minuti_ritardo_reale || t.minuti_ritardo || 0;
       
-      // Deve avere ritardo
-      if (minutiRitardo <= 0) return false;
+      // Deve avere ritardo reale
+      if (minutiRitardoReale <= 0) return false;
       
       // Filtro store
       const matchStore = selectedStore === "all" || t.store_id === selectedStore;
@@ -109,14 +97,18 @@ export default function Ritardi() {
     stores.forEach(store => {
       const turniStore = filteredTurni.filter(t => t.store_id === store.id);
       const totalRitardi = turniStore.length;
-      const minutiTotali = turniStore.reduce((sum, t) => sum + (t.minuti_ritardo || 0), 0);
+      const minutiReali = turniStore.reduce((sum, t) => sum + (t.minuti_ritardo_reale || t.minuti_ritardo || 0), 0);
+      const minutiConteggiati = turniStore.reduce((sum, t) => sum + (t.minuti_ritardo_conteggiato || 0), 0);
       
       stats[store.id] = {
         storeName: store.name,
         totalRitardi,
-        minutiTotali,
-        oreTotali: (minutiTotali / 60).toFixed(1),
-        mediaMinuti: totalRitardi > 0 ? (minutiTotali / totalRitardi).toFixed(1) : 0
+        minutiReali,
+        minutiConteggiati,
+        oreReali: (minutiReali / 60).toFixed(1),
+        oreConteggiate: (minutiConteggiati / 60).toFixed(1),
+        mediaMinutiReali: totalRitardi > 0 ? (minutiReali / totalRitardi).toFixed(1) : 0,
+        mediaMinutiConteggiati: totalRitardi > 0 ? (minutiConteggiati / totalRitardi).toFixed(1) : 0
       };
     });
 
@@ -136,33 +128,39 @@ export default function Ritardi() {
           dipendenteId: turno.dipendente_id,
           dipendenteNome: turno.dipendente_nome || user?.nome_cognome || user?.full_name || 'Sconosciuto',
           totalRitardi: 0,
-          minutiTotali: 0,
+          minutiReali: 0,
+          minutiConteggiati: 0,
           turniPerStore: {}
         };
       }
 
       stats[turno.dipendente_id].totalRitardi++;
-      stats[turno.dipendente_id].minutiTotali += turno.minuti_ritardo || 0;
+      stats[turno.dipendente_id].minutiReali += turno.minuti_ritardo_reale || turno.minuti_ritardo || 0;
+      stats[turno.dipendente_id].minutiConteggiati += turno.minuti_ritardo_conteggiato || 0;
 
       // Per store
       if (!stats[turno.dipendente_id].turniPerStore[turno.store_id]) {
         stats[turno.dipendente_id].turniPerStore[turno.store_id] = {
           storeName: stores.find(s => s.id === turno.store_id)?.name || 'Sconosciuto',
           count: 0,
-          minuti: 0
+          minutiReali: 0,
+          minutiConteggiati: 0
         };
       }
       stats[turno.dipendente_id].turniPerStore[turno.store_id].count++;
-      stats[turno.dipendente_id].turniPerStore[turno.store_id].minuti += turno.minuti_ritardo || 0;
+      stats[turno.dipendente_id].turniPerStore[turno.store_id].minutiReali += turno.minuti_ritardo_reale || turno.minuti_ritardo || 0;
+      stats[turno.dipendente_id].turniPerStore[turno.store_id].minutiConteggiati += turno.minuti_ritardo_conteggiato || 0;
     });
 
     return Object.values(stats)
       .map(s => ({
         ...s,
-        oreTotali: (s.minutiTotali / 60).toFixed(1),
-        mediaMinuti: s.totalRitardi > 0 ? (s.minutiTotali / s.totalRitardi).toFixed(1) : 0
+        oreReali: (s.minutiReali / 60).toFixed(1),
+        oreConteggiate: (s.minutiConteggiati / 60).toFixed(1),
+        mediaMinutiReali: s.totalRitardi > 0 ? (s.minutiReali / s.totalRitardi).toFixed(1) : 0,
+        mediaMinutiConteggiati: s.totalRitardi > 0 ? (s.minutiConteggiati / s.totalRitardi).toFixed(1) : 0
       }))
-      .sort((a, b) => b.minutiTotali - a.minutiTotali);
+      .sort((a, b) => b.minutiConteggiati - a.minutiConteggiati);
   }, [filteredTurni, users, stores]);
 
   // Trend temporale
@@ -175,17 +173,20 @@ export default function Ritardi() {
         grouped[date] = {
           date,
           totalRitardi: 0,
-          minutiTotali: 0
+          minutiReali: 0,
+          minutiConteggiati: 0
         };
       }
       grouped[date].totalRitardi++;
-      grouped[date].minutiTotali += turno.minuti_ritardo || 0;
+      grouped[date].minutiReali += turno.minuti_ritardo_reale || turno.minuti_ritardo || 0;
+      grouped[date].minutiConteggiati += turno.minuti_ritardo_conteggiato || 0;
     });
 
     return Object.values(grouped)
       .map(g => ({
         ...g,
-        mediaMinuti: g.totalRitardi > 0 ? (g.minutiTotali / g.totalRitardi).toFixed(1) : 0
+        mediaMinutiReali: g.totalRitardi > 0 ? (g.minutiReali / g.totalRitardi).toFixed(1) : 0,
+        mediaMinutiConteggiati: g.totalRitardi > 0 ? (g.minutiConteggiati / g.totalRitardi).toFixed(1) : 0
       }))
       .sort((a, b) => new Date(a.date) - new Date(b.date));
   }, [filteredTurni]);
@@ -193,16 +194,22 @@ export default function Ritardi() {
   // Statistiche complessive
   const overallStats = useMemo(() => {
     const totalRitardi = filteredTurni.length;
-    const minutiTotali = filteredTurni.reduce((sum, t) => sum + (t.minuti_ritardo || 0), 0);
-    const oreTotali = (minutiTotali / 60).toFixed(1);
-    const mediaMinuti = totalRitardi > 0 ? (minutiTotali / totalRitardi).toFixed(1) : 0;
+    const minutiReali = filteredTurni.reduce((sum, t) => sum + (t.minuti_ritardo_reale || t.minuti_ritardo || 0), 0);
+    const minutiConteggiati = filteredTurni.reduce((sum, t) => sum + (t.minuti_ritardo_conteggiato || 0), 0);
+    const oreReali = (minutiReali / 60).toFixed(1);
+    const oreConteggiate = (minutiConteggiati / 60).toFixed(1);
+    const mediaMinutiReali = totalRitardi > 0 ? (minutiReali / totalRitardi).toFixed(1) : 0;
+    const mediaMinutiConteggiati = totalRitardi > 0 ? (minutiConteggiati / totalRitardi).toFixed(1) : 0;
     const dipendentiConRitardi = new Set(filteredTurni.map(t => t.dipendente_id).filter(Boolean)).size;
 
     return {
       totalRitardi,
-      minutiTotali,
-      oreTotali,
-      mediaMinuti,
+      minutiReali,
+      minutiConteggiati,
+      oreReali,
+      oreConteggiate,
+      mediaMinutiReali,
+      mediaMinutiConteggiati,
       dipendentiConRitardi
     };
   }, [filteredTurni]);
@@ -298,20 +305,20 @@ export default function Ritardi() {
                 <Clock className="w-6 h-6 text-orange-600" />
               </div>
               <div>
-                <p className="text-sm text-slate-500">Minuti</p>
-                <p className="text-2xl font-bold text-slate-700">{overallStats.minutiTotali}</p>
+                <p className="text-sm text-slate-500">Min. Reali</p>
+                <p className="text-2xl font-bold text-slate-700">{overallStats.minutiReali}</p>
               </div>
             </div>
           </NeumorphicCard>
 
           <NeumorphicCard className="p-6">
             <div className="flex items-center gap-3">
-              <div className="neumorphic-flat p-3 rounded-xl bg-blue-100">
-                <Clock className="w-6 h-6 text-blue-600" />
+              <div className="neumorphic-flat p-3 rounded-xl bg-amber-100">
+                <Clock className="w-6 h-6 text-amber-600" />
               </div>
               <div>
-                <p className="text-sm text-slate-500">Ore Totali</p>
-                <p className="text-2xl font-bold text-slate-700">{overallStats.oreTotali}</p>
+                <p className="text-sm text-slate-500">Min. Cont.</p>
+                <p className="text-2xl font-bold text-slate-700">{overallStats.minutiConteggiati}</p>
               </div>
             </div>
           </NeumorphicCard>
@@ -322,8 +329,8 @@ export default function Ritardi() {
                 <TrendingUp className="w-6 h-6 text-purple-600" />
               </div>
               <div>
-                <p className="text-sm text-slate-500">Media</p>
-                <p className="text-2xl font-bold text-slate-700">{overallStats.mediaMinuti}<span className="text-sm">m</span></p>
+                <p className="text-sm text-slate-500">Media Cont.</p>
+                <p className="text-2xl font-bold text-slate-700">{overallStats.mediaMinutiConteggiati}<span className="text-sm">m</span></p>
               </div>
             </div>
           </NeumorphicCard>
@@ -382,11 +389,19 @@ export default function Ritardi() {
                     />
                     <Line 
                       type="monotone" 
-                      dataKey="mediaMinuti" 
+                      dataKey="mediaMinutiReali" 
                       stroke="#f59e0b" 
                       strokeWidth={2}
-                      name="Media Minuti"
+                      name="Media Min. Reali"
                       dot={{ fill: '#f59e0b', r: 3 }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="mediaMinutiConteggiati" 
+                      stroke="#8b5cf6" 
+                      strokeWidth={2}
+                      name="Media Min. Cont."
+                      dot={{ fill: '#8b5cf6', r: 3 }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -415,9 +430,10 @@ export default function Ritardi() {
                       <tr className="border-b-2 border-slate-300">
                         <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Locale</th>
                         <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">N° Ritardi</th>
-                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Minuti Totali</th>
-                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Ore Totali</th>
-                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Media Ritardo</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Min. Reali</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Min. Cont.</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Media Reale</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Media Cont.</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -425,9 +441,10 @@ export default function Ritardi() {
                         <tr key={stat.storeName} className="border-b border-slate-100 hover:bg-slate-50">
                           <td className="py-3 px-4 text-sm text-slate-700 font-medium">{stat.storeName}</td>
                           <td className="py-3 px-4 text-sm text-red-600 text-right font-bold">{stat.totalRitardi}</td>
-                          <td className="py-3 px-4 text-sm text-orange-600 text-right font-medium">{stat.minutiTotali}</td>
-                          <td className="py-3 px-4 text-sm text-blue-600 text-right font-medium">{stat.oreTotali}h</td>
-                          <td className="py-3 px-4 text-sm text-purple-600 text-right font-bold">{stat.mediaMinuti}m</td>
+                          <td className="py-3 px-4 text-sm text-orange-600 text-right font-medium">{stat.minutiReali}</td>
+                          <td className="py-3 px-4 text-sm text-amber-600 text-right font-medium">{stat.minutiConteggiati}</td>
+                          <td className="py-3 px-4 text-sm text-blue-600 text-right font-bold">{stat.mediaMinutiReali}m</td>
+                          <td className="py-3 px-4 text-sm text-purple-600 text-right font-bold">{stat.mediaMinutiConteggiati}m</td>
                         </tr>
                       ))}
                     </tbody>
@@ -495,13 +512,16 @@ export default function Ritardi() {
                             {stat.totalRitardi} ritardi
                           </span>
                           <span className="text-orange-600 font-medium">
-                            {stat.minutiTotali} minuti
+                            Reali: {stat.minutiReali}m
                           </span>
-                          <span className="text-blue-600 font-medium">
-                            {stat.oreTotali}h totali
+                          <span className="text-amber-600 font-medium">
+                            Cont.: {stat.minutiConteggiati}m
+                          </span>
+                          <span className="text-blue-600 font-bold">
+                            Media Reale: {stat.mediaMinutiReali}m
                           </span>
                           <span className="text-purple-600 font-bold">
-                            Media: {stat.mediaMinuti}m
+                            Media Cont.: {stat.mediaMinutiConteggiati}m
                           </span>
                         </div>
                       </div>
@@ -515,7 +535,9 @@ export default function Ritardi() {
                           {Object.values(stat.turniPerStore).map(storeData => (
                             <div key={storeData.storeName} className="text-xs bg-slate-50 rounded-lg p-2">
                               <p className="font-medium text-slate-700">{storeData.storeName}</p>
-                              <p className="text-slate-600">{storeData.count} ritardi • {storeData.minuti}m</p>
+                              <p className="text-slate-600">{storeData.count} ritardi</p>
+                              <p className="text-orange-600">Reali: {storeData.minutiReali}m</p>
+                              <p className="text-amber-600">Cont.: {storeData.minutiConteggiati}m</p>
                             </div>
                           ))}
                         </div>
@@ -548,16 +570,17 @@ export default function Ritardi() {
                     <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Dipendente</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Locale</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Ruolo</th>
-                    <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Ritardo</th>
+                    <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Rit. Reale</th>
+                    <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Rit. Cont.</th>
                   </tr>
                 </thead>
                 <tbody>
                   {[...filteredTurni]
-                    .sort((a, b) => (b.minuti_ritardo || 0) - (a.minuti_ritardo || 0))
+                    .sort((a, b) => (b.minuti_ritardo_conteggiato || b.minuti_ritardo || 0) - (a.minuti_ritardo_conteggiato || a.minuti_ritardo || 0))
                     .slice(0, 10)
                     .map(turno => {
-                      const ore = Math.floor((turno.minuti_ritardo || 0) / 60);
-                      const minuti = (turno.minuti_ritardo || 0) % 60;
+                      const minutiReali = turno.minuti_ritardo_reale || turno.minuti_ritardo || 0;
+                      const minutiConteggiati = turno.minuti_ritardo_conteggiato || 0;
                       const store = stores.find(s => s.id === turno.store_id);
                       
                       return (
@@ -575,11 +598,13 @@ export default function Ritardi() {
                             {turno.ruolo || '-'}
                           </td>
                           <td className="py-3 px-4 text-sm text-right">
-                            <span className="font-bold text-red-600">
-                              {ore > 0 && `${ore}h `}{minuti}m
+                            <span className="font-bold text-orange-600">
+                              {minutiReali}m
                             </span>
-                            <span className="text-xs text-slate-500 ml-1">
-                              ({turno.minuti_ritardo}m)
+                          </td>
+                          <td className="py-3 px-4 text-sm text-right">
+                            <span className="font-bold text-amber-600">
+                              {minutiConteggiati}m
                             </span>
                           </td>
                         </tr>

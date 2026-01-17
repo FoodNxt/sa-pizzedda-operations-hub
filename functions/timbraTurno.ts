@@ -48,8 +48,24 @@ Deno.serve(async (req) => {
       scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
       const delayMs = clockInTime - scheduledStart;
       const delayMinutes = Math.floor(delayMs / 60000);
-      updateData.in_ritardo = delayMinutes > 0;
-      updateData.minuti_ritardo = delayMinutes > 0 ? delayMinutes : 0;
+      
+      // Ritardo reale
+      const ritardoReale = delayMinutes > 0 ? delayMinutes : 0;
+      
+      // Ritardo conteggiato (policy: 1-5min = 0, 6-15min = 15, 16+ = reale)
+      let ritardoConteggiato = 0;
+      if (ritardoReale >= 1 && ritardoReale <= 5) {
+        ritardoConteggiato = 0;
+      } else if (ritardoReale >= 6 && ritardoReale <= 15) {
+        ritardoConteggiato = 15;
+      } else if (ritardoReale > 15) {
+        ritardoConteggiato = ritardoReale;
+      }
+      
+      updateData.in_ritardo = ritardoReale > 0;
+      updateData.minuti_ritardo = ritardoReale; // backward compatibility
+      updateData.minuti_ritardo_reale = ritardoReale;
+      updateData.minuti_ritardo_conteggiato = ritardoConteggiato;
     } else if (tipo === 'uscita') {
       // Verifica che ci sia una timbratura entrata
       if (!turno.timbratura_entrata) {
