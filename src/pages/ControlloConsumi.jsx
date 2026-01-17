@@ -24,6 +24,7 @@ export default function ControlloConsumi() {
   });
   const [expandedMozzarellaRows, setExpandedMozzarellaRows] = useState({});
   const [expandedProducts, setExpandedProducts] = useState({});
+  const [prodottiChiaveViewMode, setProdottiChiaveViewMode] = useState('daily'); // 'daily', 'weekly', 'monthly'
 
   // Fetch data
   const { data: stores = [] } = useQuery({
@@ -604,84 +605,193 @@ export default function ControlloConsumi() {
   stats.prodottiMonitorati = prodottiSet.size;
 
   // Calcola dati dettagliati per prodotti chiave (mozzarella, pomodoro, farina, semola)
-  const mozzarellaDetails = {};
-  const mozzarellaProducts = materiePrime.filter(m => {
-    const nome = m.nome_prodotto.toLowerCase();
-    return nome.includes('mozzarella') || 
-           nome.includes('pomodoro') || 
-           nome.includes('farina') || 
-           nome.includes('semola');
-  });
-  
-  mozzarellaProducts.forEach(mozz => {
-    const datiMozz = {
-      nome: mozz.nome_prodotto,
-      pesoUnitario: mozz.peso_dimensione_unita,
-      unitaMisura: mozz.unita_misura,
-      giornaliero: []
-    };
-
-    datesSorted.forEach(date => {
-      const prod = datiGiornalieriPerProdotto[date]?.[mozz.id];
-      if (!prod) return;
-
-      // Calcola breakdown per prodotto venduto (usa espandiIngredientiGrammi per avere grammi originali)
-      const breakdown = [];
-      filteredVendite.filter(v => v.data_vendita === date).forEach(vendita => {
-        const ricetta = ricette.find(r => r.nome_prodotto === vendita.flavor);
-        if (!ricetta || !ricetta.ingredienti) return;
-
-        const qty = vendita.total_pizzas_sold || 0;
-        const ingredientiGrammi = espandiIngredientiGrammi(ricetta.ingredienti, 1); // Per 1 unità
-        
-        const mozzKey = mozz.id || mozz.nome_prodotto;
-        if (ingredientiGrammi[mozzKey]) {
-          breakdown.push({
-            nomeProdotto: vendita.flavor,
-            quantitaVenduta: qty,
-            grammiPerUnita: ingredientiGrammi[mozzKey].quantita,
-            grammiTotali: ingredientiGrammi[mozzKey].quantita * qty
-          });
-        }
-      });
-
-      // Calcola grammi venduti dalla somma del breakdown (così è coerente)
-      const grammiVenduti = breakdown.reduce((sum, item) => sum + item.grammiTotali, 0);
-      const kgVenduti = grammiVenduti / 1000;
-      const pezziVenduti = prod.qtyVenduta;
-
-      // Calcola sprechi per questo prodotto in questa data
-      const sprechiProdotto = filteredSprechi.filter(s => {
-        const dataSpreco = s.data_rilevazione.split('T')[0];
-        return dataSpreco === date && s.prodotto_id === mozz.id;
-      });
-      const totaleSprechiGrammi = sprechiProdotto.reduce((sum, s) => sum + (s.quantita_grammi || 0), 0);
-      const totaleSprechiKg = totaleSprechiGrammi / 1000;
-      const totaleSprechiPezzi = mozz.pesoUnitario && mozz.pesoUnitario > 0 
-        ? totaleSprechiKg / mozz.pesoUnitario 
-        : 0;
-
-      datiMozz.giornaliero.push({
-        data: date,
-        qtyIniziale: prod.qtyIniziale,
-        grammiVenduti,
-        kgVenduti,
-        pezziVenduti,
-        qtyArrivata: prod.qtyArrivata,
-        sprechiGrammi: totaleSprechiGrammi,
-        sprechiKg: totaleSprechiKg,
-        sprechiPezzi: totaleSprechiPezzi,
-        qtyFinale: prod.qtyFinale,
-        qtyAttesa: prod.qtyIniziale - prod.qtyVenduta + prod.qtyArrivata,
-        delta: prod.delta,
-        breakdown
-      });
+  const calcProdottiChiaveData = (mode) => {
+    const mozzarellaProducts = materiePrime.filter(m => {
+      const nome = m.nome_prodotto.toLowerCase();
+      return nome.includes('mozzarella') || 
+             nome.includes('pomodoro') || 
+             nome.includes('farina') || 
+             nome.includes('semola');
     });
 
-    if (datiMozz.giornaliero.length > 0) {
-      mozzarellaDetails[mozz.id] = datiMozz;
-    }
-  });
+    const details = {};
+
+    mozzarellaProducts.forEach(mozz => {
+      const datiMozz = {
+        nome: mozz.nome_prodotto,
+        pesoUnitario: mozz.peso_dimensione_unita,
+        unitaMisura: mozz.unita_misura,
+        periodi: []
+      };
+
+      if (mode === 'daily') {
+        datesSorted.forEach(date => {
+          const prod = datiGiornalieriPerProdotto[date]?.[mozz.id];
+          if (!prod) return;
+
+          const breakdown = [];
+          filteredVendite.filter(v => v.data_vendita === date).forEach(vendita => {
+            const ricetta = ricette.find(r => r.nome_prodotto === vendita.flavor);
+            if (!ricetta || !ricetta.ingredienti) return;
+
+            const qty = vendita.total_pizzas_sold || 0;
+            const ingredientiGrammi = espandiIngredientiGrammi(ricetta.ingredienti, 1);
+            
+            const mozzKey = mozz.id || mozz.nome_prodotto;
+            if (ingredientiGrammi[mozzKey]) {
+              breakdown.push({
+                nomeProdotto: vendita.flavor,
+                quantitaVenduta: qty,
+                grammiPerUnita: ingredientiGrammi[mozzKey].quantita,
+                grammiTotali: ingredientiGrammi[mozzKey].quantita * qty
+              });
+            }
+          });
+
+          const grammiVenduti = breakdown.reduce((sum, item) => sum + item.grammiTotali, 0);
+          const kgVenduti = grammiVenduti / 1000;
+          const pezziVenduti = prod.qtyVenduta;
+
+          const sprechiProdotto = filteredSprechi.filter(s => {
+            const dataSpreco = s.data_rilevazione.split('T')[0];
+            return dataSpreco === date && s.prodotto_id === mozz.id;
+          });
+          const totaleSprechiGrammi = sprechiProdotto.reduce((sum, s) => sum + (s.quantita_grammi || 0), 0);
+          const totaleSprechiKg = totaleSprechiGrammi / 1000;
+
+          datiMozz.periodi.push({
+            periodo: date,
+            qtyIniziale: prod.qtyIniziale,
+            grammiVenduti,
+            kgVenduti,
+            pezziVenduti,
+            qtyArrivata: prod.qtyArrivata,
+            sprechiGrammi: totaleSprechiGrammi,
+            sprechiKg: totaleSprechiKg,
+            qtyFinale: prod.qtyFinale,
+            qtyAttesa: prod.qtyIniziale - prod.qtyVenduta + prod.qtyArrivata,
+            delta: prod.delta,
+            breakdown
+          });
+        });
+      } else {
+        // Weekly or Monthly aggregation
+        const periodi = {};
+        
+        datesSorted.forEach(date => {
+          const d = parseISO(date);
+          let periodoKey;
+          
+          if (mode === 'weekly') {
+            const weekStart = startOfWeek(d, { weekStartsOn: 1 });
+            periodoKey = format(weekStart, 'yyyy-MM-dd');
+          } else if (mode === 'monthly') {
+            periodoKey = format(d, 'yyyy-MM');
+          }
+
+          if (!periodi[periodoKey]) {
+            periodi[periodoKey] = {
+              dates: [],
+              breakdown: []
+            };
+          }
+          periodi[periodoKey].dates.push(date);
+        });
+
+        // Per ogni periodo, aggrega i dati
+        Object.keys(periodi).sort().forEach(periodoKey => {
+          const datesInPeriod = periodi[periodoKey].dates.sort();
+          const firstDate = datesInPeriod[0];
+          const lastDate = datesInPeriod[datesInPeriod.length - 1];
+
+          // Qty iniziale: dall'inventario del primo giorno
+          const firstProd = datiGiornalieriPerProdotto[firstDate]?.[mozz.id];
+          const qtyIniziale = firstProd ? firstProd.qtyIniziale : 0;
+
+          // Qty finale: dall'inventario dell'ultimo giorno
+          const lastProd = datiGiornalieriPerProdotto[lastDate]?.[mozz.id];
+          const qtyFinale = lastProd ? lastProd.qtyFinale : 0;
+
+          // Accumula vendite, arrivi, sprechi
+          let grammiVendutiTotali = 0;
+          let pezziVendutiTotali = 0;
+          let qtyArrivataTotale = 0;
+          let sprechiGrammiTotali = 0;
+          const allBreakdown = [];
+
+          datesInPeriod.forEach(date => {
+            const prod = datiGiornalieriPerProdotto[date]?.[mozz.id];
+            if (prod) {
+              pezziVendutiTotali += prod.qtyVenduta;
+              qtyArrivataTotale += prod.qtyArrivata;
+            }
+
+            // Breakdown vendite
+            filteredVendite.filter(v => v.data_vendita === date).forEach(vendita => {
+              const ricetta = ricette.find(r => r.nome_prodotto === vendita.flavor);
+              if (!ricetta || !ricetta.ingredienti) return;
+
+              const qty = vendita.total_pizzas_sold || 0;
+              const ingredientiGrammi = espandiIngredientiGrammi(ricetta.ingredienti, 1);
+              
+              const mozzKey = mozz.id || mozz.nome_prodotto;
+              if (ingredientiGrammi[mozzKey]) {
+                const existing = allBreakdown.find(b => b.nomeProdotto === vendita.flavor);
+                if (existing) {
+                  existing.quantitaVenduta += qty;
+                  existing.grammiTotali += ingredientiGrammi[mozzKey].quantita * qty;
+                } else {
+                  allBreakdown.push({
+                    nomeProdotto: vendita.flavor,
+                    quantitaVenduta: qty,
+                    grammiPerUnita: ingredientiGrammi[mozzKey].quantita,
+                    grammiTotali: ingredientiGrammi[mozzKey].quantita * qty
+                  });
+                }
+                grammiVendutiTotali += ingredientiGrammi[mozzKey].quantita * qty;
+              }
+            });
+
+            // Sprechi
+            filteredSprechi.filter(s => {
+              const dataSpreco = s.data_rilevazione.split('T')[0];
+              return dataSpreco === date && s.prodotto_id === mozz.id;
+            }).forEach(s => {
+              sprechiGrammiTotali += s.quantita_grammi || 0;
+            });
+          });
+
+          const kgVendutiTotali = grammiVendutiTotali / 1000;
+          const sprechiKgTotali = sprechiGrammiTotali / 1000;
+          const qtyAttesa = qtyIniziale - pezziVendutiTotali + qtyArrivataTotale;
+          const delta = qtyFinale - qtyAttesa;
+
+          datiMozz.periodi.push({
+            periodo: periodoKey,
+            qtyIniziale,
+            grammiVenduti: grammiVendutiTotali,
+            kgVenduti: kgVendutiTotali,
+            pezziVenduti: pezziVendutiTotali,
+            qtyArrivata: qtyArrivataTotale,
+            sprechiGrammi: sprechiGrammiTotali,
+            sprechiKg: sprechiKgTotali,
+            qtyFinale,
+            qtyAttesa,
+            delta,
+            breakdown: allBreakdown
+          });
+        });
+      }
+
+      if (datiMozz.periodi.length > 0) {
+        details[mozz.id] = datiMozz;
+      }
+    });
+
+    return details;
+  };
+
+  const mozzarellaDetails = calcProdottiChiaveData(prodottiChiaveViewMode);
 
   return (
     <ProtectedPage pageName="ControlloConsumi">
@@ -846,7 +956,24 @@ export default function ControlloConsumi() {
         {/* Dettaglio Prodotti Chiave */}
         {activeTab === 'confronto' && Object.keys(mozzarellaDetails).length > 0 && (
           <NeumorphicCard className="p-6">
-            <h2 className="text-xl font-bold text-slate-700 mb-4">📊 Dettaglio Prodotti Chiave</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-slate-700">📊 Dettaglio Prodotti Chiave</h2>
+              <div className="flex gap-2">
+                {['daily', 'weekly', 'monthly'].map(mode => (
+                  <button
+                    key={mode}
+                    onClick={() => setProdottiChiaveViewMode(mode)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      prodottiChiaveViewMode === mode
+                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                        : 'neumorphic-flat text-slate-600'
+                    }`}
+                  >
+                    {mode === 'daily' ? 'Giornaliera' : mode === 'weekly' ? 'Settimanale' : 'Mensile'}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="space-y-4">
               {Object.keys(mozzarellaDetails).map(mozzId => {
                 const mozz = mozzarellaDetails[mozzId];
@@ -874,12 +1001,12 @@ export default function ControlloConsumi() {
                           <table className="w-full text-sm">
                             <thead>
                               <tr className="border-b-2 border-slate-300">
-                                <th className="text-left py-2 px-3">Data</th>
+                                <th className="text-left py-2 px-3">{prodottiChiaveViewMode === 'daily' ? 'Data' : prodottiChiaveViewMode === 'weekly' ? 'Settimana' : 'Mese'}</th>
                                 <th className="text-right py-2 px-3">Qty Iniziale<br/><span className="text-xs font-normal">({mozz.unitaMisura})</span></th>
                                 <th className="text-right py-2 px-3">Grammi Venduti<br/><span className="text-xs font-normal">(ricette)</span></th>
                                 <th className="text-right py-2 px-3">Kg Venduti</th>
                                 <th className="text-right py-2 px-3">Pezzi Venduti<br/><span className="text-xs font-normal">(calcolati)</span></th>
-                                <th className="text-right py-2 px-3">Sprechi<br/><span className="text-xs font-normal">({mozz.unitaMisura})</span></th>
+                                <th className="text-right py-2 px-3">Sprechi<br/><span className="text-xs font-normal">(g / kg)</span></th>
                                 <th className="text-right py-2 px-3">Qty Arrivata<br/><span className="text-xs font-normal">({mozz.unitaMisura})</span></th>
                                 <th className="text-right py-2 px-3">Qty Attesa<br/><span className="text-xs font-normal">({mozz.unitaMisura})</span></th>
                                 <th className="text-right py-2 px-3">Qty Finale<br/><span className="text-xs font-normal">({mozz.unitaMisura})</span></th>
@@ -887,12 +1014,12 @@ export default function ControlloConsumi() {
                               </tr>
                             </thead>
                             <tbody>
-                              {mozz.giornaliero.map(day => {
-                                const rowKey = `${mozzId}-${day.data}`;
+                              {mozz.periodi.map(periodo => {
+                                const rowKey = `${mozzId}-${periodo.periodo}`;
                                 const isRowExpanded = expandedMozzarellaRows[rowKey];
-                                const deltaPercent = day.pezziVenduti !== 0 ? (day.delta / day.pezziVenduti * 100) : 0;
+                                const deltaPercent = periodo.pezziVenduti !== 0 ? (periodo.delta / periodo.pezziVenduti * 100) : 0;
                                 return (
-                                  <React.Fragment key={day.data}>
+                                  <React.Fragment key={periodo.periodo}>
                                     <tr className="border-b border-slate-100 hover:bg-slate-50">
                                       <td className="py-2 px-3">
                                         <button
@@ -900,36 +1027,41 @@ export default function ControlloConsumi() {
                                           className="flex items-center gap-2 text-blue-600 hover:text-blue-800"
                                         >
                                           <span className="text-xs">{isRowExpanded ? '▼' : '▶'}</span>
-                                          {format(parseISO(day.data), 'dd/MM/yyyy')}
+                                          {prodottiChiaveViewMode === 'daily' 
+                                            ? format(parseISO(periodo.periodo), 'dd/MM/yyyy')
+                                            : prodottiChiaveViewMode === 'weekly'
+                                            ? `${format(parseISO(periodo.periodo), 'dd/MM/yyyy')}`
+                                            : format(parseISO(periodo.periodo + '-01'), 'MMMM yyyy', { locale: it })
+                                          }
                                         </button>
                                       </td>
-                                      <td className="py-2 px-3 text-right font-medium">{day.qtyIniziale.toFixed(2)}</td>
-                                      <td className="py-2 px-3 text-right text-orange-600">{day.grammiVenduti.toFixed(0)} g</td>
-                                      <td className="py-2 px-3 text-right text-orange-600 font-medium">{day.kgVenduti.toFixed(2)} kg</td>
-                                      <td className="py-2 px-3 text-right text-orange-700 font-bold">-{day.pezziVenduti.toFixed(2)}</td>
+                                      <td className="py-2 px-3 text-right font-medium">{periodo.qtyIniziale.toFixed(2)}</td>
+                                      <td className="py-2 px-3 text-right text-orange-600">{periodo.grammiVenduti.toFixed(0)} g</td>
+                                      <td className="py-2 px-3 text-right text-orange-600 font-medium">{periodo.kgVenduti.toFixed(2)} kg</td>
+                                      <td className="py-2 px-3 text-right text-orange-700 font-bold">-{periodo.pezziVenduti.toFixed(2)}</td>
                                       <td className="py-2 px-3 text-right text-red-600">
-                                        {day.sprechiPezzi > 0 ? (
+                                        {periodo.sprechiGrammi > 0 ? (
                                           <div>
-                                            <div className="font-medium">-{day.sprechiPezzi.toFixed(2)}</div>
-                                            <div className="text-xs">({day.sprechiKg.toFixed(2)} kg)</div>
+                                            <div className="font-medium">{periodo.sprechiGrammi.toFixed(0)} g</div>
+                                            <div className="text-xs">({periodo.sprechiKg.toFixed(2)} kg)</div>
                                           </div>
                                         ) : '-'}
                                       </td>
-                                      <td className="py-2 px-3 text-right text-blue-600 font-medium">+{day.qtyArrivata.toFixed(2)}</td>
-                                      <td className="py-2 px-3 text-right text-slate-600">{day.qtyAttesa.toFixed(2)}</td>
-                                      <td className="py-2 px-3 text-right font-bold">{day.qtyFinale.toFixed(2)}</td>
-                                      <td className={`py-2 px-3 text-right ${day.delta > 0 ? 'text-green-600' : day.delta < 0 ? 'text-red-600' : 'text-slate-600'}`}>
-                                        <div className="font-bold">{day.delta > 0 ? '+' : ''}{day.delta.toFixed(2)}</div>
+                                      <td className="py-2 px-3 text-right text-blue-600 font-medium">+{periodo.qtyArrivata.toFixed(2)}</td>
+                                      <td className="py-2 px-3 text-right text-slate-600">{periodo.qtyAttesa.toFixed(2)}</td>
+                                      <td className="py-2 px-3 text-right font-bold">{periodo.qtyFinale.toFixed(2)}</td>
+                                      <td className={`py-2 px-3 text-right ${periodo.delta > 0 ? 'text-green-600' : periodo.delta < 0 ? 'text-red-600' : 'text-slate-600'}`}>
+                                        <div className="font-bold">{periodo.delta > 0 ? '+' : ''}{periodo.delta.toFixed(2)}</div>
                                         <div className="text-xs">({deltaPercent > 0 ? '+' : ''}{deltaPercent.toFixed(1)}%)</div>
                                       </td>
                                     </tr>
-                                    {isRowExpanded && day.breakdown && day.breakdown.length > 0 && (
+                                    {isRowExpanded && periodo.breakdown && periodo.breakdown.length > 0 && (
                                 <tr>
-                                  <td colSpan="9" className="bg-slate-50 p-4">
+                                  <td colSpan="10" className="bg-slate-50 p-4">
                                     <div className="text-sm">
                                       <p className="font-bold text-slate-700 mb-2">📋 Breakdown Calcolo Grammi Venduti:</p>
                                       <div className="space-y-1 ml-4">
-                                        {day.breakdown.map((item, idx) => (
+                                        {periodo.breakdown.map((item, idx) => (
                                           <div key={idx} className="flex items-center justify-between text-slate-600">
                                             <span>
                                               <span className="font-medium text-slate-800">{item.nomeProdotto}</span>
@@ -945,7 +1077,7 @@ export default function ControlloConsumi() {
                                         ))}
                                         <div className="border-t border-slate-300 mt-2 pt-2 flex justify-between font-bold text-slate-800">
                                           <span>TOTALE:</span>
-                                          <span className="text-orange-700">{day.grammiVenduti.toFixed(0)} g</span>
+                                          <span className="text-orange-700">{periodo.grammiVenduti.toFixed(0)} g</span>
                                         </div>
                                       </div>
                                     </div>
