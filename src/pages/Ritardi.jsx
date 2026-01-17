@@ -70,7 +70,7 @@ export default function Ritardi() {
       .map(t => {
         // Calcola ritardo reale (usa campo se presente, altrimenti calcola)
         let minutiRitardoReale = t.minuti_ritardo_reale || 0;
-        let minutiRitardoConteggiato = t.minuti_ritardo_conteggiato || 0;
+        let minutiRitardoConteggiato = 0;
         
         // Se non c'è ritardo registrato, prova a calcolarlo al volo
         if (minutiRitardoReale === 0 && t.timbratura_entrata && t.ora_inizio) {
@@ -81,18 +81,18 @@ export default function Ritardi() {
             scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
             const delayMs = clockInTime - scheduledStart;
             minutiRitardoReale = Math.max(0, Math.floor(delayMs / 60000));
-            
-            // Calcola anche il conteggiato con la policy (arrotonda al quarto d'ora superiore)
-            if (minutiRitardoReale >= 1 && minutiRitardoReale <= 5) {
-              minutiRitardoConteggiato = 0;
-            } else if (minutiRitardoReale >= 6 && minutiRitardoReale <= 15) {
-              minutiRitardoConteggiato = 15;
-            } else if (minutiRitardoReale > 15) {
-              minutiRitardoConteggiato = Math.ceil(minutiRitardoReale / 15) * 15;
-            }
           } catch (e) {
             // Skip in caso di errore
           }
+        }
+        
+        // Ricalcola SEMPRE il conteggiato se c'è ritardo reale
+        if (minutiRitardoReale >= 1 && minutiRitardoReale <= 5) {
+          minutiRitardoConteggiato = 0;
+        } else if (minutiRitardoReale >= 6 && minutiRitardoReale <= 15) {
+          minutiRitardoConteggiato = 15;
+        } else if (minutiRitardoReale > 15) {
+          minutiRitardoConteggiato = Math.ceil(minutiRitardoReale / 15) * 15;
         }
         
         return {
