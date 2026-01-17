@@ -241,6 +241,51 @@ export default function ControlloConsumi() {
     return risultato;
   };
 
+  // Funzione per espandere ingredienti SENZA conversione a pezzi (solo grammi originali)
+  const espandiIngredientiGrammi = (ingredienti, moltiplicatore = 1) => {
+    const risultato = {};
+    
+    if (!ingredienti || ingredienti.length === 0) return risultato;
+    
+    ingredienti.forEach(ing => {
+      const key = ing.materia_prima_id || ing.nome_prodotto;
+      
+      // Verifica se è un semilavorato
+      const ricettaSemilavorato = ricette.find(r => 
+        (r.id === ing.materia_prima_id || r.nome_prodotto === ing.nome_prodotto) && r.is_semilavorato
+      );
+      
+      if (ricettaSemilavorato && ricettaSemilavorato.ingredienti) {
+        // È un semilavorato: espandi ricorsivamente
+        const subIngredienti = espandiIngredientiGrammi(ricettaSemilavorato.ingredienti, moltiplicatore * ing.quantita);
+        Object.keys(subIngredienti).forEach(subKey => {
+          if (!risultato[subKey]) {
+            risultato[subKey] = {
+              nome: subIngredienti[subKey].nome,
+              quantita: 0,
+              unita_misura: subIngredienti[subKey].unita_misura
+            };
+          }
+          risultato[subKey].quantita += subIngredienti[subKey].quantita;
+        });
+      } else {
+        // È una materia prima - NON fare conversione a pezzi
+        const quantitaFinale = ing.quantita * moltiplicatore;
+        
+        if (!risultato[key]) {
+          risultato[key] = {
+            nome: ing.nome_prodotto,
+            quantita: 0,
+            unita_misura: ing.unita_misura
+          };
+        }
+        risultato[key].quantita += quantitaFinale;
+      }
+    });
+    
+    return risultato;
+  };
+
   // Calcola quantità vendute per giorno e prodotto (da prodotti venduti)
   const quantitaVendutePerGiorno = {};
   filteredVendite.forEach(vendita => {
