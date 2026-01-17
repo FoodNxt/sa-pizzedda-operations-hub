@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { TrendingUp, Clock, DollarSign, Calendar, Store, X } from 'lucide-react';
+import { TrendingUp, Clock, DollarSign, Calendar, Store, X, Settings } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { format, startOfMonth, endOfMonth, parseISO, startOfWeek, endOfWeek, getWeek } from 'date-fns';
 import { it } from 'date-fns/locale';
@@ -19,6 +19,9 @@ export default function Produttivita() {
   const [showHours, setShowHours] = useState(true);
   const [showRevenuePerHour, setShowRevenuePerHour] = useState(true);
   const [selectedHeatmapCell, setSelectedHeatmapCell] = useState(null);
+  const [heatmapMode, setHeatmapMode] = useState('productivity'); // 'productivity' or 'revenue'
+  const [showSettings, setShowSettings] = useState(false);
+  const [includedTipiTurno, setIncludedTipiTurno] = useState([]);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -34,6 +37,27 @@ export default function Produttivita() {
     queryKey: ['planday-shifts'],
     queryFn: () => base44.entities.TurnoPlanday.list('-data', 2000),
   });
+
+  const { data: tipiTurnoConfig = [] } = useQuery({
+    queryKey: ['tipi-turno-config'],
+    queryFn: () => base44.entities.TipoTurnoConfig.list(),
+  });
+
+  // Inizializza tipi turno inclusi con tutti i tipi disponibili
+  React.useEffect(() => {
+    if (includedTipiTurno.length === 0 && tipiTurnoConfig.length > 0) {
+      const tipi = tipiTurnoConfig.map(t => t.nome);
+      setIncludedTipiTurno(tipi);
+    }
+  }, [tipiTurnoConfig]);
+
+  // Filtra turni in base ai tipi selezionati
+  const filteredShifts = useMemo(() => {
+    if (includedTipiTurno.length === 0) return allShifts;
+    return allShifts.filter(shift => 
+      includedTipiTurno.includes(shift.tipo_turno) || !shift.tipo_turno
+    );
+  }, [allShifts, includedTipiTurno]);
 
   const filteredData = useMemo(() => {
     let filtered = revenueData;
@@ -66,7 +90,7 @@ export default function Produttivita() {
   const hoursWorkedBySlot = useMemo(() => {
     const slotData = {}; // { slot: { totalHours, daysSet } }
 
-    allShifts.forEach(shift => {
+    filteredShifts.forEach(shift => {
       if (!shift.ora_inizio || !shift.ora_fine) return;
       if (selectedStore !== 'all' && shift.store_id !== selectedStore) return;
 
@@ -106,7 +130,7 @@ export default function Produttivita() {
     });
 
     return avgHours;
-  }, [allShifts, selectedStore]);
+  }, [filteredShifts, selectedStore]);
 
   // Aggregate by time slot (30min or 1hour)
   const aggregatedData = useMemo(() => {
@@ -149,7 +173,7 @@ export default function Produttivita() {
     if (!dayData || !dayData.slots) return [];
 
     // Get shifts for this specific date
-    const dayShifts = allShifts.filter(s => s.data === selectedDate);
+    const dayShifts = filteredShifts.filter(s => s.data === selectedDate);
     const dayHoursSlot = {};
 
     dayShifts.forEach(shift => {
@@ -205,7 +229,7 @@ export default function Produttivita() {
     }
 
     return data;
-  }, [filteredData, selectedDate, allShifts, selectedStore, timeSlotView]);
+  }, [filteredData, selectedDate, filteredShifts, selectedStore, timeSlotView]);
 
   // Heatmap data: day of week x time slot
   const heatmapData = useMemo(() => {
@@ -302,7 +326,7 @@ export default function Produttivita() {
     });
     
     // Add hours from shifts
-    allShifts.forEach(shift => {
+    filteredShifts.forEach(shift => {
       if (!shift.ora_inizio || !shift.ora_fine || !shift.data || !shift.store_id) return;
       
       const date = parseISO(shift.data);
@@ -341,7 +365,7 @@ export default function Produttivita() {
     });
     
     return storeData;
-  }, [filteredData, allShifts]);
+  }, [filteredData, filteredShifts]);
 
   // Daily productivity by store
   const dailyProductivity = useMemo(() => {
@@ -363,7 +387,7 @@ export default function Produttivita() {
     });
     
     // Add hours from shifts for each day
-    allShifts.forEach(shift => {
+    filteredShifts.forEach(shift => {
       if (!shift.ora_inizio || !shift.ora_fine || !shift.data || !shift.store_id) return;
       
       const key = `${shift.data}_${shift.store_id}`;
@@ -385,7 +409,7 @@ export default function Produttivita() {
         productivity: item.hours > 0 ? item.revenue / item.hours : 0
       }))
       .sort((a, b) => b.date.localeCompare(a.date));
-  }, [filteredData, allShifts]);
+  }, [filteredData, filteredShifts]);
 
   const stats = {
     totalRevenue: filteredData.reduce((sum, r) => sum + (r.total_revenue || 0), 0),
@@ -398,9 +422,17 @@ export default function Produttivita() {
   return (
     <ProtectedPage pageName="Produttivita" requiredUserTypes={['admin', 'manager']}>
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">📊 Produttività</h1>
-          <p className="text-[#9b9b9b]">Analisi revenue per slot orari</p>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">📊 Produttività</h1>
+            <p className="text-[#9b9b9b]">Analisi revenue per slot orari</p>
+          </div>
+          <button
+            onClick={() => setShowSettings(true)}
+            className="neumorphic-flat p-3 rounded-xl hover:bg-slate-100 transition-all"
+          >
+            <Settings className="w-5 h-5 text-slate-600" />
+          </button>
         </div>
 
         {/* Stats */}
@@ -582,9 +614,35 @@ export default function Produttivita() {
 
         {/* Heatmap - Produttività per Giorno e Slot */}
         <NeumorphicCard className="p-6">
-          <div className="mb-4">
-            <h3 className="text-lg font-bold text-[#6b6b6b]">Heatmap Produttività per Giorno e Slot</h3>
-            <p className="text-sm text-[#9b9b9b]">€ fatturato / Ore lavorate (media per giorno e slot)</p>
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-[#6b6b6b]">Heatmap per Giorno e Slot</h3>
+              <p className="text-sm text-[#9b9b9b]">
+                {heatmapMode === 'productivity' ? '€ fatturato / Ore lavorate (media per giorno e slot)' : 'Fatturato medio per giorno e slot'}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setHeatmapMode('productivity')}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                  heatmapMode === 'productivity'
+                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                    : 'neumorphic-flat text-[#6b6b6b]'
+                }`}
+              >
+                Produttività (€/ora)
+              </button>
+              <button
+                onClick={() => setHeatmapMode('revenue')}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                  heatmapMode === 'revenue'
+                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                    : 'neumorphic-flat text-[#6b6b6b]'
+                }`}
+              >
+                Fatturato (€)
+              </button>
+            </div>
           </div>
           {heatmapData.length > 0 && (() => {
             // Get all unique slots from data
@@ -598,7 +656,13 @@ export default function Produttivita() {
             
             // Find min/max for color scaling
             const allValues = heatmapData.flatMap(row => 
-              slots.map(slot => row[slot] || 0).filter(v => v > 0)
+              slots.map(slot => {
+                if (heatmapMode === 'productivity') {
+                  return row[slot] || 0;
+                } else {
+                  return row.metadata?.[slot]?.avgRevenue || 0;
+                }
+              }).filter(v => v > 0)
             );
             const maxValue = allValues.length > 0 ? Math.max(...allValues) : 100;
             const minValue = allValues.length > 0 ? Math.min(...allValues) : 0;
@@ -633,14 +697,16 @@ export default function Produttivita() {
                           {row.day}
                         </td>
                         {slots.map(slot => {
-                          const value = row[slot] || 0;
+                          const value = heatmapMode === 'productivity' 
+                            ? (row[slot] || 0)
+                            : (row.metadata?.[slot]?.avgRevenue || 0);
                           const metadata = row.metadata?.[slot];
                           return (
                             <td
                               key={slot}
                               onClick={() => metadata && setSelectedHeatmapCell({ day: row.day, slot, ...metadata })}
                               className={`p-2 text-center font-semibold transition-all hover:scale-110 cursor-pointer ${getColor(value)}`}
-                              title={value > 0 ? `€${value.toFixed(2)}/ora` : 'Nessun dato'}
+                              title={value > 0 ? (heatmapMode === 'productivity' ? `€${value.toFixed(2)}/ora` : `€${value.toFixed(2)}`) : 'Nessun dato'}
                             >
                               {value > 0 ? `€${value.toFixed(0)}` : '-'}
                             </td>
@@ -1099,6 +1165,77 @@ export default function Produttivita() {
             <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
           )}
         </NeumorphicCard>
+
+        {/* Settings Modal */}
+        {showSettings && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-[#6b6b6b]">Impostazioni Produttività</h3>
+                <button
+                  onClick={() => setShowSettings(false)}
+                  className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+                >
+                  <X className="w-5 h-5 text-[#9b9b9b]" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="neumorphic-pressed p-4 rounded-xl">
+                  <h4 className="font-bold text-[#6b6b6b] mb-3">Tipi di Turno da Includere</h4>
+                  <p className="text-xs text-[#9b9b9b] mb-3">
+                    Seleziona quali tipi di turno includere nel calcolo delle ore lavorate
+                  </p>
+                  <div className="space-y-2">
+                    {tipiTurnoConfig.map(tipo => (
+                      <label key={tipo.id} className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 rounded-lg transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={includedTipiTurno.includes(tipo.nome)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setIncludedTipiTurno(prev => [...prev, tipo.nome]);
+                            } else {
+                              setIncludedTipiTurno(prev => prev.filter(t => t !== tipo.nome));
+                            }
+                          }}
+                          className="w-5 h-5 rounded"
+                        />
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-4 h-4 rounded" 
+                            style={{ backgroundColor: tipo.colore || '#94a3b8' }}
+                          />
+                          <span className="font-medium text-[#6b6b6b]">{tipo.nome}</span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                  {includedTipiTurno.length === 0 && (
+                    <p className="text-xs text-red-600 mt-2">
+                      ⚠️ Seleziona almeno un tipo di turno
+                    </p>
+                  )}
+                </div>
+
+                <div className="neumorphic-pressed p-4 rounded-xl bg-blue-50">
+                  <p className="text-xs text-blue-700">
+                    <strong>Nota:</strong> I filtri si applicano a tutti i grafici e calcoli di questa pagina.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={() => setShowSettings(false)}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium hover:shadow-lg transition-all"
+                >
+                  Applica
+                </button>
+              </div>
+            </NeumorphicCard>
+          </div>
+        )}
       </div>
     </ProtectedPage>
   );
