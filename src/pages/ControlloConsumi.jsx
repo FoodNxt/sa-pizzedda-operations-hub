@@ -590,11 +590,15 @@ export default function ControlloConsumi() {
   });
   stats.prodottiMonitorati = prodottiSet.size;
 
-  // Calcola dati dettagliati mozzarella per periodo corrente
+  // Calcola dati dettagliati per prodotti chiave (mozzarella, pomodoro, farina, semola)
   const mozzarellaDetails = {};
-  const mozzarellaProducts = materiePrime.filter(m => 
-    m.nome_prodotto.toLowerCase().includes('mozzarella')
-  );
+  const mozzarellaProducts = materiePrime.filter(m => {
+    const nome = m.nome_prodotto.toLowerCase();
+    return nome.includes('mozzarella') || 
+           nome.includes('pomodoro') || 
+           nome.includes('farina') || 
+           nome.includes('semola');
+  });
   
   mozzarellaProducts.forEach(mozz => {
     const datiMozz = {
@@ -812,10 +816,10 @@ export default function ControlloConsumi() {
         </div>
         )}
 
-        {/* Dettaglio Mozzarella */}
+        {/* Dettaglio Prodotti Chiave */}
         {activeTab === 'confronto' && Object.keys(mozzarellaDetails).length > 0 && (
           <NeumorphicCard className="p-6">
-            <h2 className="text-xl font-bold text-slate-700 mb-4">📊 Dettaglio Mozzarella</h2>
+            <h2 className="text-xl font-bold text-slate-700 mb-4">📊 Dettaglio Prodotti Chiave</h2>
             {Object.keys(mozzarellaDetails).map(mozzId => {
               const mozz = mozzarellaDetails[mozzId];
               return (
