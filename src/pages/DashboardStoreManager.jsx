@@ -906,9 +906,9 @@ export default function DashboardStoreManager() {
                         </span>
                       </div>
                       {(() => {
-                        const match = wrongOrderMatches.find(m => m.wrong_order_id === order.id);
-                        return match?.matched_employee_name ? (
-                          <p className="text-sm text-slate-700 mb-1">👤 <strong>Assegnato a:</strong> {match.matched_employee_name}</p>
+                        const matches = wrongOrderMatches.filter(m => m.wrong_order_id === order.id);
+                        return matches.length > 0 ? (
+                          <p className="text-sm text-slate-700 mb-1">👤 <strong>Assegnato a:</strong> {matches.map(m => m.matched_employee_name).join(', ')}</p>
                         ) : null;
                       })()}
                       <p className="text-xs text-slate-600 mb-1">💰 Importo: €{order.order_total || 0}</p>
