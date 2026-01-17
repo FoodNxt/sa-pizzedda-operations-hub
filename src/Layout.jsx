@@ -276,6 +276,11 @@ const navigationStructure = [
         icon: Clock,
       },
       {
+        title: "Ritardi",
+        url: createPageUrl("Ritardi"),
+        icon: AlertTriangle,
+      },
+      {
         title: "Assegnazione Locali",
         url: createPageUrl("HRAdmin"),
         icon: MapPin,
