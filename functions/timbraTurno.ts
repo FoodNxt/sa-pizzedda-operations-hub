@@ -9,6 +9,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Carica configurazione timbrature
+    const configs = await base44.asServiceRole.entities.TimbraturaConfig.filter({ is_active: true });
+    const config = configs[0] || { tolleranza_ritardo_minuti: 0, arrotonda_ritardo: true, arrotondamento_minuti: 15 };
+
     const { turnoId, tipo, posizione } = await req.json();
 
     if (!turnoId || !tipo) {
@@ -52,14 +56,19 @@ Deno.serve(async (req) => {
       // Ritardo reale
       const ritardoReale = delayMinutes > 0 ? delayMinutes : 0;
       
-      // Ritardo conteggiato (policy: 1-5min = 0, 6-15min = 15, 16+ = arrotonda al quarto d'ora superiore)
+      // Ritardo conteggiato: usa tolleranza e arrotondamento dalle impostazioni
       let ritardoConteggiato = 0;
-      if (ritardoReale >= 1 && ritardoReale <= 5) {
-        ritardoConteggiato = 0;
-      } else if (ritardoReale >= 6 && ritardoReale <= 15) {
-        ritardoConteggiato = 15;
-      } else if (ritardoReale > 15) {
-        ritardoConteggiato = Math.ceil(ritardoReale / 15) * 15;
+      const tolleranza = config.tolleranza_ritardo_minuti || 0;
+      
+      if (ritardoReale > tolleranza) {
+        const ritardoDopoPenalita = ritardoReale - tolleranza;
+        
+        if (config.arrotonda_ritardo) {
+          const arrotondamento = config.arrotondamento_minuti || 15;
+          ritardoConteggiato = Math.ceil(ritardoDopoPenalita / arrotondamento) * arrotondamento;
+        } else {
+          ritardoConteggiato = ritardoDopoPenalita;
+        }
       }
       
       updateData.in_ritardo = ritardoReale > 0;

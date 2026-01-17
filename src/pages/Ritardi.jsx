@@ -23,6 +23,14 @@ export default function Ritardi() {
     queryFn: () => base44.entities.TurnoPlanday.list('-data', 2000)
   });
 
+  const { data: timbraturaConfig } = useQuery({
+    queryKey: ['timbratura-config'],
+    queryFn: async () => {
+      const configs = await base44.entities.TimbraturaConfig.filter({ is_active: true });
+      return configs[0] || { tolleranza_ritardo_minuti: 0, arrotonda_ritardo: true, arrotondamento_minuti: 15 };
+    }
+  });
+
   const [isRecalculating, setIsRecalculating] = useState(false);
 
   const handleRecalculateDelays = async () => {
@@ -85,15 +93,19 @@ export default function Ritardi() {
           }
         }
         
-        // SEMPRE ricalcola il conteggiato basandosi sul reale (ignora il valore nel database)
-        // Policy: 1-5min = 0, 6-15min = 15, >15min = arrotonda al quarto d'ora superiore
+        // SEMPRE ricalcola il conteggiato basandosi sul reale e configurazione
         let minutiRitardoConteggiato = 0;
-        if (minutiRitardoReale >= 1 && minutiRitardoReale <= 5) {
-          minutiRitardoConteggiato = 0;
-        } else if (minutiRitardoReale >= 6 && minutiRitardoReale <= 15) {
-          minutiRitardoConteggiato = 15;
-        } else if (minutiRitardoReale > 15) {
-          minutiRitardoConteggiato = Math.ceil(minutiRitardoReale / 15) * 15;
+        const tolleranza = timbraturaConfig?.tolleranza_ritardo_minuti || 0;
+        
+        if (minutiRitardoReale > tolleranza) {
+          const ritardoDopoPenalita = minutiRitardoReale - tolleranza;
+          
+          if (timbraturaConfig?.arrotonda_ritardo) {
+            const arrotondamento = timbraturaConfig?.arrotondamento_minuti || 15;
+            minutiRitardoConteggiato = Math.ceil(ritardoDopoPenalita / arrotondamento) * arrotondamento;
+          } else {
+            minutiRitardoConteggiato = ritardoDopoPenalita;
+          }
         }
         
         return {
@@ -121,7 +133,7 @@ export default function Ritardi() {
         
         return true;
       });
-  }, [turni, selectedStore, dateRangeStart]);
+  }, [turni, selectedStore, dateRangeStart, timbraturaConfig]);
 
   // Calcola statistiche per store
   const statsPerStore = useMemo(() => {
