@@ -105,9 +105,9 @@ export default function StoreManagerAdmin() {
     queryFn: () => base44.entities.WrongOrder.filter({})
   });
 
-  const { data: ritardiDipendente = [] } = useQuery({
-    queryKey: ['ritardi-dipendente-sm', selectedMonth],
-    queryFn: () => base44.entities.RitardoDipendente.list()
+  const { data: turniPlanday = [] } = useQuery({
+    queryKey: ['turni-planday-sm'],
+    queryFn: () => base44.entities.TurnoPlanday.list()
   });
 
   const { data: pulizie = [] } = useQuery({
@@ -151,14 +151,32 @@ export default function StoreManagerAdmin() {
     });
     const numOrdiniSbagliati = storeOrdini.length;
 
-    // Ritardi - somma tutti i minuti_ritardo_reale dai ritardi salvati
-    const storeRitardi = ritardiDipendente.filter(r => 
-      r.store_id === storeId && 
-      r.data &&
-      moment(r.data).isValid() &&
-      moment(r.data).isBetween(monthStart, monthEnd, 'day', '[]')
+    // Ritardi - calcola direttamente da TurnoPlanday
+    const storeShifts = turniPlanday.filter(t => 
+      t.store_id === storeId && 
+      t.data &&
+      moment(t.data).isValid() &&
+      moment(t.data).isBetween(monthStart, monthEnd, 'day', '[]') &&
+      t.timbratura_entrata &&
+      t.ora_inizio
     );
-    const totaleRitardi = storeRitardi.reduce((acc, r) => acc + (r.minuti_ritardo_reale || 0), 0);
+    
+    // Ricalcola i minuti di ritardo reale per ogni turno
+    let totaleRitardi = 0;
+    storeShifts.forEach(shift => {
+      try {
+        const clockInTime = new Date(shift.timbratura_entrata);
+        const [oraInizioHH, oraInizioMM] = shift.ora_inizio.split(':').map(Number);
+        const scheduledStart = new Date(clockInTime);
+        scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
+        const delayMs = clockInTime - scheduledStart;
+        const delayMinutes = Math.floor(delayMs / 60000);
+        const ritardoReale = delayMinutes > 0 ? delayMinutes : 0;
+        totaleRitardi += ritardoReale;
+      } catch (e) {
+        // Skip in caso di errore
+      }
+    });
 
     // Pulizie - calcola media di tutti i form pulizia completati per il locale
     const storePulizie = pulizie.filter(p => 
