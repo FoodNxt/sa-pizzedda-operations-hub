@@ -68,35 +68,34 @@ Deno.serve(async (req) => {
           minuti_ritardo_reale: ritardoReale,
           minuti_ritardo_conteggiato: ritardoConteggiato
         });
-        
-        // Crea o aggiorna il record di ritardo se c'è ritardo
-        if (isLate) {
-          const existingRitardo = await base44.asServiceRole.entities.RitardoDipendente.filter({ turno_id: shift.id });
-          
-          const ritardoData = {
-            turno_id: shift.id,
-            dipendente_id: shift.dipendente_id,
-            dipendente_nome: shift.dipendente_nome,
-            store_id: shift.store_id,
-            store_nome: shift.store_nome,
-            data: shift.data,
-            ora_inizio_prevista: shift.ora_inizio,
-            ora_timbratura_entrata: shift.timbratura_entrata,
-            minuti_ritardo_reale: ritardoReale,
-            minuti_ritardo_conteggiato: ritardoConteggiato,
-            ruolo: shift.ruolo
-          };
-          
-          if (existingRitardo.length > 0) {
-            await base44.asServiceRole.entities.RitardoDipendente.update(existingRitardo[0].id, ritardoData);
-          } else {
-            await base44.asServiceRole.entities.RitardoDipendente.create(ritardoData);
-          }
-        }
-        
         updated++;
       } else {
         alreadyCalculated++;
+      }
+      
+      // SEMPRE crea/aggiorna RitardoDipendente se c'è ritardo (indipendentemente da needsUpdate)
+      if (isLate) {
+        const existingRitardo = await base44.asServiceRole.entities.RitardoDipendente.filter({ turno_id: shift.id });
+        
+        const ritardoData = {
+          turno_id: shift.id,
+          dipendente_id: shift.dipendente_id,
+          dipendente_nome: shift.dipendente_nome,
+          store_id: shift.store_id,
+          store_nome: shift.store_nome,
+          data: shift.data,
+          ora_inizio_prevista: shift.ora_inizio,
+          ora_timbratura_entrata: shift.timbratura_entrata,
+          minuti_ritardo_reale: ritardoReale,
+          minuti_ritardo_conteggiato: ritardoConteggiato,
+          ruolo: shift.ruolo
+        };
+        
+        if (existingRitardo.length > 0) {
+          await base44.asServiceRole.entities.RitardoDipendente.update(existingRitardo[0].id, ritardoData);
+        } else {
+          await base44.asServiceRole.entities.RitardoDipendente.create(ritardoData);
+        }
       }
     }
 
