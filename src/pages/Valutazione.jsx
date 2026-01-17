@@ -448,10 +448,10 @@ export default function Valutazione() {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-[#9b9b9b]" />
-                    <span className="font-medium text-[#6b6b6b]">{safeFormatDateLocale(shift.data)}</span>
-                    {shift.store_name && <span className="text-sm text-[#9b9b9b]">• {shift.store_name}</span>}
-                  </div>
-                  <span className="text-lg font-bold text-red-600">+{shift.minuti_ritardo_conteggiato || 0} min</span>
+                    <span className="font-medium text-[#6b6b6b]">{safeFormatDateLocale(shift.shift_date)}</span>
+                      {shift.store_name && <span className="text-sm text-[#9b9b9b]">• {shift.store_name}</span>}
+                    </div>
+                    <span className="text-lg font-bold text-red-600">+{shift.minuti_di_ritardo || 0} min</span>
                 </div>
                 <div className="text-sm text-[#9b9b9b]">
                 <strong>Previsto:</strong> {shift.scheduled_start ? safeFormatTime(shift.scheduled_start) : 'N/A'} → <strong>Effettivo:</strong> {shift.actual_start ? safeFormatTime(shift.actual_start) : 'N/A'}
@@ -494,13 +494,13 @@ export default function Valutazione() {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-[#9b9b9b]" />
-                    <span className="font-medium text-[#6b6b6b]">{safeFormatDateLocale(shift.data)}</span>
-                    {shift.store_name && <span className="text-sm text-[#9b9b9b]">• {shift.store_name}</span>}
-                  </div>
-                  <span className="text-xs font-bold text-orange-600 bg-orange-100 px-3 py-1 rounded-full">NON TIMBRATO</span>
-                </div>
-                <div className="text-sm text-[#9b9b9b]">
-                  <strong>Orario Previsto:</strong> {shift.ora_inizio || 'N/A'} - {shift.ora_fine || 'N/A'}
+                    <span className="font-medium text-[#6b6b6b]">{safeFormatDateLocale(shift.shift_date)}</span>
+                     {shift.store_name && <span className="text-sm text-[#9b9b9b]">• {shift.store_name}</span>}
+                    </div>
+                    <span className="text-xs font-bold text-orange-600 bg-orange-100 px-3 py-1 rounded-full">NON TIMBRATO</span>
+                    </div>
+                    <div className="text-sm text-[#9b9b9b]">
+                    <strong>Orario Previsto:</strong> {shift.scheduled_start ? safeFormatTime(shift.scheduled_start) : 'N/A'} - {shift.scheduled_end ? safeFormatTime(shift.scheduled_end) : 'N/A'}
                 </div>
               </div>
             ))}
