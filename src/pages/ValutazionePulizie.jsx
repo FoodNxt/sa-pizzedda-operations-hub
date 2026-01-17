@@ -430,6 +430,15 @@ export default function ValutazionePulizie() {
           <p className="text-[#9b9b9b]">Visualizza e valuta tutti i form pulizia completati</p>
         </div>
         <div className="flex gap-2">
+          {inspections.some(i => !i.overall_score) && (
+            <NeumorphicButton 
+              onClick={handleSaveAllMissingScores}
+              className="flex items-center gap-2 bg-blue-50"
+            >
+              <Save className="w-5 h-5" />
+              Salva Score Mancanti ({inspections.filter(i => !i.overall_score).length})
+            </NeumorphicButton>
+          )}
           <NeumorphicButton 
             onClick={handleReanalyzeAllFiltered}
             disabled={reanalyzingAll || inspections.length === 0}
