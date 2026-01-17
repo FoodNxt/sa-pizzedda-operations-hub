@@ -52,14 +52,14 @@ Deno.serve(async (req) => {
       // Ritardo reale
       const ritardoReale = delayMinutes > 0 ? delayMinutes : 0;
       
-      // Ritardo conteggiato (policy: 1-5min = 0, 6-15min = 15, 16+ = reale)
+      // Ritardo conteggiato (policy: 1-5min = 0, 6-15min = 15, 16+ = arrotonda al quarto d'ora superiore)
       let ritardoConteggiato = 0;
       if (ritardoReale >= 1 && ritardoReale <= 5) {
         ritardoConteggiato = 0;
       } else if (ritardoReale >= 6 && ritardoReale <= 15) {
         ritardoConteggiato = 15;
       } else if (ritardoReale > 15) {
-        ritardoConteggiato = ritardoReale;
+        ritardoConteggiato = Math.ceil(ritardoReale / 15) * 15;
       }
       
       updateData.in_ritardo = ritardoReale > 0;

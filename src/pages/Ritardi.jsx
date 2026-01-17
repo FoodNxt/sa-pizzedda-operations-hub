@@ -82,13 +82,13 @@ export default function Ritardi() {
             const delayMs = clockInTime - scheduledStart;
             minutiRitardoReale = Math.max(0, Math.floor(delayMs / 60000));
             
-            // Calcola anche il conteggiato con la policy
+            // Calcola anche il conteggiato con la policy (arrotonda al quarto d'ora superiore)
             if (minutiRitardoReale >= 1 && minutiRitardoReale <= 5) {
               minutiRitardoConteggiato = 0;
             } else if (minutiRitardoReale >= 6 && minutiRitardoReale <= 15) {
               minutiRitardoConteggiato = 15;
             } else if (minutiRitardoReale > 15) {
-              minutiRitardoConteggiato = minutiRitardoReale;
+              minutiRitardoConteggiato = Math.ceil(minutiRitardoReale / 15) * 15;
             }
           } catch (e) {
             // Skip in caso di errore
