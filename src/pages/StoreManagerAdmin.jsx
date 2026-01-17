@@ -184,12 +184,46 @@ export default function StoreManagerAdmin() {
       p.inspection_date &&
       moment(p.inspection_date).isValid() &&
       moment(p.inspection_date).isBetween(monthStart, monthEnd, 'day', '[]') &&
-      p.analysis_status === 'completed' &&
-      p.overall_score !== null && p.overall_score !== undefined
+      p.analysis_status === 'completed'
     );
     
-    const mediaPulizie = storePulizie.length > 0
-      ? storePulizie.reduce((sum, p) => sum + (p.overall_score || 0), 0) / storePulizie.length
+    // Per ogni form, usa overall_score se presente, altrimenti calcola da domande_risposte
+    const scores = storePulizie.map(inspection => {
+      if (inspection.overall_score !== null && inspection.overall_score !== undefined) {
+        return inspection.overall_score;
+      }
+      
+      // Fallback: calcola da domande_risposte
+      if (!inspection.domande_risposte || inspection.domande_risposte.length === 0) return null;
+      
+      let totalScore = 0;
+      let count = 0;
+      
+      inspection.domande_risposte.forEach(risposta => {
+        if (!risposta.attrezzatura) return;
+        
+        const equipmentKey = risposta.attrezzatura.toLowerCase().replace(/\s+/g, '_');
+        const status = inspection[`${equipmentKey}_corrected`]
+          ? inspection[`${equipmentKey}_corrected_status`]
+          : inspection[`${equipmentKey}_pulizia_status`];
+        
+        if (status === 'pulito') {
+          totalScore += 100;
+          count++;
+        } else if (status === 'medio') {
+          totalScore += 50;
+          count++;
+        } else if (status === 'sporco') {
+          totalScore += 0;
+          count++;
+        }
+      });
+      
+      return count > 0 ? totalScore / count : null;
+    }).filter(s => s !== null);
+    
+    const mediaPulizie = scores.length > 0
+      ? scores.reduce((sum, s) => sum + s, 0) / scores.length
       : null;
 
     return { fatturato, mediaRecensioni, numRecensioni, numOrdiniSbagliati, totaleRitardi, mediaPulizie };
