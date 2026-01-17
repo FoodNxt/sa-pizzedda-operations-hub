@@ -132,6 +132,13 @@ export default function AnalisiSprechi() {
     },
   });
 
+  const deleteSprecoMutation = useMutation({
+    mutationFn: (id) => base44.entities.Spreco.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sprechi'] });
+    },
+  });
+
   React.useEffect(() => {
     if (activeSprechiConfig) {
       setSprechiConfigForm({
