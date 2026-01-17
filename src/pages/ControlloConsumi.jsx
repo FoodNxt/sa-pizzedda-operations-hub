@@ -613,22 +613,22 @@ export default function ControlloConsumi() {
       const kgVenduti = grammiVenduti / 1000;
       const pezziVenduti = prod.qtyVenduta;
 
-      // Calcola breakdown per prodotto venduto
+      // Calcola breakdown per prodotto venduto (usa espandiIngredientiGrammi per avere grammi originali)
       const breakdown = [];
       filteredVendite.filter(v => v.data_vendita === date).forEach(vendita => {
         const ricetta = ricette.find(r => r.nome_prodotto === vendita.flavor);
         if (!ricetta || !ricetta.ingredienti) return;
 
         const qty = vendita.total_pizzas_sold || 0;
-        const ingredientiEspansi = espandiIngredienti(ricetta.ingredienti, qty);
+        const ingredientiGrammi = espandiIngredientiGrammi(ricetta.ingredienti, 1); // Per 1 unità
         
         const mozzKey = mozz.id || mozz.nome_prodotto;
-        if (ingredientiEspansi[mozzKey]) {
+        if (ingredientiGrammi[mozzKey]) {
           breakdown.push({
             nomeProdotto: vendita.flavor,
             quantitaVenduta: qty,
-            grammiPerUnita: ingredientiEspansi[mozzKey].quantita / qty,
-            grammiTotali: ingredientiEspansi[mozzKey].quantita
+            grammiPerUnita: ingredientiGrammi[mozzKey].quantita,
+            grammiTotali: ingredientiGrammi[mozzKey].quantita * qty
           });
         }
       });
