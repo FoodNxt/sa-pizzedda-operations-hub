@@ -101,20 +101,42 @@ export default function Valutazione() {
   };
 
   // Filter shifts for current user with date range
-  const myShifts = useMemo(() => {
-    if (!user || !shifts.length) return [];
-    return shifts.filter(s => {
-      // Match by user ID
-      if (s.dipendente_id !== user.id) return false;
-      // Apply date filter
-      try {
-        const shiftDate = new Date(s.data);
-        return shiftDate >= filterDate;
-      } catch (e) {
-        return true;
-      }
-    });
-  }, [user, shifts, filterDate]);
+   const myShifts = useMemo(() => {
+     if (!user || !shifts.length) return [];
+     return shifts.filter(s => {
+       // Match by user ID
+       if (s.dipendente_id !== user.id) return false;
+       // Apply date filter
+       try {
+         const shiftDate = new Date(s.data);
+         return shiftDate >= filterDate;
+       } catch (e) {
+         return true;
+       }
+     });
+   }, [user, shifts, filterDate]);
+
+   // Fetch TurnoPlanday for proper delay calculation
+   const { data: turniPlanday = [] } = useQuery({
+     queryKey: ['turni-planday'],
+     queryFn: () => base44.entities.TurnoPlanday.list('-data'),
+   });
+
+   // Use TurnoPlanday instead of shifts for correct delay data
+   const myTurni = useMemo(() => {
+     if (!user || !turniPlanday.length) return [];
+     return turniPlanday.filter(t => {
+       // Match by user ID
+       if (t.dipendente_id !== user.id) return false;
+       // Apply date filter
+       try {
+         const turnoDate = new Date(t.data);
+         return turnoDate >= filterDate;
+       } catch (e) {
+         return true;
+       }
+     });
+   }, [user, turniPlanday, filterDate]);
 
   // Filter reviews assigned to current user with date range
   const myReviews = useMemo(() => {
@@ -166,15 +188,15 @@ export default function Valutazione() {
       };
     }
 
-    const lateShifts = myShifts.filter(s => s.in_ritardo === true);
-    const missingClockIns = myShifts.filter(s => s.stato === 'programmato' && new Date(s.data) < new Date());
-    const googleReviews = myReviews.filter(r => r.source === 'google');
+    const lateShifts = myTurni.filter(t => t.in_ritardo === true);
+     const missingClockIns = myTurni.filter(t => t.stato === 'programmato' && new Date(t.data) < new Date());
+     const googleReviews = myReviews.filter(r => r.source === 'google');
 
-    // Count only shifts with both clock-in and clock-out
-    const totalShifts = myShifts.filter(s => s.timbratura_entrata && s.timbratura_uscita).length;
-    const latePercentage = totalShifts > 0
-      ? (lateShifts.length / totalShifts) * 100
-      : 0;
+     // Count only shifts with both clock-in and clock-out
+     const totalShifts = myTurni.filter(t => t.timbratura_entrata && t.timbratura_uscita).length;
+     const latePercentage = totalShifts > 0
+       ? (lateShifts.length / totalShifts) * 100
+       : 0;
 
     // Calculate average rating
     const averageRating = googleReviews.length > 0
@@ -232,7 +254,7 @@ export default function Valutazione() {
       averageRating,
       overallScore: Math.round(overallScore)
     };
-  }, [user, matchedEmployee, myShifts, myReviews, myWrongOrders]);
+    }, [user, matchedEmployee, myTurni, myReviews, myWrongOrders]);
 
   if (userLoading) {
     return (
