@@ -562,6 +562,26 @@ export default function ControlloConsumi() {
       const kgVenduti = grammiVenduti / 1000;
       const pezziVenduti = prod.qtyVenduta;
 
+      // Calcola breakdown per prodotto venduto
+      const breakdown = [];
+      filteredVendite.filter(v => v.data_vendita === date).forEach(vendita => {
+        const ricetta = ricette.find(r => r.nome_prodotto === vendita.flavor);
+        if (!ricetta || !ricetta.ingredienti) return;
+
+        const qty = vendita.total_pizzas_sold || 0;
+        const ingredientiEspansi = espandiIngredienti(ricetta.ingredienti, qty);
+        
+        const mozzKey = mozz.id || mozz.nome_prodotto;
+        if (ingredientiEspansi[mozzKey]) {
+          breakdown.push({
+            nomeProdotto: vendita.flavor,
+            quantitaVenduta: qty,
+            grammiPerUnita: ingredientiEspansi[mozzKey].quantita / qty,
+            grammiTotali: ingredientiEspansi[mozzKey].quantita
+          });
+        }
+      });
+
       datiMozz.giornaliero.push({
         data: date,
         qtyIniziale: prod.qtyIniziale,
@@ -571,7 +591,8 @@ export default function ControlloConsumi() {
         qtyArrivata: prod.qtyArrivata,
         qtyFinale: prod.qtyFinale,
         qtyAttesa: prod.qtyIniziale - prod.qtyVenduta + prod.qtyArrivata,
-        delta: prod.delta
+        delta: prod.delta,
+        breakdown
       });
     });
 
