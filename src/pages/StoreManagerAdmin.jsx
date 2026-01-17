@@ -223,6 +223,13 @@ export default function StoreManagerAdmin() {
           } else if (status === 'sporco') {
             score = puliziConfig.punteggio_sporco;
           }
+        } else if (domanda.tipo_controllo === 'scelta_multipla') {
+          // Usa risposta_corretta da domanda_risposte (pre-calcolata dall'AI)
+          if (domanda.risposta_corretta === true) {
+            score = puliziConfig.punteggio_risposta_corretta || 100;
+          } else if (domanda.risposta_corretta === false) {
+            score = puliziConfig.punteggio_risposta_errata || 0;
+          }
         }
         
         totalScore += score;
