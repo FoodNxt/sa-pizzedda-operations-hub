@@ -105,9 +105,9 @@ export default function StoreManagerAdmin() {
     queryFn: () => base44.entities.WrongOrder.filter({})
   });
 
-  const { data: turniPlanday = [] } = useQuery({
-    queryKey: ['turni-planday-sm', selectedMonth],
-    queryFn: () => base44.entities.TurnoPlanday.list()
+  const { data: ritardiDipendente = [] } = useQuery({
+    queryKey: ['ritardi-dipendente-sm', selectedMonth],
+    queryFn: () => base44.entities.RitardoDipendente.list()
   });
 
   const { data: pulizie = [] } = useQuery({
@@ -151,14 +151,14 @@ export default function StoreManagerAdmin() {
     });
     const numOrdiniSbagliati = storeOrdini.length;
 
-    // Ritardi - somma tutti i minuti_ritardo dei turni del mese
-    const storeShifts = turniPlanday.filter(t => 
-      t.store_id === storeId && 
-      t.data &&
-      moment(t.data).isValid() &&
-      moment(t.data).isBetween(monthStart, monthEnd, 'day', '[]')
+    // Ritardi - somma tutti i minuti_ritardo_reale dai ritardi salvati
+    const storeRitardi = ritardiDipendente.filter(r => 
+      r.store_id === storeId && 
+      r.data &&
+      moment(r.data).isValid() &&
+      moment(r.data).isBetween(monthStart, monthEnd, 'day', '[]')
     );
-    const totaleRitardi = storeShifts.reduce((acc, t) => acc + (t.minuti_ritardo || 0), 0);
+    const totaleRitardi = storeRitardi.reduce((acc, r) => acc + (r.minuti_ritardo_reale || 0), 0);
 
     // Pulizie - calcola media di tutti i form pulizia completati per il locale
     const storePulizie = pulizie.filter(p => 
