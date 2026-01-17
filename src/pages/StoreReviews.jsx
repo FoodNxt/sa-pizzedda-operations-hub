@@ -8,7 +8,7 @@ import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { format, parseISO, isValid, subDays, subMonths, isAfter, isBefore } from 'date-fns';
+import { format, parseISO, isValid, subDays, subMonths, startOfMonth, isAfter, isBefore } from 'date-fns';
 import { it } from 'date-fns/locale';
 
 // New imports for Recharts
@@ -99,6 +99,8 @@ export default function StoreReviews() {
         return subDays(now, 7);
       case '30':
         return subDays(now, 30);
+      case 'month':
+        return startOfMonth(now);
       case '180':
         return subMonths(now, 6);
       case '365':
@@ -299,7 +301,7 @@ export default function StoreReviews() {
         .map(r => `[${r.rating}⭐] ${r.comment}`)
         .join('\n');
 
-      const prompt = `Analizza le seguenti recensioni per ${storeName} nel periodo selezionato (ultimi ${dateRange === '7' ? '7 giorni' : dateRange === '30' ? '30 giorni' : dateRange === '180' ? '6 mesi' : '12 mesi'}):
+      const prompt = `Analizza le seguenti recensioni per ${storeName} nel periodo selezionato (${dateRange === '7' ? 'ultimi 7 giorni' : dateRange === '30' ? 'ultimi 30 giorni' : dateRange === 'month' ? 'mese in corso' : dateRange === '180' ? 'ultimi 6 mesi' : 'ultimi 12 mesi'}):
 
 ${reviewTexts}
 
@@ -421,6 +423,7 @@ Genera SOLO la risposta, senza introduzioni o spiegazioni.`;
                 >
                   <option value="7">Ultimi 7 giorni</option>
                   <option value="30">Ultimi 30 giorni</option>
+                  <option value="month">Mese in corso</option>
                   <option value="180">Ultimi 6 mesi</option>
                   <option value="365">Ultimi 12 mesi</option>
                 </select>
