@@ -895,17 +895,17 @@ export default function DashboardStoreManager() {
                   metrics.monthWrongOrders.map(order => (
                     <div key={order.id} className="neumorphic-pressed p-4 rounded-xl">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="font-bold text-red-700">Ordine #{order.order_number || 'N/A'}</span>
+                        <span className="font-bold text-red-700">#{order.order_id || 'N/A'} • {order.platform}</span>
                         <span className="text-xs text-slate-500">
                           {new Date(order.order_date).toLocaleDateString('it-IT')}
                         </span>
                       </div>
-                      <p className="text-sm text-slate-600 mb-1">📦 {order.wrong_items}</p>
-                      {order.employee_name && (
-                        <p className="text-xs text-slate-500">👤 {order.employee_name}</p>
+                      {order.matched_employee_name && (
+                        <p className="text-sm text-slate-700 mb-1">👤 <strong>Assegnato a:</strong> {order.matched_employee_name}</p>
                       )}
-                      {order.note && (
-                        <p className="text-xs text-slate-500 italic mt-2">{order.note}</p>
+                      <p className="text-xs text-slate-600 mb-1">💰 Importo: €{order.order_total || 0}</p>
+                      {order.complaint_reason && (
+                        <p className="text-xs text-slate-500 italic">📝 {order.complaint_reason}</p>
                       )}
                     </div>
                   ))

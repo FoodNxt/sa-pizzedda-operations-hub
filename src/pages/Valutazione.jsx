@@ -61,11 +61,18 @@ export default function Valutazione() {
     }
   }, [user]);
 
-  // Calculate date filter
+  // Calculate date filter (SAME AS DASHBOARDSTOREMANAGER - use date range)
   const filterDate = useMemo(() => {
     const now = new Date();
     return dateRange === '30' ? subDays(now, 30) : subMonths(now, 3);
   }, [dateRange]);
+
+  // Calculate month filter (SAME AS DASHBOARDSTOREMANAGER - for shifts & inspections)
+  const monthStart = useMemo(() => {
+    const now = new Date();
+    return dateRange === '30' ? subDays(now, 30) : subMonths(now, 3);
+  }, [dateRange]);
+  const monthEnd = useMemo(() => new Date(), []);
 
   // Helper function to safely format dates
   const safeFormatDate = (dateString, formatString, options = {}) => {
@@ -116,13 +123,11 @@ export default function Valutazione() {
   // Filter shifts for current user with date range (SAME AS DASHBOARDSTOREMANAGER)
    const myShifts = useMemo(() => {
      if (!user || !shifts.length) return [];
-     const monthStart = filterDate;
-     const monthEnd = new Date();
      return shifts.filter(s => {
        const date = new Date(s.shift_date);
        return s.employee_id_external === user.employee_id_external && date >= monthStart && date <= monthEnd;
      });
-   }, [user, shifts, filterDate]);
+   }, [user, shifts, monthStart, monthEnd]);
 
   // Filter reviews assigned to current user with date range
   const myReviews = useMemo(() => {
@@ -199,7 +204,7 @@ export default function Valutazione() {
        if (!userStoreIds.includes(i.store_id)) return false;
        try {
          const inspDate = new Date(i.inspection_date);
-         return inspDate >= filterDate;
+         return inspDate >= monthStart && inspDate <= monthEnd;
        } catch (e) {
          return true;
        }
