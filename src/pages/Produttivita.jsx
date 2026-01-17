@@ -923,6 +923,50 @@ export default function Produttivita() {
           )}
         </NeumorphicCard>
 
+        {/* Daily Productivity Table by Store */}
+        <NeumorphicCard className="p-6">
+          <div className="mb-4">
+            <h3 className="text-lg font-bold text-[#6b6b6b]">Produttività Giornaliera per Negozio</h3>
+            <p className="text-sm text-[#9b9b9b]">Fatturato, ore lavorate e produttività per ogni giorno</p>
+          </div>
+          {dailyProductivity.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b-2 border-[#8b7355]">
+                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Data</th>
+                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Negozio</th>
+                    <th className="text-right p-3 text-[#9b9b9b] font-medium">Fatturato</th>
+                    <th className="text-right p-3 text-[#9b9b9b] font-medium">Ore Lavorate</th>
+                    <th className="text-right p-3 text-[#9b9b9b] font-medium">Produttività (€/ora)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dailyProductivity.map((record) => (
+                    <tr key={`${record.date}_${record.store_id}`} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
+                      <td className="p-3 text-[#6b6b6b] font-medium">
+                        {format(parseISO(record.date), 'dd/MM/yyyy', { locale: it })}
+                      </td>
+                      <td className="p-3 text-[#6b6b6b]">{record.store_name}</td>
+                      <td className="p-3 text-right font-bold text-green-600">
+                        €{record.revenue.toFixed(2)}
+                      </td>
+                      <td className="p-3 text-right font-bold text-orange-600">
+                        {record.hours.toFixed(1)}h
+                      </td>
+                      <td className="p-3 text-right font-bold text-blue-600">
+                        {record.productivity > 0 ? `€${record.productivity.toFixed(2)}` : '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
+          )}
+        </NeumorphicCard>
+
         {/* Raw Data Table */}
         <NeumorphicCard className="p-6">
           <div className="mb-4">
