@@ -211,11 +211,20 @@ export default function Ritardi() {
     <ProtectedPage pageName="Ritardi">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
-            Analisi Ritardi
-          </h1>
-          <p className="text-slate-500 mt-1">Monitoraggio ritardi per locale e dipendente</p>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
+              Analisi Ritardi
+            </h1>
+            <p className="text-slate-500 mt-1">Monitoraggio ritardi per locale e dipendente</p>
+          </div>
+          <button
+            onClick={handleRecalculateDelays}
+            disabled={isRecalculating}
+            className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium hover:shadow-lg transition-all disabled:opacity-50"
+          >
+            {isRecalculating ? '⏳ Ricalcolo...' : '🔄 Ricalcola Ritardi'}
+          </button>
         </div>
 
         {/* Filters */}
