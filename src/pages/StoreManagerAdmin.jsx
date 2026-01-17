@@ -178,7 +178,13 @@ export default function StoreManagerAdmin() {
       }
     });
 
-    // Pulizie - calcola media degli score dai form pulizia completati
+    // Pulizie - calcola media degli score dai form pulizia completati (usando logica da ValutazionePulizie)
+    const puliziConfig = cleaningConfigs?.find(c => c.is_active) || {
+      metodo_calcolo: 'media',
+      punteggio_pulito: 100,
+      punteggio_sporco: 0
+    };
+
     const storePulizie = pulizie.filter(p => 
       p.store_id === storeId && 
       p.inspection_date &&
@@ -187,40 +193,38 @@ export default function StoreManagerAdmin() {
       p.analysis_status === 'completed'
     );
     
-    // Per ogni form, calcola lo score contando gli stati di pulizia
+    // Per ogni form, calcola lo score usando la stessa logica di ValutazionePulizie
     const scores = storePulizie.map(inspection => {
-      let equipmentScores = [];
+      if (!inspection.domande_risposte || inspection.domande_risposte.length === 0) return null;
       
-      // Elenco di tutte le attrezzature possibili
-      const equipmentList = [
-        'forno', 'impastatrice', 'tavolo_lavoro', 'frigo', 'cassa', 'lavandino',
-        'tavolette_takeaway', 'colonna_frigo_1', 'colonna_frigo_2', 'banco_da_lavoro_inox_grande',
-        'banco_da_lavoro_inox_piccolo', 'pavimenti_ed_angoli', 'tavoli_sala_clienti', 'vetrata_ingresso',
-        'stendipizza', 'barelle_palline_piccole', 'barelle_impasto_grande', 'teglie', 'sottovuotatrice',
-        'abbattitore', 'frigo_doppio', 'frigo_bibite'
-      ];
+      let totalScore = 0;
+      let totalWeight = 0;
       
-      equipmentList.forEach(equipment => {
-        const statusKey = `${equipment}_pulizia_status`;
-        const correctedKey = `${equipment}_corrected`;
-        const correctedStatusKey = `${equipment}_corrected_status`;
+      inspection.domande_risposte.forEach(domanda => {
+        if (domanda.tipo_controllo !== 'foto') return;
         
-        const status = inspection[correctedKey] 
-          ? inspection[correctedStatusKey]
-          : inspection[statusKey];
+        // Get status from inspection fields
+        const attrezzatura = domanda.attrezzatura?.toLowerCase().replace(/\s+/g, '_');
+        const statusField = `${attrezzatura}_pulizia_status`;
+        const correctedField = `${attrezzatura}_corrected_status`;
         
+        const status = inspection[correctedField] || inspection[statusField];
+        
+        let score = 0;
         if (status === 'pulito') {
-          equipmentScores.push(100);
-        } else if (status === 'medio') {
-          equipmentScores.push(50);
+          score = puliziConfig.punteggio_pulito;
         } else if (status === 'sporco') {
-          equipmentScores.push(0);
+          score = puliziConfig.punteggio_sporco;
+        } else if (status === 'medio') {
+          // Medio è il punto medio tra pulito e sporco
+          score = (puliziConfig.punteggio_pulito + puliziConfig.punteggio_sporco) / 2;
         }
+        
+        totalScore += score;
+        totalWeight += 1;
       });
       
-      return equipmentScores.length > 0 
-        ? equipmentScores.reduce((sum, s) => sum + s, 0) / equipmentScores.length 
-        : null;
+      return totalWeight > 0 ? totalScore / totalWeight : null;
     }).filter(s => s !== null);
     
     const mediaPulizie = scores.length > 0
