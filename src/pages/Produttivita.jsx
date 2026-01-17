@@ -343,6 +343,50 @@ export default function Produttivita() {
     return storeData;
   }, [filteredData, allShifts]);
 
+  // Daily productivity by store
+  const dailyProductivity = useMemo(() => {
+    const dailyData = {};
+    
+    // Aggregate revenue by date and store
+    filteredData.forEach(record => {
+      const key = `${record.date}_${record.store_id}`;
+      if (!dailyData[key]) {
+        dailyData[key] = {
+          date: record.date,
+          store_id: record.store_id,
+          store_name: record.store_name,
+          revenue: 0,
+          hours: 0
+        };
+      }
+      dailyData[key].revenue += record.total_revenue || 0;
+    });
+    
+    // Add hours from shifts for each day
+    allShifts.forEach(shift => {
+      if (!shift.ora_inizio || !shift.ora_fine || !shift.data || !shift.store_id) return;
+      
+      const key = `${shift.data}_${shift.store_id}`;
+      
+      // Calculate shift duration in hours
+      const [startHour, startMin] = shift.ora_inizio.split(':').map(Number);
+      const [endHour, endMin] = shift.ora_fine.split(':').map(Number);
+      const hours = (endHour * 60 + endMin - (startHour * 60 + startMin)) / 60;
+      
+      if (dailyData[key]) {
+        dailyData[key].hours += hours;
+      }
+    });
+    
+    // Calculate productivity
+    return Object.values(dailyData)
+      .map(item => ({
+        ...item,
+        productivity: item.hours > 0 ? item.revenue / item.hours : 0
+      }))
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }, [filteredData, allShifts]);
+
   const stats = {
     totalRevenue: filteredData.reduce((sum, r) => sum + (r.total_revenue || 0), 0),
     avgDailyRevenue: filteredData.length > 0 ? filteredData.reduce((sum, r) => sum + (r.total_revenue || 0), 0) / filteredData.length : 0,
