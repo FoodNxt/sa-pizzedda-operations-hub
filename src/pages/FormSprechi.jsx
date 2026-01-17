@@ -163,11 +163,21 @@ export default function FormSprechi() {
       // L'utente inserisce in grammi direttamente
       const calculatedQuantitaGrammi = parseFloat(quantita);
 
-      // Determina il costo unitario
+      // Calcola il costo per KG
       if (tipo_prodotto === 'materia_prima') {
-        costo_unitario = prodotto.prezzo_unitario || 0;
+      // Per materie prime: converti peso unitario in KG e dividi il prezzo
+      let pesoUnitarioKg = prodotto.peso_dimensione_unita || 1;
+      if (prodotto.unita_misura_peso === 'g') {
+      pesoUnitarioKg = pesoUnitarioKg / 1000;
+      } else if (prodotto.unita_misura_peso === 'ml') {
+      pesoUnitarioKg = pesoUnitarioKg / 1000; // Assumendo densità = 1 per liquidi
+      }
+      costo_unitario = pesoUnitarioKg > 0 ? (prodotto.prezzo_unitario || 0) / pesoUnitarioKg : 0;
       } else {
-        costo_unitario = prodotto.costo_unitario || 0;
+      // Per ricette: costo_unitario è già il costo totale della ricetta
+      // Dobbiamo dividerlo per il peso in KG per ottenere il costo per KG
+      let pesoRicettaKg = (prodotto.peso_gr_unitario || 0) / 1000;
+      costo_unitario = pesoRicettaKg > 0 ? (prodotto.costo_unitario || 0) / pesoRicettaKg : 0;
       }
 
       if (!selectedStore) {
