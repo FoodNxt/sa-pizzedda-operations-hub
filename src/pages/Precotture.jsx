@@ -240,36 +240,32 @@ export default function Precotture() {
             />
           </div>
 
-          {selectedStore && rossePresenti !== '' && (
-            <>
-              {risultato && !risultato.error && !confermato && (
-                <NeumorphicButton
-                  onClick={() => {
-                    setMostraRisultato(true);
-                    confermaMutation.mutate();
-                  }}
-                  variant="primary"
-                  className="w-full flex items-center justify-center gap-2 mt-4"
-                  disabled={confermaMutation.isPending}
-                >
-                  {confermaMutation.isPending ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Salvataggio...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="w-5 h-5" />
-                      Invia
-                    </>
-                  )}
-                </NeumorphicButton>
+          {selectedStore && rossePresenti !== '' && risultato && !risultato.error && !confermato && (
+            <NeumorphicButton
+              onClick={() => {
+                setMostraRisultato(true);
+                confermaMutation.mutate();
+              }}
+              variant="primary"
+              className="w-full flex items-center justify-center gap-2 mt-4"
+              disabled={confermaMutation.isPending}
+            >
+              {confermaMutation.isPending ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Salvataggio...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-5 h-5" />
+                  Salva e Conferma
+                </>
               )}
-            </>
+            </NeumorphicButton>
           )}
         </NeumorphicCard>
 
-        {mostraRisultato && risultato && (
+        {mostraRisultato && confermato && risultato && (
           <>
             {risultato.error ? (
               <NeumorphicCard className="p-6 bg-orange-50 border-2 border-orange-400">

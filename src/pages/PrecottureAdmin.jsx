@@ -264,14 +264,11 @@ export default function PrecottureAdmin() {
     if (filteredStorico.length === 0) return null;
     
     const totaleRosse = filteredStorico.reduce((sum, p) => sum + (p.rosse_preparate || 0), 0);
-    const totaleBianche = filteredStorico.reduce((sum, p) => sum + (p.bianche_preparate || 0), 0);
     
     return {
       totaleForm: filteredStorico.length,
       totaleRosse,
-      totaleBianche,
-      mediaRosse: (totaleRosse / filteredStorico.length).toFixed(1),
-      mediaBianche: (totaleBianche / filteredStorico.length).toFixed(1)
+      mediaRosse: (totaleRosse / filteredStorico.length).toFixed(1)
     };
   }, [filteredStorico]);
 
@@ -1210,7 +1207,7 @@ export default function PrecottureAdmin() {
         {activeTab === 'storico' && (
           <>
             {storicoStats && (
-              <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <NeumorphicCard className="p-4 text-center">
                   <p className="text-2xl font-bold text-slate-800">{storicoStats.totaleForm}</p>
                   <p className="text-xs text-slate-500">Form compilati</p>
@@ -1220,16 +1217,8 @@ export default function PrecottureAdmin() {
                   <p className="text-xs text-slate-500">Totale Rosse</p>
                 </NeumorphicCard>
                 <NeumorphicCard className="p-4 text-center">
-                  <p className="text-2xl font-bold text-yellow-700">{storicoStats.totaleBianche}</p>
-                  <p className="text-xs text-slate-500">Totale Bianche</p>
-                </NeumorphicCard>
-                <NeumorphicCard className="p-4 text-center">
                   <p className="text-2xl font-bold text-red-600">{storicoStats.mediaRosse}</p>
                   <p className="text-xs text-slate-500">Media Rosse</p>
-                </NeumorphicCard>
-                <NeumorphicCard className="p-4 text-center">
-                  <p className="text-2xl font-bold text-yellow-600">{storicoStats.mediaBianche}</p>
-                  <p className="text-xs text-slate-500">Media Bianche</p>
                 </NeumorphicCard>
               </div>
             )}
@@ -1249,7 +1238,6 @@ export default function PrecottureAdmin() {
                         <th className="text-left py-3 px-2 text-slate-700">Operatore</th>
                         <th className="text-center py-3 px-2 text-slate-700">Turno</th>
                         <th className="text-right py-3 px-2 text-red-700 bg-red-50">Rosse</th>
-                        <th className="text-right py-3 px-2 text-yellow-700 bg-yellow-50">Bianche</th>
                         <th className="text-center py-3 px-2 text-slate-700">Azioni</th>
                       </tr>
                     </thead>
@@ -1277,9 +1265,6 @@ export default function PrecottureAdmin() {
                           </td>
                           <td className="py-3 px-2 text-right font-bold text-red-700 bg-red-50">
                             {prep.rosse_preparate || 0}
-                          </td>
-                          <td className="py-3 px-2 text-right font-bold text-yellow-700 bg-yellow-50">
-                            {prep.bianche_preparate || 0}
                           </td>
                           <td className="py-3 px-2 text-center">
                             <button
