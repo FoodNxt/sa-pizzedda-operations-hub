@@ -17,6 +17,7 @@ export default function FormSprechi() {
   const storeId = queryParams.get('store_id');
   const attivitaNome = queryParams.get('attivita');
 
+  const [selectedStore, setSelectedStore] = useState(storeId || '');
   const [selectedProdotto, setSelectedProdotto] = useState('');
   const [quantita, setQuantita] = useState('');
   const [motivoSpreco, setMotivoSpreco] = useState('');
@@ -182,11 +183,14 @@ export default function FormSprechi() {
         costo_unitario = prodotto.costo_unitario || 0;
       }
 
-      const userStoreId = storeId || currentUser?.store_assegnato || currentUser?.stores_assegnati?.[0];
-      const store = stores.find(s => s.id === userStoreId);
+      if (!selectedStore) {
+        throw new Error('Seleziona un locale');
+      }
+      
+      const store = stores.find(s => s.id === selectedStore);
 
       const data = {
-        store_id: userStoreId,
+        store_id: selectedStore,
         store_name: store?.name || 'Store sconosciuto',
         data_rilevazione: new Date().toISOString(),
         rilevato_da: currentUser?.nome_cognome || currentUser?.full_name || currentUser?.email || 'Operatore',
@@ -206,8 +210,7 @@ export default function FormSprechi() {
     }
   };
 
-  const userStoreId = storeId || currentUser?.store_assegnato || currentUser?.stores_assegnati?.[0];
-  const userStore = stores.find(s => s.id === userStoreId);
+  const userStore = stores.find(s => s.id === selectedStore);
 
   if (!activeConfig) {
     return (
@@ -244,13 +247,24 @@ export default function FormSprechi() {
 
         <NeumorphicCard className="p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
-            {userStore && (
-              <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
-                <p className="text-sm text-blue-800">
-                  <strong>Locale:</strong> {userStore.name}
-                </p>
-              </div>
-            )}
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">
+                Locale *
+              </label>
+              <select
+                value={selectedStore}
+                onChange={(e) => setSelectedStore(e.target.value)}
+                required
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+              >
+                <option value="">Seleziona locale...</option>
+                {stores.map(store => (
+                  <option key={store.id} value={store.id}>
+                    {store.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             <div>
               <label className="text-sm font-medium text-slate-700 mb-2 block">
