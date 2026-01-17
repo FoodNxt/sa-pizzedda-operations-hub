@@ -46,14 +46,34 @@ export default function FormSprechi() {
     queryFn: () => base44.entities.Ricetta.list(),
   });
 
+  const { data: materiePrime = [] } = useQuery({
+    queryKey: ['materie-prime'],
+    queryFn: () => base44.entities.MateriePrime.list(),
+  });
+
   const activeConfig = sprechiConfig.find(c => c.is_active);
   const prodottiAbilitati = activeConfig?.prodotti_abilitati || [];
   const motiviDisponibili = activeConfig?.motivi_disponibili || [];
 
-  const prodottiFiltrati = prodottiAbilitati
-    .filter(p => p.tipo === 'ricetta')
-    .map(p => ricette.find(r => r.id === p.prodotto_id))
-    .filter(r => r && r.attivo !== false);
+  const prodottiFiltrati = useMemo(() => {
+    if (prodottiAbilitati.length === 0) {
+      // Se nessun prodotto configurato, mostra tutti (come admin)
+      return [
+        ...materiePrime.filter(m => m.attivo),
+        ...ricette.filter(r => r.attivo && !r.is_semilavorato),
+        ...ricette.filter(r => r.attivo && r.is_semilavorato)
+      ];
+    }
+    // Altrimenti mostra solo i configurati
+    return prodottiAbilitati
+      .map(p => {
+        if (p.tipo === 'materia_prima') {
+          return materiePrime.find(m => m.id === p.prodotto_id);
+        }
+        return ricette.find(r => r.id === p.prodotto_id);
+      })
+      .filter(p => p && p.attivo !== false);
+  }, [prodottiAbilitati, materiePrime, ricette]);
 
   const createSprecoMutation = useMutation({
     mutationFn: async (data) => {
