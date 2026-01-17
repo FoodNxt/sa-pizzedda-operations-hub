@@ -63,6 +63,11 @@ export default function DashboardStoreManager() {
     queryFn: () => base44.entities.WrongOrder.list('-order_date')
   });
 
+  const { data: wrongOrderMatches = [] } = useQuery({
+    queryKey: ['wrong-order-matches'],
+    queryFn: () => base44.entities.WrongOrderMatch.list()
+  });
+
   const { data: shifts = [] } = useQuery({
     queryKey: ['shifts'],
     queryFn: () => base44.entities.Shift.list('-shift_date')
@@ -900,9 +905,12 @@ export default function DashboardStoreManager() {
                           {new Date(order.order_date).toLocaleDateString('it-IT')}
                         </span>
                       </div>
-                      {order.assigned_employee_name && (
-                        <p className="text-sm text-slate-700 mb-1">👤 <strong>Assegnato a:</strong> {order.assigned_employee_name}</p>
-                      )}
+                      {(() => {
+                        const match = wrongOrderMatches.find(m => m.wrong_order_id === order.id);
+                        return match?.matched_employee_name ? (
+                          <p className="text-sm text-slate-700 mb-1">👤 <strong>Assegnato a:</strong> {match.matched_employee_name}</p>
+                        ) : null;
+                      })()}
                       <p className="text-xs text-slate-600 mb-1">💰 Importo: €{order.order_total || 0}</p>
                       {order.complaint_reason && (
                         <p className="text-xs text-slate-500 italic">📝 {order.complaint_reason}</p>
