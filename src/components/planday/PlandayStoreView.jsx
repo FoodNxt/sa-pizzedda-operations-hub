@@ -79,6 +79,22 @@ export default function PlandayStoreView({
 
   const turniNonAssegnati = turni.filter(t => !t.dipendente_id);
 
+  // Calcola totale ore per giorno
+  const totaleOrePerGiorno = useMemo(() => {
+    const totali = {};
+    weekDays.forEach(day => {
+      const dayKey = day.format('YYYY-MM-DD');
+      const dayTurni = turni.filter(t => t.data === dayKey);
+      const oreGiorno = dayTurni.reduce((acc, t) => {
+        const [startH, startM] = t.ora_inizio.split(':').map(Number);
+        const [endH, endM] = t.ora_fine.split(':').map(Number);
+        return acc + (endH - startH) + (endM - startM) / 60;
+      }, 0);
+      totali[dayKey] = oreGiorno;
+    });
+    return totali;
+  }, [turni, weekDays]);
+
   const handleQuickAdd = (day, dipendenteId) => {
     setQuickAddPopup({ day: day.format('YYYY-MM-DD'), dipendenteId });
     const dipendente = users.find(u => u.id === dipendenteId);
@@ -349,6 +365,24 @@ export default function PlandayStoreView({
             </div>
           );
         })}
+
+        {/* Riga totale ore */}
+        <div className="grid grid-cols-8 gap-1 border-t-2 border-slate-300 pt-2 mt-2 bg-slate-50">
+          <div className="p-2">
+            <div className="text-sm font-bold text-slate-700">Totale Ore</div>
+          </div>
+          {weekDays.map(day => {
+            const dayKey = day.format('YYYY-MM-DD');
+            const totaleOre = totaleOrePerGiorno[dayKey] || 0;
+            return (
+              <div key={dayKey} className="p-2 text-center">
+                <div className="font-bold text-blue-600 text-sm">
+                  {totaleOre.toFixed(1)}h
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {quickAddPopup && (
