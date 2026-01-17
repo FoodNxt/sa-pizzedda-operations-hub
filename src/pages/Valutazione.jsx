@@ -32,10 +32,10 @@ export default function Valutazione() {
     },
   });
 
-  // Fetch Planday shifts
+  // Fetch shifts (same as DashboardStoreManager)
   const { data: shifts = [] } = useQuery({
-    queryKey: ['planday-shifts'],
-    queryFn: () => base44.entities.TurnoPlanday.list('-data'),
+    queryKey: ['shifts'],
+    queryFn: () => base44.entities.Shift.list('-shift_date'),
   });
 
   // Fetch reviews
@@ -145,6 +145,12 @@ export default function Valutazione() {
      });
    }, [user, turniPlanday, filterDate]);
 
+  // Calculate user store IDs
+  const userStoreIds = useMemo(() => {
+    if (!user || !shifts.length) return [];
+    return [...new Set(shifts.filter(s => s.employee_id_external === user.employee_id_external || s.dipendente_id === user.id).map(s => s.store_id).filter(Boolean))];
+  }, [user, shifts]);
+
   // Filter reviews assigned to current user with date range
   const myReviews = useMemo(() => {
     if (!user || !reviews.length) return [];
@@ -196,15 +202,15 @@ export default function Valutazione() {
       };
     }
 
-    const lateShifts = myTurni.filter(t => t.in_ritardo === true);
-     const missingClockIns = myTurni.filter(t => t.stato === 'programmato' && new Date(t.data) < new Date());
+    const lateShifts = myShifts.filter(s => s.ritardo === true);
+     const missingClockIns = myShifts.filter(s => s.stato === 'programmato' && new Date(s.shift_date) < new Date());
      const googleReviews = myReviews.filter(r => r.source === 'google');
 
      // Count only shifts with both clock-in and clock-out
-     const totalShifts = myTurni.filter(t => t.timbratura_entrata && t.timbratura_uscita).length;
+     const totalShifts = myShifts.filter(s => s.actual_start && s.actual_end).length;
 
-     // Calculate TOTAL delay minutes (same as Store Manager dashboard)
-     const totalDelayMinutes = myTurni.reduce((acc, t) => acc + (t.minuti_ritardo_conteggiato || 0), 0);
+     // Calculate TOTAL delay minutes (same as Store Manager: sum of minuti_di_ritardo)
+     const totalDelayMinutes = myShifts.reduce((acc, s) => acc + (s.minuti_di_ritardo || 0), 0);
      const latePercentage = totalShifts > 0
        ? (lateShifts.length / totalShifts) * 100
        : 0;
@@ -213,9 +219,6 @@ export default function Valutazione() {
     const averageRating = googleReviews.length > 0
       ? googleReviews.reduce((sum, r) => sum + r.rating, 0) / googleReviews.length
       : 0;
-
-    // Get user's store IDs from their shifts
-     const userStoreIds = [...new Set(myTurni.map(t => t.store_id).filter(Boolean))];
 
      // Calculate cleaning score (same as Store Manager - based on stores where user works)
      const myCleaningInspections = cleaningInspections.filter(i => {
@@ -274,8 +277,8 @@ export default function Valutazione() {
     overallScore = Math.max(0, Math.min(100, overallScore));
 
     return {
-      lateShifts: lateShifts.sort((a, b) => new Date(b.data) - new Date(a.data)),
-      missingClockIns: missingClockIns.sort((a, b) => new Date(b.data) - new Date(a.data)),
+      lateShifts: lateShifts.sort((a, b) => new Date(b.shift_date) - new Date(a.shift_date)),
+      missingClockIns: missingClockIns.sort((a, b) => new Date(b.shift_date) - new Date(a.shift_date)),
       googleReviews: googleReviews.sort((a, b) => new Date(b.review_date) - new Date(a.review_date)),
       wrongOrders: myWrongOrders,
       totalShifts,
@@ -286,7 +289,7 @@ export default function Valutazione() {
       totalDelayMinutes,
       overallScore: Math.round(overallScore)
     };
-    }, [user, matchedEmployee, myTurni, myReviews, myWrongOrders, cleaningInspections, filterDate]);
+    }, [user, matchedEmployee, myShifts, myReviews, myWrongOrders, cleaningInspections, filterDate, userStoreIds]);
 
   if (userLoading) {
     return (
@@ -478,8 +481,8 @@ export default function Valutazione() {
                   <span className="text-lg font-bold text-red-600">+{shift.minuti_ritardo_conteggiato || 0} min</span>
                 </div>
                 <div className="text-sm text-[#9b9b9b]">
-                <strong>Previsto:</strong> {shift.ora_inizio || 'N/A'} → <strong>Effettivo:</strong> {shift.timbratura_entrata ? safeFormatTime(shift.timbratura_entrata) : 'N/A'}
-                {shift.minuti_ritardo_conteggiato && <div className="mt-1 text-xs">Minuti conteggiati: {shift.minuti_ritardo_conteggiato}</div>}
+                <strong>Previsto:</strong> {shift.scheduled_start ? safeFormatTime(shift.scheduled_start) : 'N/A'} → <strong>Effettivo:</strong> {shift.actual_start ? safeFormatTime(shift.actual_start) : 'N/A'}
+                {shift.minuti_di_ritardo && <div className="mt-1 text-xs">Minuti ritardo: {shift.minuti_di_ritardo}</div>}
                 </div>
               </div>
             ))}
