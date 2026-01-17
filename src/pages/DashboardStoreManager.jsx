@@ -144,10 +144,10 @@ export default function DashboardStoreManager() {
     const totalDelayMinutes = monthShifts.reduce((acc, s) => acc + (s.minuti_di_ritardo || 0), 0);
     const avgDelay = monthShifts.length > 0 ? totalDelayMinutes / monthShifts.length : 0;
 
-    // Pulizie
+    // Pulizie - solo form completati con score
     const monthInspections = inspections.filter(i => {
       const date = new Date(i.inspection_date);
-      return storeIds.includes(i.store_id) && date >= monthStart && date <= monthEnd;
+      return storeIds.includes(i.store_id) && date >= monthStart && date <= monthEnd && (i.overall_score || 0) > 0;
     });
     const avgCleaningScore = monthInspections.length > 0
       ? monthInspections.reduce((acc, i) => acc + (i.overall_score || 0), 0) / monthInspections.length
@@ -982,10 +982,10 @@ export default function DashboardStoreManager() {
                 </button>
               </div>
               <div className="space-y-3">
-                {metrics.monthInspections.length === 0 ? (
-                  <p className="text-center text-slate-500 py-8">Nessun controllo pulizie questo mese</p>
+                {metrics.monthInspections.filter(i => (i.overall_score || 0) > 0).length === 0 ? (
+                  <p className="text-center text-slate-500 py-8">Nessun controllo pulizie completato questo mese</p>
                 ) : (
-                  metrics.monthInspections.map(inspection => (
+                  metrics.monthInspections.filter(i => (i.overall_score || 0) > 0).map(inspection => (
                     <div key={inspection.id} className="neumorphic-pressed p-4 rounded-xl">
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-bold text-slate-800">{inspection.inspector_name}</span>
