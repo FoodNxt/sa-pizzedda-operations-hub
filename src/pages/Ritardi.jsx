@@ -20,26 +20,8 @@ export default function Ritardi() {
 
   const { data: turni = [] } = useQuery({
     queryKey: ['turni-ritardi'],
-    queryFn: () => base44.entities.TurnoPlanday.list('-data', 1000)
+    queryFn: () => base44.entities.TurnoPlanday.list('-data', 2000)
   });
-
-  // Debug: mostra info sui turni
-  console.log('Totale turni caricati:', turni.length);
-  console.log('Turni con timbratura:', turni.filter(t => t.timbratura_entrata).length);
-  console.log('Turni con in_ritardo=true:', turni.filter(t => t.in_ritardo === true).length);
-  console.log('Turni con minuti_ritardo > 0:', turni.filter(t => (t.minuti_ritardo || 0) > 0).length);
-  
-  // Esempio di turno con ritardo
-  const turnoConRitardo = turni.find(t => t.minuti_ritardo > 0 || t.in_ritardo);
-  if (turnoConRitardo) {
-    console.log('Esempio turno con ritardo:', {
-      dipendente: turnoConRitardo.dipendente_nome,
-      data: turnoConRitardo.data,
-      in_ritardo: turnoConRitardo.in_ritardo,
-      minuti_ritardo: turnoConRitardo.minuti_ritardo,
-      timbratura: turnoConRitardo.timbratura_entrata
-    });
-  }
 
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
@@ -47,11 +29,14 @@ export default function Ritardi() {
   });
 
   // Calculate date range filter
-  const getDateRangeFilter = () => {
+  const dateRangeStart = useMemo(() => {
     const now = new Date();
     switch (dateRange) {
-      case '30':
-        return new Date(now.setDate(now.getDate() - 30));
+      case '30': {
+        const d = new Date();
+        d.setDate(d.getDate() - 30);
+        return d;
+      }
       case 'month':
         return startOfMonth(new Date());
       case '180':
@@ -61,29 +46,28 @@ export default function Ritardi() {
       default:
         return null;
     }
-  };
+  }, [dateRange]);
 
-  const dateRangeStart = getDateRangeFilter();
-
-  // Filter turni by date and store - FILTRO MOLTO PERMISSIVO PER DEBUG
+  // Filter turni by date and store
   const filteredTurni = useMemo(() => {
-    const filtered = turni.filter(t => {
-      // Solo turni con timbratura entrata
-      if (!t.timbratura_entrata) return false;
+    return turni.filter(t => {
+      // Deve avere timbratura entrata E minuti di ritardo
+      if (!t.timbratura_entrata || !t.minuti_ritardo || t.minuti_ritardo <= 0) {
+        return false;
+      }
       
+      // Filtro store
       const matchStore = selectedStore === "all" || t.store_id === selectedStore;
-      const matchDate = !dateRangeStart || new Date(t.data) >= dateRangeStart;
+      if (!matchStore) return false;
       
-      // Accetta qualsiasi indicazione di ritardo
-      const hasRitardo = (t.in_ritardo === true) || ((t.minuti_ritardo || 0) > 0);
+      // Filtro data
+      if (dateRangeStart) {
+        const turnoDate = new Date(t.data);
+        if (turnoDate < dateRangeStart) return false;
+      }
       
-      return matchStore && matchDate && hasRitardo;
+      return true;
     });
-    
-    console.log('Turni filtrati:', filtered.length);
-    console.log('Filtro applicato - Store:', selectedStore, 'Data da:', dateRangeStart);
-    
-    return filtered;
   }, [turni, selectedStore, dateRangeStart]);
 
   // Calcola statistiche per store
