@@ -160,21 +160,8 @@ export default function FormSprechi() {
         throw new Error('Prodotto non trovato');
       }
 
-      // Calcola quantita_grammi in base al tipo di prodotto
-      let calculatedQuantitaGrammi = 0;
-      if (tipo_prodotto === 'ricetta' || tipo_prodotto === 'semilavorato') {
-        // Per ricette e semilavorati: quantita * peso unitario
-        calculatedQuantitaGrammi = parseFloat(quantita) * (prodotto.peso_gr_unitario || 0);
-      } else if (tipo_prodotto === 'materia_prima') {
-        // Per materie prime: quantita * peso_dimensione_unita (convertito a grammi)
-        let baseGramsPerUnit = prodotto.peso_dimensione_unita || 0;
-        if (prodotto.unita_misura_peso === 'kg') {
-          baseGramsPerUnit *= 1000;
-        } else if (prodotto.unita_misura_peso === 'litri') {
-          baseGramsPerUnit *= 1000;
-        }
-        calculatedQuantitaGrammi = parseFloat(quantita) * baseGramsPerUnit;
-      }
+      // L'utente inserisce in grammi direttamente
+      const calculatedQuantitaGrammi = parseFloat(quantita);
 
       // Determina il costo unitario
       if (tipo_prodotto === 'materia_prima') {

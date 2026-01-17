@@ -793,16 +793,27 @@ export default function AnalisiSprechi() {
                 {filteredSprechi.slice(0, 20).map((spreco) => (
                   <div key={spreco.id} className="neumorphic-pressed p-4 rounded-xl">
                     <div className="flex items-start justify-between mb-2">
-                      <div>
+                      <div className="flex-1">
                         <h3 className="font-bold text-[#6b6b6b]">{spreco.prodotto_nome}</h3>
                         <p className="text-sm text-[#9b9b9b]">{spreco.store_name}</p>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right mr-3">
                         <p className="font-bold text-red-600">{(spreco.quantita_grammi / 1000).toFixed(2)} kg</p>
                         <p className="text-sm text-[#9b9b9b]">
                           €{((spreco.quantita_grammi / 1000) * (spreco.costo_unitario || 0)).toFixed(2)}
                         </p>
                       </div>
+                      <button
+                        onClick={() => {
+                          if (confirm('Sei sicuro di voler eliminare questo spreco?')) {
+                            deleteSprecoMutation.mutate(spreco.id);
+                          }
+                        }}
+                        className="text-red-500 hover:text-red-700 transition-colors"
+                        title="Elimina spreco"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-[#9b9b9b]">
                       <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-lg">{spreco.motivo}</span>
