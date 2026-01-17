@@ -70,10 +70,24 @@ export default function Ritardi() {
       // Deve avere timbratura entrata
       if (!t.timbratura_entrata) return false;
       
-      // Usa minuti_ritardo_reale se disponibile, altrimenti fallback su minuti_ritardo
-      const minutiRitardoReale = t.minuti_ritardo_reale || t.minuti_ritardo || 0;
+      // Calcola ritardo reale (usa campo se presente, altrimenti calcola)
+      let minutiRitardoReale = t.minuti_ritardo_reale || t.minuti_ritardo || 0;
       
-      // Deve avere ritardo reale
+      // Se non c'è ritardo registrato, prova a calcolarlo al volo
+      if (minutiRitardoReale === 0 && t.ora_inizio) {
+        try {
+          const clockInTime = new Date(t.timbratura_entrata);
+          const [oraInizioHH, oraInizioMM] = t.ora_inizio.split(':').map(Number);
+          const scheduledStart = new Date(clockInTime);
+          scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
+          const delayMs = clockInTime - scheduledStart;
+          minutiRitardoReale = Math.floor(delayMs / 60000);
+        } catch (e) {
+          // Skip in caso di errore
+        }
+      }
+      
+      // Deve avere ritardo
       if (minutiRitardoReale <= 0) return false;
       
       // Filtro store
