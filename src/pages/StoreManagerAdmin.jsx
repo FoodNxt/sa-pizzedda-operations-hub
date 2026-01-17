@@ -178,43 +178,18 @@ export default function StoreManagerAdmin() {
       }
     });
 
-    // Pulizie - calcola media di tutti i form pulizia completati per il locale
+    // Pulizie - calcola media degli overall_score dei form pulizia completati
     const storePulizie = pulizie.filter(p => 
       p.store_id === storeId && 
       p.inspection_date &&
       moment(p.inspection_date).isValid() &&
       moment(p.inspection_date).isBetween(monthStart, monthEnd, 'day', '[]') &&
-      p.analysis_status === 'completed'
+      p.analysis_status === 'completed' &&
+      p.overall_score !== null && p.overall_score !== undefined
     );
     
-    // Calcola score medio considerando tutti i form pulizia
-    let totalScores = [];
-    storePulizie.forEach(inspection => {
-      if (inspection.domande_risposte && inspection.domande_risposte.length > 0) {
-        // Per ogni domanda con attrezzatura, calcola il punteggio
-        inspection.domande_risposte.forEach(risposta => {
-          if (!risposta.attrezzatura) return;
-          
-          const equipmentKey = risposta.attrezzatura.toLowerCase().replace(/\s+/g, '_');
-          const status = inspection[`${equipmentKey}_corrected`]
-            ? inspection[`${equipmentKey}_corrected_status`]
-            : inspection[`${equipmentKey}_pulizia_status`];
-          
-          if (status) {
-            let score = 0;
-            if (status === 'pulito') score = 100;
-            else if (status === 'medio') score = 50;
-            else if (status === 'sporco') score = 0;
-            else return; // Skip non_valutabile
-            
-            totalScores.push(score);
-          }
-        });
-      }
-    });
-    
-    const mediaPulizie = totalScores.length > 0
-      ? totalScores.reduce((sum, s) => sum + s, 0) / totalScores.length
+    const mediaPulizie = storePulizie.length > 0
+      ? storePulizie.reduce((sum, p) => sum + (p.overall_score || 0), 0) / storePulizie.length
       : null;
 
     return { fatturato, mediaRecensioni, numRecensioni, numOrdiniSbagliati, totaleRitardi, mediaPulizie };
