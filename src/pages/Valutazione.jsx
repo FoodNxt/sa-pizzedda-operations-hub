@@ -556,10 +556,11 @@ export default function Valutazione() {
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-[#9b9b9b]" />
                     <span className="font-medium text-[#6b6b6b]">{safeFormatDateLocale(order.created_date || order.order_date)}</span>
-                    {order.store_name && <span className="text-sm text-[#9b9b9b]">• {order.store_name}</span>}
+                    <span className="text-xs text-[#9b9b9b]">{safeFormatTime(order.created_date || order.order_date)}</span>
+                     {order.store_name && <span className="text-sm text-[#9b9b9b]">• {order.store_name}</span>}
                   </div>
                   <span className="text-xs font-bold text-purple-600 bg-purple-100 px-3 py-1 rounded-full">
-                    {order.error_type || 'Errore'}
+                    {order.platform?.charAt(0).toUpperCase() + order.platform?.slice(1) || 'Platform'}
                   </span>
                 </div>
                 {order.order_id && (
