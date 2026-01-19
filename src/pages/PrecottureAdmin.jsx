@@ -90,10 +90,10 @@ export default function PrecottureAdmin() {
     },
   });
 
-  const deletePreparazioneMutation = useMutation({
-    mutationFn: (id) => base44.entities.Preparazioni.delete(id),
+  const deletePrecottureFormMutation = useMutation({
+    mutationFn: (id) => base44.entities.PrecottureForm.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['preparazioni-storico'] });
+      queryClient.invalidateQueries({ queryKey: ['precotture-form-storico'] });
     },
   });
 
