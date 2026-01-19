@@ -71,6 +71,11 @@ export default function AnalisiSprechi() {
     queryFn: () => base44.entities.SprechiConfig.list(),
   });
 
+  const { data: users = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => base44.entities.User.list(),
+  });
+
   const activeSprechiConfig = sprechiConfigs.find(c => c.is_active) || null;
 
   const saveConfigMutation = useMutation({
