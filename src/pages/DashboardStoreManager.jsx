@@ -970,10 +970,19 @@ export default function DashboardStoreManager() {
                     {/* Suggerimenti di spostamento */}
                     {data.suggerimenti.length > 0 ? (
                       <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-4">
-                        <h4 className="font-bold text-blue-800 text-sm mb-3 flex items-center gap-2">
-                          <Truck className="w-5 h-5" />
-                          Spostamenti Consigliati
-                        </h4>
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-bold text-blue-800 text-sm flex items-center gap-2">
+                            <Truck className="w-5 h-5" />
+                            Spostamenti Consigliati
+                          </h4>
+                          <Link 
+                            to={createPageUrl('FormSpostamenti')}
+                            className="px-3 py-1 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
+                          >
+                            <ArrowRight className="w-3 h-3" />
+                            Vai al Form
+                          </Link>
+                        </div>
                         <div className="space-y-3">
                           {data.suggerimenti.map((sug, sIdx) => (
                             <div key={sIdx} className="bg-white rounded-lg p-3 border border-blue-200">
