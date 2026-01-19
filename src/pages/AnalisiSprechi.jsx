@@ -823,43 +823,99 @@ export default function AnalisiSprechi() {
             )}
           </NeumorphicCard>
 
+          {/* Store Comparison Chart */}
+          {selectedStore === 'all' && sprechiStats.byStore.length > 0 && (
+            <NeumorphicCard className="p-6">
+              <h2 className="text-xl font-bold text-[#6b6b6b] mb-6 flex items-center gap-2">
+                <Store className="w-6 h-6 text-purple-600" />
+                Sprechi per Negozio
+              </h2>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={sprechiStats.byStore}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="store_name" />
+                  <YAxis yAxisId="left" />
+                  <YAxis yAxisId="right" orientation="right" />
+                  <Tooltip />
+                  <Legend />
+                  <Bar yAxisId="left" dataKey="quantita" fill="#3b82f6" name="Quantità (kg)" />
+                  <Bar yAxisId="right" dataKey="costo" fill="#ef4444" name="Costo (€)" />
+                </BarChart>
+              </ResponsiveContainer>
+            </NeumorphicCard>
+          )}
+
+          {/* Top Products Chart */}
+          {sprechiStats.byProduct.length > 0 && (
+            <NeumorphicCard className="p-6">
+              <h2 className="text-xl font-bold text-[#6b6b6b] mb-6 flex items-center gap-2">
+                <TrendingUp className="w-6 h-6 text-orange-600" />
+                Top 10 Prodotti per Impatto Economico
+              </h2>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={sprechiStats.byProduct}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="prodotto_nome" angle={-45} textAnchor="end" height={100} />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="costo" fill="#ef4444" name="Costo (€)" />
+                </BarChart>
+              </ResponsiveContainer>
+            </NeumorphicCard>
+          )}
+
           {/* Recent Sprechi List */}
           <NeumorphicCard className="p-6">
             <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Sprechi Recenti</h2>
             {filteredSprechi.length > 0 ? (
-              <div className="space-y-3">
-                {filteredSprechi.slice(0, 20).map((spreco) => (
-                  <div key={spreco.id} className="neumorphic-pressed p-4 rounded-xl">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <h3 className="font-bold text-[#6b6b6b]">{spreco.prodotto_nome}</h3>
-                        <p className="text-sm text-[#9b9b9b]">{spreco.store_name}</p>
-                      </div>
-                      <div className="text-right mr-3">
-                        <p className="font-bold text-red-600">{(spreco.quantita_grammi / 1000).toFixed(2)} kg</p>
-                        <p className="text-sm text-[#9b9b9b]">
-                          €{((spreco.quantita_grammi / 1000) * (spreco.costo_unitario || 0)).toFixed(2)}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => {
-                          if (confirm('Sei sicuro di voler eliminare questo spreco?')) {
-                            deleteSprecoMutation.mutate(spreco.id);
-                          }
-                        }}
-                        className="text-red-500 hover:text-red-700 transition-colors"
-                        title="Elimina spreco"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-[#9b9b9b]">
-                      <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-lg">{spreco.motivo}</span>
-                      <span>•</span>
-                      <span>{format(parseISO(spreco.data_rilevazione), 'dd MMM yyyy HH:mm', { locale: it })}</span>
-                    </div>
-                  </div>
-                ))}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b-2 border-slate-200">
+                      <th className="text-left py-3 px-3 font-bold text-[#6b6b6b]">Prodotto</th>
+                      <th className="text-left py-3 px-3 font-bold text-[#6b6b6b]">Negozio</th>
+                      <th className="text-left py-3 px-3 font-bold text-[#6b6b6b]">Dipendente</th>
+                      <th className="text-center py-3 px-3 font-bold text-[#6b6b6b]">Quantità (kg)</th>
+                      <th className="text-right py-3 px-3 font-bold text-[#6b6b6b]">Costo</th>
+                      <th className="text-center py-3 px-3 font-bold text-[#6b6b6b]">Motivo</th>
+                      <th className="text-center py-3 px-3 font-bold text-[#6b6b6b]">Data</th>
+                      <th className="text-center py-3 px-3">Azioni</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredSprechi.slice(0, 20).map((spreco) => {
+                      const user = users.find(u => u.email === spreco.rilevato_da);
+                      return (
+                        <tr key={spreco.id} className="border-b border-slate-100 hover:bg-slate-50">
+                          <td className="py-3 px-3 font-medium text-[#6b6b6b]">{spreco.prodotto_nome}</td>
+                          <td className="py-3 px-3 text-[#9b9b9b]">{spreco.store_name}</td>
+                          <td className="py-3 px-3 text-[#9b9b9b]">{user?.full_name || spreco.rilevato_da || '-'}</td>
+                          <td className="py-3 px-3 text-center font-bold text-red-600">{(spreco.quantita_grammi / 1000).toFixed(2)}</td>
+                          <td className="py-3 px-3 text-right text-red-700">€{((spreco.quantita_grammi / 1000) * (spreco.costo_unitario || 0)).toFixed(2)}</td>
+                          <td className="py-3 px-3 text-center">
+                            <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-lg text-xs">{spreco.motivo}</span>
+                          </td>
+                          <td className="py-3 px-3 text-center text-xs text-[#9b9b9b]">
+                            {format(parseISO(spreco.data_rilevazione), 'dd MMM HH:mm', { locale: it })}
+                          </td>
+                          <td className="py-3 px-3 text-center">
+                            <button
+                              onClick={() => {
+                                if (confirm('Sei sicuro di voler eliminare questo spreco?')) {
+                                  deleteSprecoMutation.mutate(spreco.id);
+                                }
+                              }}
+                              className="text-red-500 hover:text-red-700 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             ) : (
               <p className="text-center text-[#9b9b9b] py-8">Nessuno spreco registrato</p>
