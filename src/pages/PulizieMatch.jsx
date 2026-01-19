@@ -132,31 +132,18 @@ export default function PulizieMatch() {
 
         console.log('🔍 Match per attrezzatura:', domanda.attrezzatura, 'Ruolo richiesto:', ruoloResponsabile, 'Store:', inspection.store_id, 'Data ispezione:', dataCompilazione);
 
-        // Find all shifts for this role and store BEFORE inspection
+        // Find all shifts for this role and store that started BEFORE or AT inspection time
         const candidateShifts = turni.filter(t => {
           if (t.store_id !== inspection.store_id) return false;
           if (t.ruolo !== ruoloResponsabile) return false;
           if (!t.dipendente_nome) return false;
-          if (!t.data) return false;
+          if (!t.data || !t.ora_inizio) return false;
           
-          // Considera solo turni che hanno timbratura_uscita o che sono nel passato
-          const shiftDate = new Date(t.data);
-          const isInPast = shiftDate < dataCompilazione;
+          // Calcola l'inizio del turno
+          const shiftStartTime = new Date(t.data + 'T' + t.ora_inizio);
           
-          if (!isInPast) return false;
-          
-          // Usa timbratura_uscita se disponibile per determinare la fine del turno
-          let shiftEndTime;
-          if (t.timbratura_uscita) {
-            shiftEndTime = new Date(t.timbratura_uscita);
-          } else if (t.ora_fine) {
-            // Usa data + ora_fine come fallback
-            shiftEndTime = new Date(t.data + 'T' + t.ora_fine);
-          } else {
-            return false;
-          }
-          
-          return shiftEndTime <= dataCompilazione;
+          // Considera turni che sono iniziati prima o al momento dell'ispezione
+          return shiftStartTime <= dataCompilazione;
         });
 
         console.log('✅ Turni candidati trovati:', candidateShifts.length);
@@ -164,14 +151,15 @@ export default function PulizieMatch() {
           console.log('Turni:', candidateShifts.map(t => ({
             nome: t.dipendente_nome,
             data: t.data,
-            fine: t.timbratura_uscita || (t.ora_fine ? t.data + 'T' + t.ora_fine : 'N/A')
+            inizio: t.ora_inizio,
+            fine: t.ora_fine
           })));
         }
 
-        // Ordina per data di fine turno (più recente prima)
+        // Ordina per ora di inizio turno (più recente prima) - prendi l'ultimo turno iniziato prima dell'ispezione
         const lastShift = candidateShifts.sort((a, b) => {
-          const dateA = a.timbratura_uscita ? new Date(a.timbratura_uscita) : new Date(a.data + 'T' + (a.ora_fine || '23:59'));
-          const dateB = b.timbratura_uscita ? new Date(b.timbratura_uscita) : new Date(b.data + 'T' + (b.ora_fine || '23:59'));
+          const dateA = new Date(a.data + 'T' + a.ora_inizio);
+          const dateB = new Date(b.data + 'T' + b.ora_inizio);
           return dateB - dateA;
         })[0];
 
@@ -180,7 +168,7 @@ export default function PulizieMatch() {
           return;
         }
         
-        console.log('✅ Turno selezionato:', lastShift.dipendente_nome, 'Data:', lastShift.data, 'Fine:', lastShift.timbratura_uscita || lastShift.ora_fine);
+        console.log('✅ Turno selezionato:', lastShift.dipendente_nome, 'Data:', lastShift.data, 'Inizio:', lastShift.ora_inizio, 'Fine:', lastShift.ora_fine);
 
         const employeeName = lastShift.dipendente_nome;
 
