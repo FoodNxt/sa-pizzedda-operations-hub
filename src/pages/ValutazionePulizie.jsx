@@ -848,29 +848,37 @@ export default function ValutazionePulizie() {
                             
                             const ruoliResponsabili = attrezzaturaObj?.ruoli_responsabili || [];
 
-                            // Trova l'ultimo dipendente in turno per ogni ruolo
+                            // Trova l'ultimo dipendente che ha FINITO il turno prima della compilazione
                             const dipendentiResponsabili = ruoliResponsabili.map(ruolo => {
                               const dataCompilazione = new Date(inspection.inspection_date);
                               const candidateShifts = turni.filter(t => {
                                 if (t.store_id !== inspection.store_id) return false;
                                 if (t.ruolo !== ruolo) return false;
                                 if (!t.dipendente_nome) return false;
-                                if (!t.data || !t.ora_inizio) return false;
-                                const shiftStartTime = new Date(t.data + 'T' + t.ora_inizio);
-                                return shiftStartTime <= dataCompilazione;
+                                if (!t.data || !t.ora_fine) return false;
+                                
+                                // Controlla che il turno sia finito prima della compilazione
+                                const shiftEndTime = t.timbratura_uscita 
+                                  ? new Date(t.timbratura_uscita)
+                                  : new Date(t.data + 'T' + t.ora_fine);
+                                
+                                return shiftEndTime <= dataCompilazione;
                               });
                               
+                              // Ordina per ora di fine turno (più recente prima)
                               const lastShift = candidateShifts.sort((a, b) => {
-                                const dateA = new Date(a.data + 'T' + a.ora_inizio);
-                                const dateB = new Date(b.data + 'T' + b.ora_inizio);
-                                return dateB - dateA;
+                                const endA = a.timbratura_uscita ? new Date(a.timbratura_uscita) : new Date(a.data + 'T' + a.ora_fine);
+                                const endB = b.timbratura_uscita ? new Date(b.timbratura_uscita) : new Date(b.data + 'T' + b.ora_fine);
+                                return endB - endA;
                               })[0];
                               
                               return lastShift ? {
                                 ruolo,
                                 nome: lastShift.dipendente_nome,
                                 data: lastShift.data,
-                                ora_inizio: lastShift.ora_inizio
+                                ora_fine: lastShift.timbratura_uscita 
+                                  ? new Date(lastShift.timbratura_uscita).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+                                  : lastShift.ora_fine
                               } : null;
                             }).filter(Boolean);
                             
@@ -901,7 +909,7 @@ export default function ValutazionePulizie() {
                                       <div className="mb-3 space-y-1">
                                         {dipendentiResponsabili.map((dip, i) => (
                                           <div key={i} className="text-xs text-slate-600 bg-green-50 px-2 py-1 rounded">
-                                            👤 <strong>{dip.nome}</strong> ({dip.ruolo}) - Turno {dip.data} ore {dip.ora_inizio}
+                                            👤 <strong>{dip.nome}</strong> ({dip.ruolo}) - Turno finito {dip.data} ore {dip.ora_fine}
                                           </div>
                                         ))}
                                       </div>
