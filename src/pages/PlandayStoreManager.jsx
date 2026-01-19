@@ -600,7 +600,7 @@ export default function PlandayStoreManager() {
                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
                   >
                     <option value="">Non assegnato</option>
-                    {allUsers
+                    {users
                       .filter(u => {
                         // Deve avere il ruolo selezionato
                         if (!u.ruoli_dipendente?.includes(turnoForm.ruolo)) return false;
