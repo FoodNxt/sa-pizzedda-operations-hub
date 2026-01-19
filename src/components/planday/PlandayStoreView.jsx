@@ -145,7 +145,7 @@ export default function PlandayStoreView({
       onSaveTurno({
         store_id: quickForm.store_id,
         data: quickAddPopup.day,
-        dipendente_id: quickForm.is_prova ? '' : (quickForm.dipendente_id || ''),
+        dipendente_id: quickForm.dipendente_id || '',
         dipendente_nome: quickForm.is_prova && candidato 
           ? `${candidato.nome} ${candidato.cognome} (PROVA)`
           : (dipendente?.nome_cognome || dipendente?.full_name || ''),
