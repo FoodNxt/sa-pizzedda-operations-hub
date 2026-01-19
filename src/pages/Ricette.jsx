@@ -34,6 +34,7 @@ export default function Ricette() {
     is_semilavorato: false,
     mostra_in_form_inventario: false,
     stores_form_inventario: [],
+    unita_misura_form_inventario: 'grammi',
     somma_a_materia_prima_id: '',
     somma_a_materia_prima_nome: '',
     ingredienti: [],
@@ -119,6 +120,7 @@ export default function Ricette() {
       is_semilavorato: false,
       mostra_in_form_inventario: false,
       stores_form_inventario: [],
+      unita_misura_form_inventario: 'grammi',
       somma_a_materia_prima_id: '',
       somma_a_materia_prima_nome: '',
       ingredienti: [],
@@ -148,6 +150,7 @@ export default function Ricette() {
       is_semilavorato: ricetta.is_semilavorato || false,
       mostra_in_form_inventario: ricetta.mostra_in_form_inventario || false,
       stores_form_inventario: ricetta.stores_form_inventario || [],
+      unita_misura_form_inventario: ricetta.unita_misura_form_inventario || 'grammi',
       somma_a_materia_prima_id: ricetta.somma_a_materia_prima_id || '',
       somma_a_materia_prima_nome: ricetta.somma_a_materia_prima_nome || '',
       ingredienti: ricetta.ingredienti || [],
@@ -760,6 +763,7 @@ export default function Ricette() {
                           nome_prodotto: e.target.checked ? '' : '',
                           mostra_in_form_inventario: false,
                           stores_form_inventario: [],
+                          unita_misura_form_inventario: 'grammi',
                           somma_a_materia_prima_id: '',
                           somma_a_materia_prima_nome: ''
                         });
@@ -822,6 +826,24 @@ export default function Ricette() {
                                 </label>
                               ))}
                             </div>
+                          </div>
+
+                          <div>
+                            <label className="text-sm font-medium text-purple-800 mb-2 block">
+                              Unità di Misura nel Form
+                            </label>
+                            <select
+                              value={formData.unita_misura_form_inventario}
+                              onChange={(e) => setFormData({ ...formData, unita_misura_form_inventario: e.target.value })}
+                              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                            >
+                              <option value="grammi">Grammi (g)</option>
+                              <option value="kg">Kilogrammi (kg)</option>
+                              <option value="litri">Litri</option>
+                              <option value="ml">Millilitri (ml)</option>
+                              <option value="pezzi">Pezzi</option>
+                              <option value="unità">Unità</option>
+                            </select>
                           </div>
                           
                           <div>
