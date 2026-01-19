@@ -1281,7 +1281,205 @@ export default function StoricoCassa() {
             </NeumorphicCard>
           </>
         )}
-      </div>
-    </ProtectedPage>
-  );
-}
+
+        {/* Prelievi Tab */}
+        {activeTab === 'prelievi' && (
+         <>
+           <NeumorphicCard className="p-4 lg:p-6">
+             <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Storico Prelievi</h2>
+
+             {prelievi.length === 0 ? (
+               <div className="text-center py-12">
+                 <DollarSign className="w-16 h-16 text-slate-300 opacity-50 mx-auto mb-4" />
+                 <p className="text-slate-500">Nessun prelievo registrato</p>
+               </div>
+             ) : (
+               <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
+                 <table className="w-full min-w-[600px]">
+                   <thead>
+                     <tr className="border-b-2 border-blue-600">
+                       <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Data</th>
+                       <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Locale</th>
+                       <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Rilevato da</th>
+                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Importo</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                     {prelievi.map((prelievo) => (
+                       <tr key={prelievo.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                         <td className="p-2 lg:p-3">
+                           <div className="flex items-center gap-2">
+                             <Calendar className="w-4 h-4 text-slate-400" />
+                             <span className="text-slate-700 text-sm">
+                               {(() => {
+                                 try {
+                                   return format(parseISO(prelievo.data_prelievo), 'dd/MM/yyyy HH:mm', { locale: it });
+                                 } catch (e) {
+                                   return 'Data non valida';
+                                 }
+                               })()}
+                             </span>
+                           </div>
+                         </td>
+                         <td className="p-2 lg:p-3">
+                           <div className="flex items-center gap-2">
+                             <Store className="w-4 h-4 text-slate-400" />
+                             <span className="text-slate-700 text-sm">{prelievo.store_name}</span>
+                           </div>
+                         </td>
+                         <td className="p-2 lg:p-3">
+                           <div className="flex items-center gap-2">
+                             <User className="w-4 h-4 text-slate-400" />
+                             <span className="text-slate-700 text-sm">{prelievo.rilevato_da}</span>
+                           </div>
+                         </td>
+                         <td className="p-2 lg:p-3 text-right">
+                           <span className="text-red-600 font-bold text-sm lg:text-base">
+                             -€{prelievo.importo.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+                           </span>
+                         </td>
+                       </tr>
+                     ))}
+                   </tbody>
+                 </table>
+               </div>
+             )}
+           </NeumorphicCard>
+         </>
+        )}
+
+        {/* Depositi Tab */}
+        {activeTab === 'depositi' && (
+         <>
+           <NeumorphicCard className="p-4 lg:p-6">
+             <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Storico Depositi</h2>
+
+             {depositi.length === 0 ? (
+               <div className="text-center py-12">
+                 <DollarSign className="w-16 h-16 text-slate-300 opacity-50 mx-auto mb-4" />
+                 <p className="text-slate-500">Nessun deposito registrato</p>
+               </div>
+             ) : (
+               <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
+                 <table className="w-full min-w-[600px]">
+                   <thead>
+                     <tr className="border-b-2 border-blue-600">
+                       <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Data</th>
+                       <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Locale</th>
+                       <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Rilevato da</th>
+                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Importo</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                     {depositi.map((deposito) => (
+                       <tr key={deposito.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                         <td className="p-2 lg:p-3">
+                           <div className="flex items-center gap-2">
+                             <Calendar className="w-4 h-4 text-slate-400" />
+                             <span className="text-slate-700 text-sm">
+                               {(() => {
+                                 try {
+                                   return format(parseISO(deposito.data_deposito), 'dd/MM/yyyy HH:mm', { locale: it });
+                                 } catch (e) {
+                                   return 'Data non valida';
+                                 }
+                               })()}
+                             </span>
+                           </div>
+                         </td>
+                         <td className="p-2 lg:p-3">
+                           <div className="flex items-center gap-2">
+                             <Store className="w-4 h-4 text-slate-400" />
+                             <span className="text-slate-700 text-sm">{deposito.store_name}</span>
+                           </div>
+                         </td>
+                         <td className="p-2 lg:p-3">
+                           <div className="flex items-center gap-2">
+                             <User className="w-4 h-4 text-slate-400" />
+                             <span className="text-slate-700 text-sm">{deposito.rilevato_da}</span>
+                           </div>
+                         </td>
+                         <td className="p-2 lg:p-3 text-right">
+                           <span className="text-green-600 font-bold text-sm lg:text-base">
+                             +€{deposito.importo.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+                           </span>
+                         </td>
+                       </tr>
+                     ))}
+                   </tbody>
+                 </table>
+               </div>
+             )}
+           </NeumorphicCard>
+         </>
+        )}
+
+        {/* Pagamenti Contanti Tab */}
+        {activeTab === 'pagamenti' && (
+         <>
+           <NeumorphicCard className="p-4 lg:p-6">
+             <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Storico Pagamenti Contanti</h2>
+
+             {pagamentiContanti.length === 0 ? (
+               <div className="text-center py-12">
+                 <DollarSign className="w-16 h-16 text-slate-300 opacity-50 mx-auto mb-4" />
+                 <p className="text-slate-500">Nessun pagamento contanti registrato</p>
+               </div>
+             ) : (
+               <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
+                 <table className="w-full min-w-[600px]">
+                   <thead>
+                     <tr className="border-b-2 border-blue-600">
+                       <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Data</th>
+                       <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Locale</th>
+                       <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Registrato da</th>
+                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Importo</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                     {pagamentiContanti.map((pagamento) => (
+                       <tr key={pagamento.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                         <td className="p-2 lg:p-3">
+                           <div className="flex items-center gap-2">
+                             <Calendar className="w-4 h-4 text-slate-400" />
+                             <span className="text-slate-700 text-sm">
+                               {(() => {
+                                 try {
+                                   return format(parseISO(pagamento.data_pagamento), 'dd/MM/yyyy HH:mm', { locale: it });
+                                 } catch (e) {
+                                   return 'Data non valida';
+                                 }
+                               })()}
+                             </span>
+                           </div>
+                         </td>
+                         <td className="p-2 lg:p-3">
+                           <div className="flex items-center gap-2">
+                             <Store className="w-4 h-4 text-slate-400" />
+                             <span className="text-slate-700 text-sm">{pagamento.store_name}</span>
+                           </div>
+                         </td>
+                         <td className="p-2 lg:p-3">
+                           <div className="flex items-center gap-2">
+                             <User className="w-4 h-4 text-slate-400" />
+                             <span className="text-slate-700 text-sm">{pagamento.registrato_da || '-'}</span>
+                           </div>
+                         </td>
+                         <td className="p-2 lg:p-3 text-right">
+                           <span className="text-blue-600 font-bold text-sm lg:text-base">
+                             €{pagamento.importo.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+                           </span>
+                         </td>
+                       </tr>
+                     ))}
+                   </tbody>
+                 </table>
+               </div>
+             )}
+           </NeumorphicCard>
+         </>
+        )}
+        </div>
+        </ProtectedPage>
+        );
+        }
