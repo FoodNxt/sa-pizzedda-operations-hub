@@ -96,7 +96,6 @@ export default function Precotture() {
             completato_at: new Date().toISOString(),
             rosse_da_fare: result.rosseDaFare,
             turno_precotture: result.turno,
-            // Salva anche in Preparazioni per lo storico
             rosse_presenti: risultato.rossePresenti,
             rosse_richieste: risultato.rosseRichieste,
             turno: result.turno
@@ -106,6 +105,24 @@ export default function Precotture() {
           
           console.log('Salvando attività Precotture:', attivitaData);
           await base44.entities.AttivitaCompletata.create(attivitaData);
+          
+          // Salva ANCHE in Preparazioni per lo storico compilazioni
+          try {
+            await base44.entities.Preparazioni.create({
+              store_id: result.store.id,
+              store_name: result.store.name,
+              data_rilevazione: new Date().toISOString(),
+              rilevato_da: user.nome_cognome || user.full_name,
+              tipo_preparazione: 'Precotture',
+              peso_grammi: 0, // Campo compatibile
+              rosse_presenti: risultato.rossePresenti,
+              rosse_richieste: risultato.rosseRichieste,
+              rosse_preparate: result.rosseDaFare,
+              turno: result.turno
+            });
+          } catch (error) {
+            console.error('Errore salvataggio Preparazioni:', error);
+          }
         }
       }
       
