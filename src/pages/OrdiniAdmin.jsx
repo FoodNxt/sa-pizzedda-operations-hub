@@ -2073,6 +2073,128 @@ Sa Pizzedda`,
           </div>
         )}
 
+        {/* Modal Aggiungi Singolo Prodotto */}
+        {addProductModal.open && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="max-w-2xl w-full p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800">Aggiungi Prodotto</h2>
+                <button onClick={() => { setAddProductModal({ open: false, availableProducts: [] }); setSelectedProductToAdd(''); setProductQuantity(0); }} className="nav-button p-2 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Seleziona Prodotto</label>
+                  <select
+                    value={selectedProductToAdd}
+                    onChange={(e) => setSelectedProductToAdd(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                  >
+                    <option value="">-- Seleziona un prodotto --</option>
+                    {addProductModal.availableProducts.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.nome_prodotto} - €{p.prezzo_unitario?.toFixed(2) || '0.00'}/u
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Quantità</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      value={productQuantity}
+                      onChange={(e) => setProductQuantity(parseFloat(e.target.value) || 0)}
+                      className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      placeholder="0"
+                    />
+                    <span className="text-sm text-slate-600">
+                      {selectedProductToAdd && addProductModal.availableProducts.find(p => p.id === selectedProductToAdd)?.unita_misura}
+                    </span>
+                  </div>
+                </div>
+
+                {selectedProductToAdd && (
+                  <div className="neumorphic-flat p-4 rounded-xl space-y-1">
+                    {(() => {
+                      const product = addProductModal.availableProducts.find(p => p.id === selectedProductToAdd);
+                      const prezzoConIVA = (product?.prezzo_unitario || 0) * (1 + ((product?.iva_percentuale ?? 22) / 100));
+                      const totale = prezzoConIVA * productQuantity;
+                      return (
+                        <>
+                          <p className="text-sm text-slate-600">
+                            <strong>Prezzo Unitario:</strong> €{(product?.prezzo_unitario || 0).toFixed(2)} (netto)
+                          </p>
+                          <p className="text-sm text-slate-600">
+                            <strong>Con IVA ({product?.iva_percentuale ?? 22}%):</strong> €{prezzoConIVA.toFixed(2)}/u
+                          </p>
+                          <p className="text-base font-bold text-blue-600">
+                            Totale: €{totale.toFixed(2)}
+                          </p>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-4">
+                  <NeumorphicButton onClick={() => { setAddProductModal({ open: false, availableProducts: [] }); setSelectedProductToAdd(''); setProductQuantity(0); }} className="flex-1">
+                    Annulla
+                  </NeumorphicButton>
+                  <NeumorphicButton
+                    onClick={() => {
+                      if (!selectedProductToAdd || productQuantity <= 0) {
+                        alert('Seleziona un prodotto e inserisci una quantità');
+                        return;
+                      }
+
+                      const product = addProductModal.availableProducts.find(p => p.id === selectedProductToAdd);
+                      const newProduct = {
+                        prodotto_id: product.id,
+                        nome_prodotto: product.nome_prodotto,
+                        quantita_ordinata: productQuantity,
+                        quantita_ricevuta: 0,
+                        unita_misura: product.unita_misura,
+                        prezzo_unitario: product.prezzo_unitario || 0,
+                        iva_percentuale: product.iva_percentuale ?? 22,
+                        isExtra: true
+                      };
+
+                      const newProdotti = [...editingOrder.prodotti, newProduct];
+                      const newTotaleNetto = newProdotti.reduce((sum, p) => sum + (p.prezzo_unitario * p.quantita_ordinata), 0);
+                      const newTotaleConIVA = newProdotti.reduce((sum, p) => {
+                        const pIVA = p.prezzo_unitario * (1 + ((p.iva_percentuale ?? 22) / 100));
+                        return sum + (pIVA * p.quantita_ordinata);
+                      }, 0);
+
+                      setEditingOrder({
+                        ...editingOrder,
+                        prodotti: newProdotti,
+                        totale_ordine: newTotaleNetto,
+                        totale_ordine_con_iva: newTotaleConIVA
+                      });
+
+                      setAddProductModal({ open: false, availableProducts: [] });
+                      setSelectedProductToAdd('');
+                      setProductQuantity(0);
+                    }}
+                    variant="primary"
+                    className="flex-1"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Aggiungi
+                  </NeumorphicButton>
+                </div>
+              </div>
+            </NeumorphicCard>
+          </div>
+        )}
+
         {/* Modal Regola Ordine */}
         {showRegoleForm && editingRegola && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
