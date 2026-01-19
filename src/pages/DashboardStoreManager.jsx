@@ -30,6 +30,7 @@ export default function DashboardStoreManager() {
   const [selectedStoreId, setSelectedStoreId] = useState('');
   const [showDetailModal, setShowDetailModal] = useState(null); // 'reviews', 'wrongOrders', 'delays', 'cleanings'
   const [showApprovazioniModal, setShowApprovazioniModal] = useState(false);
+  const [expandedEmployee, setExpandedEmployee] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -268,6 +269,16 @@ export default function DashboardStoreManager() {
         ? googleReviews.reduce((sum, r) => sum + r.rating, 0) / googleReviews.length
         : 0;
 
+      // Trova ordini sbagliati assegnati a questo dipendente
+      const empWrongOrders = wrongOrderMatches
+        .filter(m => m.matched_employee_name?.toLowerCase() === employeeName.toLowerCase())
+        .map(m => wrongOrders.find(wo => wo.id === m.wrong_order_id))
+        .filter(Boolean)
+        .filter(wo => {
+          const date = new Date(wo.order_date);
+          return date >= monthStart && date <= monthEnd && wo.store_id === selectedStoreId;
+        });
+
       // Trova user corrispondente per email e ruoli
       const user = users.find(u => 
         (u.nome_cognome || u.full_name || '').toLowerCase() === employeeName.toLowerCase()
@@ -281,8 +292,12 @@ export default function DashboardStoreManager() {
         shiftsCount: totalShifts,
         avgDelay: avgLateMinutes,
         lateShifts: numeroRitardi,
+        lateShiftsDetails: empShifts.filter(s => s.in_ritardo === true),
         reviewsCount: googleReviews.length,
         avgRating: avgGoogleRating,
+        reviewsDetails: googleReviews,
+        wrongOrdersCount: empWrongOrders.length,
+        wrongOrdersDetails: empWrongOrders,
         isPrimaryHere: false
       };
     }).sort((a, b) => b.shiftsCount - a.shiftsCount);
@@ -732,50 +747,147 @@ export default function DashboardStoreManager() {
                       <th className="text-center p-3 text-slate-600 font-medium">Turni</th>
                       <th className="text-center p-3 text-slate-600 font-medium">Ritardi</th>
                       <th className="text-center p-3 text-slate-600 font-medium">Media Ritardo</th>
+                      <th className="text-center p-3 text-slate-600 font-medium">Ordini Sbag.</th>
                       <th className="text-center p-3 text-slate-600 font-medium">Recensioni</th>
+                      <th className="text-center p-3 text-slate-600 font-medium"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {employeeScorecard.map(emp => (
-                      <tr key={emp.id} className="border-b border-slate-100 hover:bg-slate-50">
-                        <td className="p-3">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-slate-800">{emp.name}</span>
-                            {emp.isPrimaryHere && (
-                              <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs">
-                                Principale
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex gap-1 mt-1">
-                            {emp.ruoli.map(r => (
-                              <span key={r} className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{r}</span>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="p-3 text-center font-bold text-slate-700">{emp.shiftsCount}</td>
-                        <td className="p-3 text-center">
-                          <span className={`font-bold ${emp.lateShifts > 3 ? 'text-red-600' : 'text-green-600'}`}>
-                            {emp.lateShifts}
-                          </span>
-                        </td>
-                        <td className="p-3 text-center">
-                          <span className={`font-bold ${emp.avgDelay > 5 ? 'text-red-600' : 'text-green-600'}`}>
-                            {emp.avgDelay.toFixed(1)} min
-                          </span>
-                        </td>
-                        <td className="p-3 text-center">
-                          {emp.avgRating !== null ? (
-                            <div className="flex items-center justify-center gap-1">
-                              <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                              <span className="font-bold text-slate-700">{emp.avgRating.toFixed(1)}</span>
-                              <span className="text-xs text-slate-500">({emp.reviewsCount})</span>
+                      <React.Fragment key={emp.id}>
+                        <tr className="border-b border-slate-100 hover:bg-slate-50">
+                          <td className="p-3">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-slate-800">{emp.name}</span>
+                              {emp.isPrimaryHere && (
+                                <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs">
+                                  Principale
+                                </span>
+                              )}
                             </div>
-                          ) : (
-                            <span className="text-slate-400">-</span>
-                          )}
-                        </td>
-                      </tr>
+                            <div className="flex gap-1 mt-1">
+                              {emp.ruoli.map(r => (
+                                <span key={r} className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{r}</span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="p-3 text-center font-bold text-slate-700">{emp.shiftsCount}</td>
+                          <td className="p-3 text-center">
+                            <span className={`font-bold ${emp.lateShifts > 3 ? 'text-red-600' : 'text-green-600'}`}>
+                              {emp.lateShifts}
+                            </span>
+                          </td>
+                          <td className="p-3 text-center">
+                            <span className={`font-bold ${emp.avgDelay > 5 ? 'text-red-600' : 'text-green-600'}`}>
+                              {emp.avgDelay.toFixed(1)} min
+                            </span>
+                          </td>
+                          <td className="p-3 text-center">
+                            <span className={`font-bold ${emp.wrongOrdersCount > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                              {emp.wrongOrdersCount}
+                            </span>
+                          </td>
+                          <td className="p-3 text-center">
+                            {emp.reviewsCount > 0 ? (
+                              <div className="flex items-center justify-center gap-1">
+                                <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                                <span className="font-bold text-slate-700">{emp.avgRating.toFixed(1)}</span>
+                                <span className="text-xs text-slate-500">({emp.reviewsCount})</span>
+                              </div>
+                            ) : (
+                              <span className="text-slate-400">-</span>
+                            )}
+                          </td>
+                          <td className="p-3 text-center">
+                            <button
+                              onClick={() => setExpandedEmployee(expandedEmployee === emp.id ? null : emp.id)}
+                              className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                            >
+                              <ChevronRight className={`w-5 h-5 text-slate-400 transition-transform ${expandedEmployee === emp.id ? 'rotate-90' : ''}`} />
+                            </button>
+                          </td>
+                        </tr>
+
+                        {expandedEmployee === emp.id && (
+                          <tr className="bg-slate-50">
+                            <td colSpan="7" className="p-4">
+                              <div className="space-y-4">
+                                {/* Ritardi */}
+                                {emp.lateShiftsDetails.length > 0 && (
+                                  <div className="neumorphic-pressed p-4 rounded-xl">
+                                    <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                                      <Clock className="w-5 h-5 text-red-600" />
+                                      Turni in Ritardo ({emp.lateShiftsDetails.length})
+                                    </h4>
+                                    <div className="space-y-2">
+                                      {emp.lateShiftsDetails.slice(0, 5).map((shift, idx) => (
+                                        <div key={idx} className="bg-white p-3 rounded-lg text-sm">
+                                          <div className="flex items-center justify-between">
+                                            <span className="text-slate-600">{new Date(shift.data).toLocaleDateString('it-IT')}</span>
+                                            <span className="font-bold text-red-600">+{shift.minuti_ritardo || 0} min</span>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Ordini Sbagliati */}
+                                {emp.wrongOrdersDetails.length > 0 && (
+                                  <div className="neumorphic-pressed p-4 rounded-xl">
+                                    <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                                      <AlertTriangle className="w-5 h-5 text-purple-600" />
+                                      Ordini Sbagliati ({emp.wrongOrdersDetails.length})
+                                    </h4>
+                                    <div className="space-y-2">
+                                      {emp.wrongOrdersDetails.slice(0, 5).map((order, idx) => (
+                                        <div key={idx} className="bg-white p-3 rounded-lg text-sm">
+                                          <div className="flex items-center justify-between mb-1">
+                                            <span className="font-medium text-slate-700">#{order.order_id}</span>
+                                            <span className="text-xs text-purple-600 font-bold">{order.platform}</span>
+                                          </div>
+                                          <div className="text-xs text-slate-500">
+                                            {new Date(order.order_date).toLocaleDateString('it-IT')} • €{order.order_total?.toFixed(2) || '0.00'}
+                                          </div>
+                                          {order.complaint_reason && (
+                                            <p className="text-xs text-slate-600 mt-1 italic">{order.complaint_reason}</p>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Recensioni */}
+                                {emp.reviewsDetails.length > 0 && (
+                                  <div className="neumorphic-pressed p-4 rounded-xl">
+                                    <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                                      <Star className="w-5 h-5 text-yellow-500" />
+                                      Recensioni Google ({emp.reviewsDetails.length})
+                                    </h4>
+                                    <div className="space-y-2">
+                                      {emp.reviewsDetails.slice(0, 5).map((review, idx) => (
+                                        <div key={idx} className="bg-white p-3 rounded-lg text-sm">
+                                          <div className="flex items-center justify-between mb-2">
+                                            <span className="text-slate-600">{review.customer_name || 'Anonimo'}</span>
+                                            <div className="flex items-center gap-1">
+                                              {[...Array(5)].map((_, i) => (
+                                                <Star key={i} className={`w-3 h-3 ${i < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
+                                              ))}
+                                            </div>
+                                          </div>
+                                          {review.comment && <p className="text-xs text-slate-600 line-clamp-2">{review.comment}</p>}
+                                          <p className="text-xs text-slate-400 mt-1">{new Date(review.review_date).toLocaleDateString('it-IT')}</p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     ))}
                   </tbody>
                 </table>
