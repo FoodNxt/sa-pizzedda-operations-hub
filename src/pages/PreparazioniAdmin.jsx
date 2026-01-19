@@ -496,58 +496,58 @@ export default function PreparazioniAdmin() {
                         )}
                       </div>
 
-                      <div className="flex items-center justify-between">
-                        <div className="ml-4 flex gap-3">
-                        <div className="w-48">
-                          <select
-                            value={tipo.semilavorato_id || ''}
-                            onChange={(e) => handleUpdateSemilavorato(tipo, e.target.value)}
-                            className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm text-slate-700 outline-none"
-                          >
-                            <option value="">Nessun semilavorato</option>
-                            {ricette.map(r => (
-                              <option key={r.id} value={r.id}>{r.nome_prodotto}</option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div className="w-32">
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={tipo.mostra_trasporto_store_manager || false}
-                              onChange={(e) => handleUpdateTrasporto(tipo, e.target.checked, tipo.store_preparazione_id)}
-                              className="w-4 h-4 text-blue-600 rounded"
-                            />
-                            <span className="text-xs text-slate-700">Trasporto SM</span>
-                          </label>
-                        </div>
-
-                        {tipo.mostra_trasporto_store_manager && (
-                          <div className="w-40">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex gap-3 flex-1">
+                          <div className="w-48">
                             <select
-                              value={tipo.store_preparazione_id || ''}
-                              onChange={(e) => handleUpdateTrasporto(tipo, true, e.target.value)}
+                              value={tipo.semilavorato_id || ''}
+                              onChange={(e) => handleUpdateSemilavorato(tipo, e.target.value)}
                               className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm text-slate-700 outline-none"
-                              title="Store dove VIENE PREPARATO il semilavorato"
                             >
-                              <option value="">-- Store preparazione --</option>
-                              {stores.map(s => (
-                                <option key={s.id} value={s.id}>{s.name}</option>
+                              <option value="">Nessun semilavorato</option>
+                              {ricette.map(r => (
+                                <option key={r.id} value={r.id}>{r.nome_prodotto}</option>
                               ))}
                             </select>
-                            <p className="text-xs text-slate-500 mt-1">📍 Dove si prepara</p>
                           </div>
-                        )}
 
-                        <button
-                          onClick={() => setEditingQuantiMinime(editingQuantiMinime?.id === tipo.id ? null : tipo)}
-                          className="text-blue-500 hover:text-blue-600"
-                          title="Configura quantità minime per negozio"
-                        >
-                          ⚙️
-                        </button>
-                      </div>
+                          <div className="w-32">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={tipo.mostra_trasporto_store_manager || false}
+                                onChange={(e) => handleUpdateTrasporto(tipo, e.target.checked, tipo.store_preparazione_id)}
+                                className="w-4 h-4 text-blue-600 rounded"
+                              />
+                              <span className="text-xs text-slate-700">Trasporto SM</span>
+                            </label>
+                          </div>
+
+                          {tipo.mostra_trasporto_store_manager && (
+                            <div className="w-40">
+                              <select
+                                value={tipo.store_preparazione_id || ''}
+                                onChange={(e) => handleUpdateTrasporto(tipo, true, e.target.value)}
+                                className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm text-slate-700 outline-none"
+                                title="Store dove VIENE PREPARATO il semilavorato"
+                              >
+                                <option value="">-- Store preparazione --</option>
+                                {stores.map(s => (
+                                  <option key={s.id} value={s.id}>{s.name}</option>
+                                ))}
+                              </select>
+                              <p className="text-xs text-slate-500 mt-1">📍 Dove si prepara</p>
+                            </div>
+                          )}
+
+                          <button
+                            onClick={() => setEditingQuantiMinime(editingQuantiMinime?.id === tipo.id ? null : tipo)}
+                            className="text-blue-500 hover:text-blue-600"
+                            title="Configura quantità minime per negozio"
+                          >
+                            ⚙️
+                          </button>
+                        </div>
 
                         <button
                           onClick={() => handleDelete(tipo.id)}
@@ -555,7 +555,6 @@ export default function PreparazioniAdmin() {
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
-                        </div>
                       </div>
 
                       {editingQuantiMinime?.id === tipo.id && (
