@@ -90,11 +90,16 @@ export default function Precotture() {
             turno_id: turnoId,
             turno_data: new Date().toISOString().split('T')[0],
             store_id: result.store.id,
+            store_name: result.store.name,
             attivita_nome: decodeURIComponent(attivitaNome),
             form_page: 'Precotture',
             completato_at: new Date().toISOString(),
             rosse_da_fare: result.rosseDaFare,
-            turno_precotture: result.turno
+            turno_precotture: result.turno,
+            // Salva anche in Preparazioni per lo storico
+            rosse_presenti: risultato.rossePresenti,
+            rosse_richieste: risultato.rosseRichieste,
+            turno: result.turno
           };
           
           if (oraAttivita) attivitaData.ora_attivita = oraAttivita;
