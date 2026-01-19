@@ -607,10 +607,10 @@ export default function PlandayStoreManager() {
                         
                         // Trova il nome dello store del turno
                         const selectedStoreName = allStores.find(s => s.id === turnoForm.store_id)?.name;
-                        if (!selectedStoreName) return true; // Se store non trovato, mostra tutti
+                        if (!selectedStoreName) return false;
                         
-                        // Se assigned_stores non è popolato o è vuoto, mostra il dipendente (backwards compatibility)
-                        if (!u.assigned_stores || !Array.isArray(u.assigned_stores) || u.assigned_stores.length === 0) return true;
+                        // Deve essere assegnato allo store selezionato
+                        if (!u.assigned_stores || !Array.isArray(u.assigned_stores) || u.assigned_stores.length === 0) return false;
                         
                         return u.assigned_stores.includes(selectedStoreName);
                       })
