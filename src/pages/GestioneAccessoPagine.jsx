@@ -239,7 +239,9 @@ export default function GestioneAccessoPagine() {
     { value: 'GestioneAccessoPagine', label: 'Gestione Accesso Pagine', category: 'Sistema' },
     { value: 'StrutturaMenù', label: 'Struttura Menu', category: 'Sistema' },
     { value: 'FunzionamentoApp', label: 'Funzionamento App', category: 'Sistema' },
-    { value: 'NotificheMail', label: 'Notifiche Mail', category: 'Sistema' }
+    { value: 'NotificheMail', label: 'Notifiche Mail', category: 'Sistema' },
+    { value: 'FormSpostamenti', label: 'Spostamenti tra Negozi', category: 'Inventory' },
+    { value: 'SpostamentiAdmin', label: 'Spostamenti Admin', category: 'Inventory' }
   ];
 
   const availableDipendentiPages = [
