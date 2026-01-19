@@ -149,20 +149,18 @@ export default function DashboardStoreManager() {
       return date.isBetween(monthStart, monthEnd, 'day', '[]');
     });
 
-    // Ritardi - CALCOLO 100% MANUALE IDENTICO ALL'ADMIN
-    const allMonthShifts = shifts.filter(s => {
+    // Ritardi - SOLO somma diretta dei ritardi reali
+    const monthShiftsWithClockIn = shifts.filter(s => {
       if (s.store_id !== selectedStoreId || !s.data) return false;
+      if (!s.timbratura_entrata || !s.ora_inizio) return false;
       const shiftDate = moment(s.data);
       if (!shiftDate.isValid()) return false;
       return shiftDate.isBetween(monthStart, monthEnd, 'day', '[]');
     });
     
     let totalDelayMinutes = 0;
-    const monthShifts = [];
     
-    allMonthShifts.forEach(shift => {
-      if (!shift.timbratura_entrata || !shift.ora_inizio) return;
-      
+    monthShiftsWithClockIn.forEach(shift => {
       try {
         const clockInTime = new Date(shift.timbratura_entrata);
         const [oraInizioHH, oraInizioMM] = shift.ora_inizio.split(':').map(Number);
@@ -171,29 +169,14 @@ export default function DashboardStoreManager() {
         const delayMs = clockInTime - scheduledStart;
         const delayMinutes = Math.floor(delayMs / 60000);
         const ritardoReale = delayMinutes > 0 ? delayMinutes : 0;
-        
-        if (ritardoReale > 0 || shift.timbratura_uscita) {
-          monthShifts.push(shift);
-        }
-        
         totalDelayMinutes += ritardoReale;
-        
-        console.log('🔍 DEBUG RITARDO:', {
-          dipendente: shift.dipendente_nome,
-          data: shift.data,
-          ora_inizio: shift.ora_inizio,
-          timbratura: clockInTime.toLocaleTimeString('it-IT'),
-          ritardoReale,
-          totalDelayMinutes
-        });
       } catch (e) {
         console.error('Errore calcolo ritardo:', e);
       }
     });
     
-    const avgDelay = monthShifts.length > 0 ? totalDelayMinutes / monthShifts.length : 0;
-    
-    console.log('📊 TOTALE RITARDI STORE:', selectedStoreId, 'MESE:', selectedMonth, 'MINUTI:', totalDelayMinutes);
+    const avgDelay = monthShiftsWithClockIn.length > 0 ? totalDelayMinutes / monthShiftsWithClockIn.length : 0;
+    const monthShifts = monthShiftsWithClockIn;
 
     // Pulizie - solo form completati con score
     const monthInspections = inspections.filter(i => {
