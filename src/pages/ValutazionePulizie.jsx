@@ -90,6 +90,16 @@ export default function ValutazionePulizie() {
     queryFn: () => base44.entities.DomandaPulizia.list(),
   });
 
+  const { data: attrezzature = [] } = useQuery({
+    queryKey: ['attrezzature'],
+    queryFn: () => base44.entities.Attrezzatura.list(),
+  });
+
+  const { data: turni = [] } = useQuery({
+    queryKey: ['turni-planday'],
+    queryFn: () => base44.entities.TurnoPlanday.list('-data', 5000),
+  });
+
   const activeConfig = configs.find(c => c.is_active) || null;
 
   const createConfigMutation = useMutation({
@@ -681,10 +691,62 @@ export default function ValutazionePulizie() {
                         const note = inspection[noteField];
                         const isReanalyzing = reanalyzingPhoto === `${inspection.id}_${domanda.attrezzatura}`;
 
+                        // Trova info attrezzatura
+                        const attrezzaturaObj = attrezzature.find(a => a.nome === domanda.attrezzatura);
+                        const ruoliResponsabili = attrezzaturaObj?.ruoli_responsabili || [];
+
+                        // Trova l'ultimo dipendente in turno per ogni ruolo
+                        const dipendentiResponsabili = ruoliResponsabili.map(ruolo => {
+                          const dataCompilazione = new Date(inspection.inspection_date);
+                          const candidateShifts = turni.filter(t => {
+                            if (t.store_id !== inspection.store_id) return false;
+                            if (t.ruolo !== ruolo) return false;
+                            if (!t.dipendente_nome) return false;
+                            if (!t.data || !t.ora_inizio) return false;
+                            const shiftStartTime = new Date(t.data + 'T' + t.ora_inizio);
+                            return shiftStartTime <= dataCompilazione;
+                          });
+                          
+                          const lastShift = candidateShifts.sort((a, b) => {
+                            const dateA = new Date(a.data + 'T' + a.ora_inizio);
+                            const dateB = new Date(b.data + 'T' + b.ora_inizio);
+                            return dateB - dateA;
+                          })[0];
+                          
+                          return lastShift ? {
+                            ruolo,
+                            nome: lastShift.dipendente_nome,
+                            data: lastShift.data,
+                            ora_inizio: lastShift.ora_inizio
+                          } : null;
+                        }).filter(Boolean);
+
                         return (
                           <div key={idx} className="neumorphic-pressed p-4 rounded-lg">
                             <div className="flex items-center justify-between mb-2">
-                              <span className="font-medium text-[#6b6b6b]">{domanda.attrezzatura}</span>
+                              <div className="flex-1">
+                                <span className="font-medium text-[#6b6b6b]">{domanda.attrezzatura}</span>
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                  {ruoliResponsabili.length > 0 ? (
+                                    ruoliResponsabili.map(ruolo => (
+                                      <span key={ruolo} className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 font-medium">
+                                        {ruolo}
+                                      </span>
+                                    ))
+                                  ) : (
+                                    <span className="text-xs text-slate-400 italic">Nessun ruolo assegnato</span>
+                                  )}
+                                </div>
+                                {dipendentiResponsabili.length > 0 && (
+                                  <div className="mt-2 space-y-1">
+                                    {dipendentiResponsabili.map((dip, i) => (
+                                      <div key={i} className="text-xs text-slate-600 bg-green-50 px-2 py-1 rounded">
+                                        👤 <strong>{dip.nome}</strong> ({dip.ruolo}) - Turno {dip.data} ore {dip.ora_inizio}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                               <div className="flex items-center gap-2">
                                 {status === 'pulito' ? (
                                   <>
