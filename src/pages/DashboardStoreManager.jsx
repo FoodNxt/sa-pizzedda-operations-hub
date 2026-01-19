@@ -221,7 +221,7 @@ export default function DashboardStoreManager() {
     return conteggioStore || null;
   }, [selectedStoreId, conteggiCassa]);
 
-  // Scorecard dipendenti - stessa logica della pagina Employees
+  // Scorecard dipendenti - mostra TUTTI i dipendenti con store principale selezionato
   const employeeScorecard = useMemo(() => {
     if (!selectedStoreId) return [];
 
@@ -233,8 +233,6 @@ export default function DashboardStoreManager() {
       const primaryStores = user.primary_stores || [];
       return primaryStores.includes(selectedStoreId);
     });
-
-    if (relevantUsers.length === 0) return [];
 
     // Calcola metriche per ogni dipendente (stessa logica di Employees.js)
     return relevantUsers.map(user => {
@@ -286,7 +284,7 @@ export default function DashboardStoreManager() {
         avgRating: avgGoogleRating,
         isPrimaryHere: true
       };
-    }).filter(emp => emp.shiftsCount > 0).sort((a, b) => b.shiftsCount - a.shiftsCount);
+    }).sort((a, b) => b.shiftsCount - a.shiftsCount);
   }, [selectedStoreId, selectedMonth, shifts, users, reviews]);
 
   // Genera opzioni mesi
