@@ -29,7 +29,7 @@ export default function PulizieMatch() {
 
   const { data: turni = [] } = useQuery({
     queryKey: ['turni-planday'],
-    queryFn: () => base44.entities.TurnoPlanday.list('-data', 1000),
+    queryFn: () => base44.entities.TurnoPlanday.list('-data', 5000),
   });
 
   const { data: employees = [] } = useQuery({
@@ -130,40 +130,57 @@ export default function PulizieMatch() {
         attrezzatura.ruoli_responsabili.forEach(ruoloResponsabile => {
         const dataCompilazione = new Date(inspection.inspection_date);
 
-        console.log('Looking for shift - Ruolo:', ruoloResponsabile, 'Store:', inspection.store_id, 'Before:', dataCompilazione);
+        console.log('🔍 Match per attrezzatura:', domanda.attrezzatura, 'Ruolo richiesto:', ruoloResponsabile, 'Store:', inspection.store_id, 'Data ispezione:', dataCompilazione);
 
-        // Find last shift before inspection for this role and store
+        // Find all shifts for this role and store BEFORE inspection
         const candidateShifts = turni.filter(t => {
           if (t.store_id !== inspection.store_id) return false;
           if (t.ruolo !== ruoloResponsabile) return false;
           if (!t.dipendente_nome) return false;
-          if (!t.data || !t.ora_fine) return false;
+          if (!t.data) return false;
           
-          // Usa timbratura_uscita se presente, altrimenti usa data + ora_fine
+          // Considera solo turni che hanno timbratura_uscita o che sono nel passato
+          const shiftDate = new Date(t.data);
+          const isInPast = shiftDate < dataCompilazione;
+          
+          if (!isInPast) return false;
+          
+          // Usa timbratura_uscita se disponibile per determinare la fine del turno
           let shiftEndTime;
           if (t.timbratura_uscita) {
             shiftEndTime = new Date(t.timbratura_uscita);
-          } else {
+          } else if (t.ora_fine) {
+            // Usa data + ora_fine come fallback
             shiftEndTime = new Date(t.data + 'T' + t.ora_fine);
+          } else {
+            return false;
           }
           
           return shiftEndTime <= dataCompilazione;
         });
 
-        console.log('Candidate shifts found:', candidateShifts.length);
+        console.log('✅ Turni candidati trovati:', candidateShifts.length);
+        if (candidateShifts.length > 0) {
+          console.log('Turni:', candidateShifts.map(t => ({
+            nome: t.dipendente_nome,
+            data: t.data,
+            fine: t.timbratura_uscita || (t.ora_fine ? t.data + 'T' + t.ora_fine : 'N/A')
+          })));
+        }
 
+        // Ordina per data di fine turno (più recente prima)
         const lastShift = candidateShifts.sort((a, b) => {
-          const dateA = a.timbratura_uscita ? new Date(a.timbratura_uscita) : new Date(a.data + 'T' + a.ora_fine);
-          const dateB = b.timbratura_uscita ? new Date(b.timbratura_uscita) : new Date(b.data + 'T' + b.ora_fine);
+          const dateA = a.timbratura_uscita ? new Date(a.timbratura_uscita) : new Date(a.data + 'T' + (a.ora_fine || '23:59'));
+          const dateB = b.timbratura_uscita ? new Date(b.timbratura_uscita) : new Date(b.data + 'T' + (b.ora_fine || '23:59'));
           return dateB - dateA;
         })[0];
 
         if (!lastShift) {
-          console.log('No shift found for', ruoloResponsabile);
+          console.log('❌ Nessun turno trovato per ruolo:', ruoloResponsabile);
           return;
         }
         
-        console.log('Found shift:', lastShift.dipendente_nome, lastShift.data, lastShift.ora_fine);
+        console.log('✅ Turno selezionato:', lastShift.dipendente_nome, 'Data:', lastShift.data, 'Fine:', lastShift.timbratura_uscita || lastShift.ora_fine);
 
         const employeeName = lastShift.dipendente_nome;
 
