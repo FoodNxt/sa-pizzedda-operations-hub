@@ -1235,9 +1235,11 @@ export default function PrecottureAdmin() {
                       <tr className="border-b-2 border-slate-200">
                         <th className="text-left py-3 px-2 text-slate-700">Data/Ora</th>
                         <th className="text-left py-3 px-2 text-slate-700">Negozio</th>
-                        <th className="text-left py-3 px-2 text-slate-700">Operatore</th>
+                        <th className="text-left py-3 px-2 text-slate-700">Dipendente</th>
                         <th className="text-center py-3 px-2 text-slate-700">Turno</th>
-                        <th className="text-right py-3 px-2 text-red-700 bg-red-50">Rosse</th>
+                        <th className="text-right py-3 px-2 bg-yellow-50">Rosse Presenti</th>
+                        <th className="text-right py-3 px-2 bg-orange-50">Rosse Richieste</th>
+                        <th className="text-right py-3 px-2 text-red-700 bg-red-50">Rosse da Fare</th>
                         <th className="text-center py-3 px-2 text-slate-700">Azioni</th>
                       </tr>
                     </thead>
@@ -1252,7 +1254,7 @@ export default function PrecottureAdmin() {
                           </td>
                           <td className="py-3 px-2 text-slate-600">
                             <User className="w-3 h-3 inline mr-1" />
-                            {prep.created_by || '-'}
+                            {prep.rilevato_da || prep.created_by || '-'}
                           </td>
                           <td className="py-3 px-2 text-center">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -1262,6 +1264,12 @@ export default function PrecottureAdmin() {
                             }`}>
                               {prep.turno || '-'}
                             </span>
+                          </td>
+                          <td className="py-3 px-2 text-right font-medium text-yellow-700 bg-yellow-50">
+                            {prep.rosse_presenti || 0}
+                          </td>
+                          <td className="py-3 px-2 text-right font-medium text-orange-700 bg-orange-50">
+                            {prep.rosse_richieste || 0}
                           </td>
                           <td className="py-3 px-2 text-right font-bold text-red-700 bg-red-50">
                             {prep.rosse_preparate || 0}
