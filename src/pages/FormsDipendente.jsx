@@ -157,6 +157,14 @@ export default function FormsDipendente() {
       icon: Trash2,
       url: "FormSprechi",
       color: "from-red-500 to-orange-600"
+    },
+    {
+      title: "Spostamenti tra Negozi",
+      description: "Registra trasferimenti tra locali",
+      icon: Truck,
+      url: "FormSpostamenti",
+      color: "from-blue-500 to-indigo-600",
+      requiresStoreManager: true
     }
   ];
 
