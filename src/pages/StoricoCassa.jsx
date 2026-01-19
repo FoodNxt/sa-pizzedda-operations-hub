@@ -32,6 +32,8 @@ export default function StoricoCassa() {
   const [showAlertConfig, setShowAlertConfig] = useState(false);
   const [editingAlert, setEditingAlert] = useState(null);
   const [verificaDate, setVerificaDate] = useState(new Date().toISOString().split('T')[0]);
+  const [editingSaldo, setEditingSaldo] = useState(null);
+  const [showSaldoConfig, setShowSaldoConfig] = useState(false);
 
   const queryClient = useQueryClient();
 
