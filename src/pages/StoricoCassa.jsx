@@ -252,16 +252,35 @@ export default function StoricoCassa() {
       const primoConteggio = conteggiGiorno[0];
       const ultimoConteggio = conteggiGiorno[conteggiGiorno.length - 1];
 
+      // Get saldo manuale if exists for this store for this date or earlier
+      const saldoManuale = saldiManuali
+        .filter(s => s.store_id === store.id && s.data <= verificaDate)
+        .sort((a, b) => new Date(b.data) - new Date(a.data))[0];
+
+      // Saldo base: primo conteggio oppure saldo manuale se esiste
+      const saldoBase = saldoManuale ? saldoManuale.saldo_iniziale : primoConteggio.valore_conteggio;
+
       // Get cash payments for this store on this date
       const iPraticoGiorno = iPraticoData.filter(i => 
         i.store_id === store.id && i.order_date === verificaDate
       );
       
       // Somma tutti i contanti dalla colonna moneyType_cash
-      const pagamentiContanti = iPraticoGiorno.reduce((sum, record) => {
+      const pagamentiContantiIpratico = iPraticoGiorno.reduce((sum, record) => {
         const contanti = parseFloat(record.moneyType_cash) || 0;
         return sum + contanti;
       }, 0);
+
+      // Get pagamenti contanti dal form PagamentoContanti
+      const pagamentiContantiForm = pagamentiContanti
+        .filter(p => 
+          p.store_id === store.id && 
+          p.data_pagamento && 
+          p.data_pagamento.split('T')[0] === verificaDate
+        )
+        .reduce((sum, p) => sum + (p.importo || 0), 0);
+
+      const totalePagamentiContanti = pagamentiContantiIpratico + pagamentiContantiForm;
 
       // Get prelievi for this store on this date
       const prelieviGiorno = prelievi
@@ -283,7 +302,7 @@ export default function StoricoCassa() {
         .reduce((sum, ac) => sum + (ac.importo_pagato || 0), 0);
 
       // Calculate expected final amount
-      const cassaAttesa = primoConteggio.valore_conteggio + pagamentiContanti - prelieviGiorno - pagamentiStraordinari;
+      const cassaAttesa = saldoBase + totalePagamentiContanti - prelieviGiorno - pagamentiStraordinari;
       const cassaEffettiva = ultimoConteggio.valore_conteggio;
       const delta = cassaEffettiva - cassaAttesa;
 
@@ -292,8 +311,9 @@ export default function StoricoCassa() {
       verifiche.push({
         store_name: store.name,
         store_id: store.id,
-        primo_conteggio: primoConteggio.valore_conteggio,
-        pagamenti_contanti: pagamentiContanti,
+        primo_conteggio: saldoBase,
+        pagamenti_contanti: totalePagamentiContanti,
+        pagamenti_contanti_form: pagamentiContantiForm,
         prelievi: prelieviGiorno,
         pagamenti_straordinari: pagamentiStraordinari,
         ultimo_conteggio: ultimoConteggio.valore_conteggio,
@@ -302,7 +322,8 @@ export default function StoricoCassa() {
         status,
         primo_conteggio_ora: primoConteggio.data_conteggio,
         ultimo_conteggio_ora: ultimoConteggio.data_conteggio,
-        num_conteggi: conteggiGiorno.length
+        num_conteggi: conteggiGiorno.length,
+        ha_saldo_manuale: !!saldoManuale
       });
     });
 
@@ -313,7 +334,7 @@ export default function StoricoCassa() {
       if (a.status === 'ok' && b.status === 'warning') return 1;
       return Math.abs(b.delta || 0) - Math.abs(a.delta || 0);
     });
-  }, [stores, conteggi, iPraticoData, prelievi, verificaDate, attivitaCompletate]);
+  }, [stores, conteggi, iPraticoData, prelievi, verificaDate, attivitaCompletate, pagamentiContanti, saldiManuali]);
 
   const saldoDipendenti = useMemo(() => {
     const saldi = {};
