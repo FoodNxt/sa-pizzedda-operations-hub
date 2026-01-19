@@ -440,6 +440,20 @@ export default function Ricette() {
       margine_online: prezzoOnline - costoUnitario,
       margine_offline: prezzoOffline - costoUnitario
     };
+    
+    // Se NON è semilavorato, rimuovi i campi semilavorato
+    if (!formData.is_semilavorato) {
+      delete data.quantita_prodotta;
+      delete data.unita_misura_prodotta;
+      delete data.mostra_in_form_inventario;
+      delete data.stores_form_inventario;
+      delete data.unita_misura_form_inventario;
+      delete data.somma_a_materia_prima_id;
+      delete data.somma_a_materia_prima_nome;
+    } else {
+      // Se è semilavorato, assicurati che quantita_prodotta sia un numero valido
+      data.quantita_prodotta = formData.quantita_prodotta ? parseFloat(formData.quantita_prodotta) : null;
+    }
 
     if (editingRecipe) {
       updateMutation.mutate({ id: editingRecipe.id, data });
