@@ -291,15 +291,36 @@ export default function Employees() {
       
       // Timbrature mancanti - SOLO turni passati SENZA timbratura
       const numeroTimbratureMancate = employeeShifts.filter(s => {
-        // Deve essere passato
+        // NON deve avere timbratura di entrata
+        if (s.timbratura_entrata) return false;
+        
+        // Deve essere passato (data + orario)
         const shiftDate = safeParseDate(s.data);
         if (!shiftDate) return false;
-        const today = new Date();
-        today.setHours(23, 59, 59, 999);
-        if (shiftDate >= today) return false;
         
-        // NON deve avere timbratura di entrata
-        return !s.timbratura_entrata;
+        const now = new Date();
+        const todayDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const shiftDateOnly = new Date(shiftDate.getFullYear(), shiftDate.getMonth(), shiftDate.getDate());
+        
+        // Se il turno è in una data futura -> non è mancato
+        if (shiftDateOnly > todayDateOnly) return false;
+        
+        // Se il turno è oggi, controlla se l'orario di inizio è passato
+        if (shiftDateOnly.getTime() === todayDateOnly.getTime()) {
+          if (!s.ora_inizio) return false;
+          try {
+            const [hh, mm] = s.ora_inizio.split(':').map(Number);
+            const shiftStartTime = new Date(now);
+            shiftStartTime.setHours(hh, mm, 0, 0);
+            // Se l'orario di inizio non è ancora arrivato -> non è mancato
+            if (shiftStartTime > now) return false;
+          } catch (e) {
+            return false;
+          }
+        }
+        
+        // Turno passato senza timbratura
+        return true;
       }).length;
 
       const mentions = filteredReviews.filter(r => r.employee_mentioned === user.id);
@@ -614,15 +635,33 @@ export default function Employees() {
       .filter(s => {
         if (s.dipendente_nome !== employeeName || !s.data) return false;
         
-        // Verifica che la data sia passata
+        // NON deve avere timbratura di entrata
+        if (s.timbratura_entrata) return false;
+        
+        // Deve essere passato (data + orario)
         const shiftDate = safeParseDate(s.data);
         if (!shiftDate) return false;
-        const today = new Date();
-        today.setHours(23, 59, 59, 999);
-        if (shiftDate >= today) return false;
         
-        // Verifica che NON ci sia timbratura di entrata
-        if (s.timbratura_entrata) return false;
+        const now = new Date();
+        const todayDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const shiftDateOnly = new Date(shiftDate.getFullYear(), shiftDate.getMonth(), shiftDate.getDate());
+        
+        // Se il turno è in una data futura -> non è mancato
+        if (shiftDateOnly > todayDateOnly) return false;
+        
+        // Se il turno è oggi, controlla se l'orario di inizio è passato
+        if (shiftDateOnly.getTime() === todayDateOnly.getTime()) {
+          if (!s.ora_inizio) return false;
+          try {
+            const [hh, mm] = s.ora_inizio.split(':').map(Number);
+            const shiftStartTime = new Date(now);
+            shiftStartTime.setHours(hh, mm, 0, 0);
+            // Se l'orario di inizio non è ancora arrivato -> non è mancato
+            if (shiftStartTime > now) return false;
+          } catch (e) {
+            return false;
+          }
+        }
         
         if (startDate || endDate) {
           const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
