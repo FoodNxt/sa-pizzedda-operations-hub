@@ -98,8 +98,8 @@ export default function Precotture() {
             completato_at: new Date().toISOString(),
             rosse_da_fare: result.rosseDaFare,
             turno_precotture: result.turno,
-            rosse_presenti: risultato.rossePresenti,
-            rosse_richieste: risultato.rosseRichieste,
+            rosse_presenti: result.rossePresenti,
+            rosse_richieste: result.rosseRichieste,
             turno: result.turno
           };
           
@@ -116,9 +116,9 @@ export default function Precotture() {
               data_rilevazione: new Date().toISOString(),
               rilevato_da: user.nome_cognome || user.full_name,
               tipo_preparazione: 'Precotture',
-              peso_grammi: 0, // Campo compatibile
-              rosse_presenti: risultato.rossePresenti,
-              rosse_richieste: risultato.rosseRichieste,
+              peso_grammi: 0,
+              rosse_presenti: result.rossePresenti,
+              rosse_richieste: result.rosseRichieste,
               rosse_preparate: result.rosseDaFare,
               turno: result.turno
             });
