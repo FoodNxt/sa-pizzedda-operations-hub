@@ -261,7 +261,6 @@ export default function Straordinari() {
             </NeumorphicCard>
           </div>
         )}
-      </div>
     </div>
   );
 }
