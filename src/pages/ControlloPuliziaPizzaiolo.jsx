@@ -104,7 +104,7 @@ export default function ControlloPuliziaPizzaiolo() {
         d.ruoli_assegnati?.includes('Pizzaiolo')
       );
       
-      // Filtra domande con attrezzature in base a quelle presenti nel locale
+      // Filtra domande in base agli stores_assegnati della domanda E alle attrezzature del locale
       const attrezzatureDelLocale = attrezzature.filter(a => {
         if (a.attivo === false) return false;
         if (!a.stores_assegnati || a.stores_assegnati.length === 0) return true;
@@ -112,15 +112,21 @@ export default function ControlloPuliziaPizzaiolo() {
       }).map(a => a.nome);
       
       return domandePerRuolo.filter(d => {
+        // Controlla se la domanda è assegnata a questo store
+        if (d.stores_assegnati && d.stores_assegnati.length > 0 && !d.stores_assegnati.includes(selectedStore)) {
+          return false;
+        }
+        
         // Se la domanda ha un'attrezzatura, verifica che sia presente nel locale
         if (d.attrezzatura) {
           return attrezzatureDelLocale.includes(d.attrezzatura);
         }
+        
         // Domande senza attrezzatura sono sempre mostrate
         return true;
       });
     },
-    enabled: !!selectedStore,
+    enabled: !!selectedStore && attrezzature.length > 0,
   });
 
   const handlePhotoCapture = (questionId, file) => {
