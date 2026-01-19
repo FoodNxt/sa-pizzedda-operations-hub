@@ -99,11 +99,12 @@ export default function ControlloPuliziaCassiere() {
       
       const allDomande = await base44.entities.DomandaPulizia.list('ordine');
       
-      // Filtra domande per ruolo Cassiere
-      const domandePerRuolo = allDomande.filter(d => 
-        d.attiva !== false && 
-        d.ruoli_assegnati?.includes('Cassiere')
-      );
+      // Filtra domande per ruolo Cassiere - se ruoli_assegnati è vuoto, è per tutti i ruoli
+      const domandePerRuolo = allDomande.filter(d => {
+        if (d.attiva === false) return false;
+        const ruoli = d.ruoli_assegnati || [];
+        return ruoli.length === 0 || ruoli.includes('Cassiere');
+      });
       
       // Filtra domande con attrezzature in base a quelle presenti nel locale
       const attrezzatureDelLocale = attrezzature.filter(a => {
