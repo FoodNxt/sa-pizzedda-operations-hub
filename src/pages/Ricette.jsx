@@ -90,7 +90,12 @@ export default function Ricette() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ricette'] });
       resetForm();
+      alert('Ricetta creata con successo! ✅');
     },
+    onError: (error) => {
+      console.error('Errore nel salvataggio della ricetta:', error);
+      alert(`Errore: ${error.message || 'Non è stato possibile salvare la ricetta'}`);
+    }
   });
 
   const updateMutation = useMutation({
@@ -98,7 +103,12 @@ export default function Ricette() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ricette'] });
       resetForm();
+      alert('Ricetta aggiornata con successo! ✅');
     },
+    onError: (error) => {
+      console.error('Errore nel salvataggio della ricetta:', error);
+      alert(`Errore: ${error.message || 'Non è stato possibile salvare la ricetta'}`);
+    }
   });
 
   const deleteMutation = useMutation({
