@@ -92,6 +92,11 @@ export default function DashboardStoreManager() {
     enabled: !!selectedStoreId
   });
 
+  const { data: conteggiCassa = [] } = useQuery({
+    queryKey: ['conteggi-cassa'],
+    queryFn: () => base44.entities.ConteggioCassa.list('-data_conteggio', 100)
+  });
+
   // Trova i locali di cui l'utente è Store Manager
   const myStores = useMemo(() => {
     if (!currentUser?.id) return [];
@@ -205,7 +210,18 @@ export default function DashboardStoreManager() {
     };
   }, [selectedStoreId, selectedMonth, iPratico, reviews, wrongOrders, shifts, inspections, targets]);
 
-  // Scorecard dipendenti
+  // Ultimo conteggio cassa
+  const ultimoConteggioCassa = useMemo(() => {
+    if (!selectedStoreId) return null;
+    
+    const conteggioStore = conteggiCassa
+      .filter(c => c.store_id === selectedStoreId && c.data_conteggio)
+      .sort((a, b) => new Date(b.data_conteggio) - new Date(a.data_conteggio))[0];
+    
+    return conteggioStore || null;
+  }, [selectedStoreId, conteggiCassa]);
+
+  // Scorecard dipendenti - solo dipendenti con locale principale corrispondente
   const employeeScorecard = useMemo(() => {
     if (!selectedStoreId) return [];
 
@@ -213,17 +229,24 @@ export default function DashboardStoreManager() {
     const monthStart = new Date(`${selectedMonth}-01`);
     const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
 
-    // Trova dipendenti che hanno lavorato nei miei locali
+    // Filtra solo dipendenti che hanno questo locale come principale
+    const relevantUsers = users.filter(u => {
+      const primaryStores = u.primary_stores || [];
+      return primaryStores.includes(selectedStoreId);
+    });
+
+    if (relevantUsers.length === 0) return [];
+
+    // Trova i turni per questi dipendenti
     const monthShifts = shifts.filter(s => {
       const date = new Date(s.shift_date);
       return storeIds.includes(s.store_id) && date >= monthStart && date <= monthEnd;
     });
 
-    const employeeIds = [...new Set(monthShifts.map(s => s.employee_id_external).filter(Boolean))];
-
-    return employeeIds.map(empId => {
-      const empShifts = monthShifts.filter(s => s.employee_id_external === empId);
-      const user = users.find(u => u.employee_id_external === empId || u.id === empId);
+    return relevantUsers.map(user => {
+      const empShifts = monthShifts.filter(s => 
+        s.employee_id_external === user.employee_id_external || s.employee_id_external === user.id
+      );
       
       // Calcola metriche
       const totalDelay = empShifts.reduce((acc, s) => acc + (s.minuti_di_ritardo || 0), 0);
@@ -233,27 +256,23 @@ export default function DashboardStoreManager() {
       // Trova recensioni assegnate
       const empReviews = reviews.filter(r => 
         storeIds.includes(r.store_id) && 
-        r.employee_assigned_name === (user?.nome_cognome || user?.full_name || empShifts[0]?.employee_name)
+        r.employee_assigned_name === (user.nome_cognome || user.full_name)
       );
       const empAvgRating = empReviews.length > 0
         ? empReviews.reduce((acc, r) => acc + r.rating, 0) / empReviews.length
         : null;
 
-      // Locale principale
-      const primaryStores = user?.primary_stores || [];
-      const isPrimaryHere = primaryStores.some(ps => storeIds.includes(ps));
-
       return {
-        id: empId,
-        name: user?.nome_cognome || user?.full_name || empShifts[0]?.employee_name || 'N/A',
-        email: user?.email,
-        ruoli: user?.ruoli_dipendente || [],
+        id: user.id,
+        name: user.nome_cognome || user.full_name || user.email || 'N/A',
+        email: user.email,
+        ruoli: user.ruoli_dipendente || [],
         shiftsCount: empShifts.length,
         avgDelay,
         lateShifts,
         reviewsCount: empReviews.length,
         avgRating: empAvgRating,
-        isPrimaryHere
+        isPrimaryHere: true
       };
     }).sort((a, b) => b.shiftsCount - a.shiftsCount);
   }, [selectedStoreId, selectedMonth, shifts, users, reviews]);
@@ -353,6 +372,24 @@ export default function DashboardStoreManager() {
 
       {metrics && (
         <>
+          {/* Ultimo Conteggio Cassa */}
+          {ultimoConteggioCassa && (
+            <NeumorphicCard className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200">
+              <div className="flex items-center gap-3 mb-3">
+                <DollarSign className="w-6 h-6 text-green-600" />
+                <h2 className="text-xl font-bold text-green-800">Ultimo Conteggio Cassa</h2>
+              </div>
+              <div className="neumorphic-pressed p-6 rounded-xl text-center bg-white">
+                <p className="text-sm text-slate-500 mb-1">Valore Ultimo Conteggio</p>
+                <p className="text-4xl font-bold text-green-600">€{ultimoConteggioCassa.valore_conteggio.toFixed(2)}</p>
+                <p className="text-xs text-slate-500 mt-2">
+                  {new Date(ultimoConteggioCassa.data_conteggio).toLocaleDateString('it-IT')} alle {new Date(ultimoConteggioCassa.data_conteggio).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">da {ultimoConteggioCassa.rilevato_da}</p>
+              </div>
+            </NeumorphicCard>
+          )}
+
           {/* Bonus Card */}
           {metrics.target && (
             <NeumorphicCard className="p-6 bg-gradient-to-br from-purple-50 to-indigo-50 border-2 border-purple-200">
