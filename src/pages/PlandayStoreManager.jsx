@@ -614,7 +614,7 @@ export default function PlandayStoreManager() {
                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
                   >
                     <option value="">Non assegnato</option>
-                    {users.filter(u => {
+                    {allUsers.filter(u => {
                       // Deve avere il ruolo selezionato
                       if (!u.ruoli_dipendente?.includes(turnoForm.ruolo)) return false;
                       
@@ -622,7 +622,7 @@ export default function PlandayStoreManager() {
                       const selectedStoreName = allStores.find(s => s.id === turnoForm.store_id)?.name;
                       if (!selectedStoreName) return false;
                       
-                      // Cerca l'utente completo per verificare assigned_stores
+                      // Verifica che lo store sia negli assigned_stores dell'utente
                       return u.assigned_stores?.includes(selectedStoreName);
                     }).map(u => (
                       <option key={u.id} value={u.id}>
