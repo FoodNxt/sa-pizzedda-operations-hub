@@ -722,7 +722,7 @@ export default function DashboardStoreManager() {
             </div>
 
             {employeeScorecard.length === 0 ? (
-              <p className="text-center text-slate-500 py-8">Nessun dipendente con locale principale {stores.find(s => s.id === selectedStoreId)?.name}</p>
+              <p className="text-center text-slate-500 py-8">Nessun turno registrato per questo locale nel periodo selezionato</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
