@@ -363,8 +363,13 @@ export default function Ricette() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (formData.ingredienti.length === 0) {
+    if (!formData.is_semilavorato && formData.ingredienti.length === 0) {
       alert('Aggiungi almeno un ingrediente alla ricetta');
+      return;
+    }
+    
+    if (formData.is_semilavorato && !formData.nome_prodotto.trim()) {
+      alert('Inserisci il nome del semilavorato');
       return;
     }
     
@@ -957,10 +962,10 @@ export default function Ricette() {
                         </optgroup>
                         <optgroup label="🍳 Semilavorati">
                           {ricette
-                            .filter(r => r.is_semilavorato && r.attivo !== false && r.costo_unitario)
+                            .filter(r => r.is_semilavorato && r.attivo !== false)
                             .map(sl => (
                               <option key={sl.id} value={`sl_${sl.id}`}>
-                                {sl.nome_prodotto} (Semilavorato) - €{sl.costo_unitario?.toFixed(2)}
+                                {sl.nome_prodotto} (Semilavorato) {sl.costo_unitario ? `- €${sl.costo_unitario?.toFixed(2)}` : ''}
                               </option>
                             ))}
                         </optgroup>
