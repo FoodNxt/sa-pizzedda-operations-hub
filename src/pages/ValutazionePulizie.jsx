@@ -823,8 +823,29 @@ export default function ValutazionePulizie() {
                             const originalQuestion = domande.find(d => d.id === domanda.domanda_id);
                             const isCorrect = domanda.risposta?.toLowerCase() === originalQuestion?.risposta_corretta?.toLowerCase();
                             
-                            // Trova info attrezzatura per domande a scelta multipla
-                            const attrezzaturaObj = originalQuestion?.attrezzatura ? attrezzature.find(a => a.nome === originalQuestion.attrezzatura) : null;
+                            // PRIMA prova a cercare l'attrezzatura dal testo della domanda
+                            let attrezzaturaObj = null;
+                            let nomeAttrezzatura = null;
+                            
+                            // Cerca prima nel campo attrezzatura della domanda originale
+                            if (originalQuestion?.attrezzatura) {
+                              nomeAttrezzatura = originalQuestion.attrezzatura;
+                              attrezzaturaObj = attrezzature.find(a => a.nome === nomeAttrezzatura);
+                            }
+                            
+                            // Se non trovata, prova a estrarre dal testo della domanda
+                            if (!attrezzaturaObj) {
+                              const domandaLower = domanda.domanda_testo?.toLowerCase() || '';
+                              for (const attr of attrezzature) {
+                                const attrLower = attr.nome.toLowerCase();
+                                if (domandaLower.includes(attrLower)) {
+                                  nomeAttrezzatura = attr.nome;
+                                  attrezzaturaObj = attr;
+                                  break;
+                                }
+                              }
+                            }
+                            
                             const ruoliResponsabili = attrezzaturaObj?.ruoli_responsabili || [];
 
                             // Trova l'ultimo dipendente in turno per ogni ruolo
@@ -860,9 +881,9 @@ export default function ValutazionePulizie() {
                                     <p className="text-sm font-medium text-[#6b6b6b] mb-2">
                                       {domanda.domanda_testo}
                                     </p>
-                                    {originalQuestion?.attrezzatura && (
-                                      <p className="text-xs text-slate-500 mb-1">
-                                        🔧 Attrezzatura: <strong>{originalQuestion.attrezzatura}</strong>
+                                    {nomeAttrezzatura && (
+                                      <p className="text-xs text-purple-600 mb-2 font-medium">
+                                        🔧 {nomeAttrezzatura}
                                       </p>
                                     )}
                                     <div className="flex flex-wrap gap-2 mb-2">
