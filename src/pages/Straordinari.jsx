@@ -12,7 +12,6 @@ import {
   User
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
-import ProtectedPage from "../components/ProtectedPage";
 
 export default function Straordinari() {
   const [showForm, setShowForm] = useState(false);
@@ -101,8 +100,7 @@ export default function Straordinari() {
   };
 
   return (
-    <ProtectedPage pageName="Straordinari">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6">
         <div className="mb-6">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
             Costi Straordinari Dipendenti
@@ -264,6 +262,6 @@ export default function Straordinari() {
           </div>
         )}
       </div>
-    </ProtectedPage>
+    </div>
   );
 }
