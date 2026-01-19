@@ -143,12 +143,27 @@ export default function DashboardStoreManager() {
       return storeIds.includes(o.store_id) && date >= monthStart && date <= monthEnd;
     });
 
-    // Ritardi
+    // Ritardi - calcola direttamente da TurnoPlanday (STESSO CALCOLO DI STOREMAGERADMIN)
     const monthShifts = shifts.filter(s => {
       const date = new Date(s.data);
-      return storeIds.includes(s.store_id) && date >= monthStart && date <= monthEnd;
+      return storeIds.includes(s.store_id) && date >= monthStart && date <= monthEnd && s.timbratura_entrata && s.ora_inizio;
     });
-    const totalDelayMinutes = monthShifts.reduce((acc, s) => acc + (s.minuti_ritardo_conteggiato || s.minuti_ritardo_reale || s.minuti_ritardo || 0), 0);
+    
+    let totalDelayMinutes = 0;
+    monthShifts.forEach(shift => {
+      try {
+        const clockInTime = new Date(shift.timbratura_entrata);
+        const [oraInizioHH, oraInizioMM] = shift.ora_inizio.split(':').map(Number);
+        const scheduledStart = new Date(clockInTime);
+        scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
+        const delayMs = clockInTime - scheduledStart;
+        const delayMinutes = Math.floor(delayMs / 60000);
+        const ritardoReale = delayMinutes > 0 ? delayMinutes : 0;
+        totalDelayMinutes += ritardoReale;
+      } catch (e) {
+        // Skip in caso di errore
+      }
+    });
     const avgDelay = monthShifts.length > 0 ? totalDelayMinutes / monthShifts.length : 0;
 
     // Pulizie - solo form completati con score
@@ -248,8 +263,23 @@ export default function DashboardStoreManager() {
       // Turni di questo dipendente nello store selezionato nel mese
       const empShifts = storeShifts.filter(s => s.dipendente_nome === employeeName);
       
-      // Calcola ritardi (STESSA LOGICA DI EMPLOYEES.JS)
-      const totalDelayMinutes = empShifts.reduce((sum, s) => sum + (s.minuti_ritardo_conteggiato || s.minuti_ritardo_reale || s.minuti_ritardo || 0), 0);
+      // Calcola ritardi (CALCOLO MANUALE COME STOREMAGERADMIN)
+      let totalDelayMinutes = 0;
+      empShifts.forEach(shift => {
+        if (!shift.timbratura_entrata || !shift.ora_inizio) return;
+        try {
+          const clockInTime = new Date(shift.timbratura_entrata);
+          const [oraInizioHH, oraInizioMM] = shift.ora_inizio.split(':').map(Number);
+          const scheduledStart = new Date(clockInTime);
+          scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
+          const delayMs = clockInTime - scheduledStart;
+          const delayMinutes = Math.floor(delayMs / 60000);
+          const ritardoReale = delayMinutes > 0 ? delayMinutes : 0;
+          totalDelayMinutes += ritardoReale;
+        } catch (e) {
+          // Skip in caso di errore
+        }
+      });
       const avgLateMinutes = empShifts.length > 0 ? totalDelayMinutes / empShifts.length : 0;
       const numeroRitardi = empShifts.filter(s => s.in_ritardo === true).length;
       
@@ -293,6 +323,7 @@ export default function DashboardStoreManager() {
         ruoli: user?.ruoli_dipendente || [],
         shiftsCount: totalShifts,
         avgDelay: avgLateMinutes,
+        totalDelayMinutes: totalDelayMinutes,
         lateShifts: numeroRitardi,
         lateShiftsDetails: empShifts.filter(s => s.in_ritardo === true),
         reviewsCount: googleReviews.length,
@@ -780,8 +811,8 @@ export default function DashboardStoreManager() {
                             </span>
                           </td>
                           <td className="p-3 text-center">
-                            <span className={`font-bold ${emp.avgDelay > 5 ? 'text-red-600' : 'text-green-600'}`}>
-                              {emp.avgDelay.toFixed(1)} min
+                            <span className={`font-bold ${emp.totalDelayMinutes > 10 ? 'text-red-600' : 'text-green-600'}`}>
+                              {emp.totalDelayMinutes} min
                             </span>
                           </td>
                           <td className="p-3 text-center">
@@ -822,14 +853,28 @@ export default function DashboardStoreManager() {
                                       Turni in Ritardo ({emp.lateShiftsDetails.length})
                                     </h4>
                                     <div className="space-y-2">
-                                      {emp.lateShiftsDetails.slice(0, 5).map((shift, idx) => (
-                                        <div key={idx} className="bg-white p-3 rounded-lg text-sm">
-                                          <div className="flex items-center justify-between">
-                                           <span className="text-slate-600">{new Date(shift.data).toLocaleDateString('it-IT')}</span>
-                                           <span className="font-bold text-red-600">+{shift.minuti_ritardo_conteggiato || shift.minuti_ritardo_reale || shift.minuti_ritardo || 0} min</span>
-                                          </div>
-                                        </div>
-                                      ))}
+                                      {emp.lateShiftsDetails.slice(0, 5).map((shift, idx) => {
+                                       let ritardoReale = 0;
+                                       if (shift.timbratura_entrata && shift.ora_inizio) {
+                                         try {
+                                           const clockInTime = new Date(shift.timbratura_entrata);
+                                           const [oraInizioHH, oraInizioMM] = shift.ora_inizio.split(':').map(Number);
+                                           const scheduledStart = new Date(clockInTime);
+                                           scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
+                                           const delayMs = clockInTime - scheduledStart;
+                                           const delayMinutes = Math.floor(delayMs / 60000);
+                                           ritardoReale = delayMinutes > 0 ? delayMinutes : 0;
+                                         } catch (e) {}
+                                       }
+                                       return (
+                                         <div key={idx} className="bg-white p-3 rounded-lg text-sm">
+                                           <div className="flex items-center justify-between">
+                                             <span className="text-slate-600">{new Date(shift.data).toLocaleDateString('it-IT')}</span>
+                                             <span className="font-bold text-red-600">+{ritardoReale} min</span>
+                                           </div>
+                                         </div>
+                                       );
+                                      })}
                                     </div>
                                   </div>
                                 )}
