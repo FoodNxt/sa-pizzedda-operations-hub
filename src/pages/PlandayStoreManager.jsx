@@ -614,21 +614,30 @@ export default function PlandayStoreManager() {
                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
                   >
                     <option value="">Non assegnato</option>
-                    {allUsers.filter(u => {
-                      // Deve avere il ruolo selezionato
-                      if (!u.ruoli_dipendente?.includes(turnoForm.ruolo)) return false;
-                      
-                      // Deve essere abilitato nello store del turno
-                      const selectedStoreName = allStores.find(s => s.id === turnoForm.store_id)?.name;
-                      if (!selectedStoreName) return false;
-                      
-                      // Verifica che lo store sia negli assigned_stores dell'utente
-                      return u.assigned_stores?.includes(selectedStoreName);
-                    }).map(u => (
-                      <option key={u.id} value={u.id}>
-                        {u.nome_cognome || u.full_name}
-                      </option>
-                    ))}
+                    {allUsers
+                      .filter(u => {
+                        // Deve avere il ruolo selezionato
+                        if (!u.ruoli_dipendente?.includes(turnoForm.ruolo)) return false;
+                        
+                        // Trova il nome dello store del turno
+                        const selectedStoreName = allStores.find(s => s.id === turnoForm.store_id)?.name;
+                        if (!selectedStoreName) return false;
+                        
+                        // Deve essere abilitato in questo store (assigned_stores contiene i NOMI degli store)
+                        if (!u.assigned_stores || !Array.isArray(u.assigned_stores)) return false;
+                        
+                        return u.assigned_stores.includes(selectedStoreName);
+                      })
+                      .sort((a, b) => {
+                        const nameA = a.nome_cognome || a.full_name || '';
+                        const nameB = b.nome_cognome || b.full_name || '';
+                        return nameA.localeCompare(nameB);
+                      })
+                      .map(u => (
+                        <option key={u.id} value={u.id}>
+                          {u.nome_cognome || u.full_name}
+                        </option>
+                      ))}
                   </select>
                 </div>
 
