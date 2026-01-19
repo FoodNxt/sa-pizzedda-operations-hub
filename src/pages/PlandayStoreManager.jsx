@@ -609,10 +609,14 @@ export default function PlandayStoreManager() {
                         const selectedStoreName = allStores.find(s => s.id === turnoForm.store_id)?.name;
                         if (!selectedStoreName) return false;
                         
-                        // Deve essere assegnato allo store selezionato
-                        if (!u.assigned_stores || !Array.isArray(u.assigned_stores) || u.assigned_stores.length === 0) return false;
+                        // Check assigned_stores - se ha dati, filtra; altrimenti mostra tutti con il ruolo
+                        if (u.assigned_stores && Array.isArray(u.assigned_stores) && u.assigned_stores.length > 0) {
+                          // Se assigned_stores è valorizzato, filtra in base al negozio
+                          return u.assigned_stores.includes(selectedStoreName);
+                        }
                         
-                        return u.assigned_stores.includes(selectedStoreName);
+                        // Fallback: se assigned_stores non è presente, mostra comunque il dipendente
+                        return true;
                       })
                       .sort((a, b) => {
                         const nameA = a.nome_cognome || a.full_name || '';
