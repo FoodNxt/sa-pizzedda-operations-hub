@@ -314,6 +314,12 @@ export default function TurniDipendente() {
     staleTime: 300000,
   });
 
+  const { data: straordinariDipendenti = [] } = useQuery({
+    queryKey: ['straordinari-dipendenti'],
+    queryFn: () => base44.entities.StraordinarioDipendente.list(),
+    staleTime: 300000,
+  });
+
   const { data: allUsersData = [] } = useQuery({
     queryKey: ['all-users'],
     queryFn: () => base44.entities.User.list(),
@@ -1299,7 +1305,11 @@ export default function TurniDipendente() {
         const straordInizio = moment(straord.timbratura_entrata);
         const straordFine = straord.timbratura_uscita ? moment(straord.timbratura_uscita) : moment(`${straord.data} ${straord.ora_fine}`);
         const ore = straordFine.diff(straordInizio, 'hours', true);
-        const importo = Math.ceil(ore * retribuzioneOraria);
+        
+        // Cerca il costo orario specifico del dipendente in StraordinarioDipendente
+        const costoSpecifico = straordinariDipendenti?.find(s => s.dipendente_id === straord.dipendente_id)?.costo_orario_straordinario;
+        const costoOrario = costoSpecifico || retribuzioneOraria;
+        const importo = Math.ceil(ore * costoOrario);
         
         attivitaNormali.push({
           nome: `Pagamento straordinari - ${straord.dipendente_nome}`,
