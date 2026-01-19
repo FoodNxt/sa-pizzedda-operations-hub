@@ -918,8 +918,7 @@ export default function DashboardStoreManager() {
           )}
 
           {/* Trasporto tra Locali */}
-          {trasportoData.length > 0 && (
-            <NeumorphicCard className="p-6">
+          <NeumorphicCard className="p-6">
               <div className="flex items-center gap-3 mb-4">
                 <Truck className="w-6 h-6 text-blue-600" />
                 <h2 className="text-xl font-bold text-slate-800">Trasporto tra Locali</h2>
@@ -1004,9 +1003,15 @@ export default function DashboardStoreManager() {
                     )}
                   </div>
                 ))}
-              </div>
-            </NeumorphicCard>
-          )}
+                </div>
+                </NeumorphicCard>
+                ) : (
+                <div className="text-center py-8">
+                <Truck className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                <p className="text-slate-500 font-medium">Nessuna rilevazione disponibile</p>
+                <p className="text-xs text-slate-400 mt-1">Compila il form inventario per visualizzare i suggerimenti di spostamento</p>
+                </div>
+                )}
 
            {/* Scorecard Dipendenti */}
            <NeumorphicCard className="p-6">
