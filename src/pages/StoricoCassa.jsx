@@ -836,9 +836,106 @@ export default function StoricoCassa() {
           )}
         </NeumorphicCard>
 
+        {showSaldoConfig && (
+           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+             <NeumorphicCard className="max-w-md w-full p-6">
+               <div className="flex items-center justify-between mb-4">
+                 <h2 className="text-lg font-bold text-slate-800">Imposta Saldo Manuale</h2>
+                 <button onClick={() => {
+                   setShowSaldoConfig(false);
+                   setEditingSaldo(null);
+                 }} className="p-2 rounded-lg hover:bg-slate-100">
+                   <X className="w-5 h-5" />
+                 </button>
+               </div>
+
+               <form onSubmit={(e) => {
+                 e.preventDefault();
+                 if (editingSaldo && editingSaldo.store_id && selectedStore !== 'all') {
+                   const store = stores.find(s => s.id === selectedStore);
+                   saveSaldoMutation.mutate({
+                     ...editingSaldo,
+                     store_id: selectedStore,
+                     store_name: store?.name || '',
+                     impostato_da: currentUser?.email || '',
+                     impostato_il: new Date().toISOString()
+                   });
+                 }
+               }} className="space-y-4">
+                 <div>
+                   <label className="text-sm text-slate-600 mb-2 block">Locale</label>
+                   <select
+                     value={selectedStore}
+                     onChange={(e) => setEditingSaldo({ ...editingSaldo, store_id: e.target.value })}
+                     disabled
+                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm opacity-60"
+                   >
+                     {stores.find(s => s.id === selectedStore) && (
+                       <option value={selectedStore}>{stores.find(s => s.id === selectedStore)?.name}</option>
+                     )}
+                   </select>
+                 </div>
+
+                 <div>
+                   <label className="text-sm text-slate-600 mb-2 block">Data</label>
+                   <input
+                     type="date"
+                     value={editingSaldo?.data || ''}
+                     onChange={(e) => setEditingSaldo({ ...editingSaldo, data: e.target.value })}
+                     required
+                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                   />
+                 </div>
+
+                 <div>
+                   <label className="text-sm text-slate-600 mb-2 block">Saldo Iniziale (€)</label>
+                   <input
+                     type="number"
+                     step="0.01"
+                     value={editingSaldo?.saldo_iniziale || 0}
+                     onChange={(e) => setEditingSaldo({ ...editingSaldo, saldo_iniziale: parseFloat(e.target.value) || 0 })}
+                     required
+                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                   />
+                 </div>
+
+                 <div>
+                   <label className="text-sm text-slate-600 mb-2 block">Note (opzionale)</label>
+                   <input
+                     type="text"
+                     value={editingSaldo?.note || ''}
+                     onChange={(e) => setEditingSaldo({ ...editingSaldo, note: e.target.value })}
+                     placeholder="Es. Reset saldo, cambio cassa..."
+                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                   />
+                 </div>
+
+                 <div className="flex gap-3 pt-4">
+                   <button
+                     type="button"
+                     onClick={() => {
+                       setShowSaldoConfig(false);
+                       setEditingSaldo(null);
+                     }}
+                     className="flex-1 px-4 py-3 rounded-xl neumorphic-flat text-slate-700 font-medium"
+                   >
+                     Annulla
+                   </button>
+                   <button
+                     type="submit"
+                     className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 text-white font-medium"
+                   >
+                     Salva
+                   </button>
+                 </div>
+               </form>
+             </NeumorphicCard>
+           </div>
+         )}
+
         {showAlertConfig && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <NeumorphicCard className="max-w-md w-full p-6">
+           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+             <NeumorphicCard className="max-w-md w-full p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold text-slate-800">
                   {editingAlert?.id ? 'Modifica Alert' : 'Nuovo Alert'}
