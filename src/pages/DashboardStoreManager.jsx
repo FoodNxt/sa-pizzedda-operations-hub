@@ -70,7 +70,7 @@ export default function DashboardStoreManager() {
 
   const { data: shifts = [] } = useQuery({
     queryKey: ['shifts'],
-    queryFn: () => base44.entities.Shift.list('-shift_date')
+    queryFn: () => base44.entities.TurnoPlanday.list('-data', 500)
   });
 
   const { data: inspections = [] } = useQuery({
@@ -143,10 +143,10 @@ export default function DashboardStoreManager() {
 
     // Ritardi
     const monthShifts = shifts.filter(s => {
-      const date = new Date(s.shift_date);
+      const date = new Date(s.data);
       return storeIds.includes(s.store_id) && date >= monthStart && date <= monthEnd;
     });
-    const totalDelayMinutes = monthShifts.reduce((acc, s) => acc + (s.minuti_di_ritardo || 0), 0);
+    const totalDelayMinutes = monthShifts.reduce((acc, s) => acc + (s.minuti_ritardo_conteggiato || s.minuti_ritardo_reale || 0), 0);
     const avgDelay = monthShifts.length > 0 ? totalDelayMinutes / monthShifts.length : 0;
 
     // Pulizie - solo form completati con score
@@ -225,46 +225,38 @@ export default function DashboardStoreManager() {
   const employeeScorecard = useMemo(() => {
     if (!selectedStoreId) return [];
 
-    const storeIds = [selectedStoreId];
     const monthStart = new Date(`${selectedMonth}-01`);
     const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
 
-    // Filtra turni del mese per questo store
-    const monthShifts = shifts.filter(s => {
-      const date = new Date(s.shift_date);
-      return storeIds.includes(s.store_id) && date >= monthStart && date <= monthEnd;
+    // Trova dipendenti con questo locale come principale
+    const relevantUsers = users.filter(user => {
+      const primaryStores = user.primary_stores || [];
+      return primaryStores.includes(selectedStoreId);
     });
 
-    // Trova tutti i dipendenti unici che hanno lavorato
-    const employeeIds = [...new Set(monthShifts.map(s => s.dipendente_id || s.employee_id_external).filter(Boolean))];
+    if (relevantUsers.length === 0) return [];
 
-    // Filtra solo quelli con primary_store corrispondente
-    const relevantEmployees = employeeIds
-      .map(empId => users.find(u => u.id === empId || u.employee_id_external === empId))
-      .filter(user => {
-        if (!user) return false;
-        const primaryStores = user.primary_stores || [];
-        return primaryStores.includes(selectedStoreId);
+    // Calcola metriche per ogni dipendente
+    return relevantUsers.map(user => {
+      // Trova turni del dipendente in QUALSIASI store (non solo quello selezionato)
+      const empShifts = shifts.filter(s => {
+        const date = new Date(s.data);
+        if (date < monthStart || date > monthEnd) return false;
+        return s.dipendente_id === user.id;
       });
-
-    return relevantEmployees.map(user => {
-      const empShifts = monthShifts.filter(s => 
-        s.dipendente_id === user.id || 
-        s.employee_id_external === user.id ||
-        s.employee_id_external === user.employee_id_external
-      );
       
-      // Calcola metriche
-      const totalDelay = empShifts.reduce((acc, s) => acc + (s.minuti_di_ritardo || 0), 0);
+      // Calcola ritardi
+      const totalDelay = empShifts.reduce((acc, s) => acc + (s.minuti_ritardo_conteggiato || s.minuti_ritardo_reale || 0), 0);
       const avgDelay = empShifts.length > 0 ? totalDelay / empShifts.length : 0;
-      const lateShifts = empShifts.filter(s => s.ritardo).length;
+      const lateShifts = empShifts.filter(s => s.in_ritardo).length;
       
-      // Trova recensioni assegnate
+      // Trova recensioni assegnate (in qualsiasi store)
       const userDisplayName = (user.nome_cognome || user.full_name || '').toLowerCase().trim();
-      const empReviews = reviews.filter(r => 
-        storeIds.includes(r.store_id) && 
-        r.employee_assigned_name?.toLowerCase().trim() === userDisplayName
-      );
+      const empReviews = reviews.filter(r => {
+        const date = new Date(r.review_date);
+        if (date < monthStart || date > monthEnd) return false;
+        return r.employee_assigned_name?.toLowerCase().trim() === userDisplayName;
+      });
       const empAvgRating = empReviews.length > 0
         ? empReviews.reduce((acc, r) => acc + r.rating, 0) / empReviews.length
         : null;
