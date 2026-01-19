@@ -45,14 +45,14 @@ export default function Precotture() {
   }, [preselectedStoreId, selectedStore]);
 
   const confermaMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (data) => {
       const store = stores.find(s => s.id === selectedStore);
       
       if (!store) {
         throw new Error('Store non trovato');
       }
       
-      if (!risultato || risultato.error) {
+      if (!data || data.error) {
         throw new Error('Risultato del calcolo non valido');
       }
       
@@ -62,8 +62,10 @@ export default function Precotture() {
       const oraAttivita = urlParams.get('ora_attivita');
       
       return { 
-        rosseDaFare: risultato.rosseDaFare, 
-        turno: risultato.turno, 
+        rosseDaFare: data.rosseDaFare, 
+        rossePresenti: data.rossePresenti,
+        rosseRichieste: data.rosseRichieste,
+        turno: data.turno, 
         store,
         posizioneTurno,
         oraAttivita
