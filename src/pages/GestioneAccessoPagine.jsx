@@ -150,8 +150,9 @@ export default function GestioneAccessoPagine() {
           { page: 'Academy', showInMenu: true, showInForms: false },
           { page: 'Valutazione', showInMenu: true, showInForms: false },
           { page: 'FormsDipendente', showInMenu: true, showInForms: false },
-          { page: 'DashboardStoreManager', showInMenu: true, showInForms: false }
-        ])
+          { page: 'DashboardStoreManager', showInMenu: true, showInForms: false },
+          { page: 'FormSpostamenti', showInMenu: false, showInForms: true }
+          ])
       });
     }
   }, [activeConfig]);
