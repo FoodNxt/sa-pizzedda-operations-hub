@@ -31,7 +31,19 @@ Deno.serve(async (req) => {
       }
 
       if (existingEmails.has(userEmail)) {
-        skipped.push({ email: userEmail, reason: 'Already exists' });
+        // Update existing employee with latest data
+        const existingEmployee = existingEmployees.find(e => e.email?.toLowerCase() === userEmail);
+        if (existingEmployee) {
+          await base44.asServiceRole.entities.Employee.update(existingEmployee.id, {
+            full_name: user.nome_cognome || user.full_name || existingEmployee.full_name,
+            phone: user.telefono || user.phone || existingEmployee.phone,
+            function_name: (user.ruoli_dipendente && user.ruoli_dipendente.length > 0) 
+              ? user.ruoli_dipendente[0] 
+              : existingEmployee.function_name,
+            assigned_stores: user.assigned_stores || []
+          });
+        }
+        skipped.push({ email: userEmail, reason: 'Already exists - updated' });
         continue;
       }
 
@@ -45,7 +57,8 @@ Deno.serve(async (req) => {
           ? user.ruoli_dipendente[0] 
           : 'N/A',
         status: 'active',
-        employee_id_external: user.id
+        employee_id_external: user.id,
+        assigned_stores: user.assigned_stores || []
       };
 
       try {
