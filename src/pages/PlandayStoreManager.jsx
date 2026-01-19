@@ -68,36 +68,27 @@ export default function PlandayStoreManager() {
     }
   }, [myStores, selectedStore]);
 
-  const { data: employees = [] } = useQuery({
-    queryKey: ['employees'],
-    queryFn: () => base44.entities.Employee.list(),
-  });
-
   // Fetch complete User data to get assigned_stores
   const { data: allUsers = [] } = useQuery({
     queryKey: ['all-users'],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: async () => {
+      const users = await base44.entities.User.list();
+      // Filter only users with dipendente role
+      return users.filter(u => u.user_type === 'dipendente' || u.user_type === 'user');
+    },
   });
 
-  // Trasforma Employee in formato compatibile con User per il resto del codice
+  // Use allUsers directly as users (with all their data including assigned_stores)
   const users = useMemo(() => {
-    return employees.map(emp => {
-      // Find corresponding User record to get assigned_stores
-      const userRecord = allUsers.find(u => 
-        u.email === emp.email || 
-        u.id === emp.employee_id_external
-      );
-      
-      return {
-        id: emp.employee_id_external || emp.id,
-        nome_cognome: emp.full_name,
-        full_name: emp.full_name,
-        email: emp.email,
-        ruoli_dipendente: emp.function_name ? [emp.function_name] : [],
-        assigned_stores: userRecord?.assigned_stores || []
-      };
-    });
-  }, [employees, allUsers]);
+    return allUsers.map(u => ({
+      id: u.id,
+      nome_cognome: u.nome_cognome || u.full_name,
+      full_name: u.full_name,
+      email: u.email,
+      ruoli_dipendente: u.ruoli_dipendente || [],
+      assigned_stores: u.assigned_stores || []
+    }));
+  }, [allUsers]);
 
   const { data: turni = [], isLoading } = useQuery({
     queryKey: ['turni-store-manager', selectedStore, weekStart.format('YYYY-MM-DD')],
