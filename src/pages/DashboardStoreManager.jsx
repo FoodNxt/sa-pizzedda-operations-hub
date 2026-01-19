@@ -73,7 +73,7 @@ export default function DashboardStoreManager() {
 
   const { data: shifts = [] } = useQuery({
     queryKey: ['shifts'],
-    queryFn: () => base44.entities.TurnoPlanday.list('-data', 500)
+    queryFn: () => base44.entities.TurnoPlanday.list('-data', 5000)
   });
 
   const { data: inspections = [] } = useQuery({
