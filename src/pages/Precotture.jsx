@@ -73,60 +73,50 @@ export default function Precotture() {
       };
     },
     onSuccess: async (result) => {
-      // Segna attività come completata - SOLO SE NON ESISTE GIÀ con stesso nome + ora
-      if (turnoId && attivitaNome && user) {
-        const urlParams = new URLSearchParams(window.location.search);
-        const oraAttivita = urlParams.get('ora_attivita');
-        
-        const filter = {
-          turno_id: turnoId,
-          attivita_nome: decodeURIComponent(attivitaNome)
-        };
-        if (oraAttivita) filter.ora_attivita = oraAttivita;
-        
-        const esistente = await base44.entities.AttivitaCompletata.filter(filter);
-        
-        if (esistente.length === 0) {
-          const attivitaData = {
-            dipendente_id: user.id,
-            dipendente_nome: user.nome_cognome || user.full_name,
-            turno_id: turnoId,
-            turno_data: new Date().toISOString().split('T')[0],
-            store_id: result.store.id,
-            store_name: result.store.name,
-            attivita_nome: decodeURIComponent(attivitaNome),
-            form_page: 'Precotture',
-            completato_at: new Date().toISOString(),
-            rosse_da_fare: result.rosseDaFare,
-            turno_precotture: result.turno,
-            rosse_presenti: result.rossePresenti,
-            rosse_richieste: result.rosseRichieste,
-            turno: result.turno
-          };
-          
-          if (oraAttivita) attivitaData.ora_attivita = oraAttivita;
-          
-          console.log('Salvando attività Precotture:', attivitaData);
-          await base44.entities.AttivitaCompletata.create(attivitaData);
-          
-          // Salva in PrecottureForm per lo storico compilazioni
-          try {
-            await base44.entities.PrecottureForm.create({
-              store_id: result.store.id,
-              store_name: result.store.name,
-              dipendente_id: user.id,
-              dipendente_nome: user.nome_cognome || user.full_name,
-              data_compilazione: new Date().toISOString(),
-              turno: result.turno,
-              rosse_presenti: result.rossePresenti,
-              rosse_richieste: result.rosseRichieste,
-              rosse_da_fare: result.rosseDaFare
-            });
-          } catch (error) {
-            console.error('Errore salvataggio PrecottureForm:', error);
-          }
-        }
-      }
+       // Segna SOLO l'attività specifica come completata (usando attivita_id)
+       if (attivitaId && user) {
+         const attivitaData = {
+           attivita_id: attivitaId,
+           dipendente_id: user.id,
+           dipendente_nome: user.nome_cognome || user.full_name,
+           turno_id: turnoId || null,
+           turno_data: new Date().toISOString().split('T')[0],
+           store_id: result.store.id,
+           store_name: result.store.name,
+           attivita_nome: decodeURIComponent(attivitaNome) || 'Precotture',
+           form_page: 'Precotture',
+           completato_at: new Date().toISOString(),
+           rosse_da_fare: result.rosseDaFare,
+           turno_precotture: result.turno,
+           rosse_presenti: result.rossePresenti,
+           rosse_richieste: result.rosseRichieste,
+           turno: result.turno
+         };
+
+         const urlParams = new URLSearchParams(window.location.search);
+         const oraAttivita = urlParams.get('ora_attivita');
+         if (oraAttivita) attivitaData.ora_attivita = oraAttivita;
+
+         console.log('Salvando attività Precotture:', attivitaData);
+         await base44.entities.AttivitaCompletata.create(attivitaData);
+
+         // Salva in PrecottureForm per lo storico compilazioni
+         try {
+           await base44.entities.PrecottureForm.create({
+             store_id: result.store.id,
+             store_name: result.store.name,
+             dipendente_id: user.id,
+             dipendente_nome: user.nome_cognome || user.full_name,
+             data_compilazione: new Date().toISOString(),
+             turno: result.turno,
+             rosse_presenti: result.rossePresenti,
+             rosse_richieste: result.rosseRichieste,
+             rosse_da_fare: result.rosseDaFare
+           });
+         } catch (error) {
+           console.error('Errore salvataggio PrecottureForm:', error);
+         }
+       }
       
       setConfermato(true);
       setMostraRisultato(true);
