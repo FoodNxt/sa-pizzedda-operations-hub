@@ -97,13 +97,15 @@ export default function PlandayStoreManager() {
       
       // Recupera TUTTI i turni e filtra lato client
       const allTurni = await base44.entities.TurnoPlanday.list();
+      const selectedStoreName = allStores.find(s => s.id === selectedStore)?.name;
+      
       return allTurni.filter(t => 
-        t.store_id === selectedStore &&
+        (t.store_id === selectedStore || t.store_nome === selectedStoreName) &&
         t.data >= startDate &&
         t.data <= endDate
       );
     },
-    enabled: !!selectedStore,
+    enabled: !!selectedStore && allStores.length > 0,
   });
 
   const { data: tipiTurnoConfigs = [] } = useQuery({
