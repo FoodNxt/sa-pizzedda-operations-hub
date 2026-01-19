@@ -32,6 +32,10 @@ export default function Ricette() {
     categoria: 'pizza',
     tipo_teglia: 'nessuna',
     is_semilavorato: false,
+    mostra_in_form_inventario: false,
+    stores_form_inventario: [],
+    somma_a_materia_prima_id: '',
+    somma_a_materia_prima_nome: '',
     ingredienti: [],
     prezzo_vendita_online: '',
     prezzo_vendita_offline: '',
@@ -66,6 +70,11 @@ export default function Ricette() {
   const { data: materiePrime = [] } = useQuery({
     queryKey: ['materie-prime'],
     queryFn: () => base44.entities.MateriePrime.list(),
+  });
+
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores'],
+    queryFn: () => base44.entities.Store.list(),
   });
 
   const { data: prodottiVenduti = [] } = useQuery({
@@ -108,13 +117,18 @@ export default function Ricette() {
       categoria: 'pizza',
       tipo_teglia: 'nessuna',
       is_semilavorato: false,
+      mostra_in_form_inventario: false,
+      stores_form_inventario: [],
+      somma_a_materia_prima_id: '',
+      somma_a_materia_prima_nome: '',
       ingredienti: [],
       prezzo_vendita_online: '',
       prezzo_vendita_offline: '',
       venduto_online: true,
       venduto_offline: true,
       note: '',
-      attivo: true
+      attivo: true,
+      trasportabile: false
     });
     setSelectedIngredient('');
     setIngredientQuantity('');
@@ -132,6 +146,10 @@ export default function Ricette() {
       categoria: ricetta.categoria || 'pizza',
       tipo_teglia: ricetta.tipo_teglia || 'nessuna',
       is_semilavorato: ricetta.is_semilavorato || false,
+      mostra_in_form_inventario: ricetta.mostra_in_form_inventario || false,
+      stores_form_inventario: ricetta.stores_form_inventario || [],
+      somma_a_materia_prima_id: ricetta.somma_a_materia_prima_id || '',
+      somma_a_materia_prima_nome: ricetta.somma_a_materia_prima_nome || '',
       ingredienti: ricetta.ingredienti || [],
       prezzo_vendita_online: ricetta.prezzo_vendita_online,
       prezzo_vendita_offline: ricetta.prezzo_vendita_offline,
@@ -730,7 +748,7 @@ export default function Ricette() {
                 </div>
 
                 {/* NEW: Semilavorato Checkbox */}
-                <div className="neumorphic-flat p-4 rounded-xl">
+                <div className="neumorphic-flat p-4 rounded-xl space-y-3">
                   <label className="flex items-center gap-3 cursor-pointer">
                     <input
                       type="checkbox"
@@ -739,8 +757,11 @@ export default function Ricette() {
                         setFormData({ 
                           ...formData, 
                           is_semilavorato: e.target.checked,
-                          // Reset nome_prodotto if changing type
-                          nome_prodotto: e.target.checked ? '' : '' 
+                          nome_prodotto: e.target.checked ? '' : '',
+                          mostra_in_form_inventario: false,
+                          stores_form_inventario: [],
+                          somma_a_materia_prima_id: '',
+                          somma_a_materia_prima_nome: ''
                         });
                       }}
                       className="w-5 h-5 rounded"
@@ -754,10 +775,87 @@ export default function Ricette() {
                       </p>
                     </div>
                   </label>
+                  
                   {formData.is_semilavorato && (
-                    <p className="text-xs text-green-600 mt-2">
-                      ✓ Questo prodotto sarà disponibile come ingrediente nella creazione di altre ricette
-                    </p>
+                    <div className="mt-3 p-4 bg-purple-50 rounded-lg space-y-3">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.mostra_in_form_inventario}
+                          onChange={(e) => {
+                            setFormData({ 
+                              ...formData, 
+                              mostra_in_form_inventario: e.target.checked,
+                              stores_form_inventario: e.target.checked ? formData.stores_form_inventario : [],
+                              somma_a_materia_prima_id: e.target.checked ? formData.somma_a_materia_prima_id : '',
+                              somma_a_materia_prima_nome: e.target.checked ? formData.somma_a_materia_prima_nome : ''
+                            });
+                          }}
+                          className="w-5 h-5 rounded"
+                        />
+                        <span className="text-sm font-medium text-purple-800">
+                          📋 Includi nel Form Inventario
+                        </span>
+                      </label>
+                      
+                      {formData.mostra_in_form_inventario && (
+                        <>
+                          <div>
+                            <label className="text-sm font-medium text-purple-800 mb-2 block">
+                              Negozi (Seleziona dove mostrarlo)
+                            </label>
+                            <div className="space-y-2">
+                              {stores.map(store => (
+                                <label key={store.id} className="flex items-center gap-2 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={formData.stores_form_inventario.includes(store.id)}
+                                    onChange={(e) => {
+                                      const newStores = e.target.checked
+                                        ? [...formData.stores_form_inventario, store.id]
+                                        : formData.stores_form_inventario.filter(id => id !== store.id);
+                                      setFormData({ ...formData, stores_form_inventario: newStores });
+                                    }}
+                                    className="w-4 h-4 rounded"
+                                  />
+                                  <span className="text-sm text-slate-700">{store.name}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <label className="text-sm font-medium text-purple-800 mb-2 block">
+                              Somma a Materia Prima (per calcolo ordini)
+                            </label>
+                            <select
+                              value={formData.somma_a_materia_prima_id}
+                              onChange={(e) => {
+                                const mp = materiePrime.find(m => m.id === e.target.value);
+                                setFormData({ 
+                                  ...formData, 
+                                  somma_a_materia_prima_id: e.target.value,
+                                  somma_a_materia_prima_nome: mp?.nome_prodotto || ''
+                                });
+                              }}
+                              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                            >
+                              <option value="">-- Nessuna (opzionale) --</option>
+                              {materiePrime
+                                .filter(mp => mp.attivo !== false)
+                                .map(mp => (
+                                  <option key={mp.id} value={mp.id}>
+                                    {mp.nome_prodotto}
+                                  </option>
+                                ))}
+                            </select>
+                            <p className="text-xs text-purple-600 mt-1">
+                              Se selezionato, la quantità di questo semilavorato verrà sommata alla materia prima per il calcolo degli ordini
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   )}
                 </div>
 
