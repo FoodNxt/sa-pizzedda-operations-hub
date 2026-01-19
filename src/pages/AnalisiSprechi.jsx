@@ -335,11 +335,37 @@ export default function AnalisiSprechi() {
       byMotivo[s.motivo].costo += quantitaKg * (s.costo_unitario || 0);
     });
 
+    // Group by store
+    const byStore = {};
+    filteredSprechi.forEach(s => {
+      if (!byStore[s.store_name]) {
+        byStore[s.store_name] = { store_name: s.store_name, costo: 0, quantita: 0, count: 0 };
+      }
+      byStore[s.store_name].count++;
+      byStore[s.store_name].quantita += (s.quantita_grammi || 0) / 1000;
+      const quantitaKg = (s.quantita_grammi || 0) / 1000;
+      byStore[s.store_name].costo += quantitaKg * (s.costo_unitario || 0);
+    });
+
+    // Group by product
+    const byProduct = {};
+    filteredSprechi.forEach(s => {
+      if (!byProduct[s.prodotto_nome]) {
+        byProduct[s.prodotto_nome] = { prodotto_nome: s.prodotto_nome, costo: 0, quantita: 0, count: 0 };
+      }
+      byProduct[s.prodotto_nome].count++;
+      byProduct[s.prodotto_nome].quantita += (s.quantita_grammi || 0) / 1000;
+      const quantitaKg = (s.quantita_grammi || 0) / 1000;
+      byProduct[s.prodotto_nome].costo += quantitaKg * (s.costo_unitario || 0);
+    });
+
     return {
       totalQuantitaKg,
       costoTotale,
       totalRegistrazioni: filteredSprechi.length,
-      byMotivo: Object.values(byMotivo).sort((a, b) => b.costo - a.costo)
+      byMotivo: Object.values(byMotivo).sort((a, b) => b.costo - a.costo),
+      byStore: Object.values(byStore).sort((a, b) => b.costo - a.costo),
+      byProduct: Object.values(byProduct).sort((a, b) => b.costo - a.costo).slice(0, 10)
     };
   }, [filteredSprechi]);
 
