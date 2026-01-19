@@ -1244,41 +1244,41 @@ export default function PrecottureAdmin() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredStorico.map(prep => (
-                        <tr key={prep.id} className="border-b border-slate-100 hover:bg-slate-50">
+                      {filteredStorico.map(form => (
+                        <tr key={form.id} className="border-b border-slate-100 hover:bg-slate-50">
                           <td className="py-3 px-2 text-slate-700">
-                            {moment(prep.created_date).format('DD/MM/YYYY HH:mm')}
+                            {moment(form.data_compilazione).format('DD/MM/YYYY HH:mm')}
                           </td>
                           <td className="py-3 px-2 font-medium text-slate-800">
-                            {prep.store_name || getStoreName(prep.store_id)}
+                            {form.store_name}
                           </td>
                           <td className="py-3 px-2 text-slate-600">
                             <User className="w-3 h-3 inline mr-1" />
-                            {prep.rilevato_da || prep.created_by || '-'}
+                            {form.dipendente_nome || '-'}
                           </td>
                           <td className="py-3 px-2 text-center">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              prep.turno === 'pranzo' ? 'bg-blue-100 text-blue-700' :
-                              prep.turno === 'pomeriggio' ? 'bg-orange-100 text-orange-700' :
+                              form.turno === 'pranzo' ? 'bg-blue-100 text-blue-700' :
+                              form.turno === 'pomeriggio' ? 'bg-orange-100 text-orange-700' :
                               'bg-purple-100 text-purple-700'
                             }`}>
-                              {prep.turno || '-'}
+                              {form.turno || '-'}
                             </span>
                           </td>
                           <td className="py-3 px-2 text-right font-medium text-yellow-700 bg-yellow-50">
-                            {prep.rosse_presenti || 0}
+                            {form.rosse_presenti || 0}
                           </td>
                           <td className="py-3 px-2 text-right font-medium text-orange-700 bg-orange-50">
-                            {prep.rosse_richieste || 0}
+                            {form.rosse_richieste || 0}
                           </td>
                           <td className="py-3 px-2 text-right font-bold text-red-700 bg-red-50">
-                            {prep.rosse_preparate || 0}
+                            {form.rosse_da_fare || 0}
                           </td>
                           <td className="py-3 px-2 text-center">
                             <button
                               onClick={() => {
                                 if (confirm('Eliminare questa registrazione?')) {
-                                  deletePreparazioneMutation.mutate(prep.id);
+                                  deletePrecottureFormMutation.mutate(form.id);
                                 }
                               }}
                               className="nav-button p-2 rounded-lg hover:bg-red-50"
