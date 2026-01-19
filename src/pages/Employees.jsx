@@ -95,6 +95,11 @@ export default function Employees() {
     queryFn: () => base44.entities.Attrezzatura.list(),
   });
 
+  const { data: domande = [] } = useQuery({
+    queryKey: ['domande-pulizia'],
+    queryFn: () => base44.entities.DomandaPulizia.list(),
+  });
+
   const currentOrderIds = useMemo(() => new Set(wrongOrders.map(o => o.id)), [wrongOrders]);
   const wrongOrderMatches = useMemo(() =>
     allWrongOrderMatches.filter(m => currentOrderIds.has(m.wrong_order_id))
@@ -370,8 +375,9 @@ export default function Employees() {
         performanceScore += reviewBonus;
       }
       
-      // Pulizie: assegna ogni domanda al dipendente responsabile basandosi sul ruolo dell'attrezzatura
-      const employeeCleaningScores = [];
+      // Pulizie: calcola % come in PulizieMatch (puliti/totali controlli)
+      let puliti = 0;
+      let sporchi = 0;
       
       cleaningInspections.forEach(inspection => {
         if (!inspection.domande_risposte || inspection.analysis_status !== 'completed') return;
@@ -388,64 +394,106 @@ export default function Employees() {
           else if (end && inspDate > end) return;
         }
         
-        const inspectionDate = safeParseDate(inspection.inspection_date);
+        const dataCompilazione = new Date(inspection.inspection_date);
         const inspectionStoreId = inspection.store_id;
         
-        inspection.domande_risposte.forEach(risposta => {
-          if (!risposta.attrezzatura) return;
+        inspection.domande_risposte.forEach(domanda => {
+          // Trova l'attrezzatura - per scelta multipla cerca nella domanda originale
+          let nomeAttrezzatura = domanda.attrezzatura;
           
-          const attrezzatura = attrezzature.find(a => a.nome === risposta.attrezzatura);
-          if (!attrezzatura || !attrezzatura.ruoli_responsabili || attrezzatura.ruoli_responsabili.length === 0) return;
-          
-          // Find the employee whose shift ended before the inspection
-          const eligibleShifts = employeeShifts.filter(shift => {
-            if (shift.store_id !== inspectionStoreId) return false;
+          if (!nomeAttrezzatura && domanda.tipo_controllo === 'scelta_multipla') {
+            const originalQuestion = domande.find(d => d.id === domanda.domanda_id);
+            nomeAttrezzatura = originalQuestion?.attrezzatura;
             
-            const shiftEnd = shift.timbratura_uscita || (shift.data && shift.ora_fine ? `${shift.data}T${shift.ora_fine}` : null);
-            if (!shiftEnd) return false;
-
-            try {
-              const shiftEndDate = safeParseDate(shiftEnd);
-              return shiftEndDate < inspectionDate;
-            } catch (e) {
-              return false;
-            }
-          });
-
-          const roleFilteredShifts = eligibleShifts.filter(shift => {
-            return attrezzatura.ruoli_responsabili.some(role => user.ruoli_dipendente?.includes(role));
-          });
-
-          const sortedShifts = roleFilteredShifts.sort((a, b) => {
-            const endA = safeParseDate(a.timbratura_uscita || (a.data && a.ora_fine ? `${a.data}T${a.ora_fine}` : null));
-            const endB = safeParseDate(b.timbratura_uscita || (b.data && b.ora_fine ? `${b.data}T${b.ora_fine}` : null));
-            return endB - endA;
-          });
-
-          if (sortedShifts.length > 0) {
-            // This employee was responsible for this question
-            const equipmentKey = risposta.attrezzatura.toLowerCase().replace(/\s+/g, '_');
-            const status = inspection[`${equipmentKey}_corrected`]
-              ? inspection[`${equipmentKey}_corrected_status`]
-              : inspection[`${equipmentKey}_pulizia_status`];
-            
-            if (status) {
-              let score = 0;
-              if (status === 'pulito') score = 100;
-              else if (status === 'medio') score = 50;
-              else if (status === 'sporco') score = 0;
-              else if (status === 'non_valutabile') return; // Skip non-evaluable
-              
-              employeeCleaningScores.push(score);
+            if (!nomeAttrezzatura) {
+              const domandaLower = domanda.domanda_testo?.toLowerCase() || '';
+              for (const attr of attrezzature) {
+                const attrLower = attr.nome.toLowerCase();
+                if (domandaLower.includes(attrLower)) {
+                  nomeAttrezzatura = attr.nome;
+                  break;
+                }
+              }
             }
           }
+          
+          if (!nomeAttrezzatura) return;
+          
+          const attrezzatura = attrezzature.find(a => a.nome === nomeAttrezzatura);
+          if (!attrezzatura || !attrezzatura.ruoli_responsabili || attrezzatura.ruoli_responsabili.length === 0) return;
+          
+          // Determina lo stato in base al tipo di domanda
+          let statoPulizia = null;
+          
+          if (domanda.tipo_controllo === 'foto') {
+            const normalizeAttrezzatura = (name) => {
+              const map = {
+                'Forno': 'forno',
+                'Impastatrice': 'impastatrice',
+                'Tavolo da lavoro': 'tavolo_lavoro',
+                'Frigo': 'frigo',
+                'Cassa': 'cassa',
+                'Lavandino': 'lavandino',
+                'Tavolette Takeaway': 'tavolette_takeaway'
+              };
+              return map[name] || name?.toLowerCase().replace(/\s+/g, '_') || '';
+            };
+
+            const normalizedName = normalizeAttrezzatura(nomeAttrezzatura);
+            const statusField = `${normalizedName}_pulizia_status`;
+            const correctedField = `${normalizedName}_corrected_status`;
+            statoPulizia = inspection[correctedField] || inspection[statusField];
+          } else if (domanda.tipo_controllo === 'scelta_multipla') {
+            const originalQuestion = domande.find(d => d.id === domanda.domanda_id);
+            const isCorrect = domanda.risposta?.toLowerCase() === originalQuestion?.risposta_corretta?.toLowerCase();
+            statoPulizia = isCorrect ? 'pulito' : 'sporco';
+          }
+          
+          if (!statoPulizia) return;
+          
+          // Process each responsible role
+          attrezzatura.ruoli_responsabili.forEach(ruoloResponsabile => {
+            const candidateShifts = employeeShifts.filter(t => {
+              if (t.store_id !== inspectionStoreId) return false;
+              if (t.ruolo !== ruoloResponsabile) return false;
+              if (!t.dipendente_nome) return false;
+              if (!t.data || !t.ora_fine) return false;
+
+              const shiftEndTime = t.timbratura_uscita 
+                ? new Date(t.timbratura_uscita)
+                : new Date(t.data + 'T' + t.ora_fine);
+
+              return shiftEndTime <= dataCompilazione;
+            });
+
+            const lastShift = candidateShifts.sort((a, b) => {
+              const endA = a.timbratura_uscita ? new Date(a.timbratura_uscita) : new Date(a.data + 'T' + a.ora_fine);
+              const endB = b.timbratura_uscita ? new Date(b.timbratura_uscita) : new Date(b.data + 'T' + b.ora_fine);
+              return endB - endA;
+            })[0];
+
+            if (!lastShift) return;
+            
+            // Verifica che questo dipendente sia il responsabile
+            if (lastShift.dipendente_nome !== employeeName) return;
+
+            const isPulito = statoPulizia === 'pulito';
+            
+            if (isPulito) {
+              puliti++;
+            } else {
+              sporchi++;
+            }
+          });
         });
       });
       
-      if (employeeCleaningScores.length > 0) {
-        const avgCleaningScore = employeeCleaningScores.reduce((sum, s) => sum + s, 0) / employeeCleaningScores.length;
-        if (avgCleaningScore < 80) {
-          const cleaningPenalty = (80 - avgCleaningScore) * w_pulizie * 0.1;
+      // Calcola percentuale pulito come in PulizieMatch
+      const totalControlli = puliti + sporchi;
+      if (totalControlli > 0) {
+        const percentualePulito = (puliti / totalControlli) * 100;
+        if (percentualePulito < 80) {
+          const cleaningPenalty = (80 - percentualePulito) * w_pulizie * 0.1;
           performanceScore -= cleaningPenalty;
         }
       }
@@ -783,9 +831,10 @@ export default function Employees() {
       (u.nome_cognome || u.full_name || u.email) === employeeName
     );
     
-    if (!user) return { avgScore: null, count: 0 };
+    if (!user) return { percentualePulito: null, count: 0, puliti: 0, sporchi: 0 };
     
-    const employeeCleaningScores = [];
+    let puliti = 0;
+    let sporchi = 0;
     
     cleaningInspections.forEach(inspection => {
       if (!inspection.domande_risposte || inspection.analysis_status !== 'completed') return;
@@ -802,65 +851,114 @@ export default function Employees() {
         else if (end && inspDate > end) return;
       }
       
-      const inspectionDate = safeParseDate(inspection.inspection_date);
+      const dataCompilazione = new Date(inspection.inspection_date);
       const inspectionStoreId = inspection.store_id;
       
-      inspection.domande_risposte.forEach(risposta => {
-        if (!risposta.attrezzatura) return;
+      inspection.domande_risposte.forEach(domanda => {
+        // Trova l'attrezzatura - per scelta multipla cerca nella domanda originale
+        let nomeAttrezzatura = domanda.attrezzatura;
         
-        const attrezzatura = attrezzature.find(a => a.nome === risposta.attrezzatura);
-        if (!attrezzatura || !attrezzatura.ruoli_responsabili || attrezzatura.ruoli_responsabili.length === 0) return;
-        
-        // Find shifts for this employee at this store that ended before inspection
-        const eligibleShifts = shifts.filter(shift => {
-          if (shift.dipendente_nome !== employeeName) return false;
-          if (shift.store_id !== inspectionStoreId) return false;
+        if (!nomeAttrezzatura && domanda.tipo_controllo === 'scelta_multipla') {
+          const originalQuestion = domande.find(d => d.id === domanda.domanda_id);
+          nomeAttrezzatura = originalQuestion?.attrezzatura;
           
-          const shiftEnd = shift.timbratura_uscita || (shift.data && shift.ora_fine ? `${shift.data}T${shift.ora_fine}` : null);
-          if (!shiftEnd) return false;
-
-          try {
-            const shiftEndDate = safeParseDate(shiftEnd);
-            return shiftEndDate < inspectionDate;
-          } catch (e) {
-            return false;
-          }
-        });
-
-        const roleFilteredShifts = eligibleShifts.filter(shift => {
-          return attrezzatura.ruoli_responsabili.some(role => user.ruoli_dipendente?.includes(role));
-        });
-
-        const sortedShifts = roleFilteredShifts.sort((a, b) => {
-          const endA = safeParseDate(a.timbratura_uscita || (a.data && a.ora_fine ? `${a.data}T${a.ora_fine}` : null));
-          const endB = safeParseDate(b.timbratura_uscita || (b.data && b.ora_fine ? `${b.data}T${b.ora_fine}` : null));
-          return endB - endA;
-        });
-
-        if (sortedShifts.length > 0) {
-          // This employee was responsible for this question
-          const equipmentKey = risposta.attrezzatura.toLowerCase().replace(/\s+/g, '_');
-          const status = inspection[`${equipmentKey}_corrected`]
-            ? inspection[`${equipmentKey}_corrected_status`]
-            : inspection[`${equipmentKey}_pulizia_status`];
-          
-          if (status) {
-            let score = 0;
-            if (status === 'pulito') score = 100;
-            else if (status === 'medio') score = 50;
-            else if (status === 'sporco') score = 0;
-            else if (status === 'non_valutabile') return; // Skip non-evaluable
-            
-            employeeCleaningScores.push(score);
+          if (!nomeAttrezzatura) {
+            const domandaLower = domanda.domanda_testo?.toLowerCase() || '';
+            for (const attr of attrezzature) {
+              const attrLower = attr.nome.toLowerCase();
+              if (domandaLower.includes(attrLower)) {
+                nomeAttrezzatura = attr.nome;
+                break;
+              }
+            }
           }
         }
+        
+        if (!nomeAttrezzatura) return;
+        
+        const attrezzatura = attrezzature.find(a => a.nome === nomeAttrezzatura);
+        if (!attrezzatura || !attrezzatura.ruoli_responsabili || attrezzatura.ruoli_responsabili.length === 0) return;
+        
+        // Determina lo stato in base al tipo di domanda
+        let statoPulizia = null;
+        
+        if (domanda.tipo_controllo === 'foto') {
+          const normalizeAttrezzatura = (name) => {
+            const map = {
+              'Forno': 'forno',
+              'Impastatrice': 'impastatrice',
+              'Tavolo da lavoro': 'tavolo_lavoro',
+              'Frigo': 'frigo',
+              'Cassa': 'cassa',
+              'Lavandino': 'lavandino',
+              'Tavolette Takeaway': 'tavolette_takeaway'
+            };
+            return map[name] || name?.toLowerCase().replace(/\s+/g, '_') || '';
+          };
+
+          const normalizedName = normalizeAttrezzatura(nomeAttrezzatura);
+          const statusField = `${normalizedName}_pulizia_status`;
+          const correctedField = `${normalizedName}_corrected_status`;
+          statoPulizia = inspection[correctedField] || inspection[statusField];
+        } else if (domanda.tipo_controllo === 'scelta_multipla') {
+          const originalQuestion = domande.find(d => d.id === domanda.domanda_id);
+          const isCorrect = domanda.risposta?.toLowerCase() === originalQuestion?.risposta_corretta?.toLowerCase();
+          statoPulizia = isCorrect ? 'pulito' : 'sporco';
+        }
+        
+        if (!statoPulizia) return;
+        
+        // Process each responsible role
+        attrezzatura.ruoli_responsabili.forEach(ruoloResponsabile => {
+          const candidateShifts = shifts.filter(t => {
+            if (t.store_id !== inspectionStoreId) return false;
+            if (t.ruolo !== ruoloResponsabile) return false;
+            if (!t.dipendente_nome) return false;
+            if (!t.data || !t.ora_fine) return false;
+
+            const shiftEndTime = t.timbratura_uscita 
+              ? new Date(t.timbratura_uscita)
+              : new Date(t.data + 'T' + t.ora_fine);
+
+            return shiftEndTime <= dataCompilazione;
+          });
+
+          const lastShift = candidateShifts.sort((a, b) => {
+            const endA = a.timbratura_uscita ? new Date(a.timbratura_uscita) : new Date(a.data + 'T' + a.ora_fine);
+            const endB = b.timbratura_uscita ? new Date(b.timbratura_uscita) : new Date(b.data + 'T' + b.ora_fine);
+            return endB - endA;
+          })[0];
+
+          if (!lastShift) return;
+          
+          // Verifica che questo dipendente sia il responsabile
+          if (lastShift.dipendente_nome !== employeeName) return;
+
+          const isPulito = statoPulizia === 'pulito';
+          
+          if (isPulito) {
+            puliti++;
+          } else {
+            sporchi++;
+          }
+        });
       });
     });
+      
+    // Calcola percentuale pulito come in PulizieMatch
+    const totalControlli = puliti + sporchi;
+    if (totalControlli > 0) {
+      const percentualePulito = (puliti / totalControlli) * 100;
+      if (percentualePulito < 80) {
+        const cleaningPenalty = (80 - percentualePulito) * w_pulizie * 0.1;
+        performanceScore -= cleaningPenalty;
+      }
+    }
 
-    if (employeeCleaningScores.length === 0) return { avgScore: null, count: 0 };
+    if (totalControlli === 0) return { percentualePulito: null, count: 0, puliti: 0, sporchi: 0 };
 
-    const avgScore = employeeCleaningScores.reduce((sum, s) => sum + s, 0) / employeeCleaningScores.length;
-    return { avgScore, count: employeeCleaningScores.length };
+    const percentualePulito = (puliti / totalControlli) * 100;
+    return { percentualePulito, count: totalControlli, puliti, sporchi };
   };
 
   const getConfidenceBadgeColor = (confidence) => {
@@ -1176,14 +1274,14 @@ export default function Employees() {
                   {selectedEmployee.weights.w_pulizie > 0 && (() => {
                     const cleaningData = getCleaningScoreForEmployee(selectedEmployee.full_name);
                     if (cleaningData.count > 0) {
-                      if (cleaningData.avgScore < 80) {
-                        const penalty = (80 - cleaningData.avgScore) * selectedEmployee.weights.w_pulizie * 0.1;
+                      if (cleaningData.percentualePulito < 80) {
+                        const penalty = (80 - cleaningData.percentualePulito) * selectedEmployee.weights.w_pulizie * 0.1;
                         return (
-                          <p className="text-red-600"><strong>- Pulizie &lt; 80:</strong> (80 - {cleaningData.avgScore.toFixed(1)}) × {selectedEmployee.weights.w_pulizie} × 0.1 = -{penalty.toFixed(1)}</p>
+                          <p className="text-red-600"><strong>- Pulizie &lt; 80%:</strong> (80 - {cleaningData.percentualePulito.toFixed(1)}) × {selectedEmployee.weights.w_pulizie} × 0.1 = -{penalty.toFixed(1)}</p>
                         );
                       } else {
                         return (
-                          <p className="text-green-600"><strong>✓ Pulizie OK:</strong> Score {cleaningData.avgScore.toFixed(1)} ≥ 80 (peso {selectedEmployee.weights.w_pulizie}, nessuna penalità)</p>
+                          <p className="text-green-600"><strong>✓ Pulizie OK:</strong> {cleaningData.percentualePulito.toFixed(1)}% ≥ 80% (peso {selectedEmployee.weights.w_pulizie}, nessuna penalità)</p>
                         );
                       }
                     } else {
@@ -1498,23 +1596,35 @@ export default function Employees() {
                   {(() => {
                     const cleaningData = getCleaningScoreForEmployee(selectedEmployee.full_name);
                     return cleaningData.count > 0 ? (
-                      <div className="neumorphic-pressed p-4 rounded-xl text-center">
-                        <p className="text-sm text-slate-500 mb-2">Score Medio</p>
-                        <div className="flex items-center justify-center gap-3">
-                          <p className={`text-3xl font-bold ${
-                            cleaningData.avgScore >= 80 ? 'text-green-600' :
-                            cleaningData.avgScore >= 60 ? 'text-blue-600' :
-                            cleaningData.avgScore >= 40 ? 'text-yellow-600' : 'text-red-600'
-                          }`}>
-                            {cleaningData.avgScore.toFixed(0)}
-                          </p>
-                          <Sparkles className={`w-6 h-6 ${
-                            cleaningData.avgScore >= 80 ? 'text-green-600' :
-                            cleaningData.avgScore >= 60 ? 'text-blue-600' :
-                            cleaningData.avgScore >= 40 ? 'text-yellow-600' : 'text-red-600'
-                          }`} />
+                      <div className="neumorphic-pressed p-4 rounded-xl">
+                        <div className="text-center mb-3">
+                          <p className="text-sm text-slate-500 mb-2">Percentuale Pulito</p>
+                          <div className="flex items-center justify-center gap-3">
+                            <p className={`text-3xl font-bold ${
+                              cleaningData.percentualePulito >= 80 ? 'text-green-600' :
+                              cleaningData.percentualePulito >= 60 ? 'text-blue-600' :
+                              cleaningData.percentualePulito >= 40 ? 'text-yellow-600' : 'text-red-600'
+                            }`}>
+                              {cleaningData.percentualePulito.toFixed(1)}%
+                            </p>
+                            <Sparkles className={`w-6 h-6 ${
+                              cleaningData.percentualePulito >= 80 ? 'text-green-600' :
+                              cleaningData.percentualePulito >= 60 ? 'text-blue-600' :
+                              cleaningData.percentualePulito >= 40 ? 'text-yellow-600' : 'text-red-600'
+                            }`} />
+                          </div>
                         </div>
-                        <p className="text-xs text-slate-500 mt-2">{cleaningData.count} ispezioni completate</p>
+                        <div className="grid grid-cols-2 gap-3 text-center">
+                          <div className="neumorphic-flat p-2 rounded-lg">
+                            <p className="text-xs text-green-600 font-medium">Puliti</p>
+                            <p className="text-lg font-bold text-green-600">{cleaningData.puliti}</p>
+                          </div>
+                          <div className="neumorphic-flat p-2 rounded-lg">
+                            <p className="text-xs text-red-600 font-medium">Sporchi</p>
+                            <p className="text-lg font-bold text-red-600">{cleaningData.sporchi}</p>
+                          </div>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-2 text-center">{cleaningData.count} controlli totali</p>
                       </div>
                     ) : (
                       <p className="text-sm text-slate-500 text-center py-2">
