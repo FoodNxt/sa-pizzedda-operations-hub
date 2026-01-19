@@ -221,7 +221,7 @@ export default function DashboardStoreManager() {
     return conteggioStore || null;
   }, [selectedStoreId, conteggiCassa]);
 
-  // Scorecard dipendenti - solo dipendenti con locale principale corrispondente
+  // Scorecard dipendenti - stessa logica della pagina Employees
   const employeeScorecard = useMemo(() => {
     if (!selectedStoreId) return [];
 
@@ -236,44 +236,57 @@ export default function DashboardStoreManager() {
 
     if (relevantUsers.length === 0) return [];
 
-    // Calcola metriche per ogni dipendente
+    // Calcola metriche per ogni dipendente (stessa logica di Employees.js)
     return relevantUsers.map(user => {
-      // Trova turni del dipendente in QUALSIASI store (non solo quello selezionato)
+      const employeeName = user.nome_cognome || user.full_name || user.email;
+
+      // Filtra turni per questo dipendente per il mese selezionato
       const empShifts = shifts.filter(s => {
+        if (s.dipendente_nome !== employeeName) return false;
+        
         const date = new Date(s.data);
         if (date < monthStart || date > monthEnd) return false;
-        return s.dipendente_id === user.id;
+        
+        return true;
       });
       
-      // Calcola ritardi
-      const totalDelay = empShifts.reduce((acc, s) => acc + (s.minuti_ritardo_conteggiato || s.minuti_ritardo_reale || 0), 0);
-      const avgDelay = empShifts.length > 0 ? totalDelay / empShifts.length : 0;
-      const lateShifts = empShifts.filter(s => s.in_ritardo).length;
+      // Calcola ritardi (STESSA LOGICA DI EMPLOYEES)
+      const totalDelayMinutes = empShifts.reduce((sum, s) => sum + (s.minuti_ritardo || 0), 0);
+      const avgLateMinutes = empShifts.length > 0 ? totalDelayMinutes / empShifts.length : 0;
+      const numeroRitardi = empShifts.filter(s => s.in_ritardo === true).length;
       
-      // Trova recensioni assegnate (in qualsiasi store)
-      const userDisplayName = (user.nome_cognome || user.full_name || '').toLowerCase().trim();
+      // Conta solo turni passati completati (con timbratura entrata e uscita)
+      const totalShifts = empShifts.filter(s => s.timbratura_entrata && s.timbratura_uscita).length;
+      
+      // Trova recensioni assegnate (in qualsiasi store) per il mese
       const empReviews = reviews.filter(r => {
+        if (!r.employee_assigned_name) return false;
+        const assignedNames = r.employee_assigned_name.split(',').map(n => n.trim().toLowerCase());
+        if (!assignedNames.includes(employeeName.toLowerCase())) return false;
+        
         const date = new Date(r.review_date);
         if (date < monthStart || date > monthEnd) return false;
-        return r.employee_assigned_name?.toLowerCase().trim() === userDisplayName;
+        return true;
       });
-      const empAvgRating = empReviews.length > 0
-        ? empReviews.reduce((acc, r) => acc + r.rating, 0) / empReviews.length
-        : null;
+      
+      const googleReviews = empReviews.filter(r => r.source === 'google');
+      const avgGoogleRating = googleReviews.length > 0
+        ? googleReviews.reduce((sum, r) => sum + r.rating, 0) / googleReviews.length
+        : 0;
 
       return {
         id: user.id,
-        name: user.nome_cognome || user.full_name || user.email || 'N/A',
+        name: employeeName,
         email: user.email,
         ruoli: user.ruoli_dipendente || [],
-        shiftsCount: empShifts.length,
-        avgDelay,
-        lateShifts,
-        reviewsCount: empReviews.length,
-        avgRating: empAvgRating,
+        shiftsCount: totalShifts,
+        avgDelay: avgLateMinutes,
+        lateShifts: numeroRitardi,
+        reviewsCount: googleReviews.length,
+        avgRating: avgGoogleRating,
         isPrimaryHere: true
       };
-    }).sort((a, b) => b.shiftsCount - a.shiftsCount);
+    }).filter(emp => emp.shiftsCount > 0).sort((a, b) => b.shiftsCount - a.shiftsCount);
   }, [selectedStoreId, selectedMonth, shifts, users, reviews]);
 
   // Genera opzioni mesi
