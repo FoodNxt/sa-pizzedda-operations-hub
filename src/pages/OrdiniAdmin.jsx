@@ -1281,37 +1281,27 @@ Sa Pizzedda`,
                     <h3 className="font-bold text-slate-800">Prodotti Ordinati</h3>
                     <NeumorphicButton
                       onClick={() => {
-                        // Get all products from this supplier
-                        const prodottiDelFornitore = products.filter(p => 
+                        // Get available products from this supplier
+                        const prodottiDisponibili = products.filter(p => 
                           p.fornitore === editingOrder.fornitore && 
                           !editingOrder.prodotti.some(ep => ep.prodotto_id === p.id)
                         );
                         
-                        if (prodottiDelFornitore.length === 0) {
+                        if (prodottiDisponibili.length === 0) {
                           alert('Nessun altro prodotto disponibile per questo fornitore');
                           return;
                         }
 
-                        const nuoviProdotti = prodottiDelFornitore.map(p => ({
-                          prodotto_id: p.id,
-                          nome_prodotto: p.nome_prodotto,
-                          quantita_ordinata: 0,
-                          quantita_ricevuta: 0,
-                          unita_misura: p.unita_misura,
-                          prezzo_unitario: p.prezzo_unitario || 0,
-                          iva_percentuale: p.iva_percentuale ?? 22,
-                          isExtra: true
-                        }));
-
-                        setEditingOrder({
-                          ...editingOrder,
-                          prodotti: [...editingOrder.prodotti, ...nuoviProdotti]
+                        // Show modal to select product and quantity
+                        setAddProductModal({
+                          open: true,
+                          availableProducts: prodottiDisponibili
                         });
                       }}
                       className="flex items-center gap-2 text-sm"
                     >
                       <Plus className="w-4 h-4" />
-                      Aggiungi Prodotti
+                      Aggiungi Prodotto
                     </NeumorphicButton>
                   </div>
                   
