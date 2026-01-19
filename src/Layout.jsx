@@ -986,7 +986,8 @@ export default function Layout({ children, currentPageName }) {
       'Segnalazioni': 'Segnalazioni',
       'ValutazioneProvaForm': 'Valutazioni',
       'PlandayStoreManager': 'Planday',
-      'FormSprechi': 'Sprechi'
+      'FormSprechi': 'Sprechi',
+      'FormSpostamenti': 'Spostamenti'
     };
     return titles[pageName] || pageName;
   };
@@ -1017,7 +1018,8 @@ export default function Layout({ children, currentPageName }) {
         'ValutazioneProvaForm': UserCheck,
         'PlandayStoreManager': Calendar,
         'FormSprechi': AlertTriangle,
-        'AssistenteDipendente': Users
+        'AssistenteDipendente': Users,
+        'FormSpostamenti': Truck
       };
       return icons[pageName] || User;
     } catch (error) {

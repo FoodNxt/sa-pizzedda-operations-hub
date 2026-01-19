@@ -43,6 +43,16 @@ export default function FormSpostamenti() {
     },
   });
 
+  const { data: tipiPreparazione = [] } = useQuery({
+    queryKey: ['tipi-preparazione-trasporto'],
+    queryFn: () => base44.entities.TipoPreparazione.filter({ mostra_trasporto_store_manager: true })
+  });
+
+  const { data: ricetteSemilavorati = [] } = useQuery({
+    queryKey: ['ricette-semilavorati-tutti'],
+    queryFn: () => base44.entities.Ricetta.filter({ is_semilavorato: true })
+  });
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Spostamento.create(data),
     onSuccess: () => {
@@ -83,7 +93,7 @@ export default function FormSpostamenti() {
     let productType = '';
     
     if (isRicetta) {
-      const ricetta = ricette.find(r => r.id === productId);
+      const ricetta = ricette.find(r => r.id === productId) || ricetteSemilavorati.find(r => r.id === productId);
       productName = ricetta?.nome_prodotto || '';
       productType = 'ricetta';
     } else {
@@ -156,8 +166,19 @@ export default function FormSpostamenti() {
                     </option>
                   ))}
                 </optgroup>
+                <optgroup label="🚛 Semilavorati da Trasportare (da Preparazioni)">
+                  {tipiPreparazione.map(tipo => {
+                    const semilav = ricetteSemilavorati.find(r => r.id === tipo.semilavorato_id);
+                    if (!semilav) return null;
+                    return (
+                      <option key={`semilav_${semilav.id}`} value={`ricetta_${semilav.id}`}>
+                        {semilav.nome_prodotto} (da {tipo.store_preparazione_nome || 'prep.'})
+                      </option>
+                    );
+                  }).filter(Boolean)}
+                </optgroup>
               </select>
-              {materiePrime.length === 0 && ricette.length === 0 && (
+              {materiePrime.length === 0 && ricette.length === 0 && tipiPreparazione.length === 0 && (
                 <p className="text-xs text-orange-600 mt-1">
                   ⚠️ Nessun prodotto trasportabile configurato. Contatta l'amministratore.
                 </p>
@@ -244,7 +265,7 @@ export default function FormSpostamenti() {
                       const isRicetta = formData.materia_prima_id.startsWith('ricetta_');
                       const productId = formData.materia_prima_id.replace(/^(mp_|ricetta_)/, '');
                       if (isRicetta) {
-                        return ricette.find(r => r.id === productId)?.nome_prodotto;
+                        return ricette.find(r => r.id === productId)?.nome_prodotto || ricetteSemilavorati.find(r => r.id === productId)?.nome_prodotto;
                       }
                       return materiePrime.find(m => m.id === productId)?.nome_prodotto;
                     })()}
