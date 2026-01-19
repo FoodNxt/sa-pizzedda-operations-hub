@@ -148,7 +148,7 @@ export default function DashboardStoreManager() {
       const date = new Date(s.data);
       return storeIds.includes(s.store_id) && date >= monthStart && date <= monthEnd;
     });
-    const totalDelayMinutes = monthShifts.reduce((acc, s) => acc + (s.minuti_ritardo_conteggiato || s.minuti_ritardo_reale || 0), 0);
+    const totalDelayMinutes = monthShifts.reduce((acc, s) => acc + (s.minuti_ritardo_conteggiato || s.minuti_ritardo_reale || s.minuti_ritardo || 0), 0);
     const avgDelay = monthShifts.length > 0 ? totalDelayMinutes / monthShifts.length : 0;
 
     // Pulizie - solo form completati con score
@@ -824,8 +824,8 @@ export default function DashboardStoreManager() {
                                       {emp.lateShiftsDetails.slice(0, 5).map((shift, idx) => (
                                         <div key={idx} className="bg-white p-3 rounded-lg text-sm">
                                           <div className="flex items-center justify-between">
-                                            <span className="text-slate-600">{new Date(shift.data).toLocaleDateString('it-IT')}</span>
-                                            <span className="font-bold text-red-600">+{shift.minuti_ritardo || 0} min</span>
+                                           <span className="text-slate-600">{new Date(shift.data).toLocaleDateString('it-IT')}</span>
+                                           <span className="font-bold text-red-600">+{shift.minuti_ritardo_conteggiato || shift.minuti_ritardo_reale || shift.minuti_ritardo || 0} min</span>
                                           </div>
                                         </div>
                                       ))}
