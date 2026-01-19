@@ -779,7 +779,7 @@ export default function DashboardStoreManager() {
                       <th className="text-left p-3 text-slate-600 font-medium">Dipendente</th>
                       <th className="text-center p-3 text-slate-600 font-medium">Turni</th>
                       <th className="text-center p-3 text-slate-600 font-medium">Ritardi</th>
-                      <th className="text-center p-3 text-slate-600 font-medium">Media Ritardo</th>
+                      <th className="text-center p-3 text-slate-600 font-medium">Ritardo Totale</th>
                       <th className="text-center p-3 text-slate-600 font-medium">Ordini Sbag.</th>
                       <th className="text-center p-3 text-slate-600 font-medium">Recensioni</th>
                       <th className="text-center p-3 text-slate-600 font-medium"></th>
