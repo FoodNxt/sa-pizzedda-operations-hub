@@ -410,6 +410,39 @@ export default function StoricoCassa() {
             <User className="w-4 h-4" />
             Saldo Personale
           </button>
+          <button
+            onClick={() => setActiveTab('prelievi')}
+            className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
+              activeTab === 'prelievi'
+                ? 'neumorphic-pressed bg-blue-50 text-blue-700'
+                : 'neumorphic-flat text-slate-600 hover:text-slate-800'
+            }`}
+          >
+            <DollarSign className="w-4 h-4" />
+            Prelievi
+          </button>
+          <button
+            onClick={() => setActiveTab('depositi')}
+            className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
+              activeTab === 'depositi'
+                ? 'neumorphic-pressed bg-blue-50 text-blue-700'
+                : 'neumorphic-flat text-slate-600 hover:text-slate-800'
+            }`}
+          >
+            <DollarSign className="w-4 h-4" />
+            Depositi
+          </button>
+          <button
+            onClick={() => setActiveTab('pagamenti')}
+            className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
+              activeTab === 'pagamenti'
+                ? 'neumorphic-pressed bg-blue-50 text-blue-700'
+                : 'neumorphic-flat text-slate-600 hover:text-slate-800'
+            }`}
+          >
+            <DollarSign className="w-4 h-4" />
+            Pagamenti Contanti
+          </button>
         </div>
 
         {activeTab === 'storico' && (
