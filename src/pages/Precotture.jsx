@@ -17,6 +17,7 @@ export default function Precotture() {
   const urlParams = new URLSearchParams(location.search);
   const redirectTo = urlParams.get('redirect');
   const turnoId = urlParams.get('turno_id');
+  const attivitaId = urlParams.get('attivita_id');
   const attivitaNome = urlParams.get('attivita');
   const preselectedStoreId = urlParams.get('store_id');
   
