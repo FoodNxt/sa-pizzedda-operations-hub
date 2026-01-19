@@ -82,44 +82,74 @@ export default function PulizieMatch() {
       console.log('Inspection:', inspection.id, 'Store:', inspection.store_name, 'Date:', inspection.inspection_date, 'Domande:', inspection.domande_risposte?.length);
       
       inspection.domande_risposte?.forEach(domanda => {
-        console.log('Domanda:', domanda.attrezzatura, 'Tipo:', domanda.tipo_controllo);
-        
-        // Skip if no attrezzatura or if not a foto question
-        if (!domanda.attrezzatura || domanda.tipo_controllo !== 'foto') {
-          console.log('Skipped - no attrezzatura or not foto');
+        console.log('Domanda:', domanda.domanda_testo, 'Tipo:', domanda.tipo_controllo);
+
+        // Trova l'attrezzatura - per scelta multipla cerca nella domanda originale
+        let nomeAttrezzatura = domanda.attrezzatura;
+
+        if (!nomeAttrezzatura && domanda.tipo_controllo === 'scelta_multipla') {
+          // Cerca la domanda originale per trovare l'attrezzatura
+          const originalQuestion = domande.find(d => d.id === domanda.domanda_id);
+          nomeAttrezzatura = originalQuestion?.attrezzatura;
+
+          // Se ancora non trovata, prova a estrarre dal testo
+          if (!nomeAttrezzatura) {
+            const domandaLower = domanda.domanda_testo?.toLowerCase() || '';
+            for (const attr of attrezzature) {
+              const attrLower = attr.nome.toLowerCase();
+              if (domandaLower.includes(attrLower)) {
+                nomeAttrezzatura = attr.nome;
+                break;
+              }
+            }
+          }
+        }
+
+        // Skip if no attrezzatura found
+        if (!nomeAttrezzatura) {
+          console.log('Skipped - no attrezzatura found');
           return;
         }
 
         // Find attrezzatura
-        const attrezzatura = attrezzature.find(a => a.nome === domanda.attrezzatura);
+        const attrezzatura = attrezzature.find(a => a.nome === nomeAttrezzatura);
         console.log('Found attrezzatura:', attrezzatura?.nome, 'Ruoli:', attrezzatura?.ruoli_responsabili);
-        
+
         if (!attrezzatura || !attrezzatura.ruoli_responsabili || attrezzatura.ruoli_responsabili.length === 0) {
           console.log('Skipped - no attrezzatura config or no ruoli');
           return;
         }
 
-        // Get the status from inspection fields
-        const normalizeAttrezzatura = (name) => {
-          const map = {
-            'Forno': 'forno',
-            'Impastatrice': 'impastatrice',
-            'Tavolo da lavoro': 'tavolo_lavoro',
-            'Frigo': 'frigo',
-            'Cassa': 'cassa',
-            'Lavandino': 'lavandino',
-            'Tavolette Takeaway': 'tavolette_takeaway'
+        // Determina lo stato in base al tipo di domanda
+        let statoPulizia = null;
+
+        if (domanda.tipo_controllo === 'foto') {
+          // Per domande foto, usa i campi di stato nell'inspection
+          const normalizeAttrezzatura = (name) => {
+            const map = {
+              'Forno': 'forno',
+              'Impastatrice': 'impastatrice',
+              'Tavolo da lavoro': 'tavolo_lavoro',
+              'Frigo': 'frigo',
+              'Cassa': 'cassa',
+              'Lavandino': 'lavandino',
+              'Tavolette Takeaway': 'tavolette_takeaway'
+            };
+            return map[name] || name?.toLowerCase().replace(/\s+/g, '_') || '';
           };
-          return map[name] || name?.toLowerCase().replace(/\s+/g, '_') || '';
-        };
 
-        const normalizedName = normalizeAttrezzatura(domanda.attrezzatura);
-        const statusField = `${normalizedName}_pulizia_status`;
-        const correctedField = `${normalizedName}_corrected_status`;
-        const statoPulizia = inspection[correctedField] || inspection[statusField];
+          const normalizedName = normalizeAttrezzatura(nomeAttrezzatura);
+          const statusField = `${normalizedName}_pulizia_status`;
+          const correctedField = `${normalizedName}_corrected_status`;
+          statoPulizia = inspection[correctedField] || inspection[statusField];
+        } else if (domanda.tipo_controllo === 'scelta_multipla') {
+          // Per scelta multipla, verifica se la risposta è corretta
+          const originalQuestion = domande.find(d => d.id === domanda.domanda_id);
+          const isCorrect = domanda.risposta?.toLowerCase() === originalQuestion?.risposta_corretta?.toLowerCase();
+          statoPulizia = isCorrect ? 'pulito' : 'sporco';
+        }
 
-        console.log('Status fields:', statusField, correctedField, 'Status:', statoPulizia);
-        console.log('All inspection fields:', Object.keys(inspection));
+        console.log('Status:', statoPulizia);
 
         if (!statoPulizia) {
           console.log('Skipped - no status found');
