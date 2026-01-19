@@ -823,6 +823,36 @@ export default function ValutazionePulizie() {
                             const originalQuestion = domande.find(d => d.id === domanda.domanda_id);
                             const isCorrect = domanda.risposta?.toLowerCase() === originalQuestion?.risposta_corretta?.toLowerCase();
                             
+                            // Trova info attrezzatura per domande a scelta multipla
+                            const attrezzaturaObj = originalQuestion?.attrezzatura ? attrezzature.find(a => a.nome === originalQuestion.attrezzatura) : null;
+                            const ruoliResponsabili = attrezzaturaObj?.ruoli_responsabili || [];
+
+                            // Trova l'ultimo dipendente in turno per ogni ruolo
+                            const dipendentiResponsabili = ruoliResponsabili.map(ruolo => {
+                              const dataCompilazione = new Date(inspection.inspection_date);
+                              const candidateShifts = turni.filter(t => {
+                                if (t.store_id !== inspection.store_id) return false;
+                                if (t.ruolo !== ruolo) return false;
+                                if (!t.dipendente_nome) return false;
+                                if (!t.data || !t.ora_inizio) return false;
+                                const shiftStartTime = new Date(t.data + 'T' + t.ora_inizio);
+                                return shiftStartTime <= dataCompilazione;
+                              });
+                              
+                              const lastShift = candidateShifts.sort((a, b) => {
+                                const dateA = new Date(a.data + 'T' + a.ora_inizio);
+                                const dateB = new Date(b.data + 'T' + b.ora_inizio);
+                                return dateB - dateA;
+                              })[0];
+                              
+                              return lastShift ? {
+                                ruolo,
+                                nome: lastShift.dipendente_nome,
+                                data: lastShift.data,
+                                ora_inizio: lastShift.ora_inizio
+                              } : null;
+                            }).filter(Boolean);
+                            
                             return (
                               <div key={idx} className="neumorphic-pressed p-4 rounded-lg">
                                 <div className="flex items-start justify-between gap-3">
@@ -830,6 +860,31 @@ export default function ValutazionePulizie() {
                                     <p className="text-sm font-medium text-[#6b6b6b] mb-2">
                                       {domanda.domanda_testo}
                                     </p>
+                                    {originalQuestion?.attrezzatura && (
+                                      <p className="text-xs text-slate-500 mb-1">
+                                        🔧 Attrezzatura: <strong>{originalQuestion.attrezzatura}</strong>
+                                      </p>
+                                    )}
+                                    <div className="flex flex-wrap gap-2 mb-2">
+                                      {ruoliResponsabili.length > 0 ? (
+                                        ruoliResponsabili.map(ruolo => (
+                                          <span key={ruolo} className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 font-medium">
+                                            {ruolo}
+                                          </span>
+                                        ))
+                                      ) : (
+                                        <span className="text-xs text-slate-400 italic">Nessun ruolo assegnato</span>
+                                      )}
+                                    </div>
+                                    {dipendentiResponsabili.length > 0 && (
+                                      <div className="mb-3 space-y-1">
+                                        {dipendentiResponsabili.map((dip, i) => (
+                                          <div key={i} className="text-xs text-slate-600 bg-green-50 px-2 py-1 rounded">
+                                            👤 <strong>{dip.nome}</strong> ({dip.ruolo}) - Turno {dip.data} ore {dip.ora_inizio}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
                                     <p className="text-sm text-[#9b9b9b]">
                                       <strong>Risposta:</strong> {domanda.risposta}
                                     </p>
