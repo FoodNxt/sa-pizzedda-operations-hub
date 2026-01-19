@@ -149,17 +149,20 @@ export default function DashboardStoreManager() {
       return date.isBetween(monthStart, monthEnd, 'day', '[]');
     });
 
-    // Ritardi - IDENTICO CALCOLO ADMIN (usando moment per filtri precisi)
-    const monthShifts = shifts.filter(s => {
-      if (s.store_id !== selectedStoreId) return false;
-      if (!s.data || !s.timbratura_entrata || !s.ora_inizio) return false;
+    // Ritardi - CALCOLO 100% MANUALE IDENTICO ALL'ADMIN
+    const allMonthShifts = shifts.filter(s => {
+      if (s.store_id !== selectedStoreId || !s.data) return false;
       const shiftDate = moment(s.data);
       if (!shiftDate.isValid()) return false;
       return shiftDate.isBetween(monthStart, monthEnd, 'day', '[]');
     });
     
     let totalDelayMinutes = 0;
-    monthShifts.forEach(shift => {
+    const monthShifts = [];
+    
+    allMonthShifts.forEach(shift => {
+      if (!shift.timbratura_entrata || !shift.ora_inizio) return;
+      
       try {
         const clockInTime = new Date(shift.timbratura_entrata);
         const [oraInizioHH, oraInizioMM] = shift.ora_inizio.split(':').map(Number);
@@ -168,12 +171,29 @@ export default function DashboardStoreManager() {
         const delayMs = clockInTime - scheduledStart;
         const delayMinutes = Math.floor(delayMs / 60000);
         const ritardoReale = delayMinutes > 0 ? delayMinutes : 0;
+        
+        if (ritardoReale > 0 || shift.timbratura_uscita) {
+          monthShifts.push(shift);
+        }
+        
         totalDelayMinutes += ritardoReale;
+        
+        console.log('🔍 DEBUG RITARDO:', {
+          dipendente: shift.dipendente_nome,
+          data: shift.data,
+          ora_inizio: shift.ora_inizio,
+          timbratura: clockInTime.toLocaleTimeString('it-IT'),
+          ritardoReale,
+          totalDelayMinutes
+        });
       } catch (e) {
-        // Skip in caso di errore
+        console.error('Errore calcolo ritardo:', e);
       }
     });
+    
     const avgDelay = monthShifts.length > 0 ? totalDelayMinutes / monthShifts.length : 0;
+    
+    console.log('📊 TOTALE RITARDI STORE:', selectedStoreId, 'MESE:', selectedMonth, 'MINUTI:', totalDelayMinutes);
 
     // Pulizie - solo form completati con score
     const monthInspections = inspections.filter(i => {
@@ -275,8 +295,11 @@ export default function DashboardStoreManager() {
       // Turni di questo dipendente nello store selezionato nel mese
       const empShifts = storeShifts.filter(s => s.dipendente_nome === employeeName);
       
-      // Calcola ritardi (CALCOLO MANUALE COME STOREMAGERADMIN)
+      // Calcola ritardi - CALCOLO 100% MANUALE
       let totalDelayMinutes = 0;
+      let numeroRitardi = 0;
+      const turniInRitardo = [];
+      
       empShifts.forEach(shift => {
         if (!shift.timbratura_entrata || !shift.ora_inizio) return;
         try {
@@ -287,13 +310,18 @@ export default function DashboardStoreManager() {
           const delayMs = clockInTime - scheduledStart;
           const delayMinutes = Math.floor(delayMs / 60000);
           const ritardoReale = delayMinutes > 0 ? delayMinutes : 0;
+          
           totalDelayMinutes += ritardoReale;
+          
+          if (ritardoReale > 0) {
+            numeroRitardi++;
+            turniInRitardo.push(shift);
+          }
         } catch (e) {
           // Skip in caso di errore
         }
       });
       const avgLateMinutes = empShifts.length > 0 ? totalDelayMinutes / empShifts.length : 0;
-      const numeroRitardi = empShifts.filter(s => s.in_ritardo === true).length;
       
       // Conta turni completati
       const totalShifts = empShifts.filter(s => s.timbratura_entrata && s.timbratura_uscita).length;
@@ -340,7 +368,7 @@ export default function DashboardStoreManager() {
         avgDelay: avgLateMinutes,
         totalDelayMinutes: totalDelayMinutes,
         lateShifts: numeroRitardi,
-        lateShiftsDetails: empShifts.filter(s => s.in_ritardo === true),
+        lateShiftsDetails: turniInRitardo,
         reviewsCount: googleReviews.length,
         avgRating: avgGoogleRating,
         reviewsDetails: googleReviews,
