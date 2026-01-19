@@ -133,18 +133,28 @@ export default function PulizieMatch() {
         console.log('Looking for shift - Ruolo:', ruoloResponsabile, 'Store:', inspection.store_id, 'Before:', dataCompilazione);
 
         // Find last shift before inspection for this role and store
-        const candidateShifts = turni.filter(t => 
-          t.store_id === inspection.store_id &&
-          t.ruolo === ruoloResponsabile &&
-          t.dipendente_id &&
-          new Date(t.data + 'T' + t.ora_fine) <= dataCompilazione
-        );
+        const candidateShifts = turni.filter(t => {
+          if (t.store_id !== inspection.store_id) return false;
+          if (t.ruolo !== ruoloResponsabile) return false;
+          if (!t.dipendente_nome) return false;
+          if (!t.data || !t.ora_fine) return false;
+          
+          // Usa timbratura_uscita se presente, altrimenti usa data + ora_fine
+          let shiftEndTime;
+          if (t.timbratura_uscita) {
+            shiftEndTime = new Date(t.timbratura_uscita);
+          } else {
+            shiftEndTime = new Date(t.data + 'T' + t.ora_fine);
+          }
+          
+          return shiftEndTime <= dataCompilazione;
+        });
 
         console.log('Candidate shifts found:', candidateShifts.length);
 
         const lastShift = candidateShifts.sort((a, b) => {
-          const dateA = new Date(a.data + 'T' + a.ora_fine);
-          const dateB = new Date(b.data + 'T' + b.ora_fine);
+          const dateA = a.timbratura_uscita ? new Date(a.timbratura_uscita) : new Date(a.data + 'T' + a.ora_fine);
+          const dateB = b.timbratura_uscita ? new Date(b.timbratura_uscita) : new Date(b.data + 'T' + b.ora_fine);
           return dateB - dateA;
         })[0];
 
@@ -155,12 +165,11 @@ export default function PulizieMatch() {
         
         console.log('Found shift:', lastShift.dipendente_nome, lastShift.data, lastShift.ora_fine);
 
-        const employeeId = lastShift.dipendente_id;
         const employeeName = lastShift.dipendente_nome;
 
-        if (!results[employeeId]) {
-          results[employeeId] = {
-            id: employeeId,
+        if (!results[employeeName]) {
+          results[employeeName] = {
+            id: employeeName,
             name: employeeName,
             puliti: 0,
             sporchi: 0,
@@ -171,19 +180,19 @@ export default function PulizieMatch() {
         const isPulito = statoPulizia === 'pulito';
         
         if (isPulito) {
-          results[employeeId].puliti++;
+          results[employeeName].puliti++;
         } else {
-          results[employeeId].sporchi++;
+          results[employeeName].sporchi++;
         }
 
-        results[employeeId].details.push({
+        results[employeeName].details.push({
           attrezzatura: domanda.attrezzatura,
           stato: statoPulizia,
           data_compilazione: inspection.inspection_date,
           store_name: inspection.store_name,
           ruolo: ruoloResponsabile,
           data_turno: lastShift.data,
-          ora_fine_turno: lastShift.ora_fine,
+          ora_fine_turno: lastShift.timbratura_uscita ? new Date(lastShift.timbratura_uscita).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : lastShift.ora_fine,
           compilato_da: inspection.inspector_name || 'N/A'
         });
         });
