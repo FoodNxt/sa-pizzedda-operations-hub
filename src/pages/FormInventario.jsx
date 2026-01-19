@@ -52,8 +52,28 @@ export default function FormInventario() {
   const { data: allProducts = [], isLoading: productsLoading } = useQuery({
     queryKey: ['materie-prime-negozio'],
     queryFn: async () => {
-      const allProducts = await base44.entities.MateriePrime.filter({ attivo: true });
-      return allProducts.filter(p => !p.posizione || p.posizione === 'negozio');
+      const materiePrime = await base44.entities.MateriePrime.filter({ attivo: true });
+      const materiePrimeFiltered = materiePrime.filter(p => !p.posizione || p.posizione === 'negozio');
+      
+      // Carica anche i semilavorati configurati per il form inventario
+      const ricette = await base44.entities.Ricetta.filter({ is_semilavorato: true, mostra_in_form_inventario: true });
+      
+      // Converte i semilavorati in formato compatibile
+      const semilavorati = ricette.map(r => ({
+        id: r.id,
+        nome_prodotto: r.nome_prodotto,
+        nome_interno: r.nome_prodotto,
+        categoria: 'semilavorati',
+        unita_misura: r.unita_misura_form_inventario || 'grammi',
+        quantita_minima: 0,
+        attivo: true,
+        posizione: 'negozio',
+        assigned_stores: r.stores_form_inventario || [],
+        is_semilavorato: true,
+        ricetta_id: r.id
+      }));
+      
+      return [...materiePrimeFiltered, ...semilavorati];
     },
   });
 
@@ -142,11 +162,12 @@ export default function FormInventario() {
           nome_prodotto: product.nome_prodotto,
           quantita_rilevata: quantitaRilevata,
           unita_misura: product.unita_misura,
-          quantita_minima: product.quantita_minima,
-          sotto_minimo: quantitaRilevata < product.quantita_minima
+          quantita_minima: product.quantita_minima || 0,
+          sotto_minimo: quantitaRilevata < (product.quantita_minima || 0)
         };
-        
+
         if (product.note) rilevazione.note = product.note;
+        if (product.is_semilaborato) rilevazione.ricetta_id = product.ricetta_id;
         rilevazioni.push(rilevazione);
       }
       
@@ -222,6 +243,7 @@ export default function FormInventario() {
     dolci: 'Dolci',
     bevande: 'Bevande',
     pulizia: 'Pulizia',
+    semilavorati: '🍳 Semilavorati',
     altro: 'Altro'
   };
 
