@@ -70,6 +70,29 @@ export default function StoricoCassa() {
     queryFn: () => base44.entities.AttivitaCompletata.list('-completato_at', 500),
   });
 
+  const { data: pagamentiContanti = [] } = useQuery({
+    queryKey: ['pagamenti-contanti'],
+    queryFn: () => base44.entities.PagamentoContanti.list('-data_pagamento', 500),
+  });
+
+  const { data: saldiManuali = [] } = useQuery({
+    queryKey: ['saldi-manuali'],
+    queryFn: () => base44.entities.SaldoManualeCassa.list('-data', 100),
+  });
+
+  const { data: currentUser } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const saveSaldoMutation = useMutation({
+    mutationFn: (data) => base44.entities.SaldoManualeCassa.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['saldi-manuali'] });
+      setEditingSaldo(null);
+    },
+  });
+
   const saveAlertMutation = useMutation({
     mutationFn: (data) => {
       if (data.id) {
