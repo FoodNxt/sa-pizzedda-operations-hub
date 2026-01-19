@@ -91,13 +91,15 @@ export default function PlandayStoreManager() {
   const { data: turni = [], isLoading } = useQuery({
     queryKey: ['turni-store-manager', selectedStore, weekStart.format('YYYY-MM-DD')],
     queryFn: async () => {
+      if (!selectedStore) return [];
       const startDate = weekStart.format('YYYY-MM-DD');
       const endDate = weekStart.clone().add(6, 'days').format('YYYY-MM-DD');
       
-      return base44.entities.TurnoPlanday.filter({
-        store_id: selectedStore,
+      const allTurni = await base44.entities.TurnoPlanday.filter({
         data: { $gte: startDate, $lte: endDate }
       });
+      
+      return allTurni.filter(t => t.store_id === selectedStore);
     },
     enabled: !!selectedStore,
   });
