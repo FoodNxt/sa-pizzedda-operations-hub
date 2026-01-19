@@ -306,7 +306,7 @@ export default function DashboardStoreManager() {
     return conteggioStore || null;
   }, [selectedStoreId, conteggiCassa]);
 
-  // Trasporto tra locali - Preparazioni disponibili
+  // Trasporto tra locali - Mostra semilavorati in TUTTI i locali con suggerimenti di spostamento
   const trasportoData = useMemo(() => {
     const tipiAbilitati = tipiPreparazione.filter(t => t.mostra_trasporto_store_manager);
     
@@ -315,30 +315,63 @@ export default function DashboardStoreManager() {
       const semilavorato = ricette.find(r => r.id === tipo.semilavorato_id);
       if (!semilavorato) return null;
 
-      // Trova la preparazione più recente di questo tipo in tutti gli store
-      const prep = preparazioni
-        .filter(p => p.tipo_preparazione === tipo.nome)
-        .sort((a, b) => new Date(b.data_rilevazione) - new Date(a.data_rilevazione))[0];
+      // Per OGNI store, calcola la quantità disponibile di questo semilavorato
+      const storeQuantita = stores.map(store => {
+        const prepPerStore = preparazioni
+          .filter(p => p.tipo_preparazione === tipo.nome && p.store_id === store.id)
+          .sort((a, b) => new Date(b.data_rilevazione) - new Date(a.data_rilevazione))[0];
 
-      if (!prep) return null;
+        if (!prepPerStore) return null;
 
-      // Calcola quantità disponibile in base alla quantità prodotta dal semilavorato
-      const unitaProdotte = semilavorato.quantita_prodotta || 1;
-      const quantitaDisponibile = prep.peso_grammi / unitaProdotte;
+        const unitaProdotte = semilavorato.quantita_prodotta || 1;
+        const quantitaDisponibile = Math.floor(prepPerStore.peso_grammi / unitaProdotte);
+        const quantitaMinima = tipo.quantita_minima_per_store?.[store.id] || 0;
+
+        return {
+          storeId: store.id,
+          storeName: store.name,
+          quantita: quantitaDisponibile,
+          pesoTotale: prepPerStore.peso_grammi,
+          quantitaMinima,
+          dataPreparazione: prepPerStore.data_rilevazione,
+          differenza: quantitaDisponibile - quantitaMinima
+        };
+      }).filter(Boolean);
+
+      if (storeQuantita.length === 0) return null;
+
+      // Calcola suggerimenti di spostamento per equilibrare
+      const suggerimenti = [];
+      const storeConEccesso = storeQuantita.filter(s => s.differenza > 0).sort((a, b) => b.differenza - a.differenza);
+      const storeConDeficit = storeQuantita.filter(s => s.differenza < 0).sort((a, b) => a.differenza - b.differenza);
+
+      for (const from of storeConEccesso) {
+        for (const to of storeConDeficit) {
+          const qtyTrasportabile = Math.min(from.differenza, Math.abs(to.differenza));
+          if (qtyTrasportabile > 0) {
+            suggerimenti.push({
+              da: from.storeName,
+              a: to.storeName,
+              quantita: qtyTrasportabile,
+              daId: from.storeId,
+              aId: to.storeId
+            });
+            from.differenza -= qtyTrasportabile;
+            to.differenza += qtyTrasportabile;
+          }
+        }
+      }
 
       return {
         tipo: tipo.nome,
         semilavorato: semilavorato.nome_prodotto,
         storePreparazione: tipo.store_preparazione_nome,
-        storePreparazioneId: tipo.store_preparazione_id,
-        quantitaDisponibile: Math.floor(quantitaDisponibile),
-        pesoTotale: prep.peso_grammi,
-        unitaMisura: semilavorato.unita_misura_prodotta || 'grammi',
-        dataUltimaPreparazione: prep.data_rilevazione,
-        store: prep.store_name
+        storeQuantita,
+        suggerimenti,
+        unitaMisura: semilavorato.unita_misura_prodotta || 'grammi'
       };
     }).filter(Boolean);
-  }, [tipiPreparazione, preparazioni, ricette]);
+  }, [tipiPreparazione, preparazioni, ricette, stores]);
 
   // Scorecard dipendenti - BASATO SUI TURNI EFFETTIVI (come Employees.js)
   const employeeScorecard = useMemo(() => {
@@ -883,31 +916,64 @@ export default function DashboardStoreManager() {
                 <h2 className="text-xl font-bold text-slate-800">Trasporto tra Locali</h2>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-6">
                 {trasportoData.map((data, idx) => (
-                  <div key={idx} className="neumorphic-pressed p-4 rounded-xl">
-                    <div className="mb-3">
-                      <h3 className="font-bold text-slate-800">{data.semilavorato}</h3>
-                      <p className="text-xs text-slate-500 mt-1">Tipo: {data.tipo}</p>
+                  <div key={idx} className="neumorphic-flat p-4 rounded-xl">
+                    <div className="mb-4">
+                      <h3 className="font-bold text-slate-800 text-lg">{data.semilavorato}</h3>
+                      <p className="text-xs text-slate-500 mt-1">📍 Preparato in: <strong>{data.storePreparazione}</strong></p>
                     </div>
 
-                    <div className="bg-white rounded-lg p-3 mb-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-slate-600">Disponibile</span>
-                        <span className="text-lg font-bold text-blue-600">
-                          {data.quantitaDisponibile} {data.unitaMisura}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-slate-500">
-                        <span>Peso totale</span>
-                        <span>{data.pesoTotale}g</span>
-                      </div>
+                    {/* Tabella con quantità per negozio */}
+                    <div className="overflow-x-auto mb-4">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-slate-300">
+                            <th className="text-left p-2 text-slate-600 font-medium">Locale</th>
+                            <th className="text-center p-2 text-slate-600 font-medium">Quantità</th>
+                            <th className="text-center p-2 text-slate-600 font-medium">Minimo</th>
+                            <th className="text-center p-2 text-slate-600 font-medium">Stato</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {data.storeQuantita.map((sq) => (
+                            <tr key={sq.storeId} className="border-b border-slate-100 hover:bg-slate-50">
+                              <td className="p-2 text-slate-700">{sq.storeName}</td>
+                              <td className="p-2 text-center font-bold text-blue-600">{sq.quantita} {data.unitaMisura}</td>
+                              <td className="p-2 text-center text-slate-600">{sq.quantitaMinima}</td>
+                              <td className="p-2 text-center">
+                                {sq.differenza > 0 ? (
+                                  <span className="inline-block px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
+                                    +{sq.differenza}
+                                  </span>
+                                ) : sq.differenza < 0 ? (
+                                  <span className="inline-block px-2 py-1 rounded-full bg-red-100 text-red-700 text-xs font-medium">
+                                    {sq.differenza}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-slate-500">OK</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
 
-                    <div className="text-xs space-y-1 text-slate-600">
-                      <p>📍 Preparato in: <strong>{data.storePreparazione}</strong></p>
-                      <p>🕐 Ultimo: {moment(data.dataUltimaPreparazione).format('DD/MM HH:mm')}</p>
-                    </div>
+                    {/* Suggerimenti di spostamento */}
+                    {data.suggerimenti.length > 0 && (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <h4 className="font-bold text-yellow-800 text-sm mb-2">💡 Suggerimenti di Spostamento</h4>
+                        <div className="space-y-2">
+                          {data.suggerimenti.map((sug, sIdx) => (
+                            <div key={sIdx} className="text-sm text-slate-700">
+                              <span className="font-medium">{sug.da}</span> → <span className="font-medium">{sug.a}</span>
+                              <span className="ml-2 font-bold text-blue-600">{sug.quantita} {data.unitaMisura}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
