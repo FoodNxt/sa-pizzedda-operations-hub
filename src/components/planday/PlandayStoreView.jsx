@@ -55,15 +55,22 @@ export default function PlandayStoreView({
   }, [weekStart]);
 
   const dipendentiConTurni = useMemo(() => {
-    // Mostra solo i dipendenti che hanno turni assegnati questa settimana
+    // Mostra tutti i dipendenti dello store + dipendenti con turni
     const dipendentiIds = new Set(turni.filter(t => t.dipendente_id).map(t => t.dipendente_id));
-    const dipendentiConTurniAttivi = users.filter(u => dipendentiIds.has(u.id));
+    const dipendenteDelStore = new Set(users.filter(u => {
+      const assigned = u.assigned_stores || [];
+      const storeName = stores.find(s => s.id === selectedStore)?.name;
+      return storeName && assigned.includes(storeName);
+    }).map(u => u.id));
     
-    return dipendentiConTurniAttivi.map(u => ({
+    const allIds = new Set([...dipendentiIds, ...dipendenteDelStore]);
+    const dipendentiList = users.filter(u => allIds.has(u.id));
+    
+    return dipendentiList.map(u => ({
       ...u,
       turniSettimana: turni.filter(t => t.dipendente_id === u.id)
     }));
-  }, [turni, users]);
+  }, [turni, users, selectedStore, stores]);
 
   const turniByDipendente = useMemo(() => {
     const grouped = {};
