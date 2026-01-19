@@ -13,7 +13,8 @@ import {
   Pizza,
   Trash2,
   UserCheck,
-  AlertTriangle
+  AlertTriangle,
+  Truck
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 

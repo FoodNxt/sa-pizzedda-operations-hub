@@ -98,6 +98,7 @@ import ResetAdmin from './pages/ResetAdmin';
 import Ricette from './pages/Ricette';
 import Ritardi from './pages/Ritardi';
 import Segnalazioni from './pages/Segnalazioni';
+import SpostamentiAdmin from './pages/SpostamentiAdmin';
 import StoreManagerAdmin from './pages/StoreManagerAdmin';
 import StoreReviews from './pages/StoreReviews';
 import StoricoCassa from './pages/StoricoCassa';
@@ -115,7 +116,6 @@ import ValutazionePulizie from './pages/ValutazionePulizie';
 import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSetup from './pages/ZapierSetup';
-import SpostamentiAdmin from './pages/SpostamentiAdmin';
 import __Layout from './Layout.jsx';
 
 
@@ -220,6 +220,7 @@ export const PAGES = {
     "Ricette": Ricette,
     "Ritardi": Ritardi,
     "Segnalazioni": Segnalazioni,
+    "SpostamentiAdmin": SpostamentiAdmin,
     "StoreManagerAdmin": StoreManagerAdmin,
     "StoreReviews": StoreReviews,
     "StoricoCassa": StoricoCassa,
@@ -237,7 +238,6 @@ export const PAGES = {
     "ZapierProdottiVenduti": ZapierProdottiVenduti,
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSetup": ZapierSetup,
-    "SpostamentiAdmin": SpostamentiAdmin,
 }
 
 export const pagesConfig = {
