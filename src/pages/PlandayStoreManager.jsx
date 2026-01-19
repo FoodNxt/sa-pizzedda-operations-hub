@@ -73,16 +73,31 @@ export default function PlandayStoreManager() {
     queryFn: () => base44.entities.Employee.list(),
   });
 
+  // Fetch complete User data to get assigned_stores
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ['all-users'],
+    queryFn: () => base44.entities.User.list(),
+  });
+
   // Trasforma Employee in formato compatibile con User per il resto del codice
   const users = useMemo(() => {
-    return employees.map(emp => ({
-      id: emp.employee_id_external || emp.id,
-      nome_cognome: emp.full_name,
-      full_name: emp.full_name,
-      email: emp.email,
-      ruoli_dipendente: emp.function_name ? [emp.function_name] : []
-    }));
-  }, [employees]);
+    return employees.map(emp => {
+      // Find corresponding User record to get assigned_stores
+      const userRecord = allUsers.find(u => 
+        u.email === emp.email || 
+        u.id === emp.employee_id_external
+      );
+      
+      return {
+        id: emp.employee_id_external || emp.id,
+        nome_cognome: emp.full_name,
+        full_name: emp.full_name,
+        email: emp.email,
+        ruoli_dipendente: emp.function_name ? [emp.function_name] : [],
+        assigned_stores: userRecord?.assigned_stores || []
+      };
+    });
+  }, [employees, allUsers]);
 
   const { data: turni = [], isLoading } = useQuery({
     queryKey: ['turni-store-manager', selectedStore, weekStart.format('YYYY-MM-DD')],
