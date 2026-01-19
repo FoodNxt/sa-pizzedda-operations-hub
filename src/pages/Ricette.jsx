@@ -421,7 +421,12 @@ export default function Ricette() {
       }
     }
 
-    const costoUnitario = calculateCosts();
+    let costoUnitario = calculateCosts();
+    
+    // Se è semilavorato con quantità prodotta, dividi il costo totale per la quantità
+    if (formData.is_semilavorato && formData.quantita_prodotta) {
+      costoUnitario = costoUnitario / parseFloat(formData.quantita_prodotta);
+    }
     
     // Set prices based on venduto flags
     const prezzoOnline = formData.is_semilavorato || !formData.venduto_online ? 0 : (parseFloat(formData.prezzo_vendita_online) || 0);
