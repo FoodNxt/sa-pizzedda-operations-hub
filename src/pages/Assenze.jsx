@@ -801,7 +801,7 @@ export default function Assenze() {
                  )}
                </div>
                )
-               )}
+               }
                </NeumorphicCard>
                )}
 
