@@ -116,6 +116,11 @@ export default function DashboardStoreManager() {
     queryFn: () => base44.entities.Ricetta.filter({ is_semilavorato: true })
   });
 
+  const { data: rilevazioniInventario = [] } = useQuery({
+    queryKey: ['rilevazioni-inventario'],
+    queryFn: () => base44.entities.RilevazioneInventario.list('-data_rilevazione', 2000)
+  });
+
   // Trova i locali di cui l'utente è Store Manager
   const myStores = useMemo(() => {
     if (!currentUser?.id) return [];
@@ -315,49 +320,52 @@ export default function DashboardStoreManager() {
       const semilavorato = ricette.find(r => r.id === tipo.semilavorato_id);
       if (!semilavorato) return null;
 
-      // Per OGNI store, calcola la quantità disponibile di questo semilavorato
+      // Per OGNI store, prendi l'ultima rilevazione inventario del semilavorato
       const storeQuantita = stores.map(store => {
-        const prepPerStore = preparazioni
-          .filter(p => p.tipo_preparazione === tipo.nome && p.store_id === store.id)
+        const rilevazione = rilevazioniInventario
+          .filter(r => r.prodotto_id === semilavorato.id && r.store_id === store.id)
           .sort((a, b) => new Date(b.data_rilevazione) - new Date(a.data_rilevazione))[0];
 
-        if (!prepPerStore) return null;
+        if (!rilevazione) return null;
 
-        const unitaProdotte = semilavorato.quantita_prodotta || 1;
-        const quantitaDisponibile = Math.floor(prepPerStore.peso_grammi / unitaProdotte);
+        const quantitaDisponibile = rilevazione.quantita_rilevata || 0;
         const quantitaMinima = tipo.quantita_minima_per_store?.[store.id] || 0;
 
         return {
           storeId: store.id,
           storeName: store.name,
           quantita: quantitaDisponibile,
-          pesoTotale: prepPerStore.peso_grammi,
           quantitaMinima,
-          dataPreparazione: prepPerStore.data_rilevazione,
+          dataRilevazione: rilevazione.data_rilevazione,
           differenza: quantitaDisponibile - quantitaMinima
         };
       }).filter(Boolean);
 
       if (storeQuantita.length === 0) return null;
 
-      // Calcola suggerimenti di spostamento per equilibrare
+      // Calcola suggerimenti: spostare SOLO dal locale di preparazione agli altri
       const suggerimenti = [];
-      const storeConEccesso = storeQuantita.filter(s => s.differenza > 0).sort((a, b) => b.differenza - a.differenza);
-      const storeConDeficit = storeQuantita.filter(s => s.differenza < 0).sort((a, b) => a.differenza - b.differenza);
+      const storePreparazioneId = tipo.store_preparazione_id;
+      
+      if (storePreparazioneId) {
+        const storeSource = storeQuantita.find(s => s.storeId === storePreparazioneId);
+        const storeConDeficit = storeQuantita
+          .filter(s => s.differenza < 0 && s.storeId !== storePreparazioneId)
+          .sort((a, b) => a.differenza - b.differenza);
 
-      for (const from of storeConEccesso) {
-        for (const to of storeConDeficit) {
-          const qtyTrasportabile = Math.min(from.differenza, Math.abs(to.differenza));
-          if (qtyTrasportabile > 0) {
-            suggerimenti.push({
-              da: from.storeName,
-              a: to.storeName,
-              quantita: qtyTrasportabile,
-              daId: from.storeId,
-              aId: to.storeId
-            });
-            from.differenza -= qtyTrasportabile;
-            to.differenza += qtyTrasportabile;
+        if (storeSource && storeSource.differenza > 0) {
+          for (const to of storeConDeficit) {
+            const qtyTrasportabile = Math.min(storeSource.differenza, Math.abs(to.differenza));
+            if (qtyTrasportabile > 0) {
+              suggerimenti.push({
+                da: storeSource.storeName,
+                a: to.storeName,
+                quantita: qtyTrasportabile,
+                daId: storeSource.storeId,
+                aId: to.storeId
+              });
+              storeSource.differenza -= qtyTrasportabile;
+            }
           }
         }
       }
@@ -366,12 +374,13 @@ export default function DashboardStoreManager() {
         tipo: tipo.nome,
         semilavorato: semilavorato.nome_prodotto,
         storePreparazione: tipo.store_preparazione_nome,
+        storePreparazioneId: tipo.store_preparazione_id,
         storeQuantita,
         suggerimenti,
         unitaMisura: semilavorato.unita_misura_prodotta || 'grammi'
       };
     }).filter(Boolean);
-  }, [tipiPreparazione, preparazioni, ricette, stores]);
+  }, [tipiPreparazione, rilevazioniInventario, ricette, stores]);
 
   // Scorecard dipendenti - BASATO SUI TURNI EFFETTIVI (come Employees.js)
   const employeeScorecard = useMemo(() => {
@@ -932,27 +941,24 @@ export default function DashboardStoreManager() {
                             <th className="text-left p-2 text-slate-600 font-medium">Locale</th>
                             <th className="text-center p-2 text-slate-600 font-medium">Quantità</th>
                             <th className="text-center p-2 text-slate-600 font-medium">Minimo</th>
-                            <th className="text-center p-2 text-slate-600 font-medium">Stato</th>
+                            <th className="text-center p-2 text-slate-600 font-medium">Ultima Rilevazione</th>
                           </tr>
                         </thead>
                         <tbody>
                           {data.storeQuantita.map((sq) => (
-                            <tr key={sq.storeId} className="border-b border-slate-100 hover:bg-slate-50">
-                              <td className="p-2 text-slate-700">{sq.storeName}</td>
+                            <tr key={sq.storeId} className={`border-b border-slate-100 hover:bg-slate-50 ${
+                              sq.differenza < 0 ? 'bg-red-50' : sq.differenza > 0 && sq.storeId === data.storePreparazioneId ? 'bg-green-50' : ''
+                            }`}>
+                              <td className="p-2 text-slate-700">
+                                {sq.storeName}
+                                {sq.storeId === data.storePreparazioneId && (
+                                  <span className="ml-2 text-xs text-blue-600">🏭 Origine</span>
+                                )}
+                              </td>
                               <td className="p-2 text-center font-bold text-blue-600">{sq.quantita} {data.unitaMisura}</td>
                               <td className="p-2 text-center text-slate-600">{sq.quantitaMinima}</td>
-                              <td className="p-2 text-center">
-                                {sq.differenza > 0 ? (
-                                  <span className="inline-block px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
-                                    +{sq.differenza}
-                                  </span>
-                                ) : sq.differenza < 0 ? (
-                                  <span className="inline-block px-2 py-1 rounded-full bg-red-100 text-red-700 text-xs font-medium">
-                                    {sq.differenza}
-                                  </span>
-                                ) : (
-                                  <span className="text-xs text-slate-500">OK</span>
-                                )}
+                              <td className="p-2 text-center text-xs text-slate-500">
+                                {moment(sq.dataRilevazione).format('DD/MM HH:mm')}
                               </td>
                             </tr>
                           ))}
@@ -961,17 +967,39 @@ export default function DashboardStoreManager() {
                     </div>
 
                     {/* Suggerimenti di spostamento */}
-                    {data.suggerimenti.length > 0 && (
-                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                        <h4 className="font-bold text-yellow-800 text-sm mb-2">💡 Suggerimenti di Spostamento</h4>
-                        <div className="space-y-2">
+                    {data.suggerimenti.length > 0 ? (
+                      <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-4">
+                        <h4 className="font-bold text-blue-800 text-sm mb-3 flex items-center gap-2">
+                          <Truck className="w-5 h-5" />
+                          Spostamenti Consigliati
+                        </h4>
+                        <div className="space-y-3">
                           {data.suggerimenti.map((sug, sIdx) => (
-                            <div key={sIdx} className="text-sm text-slate-700">
-                              <span className="font-medium">{sug.da}</span> → <span className="font-medium">{sug.a}</span>
-                              <span className="ml-2 font-bold text-blue-600">{sug.quantita} {data.unitaMisura}</span>
+                            <div key={sIdx} className="bg-white rounded-lg p-3 border border-blue-200">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="text-center">
+                                    <p className="text-xs text-slate-500 mb-1">Da (Origine)</p>
+                                    <p className="font-bold text-blue-700">{sug.da}</p>
+                                  </div>
+                                  <ArrowRight className="w-5 h-5 text-blue-600" />
+                                  <div className="text-center">
+                                    <p className="text-xs text-slate-500 mb-1">A (Destinazione)</p>
+                                    <p className="font-bold text-green-700">{sug.a}</p>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-xs text-slate-500 mb-1">Quantità</p>
+                                  <p className="text-lg font-bold text-blue-600">{sug.quantita} {data.unitaMisura}</p>
+                                </div>
+                              </div>
                             </div>
                           ))}
                         </div>
+                      </div>
+                    ) : (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                        <p className="text-sm text-green-700 font-medium">✅ Tutte le scorte sono equilibrate</p>
                       </div>
                     )}
                   </div>
