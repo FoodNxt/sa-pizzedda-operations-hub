@@ -149,14 +149,38 @@ export default function DashboardStoreManager() {
       return date.isBetween(monthStart, monthEnd, 'day', '[]');
     });
 
-    // Ritardi - SOLO somma diretta dei ritardi reali
+    // Ritardi - DEBUG COMPLETO
+    console.log('🔍 INIZIO CALCOLO RITARDI');
+    console.log('Store selezionato:', selectedStoreId);
+    console.log('Mese selezionato:', selectedMonth);
+    console.log('monthStart:', monthStart.format('YYYY-MM-DD'));
+    console.log('monthEnd:', monthEnd.format('YYYY-MM-DD'));
+    console.log('Totale turni disponibili:', shifts.length);
+    
     const monthShiftsWithClockIn = shifts.filter(s => {
-      if (s.store_id !== selectedStoreId || !s.data) return false;
-      if (!s.timbratura_entrata || !s.ora_inizio) return false;
+      const passStoreId = s.store_id === selectedStoreId;
+      const hasData = !!s.data;
+      const hasTimbratura = !!s.timbratura_entrata;
+      const hasOraInizio = !!s.ora_inizio;
       const shiftDate = moment(s.data);
-      if (!shiftDate.isValid()) return false;
-      return shiftDate.isBetween(monthStart, monthEnd, 'day', '[]');
+      const isValidDate = shiftDate.isValid();
+      const isInRange = isValidDate && shiftDate.isBetween(monthStart, monthEnd, 'day', '[]');
+      
+      if (passStoreId && hasData && isInRange) {
+        console.log('📋 Turno nel periodo:', {
+          data: s.data,
+          dipendente: s.dipendente_nome,
+          hasTimbratura,
+          hasOraInizio,
+          timbratura_entrata: s.timbratura_entrata,
+          ora_inizio: s.ora_inizio
+        });
+      }
+      
+      return passStoreId && hasData && hasTimbratura && hasOraInizio && isInRange;
     });
+    
+    console.log('✅ Turni con timbratura valida:', monthShiftsWithClockIn.length);
     
     let totalDelayMinutes = 0;
     
@@ -170,10 +194,23 @@ export default function DashboardStoreManager() {
         const delayMinutes = Math.floor(delayMs / 60000);
         const ritardoReale = delayMinutes > 0 ? delayMinutes : 0;
         totalDelayMinutes += ritardoReale;
+        
+        if (ritardoReale > 0) {
+          console.log('⏰ RITARDO TROVATO:', {
+            dipendente: shift.dipendente_nome,
+            data: shift.data,
+            ora_inizio: shift.ora_inizio,
+            timbratura: clockInTime.toLocaleTimeString('it-IT'),
+            ritardoReale,
+            totalDelayMinutes
+          });
+        }
       } catch (e) {
-        console.error('Errore calcolo ritardo:', e);
+        console.error('❌ Errore calcolo ritardo:', e, shift);
       }
     });
+    
+    console.log('🎯 TOTALE FINALE RITARDI:', totalDelayMinutes, 'minuti');
     
     const avgDelay = monthShiftsWithClockIn.length > 0 ? totalDelayMinutes / monthShiftsWithClockIn.length : 0;
     const monthShifts = monthShiftsWithClockIn;
