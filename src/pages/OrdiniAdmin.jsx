@@ -52,6 +52,9 @@ export default function OrdiniAdmin() {
   const [searchTermModal, setSearchTermModal] = useState('');
   const [showRegoleForm, setShowRegoleForm] = useState(false);
   const [editingRegola, setEditingRegola] = useState(null);
+  const [addProductModal, setAddProductModal] = useState({ open: false, availableProducts: [] });
+  const [selectedProductToAdd, setSelectedProductToAdd] = useState('');
+  const [productQuantity, setProductQuantity] = useState(0);
 
   const queryClient = useQueryClient();
 
