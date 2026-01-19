@@ -110,7 +110,7 @@ export default function Precotture() {
           
           // Salva ANCHE in Preparazioni per lo storico compilazioni
           try {
-            await base44.entities.Preparazioni.create({
+            console.log('Tentativo salvataggio Preparazioni con dati:', {
               store_id: result.store.id,
               store_name: result.store.name,
               data_rilevazione: new Date().toISOString(),
@@ -122,8 +122,23 @@ export default function Precotture() {
               rosse_preparate: result.rosseDaFare,
               turno: result.turno
             });
+            
+            const preparazioneRecord = await base44.entities.Preparazioni.create({
+              store_id: result.store.id,
+              store_name: result.store.name,
+              data_rilevazione: new Date().toISOString(),
+              rilevato_da: user.nome_cognome || user.full_name,
+              tipo_preparazione: 'Precotture',
+              peso_grammi: 0,
+              rosse_presenti: result.rossePresenti,
+              rosse_richieste: result.rosseRichieste,
+              rosse_preparate: result.rosseDaFare,
+              turno: result.turno
+            });
+            console.log('Preparazioni salvate con successo:', preparazioneRecord);
           } catch (error) {
             console.error('Errore salvataggio Preparazioni:', error);
+            alert('Errore salvataggio storico: ' + error.message);
           }
         }
       }
