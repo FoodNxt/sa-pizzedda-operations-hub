@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import moment from "moment";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
@@ -116,22 +117,25 @@ export default function DashboardStoreManager() {
   const metrics = useMemo(() => {
     if (myStores.length === 0 || !selectedStoreId) return null;
 
-    const storeIds = [selectedStoreId];
-    const monthStart = new Date(`${selectedMonth}-01`);
-    const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
+    const monthStart = moment(selectedMonth, 'YYYY-MM').startOf('month');
+    const monthEnd = moment(selectedMonth, 'YYYY-MM').endOf('month');
 
     // Fatturato
     const monthRevenue = iPratico
       .filter(r => {
-        const date = new Date(r.order_date);
-        return storeIds.includes(r.store_id) && date >= monthStart && date <= monthEnd;
+        if (r.store_id !== selectedStoreId || !r.order_date) return false;
+        const date = moment(r.order_date);
+        if (!date.isValid()) return false;
+        return date.isBetween(monthStart, monthEnd, 'day', '[]');
       })
       .reduce((acc, r) => acc + (r.total_revenue || 0), 0);
 
     // Recensioni
     const monthReviews = reviews.filter(r => {
-      const date = new Date(r.review_date);
-      return storeIds.includes(r.store_id) && date >= monthStart && date <= monthEnd;
+      if (r.store_id !== selectedStoreId || !r.review_date) return false;
+      const date = moment(r.review_date);
+      if (!date.isValid()) return false;
+      return date.isBetween(monthStart, monthEnd, 'day', '[]');
     });
     const avgRating = monthReviews.length > 0
       ? monthReviews.reduce((acc, r) => acc + r.rating, 0) / monthReviews.length
@@ -139,14 +143,19 @@ export default function DashboardStoreManager() {
 
     // Ordini sbagliati
     const monthWrongOrders = wrongOrders.filter(o => {
-      const date = new Date(o.order_date);
-      return storeIds.includes(o.store_id) && date >= monthStart && date <= monthEnd;
+      if (o.store_id !== selectedStoreId) return false;
+      const date = moment(o.order_date);
+      if (!date.isValid()) return false;
+      return date.isBetween(monthStart, monthEnd, 'day', '[]');
     });
 
-    // Ritardi - calcola direttamente da TurnoPlanday (STESSO CALCOLO DI STOREMAGERADMIN)
+    // Ritardi - IDENTICO CALCOLO ADMIN (usando moment per filtri precisi)
     const monthShifts = shifts.filter(s => {
-      const date = new Date(s.data);
-      return storeIds.includes(s.store_id) && date >= monthStart && date <= monthEnd && s.timbratura_entrata && s.ora_inizio;
+      if (s.store_id !== selectedStoreId) return false;
+      if (!s.data || !s.timbratura_entrata || !s.ora_inizio) return false;
+      const shiftDate = moment(s.data);
+      if (!shiftDate.isValid()) return false;
+      return shiftDate.isBetween(monthStart, monthEnd, 'day', '[]');
     });
     
     let totalDelayMinutes = 0;
@@ -168,8 +177,10 @@ export default function DashboardStoreManager() {
 
     // Pulizie - solo form completati con score
     const monthInspections = inspections.filter(i => {
-      const date = new Date(i.inspection_date);
-      return storeIds.includes(i.store_id) && date >= monthStart && date <= monthEnd && (i.overall_score || 0) > 0;
+      if (i.store_id !== selectedStoreId || !i.inspection_date || !i.overall_score) return false;
+      const date = moment(i.inspection_date);
+      if (!date.isValid()) return false;
+      return date.isBetween(monthStart, monthEnd, 'day', '[]');
     });
     const avgCleaningScore = monthInspections.length > 0
       ? monthInspections.reduce((acc, i) => acc + (i.overall_score || 0), 0) / monthInspections.length
@@ -226,7 +237,7 @@ export default function DashboardStoreManager() {
       target,
       bonusTotale
     };
-  }, [selectedStoreId, selectedMonth, iPratico, reviews, wrongOrders, shifts, inspections, targets]);
+  }, [selectedStoreId, selectedMonth, iPratico, reviews, wrongOrders, shifts, inspections, targets, moment]);
 
   // Ultimo conteggio cassa
   const ultimoConteggioCassa = useMemo(() => {
@@ -243,14 +254,15 @@ export default function DashboardStoreManager() {
   const employeeScorecard = useMemo(() => {
     if (!selectedStoreId) return [];
 
-    const monthStart = new Date(`${selectedMonth}-01`);
-    const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
+    const monthStart = moment(selectedMonth, 'YYYY-MM').startOf('month');
+    const monthEnd = moment(selectedMonth, 'YYYY-MM').endOf('month');
 
     // 1. Filtra turni per store e periodo
     const storeShifts = shifts.filter(s => {
-      if (s.store_id !== selectedStoreId) return false;
-      const date = new Date(s.data);
-      return date >= monthStart && date <= monthEnd;
+      if (s.store_id !== selectedStoreId || !s.data) return false;
+      const date = moment(s.data);
+      if (!date.isValid()) return false;
+      return date.isBetween(monthStart, monthEnd, 'day', '[]');
     });
 
     // 2. Estrai nomi univoci dipendenti da questi turni
@@ -288,12 +300,13 @@ export default function DashboardStoreManager() {
       
       // Trova recensioni assegnate
       const empReviews = reviews.filter(r => {
-        if (!r.employee_assigned_name) return false;
+        if (!r.employee_assigned_name || !r.review_date) return false;
         const assignedNames = r.employee_assigned_name.split(',').map(n => n.trim().toLowerCase());
         if (!assignedNames.includes(employeeName.toLowerCase())) return false;
         
-        const date = new Date(r.review_date);
-        return date >= monthStart && date <= monthEnd;
+        const date = moment(r.review_date);
+        if (!date.isValid()) return false;
+        return date.isBetween(monthStart, monthEnd, 'day', '[]');
       });
       
       const googleReviews = empReviews.filter(r => r.source === 'google');
@@ -307,8 +320,10 @@ export default function DashboardStoreManager() {
         .map(m => wrongOrders.find(wo => wo.id === m.wrong_order_id))
         .filter(Boolean)
         .filter(wo => {
-          const date = new Date(wo.order_date);
-          return date >= monthStart && date <= monthEnd && wo.store_id === selectedStoreId;
+          if (wo.store_id !== selectedStoreId || !wo.order_date) return false;
+          const date = moment(wo.order_date);
+          if (!date.isValid()) return false;
+          return date.isBetween(monthStart, monthEnd, 'day', '[]');
         });
 
       // Trova user corrispondente per email e ruoli
@@ -855,9 +870,13 @@ export default function DashboardStoreManager() {
                                     <div className="space-y-2">
                                       {emp.lateShiftsDetails.slice(0, 5).map((shift, idx) => {
                                        let ritardoReale = 0;
+                                       let oraInizioTurno = '';
+                                       let oraTimbratura = '';
                                        if (shift.timbratura_entrata && shift.ora_inizio) {
                                          try {
                                            const clockInTime = new Date(shift.timbratura_entrata);
+                                           oraTimbratura = clockInTime.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+                                           oraInizioTurno = shift.ora_inizio;
                                            const [oraInizioHH, oraInizioMM] = shift.ora_inizio.split(':').map(Number);
                                            const scheduledStart = new Date(clockInTime);
                                            scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
@@ -868,9 +887,12 @@ export default function DashboardStoreManager() {
                                        }
                                        return (
                                          <div key={idx} className="bg-white p-3 rounded-lg text-sm">
-                                           <div className="flex items-center justify-between">
-                                             <span className="text-slate-600">{new Date(shift.data).toLocaleDateString('it-IT')}</span>
+                                           <div className="flex items-center justify-between mb-2">
+                                             <span className="font-medium text-slate-700">{new Date(shift.data).toLocaleDateString('it-IT')}</span>
                                              <span className="font-bold text-red-600">+{ritardoReale} min</span>
+                                           </div>
+                                           <div className="text-xs text-slate-500">
+                                             <strong>Previsto:</strong> {oraInizioTurno} → <strong>Timbrato:</strong> {oraTimbratura}
                                            </div>
                                          </div>
                                        );
