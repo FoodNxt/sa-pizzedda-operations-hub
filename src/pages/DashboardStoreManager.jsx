@@ -185,7 +185,7 @@ export default function DashboardStoreManager() {
         bonusTotale += target.bonus_ordini_sbagliati || 0;
       }
       // Ritardi
-      if (metriche.includes('ritardi') && avgDelay <= target.target_ritardi_max_minuti && avgDelay <= (target.soglia_max_ritardi || 999)) {
+      if (metriche.includes('ritardi') && totalDelayMinutes <= target.target_ritardi_max_minuti && totalDelayMinutes <= (target.soglia_max_ritardi || 999)) {
         bonusTotale += target.bonus_ritardi || 0;
       }
       // Pulizie
@@ -202,6 +202,7 @@ export default function DashboardStoreManager() {
       wrongOrdersCount: monthWrongOrders.length,
       monthWrongOrders,
       avgDelay,
+      totalDelayMinutes,
       avgCleaningScore,
       totalShifts: monthShifts.length,
       totalInspections: monthInspections.length,
@@ -497,7 +498,7 @@ export default function DashboardStoreManager() {
                   <div className="neumorphic-flat p-3 rounded-xl text-center">
                     <Clock className="w-5 h-5 text-blue-600 mx-auto mb-1" />
                     <p className="text-xs text-slate-500 mb-1">Ritardi</p>
-                    {metrics.avgDelay <= metrics.target.target_ritardi_max_minuti ? (
+                    {metrics.totalDelayMinutes <= metrics.target.target_ritardi_max_minuti ? (
                       <CheckCircle className="w-5 h-5 text-green-600 mx-auto" />
                     ) : (
                       <XCircle className="w-5 h-5 text-red-600 mx-auto" />
@@ -661,8 +662,8 @@ export default function DashboardStoreManager() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div className="neumorphic-pressed p-4 rounded-xl text-center">
-                  <p className="text-xs text-slate-500 mb-1">Media Attuale</p>
-                  <p className="text-2xl font-bold text-slate-800">{metrics.avgDelay.toFixed(1)} min</p>
+                  <p className="text-xs text-slate-500 mb-1">Ritardi Tot</p>
+                  <p className="text-2xl font-bold text-slate-800">{metrics.totalDelayMinutes} min</p>
                   <p className="text-xs text-slate-500 mt-1">({metrics.totalShifts} turni)</p>
                 </div>
                 <div className="neumorphic-pressed p-4 rounded-xl text-center">
@@ -677,7 +678,7 @@ export default function DashboardStoreManager() {
                 </div>
                 <div className="neumorphic-pressed p-4 rounded-xl text-center">
                   <p className="text-xs text-slate-500 mb-1">Stato</p>
-                  {metrics.avgDelay <= metrics.target.target_ritardi_max_minuti ? (
+                  {metrics.totalDelayMinutes <= metrics.target.target_ritardi_max_minuti ? (
                     <CheckCircle className="w-8 h-8 text-green-600 mx-auto" />
                   ) : (
                     <XCircle className="w-8 h-8 text-red-600 mx-auto" />
