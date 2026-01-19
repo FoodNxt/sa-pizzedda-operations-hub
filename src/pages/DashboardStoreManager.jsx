@@ -18,7 +18,8 @@ import {
   Eye,
   X,
   ArrowRight,
-  Bell
+  Bell,
+  ChevronRight
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 
