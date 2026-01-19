@@ -20,7 +20,8 @@ import {
   X,
   ArrowRight,
   Bell,
-  ChevronRight
+  ChevronRight,
+  Truck
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 
@@ -98,6 +99,21 @@ export default function DashboardStoreManager() {
   const { data: conteggiCassa = [] } = useQuery({
     queryKey: ['conteggi-cassa'],
     queryFn: () => base44.entities.ConteggioCassa.list('-data_conteggio', 100)
+  });
+
+  const { data: tipiPreparazione = [] } = useQuery({
+    queryKey: ['tipi-preparazione'],
+    queryFn: () => base44.entities.TipoPreparazione.filter({ mostra_trasporto_store_manager: true })
+  });
+
+  const { data: preparazioni = [] } = useQuery({
+    queryKey: ['preparazioni'],
+    queryFn: () => base44.entities.Preparazioni.list('-data_rilevazione', 1000)
+  });
+
+  const { data: ricette = [] } = useQuery({
+    queryKey: ['ricette-semilavorati'],
+    queryFn: () => base44.entities.Ricetta.filter({ is_semilavorato: true })
   });
 
   // Trova i locali di cui l'utente è Store Manager
@@ -289,6 +305,40 @@ export default function DashboardStoreManager() {
     
     return conteggioStore || null;
   }, [selectedStoreId, conteggiCassa]);
+
+  // Trasporto tra locali - Preparazioni disponibili
+  const trasportoData = useMemo(() => {
+    const tipiAbilitati = tipiPreparazione.filter(t => t.mostra_trasporto_store_manager);
+    
+    return tipiAbilitati.map(tipo => {
+      // Trova il semilavorato associato
+      const semilavorato = ricette.find(r => r.id === tipo.semilavorato_id);
+      if (!semilavorato) return null;
+
+      // Trova la preparazione più recente di questo tipo in tutti gli store
+      const prep = preparazioni
+        .filter(p => p.tipo_preparazione === tipo.nome)
+        .sort((a, b) => new Date(b.data_rilevazione) - new Date(a.data_rilevazione))[0];
+
+      if (!prep) return null;
+
+      // Calcola quantità disponibile in base alla quantità prodotta dal semilavorato
+      const unitaProdotte = semilavorato.quantita_prodotta || 1;
+      const quantitaDisponibile = prep.peso_grammi / unitaProdotte;
+
+      return {
+        tipo: tipo.nome,
+        semilavorato: semilavorato.nome_prodotto,
+        storePreparazione: tipo.store_preparazione_nome,
+        storePreparazioneId: tipo.store_preparazione_id,
+        quantitaDisponibile: Math.floor(quantitaDisponibile),
+        pesoTotale: prep.peso_grammi,
+        unitaMisura: semilavorato.unita_misura_prodotta || 'grammi',
+        dataUltimaPreparazione: prep.data_rilevazione,
+        store: prep.store_name
+      };
+    }).filter(Boolean);
+  }, [tipiPreparazione, preparazioni, ricette]);
 
   // Scorecard dipendenti - BASATO SUI TURNI EFFETTIVI (come Employees.js)
   const employeeScorecard = useMemo(() => {
@@ -825,8 +875,47 @@ export default function DashboardStoreManager() {
             </NeumorphicCard>
           )}
 
-          {/* Scorecard Dipendenti */}
-          <NeumorphicCard className="p-6">
+          {/* Trasporto tra Locali */}
+          {trasportoData.length > 0 && (
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <Truck className="w-6 h-6 text-blue-600" />
+                <h2 className="text-xl font-bold text-slate-800">Trasporto tra Locali</h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {trasportoData.map((data, idx) => (
+                  <div key={idx} className="neumorphic-pressed p-4 rounded-xl">
+                    <div className="mb-3">
+                      <h3 className="font-bold text-slate-800">{data.semilavorato}</h3>
+                      <p className="text-xs text-slate-500 mt-1">Tipo: {data.tipo}</p>
+                    </div>
+
+                    <div className="bg-white rounded-lg p-3 mb-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-600">Disponibile</span>
+                        <span className="text-lg font-bold text-blue-600">
+                          {data.quantitaDisponibile} {data.unitaMisura}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-slate-500">
+                        <span>Peso totale</span>
+                        <span>{data.pesoTotale}g</span>
+                      </div>
+                    </div>
+
+                    <div className="text-xs space-y-1 text-slate-600">
+                      <p>📍 Preparato in: <strong>{data.storePreparazione}</strong></p>
+                      <p>🕐 Ultimo: {moment(data.dataUltimaPreparazione).format('DD/MM HH:mm')}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </NeumorphicCard>
+          )}
+
+           {/* Scorecard Dipendenti */}
+           <NeumorphicCard className="p-6">
             <div className="flex items-center gap-3 mb-4">
               <Users className="w-6 h-6 text-indigo-600" />
               <h2 className="text-xl font-bold text-slate-800">Scorecard Dipendenti</h2>
