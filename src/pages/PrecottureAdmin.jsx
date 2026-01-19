@@ -57,13 +57,9 @@ export default function PrecottureAdmin() {
     queryFn: () => base44.entities.GestioneImpasti.list(),
   });
 
-  const { data: preparazioni = [] } = useQuery({
-    queryKey: ['preparazioni-storico'],
-    queryFn: async () => {
-      const allPrep = await base44.entities.Preparazioni.list('-created_date', 500);
-      // Filtra per tipo_preparazione 'Precotture'
-      return allPrep.filter(p => p.tipo_preparazione === 'Precotture');
-    },
+  const { data: precottureForm = [] } = useQuery({
+    queryKey: ['precotture-form-storico'],
+    queryFn: () => base44.entities.PrecottureForm.list('-created_date', 500),
     enabled: activeTab === 'storico'
   });
 
