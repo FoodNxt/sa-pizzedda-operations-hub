@@ -116,6 +116,19 @@ export default function PreparazioniAdmin() {
     });
   };
 
+  const handleUpdateTrasporto = async (tipo, showTrasporto, storeId) => {
+    const storeData = stores.find(s => s.id === storeId);
+    await updateTipoMutation.mutateAsync({
+      id: tipo.id,
+      data: {
+        ...tipo,
+        mostra_trasporto_store_manager: showTrasporto,
+        store_preparazione_id: storeId || null,
+        store_preparazione_nome: storeData?.name || null
+      }
+    });
+  };
+
   const handleDelete = async (id) => {
     if (confirm('Sei sicuro di voler eliminare questo tipo di preparazione?')) {
       await deleteTipoMutation.mutateAsync(id);
@@ -471,18 +484,46 @@ export default function PreparazioniAdmin() {
                         )}
                       </div>
 
-                      <div className="ml-4 w-48">
-                        <select
-                          value={tipo.semilavorato_id || ''}
-                          onChange={(e) => handleUpdateSemilavorato(tipo, e.target.value)}
-                          className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm text-slate-700 outline-none"
-                        >
-                          <option value="">Nessun semilavorato</option>
-                          {ricette.map(r => (
-                            <option key={r.id} value={r.id}>{r.nome_prodotto}</option>
-                          ))}
-                        </select>
-                      </div>
+                      <div className="ml-4 flex gap-3">
+                        <div className="w-48">
+                          <select
+                            value={tipo.semilavorato_id || ''}
+                            onChange={(e) => handleUpdateSemilavorato(tipo, e.target.value)}
+                            className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm text-slate-700 outline-none"
+                          >
+                            <option value="">Nessun semilavorato</option>
+                            {ricette.map(r => (
+                              <option key={r.id} value={r.id}>{r.nome_prodotto}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="w-32">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={tipo.mostra_trasporto_store_manager || false}
+                              onChange={(e) => handleUpdateTrasporto(tipo, e.target.checked, tipo.store_preparazione_id)}
+                              className="w-4 h-4 text-blue-600 rounded"
+                            />
+                            <span className="text-xs text-slate-700">Trasporto SM</span>
+                          </label>
+                        </div>
+
+                        {tipo.mostra_trasporto_store_manager && (
+                          <div className="w-40">
+                            <select
+                              value={tipo.store_preparazione_id || ''}
+                              onChange={(e) => handleUpdateTrasporto(tipo, true, e.target.value)}
+                              className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm text-slate-700 outline-none"
+                            >
+                              <option value="">-- Seleziona store --</option>
+                              {stores.map(s => (
+                                <option key={s.id} value={s.id}>{s.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
 
                       <button
                         onClick={() => handleDelete(tipo.id)}
