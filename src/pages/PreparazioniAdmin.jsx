@@ -49,6 +49,11 @@ export default function PreparazioniAdmin() {
     queryFn: () => base44.entities.TipoPreparazione.list('ordine', 100),
   });
 
+  const { data: ricette = [] } = useQuery({
+    queryKey: ['ricette'],
+    queryFn: () => base44.entities.Ricetta.filter({ is_semilavorato: true }),
+  });
+
   const createTipoMutation = useMutation({
     mutationFn: (data) => base44.entities.TipoPreparazione.create(data),
     onSuccess: () => {
@@ -96,6 +101,18 @@ export default function PreparazioniAdmin() {
     await updateTipoMutation.mutateAsync({
       id: tipo.id,
       data: { ...tipo, nome: newNome.trim() }
+    });
+  };
+
+  const handleUpdateSemilavorato = async (tipo, semilavId) => {
+    const semilavData = ricette.find(r => r.id === semilavId);
+    await updateTipoMutation.mutateAsync({
+      id: tipo.id,
+      data: {
+        ...tipo,
+        semilavorato_id: semilavId || null,
+        semilavorato_nome: semilavData?.nome_prodotto || null
+      }
     });
   };
 
@@ -435,16 +452,36 @@ export default function PreparazioniAdmin() {
                             </button>
                           </div>
                         ) : (
-                          <>
-                            <span className="font-medium text-slate-700">{tipo.nome}</span>
-                            <button
-                              onClick={() => setEditingTipo(tipo)}
-                              className="text-slate-400 hover:text-blue-600"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                          </>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3">
+                              <span className="font-medium text-slate-700">{tipo.nome}</span>
+                              <button
+                                onClick={() => setEditingTipo(tipo)}
+                                className="text-slate-400 hover:text-blue-600"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                            {tipo.semilavorato_nome && (
+                              <p className="text-xs text-slate-500 mt-1">
+                                🍳 {tipo.semilavorato_nome}
+                              </p>
+                            )}
+                          </div>
                         )}
+                      </div>
+
+                      <div className="ml-4 w-48">
+                        <select
+                          value={tipo.semilavorato_id || ''}
+                          onChange={(e) => handleUpdateSemilavorato(tipo, e.target.value)}
+                          className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm text-slate-700 outline-none"
+                        >
+                          <option value="">Nessun semilavorato</option>
+                          {ricette.map(r => (
+                            <option key={r.id} value={r.id}>{r.nome_prodotto}</option>
+                          ))}
+                        </select>
                       </div>
 
                       <button
