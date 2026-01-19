@@ -247,8 +247,8 @@ export default function DashboardStoreManager() {
       // Turni di questo dipendente nello store selezionato nel mese
       const empShifts = storeShifts.filter(s => s.dipendente_nome === employeeName);
       
-      // Calcola ritardi
-      const totalDelayMinutes = empShifts.reduce((sum, s) => sum + (s.minuti_ritardo || 0), 0);
+      // Calcola ritardi (STESSA LOGICA DI EMPLOYEES.JS)
+      const totalDelayMinutes = empShifts.reduce((sum, s) => sum + (s.minuti_ritardo_conteggiato || s.minuti_ritardo_reale || s.minuti_ritardo || 0), 0);
       const avgLateMinutes = empShifts.length > 0 ? totalDelayMinutes / empShifts.length : 0;
       const numeroRitardi = empShifts.filter(s => s.in_ritardo === true).length;
       
@@ -848,7 +848,7 @@ export default function DashboardStoreManager() {
                                             <span className="text-xs text-purple-600 font-bold">{order.platform}</span>
                                           </div>
                                           <div className="text-xs text-slate-500">
-                                            {new Date(order.order_date).toLocaleDateString('it-IT')} • €{order.order_total?.toFixed(2) || '0.00'}
+                                            {new Date(order.order_date).toLocaleDateString('it-IT')} • {new Date(order.order_date).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })} • €{order.order_total?.toFixed(2) || '0.00'}
                                           </div>
                                           {order.complaint_reason && (
                                             <p className="text-xs text-slate-600 mt-1 italic">{order.complaint_reason}</p>
@@ -877,8 +877,12 @@ export default function DashboardStoreManager() {
                                               ))}
                                             </div>
                                           </div>
-                                          {review.comment && <p className="text-xs text-slate-600 line-clamp-2">{review.comment}</p>}
-                                          <p className="text-xs text-slate-400 mt-1">{new Date(review.review_date).toLocaleDateString('it-IT')}</p>
+                                          {(review.comment || review.review_text) && (
+                                            <p className="text-xs text-slate-600 mb-2 bg-slate-50 p-2 rounded italic">
+                                              "{review.comment || review.review_text}"
+                                            </p>
+                                          )}
+                                          <p className="text-xs text-slate-400">{new Date(review.review_date).toLocaleDateString('it-IT')}</p>
                                         </div>
                                       ))}
                                     </div>
