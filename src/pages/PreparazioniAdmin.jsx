@@ -33,6 +33,7 @@ export default function PreparazioniAdmin() {
   // Config management
   const [newTipo, setNewTipo] = useState('');
   const [editingTipo, setEditingTipo] = useState(null);
+  const [editingQuantiMinime, setEditingQuantiMinime] = useState(null);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -127,6 +128,17 @@ export default function PreparazioniAdmin() {
         store_preparazione_nome: storeData?.name || null
       }
     });
+  };
+
+  const handleUpdateQuantitaMinima = async (tipo, quantiMinime) => {
+    await updateTipoMutation.mutateAsync({
+      id: tipo.id,
+      data: {
+        ...tipo,
+        quantita_minima_per_store: quantiMinime
+      }
+    });
+    setEditingQuantiMinime(null);
   };
 
   const handleDelete = async (id) => {
@@ -423,7 +435,7 @@ export default function PreparazioniAdmin() {
                   tipiPreparazione.map((tipo) => (
                     <div
                       key={tipo.id}
-                      className={`neumorphic-pressed p-4 rounded-xl flex items-center justify-between ${
+                      className={`neumorphic-pressed p-4 rounded-xl ${
                         !tipo.attivo ? 'opacity-50' : ''
                       }`}
                     >
@@ -484,7 +496,8 @@ export default function PreparazioniAdmin() {
                         )}
                       </div>
 
-                      <div className="ml-4 flex gap-3">
+                      <div className="flex items-center justify-between">
+                        <div className="ml-4 flex gap-3">
                         <div className="w-48">
                           <select
                             value={tipo.semilavorato_id || ''}
@@ -516,22 +529,78 @@ export default function PreparazioniAdmin() {
                               value={tipo.store_preparazione_id || ''}
                               onChange={(e) => handleUpdateTrasporto(tipo, true, e.target.value)}
                               className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm text-slate-700 outline-none"
+                              title="Store dove VIENE PREPARATO il semilavorato"
                             >
-                              <option value="">-- Seleziona store --</option>
+                              <option value="">-- Store preparazione --</option>
                               {stores.map(s => (
                                 <option key={s.id} value={s.id}>{s.name}</option>
                               ))}
                             </select>
+                            <p className="text-xs text-slate-500 mt-1">📍 Dove si prepara</p>
                           </div>
                         )}
+
+                        <button
+                          onClick={() => setEditingQuantiMinime(editingQuantiMinime?.id === tipo.id ? null : tipo)}
+                          className="text-blue-500 hover:text-blue-600"
+                          title="Configura quantità minime per negozio"
+                        >
+                          ⚙️
+                        </button>
                       </div>
 
-                      <button
-                        onClick={() => handleDelete(tipo.id)}
-                        className="text-red-500 hover:text-red-600 ml-4"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                        <button
+                          onClick={() => handleDelete(tipo.id)}
+                          className="text-red-500 hover:text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                        </div>
+                      </div>
+
+                      {editingQuantiMinime?.id === tipo.id && (
+                        <div className="col-span-full mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                          <h4 className="font-bold text-slate-800 mb-3">Quantità Minima per Negozio</h4>
+                          <div className="space-y-2">
+                            {stores.map(store => (
+                              <div key={store.id} className="flex items-center gap-2">
+                                <span className="text-sm text-slate-700 w-32">{store.name}</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={editingQuantiMinime.quantita_minima_per_store?.[store.id] || ''}
+                                  onChange={(e) => {
+                                    const newQuanti = { ...editingQuantiMinime.quantita_minima_per_store || {} };
+                                    if (e.target.value) {
+                                      newQuanti[store.id] = parseInt(e.target.value);
+                                    } else {
+                                      delete newQuanti[store.id];
+                                    }
+                                    setEditingQuantiMinime({ ...editingQuantiMinime, quantita_minima_per_store: newQuanti });
+                                  }}
+                                  placeholder="Quantità minima"
+                                  className="w-32 neumorphic-pressed px-3 py-2 rounded-lg text-sm text-slate-700 outline-none"
+                                />
+                                <span className="text-xs text-slate-500">{editingTipo?.semilavorato_nome ? '(' + editingTipo.unita_misura_prodotta + ')' : 'pezzi'}</span>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="flex gap-2 mt-4">
+                            <button
+                              onClick={() => handleUpdateQuantitaMinima(tipo, editingQuantiMinime.quantita_minima_per_store || {})}
+                              className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600"
+                            >
+                              Salva
+                            </button>
+                            <button
+                              onClick={() => setEditingQuantiMinime(null)}
+                              className="px-3 py-1 bg-slate-300 text-slate-700 rounded text-sm hover:bg-slate-400"
+                            >
+                              Annulla
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))
                 ) : (
