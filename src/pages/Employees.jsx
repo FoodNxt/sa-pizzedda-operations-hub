@@ -351,7 +351,9 @@ export default function Employees() {
       const w_ordini = getWeight('ordini_sbagliati');
       const w_ritardi = getWeight('ritardi');
       const w_timbrature = getWeight('timbrature_mancanti');
-      const w_num_recensioni = getWeight('numero_recensioni');
+      const w_bonus_recensione = getWeight('bonus_per_recensione');
+      const w_min_recensioni = getWeight('min_recensioni');
+      const w_malus_recensioni = getWeight('malus_sotto_minimo_recensioni');
       const w_punteggio_recensioni = getWeight('punteggio_recensioni');
       const w_pulizie = getWeight('pulizie');
 
@@ -369,10 +371,17 @@ export default function Employees() {
         performanceScore -= reviewPenalty;
       }
       
-      // Small bonus for having reviews (but max +5)
-      if (googleReviews.length > 0) {
-        const reviewBonus = Math.min(googleReviews.length * w_num_recensioni, 5);
+      // Bonus per ogni recensione ottenuta
+      if (googleReviews.length > 0 && w_bonus_recensione > 0) {
+        const reviewBonus = googleReviews.length * w_bonus_recensione;
         performanceScore += reviewBonus;
+      }
+      
+      // Malus se sotto il numero minimo di recensioni
+      if (w_min_recensioni > 0 && googleReviews.length < w_min_recensioni && w_malus_recensioni > 0) {
+        const recensioniMancanti = w_min_recensioni - googleReviews.length;
+        const malusTotale = recensioniMancanti * w_malus_recensioni;
+        performanceScore -= malusTotale;
       }
       
       // Pulizie: calcola % come in PulizieMatch (puliti/totali controlli)
@@ -529,7 +538,9 @@ export default function Employees() {
           w_ordini,
           w_ritardi,
           w_timbrature,
-          w_num_recensioni,
+          w_bonus_recensione,
+          w_min_recensioni,
+          w_malus_recensioni,
           w_punteggio_recensioni,
           w_pulizie
         }
@@ -1268,8 +1279,11 @@ export default function Employees() {
                   {selectedEmployee.weights.w_punteggio_recensioni > 0 && selectedEmployee.googleReviewCount > 0 && selectedEmployee.avgGoogleRating < 5 && (
                     <p className="text-red-600"><strong>- Media Recensioni &lt; 5:</strong> (5 - {selectedEmployee.avgGoogleRating.toFixed(1)}) × {selectedEmployee.weights.w_punteggio_recensioni} = -{((5 - selectedEmployee.avgGoogleRating) * selectedEmployee.weights.w_punteggio_recensioni).toFixed(1)}</p>
                   )}
-                  {selectedEmployee.weights.w_num_recensioni > 0 && selectedEmployee.googleReviewCount > 0 && (
-                    <p className="text-green-600"><strong>+ Bonus Recensioni:</strong> min({selectedEmployee.googleReviewCount} × {selectedEmployee.weights.w_num_recensioni}, 5) = +{Math.min(selectedEmployee.googleReviewCount * selectedEmployee.weights.w_num_recensioni, 5).toFixed(1)}</p>
+                  {selectedEmployee.weights.w_bonus_recensione > 0 && selectedEmployee.googleReviewCount > 0 && (
+                    <p className="text-green-600"><strong>+ Bonus Recensioni:</strong> {selectedEmployee.googleReviewCount} × {selectedEmployee.weights.w_bonus_recensione} = +{(selectedEmployee.googleReviewCount * selectedEmployee.weights.w_bonus_recensione).toFixed(1)}</p>
+                  )}
+                  {selectedEmployee.weights.w_min_recensioni > 0 && selectedEmployee.googleReviewCount < selectedEmployee.weights.w_min_recensioni && selectedEmployee.weights.w_malus_recensioni > 0 && (
+                    <p className="text-red-600"><strong>- Sotto Minimo Recensioni:</strong> ({selectedEmployee.weights.w_min_recensioni} - {selectedEmployee.googleReviewCount}) × {selectedEmployee.weights.w_malus_recensioni} = -{((selectedEmployee.weights.w_min_recensioni - selectedEmployee.googleReviewCount) * selectedEmployee.weights.w_malus_recensioni).toFixed(1)}</p>
                   )}
                   {selectedEmployee.weights.w_pulizie > 0 && (() => {
                     const cleaningData = getCleaningScoreForEmployee(selectedEmployee.full_name);
@@ -1823,7 +1837,9 @@ function MetricWeightsModal({ weights, onClose }) {
     ordini_sbagliati: weights.find(w => w.metric_name === 'ordini_sbagliati')?.weight || 2,
     ritardi: weights.find(w => w.metric_name === 'ritardi')?.weight || 0.3,
     timbrature_mancanti: weights.find(w => w.metric_name === 'timbrature_mancanti')?.weight || 1,
-    numero_recensioni: weights.find(w => w.metric_name === 'numero_recensioni')?.weight || 0.5,
+    bonus_per_recensione: weights.find(w => w.metric_name === 'bonus_per_recensione')?.weight || 0.5,
+    min_recensioni: weights.find(w => w.metric_name === 'min_recensioni')?.weight || 5,
+    malus_sotto_minimo_recensioni: weights.find(w => w.metric_name === 'malus_sotto_minimo_recensioni')?.weight || 2,
     punteggio_recensioni: weights.find(w => w.metric_name === 'punteggio_recensioni')?.weight || 2,
     pulizie: weights.find(w => w.metric_name === 'pulizie')?.weight || 1
   });
@@ -1849,9 +1865,11 @@ function MetricWeightsModal({ weights, onClose }) {
     ordini_sbagliati: 'Peso Ordini Sbagliati',
     ritardi: 'Peso Ritardi',
     timbrature_mancanti: 'Peso Timbrature Mancanti',
-    numero_recensioni: 'Peso Numero Recensioni',
+    bonus_per_recensione: 'Bonus per Recensione',
+    min_recensioni: 'Numero Minimo Recensioni',
+    malus_sotto_minimo_recensioni: 'Malus per Recensione Mancante (sotto minimo)',
     punteggio_recensioni: 'Peso Punteggio Recensioni',
-    pulizie: 'Peso Pulizie (se < 80)'
+    pulizie: 'Peso Pulizie (se < 80%)'
   };
 
   return (
