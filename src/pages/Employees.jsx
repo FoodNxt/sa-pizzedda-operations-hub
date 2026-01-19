@@ -1167,32 +1167,77 @@ export default function Employees() {
                           ))}
                         </div>
                       )}
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className={`text-lg lg:text-xl font-bold ${getPerformanceColor(employee.performanceLevel)}`}>
-                          {employee.performanceScore}
-                        </span>
-                        {employee.googleReviewCount > 0 && (
-                          <div className="flex items-center gap-1">
-                            <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                            <span className="text-sm font-bold text-slate-700">
-                              {employee.avgGoogleRating.toFixed(1)}
-                            </span>
-                          </div>
-                        )}
-                      </div>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                    <span className={`px-2 py-1 rounded-lg text-xs font-bold ${
-                      employee.wrongOrders > 5 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
-                    }`}>
-                      {employee.wrongOrders} ord
+                  <div className="text-right flex-shrink-0">
+                    <span className={`text-2xl lg:text-3xl font-bold ${getPerformanceColor(employee.performanceLevel)}`}>
+                      {employee.performanceScore}
                     </span>
-                    <span className={`px-2 py-1 rounded-lg text-xs font-bold ${
-                      employee.numeroRitardi > 5 ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
-                    }`}>
-                      {employee.numeroRitardi} rit
-                    </span>
+                    <p className="text-xs text-slate-500 mt-1">{getPerformanceLabel(employee.performanceLevel)}</p>
+                  </div>
+                </div>
+
+                {/* Metriche Summary */}
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 mb-3">
+                  <div className="neumorphic-pressed p-2 rounded-lg text-center">
+                    <ShoppingCart className="w-4 h-4 mx-auto mb-1 text-red-600" />
+                    <p className={`text-sm font-bold ${employee.wrongOrders > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      {employee.wrongOrders}
+                    </p>
+                    <p className="text-xs text-slate-500">Ordini</p>
+                  </div>
+
+                  <div className="neumorphic-pressed p-2 rounded-lg text-center">
+                    <Clock className="w-4 h-4 mx-auto mb-1 text-orange-600" />
+                    <p className={`text-sm font-bold ${employee.numeroRitardi > 3 ? 'text-red-600' : 'text-green-600'}`}>
+                      {employee.numeroRitardi}
+                    </p>
+                    <p className="text-xs text-slate-500">Ritardi</p>
+                  </div>
+
+                  <div className="neumorphic-pressed p-2 rounded-lg text-center">
+                    <AlertCircle className="w-4 h-4 mx-auto mb-1 text-yellow-600" />
+                    <p className={`text-sm font-bold ${employee.numeroTimbratureMancate > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      {employee.numeroTimbratureMancate}
+                    </p>
+                    <p className="text-xs text-slate-500">Mancate</p>
+                  </div>
+
+                  <div className="neumorphic-pressed p-2 rounded-lg text-center">
+                    <Star className="w-4 h-4 mx-auto mb-1 text-yellow-500 fill-yellow-500" />
+                    {employee.googleReviewCount > 0 ? (
+                      <>
+                        <p className="text-sm font-bold text-slate-700">{employee.avgGoogleRating.toFixed(1)}</p>
+                        <p className="text-xs text-slate-500">({employee.googleReviewCount})</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm font-bold text-slate-400">-</p>
+                        <p className="text-xs text-slate-500">(0)</p>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="neumorphic-pressed p-2 rounded-lg text-center">
+                    <Sparkles className="w-4 h-4 mx-auto mb-1 text-cyan-600" />
+                    {(() => {
+                      const cleaningData = getCleaningScoreForEmployee(employee.full_name);
+                      return cleaningData.count > 0 ? (
+                        <>
+                          <p className={`text-sm font-bold ${
+                            cleaningData.percentualePulito >= 80 ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {cleaningData.percentualePulito.toFixed(0)}%
+                          </p>
+                          <p className="text-xs text-slate-500">({cleaningData.count})</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm font-bold text-slate-400">-</p>
+                          <p className="text-xs text-slate-500">(0)</p>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
                 
