@@ -981,7 +981,6 @@ export default function Layout({ children, currentPageName }) {
       'InventarioStoreManager': 'Inventario SM',
       'TurniDipendente': 'Turni',
       'AssistenteDipendente': 'Assistente',
-      'FormsDipendente': 'Forms',
       'DashboardStoreManager': 'Dashboard',
       'Segnalazioni': 'Segnalazioni',
       'ValutazioneProvaForm': 'Valutazioni',
@@ -1009,6 +1008,7 @@ export default function Layout({ children, currentPageName }) {
         'FormInventario': ClipboardList,
         'ConteggioCassa': Euro,
         'FormTeglieButtate': AlertTriangle,
+        'FormSpostamenti': Truck,
         'Preparazioni': ChefHat,
         'FeedbackP2P': Users,
         'InventarioStoreManager': Package,
@@ -1018,8 +1018,7 @@ export default function Layout({ children, currentPageName }) {
         'ValutazioneProvaForm': UserCheck,
         'PlandayStoreManager': Calendar,
         'FormSprechi': AlertTriangle,
-        'AssistenteDipendente': Users,
-        'FormSpostamenti': Truck
+        'AssistenteDipendente': Users
       };
       return icons[pageName] || User;
     } catch (error) {
