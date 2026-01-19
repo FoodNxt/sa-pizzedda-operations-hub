@@ -252,13 +252,13 @@ export default function PrecottureAdmin() {
   };
 
   const filteredStorico = useMemo(() => {
-    return preparazioni.filter(p => {
+    return precottureForm.filter(p => {
       if (selectedStore && p.store_id !== selectedStore) return false;
       const dateFilter = getDateFilter();
       if (dateFilter && moment(p.created_date).isBefore(dateFilter)) return false;
       return true;
     });
-  }, [preparazioni, selectedStore, dateRange]);
+  }, [precottureForm, selectedStore, dateRange]);
 
   const storicoStats = useMemo(() => {
     if (filteredStorico.length === 0) return null;
