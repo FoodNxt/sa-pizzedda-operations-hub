@@ -267,18 +267,39 @@ export default function Employees() {
         ? (wrongOrdersCount / employeeShifts.length) * 100
         : 0;
 
-      const totalLateMinutes = employeeShifts.reduce((sum, s) => sum + (s.minuti_ritardo || 0), 0);
+      // Calcola ritardi - RICALCOLO MANUALE
+      let totalLateMinutes = 0;
+      let numeroRitardi = 0;
+      employeeShifts.forEach(shift => {
+        if (!shift.timbratura_entrata || !shift.ora_inizio) return;
+        try {
+          const clockInTime = new Date(shift.timbratura_entrata);
+          const [oraInizioHH, oraInizioMM] = shift.ora_inizio.split(':').map(Number);
+          const scheduledStart = new Date(clockInTime);
+          scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
+          const delayMs = clockInTime - scheduledStart;
+          const delayMinutes = Math.floor(delayMs / 60000);
+          const ritardoReale = delayMinutes > 0 ? delayMinutes : 0;
+          totalLateMinutes += ritardoReale;
+          if (ritardoReale > 0) numeroRitardi++;
+        } catch (e) {
+          // Skip in caso di errore
+        }
+      });
       const avgLateMinutes = employeeShifts.length > 0 ? totalLateMinutes / employeeShifts.length : 0;
-      const numeroRitardi = employeeShifts.filter(s => s.in_ritardo === true).length;
       const percentualeRitardi = employeeShifts.length > 0 ? (numeroRitardi / employeeShifts.length) * 100 : 0;
-      // Only count missing clock-ins for past shifts (not future shifts)
+      
+      // Timbrature mancanti - SOLO turni passati SENZA timbratura
       const numeroTimbratureMancate = employeeShifts.filter(s => {
-        if (s.stato !== 'programmato') return false;
+        // Deve essere passato
         const shiftDate = safeParseDate(s.data);
         if (!shiftDate) return false;
         const today = new Date();
         today.setHours(23, 59, 59, 999);
-        return shiftDate < today;
+        if (shiftDate >= today) return false;
+        
+        // NON deve avere timbratura di entrata
+        return !s.timbratura_entrata;
       }).length;
 
       const mentions = filteredReviews.filter(r => r.employee_mentioned === user.id);
@@ -539,7 +560,24 @@ export default function Employees() {
   const getAllLateShifts = (employeeName) => {
     const lateShifts = shifts
       .filter(s => {
-        if (s.dipendente_nome !== employeeName || s.in_ritardo !== true || !s.data) return false;
+        if (s.dipendente_nome !== employeeName || !s.data) return false;
+        if (!s.timbratura_entrata || !s.ora_inizio) return false;
+        
+        // Ricalcola ritardo manualmente
+        let hasDelay = false;
+        try {
+          const clockInTime = new Date(s.timbratura_entrata);
+          const [oraInizioHH, oraInizioMM] = s.ora_inizio.split(':').map(Number);
+          const scheduledStart = new Date(clockInTime);
+          scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
+          const delayMs = clockInTime - scheduledStart;
+          const delayMinutes = Math.floor(delayMs / 60000);
+          hasDelay = delayMinutes > 0;
+        } catch (e) {
+          return false;
+        }
+        
+        if (!hasDelay) return false;
         
         if (startDate || endDate) {
           const shiftDate = safeParseDate(s.data);
@@ -575,10 +613,16 @@ export default function Employees() {
     const missingClockIns = shifts
       .filter(s => {
         if (s.dipendente_nome !== employeeName || !s.data) return false;
-        // Missing clock-in = stato programmato and date is in the past
-        if (s.stato !== 'programmato') return false;
+        
+        // Verifica che la data sia passata
         const shiftDate = safeParseDate(s.data);
-        if (!shiftDate || shiftDate >= new Date()) return false;
+        if (!shiftDate) return false;
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+        if (shiftDate >= today) return false;
+        
+        // Verifica che NON ci sia timbratura di entrata
+        if (s.timbratura_entrata) return false;
         
         if (startDate || endDate) {
           const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
@@ -1259,23 +1303,37 @@ export default function Employees() {
                       : getLatestLateShifts(selectedEmployee.full_name);
                     return lateShifts.length > 0 ? (
                       <div className="space-y-2">
-                        {lateShifts.map((shift, index) => (
-                          <div key={`${shift.id}-${index}`} className="neumorphic-pressed p-3 rounded-lg">
-                           <div className="flex items-center justify-between mb-1">
-                             <span className="text-sm font-medium text-slate-800">
-                               {safeFormatDateLocale(shift.data)} - {shift.store_nome || 'N/A'}
-                             </span>
-                             <span className="text-sm font-bold text-red-600">
-                               +{shift.minuti_ritardo || 0} min
-                             </span>
-                           </div>
-                           <div className="text-xs text-slate-500">
-                             <strong>Previsto:</strong> {shift.ora_inizio}
-                             {' → '}
-                             <strong>Effettivo:</strong> {shift.timbratura_entrata ? safeFormatTime(shift.timbratura_entrata) : 'N/A'}
-                           </div>
-                          </div>
-                        ))}
+                        {lateShifts.map((shift, index) => {
+                          let ritardoReale = 0;
+                          if (shift.timbratura_entrata && shift.ora_inizio) {
+                            try {
+                              const clockInTime = new Date(shift.timbratura_entrata);
+                              const [oraInizioHH, oraInizioMM] = shift.ora_inizio.split(':').map(Number);
+                              const scheduledStart = new Date(clockInTime);
+                              scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
+                              const delayMs = clockInTime - scheduledStart;
+                              const delayMinutes = Math.floor(delayMs / 60000);
+                              ritardoReale = delayMinutes > 0 ? delayMinutes : 0;
+                            } catch (e) {}
+                          }
+                          return (
+                            <div key={`${shift.id}-${index}`} className="neumorphic-pressed p-3 rounded-lg">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-sm font-medium text-slate-800">
+                                  {safeFormatDateLocale(shift.data)} - {shift.store_nome || 'N/A'}
+                                </span>
+                                <span className="text-sm font-bold text-red-600">
+                                  +{ritardoReale} min
+                                </span>
+                              </div>
+                              <div className="text-xs text-slate-500">
+                                <strong>Previsto:</strong> {shift.ora_inizio}
+                                {' → '}
+                                <strong>Effettivo:</strong> {shift.timbratura_entrata ? safeFormatTime(shift.timbratura_entrata) : 'N/A'}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     ) : (
                       <p className="text-sm text-slate-500 text-center py-2">
