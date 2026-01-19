@@ -1003,15 +1003,15 @@ export default function DashboardStoreManager() {
                     )}
                   </div>
                 ))}
-                </div>
-                </NeumorphicCard>
-                ) : (
-                <div className="text-center py-8">
+              </div>
+            {trasportoData.length > 0 ? null : (
+              <div className="text-center py-8">
                 <Truck className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                 <p className="text-slate-500 font-medium">Nessuna rilevazione disponibile</p>
                 <p className="text-xs text-slate-400 mt-1">Compila il form inventario per visualizzare i suggerimenti di spostamento</p>
-                </div>
-                )}
+              </div>
+            )}
+            </NeumorphicCard>
 
            {/* Scorecard Dipendenti */}
            <NeumorphicCard className="p-6">
