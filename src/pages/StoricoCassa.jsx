@@ -414,6 +414,42 @@ export default function StoricoCassa() {
 
         {activeTab === 'storico' && (
           <>
+        {currentUser?.user_type === 'admin' && (
+          <NeumorphicCard className="p-4 lg:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base lg:text-lg font-bold text-slate-800">Imposta Saldo Manuale Partenza</h2>
+              <button
+                onClick={() => {
+                  setEditingSaldo({ data: new Date().toISOString().split('T')[0], saldo_iniziale: 0, store_id: selectedStore });
+                  setShowSaldoConfig(true);
+                }}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 text-white text-sm hover:from-purple-600 hover:to-purple-700"
+              >
+                <Plus className="w-4 h-4" />
+                Nuovo Saldo
+              </button>
+            </div>
+
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {saldiManuali.length === 0 ? (
+                <p className="text-sm text-slate-500 py-6 text-center">Nessun saldo manuale impostato</p>
+              ) : (
+                saldiManuali.map(saldo => (
+                  <div key={saldo.id} className="neumorphic-pressed p-3 rounded-xl flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-slate-800 text-sm">{saldo.store_name}</p>
+                      <div className="flex gap-3 text-xs text-slate-600 mt-1">
+                        <span>📅 {new Date(saldo.data).toLocaleDateString('it-IT')}</span>
+                        <span className="text-green-600 font-bold">€{saldo.saldo_iniziale.toFixed(2)}</span>
+                      </div>
+                      {saldo.note && <p className="text-xs text-slate-500 mt-1 italic">{saldo.note}</p>}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </NeumorphicCard>
+        )}
         <NeumorphicCard className="p-4 lg:p-6">
           <div className="flex items-center gap-2 mb-4">
             <Filter className="w-5 h-5 text-blue-600" />
