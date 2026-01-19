@@ -94,13 +94,10 @@ export default function PlandayStoreManager() {
       const startDate = weekStart.format('YYYY-MM-DD');
       const endDate = weekStart.clone().add(6, 'days').format('YYYY-MM-DD');
       
-      const filters = {
+      return base44.entities.TurnoPlanday.filter({
+        store_id: selectedStore,
         data: { $gte: startDate, $lte: endDate }
-      };
-      if (selectedStore) {
-        filters.store_id = selectedStore;
-      }
-      return base44.entities.TurnoPlanday.filter(filters);
+      });
     },
     enabled: !!selectedStore,
   });
