@@ -94,15 +94,14 @@ export default function PlandayStoreManager() {
       if (!selectedStore) return [];
       const startDate = weekStart.format('YYYY-MM-DD');
       const endDate = weekStart.clone().add(6, 'days').format('YYYY-MM-DD');
-      const selectedStoreName = allStores.find(s => s.id === selectedStore)?.name;
       
-      if (!selectedStoreName) return [];
-      
-      // Filtra per data e store_nome (denormalizzato)
-      return base44.entities.TurnoPlanday.filter({
-        data: { $gte: startDate, $lte: endDate },
-        store_nome: selectedStoreName
-      });
+      // Recupera TUTTI i turni della settimana e filtra lato client
+      const allTurni = await base44.entities.TurnoPlanday.list();
+      return allTurni.filter(t => 
+        t.store_id === selectedStore &&
+        t.data >= startDate &&
+        t.data <= endDate
+      );
     },
     enabled: !!selectedStore,
   });
