@@ -800,73 +800,10 @@ export default function Assenze() {
                    </div>
                  )}
                </div>
-             )
-                  <div key={request.id} className="neumorphic-pressed p-4 rounded-xl">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <User className="w-4 h-4 text-slate-500" />
-                          <span className="font-bold text-slate-800">{request.dipendente_nome}</span>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatoColor(request.stato)}`}>
-                            {getStatoLabel(request.stato)}
-                          </span>
-                        </div>
-                        <div className="text-sm text-slate-600 space-y-1">
-                          <p>📅 Dal {request.data_inizio && moment(request.data_inizio).isValid() ? moment(request.data_inizio).format('DD/MM/YYYY') : 'N/A'} {request.data_fine && moment(request.data_fine).isValid() && `al ${moment(request.data_fine).format('DD/MM/YYYY')}`}</p>
-                          {request.descrizione && <p>💬 {request.descrizione}</p>}
-
-                          {/* Turni coinvolti */}
-                          {request.turni_coinvolti && request.turni_coinvolti.length > 0 && (
-                            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                              <p className="text-xs font-bold text-blue-700 mb-2">Turni coinvolti:</p>
-                              <TurniCoinvoltiDisplay turniIds={request.turni_coinvolti} dipendenteId={request.dipendente_id} getStoreName={getStoreName} allTurni={turniPlanday} />
-                            </div>
-                          )}
-
-                          {request.certificato_url && (
-                            <a href={request.certificato_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-xs flex items-center gap-1">
-                              <FileText className="w-3 h-3" /> Vedi Certificato
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="flex flex-col gap-2">
-                        {request.turni_coinvolti && request.turni_coinvolti.length > 0 && (
-                          <button
-                            onClick={() => {
-                              setChangingTipoTurno(request);
-                              setNewTipoTurno('');
-                            }}
-                            className="px-3 py-1.5 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 flex items-center gap-1"
-                          >
-                            <Edit className="w-3 h-3" /> Modifica Tipo
-                          </button>
-                        )}
-                        {(request.stato === 'non_certificata' || request.stato === 'in_attesa_verifica') && request.certificato_url && (
-                          <>
-                            <button
-                              onClick={() => handleVerifyMalattia(request, true)}
-                              className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 flex items-center gap-1"
-                            >
-                              <Check className="w-3 h-3" /> Certifica
-                            </button>
-                            <button
-                              onClick={() => handleVerifyMalattia(request, false)}
-                              className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 flex items-center gap-1"
-                            >
-                              <X className="w-3 h-3" /> Rifiuta
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </NeumorphicCard>
-        )}
+               )
+               )}
+               </NeumorphicCard>
+               )}
 
         {/* Tab Scambi */}
         {activeTab === 'scambi' && (
