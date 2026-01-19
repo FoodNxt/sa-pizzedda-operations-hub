@@ -263,7 +263,7 @@ export default function PrecottureAdmin() {
   const storicoStats = useMemo(() => {
     if (filteredStorico.length === 0) return null;
     
-    const totaleRosse = filteredStorico.reduce((sum, p) => sum + (p.rosse_preparate || 0), 0);
+    const totaleRosse = filteredStorico.reduce((sum, p) => sum + (p.rosse_da_fare || 0), 0);
     
     return {
       totaleForm: filteredStorico.length,
