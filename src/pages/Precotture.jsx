@@ -265,11 +265,11 @@ export default function Precotture() {
           </div>
 
           {selectedStore && rossePresenti !== '' && risultato && !risultato.error && !confermato && (
-            <NeumorphicButton
-              onClick={() => {
-                setMostraRisultato(true);
-                confermaMutation.mutate();
-              }}
+           <NeumorphicButton
+             onClick={() => {
+               setMostraRisultato(true);
+               confermaMutation.mutate(risultato);
+             }}
               variant="primary"
               className="w-full flex items-center justify-center gap-2 mt-4"
               disabled={confermaMutation.isPending}
