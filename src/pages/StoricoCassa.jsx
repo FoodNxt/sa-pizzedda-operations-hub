@@ -992,9 +992,12 @@ export default function StoricoCassa() {
 
                       <div className="neumorphic-pressed p-3 rounded-xl bg-white">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-slate-600">+ Contanti iPratico</span>
+                          <span className="text-sm text-slate-600">+ Contanti (iPratico + Form)</span>
                           <span className="text-sm font-bold text-green-600">+€{verifica.pagamenti_contanti.toFixed(2)}</span>
                         </div>
+                        {verifica.pagamenti_contanti_form > 0 && (
+                          <p className="text-xs text-slate-400 mt-1">Form: €{verifica.pagamenti_contanti_form.toFixed(2)}</p>
+                        )}
                       </div>
 
                       <div className="neumorphic-pressed p-3 rounded-xl bg-white">
