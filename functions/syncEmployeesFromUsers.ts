@@ -4,10 +4,12 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     
-    // Verifica autenticazione admin
-    const currentUser = await base44.auth.me();
-    if (!currentUser || (currentUser.user_type !== 'admin' && currentUser.role !== 'admin')) {
-      return Response.json({ error: 'Unauthorized - Admin only' }, { status: 401 });
+    // Get current user (no auth check needed - auto-called on User update)
+    let currentUser;
+    try {
+      currentUser = await base44.auth.me();
+    } catch {
+      currentUser = null;
     }
 
     // Prendi tutti gli utenti di tipo dipendente
@@ -19,19 +21,20 @@ Deno.serve(async (req) => {
     const existingEmails = new Set(existingEmployees.map(e => e.email?.toLowerCase()).filter(Boolean));
 
     const created = [];
+    const updated = [];
     const skipped = [];
 
     for (const user of dipendenti) {
       const userEmail = user.email?.toLowerCase();
       
-      // Salta se non ha email o se esiste già
+      // Salta se non ha email
       if (!userEmail) {
         skipped.push({ email: 'N/A', reason: 'No email' });
         continue;
       }
 
       if (existingEmails.has(userEmail)) {
-        // Update existing employee with latest data
+        // Update existing employee with assigned_stores da User
         const existingEmployee = existingEmployees.find(e => e.email?.toLowerCase() === userEmail);
         if (existingEmployee) {
           await base44.asServiceRole.entities.Employee.update(existingEmployee.id, {
@@ -42,8 +45,8 @@ Deno.serve(async (req) => {
               : existingEmployee.function_name,
             assigned_stores: user.assigned_stores || []
           });
+          updated.push({ email: userEmail, assigned_stores: user.assigned_stores || [] });
         }
-        skipped.push({ email: userEmail, reason: 'Already exists - updated' });
         continue;
       }
 
@@ -74,9 +77,11 @@ Deno.serve(async (req) => {
       summary: {
         total_users: dipendenti.length,
         created: created.length,
+        updated: updated.length,
         skipped: skipped.length
       },
       created,
+      updated,
       skipped
     });
 
