@@ -507,6 +507,13 @@ export default function PrecottureAdmin() {
   const mediaUltimi60Giorni = useMemo(() => calcMediaUltimiGiorni(60), [prodottiVenduti, selectedStore, teglieConfig]);
   const mediaUltimi90Giorni = useMemo(() => calcMediaUltimiGiorni(90), [prodottiVenduti, selectedStore, teglieConfig]);
 
+  // DEBUG: Log values
+  React.useEffect(() => {
+    console.log('mediaUltimi30Giorni:', mediaUltimi30Giorni);
+    console.log('mediaUltimi60Giorni:', mediaUltimi60Giorni);
+    console.log('mediaUltimi90Giorni:', mediaUltimi90Giorni);
+  }, [mediaUltimi30Giorni, mediaUltimi60Giorni, mediaUltimi90Giorni]);
+
   return (
     <ProtectedPage pageName="PrecottureAdmin" requiredUserTypes={['admin']}>
       <div className="max-w-7xl mx-auto space-y-6">
