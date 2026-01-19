@@ -123,47 +123,30 @@ export default function StoricoCassa() {
     const totale = filteredConteggi.reduce((sum, c) => sum + (c.valore_conteggio || 0), 0);
     const media = filteredConteggi.length > 0 ? totale / filteredConteggi.length : 0;
     
-    const byDate = {};
+    // Trend Giornaliero - mostra tutte le rilevazioni per ogni giorno, per singolo negozio
     const conteggiForTrend = selectedStoresForTrend.length > 0 
       ? filteredConteggi.filter(c => selectedStoresForTrend.includes(c.store_id))
       : filteredConteggi;
     
-    conteggiForTrend.forEach(c => {
-      if (!c.data_conteggio) return;
-      try {
-        const date = c.data_conteggio.split('T')[0];
-        if (!byDate[date]) byDate[date] = { date, value: 0, count: 0 };
-        byDate[date].value += c.valore_conteggio || 0;
-        byDate[date].count += 1;
-      } catch (e) {
-        console.error('Error processing date:', e);
-      }
-    });
-
-    const dailyData = Object.values(byDate)
-      .sort((a, b) => {
+    const dailyData = conteggiForTrend
+      .map(c => {
+        if (!c.data_conteggio) return null;
         try {
-          return new Date(a.date) - new Date(b.date);
+          const dateTime = parseISO(c.data_conteggio);
+          return {
+            date: format(dateTime, 'dd/MM HH:mm'),
+            valore: parseFloat((c.valore_conteggio || 0).toFixed(2)),
+            store: c.store_name,
+            timestamp: dateTime.getTime()
+          };
         } catch (e) {
-          return 0;
+          return null;
         }
       })
-      .map(d => {
-        try {
-          return {
-            date: format(parseISO(d.date), 'dd/MM'),
-            valore: parseFloat(d.value.toFixed(2)),
-            conteggi: d.count
-          };
-        } catch (e) {
-          return {
-            date: d.date,
-            valore: parseFloat(d.value.toFixed(2)),
-            conteggi: d.count
-          };
-        }
-      });
+      .filter(Boolean)
+      .sort((a, b) => a.timestamp - b.timestamp);
 
+    // Per Locale - mostra la media per locale nel periodo
     const byStore = {};
     filteredConteggi.forEach(c => {
       if (!byStore[c.store_name]) byStore[c.store_name] = { name: c.store_name, value: 0, count: 0 };
@@ -172,10 +155,10 @@ export default function StoricoCassa() {
     });
 
     const storeData = Object.values(byStore)
-      .sort((a, b) => b.value - a.value)
+      .sort((a, b) => b.value / b.count - a.value / a.count)
       .map(s => ({
         name: s.name,
-        valore: parseFloat(s.value.toFixed(2)),
+        valore: parseFloat((s.value / s.count).toFixed(2)),
         conteggi: s.count
       }));
 
@@ -594,7 +577,7 @@ export default function StoricoCassa() {
                 <ResponsiveContainer width="100%" height={250}>
                   <LineChart data={stats.dailyData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
-                    <XAxis dataKey="date" stroke="#64748b" tick={{ fontSize: 11 }} />
+                    <XAxis dataKey="date" stroke="#64748b" tick={{ fontSize: 9 }} angle={-45} textAnchor="end" height={60} />
                     <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
                     <Tooltip 
                       contentStyle={{ 
@@ -603,10 +586,19 @@ export default function StoricoCassa() {
                         borderRadius: '12px',
                         fontSize: '11px'
                       }}
-                      formatter={(value) => `€${value.toFixed(2)}`}
+                      formatter={(value, name) => {
+                        if (name === 'Valore €') return `€${value.toFixed(2)}`;
+                        return value;
+                      }}
+                      labelFormatter={(label, payload) => {
+                        if (payload && payload[0]) {
+                          return `${payload[0].payload.store} - ${label}`;
+                        }
+                        return label;
+                      }}
                     />
                     <Legend wrapperStyle={{ fontSize: '11px' }} />
-                    <Line type="monotone" dataKey="valore" stroke="#3b82f6" strokeWidth={3} name="Valore €" />
+                    <Line type="monotone" dataKey="valore" stroke="#3b82f6" strokeWidth={2} name="Valore €" dot={{ r: 3 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -614,7 +606,7 @@ export default function StoricoCassa() {
           </NeumorphicCard>
 
           <NeumorphicCard className="p-4 lg:p-6">
-            <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Per Locale</h2>
+            <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Per Locale (Media)</h2>
             <div className="w-full overflow-x-auto">
               <div style={{ minWidth: '300px' }}>
                 <ResponsiveContainer width="100%" height={250}>
@@ -629,13 +621,13 @@ export default function StoricoCassa() {
                         borderRadius: '12px',
                         fontSize: '11px'
                       }}
-                      formatter={(value, name) => {
-                        if (name === 'Valore €') return `€${value.toFixed(2)}`;
+                      formatter={(value, name, props) => {
+                        if (name === 'Media €') return [`€${value.toFixed(2)}`, `Media (${props.payload.conteggi} conteggi)`];
                         return value;
                       }}
                     />
                     <Legend wrapperStyle={{ fontSize: '11px' }} />
-                    <Bar dataKey="valore" fill="#3b82f6" name="Valore €" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="valore" fill="#3b82f6" name="Media €" radius={[8, 8, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
