@@ -187,6 +187,11 @@ const navigationStructure = [
         icon: ShoppingCart,
       },
       {
+        title: "Spostamenti",
+        url: createPageUrl("SpostamentiAdmin"),
+        icon: Truck,
+      },
+      {
         title: "Forms",
         url: createPageUrl("InventoryForms"),
         icon: Edit,
