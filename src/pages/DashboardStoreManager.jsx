@@ -228,11 +228,25 @@ export default function DashboardStoreManager() {
     const monthStart = new Date(`${selectedMonth}-01`);
     const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
 
+    console.log('🔍 DEBUG Scorecard:', {
+      selectedStoreId,
+      selectedMonth,
+      totalUsers: users.length,
+      totalShifts: shifts.length,
+      usersWithPrimaryStores: users.filter(u => u.primary_stores && u.primary_stores.length > 0).length
+    });
+
     // Trova dipendenti con questo locale come principale
     const relevantUsers = users.filter(user => {
       const primaryStores = user.primary_stores || [];
-      return primaryStores.includes(selectedStoreId);
+      const hasPrimary = primaryStores.includes(selectedStoreId);
+      if (hasPrimary) {
+        console.log('✅ User con primary store:', user.nome_cognome || user.full_name, primaryStores);
+      }
+      return hasPrimary;
     });
+
+    console.log('👥 Relevant users found:', relevantUsers.length, relevantUsers.map(u => u.nome_cognome || u.full_name));
 
     // Calcola metriche per ogni dipendente (stessa logica di Employees.js)
     return relevantUsers.map(user => {
@@ -247,6 +261,8 @@ export default function DashboardStoreManager() {
         
         return true;
       });
+      
+      console.log(`📊 ${employeeName}: ${empShifts.length} turni nel mese`);
       
       // Calcola ritardi (STESSA LOGICA DI EMPLOYEES)
       const totalDelayMinutes = empShifts.reduce((sum, s) => sum + (s.minuti_ritardo || 0), 0);
