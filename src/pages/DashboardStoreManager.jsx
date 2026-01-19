@@ -349,7 +349,7 @@ export default function DashboardStoreManager() {
         isPrimaryHere: false
       };
     }).sort((a, b) => b.shiftsCount - a.shiftsCount);
-  }, [selectedStoreId, selectedMonth, shifts, users, reviews]);
+  }, [selectedStoreId, selectedMonth, shifts, users, reviews, wrongOrders, wrongOrderMatches]);
 
   // Genera opzioni mesi
   const monthOptions = useMemo(() => {
@@ -1171,29 +1171,47 @@ export default function DashboardStoreManager() {
                 </button>
               </div>
               <div className="space-y-3">
-                {metrics.monthShifts.filter(s => s.ritardo).length === 0 ? (
+                {metrics.monthShifts.filter(s => s.in_ritardo === true).length === 0 ? (
                   <p className="text-center text-slate-500 py-8">Nessun ritardo questo mese 🎉</p>
                 ) : (
-                  metrics.monthShifts.filter(s => s.ritardo).map(shift => (
-                    <div key={shift.id} className="neumorphic-pressed p-4 rounded-xl">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-bold text-slate-800">{shift.employee_name}</span>
-                        <span className="text-xs text-slate-500">
-                          {new Date(shift.shift_date).toLocaleDateString('it-IT')}
-                        </span>
+                  metrics.monthShifts.filter(s => s.in_ritardo === true).map(shift => {
+                    let ritardoReale = 0;
+                    let oraInizioTurno = '';
+                    let oraTimbratura = '';
+                    if (shift.timbratura_entrata && shift.ora_inizio) {
+                      try {
+                        const clockInTime = new Date(shift.timbratura_entrata);
+                        oraTimbratura = clockInTime.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+                        oraInizioTurno = shift.ora_inizio;
+                        const [oraInizioHH, oraInizioMM] = shift.ora_inizio.split(':').map(Number);
+                        const scheduledStart = new Date(clockInTime);
+                        scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
+                        const delayMs = clockInTime - scheduledStart;
+                        const delayMinutes = Math.floor(delayMs / 60000);
+                        ritardoReale = delayMinutes > 0 ? delayMinutes : 0;
+                      } catch (e) {}
+                    }
+                    return (
+                      <div key={shift.id} className="neumorphic-pressed p-4 rounded-xl">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-bold text-slate-800">{shift.dipendente_nome}</span>
+                          <span className="text-xs text-slate-500">
+                            {new Date(shift.data).toLocaleDateString('it-IT')}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-slate-600">
+                          <span>🕐 Previsto: {oraInizioTurno}</span>
+                          <ArrowRight className="w-4 h-4" />
+                          <span className="text-red-600 font-medium">
+                            Timbrato: {oraTimbratura}
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-bold">
+                            +{ritardoReale} min
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-slate-600">
-                        <span>🕐 Previsto: {new Date(shift.scheduled_start).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</span>
-                        <ArrowRight className="w-4 h-4" />
-                        <span className="text-red-600 font-medium">
-                          Timbrato: {shift.actual_start ? new Date(shift.actual_start).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : 'Non timbrato'}
-                        </span>
-                        <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-bold">
-                          +{shift.minuti_di_ritardo} min
-                        </span>
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </NeumorphicCard>
