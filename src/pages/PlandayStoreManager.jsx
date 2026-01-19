@@ -68,27 +68,22 @@ export default function PlandayStoreManager() {
     }
   }, [myStores, selectedStore]);
 
-  // Fetch complete User data to get assigned_stores
-  const { data: allUsers = [] } = useQuery({
-    queryKey: ['all-users'],
-    queryFn: async () => {
-      const users = await base44.entities.User.list();
-      // Filter only users with dipendente role
-      return users.filter(u => u.user_type === 'dipendente' || u.user_type === 'user');
-    },
+  const { data: employees = [] } = useQuery({
+    queryKey: ['employees'],
+    queryFn: () => base44.entities.Employee.list(),
   });
 
-  // Use allUsers directly as users (with all their data including assigned_stores)
+  // Use employees directly - Employee entity now has assigned_stores field
   const users = useMemo(() => {
-    return allUsers.map(u => ({
-      id: u.id,
-      nome_cognome: u.nome_cognome || u.full_name,
-      full_name: u.full_name,
-      email: u.email,
-      ruoli_dipendente: u.ruoli_dipendente || [],
-      assigned_stores: u.assigned_stores || []
+    return employees.map(emp => ({
+      id: emp.employee_id_external || emp.id,
+      nome_cognome: emp.full_name,
+      full_name: emp.full_name,
+      email: emp.email,
+      ruoli_dipendente: emp.function_name ? [emp.function_name] : [],
+      assigned_stores: emp.assigned_stores || []
     }));
-  }, [allUsers]);
+  }, [employees]);
 
   const { data: turni = [], isLoading } = useQuery({
     queryKey: ['turni-store-manager', selectedStore, weekStart.format('YYYY-MM-DD')],
