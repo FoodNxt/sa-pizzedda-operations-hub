@@ -467,7 +467,7 @@ export default function PrecottureAdmin() {
     
     const filtered = prodottiVenduti.filter(p => {
       if (p.store_id !== selectedStore) return false;
-      if (p.data_vendita <= daysAgo || p.data_vendita > today) return false;
+      if (p.data_vendita < daysAgo || p.data_vendita > today) return false;
       if (!teglieConfig.categorie.includes(p.category)) return false;
       return true;
     });
