@@ -22,6 +22,11 @@ export default function PulizieMatch() {
     queryFn: () => base44.entities.CleaningInspection.list('-inspection_date', 500),
   });
 
+  const { data: domande = [] } = useQuery({
+    queryKey: ['domande-pulizia'],
+    queryFn: () => base44.entities.DomandaPulizia.list(),
+  });
+
   const { data: attrezzature = [] } = useQuery({
     queryKey: ['attrezzature'],
     queryFn: () => base44.entities.Attrezzatura.list(),
