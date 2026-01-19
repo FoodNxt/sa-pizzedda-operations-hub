@@ -524,6 +524,7 @@ export default function PreparazioniAdmin() {
                             </select>
                           </div>
                         )}
+                      </div>
 
                       <button
                         onClick={() => handleDelete(tipo.id)}
