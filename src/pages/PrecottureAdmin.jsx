@@ -65,12 +65,17 @@ export default function PrecottureAdmin() {
 
   const { data: prodottiVenduti = [] } = useQuery({
     queryKey: ['prodotti-venduti-teglie', teglieStartDate, teglieEndDate],
-    queryFn: () => base44.entities.ProdottiVenduti.filter({
-      data_vendita: { 
-        $gte: teglieStartDate, 
-        $lte: teglieEndDate 
-      }
-    }),
+    queryFn: () => {
+      // Carica ultimi 100 giorni per i calcoli delle medie, anche se la vista mostra un range diverso
+      const last100days = moment().subtract(100, 'days').format('YYYY-MM-DD');
+      const today = moment().format('YYYY-MM-DD');
+      return base44.entities.ProdottiVenduti.filter({
+        data_vendita: { 
+          $gte: last100days, 
+          $lte: today 
+        }
+      });
+    },
     enabled: activeTab === 'teglie-vendute' || activeTab === 'configurazione'
   });
 
