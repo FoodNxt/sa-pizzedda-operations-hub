@@ -9,9 +9,12 @@ import {
   X,
   Save,
   DollarSign,
-  User
+  User,
+  Calendar,
+  Euro
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
+import { format, parseISO } from 'date-fns';
 
 export default function Straordinari() {
   const [showForm, setShowForm] = useState(false);
@@ -33,6 +36,16 @@ export default function Straordinari() {
   const { data: employees = [] } = useQuery({
     queryKey: ['employees'],
     queryFn: () => base44.entities.Employee.list(),
+  });
+
+  const { data: attivitaPagamenti = [] } = useQuery({
+    queryKey: ['attivita-pagamenti-straordinari'],
+    queryFn: async () => {
+      const attivita = await base44.entities.AttivitaCompletata.filter({
+        attivita_nome: { $regex: 'Pagamento straordinari' }
+      });
+      return attivita.sort((a, b) => new Date(b.completato_at) - new Date(a.completato_at));
+    },
   });
 
   const saveMutation = useMutation({
@@ -168,6 +181,64 @@ export default function Straordinari() {
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </NeumorphicCard>
+
+        <NeumorphicCard className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <Euro className="w-5 h-5 text-green-600" />
+              Storico Pagamenti Straordinari
+            </h2>
+          </div>
+
+          {attivitaPagamenti.length === 0 ? (
+            <div className="text-center py-12">
+              <Calendar className="w-16 h-16 text-slate-300 opacity-50 mx-auto mb-4" />
+              <p className="text-slate-500">Nessun pagamento straordinario registrato</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b-2 border-green-600">
+                    <th className="text-left p-3 text-slate-600 font-medium text-sm">Data</th>
+                    <th className="text-left p-3 text-slate-600 font-medium text-sm">Dipendente Pagato</th>
+                    <th className="text-left p-3 text-slate-600 font-medium text-sm">Completato da</th>
+                    <th className="text-left p-3 text-slate-600 font-medium text-sm">Locale</th>
+                    <th className="text-right p-3 text-slate-600 font-medium text-sm">Importo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {attivitaPagamenti.map((attivita) => (
+                    <tr key={attivita.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-slate-400" />
+                          <span className="text-slate-700 text-sm">
+                            {attivita.completato_at ? format(parseISO(attivita.completato_at), 'dd/MM/yyyy HH:mm') : '-'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <span className="text-slate-700 font-medium">{attivita.dipendente_nome}</span>
+                      </td>
+                      <td className="p-3">
+                        <span className="text-slate-700 text-sm">{attivita.created_by || '-'}</span>
+                      </td>
+                      <td className="p-3">
+                        <span className="text-slate-700 text-sm">{attivita.store_id || '-'}</span>
+                      </td>
+                      <td className="p-3 text-right">
+                        <span className="text-lg font-bold text-green-600">
+                          €{attivita.importo_pagato ? parseFloat(attivita.importo_pagato).toFixed(2) : '0.00'}
+                        </span>
                       </td>
                     </tr>
                   ))}

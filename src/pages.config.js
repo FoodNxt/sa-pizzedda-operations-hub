@@ -103,6 +103,7 @@ import StoreManagerAdmin from './pages/StoreManagerAdmin';
 import StoreReviews from './pages/StoreReviews';
 import StoricoCassa from './pages/StoricoCassa';
 import StoricoImpasti from './pages/StoricoImpasti';
+import Straordinari from './pages/Straordinari';
 import strutturamen from './pages/StrutturaMenù';
 import StrutturaTurno from './pages/StrutturaTurno';
 import SummaryAI from './pages/SummaryAI';
@@ -116,7 +117,6 @@ import ValutazionePulizie from './pages/ValutazionePulizie';
 import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSetup from './pages/ZapierSetup';
-import Straordinari from './pages/Straordinari';
 import __Layout from './Layout.jsx';
 
 
@@ -226,6 +226,7 @@ export const PAGES = {
     "StoreReviews": StoreReviews,
     "StoricoCassa": StoricoCassa,
     "StoricoImpasti": StoricoImpasti,
+    "Straordinari": Straordinari,
     "StrutturaMenù": strutturamen,
     "StrutturaTurno": StrutturaTurno,
     "SummaryAI": SummaryAI,
@@ -239,7 +240,6 @@ export const PAGES = {
     "ZapierProdottiVenduti": ZapierProdottiVenduti,
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSetup": ZapierSetup,
-    "Straordinari": Straordinari,
 }
 
 export const pagesConfig = {
