@@ -63,11 +63,6 @@ const navigationStructure = [
         icon: Users,
       },
       {
-        title: "Summary AI",
-        url: createPageUrl("SummaryAI"),
-        icon: Zap,
-      },
-      {
         title: "Form Tracker",
         url: createPageUrl("FormTracker"),
         icon: ClipboardCheck,
