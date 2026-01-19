@@ -32,6 +32,8 @@ export default function Ricette() {
     categoria: 'pizza',
     tipo_teglia: 'nessuna',
     is_semilavorato: false,
+    quantita_prodotta: '',
+    unita_misura_prodotta: 'grammi',
     mostra_in_form_inventario: false,
     stores_form_inventario: [],
     unita_misura_form_inventario: 'grammi',
@@ -118,6 +120,8 @@ export default function Ricette() {
       categoria: 'pizza',
       tipo_teglia: 'nessuna',
       is_semilavorato: false,
+      quantita_prodotta: '',
+      unita_misura_prodotta: 'grammi',
       mostra_in_form_inventario: false,
       stores_form_inventario: [],
       unita_misura_form_inventario: 'grammi',
@@ -148,6 +152,8 @@ export default function Ricette() {
       categoria: ricetta.categoria || 'pizza',
       tipo_teglia: ricetta.tipo_teglia || 'nessuna',
       is_semilavorato: ricetta.is_semilavorato || false,
+      quantita_prodotta: ricetta.quantita_prodotta || '',
+      unita_misura_prodotta: ricetta.unita_misura_prodotta || 'grammi',
       mostra_in_form_inventario: ricetta.mostra_in_form_inventario || false,
       stores_form_inventario: ricetta.stores_form_inventario || [],
       unita_misura_form_inventario: ricetta.unita_misura_form_inventario || 'grammi',
@@ -761,6 +767,8 @@ export default function Ricette() {
                           ...formData, 
                           is_semilavorato: e.target.checked,
                           nome_prodotto: e.target.checked ? '' : '',
+                          quantita_prodotta: '',
+                          unita_misura_prodotta: 'grammi',
                           mostra_in_form_inventario: false,
                           stores_form_inventario: [],
                           unita_misura_form_inventario: 'grammi',
@@ -782,6 +790,38 @@ export default function Ricette() {
                   
                   {formData.is_semilavorato && (
                     <div className="mt-3 p-4 bg-purple-50 rounded-lg space-y-3">
+                      <div>
+                        <label className="text-sm font-medium text-purple-800 mb-2 block">
+                          Quantità Prodotta
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={formData.quantita_prodotta}
+                            onChange={(e) => setFormData({ ...formData, quantita_prodotta: e.target.value })}
+                            placeholder="es. 10"
+                            className="flex-1 neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
+                          />
+                          <select
+                            value={formData.unita_misura_prodotta}
+                            onChange={(e) => setFormData({ ...formData, unita_misura_prodotta: e.target.value })}
+                            className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none"
+                          >
+                            <option value="grammi">g</option>
+                            <option value="kg">kg</option>
+                            <option value="litri">L</option>
+                            <option value="ml">ml</option>
+                            <option value="pezzi">pezzi</option>
+                            <option value="unità">unità</option>
+                          </select>
+                        </div>
+                        <p className="text-xs text-purple-600 mt-1">
+                          Specifica quanto semilavorato produce questa ricetta
+                        </p>
+                      </div>
+                      
                       <label className="flex items-center gap-3 cursor-pointer">
                         <input
                           type="checkbox"
