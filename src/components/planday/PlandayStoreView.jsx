@@ -285,81 +285,81 @@ export default function PlandayStoreView({
             </div>
 
             {dipendentiConTurni.map(dipendente => {
-          const dipTurni = turniByDipendente[dipendente.id] || {};
-          const totaleTurni = Object.values(dipTurni).flat().length;
-          const totaleOre = Object.values(dipTurni).flat().reduce((acc, t) => {
-            const [startH, startM] = t.ora_inizio.split(':').map(Number);
-            const [endH, endM] = t.ora_fine.split(':').map(Number);
-            return acc + (endH - startH) + (endM - startM) / 60;
-          }, 0);
+              const dipTurni = turniByDipendente[dipendente.id] || {};
+              const totaleTurni = Object.values(dipTurni).flat().length;
+              const totaleOre = Object.values(dipTurni).flat().reduce((acc, t) => {
+                const [startH, startM] = t.ora_inizio.split(':').map(Number);
+                const [endH, endM] = t.ora_fine.split(':').map(Number);
+                return acc + (endH - startH) + (endM - startM) / 60;
+              }, 0);
 
-          return (
-            <div key={dipendente.id} className="grid grid-cols-8 gap-1 border-b border-slate-100 py-2 hover:bg-slate-50">
-              <div className="p-2">
-                <div className="text-sm font-medium text-slate-800 truncate">{dipendente.nome_cognome || dipendente.full_name}</div>
-                <div className="text-xs text-slate-400">{totaleOre.toFixed(0)}h / {totaleTurni} turni</div>
-              </div>
-              {weekDays.map(day => {
-                const dayKey = day.format('YYYY-MM-DD');
-                const dayTurni = dipTurni[dayKey] || [];
-                return (
-                  <div 
-                    key={dayKey} 
-                    className="p-1 min-h-[60px] relative cursor-pointer hover:bg-slate-100 rounded"
-                    onDragOver={handleDragOver}
-                    onDrop={(e) => handleDrop(e, day, dipendente.id)}
-                    onClick={() => dayTurni.length === 0 && handleQuickAdd(day, dipendente.id)}
-                  >
-                    <div className="space-y-1">
-                      {dayTurni.map(turno => (
-                        <div 
-                          key={turno.id}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, turno)}
-                          className="p-2 rounded-lg cursor-grab text-xs relative text-white"
-                          style={getRuoloStyle(turno.ruolo)}
-                          onClick={(e) => handleTurnoClick(e, turno)}
-                        >
-                          {turno.is_prova && (
-                            <div className="absolute top-0 left-0 px-1 py-0.5 text-[7px] font-bold text-white rounded-br bg-purple-600">
-                              🧪
-                            </div>
-                          )}
-                          {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
-                            <div className="absolute top-0 right-0 w-0 h-0 border-t-[12px] border-l-[12px] border-l-transparent" style={{ borderTopColor: getTipoTurnoColor(turno.tipo_turno) }} />
-                          )}
-                          <div className="font-bold">{turno.ora_inizio}-{turno.ora_fine}</div>
-                          <div className="text-[10px] opacity-90">{turno.ruolo}</div>
-                          {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
-                            <div className="text-[9px] font-bold mt-0.5">{turno.tipo_turno}</div>
-                          )}
-                          {!selectedStore && turno.store_id && <div className="opacity-80 text-[10px]">{getStoreName(turno.store_id)}</div>}
-                          {(() => {
-                            const formDovuti = getFormDovutiPerTurno(turno, turni.filter(t => t.data === turno.data));
-                            const attivita = getAttivitaTurno(turno);
-                            const total = formDovuti.length + attivita.length;
-                            if (total > 0) {
-                              return (
-                                <div className="text-[8px] mt-0.5 px-1 bg-white bg-opacity-30 rounded">
-                                  📋 {formDovuti.length} • ✓ {attivita.length}
-                                </div>
-                              );
-                            }
-                            return null;
-                          })()}
-                        </div>
-                      ))}
-                    </div>
-                    {dayTurni.length === 0 && (
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                        <Plus className="w-4 h-4 text-slate-400" />
-                      </div>
-                    )}
+              return (
+                <div key={dipendente.id} className="grid grid-cols-8 gap-1 border-b border-slate-100 py-2 hover:bg-slate-50">
+                  <div className="p-2">
+                    <div className="text-sm font-medium text-slate-800 truncate">{dipendente.nome_cognome || dipendente.full_name}</div>
+                    <div className="text-xs text-slate-400">{totaleOre.toFixed(0)}h / {totaleTurni} turni</div>
                   </div>
-                );
-              })}
-            </div>
-          );
+                  {weekDays.map(day => {
+                    const dayKey = day.format('YYYY-MM-DD');
+                    const dayTurni = dipTurni[dayKey] || [];
+                    return (
+                      <div 
+                        key={dayKey} 
+                        className="p-1 min-h-[60px] relative cursor-pointer hover:bg-slate-100 rounded"
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => handleDrop(e, day, dipendente.id)}
+                        onClick={() => dayTurni.length === 0 && handleQuickAdd(day, dipendente.id)}
+                      >
+                        <div className="space-y-1">
+                          {dayTurni.map(turno => (
+                            <div 
+                              key={turno.id}
+                              draggable
+                              onDragStart={(e) => handleDragStart(e, turno)}
+                              className="p-2 rounded-lg cursor-grab text-xs relative text-white"
+                              style={getRuoloStyle(turno.ruolo)}
+                              onClick={(e) => handleTurnoClick(e, turno)}
+                            >
+                              {turno.is_prova && (
+                                <div className="absolute top-0 left-0 px-1 py-0.5 text-[7px] font-bold text-white rounded-br bg-purple-600">
+                                  🧪
+                                </div>
+                              )}
+                              {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
+                                <div className="absolute top-0 right-0 w-0 h-0 border-t-[12px] border-l-[12px] border-l-transparent" style={{ borderTopColor: getTipoTurnoColor(turno.tipo_turno) }} />
+                              )}
+                              <div className="font-bold">{turno.ora_inizio}-{turno.ora_fine}</div>
+                              <div className="text-[10px] opacity-90">{turno.ruolo}</div>
+                              {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
+                                <div className="text-[9px] font-bold mt-0.5">{turno.tipo_turno}</div>
+                              )}
+                              {!selectedStore && turno.store_id && <div className="opacity-80 text-[10px]">{getStoreName(turno.store_id)}</div>}
+                              {(() => {
+                                const formDovuti = getFormDovutiPerTurno(turno, turni.filter(t => t.data === turno.data));
+                                const attivita = getAttivitaTurno(turno);
+                                const total = formDovuti.length + attivita.length;
+                                if (total > 0) {
+                                  return (
+                                    <div className="text-[8px] mt-0.5 px-1 bg-white bg-opacity-30 rounded">
+                                      📋 {formDovuti.length} • ✓ {attivita.length}
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })()}
+                            </div>
+                          ))}
+                        </div>
+                        {dayTurni.length === 0 && (
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                            <Plus className="w-4 h-4 text-slate-400" />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
             })}
 
             {/* Riga totale ore */}
