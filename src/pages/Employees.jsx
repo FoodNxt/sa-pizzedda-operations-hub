@@ -2347,12 +2347,14 @@ function MetricWeightsModal({ weights, onClose }) {
 
   const saveMutation = useMutation({
     mutationFn: async (weightsData) => {
-      for (const [metricName, weight] of Object.entries(weightsData)) {
-        const existing = weights.find(w => w.metric_name === metricName);
-        if (existing) {
-          await base44.entities.MetricWeight.update(existing.id, { weight, is_active: true });
-        } else {
-          await base44.entities.MetricWeight.create({ metric_name: metricName, weight, is_active: true });
+      for (const [role, metrics] of Object.entries(weightsData)) {
+        for (const [metricName, weight] of Object.entries(metrics)) {
+          const existing = weights.find(w => w.metric_name === metricName && w.ruolo === role);
+          if (existing) {
+            await base44.entities.MetricWeight.update(existing.id, { weight, is_active: true });
+          } else {
+            await base44.entities.MetricWeight.create({ metric_name: metricName, weight, is_active: true, ruolo: role });
+          }
         }
       }
     },
