@@ -1557,6 +1557,12 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                                       <p className={item.completata ? 'line-through text-slate-500' : 'text-slate-700'}>
                                         {item.titolo}
                                       </p>
+                                      {item.data_target && (
+                                        <p className="text-slate-500">📅 {format(parseISO(item.data_target), 'dd/MM/yyyy')}</p>
+                                      )}
+                                      {item.assegnato_a_nome && (
+                                        <p className="text-slate-500">👤 {item.assegnato_a_nome}</p>
+                                      )}
                                       {item.completata && item.completata_da && (
                                         <p className="text-slate-400">✓ {item.completata_da}</p>
                                       )}
