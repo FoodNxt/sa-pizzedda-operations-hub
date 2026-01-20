@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     for (const attivita of attivitaPrecotture) {
       const chiave = `${attivita.dipendente_id}_${attivita.store_id}_${attivita.completato_at.split('T')[0]}_${attivita.turno_precotture}`;
       
-      if (!esistentiSet.has(chiave)) {
+      if (!esistentiSet.has(chiave) && attivita.turno_precotture) {
         daRecuperare.push({
           store_id: attivita.store_id,
           store_name: attivita.store_name || 'N/A',
