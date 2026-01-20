@@ -953,11 +953,13 @@ export default function Layout({ children, currentPageName }) {
       .map(p => p.page)
       .filter(pageName => !pageName.toLowerCase().includes('teglie'));
 
-    // Assicura sempre Profilo e Turni come minimo
-    if (!menuPages.includes('ProfiloDipendente')) menuPages.unshift('ProfiloDipendente');
-    if (!menuPages.includes('TurniDipendente') && !menuPages.some(p => p.toLowerCase().includes('turni'))) {
-      menuPages.splice(1, 0, 'TurniDipendente');
-    }
+    // Pagine core che devono sempre essere presenti per dipendenti con ruoli
+    const corePages = ['ProfiloDipendente', 'TurniDipendente', 'Academy', 'ContrattiDipendente'];
+    corePages.forEach(corePage => {
+      if (!menuPages.includes(corePage)) {
+        menuPages.push(corePage);
+      }
+    });
 
     const menuItems = menuPages.map(pageName => ({
       title: getPageTitle(pageName),

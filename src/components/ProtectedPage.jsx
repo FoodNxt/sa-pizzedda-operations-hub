@@ -86,11 +86,12 @@ export default function ProtectedPage({ children, pageName, requiredUserTypes = 
 
         // Common forms and core pages that should ALWAYS be accessible to dipendenti with roles
         const commonForms = ['FormInventario', 'FormCantina', 'Impasto', 'Preparazioni', 'FormPreparazioni', 'Precotture', 'ControlloPuliziaCassiere', 'ControlloPuliziaPizzaiolo', 'ControlloPuliziaStoreManager', 'ConteggioCassa', 'FormDeposito', 'FormPrelievi', 'FormTeglieButtate', 'FormSprechi', 'FormPagamentiContanti', 'FormSpostamenti', 'Ordini'];
-        const corePages = ['TurniDipendente', 'ProfiloDipendente', 'Academy', 'ContrattiDipendente', 'FormsDipendente', 'Valutazione', 'Segnalazioni', 'AssistenteDipendente'];
+        const corePages = ['TurniDipendente', 'ProfiloDipendente', 'Academy', 'ContrattiDipendente', 'FormsDipendente', 'Valutazione', 'Segnalazioni', 'AssistenteDipendente', 'OreLavorate', 'FeedbackP2P'];
 
-        // Per dipendenti CON ruoli assegnati, permettere sempre l'accesso a forms e core pages
+        // Per dipendenti CON ruoli assegnati e contratto iniziato, permettere sempre l'accesso a forms e core pages
         const userRoles = user?.ruoli_dipendente || [];
-        const shouldAllowCommonAccess = normalizedUserType === 'dipendente' && userRoles.length > 0;
+        const contractStarted = user?.data_inizio_contratto && new Date(user.data_inizio_contratto) <= new Date();
+        const shouldAllowCommonAccess = normalizedUserType === 'dipendente' && userRoles.length > 0 && contractStarted;
 
         const hasAccess = allowedPages.includes(pageName) || (shouldAllowCommonAccess && (commonForms.includes(pageName) || corePages.includes(pageName)));
 
