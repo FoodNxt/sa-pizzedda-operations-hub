@@ -530,7 +530,10 @@ export default function Employees() {
       });
       
       missingClockIns.forEach(shift => {
-        const weight = getWeight('timbrature_mancanti', shift.ruolo);
+        let weight = getWeight('timbrature_mancanti', shift.ruolo);
+        if (weight === 1 && shift.ruolo) {
+          weight = getWeight('timbrature_mancanti', null) || 1;
+        }
         deductionTimbrature += weight;
       });
       
