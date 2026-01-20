@@ -271,18 +271,20 @@ export default function PlandayStoreView({
       </div>
 
       <div className="min-w-[1000px]">
-        <div className="grid grid-cols-8 gap-1 mb-2 border-b border-slate-200 pb-2">
-          <div className="p-2 text-left font-medium text-slate-500 text-sm">Dipendente</div>
-          {weekDays.map(day => (
-            <div key={day.format('YYYY-MM-DD')} className={`p-2 text-center rounded-lg ${day.isSame(moment(), 'day') ? 'bg-blue-100' : ''}`}>
-              <div className="font-medium text-slate-700">{day.format('ddd')}</div>
-              <div className="text-lg font-bold text-slate-800">{day.format('DD')}</div>
-              <div className="text-xs text-slate-500">{day.format('MMM')}</div>
+        {viewMode === 'byemployee' ? (
+          <>
+            <div className="grid grid-cols-8 gap-1 mb-2 border-b border-slate-200 pb-2">
+              <div className="p-2 text-left font-medium text-slate-500 text-sm">Dipendente</div>
+              {weekDays.map(day => (
+                <div key={day.format('YYYY-MM-DD')} className={`p-2 text-center rounded-lg ${day.isSame(moment(), 'day') ? 'bg-blue-100' : ''}`}>
+                  <div className="font-medium text-slate-700">{day.format('ddd')}</div>
+                  <div className="text-lg font-bold text-slate-800">{day.format('DD')}</div>
+                  <div className="text-xs text-slate-500">{day.format('MMM')}</div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        {dipendentiConTurni.map(dipendente => {
+            {dipendentiConTurni.map(dipendente => {
           const dipTurni = turniByDipendente[dipendente.id] || {};
           const totaleTurni = Object.values(dipTurni).flat().length;
           const totaleOre = Object.values(dipTurni).flat().reduce((acc, t) => {
