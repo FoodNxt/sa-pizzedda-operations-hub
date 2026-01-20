@@ -90,6 +90,13 @@ export default function MatchingOrdiniSbagliati() {
     },
   });
 
+  const deleteMatchMutation = useMutation({
+    mutationFn: (id) => base44.entities.WrongOrderMatch.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wrong-order-matches'] });
+    },
+  });
+
   // FIXED: Deduplicate shifts function
   const deduplicateShifts = (shiftsArray) => {
     const uniqueShiftsMap = new Map();
@@ -804,6 +811,16 @@ export default function MatchingOrdiniSbagliati() {
                                  className="neumorphic-flat p-2 rounded-lg hover:bg-blue-50 transition-colors"
                                >
                                  <Edit className="w-4 h-4 text-blue-600" />
+                               </button>
+                               <button
+                                 onClick={() => {
+                                   if (confirm(`Eliminare l'abbinamento con ${match.matched_employee_name}?`)) {
+                                     deleteMatchMutation.mutate(match.id);
+                                   }
+                                 }}
+                                 className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+                               >
+                                 <Trash className="w-4 h-4 text-red-600" />
                                </button>
                              </div>
                            </div>
