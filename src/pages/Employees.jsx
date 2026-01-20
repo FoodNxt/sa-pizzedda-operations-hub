@@ -488,7 +488,12 @@ export default function Employees() {
           return shiftDate.toISOString().split('T')[0] === orderDate.toISOString().split('T')[0];
         });
         const ruolo = shiftData ? shiftData.ruolo : null;
-        const weight = getWeight('ordini_sbagliati', ruolo);
+        // Get weight with specific role or fallback to no role (generic weight)
+        let weight = getWeight('ordini_sbagliati', ruolo);
+        // If no role-specific weight found and ruolo is not null, try generic weight
+        if (weight === 1 && ruolo) {
+          weight = getWeight('ordini_sbagliati', null) || 2;
+        }
         deductionOrdini += weight;
       });
       
