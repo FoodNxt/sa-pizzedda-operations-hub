@@ -26,7 +26,8 @@ import {
   Square,
   Lightbulb,
   Loader2,
-  MapPin
+  MapPin,
+  User
 } from 'lucide-react';
 import { format, differenceInDays, parseISO, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, startOfMonth, endOfMonth, addMonths, subMonths, addWeeks, subWeeks } from 'date-fns';
 import { it } from 'date-fns/locale';
@@ -478,10 +479,13 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
       data_completamento_target: event.data,
       stores_ids: [],
       categorie_ids: [],
-      stato: 'in_corso'
+      stato: 'in_corso',
+      assegnato_a_id: '',
+      assegnato_a_nome: ''
     });
     setSelectAllStores(true);
     setSuggestedEvents(prev => prev.filter(e => e.nome !== event.nome));
+    setShowSuggestionsModal(false);
     setShowForm(true);
   };
 
@@ -1731,13 +1735,13 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                   </button>
                 </div>
 
-                <div className="mb-4">
-                  <label className="text-sm font-medium text-slate-700 mb-2 block">Seleziona Paese</label>
-                  <div className="flex gap-2">
+                <div className="space-y-4 mb-4">
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">Paese</label>
                     <select
                       value={selectedCountry}
                       onChange={(e) => setSelectedCountry(e.target.value)}
-                      className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
                     >
                       <option value="Italia">🇮🇹 Italia</option>
                       <option value="Francia">🇫🇷 Francia</option>
@@ -1746,20 +1750,38 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                       <option value="Regno Unito">🇬🇧 Regno Unito</option>
                       <option value="Stati Uniti">🇺🇸 Stati Uniti</option>
                     </select>
-                    <NeumorphicButton
-                      onClick={handleGetSuggestions}
-                      variant="primary"
-                      disabled={loadingSuggestions}
-                      className="flex items-center gap-2"
-                    >
-                      {loadingSuggestions ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
-                        <Lightbulb className="w-5 h-5" />
-                      )}
-                      Genera
-                    </NeumorphicButton>
                   </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      Città (opzionale)
+                    </label>
+                    <input
+                      type="text"
+                      value={selectedCity}
+                      onChange={(e) => setSelectedCity(e.target.value)}
+                      placeholder="Es. Milano, Roma, Napoli..."
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">
+                      Specifica una città per eventi locali specifici
+                    </p>
+                  </div>
+
+                  <NeumorphicButton
+                    onClick={handleGetSuggestions}
+                    variant="primary"
+                    disabled={loadingSuggestions}
+                    className="w-full flex items-center justify-center gap-2"
+                  >
+                    {loadingSuggestions ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Lightbulb className="w-5 h-5" />
+                    )}
+                    Genera Suggerimenti
+                  </NeumorphicButton>
                 </div>
 
                 {loadingSuggestions && (
