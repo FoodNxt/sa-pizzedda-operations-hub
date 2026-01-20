@@ -59,6 +59,8 @@ export default function PianoQuarter() {
     start: format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd'),
     end: format(new Date(), 'yyyy-MM-dd')
   });
+  const [foodCostPercentage, setFoodCostPercentage] = useState(30);
+  const [selectedPromoDay, setSelectedPromoDay] = useState(null);
 
   const [formAds, setFormAds] = useState({
     nome: '',
@@ -322,8 +324,8 @@ export default function PianoQuarter() {
       })
       .reduce((sum, d) => sum + (selectedDeliveryApp === 'Glovo' ? d.sourceApp_glovo || 0 : d.sourceApp_deliveroo || 0), 0);
 
-    // Food cost (mock - 30% del revenue)
-    const foodCost = revenue * 0.30;
+    // Food cost
+    const foodCost = revenue * (foodCostPercentage / 100);
 
     // Ads budget spalmate nel periodo
     const adsQuarters = new Set();
@@ -834,7 +836,7 @@ export default function PianoQuarter() {
               </NeumorphicCard>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-6">
               {/* Lista Promo Quarter */}
               <div className="space-y-4">
                 <h3 className="font-bold text-slate-800">Promo {selectedQuarter}</h3>
@@ -874,7 +876,7 @@ export default function PianoQuarter() {
               </div>
 
               {/* Calendario Promo */}
-              <NeumorphicCard className="p-6">
+              <NeumorphicCard className="p-6 lg:col-span-2">
                 <div className="flex items-center justify-between mb-4">
                   <button onClick={() => setPromoCalendarMonth(new Date(promoCalendarMonth.getFullYear(), promoCalendarMonth.getMonth() - 1))}>
                     <ChevronLeft className="w-5 h-5" />
@@ -895,7 +897,7 @@ export default function PianoQuarter() {
                   ))}
                 </div>
 
-                <div className="grid grid-cols-7 gap-1">
+                <div className="grid grid-cols-7 gap-2">
                   {promoCalendarDays.map(day => {
                     const dayPromo = promoMese.filter(p => {
                       const pStart = new Date(p.data_inizio);
@@ -904,9 +906,10 @@ export default function PianoQuarter() {
                     });
 
                     return (
-                      <div
+                      <button
                         key={day.toString()}
-                        className={`p-2 rounded-lg text-xs text-center border ${
+                        onClick={() => dayPromo.length > 0 && setSelectedPromoDay(day)}
+                        className={`p-3 rounded-lg text-sm text-center border cursor-pointer transition-all hover:shadow-lg ${
                           isSameMonth(day, promoCalendarMonth)
                             ? dayPromo.length > 0
                               ? 'bg-orange-100 border-orange-300'
@@ -914,24 +917,78 @@ export default function PianoQuarter() {
                             : 'bg-slate-100 border-slate-300'
                         }`}
                       >
-                        <div className="font-bold text-slate-700">{format(day, 'd')}</div>
+                        <div className="font-bold text-slate-700 mb-2">{format(day, 'd')}</div>
                         {dayPromo.length > 0 && (
-                          <div className="mt-1 space-y-1">
-                            {dayPromo.slice(0, 2).map(p => (
-                              <div key={p.id} className="bg-orange-500 text-white px-1 py-0.5 rounded text-xs truncate font-medium">
-                                {p.percentuale_sconto}%
+                          <div className="space-y-1">
+                            {dayPromo.map(p => (
+                              <div key={p.id} className="bg-orange-500 text-white px-1 py-1 rounded text-xs font-medium truncate">
+                                {p.percentuale_sconto}% - {p.piattaforma}
                               </div>
                             ))}
-                            {dayPromo.length > 2 && (
-                              <div className="text-slate-600 text-xs">+{dayPromo.length - 2}</div>
-                            )}
                           </div>
                         )}
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
               </NeumorphicCard>
+
+              {/* Modal dettagli promo */}
+              {selectedPromoDay && (
+                <>
+                  <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={() => setSelectedPromoDay(null)} />
+                  <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg max-h-[80vh] overflow-y-auto">
+                    <NeumorphicCard className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-bold text-slate-800">
+                          Promo - {format(selectedPromoDay, 'd MMMM yyyy', { locale: it })}
+                        </h3>
+                        <button
+                          onClick={() => setSelectedPromoDay(null)}
+                          className="text-slate-400 hover:text-slate-600"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      <div className="space-y-4">
+                        {promoMese.filter(p => {
+                          const pStart = new Date(p.data_inizio);
+                          const pEnd = new Date(p.data_fine);
+                          return selectedPromoDay >= pStart && selectedPromoDay <= pEnd;
+                        }).map(promo => (
+                          <div key={promo.id} className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                            <h4 className="font-bold text-slate-800 mb-2">{promo.nome}</h4>
+                            <div className="space-y-2 text-sm text-slate-700">
+                              <p><span className="font-semibold">📱 Piattaforma:</span> {promo.piattaforma}</p>
+                              <p><span className="font-semibold">🏷️ Sconto:</span> {promo.percentuale_sconto}%</p>
+                              {promo.percentuale_cofinanziamento > 0 && (
+                                <p><span className="font-semibold">💰 Cofinanziamento:</span> {promo.percentuale_cofinanziamento}%</p>
+                              )}
+                              <p><span className="font-semibold">📅 Periodo:</span> {format(parseISO(promo.data_inizio), 'dd MMM', { locale: it })} - {format(parseISO(promo.data_fine), 'dd MMM', { locale: it })}</p>
+                              {promo.prodotti_scontati && promo.prodotti_scontati.length > 0 && (
+                                <div>
+                                  <span className="font-semibold">🛒 Prodotti:</span>
+                                  <div className="flex flex-wrap gap-2 mt-1">
+                                    {promo.prodotti_scontati.map((prod, idx) => (
+                                      <span key={idx} className="px-2 py-1 bg-orange-200 text-orange-800 rounded text-xs">
+                                        {prod}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {promo.note && (
+                                <p><span className="font-semibold">📝 Note:</span> {promo.note}</p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </NeumorphicCard>
+                  </div>
+                </>
+              )}
             </div>
           </>
         )}
@@ -939,7 +996,7 @@ export default function PianoQuarter() {
         {/* Sezione Conto Economico */}
         {activeTab === 'conto' && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">App Delivery</label>
                 <select
@@ -950,6 +1007,18 @@ export default function PianoQuarter() {
                   <option value="Glovo">Glovo</option>
                   <option value="Deliveroo">Deliveroo</option>
                 </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Food Cost %</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={foodCostPercentage}
+                  onChange={(e) => setFoodCostPercentage(parseFloat(e.target.value))}
+                  className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Data Inizio</label>
@@ -1001,7 +1070,7 @@ export default function PianoQuarter() {
                 <div className="space-y-3">
                   <div>
                     <div className="flex justify-between text-sm mb-1">
-                      <span>Food Cost</span>
+                      <span>Food Cost ({foodCostPercentage}%)</span>
                       <span className="font-bold">{((Math.abs(contoEconomico.foodCost) / contoEconomico.revenue) * 100).toFixed(1)}%</span>
                     </div>
                     <div className="w-full bg-slate-200 rounded-full h-2">
