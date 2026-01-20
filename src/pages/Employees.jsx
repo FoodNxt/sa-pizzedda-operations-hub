@@ -508,7 +508,10 @@ export default function Employees() {
           const delayMs = clockInTime - scheduledStart;
           const delayMinutes = Math.floor(delayMs / 60000);
           if (delayMinutes > 0) {
-            const weight = getWeight('ritardi', shift.ruolo);
+            let weight = getWeight('ritardi', shift.ruolo);
+            if (weight === 1 && shift.ruolo) {
+              weight = getWeight('ritardi', null) || 0.3;
+            }
             deductionRitardi += weight;
           }
         } catch (e) {
