@@ -31,6 +31,7 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceL
 export default function Employees() {
   const [selectedStore, setSelectedStore] = useState('all');
   const [selectedPosition, setSelectedPosition] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('performance');
   const [sortOrder, setSortOrder] = useState('desc');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
