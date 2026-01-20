@@ -610,10 +610,63 @@ export default function FormDebug() {
                             Totali: {d.totali} • Attive: {d.attive}
                           </p>
                           <p className="text-sm text-slate-600">
-                            Con attrezzatura: {d.conAttrezzatura}
+                            Disattivate: {d.disattivate}
+                          </p>
+                          <p className="text-sm text-slate-600">
+                            Con attrezzatura: {d.conAttrezzatura} • Senza: {d.senzaAttrezzatura}
                           </p>
                         </div>
                       ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Simulazioni per Store e Ruolo */}
+                {diagnosticResults.simulazioni && diagnosticResults.simulazioni.length > 0 && (
+                  <div className="neumorphic-pressed p-4 rounded-xl">
+                    <h3 className="font-bold text-slate-800 mb-3">🔍 Simulazione Caricamento Form (per Store e Ruolo)</h3>
+                    <p className="text-xs text-slate-500 mb-3">Simula quante domande vedrà un dipendente in ogni store</p>
+                    <div className="space-y-4">
+                      {['Cassiere', 'Pizzaiolo', 'Store Manager'].map(ruolo => {
+                        const simulazioniRuolo = diagnosticResults.simulazioni.filter(s => s.ruolo === ruolo);
+                        if (simulazioniRuolo.length === 0) return null;
+                        
+                        return (
+                          <div key={ruolo} className="bg-slate-50 p-3 rounded-lg">
+                            <h4 className="font-bold text-slate-700 mb-2">{ruolo}</h4>
+                            <div className="space-y-2">
+                              {simulazioniRuolo.map((sim, idx) => {
+                                const isProblematic = sim.domandeVisibili === 0;
+                                const isLow = sim.domandeVisibili > 0 && sim.domandeVisibili < 3;
+                                
+                                return (
+                                  <div key={idx} className={`p-2 rounded text-sm ${
+                                    isProblematic ? 'bg-red-100 border border-red-300' :
+                                    isLow ? 'bg-yellow-50 border border-yellow-200' :
+                                    'bg-white border border-slate-200'
+                                  }`}>
+                                    <div className="flex items-center justify-between">
+                                      <span className="font-medium">{sim.store}</span>
+                                      <span className={`font-bold ${
+                                        isProblematic ? 'text-red-700' :
+                                        isLow ? 'text-yellow-700' :
+                                        'text-green-700'
+                                      }`}>
+                                        {sim.domandeVisibili} domande
+                                      </span>
+                                    </div>
+                                    <div className="text-xs text-slate-600 mt-1">
+                                      {sim.attrezzaturaDisponibili} attrezzature • 
+                                      {sim.domandeSenzaAttr} senza attr • 
+                                      {sim.domandeConAttr} con attr
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
