@@ -1,0 +1,487 @@
+import React, { useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
+import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
+import ProtectedPage from "../components/ProtectedPage";
+import {
+  Users,
+  Plus,
+  Edit,
+  Trash2,
+  Mail,
+  Phone,
+  Link as LinkIcon,
+  Building,
+  Euro,
+  X
+} from 'lucide-react';
+
+export default function Contatti() {
+  const [showForm, setShowForm] = useState(false);
+  const [editingContatto, setEditingContatto] = useState(null);
+  const [activeTab, setActiveTab] = useState('Food influencers');
+  const [formData, setFormData] = useState({
+    categoria: 'Food influencers',
+    nome: '',
+    cognome: '',
+    email: '',
+    telefono: '',
+    link: '',
+    societa: '',
+    proposta_commerciale_descrizione: '',
+    proposta_commerciale_prezzo: '',
+    note: ''
+  });
+
+  const queryClient = useQueryClient();
+
+  const { data: contatti = [] } = useQuery({
+    queryKey: ['contatti-marketing'],
+    queryFn: () => base44.entities.ContattoMarketing.list(),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (data) => base44.entities.ContattoMarketing.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contatti-marketing'] });
+      resetForm();
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.ContattoMarketing.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contatti-marketing'] });
+      resetForm();
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.ContattoMarketing.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contatti-marketing'] });
+    },
+  });
+
+  const resetForm = () => {
+    setFormData({
+      categoria: activeTab,
+      nome: '',
+      cognome: '',
+      email: '',
+      telefono: '',
+      link: '',
+      societa: '',
+      proposta_commerciale_descrizione: '',
+      proposta_commerciale_prezzo: '',
+      note: ''
+    });
+    setEditingContatto(null);
+    setShowForm(false);
+  };
+
+  const handleEdit = (contatto) => {
+    setEditingContatto(contatto);
+    setFormData({
+      categoria: contatto.categoria,
+      nome: contatto.nome,
+      cognome: contatto.cognome,
+      email: contatto.email || '',
+      telefono: contatto.telefono || '',
+      link: contatto.link || '',
+      societa: contatto.societa || '',
+      proposta_commerciale_descrizione: contatto.proposta_commerciale_descrizione || '',
+      proposta_commerciale_prezzo: contatto.proposta_commerciale_prezzo || '',
+      note: contatto.note || ''
+    });
+    setShowForm(true);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const data = {
+      ...formData,
+      proposta_commerciale_prezzo: formData.proposta_commerciale_prezzo ? parseFloat(formData.proposta_commerciale_prezzo) : null
+    };
+
+    if (editingContatto) {
+      updateMutation.mutate({ id: editingContatto.id, data });
+    } else {
+      createMutation.mutate(data);
+    }
+  };
+
+  const categorieStats = {
+    'Food influencers': contatti.filter(c => c.categoria === 'Food influencers').length,
+    'PR': contatti.filter(c => c.categoria === 'PR').length,
+    'Adv': contatti.filter(c => c.categoria === 'Adv').length
+  };
+
+  const contattiByCategoria = contatti.filter(c => c.categoria === activeTab);
+
+  const getCategoriaColor = (categoria) => {
+    switch(categoria) {
+      case 'Food influencers': return 'bg-purple-100 text-purple-700';
+      case 'PR': return 'bg-blue-100 text-blue-700';
+      case 'Adv': return 'bg-green-100 text-green-700';
+      default: return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  const getCategoriaIcon = (categoria) => {
+    switch(categoria) {
+      case 'Food influencers': return '👨‍🍳';
+      case 'PR': return '📢';
+      case 'Adv': return '📺';
+      default: return '📋';
+    }
+  };
+
+  return (
+    <ProtectedPage pageName="Contatti">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-800 mb-2">Contatti Marketing</h1>
+            <p className="text-slate-500">Gestisci i tuoi contatti per influencer, PR e advertising</p>
+          </div>
+          <NeumorphicButton
+            onClick={() => {
+              setFormData({ ...formData, categoria: activeTab });
+              setShowForm(true);
+            }}
+            variant="primary"
+            className="flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            Nuovo Contatto
+          </NeumorphicButton>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <NeumorphicCard className="p-6 text-center">
+            <div className="text-4xl mb-2">👨‍🍳</div>
+            <h3 className="text-3xl font-bold text-purple-600 mb-1">{categorieStats['Food influencers']}</h3>
+            <p className="text-sm text-slate-500">Food Influencers</p>
+          </NeumorphicCard>
+
+          <NeumorphicCard className="p-6 text-center">
+            <div className="text-4xl mb-2">📢</div>
+            <h3 className="text-3xl font-bold text-blue-600 mb-1">{categorieStats['PR']}</h3>
+            <p className="text-sm text-slate-500">PR</p>
+          </NeumorphicCard>
+
+          <NeumorphicCard className="p-6 text-center">
+            <div className="text-4xl mb-2">📺</div>
+            <h3 className="text-3xl font-bold text-green-600 mb-1">{categorieStats['Adv']}</h3>
+            <p className="text-sm text-slate-500">Advertising</p>
+          </NeumorphicCard>
+        </div>
+
+        {/* Category Tabs */}
+        <NeumorphicCard className="p-6">
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            {['Food influencers', 'PR', 'Adv'].map((categoria) => (
+              <NeumorphicButton
+                key={categoria}
+                onClick={() => setActiveTab(categoria)}
+                variant={activeTab === categoria ? 'primary' : 'default'}
+                className="flex items-center gap-2"
+              >
+                <span>{getCategoriaIcon(categoria)}</span>
+                {categoria}
+                <span className="text-xs opacity-75">({categorieStats[categoria]})</span>
+              </NeumorphicButton>
+            ))}
+          </div>
+        </NeumorphicCard>
+
+        {/* Contacts List */}
+        <NeumorphicCard className="p-6">
+          <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <span>{getCategoriaIcon(activeTab)}</span>
+            {activeTab}
+          </h2>
+
+          {contattiByCategoria.length === 0 ? (
+            <div className="text-center py-12">
+              <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+              <p className="text-slate-500">Nessun contatto in questa categoria</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {contattiByCategoria.map((contatto) => (
+                <div key={contatto.id} className="neumorphic-pressed p-5 rounded-xl">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-bold text-slate-800 mb-1">
+                        {contatto.nome} {contatto.cognome}
+                      </h3>
+                      {contatto.societa && (
+                        <div className="flex items-center gap-2 text-sm text-slate-600 mb-2">
+                          <Building className="w-4 h-4" />
+                          {contatto.societa}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEdit(contatto)}
+                        className="p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                      >
+                        <Edit className="w-4 h-4 text-blue-600" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`Eliminare ${contatto.nome} ${contatto.cognome}?`)) {
+                            deleteMutation.mutate(contatto.id);
+                          }
+                        }}
+                        className="p-2 rounded-lg hover:bg-red-50 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 text-sm">
+                    {contatto.email && (
+                      <div className="flex items-center gap-2 text-slate-600">
+                        <Mail className="w-4 h-4" />
+                        <a href={`mailto:${contatto.email}`} className="hover:text-blue-600 transition-colors">
+                          {contatto.email}
+                        </a>
+                      </div>
+                    )}
+                    {contatto.telefono && (
+                      <div className="flex items-center gap-2 text-slate-600">
+                        <Phone className="w-4 h-4" />
+                        <a href={`tel:${contatto.telefono}`} className="hover:text-blue-600 transition-colors">
+                          {contatto.telefono}
+                        </a>
+                      </div>
+                    )}
+                    {contatto.link && (
+                      <div className="flex items-center gap-2 text-slate-600">
+                        <LinkIcon className="w-4 h-4" />
+                        <a 
+                          href={contatto.link} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="hover:text-blue-600 transition-colors truncate"
+                        >
+                          {contatto.link}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+
+                  {contatto.proposta_commerciale_descrizione && (
+                    <div className="mt-3 pt-3 border-t border-slate-200">
+                      <p className="text-xs font-bold text-slate-700 mb-1">Proposta Commerciale</p>
+                      <p className="text-sm text-slate-600 mb-2">{contatto.proposta_commerciale_descrizione}</p>
+                      {contatto.proposta_commerciale_prezzo && (
+                        <div className="flex items-center gap-2 text-green-600 font-bold">
+                          <Euro className="w-4 h-4" />
+                          {contatto.proposta_commerciale_prezzo.toFixed(2)}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {contatto.note && (
+                    <div className="mt-3 pt-3 border-t border-slate-200">
+                      <p className="text-xs text-slate-500">{contatto.note}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </NeumorphicCard>
+
+        {/* Form Modal */}
+        {showForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="max-w-2xl w-full my-8">
+              <NeumorphicCard className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-slate-800">
+                    {editingContatto ? 'Modifica Contatto' : 'Nuovo Contatto'}
+                  </h2>
+                  <button
+                    onClick={resetForm}
+                    className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                  >
+                    <X className="w-5 h-5 text-slate-500" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">
+                      Categoria *
+                    </label>
+                    <select
+                      required
+                      value={formData.categoria}
+                      onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    >
+                      <option value="Food influencers">👨‍🍳 Food influencers</option>
+                      <option value="PR">📢 PR</option>
+                      <option value="Adv">📺 Adv</option>
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-2 block">
+                        Nome *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.nome}
+                        onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                        placeholder="Mario"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-2 block">
+                        Cognome *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.cognome}
+                        onChange={(e) => setFormData({ ...formData, cognome: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                        placeholder="Rossi"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      placeholder="mario.rossi@example.com"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">
+                      Telefono
+                    </label>
+                    <input
+                      type="tel"
+                      value={formData.telefono}
+                      onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      placeholder="+39 333 1234567"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">
+                      Link (Social/Sito)
+                    </label>
+                    <input
+                      type="url"
+                      value={formData.link}
+                      onChange={(e) => setFormData({ ...formData, link: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      placeholder="https://instagram.com/username"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">
+                      Società
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.societa}
+                      onChange={(e) => setFormData({ ...formData, societa: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      placeholder="Nome società"
+                    />
+                  </div>
+
+                  <div className="border-t pt-4 mt-4">
+                    <h3 className="text-sm font-bold text-slate-700 mb-3">Proposta Commerciale</h3>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium text-slate-700 mb-2 block">
+                          Descrizione
+                        </label>
+                        <textarea
+                          value={formData.proposta_commerciale_descrizione}
+                          onChange={(e) => setFormData({ ...formData, proposta_commerciale_descrizione: e.target.value })}
+                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none resize-none h-24"
+                          placeholder="Descrizione della proposta..."
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium text-slate-700 mb-2 block">
+                          Prezzo (€)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={formData.proposta_commerciale_prezzo}
+                          onChange={(e) => setFormData({ ...formData, proposta_commerciale_prezzo: e.target.value })}
+                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                          placeholder="0.00"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">
+                      Note
+                    </label>
+                    <textarea
+                      value={formData.note}
+                      onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none resize-none h-20"
+                      placeholder="Note aggiuntive..."
+                    />
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <NeumorphicButton type="button" onClick={resetForm} className="flex-1">
+                      Annulla
+                    </NeumorphicButton>
+                    <NeumorphicButton
+                      type="submit"
+                      variant="primary"
+                      className="flex-1"
+                      disabled={createMutation.isPending || updateMutation.isPending}
+                    >
+                      {editingContatto ? 'Aggiorna' : 'Crea'}
+                    </NeumorphicButton>
+                  </div>
+                </form>
+              </NeumorphicCard>
+            </div>
+          </div>
+        )}
+      </div>
+    </ProtectedPage>
+  );
+}

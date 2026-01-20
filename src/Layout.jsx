@@ -395,6 +395,11 @@ const navigationStructure = [
         icon: Zap,
       },
       {
+        title: "Contatti",
+        url: createPageUrl("Contatti"),
+        icon: Users,
+      },
+      {
         title: "Configurazione",
         url: createPageUrl("MarketingSettings"),
         icon: Settings,
