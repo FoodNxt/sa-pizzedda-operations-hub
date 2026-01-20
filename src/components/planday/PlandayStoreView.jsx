@@ -247,6 +247,84 @@ export default function PlandayStoreView({
         </div>
       </div>
 
+      {/* Dettaglio slot turni giornalieri */}
+      <div className="mb-6 space-y-3">
+        {weekDays.map(day => {
+          const dayKey = day.format('YYYY-MM-DD');
+          const dayTurni = turni.filter(t => t.data === dayKey).sort((a, b) => a.ora_inizio.localeCompare(b.ora_inizio));
+          const totaleOreGiorno = totaleOrePerGiorno[dayKey] || 0;
+          
+          if (dayTurni.length === 0) return null;
+          
+          return (
+            <div key={dayKey} className="neumorphic-flat p-4 rounded-xl">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold text-slate-800 text-lg">
+                  {day.format('dddd DD MMMM YYYY')}
+                </h3>
+                <div className="flex items-center gap-4">
+                  <div className="text-sm text-slate-600">
+                    <span className="font-medium">{dayTurni.length}</span> turni
+                  </div>
+                  <div className="text-sm font-bold text-blue-600">
+                    {totaleOreGiorno.toFixed(1)}h
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                {dayTurni.map(turno => (
+                  <div 
+                    key={turno.id} 
+                    className="neumorphic-pressed p-3 rounded-lg hover:bg-slate-50 cursor-pointer"
+                    onClick={(e) => handleTurnoClick(e, turno)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className="w-2 h-12 rounded-full" 
+                          style={{ backgroundColor: coloriRuolo[turno.ruolo] || '#94a3b8' }}
+                        />
+                        <div>
+                          <div className="font-bold text-slate-800">
+                            {turno.dipendente_nome || 'Non assegnato'}
+                          </div>
+                          <div className="text-sm text-slate-600">
+                            {turno.ruolo}
+                            {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
+                              <span className="ml-2 px-2 py-0.5 rounded text-xs font-medium" style={{ 
+                                backgroundColor: getTipoTurnoColor(turno.tipo_turno) + '20',
+                                color: getTipoTurnoColor(turno.tipo_turno)
+                              }}>
+                                {turno.tipo_turno}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="text-right">
+                        <div className="font-bold text-slate-800 text-lg">
+                          {turno.ora_inizio} - {turno.ora_fine}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {(() => {
+                            const [startH, startM] = turno.ora_inizio.split(':').map(Number);
+                            const [endH, endM] = turno.ora_fine.split(':').map(Number);
+                            const ore = (endH - startH) + (endM - startM) / 60;
+                            return `${ore.toFixed(1)}h`;
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
       <div className="min-w-[1000px]">
         <div className="grid grid-cols-8 gap-1 mb-2 border-b border-slate-200 pb-2">
           <div className="p-2 text-left font-medium text-slate-500 text-sm">Dipendente</div>
