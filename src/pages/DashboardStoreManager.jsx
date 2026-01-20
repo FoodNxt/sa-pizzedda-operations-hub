@@ -123,6 +123,29 @@ export default function DashboardStoreManager() {
     queryFn: () => base44.entities.RilevazioneInventario.list('-data_rilevazione', 2000)
   });
 
+  // Turni liberi nei prossimi 14 giorni
+  const turniLiberi = useMemo(() => {
+    if (!selectedStoreId) return [];
+    
+    const now = moment();
+    const next14Days = moment().add(14, 'days');
+    
+    return shifts.filter(s => {
+      if (s.store_id !== selectedStoreId) return false;
+      if (s.dipendente_id || s.dipendente_nome) return false; // Solo turni NON assegnati
+      if (!s.data) return false;
+      
+      const shiftDate = moment(s.data);
+      if (!shiftDate.isValid()) return false;
+      
+      return shiftDate.isBetween(now, next14Days, 'day', '[]');
+    }).sort((a, b) => {
+      const dateA = moment(a.data);
+      const dateB = moment(b.data);
+      return dateA.diff(dateB);
+    });
+  }, [selectedStoreId, shifts]);
+
   // Trova i locali di cui l'utente è Store Manager
   const myStores = useMemo(() => {
     if (!currentUser?.id) return [];
@@ -915,6 +938,47 @@ export default function DashboardStoreManager() {
                     <XCircle className="w-8 h-8 text-orange-600 mx-auto" />
                   )}
                 </div>
+              </div>
+            </NeumorphicCard>
+          )}
+
+          {/* Turni da Coprire */}
+          {turniLiberi.length > 0 && (
+            <NeumorphicCard className="p-6 bg-gradient-to-br from-orange-50 to-red-50 border-2 border-orange-200">
+              <div className="flex items-center gap-3 mb-4">
+                <AlertTriangle className="w-6 h-6 text-orange-600" />
+                <h2 className="text-xl font-bold text-orange-800">Turni da Coprire (Prossimi 14 Giorni)</h2>
+              </div>
+              
+              <div className="neumorphic-pressed p-4 rounded-xl mb-4 text-center bg-white">
+                <p className="text-xs text-slate-500 mb-1">Turni Non Assegnati</p>
+                <p className="text-4xl font-bold text-orange-600">{turniLiberi.length}</p>
+              </div>
+
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {turniLiberi.map(turno => (
+                  <div key={turno.id} className="neumorphic-flat p-4 rounded-xl border-2 border-orange-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-bold text-slate-800">
+                        {moment(turno.data).format('dddd DD MMMM YYYY')}
+                      </span>
+                      <span className="px-3 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-bold">
+                        {turno.ruolo}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-slate-600">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        <span>{turno.ora_inizio} - {turno.ora_fine}</span>
+                      </div>
+                      {turno.tipo_turno && (
+                        <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-xs">
+                          {turno.tipo_turno}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </NeumorphicCard>
           )}
