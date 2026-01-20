@@ -55,6 +55,8 @@ export default function Activation() {
   const [calendarCategoryFilter, setCalendarCategoryFilter] = useState('all');
   const [calendarActivationFilter, setCalendarActivationFilter] = useState('all');
   const [newSubattivitaData, setNewSubattivitaData] = useState({ titolo: '', data_target: '' });
+  const [editingSubattivita, setEditingSubattivita] = useState(null);
+  const [editingSubattivitaData, setEditingSubattivitaData] = useState({ titolo: '', data_target: '' });
   const [formData, setFormData] = useState({
     nome: '',
     descrizione: '',
