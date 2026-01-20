@@ -14,6 +14,7 @@ import ChannelComparison from './pages/ChannelComparison';
 import CleanupDuplicateShifts from './pages/CleanupDuplicateShifts';
 import Compliance from './pages/Compliance';
 import ConfrontoListini from './pages/ConfrontoListini';
+import Contatti from './pages/Contatti';
 import ConteggioCassa from './pages/ConteggioCassa';
 import Contratti from './pages/Contratti';
 import ContrattiDipendente from './pages/ContrattiDipendente';
@@ -110,7 +111,6 @@ import SummaryAI from './pages/SummaryAI';
 import TeglieButtate from './pages/TeglieButtate';
 import TurniDipendente from './pages/TurniDipendente';
 import UploadFattureXML from './pages/UploadFattureXML';
-import Contatti from './pages/Contatti';
 import UsersManagement from './pages/UsersManagement';
 import Valutazione from './pages/Valutazione';
 import ValutazioneProvaForm from './pages/ValutazioneProvaForm';
@@ -138,6 +138,7 @@ export const PAGES = {
     "CleanupDuplicateShifts": CleanupDuplicateShifts,
     "Compliance": Compliance,
     "ConfrontoListini": ConfrontoListini,
+    "Contatti": Contatti,
     "ConteggioCassa": ConteggioCassa,
     "Contratti": Contratti,
     "ContrattiDipendente": ContrattiDipendente,
@@ -234,7 +235,6 @@ export const PAGES = {
     "TeglieButtate": TeglieButtate,
     "TurniDipendente": TurniDipendente,
     "UploadFattureXML": UploadFattureXML,
-    "Contatti": Contatti,
     "UsersManagement": UsersManagement,
     "Valutazione": Valutazione,
     "ValutazioneProvaForm": ValutazioneProvaForm,

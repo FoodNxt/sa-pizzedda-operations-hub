@@ -401,123 +401,145 @@ export default function FormDebug() {
         results.warnings.push('⚠️ Nessuna attività completata registrata');
       }
 
-      // Check 8: SIMULAZIONE END-TO-END per ogni form pulizia
-      const formsPulizia = ['ControlloPuliziaCassiere', 'ControlloPuliziaPizzaiolo', 'ControlloPuliziaStoreManager'];
-      const ruoliMap = {
-        'ControlloPuliziaCassiere': 'Cassiere',
-        'ControlloPuliziaPizzaiolo': 'Pizzaiolo',
-        'ControlloPuliziaStoreManager': 'Store Manager'
+      // Check 8: SIMULAZIONE END-TO-END per tutti i form dipendenti
+      const formsMap = {
+        // Form Pulizia
+        'ControlloPuliziaCassiere': { ruolo: 'Cassiere', entita: 'CleaningInspection', tipo: 'pulizia' },
+        'ControlloPuliziaPizzaiolo': { ruolo: 'Pizzaiolo', entita: 'CleaningInspection', tipo: 'pulizia' },
+        'ControlloPuliziaStoreManager': { ruolo: 'Store Manager', entita: 'CleaningInspection', tipo: 'pulizia' },
+        // Form Inventario
+        'FormInventario': { ruolo: 'Pizzaiolo,Cassiere', entita: 'RilevazioneInventario', tipo: 'inventario' },
+        'FormCantina': { ruolo: 'Pizzaiolo,Cassiere', entita: 'RilevazioneInventarioCantina', tipo: 'inventario' },
+        // Form Cassa
+        'ConteggioCassa': { ruolo: 'Cassiere,Store Manager', entita: 'ConteggioCassa', tipo: 'cassa' },
+        'FormPagamentiContanti': { ruolo: 'Cassiere,Store Manager', entita: 'PagamentoContanti', tipo: 'cassa' },
+        'FormDeposito': { ruolo: 'Cassiere,Store Manager', entita: 'Deposito', tipo: 'cassa' },
+        'FormPrelievi': { ruolo: 'Cassiere,Store Manager', entita: 'Prelievo', tipo: 'cassa' },
+        // Form Preparazioni
+        'FormPreparazioni': { ruolo: 'Pizzaiolo', entita: 'Preparazioni', tipo: 'preparazioni' },
+        'FormSpostamenti': { ruolo: 'Store Manager,Pizzaiolo', entita: 'Spostamento', tipo: 'preparazioni' },
+        // Form Gestione Impasti
+        'Impasto': { ruolo: 'Pizzaiolo', entita: 'GestioneImpasti', tipo: 'impasti' },
+        'Precotture': { ruolo: 'Pizzaiolo', entita: 'PrecottureForm', tipo: 'impasti' },
+        // Form Sprechi e Teglie
+        'FormTeglieButtate': { ruolo: 'Pizzaiolo', entita: 'TeglieButtate', tipo: 'sprechi' },
+        'FormSprechi': { ruolo: 'Pizzaiolo,Store Manager', entita: 'Spreco', tipo: 'sprechi' },
+        // Form Ordini
+        'Ordini': { ruolo: 'Store Manager,Pizzaiolo', entita: 'OrdineFornitore', tipo: 'ordini' }
       };
 
-      for (const formName of formsPulizia) {
-        const ruoloRichiesto = ruoliMap[formName];
+      for (const [formName, formConfig] of Object.entries(formsMap)) {
         const testResult = {
           form: formName,
-          ruolo: ruoloRichiesto,
+          ruolo: formConfig.ruolo,
+          tipo: formConfig.tipo,
+          entita: formConfig.entita,
           checks: [],
-          issues: []
+          issues: [],
+          dataAvailability: {}
         };
 
         try {
-          // Sub-check 1: Verifica dipendenti con ruolo
-          const dipendentiRuolo = users.filter(u => 
+          const ruoliForm = formConfig.ruolo.split(',').map(r => r.trim());
+          
+          // Sub-check 1: Verifica dipendenti con ruoli
+          const dipendentiForm = users.filter(u => 
             u.user_type === 'dipendente' && 
-            u.ruoli_dipendente?.includes(ruoloRichiesto)
+            u.ruoli_dipendente?.some(r => ruoliForm.includes(r))
           );
           
-          if (dipendentiRuolo.length === 0) {
-            testResult.issues.push(`❌ Nessun dipendente con ruolo ${ruoloRichiesto}`);
+          if (dipendentiForm.length === 0) {
+            testResult.issues.push(`❌ Nessun dipendente con ruoli ${ruoliForm.join('/')}`);
           } else {
-            testResult.checks.push(`✅ ${dipendentiRuolo.length} dipendenti con ruolo ${ruoloRichiesto}`);
+            testResult.checks.push(`✅ ${dipendentiForm.length} dipendenti autorizzati`);
           }
 
-          // Sub-check 2: Per ogni store, simula compilazione form
-          for (const store of stores) {
-            const storeTest = {
-              store: store.name,
-              storeId: store.id,
-              domandeDisponibili: 0,
-              problemiCaricamento: [],
-              validazione: []
-            };
-
-            // Recupera attrezzature del store
-            const attrezzatureStore = attrezzature.filter(a => {
-              if (a.attivo === false) return false;
-              if (!a.stores_assegnati || a.stores_assegnati.length === 0) return true;
-              return a.stores_assegnati.includes(store.id);
-            });
-
-            // Recupera domande disponibili per il ruolo
-            const domandeStore = domandePulizia.filter(d => {
-              if (d.attiva === false) return false;
-              const ruoli = d.ruoli_assegnati || [];
-              const ruoloMatch = ruoli.length === 0 || ruoli.includes(ruoloRichiesto);
-              
-              // Se ha attrezzatura, controlla disponibilità
-              if (d.attrezzatura) {
-                return ruoloMatch && attrezzatureStore.some(a => a.nome === d.attrezzatura);
-              }
-              return ruoloMatch;
-            });
-
-            storeTest.domandeDisponibili = domandeStore.length;
-
-            // Controlla problemi comuni di caricamento
-            if (domandeStore.length === 0) {
-              storeTest.problemiCaricamento.push('❌ CARICAMENTO BLOCCATO: 0 domande visibili');
+          // Sub-check 2: Verifica accesso entità
+          try {
+            const entityExists = await base44.entities[formConfig.entita];
+            if (!entityExists || !entityExists.schema) {
+              testResult.issues.push(`❌ Entità ${formConfig.entita} non accessibile`);
+            } else {
+              testResult.checks.push(`✅ Entità ${formConfig.entita} accessibile`);
             }
+          } catch (err) {
+            testResult.issues.push(`❌ Errore accesso entità: ${err.message}`);
+          }
 
-            // Verifica integrità domande
-            for (const domanda of domandeStore) {
-              if (!domanda.domanda_testo) {
-                storeTest.problemiCaricamento.push(`⚠️ Domanda senza testo: ${domanda.id}`);
+          // Sub-check 3: Verifica dati disponibili per form specifici
+          try {
+            if (formConfig.tipo === 'inventario') {
+              const materie = await base44.entities.MateriePrime.list('-created_date', 1);
+              testResult.dataAvailability.materie = materie.length;
+              if (materie.length === 0) {
+                testResult.issues.push(`⚠️ Nessuna materia prima configurata`);
               }
-              if (domanda.attrezzatura && !attrezzatureStore.find(a => a.nome === domanda.attrezzatura)) {
-                storeTest.problemiCaricamento.push(`❌ Domanda riferisce attrezzatura mancante: ${domanda.attrezzatura}`);
+            } else if (formConfig.tipo === 'preparazioni') {
+              const preparazioniConfig = await base44.entities.TipoPreparazione.list();
+              testResult.dataAvailability.preparazioni = preparazioniConfig.length;
+              if (preparazioniConfig.length === 0) {
+                testResult.issues.push(`⚠️ Nessun tipo di preparazione configurato`);
+              }
+            } else if (formConfig.tipo === 'impasti') {
+              const impastiConfig = await base44.entities.ImpastiConfig.list();
+              testResult.dataAvailability.impasti = impastiConfig.length;
+            } else if (formConfig.tipo === 'ordini') {
+              const fornitori = await base44.entities.Fornitore.list('-created_date', 1);
+              testResult.dataAvailability.fornitori = fornitori.length;
+              if (fornitori.length === 0) {
+                testResult.issues.push(`⚠️ Nessun fornitore configurato`);
               }
             }
+          } catch (err) {
+            testResult.issues.push(`⚠️ Errore caricamento dati configurazione: ${err.message}`);
+          }
 
-            // Simula validazione form submission
-            if (domandeStore.length > 0) {
-              // Controlla se ci sono domande obbligatorie senza risposta
-              const domandeObbligatorie = domandeStore.filter(d => d.obbligatoria !== false);
-              if (domandeObbligatorie.length > 0) {
-                storeTest.validazione.push(`✅ ${domandeObbligatorie.length} domande obbligatorie`);
-              }
+          // Sub-check 4: Per form pulizia, simula per store
+          if (formConfig.tipo === 'pulizia') {
+            for (const store of stores) {
+              const storeTest = {
+                store: store.name,
+                storeId: store.id,
+                domandeDisponibili: 0,
+                problemiCaricamento: [],
+                validazione: []
+              };
 
-              // Controlla se il form potrebbe restare bloccato durante submit
-              // (es. query lente, entity validation, etc)
-              try {
-                // Test creazione entità vuota per verificare schema
-                const entityName = formName === 'ControlloPuliziaCassiere' ? 'CleaningInspection' : 
-                                   formName === 'ControlloPuliziaPizzaiolo' ? 'CleaningInspection' : 
-                                   'CleaningInspection';
+              const attrezzatureStore = attrezzature.filter(a => {
+                if (a.attivo === false) return false;
+                if (!a.stores_assegnati || a.stores_assegnati.length === 0) return true;
+                return a.stores_assegnati.includes(store.id);
+              });
+
+              const domandeStore = domandePulizia.filter(d => {
+                if (d.attiva === false) return false;
+                const ruoli = d.ruoli_assegnati || [];
+                const ruoloMatch = ruoli.length === 0 || ruoliForm.some(r => ruoli.includes(r));
                 
-                // Verifica che l'entità esista
-                const schema = await base44.entities.CleaningInspection.schema();
-                if (schema) {
-                  storeTest.validazione.push(`✅ Entità ${entityName} accessibile`);
+                if (d.attrezzatura) {
+                  return ruoloMatch && attrezzatureStore.some(a => a.nome === d.attrezzatura);
                 }
-              } catch (err) {
-                storeTest.validazione.push(`❌ Errore accesso entità: ${err.message}`);
+                return ruoloMatch;
+              });
+
+              storeTest.domandeDisponibili = domandeStore.length;
+
+              if (domandeStore.length === 0) {
+                storeTest.problemiCaricamento.push('❌ CARICAMENTO BLOCCATO: 0 domande');
               }
+
+              for (const domanda of domandeStore) {
+                if (!domanda.domanda_testo) {
+                  storeTest.problemiCaricamento.push(`⚠️ Domanda senza testo`);
+                }
+              }
+
+              if (dipendentiForm.length > 0 && domandeStore.length === 0) {
+                storeTest.problemiCaricamento.push('⚠️ Possibile REDIRECT: 0 domande');
+              }
+
+              testResult.checks.push(storeTest);
             }
-
-            // Controlla possibili redirect involontari
-            if (dipendentiRuolo.length > 0 && domandeStore.length === 0) {
-              storeTest.problemiCaricamento.push('⚠️ Possibile redirect: dipendente entra ma 0 domande');
-            }
-
-            testResult.checks.push(storeTest);
-          }
-
-          // Aggrega problemi
-          const allProblems = testResult.checks.flatMap(c => c.problemiCaricamento || []);
-          const allValidation = testResult.checks.flatMap(c => c.validazione || []);
-          
-          if (allProblems.length > 0) {
-            testResult.issues.push(`❌ ${allProblems.length} problemi di caricamento identificati`);
           }
 
           results.endToEndTests.push(testResult);
