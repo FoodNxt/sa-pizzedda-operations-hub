@@ -2308,15 +2308,41 @@ function GaussianChart({ employees }) {
 
 function MetricWeightsModal({ weights, onClose }) {
   const queryClient = useQueryClient();
+  const [activeRole, setActiveRole] = useState('Pizzaiolo');
   const [localWeights, setLocalWeights] = useState({
-    ordini_sbagliati: weights.find(w => w.metric_name === 'ordini_sbagliati')?.weight || 2,
-    ritardi: weights.find(w => w.metric_name === 'ritardi')?.weight || 0.3,
-    timbrature_mancanti: weights.find(w => w.metric_name === 'timbrature_mancanti')?.weight || 1,
-    bonus_per_recensione: weights.find(w => w.metric_name === 'bonus_per_recensione')?.weight || 0.5,
-    min_recensioni: weights.find(w => w.metric_name === 'min_recensioni')?.weight || 5,
-    malus_sotto_minimo_recensioni: weights.find(w => w.metric_name === 'malus_sotto_minimo_recensioni')?.weight || 2,
-    punteggio_recensioni: weights.find(w => w.metric_name === 'punteggio_recensioni')?.weight || 2,
-    pulizie: weights.find(w => w.metric_name === 'pulizie')?.weight || 1
+    Pizzaiolo: {
+      ordini_sbagliati: weights.find(w => w.metric_name === 'ordini_sbagliati' && w.ruolo === 'Pizzaiolo')?.weight || 2,
+      ritardi: weights.find(w => w.metric_name === 'ritardi' && w.ruolo === 'Pizzaiolo')?.weight || 0.3,
+      timbrature_mancanti: weights.find(w => w.metric_name === 'timbrature_mancanti' && w.ruolo === 'Pizzaiolo')?.weight || 1,
+      straordinari: weights.find(w => w.metric_name === 'straordinari' && w.ruolo === 'Pizzaiolo')?.weight || 0.5,
+      bonus_per_recensione: weights.find(w => w.metric_name === 'bonus_per_recensione' && w.ruolo === 'Pizzaiolo')?.weight || 0.5,
+      min_recensioni: weights.find(w => w.metric_name === 'min_recensioni' && w.ruolo === 'Pizzaiolo')?.weight || 5,
+      malus_sotto_minimo_recensioni: weights.find(w => w.metric_name === 'malus_sotto_minimo_recensioni' && w.ruolo === 'Pizzaiolo')?.weight || 2,
+      punteggio_recensioni: weights.find(w => w.metric_name === 'punteggio_recensioni' && w.ruolo === 'Pizzaiolo')?.weight || 2,
+      pulizie: weights.find(w => w.metric_name === 'pulizie' && w.ruolo === 'Pizzaiolo')?.weight || 1
+    },
+    Cassiere: {
+      ordini_sbagliati: weights.find(w => w.metric_name === 'ordini_sbagliati' && w.ruolo === 'Cassiere')?.weight || 2,
+      ritardi: weights.find(w => w.metric_name === 'ritardi' && w.ruolo === 'Cassiere')?.weight || 0.3,
+      timbrature_mancanti: weights.find(w => w.metric_name === 'timbrature_mancanti' && w.ruolo === 'Cassiere')?.weight || 1,
+      straordinari: weights.find(w => w.metric_name === 'straordinari' && w.ruolo === 'Cassiere')?.weight || 0.5,
+      bonus_per_recensione: weights.find(w => w.metric_name === 'bonus_per_recensione' && w.ruolo === 'Cassiere')?.weight || 0.5,
+      min_recensioni: weights.find(w => w.metric_name === 'min_recensioni' && w.ruolo === 'Cassiere')?.weight || 5,
+      malus_sotto_minimo_recensioni: weights.find(w => w.metric_name === 'malus_sotto_minimo_recensioni' && w.ruolo === 'Cassiere')?.weight || 2,
+      punteggio_recensioni: weights.find(w => w.metric_name === 'punteggio_recensioni' && w.ruolo === 'Cassiere')?.weight || 2,
+      pulizie: weights.find(w => w.metric_name === 'pulizie' && w.ruolo === 'Cassiere')?.weight || 1
+    },
+    'Store Manager': {
+      ordini_sbagliati: weights.find(w => w.metric_name === 'ordini_sbagliati' && w.ruolo === 'Store Manager')?.weight || 2,
+      ritardi: weights.find(w => w.metric_name === 'ritardi' && w.ruolo === 'Store Manager')?.weight || 0.3,
+      timbrature_mancanti: weights.find(w => w.metric_name === 'timbrature_mancanti' && w.ruolo === 'Store Manager')?.weight || 1,
+      straordinari: weights.find(w => w.metric_name === 'straordinari' && w.ruolo === 'Store Manager')?.weight || 0.5,
+      bonus_per_recensione: weights.find(w => w.metric_name === 'bonus_per_recensione' && w.ruolo === 'Store Manager')?.weight || 0.5,
+      min_recensioni: weights.find(w => w.metric_name === 'min_recensioni' && w.ruolo === 'Store Manager')?.weight || 5,
+      malus_sotto_minimo_recensioni: weights.find(w => w.metric_name === 'malus_sotto_minimo_recensioni' && w.ruolo === 'Store Manager')?.weight || 2,
+      punteggio_recensioni: weights.find(w => w.metric_name === 'punteggio_recensioni' && w.ruolo === 'Store Manager')?.weight || 2,
+      pulizie: weights.find(w => w.metric_name === 'pulizie' && w.ruolo === 'Store Manager')?.weight || 1
+    }
   });
 
   const saveMutation = useMutation({
