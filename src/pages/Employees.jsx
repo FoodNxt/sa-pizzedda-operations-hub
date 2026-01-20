@@ -702,9 +702,6 @@ export default function Employees() {
         oreAssenzeNonGiustificate,
         oreMalattia,
         weights: {
-          w_ordini,
-          w_ritardi,
-          w_timbrature,
           w_bonus_recensione,
           w_min_recensioni,
           w_malus_recensioni,
