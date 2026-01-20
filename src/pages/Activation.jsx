@@ -57,7 +57,9 @@ export default function Activation() {
     data_completamento_target: '',
     stores_ids: [],
     categorie_ids: [],
-    stato: 'in_corso'
+    stato: 'in_corso',
+    assegnato_a_id: '',
+    assegnato_a_nome: ''
   });
   const [categoryForm, setCategoryForm] = useState({
     nome: '',
@@ -92,6 +94,14 @@ export default function Activation() {
   const { data: user } = useQuery({
     queryKey: ['current-user'],
     queryFn: () => base44.auth.me(),
+  });
+
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ['all-users'],
+    queryFn: async () => {
+      const users = await base44.entities.User.list();
+      return users.filter(u => u.user_type === 'admin' || u.user_type === 'manager');
+    },
   });
 
   const createMutation = useMutation({
@@ -170,7 +180,9 @@ export default function Activation() {
       data_completamento_target: '',
       stores_ids: [],
       categorie_ids: [],
-      stato: 'in_corso'
+      stato: 'in_corso',
+      assegnato_a_id: '',
+      assegnato_a_nome: ''
     });
     setSelectAllStores(false);
     setEditingActivation(null);
@@ -197,7 +209,9 @@ export default function Activation() {
       data_completamento_target: activation.data_completamento_target,
       stores_ids: activation.stores_ids || [],
       categorie_ids: activation.categorie_ids || [],
-      stato: activation.stato || 'in_corso'
+      stato: activation.stato || 'in_corso',
+      assegnato_a_id: activation.assegnato_a_id || '',
+      assegnato_a_nome: activation.assegnato_a_nome || ''
     });
     setSelectAllStores(!activation.stores_ids || activation.stores_ids.length === 0);
     setSelectedActivationForChecklist(activation);
@@ -414,6 +428,12 @@ export default function Activation() {
 - Breve descrizione (max 50 parole)
 - Suggerimento per activation di marketing (max 30 parole)
 
+Includi:
+- Festività nazionali (es. 25 Aprile, 1 Maggio)
+- Feste tradizionali (es. San Valentino, Festa della Mamma, Halloween)
+- Eventi culturali e ricorrenze commerciali
+- Giornate mondiali rilevanti (es. Giornata della Pizza)
+
 Concentrati su eventi che possono essere utili per attività di marketing di una pizzeria.${excludedEventsText}`,
         add_context_from_internet: true,
         response_json_schema: {
@@ -460,9 +480,35 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
     setShowForm(true);
   };
 
-  const handleDismissEvent = (event) => {
+  const handleDismissEvent = async (event) => {
     setDismissedEvents(prev => [...prev, event.nome]);
     setSuggestedEvents(prev => prev.filter(e => e.nome !== event.nome));
+
+    // Find or create "Eventi AI scartati" category
+    let scartatiCategory = categories.find(c => c.nome === 'Eventi AI scartati');
+    if (!scartatiCategory) {
+      scartatiCategory = await base44.entities.ActivationCategoria.create({
+        nome: 'Eventi AI scartati',
+        colore: '#9CA3AF',
+        descrizione: 'Eventi suggeriti dall\'AI ma scartati',
+        ordine: 999
+      });
+      queryClient.invalidateQueries({ queryKey: ['activation-categories'] });
+    }
+
+    // Create activation in "Eventi AI scartati" category
+    await base44.entities.Activation.create({
+      nome: event.nome,
+      descrizione: `${event.descrizione}\n\n${event.suggerimento_marketing}`,
+      data_inizio: event.data,
+      data_completamento_target: event.data,
+      stores_ids: [],
+      stores_names: [],
+      categorie_ids: [scartatiCategory.id],
+      stato: 'annullata',
+      creato_da: user?.nome_cognome || user?.full_name || user?.email
+    });
+    queryClient.invalidateQueries({ queryKey: ['activations'] });
   };
 
   return (
@@ -722,6 +768,29 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                   </div>
 
                   <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">Assegnato a</label>
+                    <select
+                      value={formData.assegnato_a_id}
+                      onChange={(e) => {
+                        const selectedUser = allUsers.find(u => u.id === e.target.value);
+                        setFormData({ 
+                          ...formData, 
+                          assegnato_a_id: e.target.value,
+                          assegnato_a_nome: selectedUser ? (selectedUser.nome_cognome || selectedUser.full_name || selectedUser.email) : ''
+                        });
+                      }}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    >
+                      <option value="">Non assegnato</option>
+                      {allUsers.map(u => (
+                        <option key={u.id} value={u.id}>
+                          {u.nome_cognome || u.full_name || u.email} ({u.user_type === 'admin' ? 'Admin' : 'Manager'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
                     <label className="text-sm font-medium text-slate-700 mb-2 block">Categorie</label>
                     {categories.length === 0 ? (
                       <p className="text-sm text-slate-500">Nessuna categoria disponibile</p>
@@ -947,6 +1016,12 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                             <Calendar className="w-3 h-3" />
                             Target: {format(parseISO(activation.data_completamento_target), 'dd MMM yyyy', { locale: it })}
                           </div>
+                          {activation.assegnato_a_nome && (
+                            <div className="flex items-center gap-1">
+                              <User className="w-3 h-3" />
+                              Assegnato: {activation.assegnato_a_nome}
+                            </div>
+                          )}
                         </div>
                         <div className="mt-2 flex flex-wrap gap-2">
                           {activation.categorie_ids && activation.categorie_ids.length > 0 && (
