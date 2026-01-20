@@ -447,7 +447,9 @@ export default function Activation() {
     setEditingSubattivita(subattivita);
     setEditingSubattivitaData({
       titolo: subattivita.titolo,
-      data_target: subattivita.data_target || ''
+      data_target: subattivita.data_target || '',
+      assegnato_a_id: subattivita.assegnato_a_id || '',
+      assegnato_a_nome: subattivita.assegnato_a_nome || ''
     });
   };
 
