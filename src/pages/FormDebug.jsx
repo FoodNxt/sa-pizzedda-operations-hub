@@ -7,10 +7,12 @@ import { Play, Plus, Edit, Trash2, CheckCircle, XCircle, Loader2, AlertTriangle,
 import moment from "moment";
 
 export default function FormDebug() {
-  const [activeTab, setActiveTab] = useState('test_cases');
+  const [activeTab, setActiveTab] = useState('diagnostics');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCase, setEditingCase] = useState(null);
   const [selectedRun, setSelectedRun] = useState(null);
+  const [diagnosticResults, setDiagnosticResults] = useState(null);
+  const [runningDiagnostics, setRunningDiagnostics] = useState(false);
   const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState({
@@ -66,6 +68,31 @@ export default function FormDebug() {
   const { data: testResults = [], isLoading: loadingResults } = useQuery({
     queryKey: ['form-test-results'],
     queryFn: () => base44.entities.FormTestResult.list('-created_date', 500),
+  });
+
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores'],
+    queryFn: () => base44.entities.Store.list(),
+  });
+
+  const { data: attrezzature = [] } = useQuery({
+    queryKey: ['attrezzature'],
+    queryFn: () => base44.entities.Attrezzatura.list(),
+  });
+
+  const { data: domandePulizia = [] } = useQuery({
+    queryKey: ['domande-pulizia'],
+    queryFn: () => base44.entities.DomandaPulizia.list(),
+  });
+
+  const { data: employees = [] } = useQuery({
+    queryKey: ['employees'],
+    queryFn: () => base44.entities.Employee.list(),
+  });
+
+  const { data: users = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => base44.entities.User.list(),
   });
 
   const createTestCaseMutation = useMutation({
@@ -160,6 +187,128 @@ export default function FormDebug() {
 
   const testRuns = Object.keys(groupedResults).sort().reverse();
 
+  // Funzione diagnostica per verificare configurazione form pulizia
+  const runDiagnostics = async () => {
+    setRunningDiagnostics(true);
+    const results = {
+      stores: [],
+      attrezzature: [],
+      domande: [],
+      employees: [],
+      criticalIssues: [],
+      warnings: [],
+      successChecks: []
+    };
+
+    try {
+      // Check 1: Verifica stores
+      if (stores.length === 0) {
+        results.criticalIssues.push('❌ CRITICO: Nessun store configurato');
+      } else {
+        results.successChecks.push(`✅ ${stores.length} store configurati`);
+        results.stores = stores.map(s => s.name);
+      }
+
+      // Check 2: Verifica attrezzature
+      if (attrezzature.length === 0) {
+        results.criticalIssues.push('❌ CRITICO: Nessuna attrezzatura configurata');
+      } else {
+        results.successChecks.push(`✅ ${attrezzature.length} attrezzature configurate`);
+        
+        const attrezzatureInattive = attrezzature.filter(a => a.attivo === false);
+        if (attrezzatureInattive.length > 0) {
+          results.warnings.push(`⚠️ ${attrezzatureInattive.length} attrezzature disattivate`);
+        }
+
+        const attrezzatureSenzaStore = attrezzature.filter(a => !a.stores_assegnati || a.stores_assegnati.length === 0);
+        results.attrezzature = attrezzature.map(a => ({
+          nome: a.nome,
+          attivo: a.attivo,
+          stores: a.stores_assegnati?.length || 0,
+          global: !a.stores_assegnati || a.stores_assegnati.length === 0
+        }));
+      }
+
+      // Check 3: Verifica domande pulizia
+      const domandePerRuolo = {
+        'Cassiere': domandePulizia.filter(d => {
+          const ruoli = d.ruoli_assegnati || [];
+          return ruoli.length === 0 || ruoli.includes('Cassiere');
+        }),
+        'Pizzaiolo': domandePulizia.filter(d => {
+          const ruoli = d.ruoli_assegnati || [];
+          return ruoli.length === 0 || ruoli.includes('Pizzaiolo');
+        }),
+        'Store Manager': domandePulizia.filter(d => {
+          const ruoli = d.ruoli_assegnati || [];
+          return ruoli.length === 0 || ruoli.includes('Store Manager');
+        })
+      };
+
+      for (const [ruolo, domande] of Object.entries(domandePerRuolo)) {
+        const domandeAttive = domande.filter(d => d.attiva !== false);
+        
+        if (domandeAttive.length === 0) {
+          results.criticalIssues.push(`❌ CRITICO: Nessuna domanda attiva per ${ruolo}`);
+        } else {
+          results.successChecks.push(`✅ ${domandeAttive.length} domande attive per ${ruolo}`);
+          
+          // Verifica domande con attrezzature inesistenti
+          for (const d of domandeAttive) {
+            if (d.attrezzatura && !attrezzature.find(a => a.nome === d.attrezzatura)) {
+              results.warnings.push(`⚠️ Domanda "${d.domanda_testo || d.attrezzatura}" riferisce attrezzatura inesistente: ${d.attrezzatura}`);
+            }
+          }
+
+          // Simula caricamento per ogni store
+          for (const store of stores) {
+            const attrezzatureDelLocale = attrezzature.filter(a => {
+              if (a.attivo === false) return false;
+              if (!a.stores_assegnati || a.stores_assegnati.length === 0) return true;
+              return a.stores_assegnati.includes(store.id);
+            }).map(a => a.nome);
+
+            const domandeVisibili = domandeAttive.filter(d => {
+              if (d.attrezzatura) {
+                return attrezzatureDelLocale.includes(d.attrezzatura);
+              }
+              return true;
+            });
+
+            if (domandeVisibili.length === 0) {
+              results.criticalIssues.push(`❌ CRITICO: ${ruolo} vedrà 0 domande in ${store.name}`);
+            }
+          }
+        }
+      }
+
+      results.domande = Object.entries(domandePerRuolo).map(([ruolo, domande]) => ({
+        ruolo,
+        totali: domande.length,
+        attive: domande.filter(d => d.attiva !== false).length,
+        conAttrezzatura: domande.filter(d => d.attrezzatura).length
+      }));
+
+      // Check 4: Verifica dipendenti con ruoli
+      const dipendentiConRuoli = users.filter(u => u.user_type === 'dipendente' && u.ruoli_dipendente?.length > 0);
+      if (dipendentiConRuoli.length === 0) {
+        results.warnings.push('⚠️ Nessun dipendente con ruoli assegnati');
+      } else {
+        results.successChecks.push(`✅ ${dipendentiConRuoli.length} dipendenti con ruoli`);
+        results.employees = dipendentiConRuoli.map(u => ({
+          nome: u.nome_cognome || u.full_name,
+          ruoli: u.ruoli_dipendente
+        }));
+      }
+
+    } catch (error) {
+      results.criticalIssues.push(`❌ Errore durante diagnostica: ${error.message}`);
+    }
+
+    setDiagnosticResults(results);
+    setRunningDiagnostics(false);
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <div>
@@ -196,7 +345,17 @@ export default function FormDebug() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
+        <button
+          onClick={() => setActiveTab('diagnostics')}
+          className={`px-6 py-3 rounded-xl font-medium transition-all ${
+            activeTab === 'diagnostics'
+              ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg'
+              : 'neumorphic-flat text-slate-700'
+          }`}
+        >
+          🔍 Diagnostica Form
+        </button>
         <button
           onClick={() => setActiveTab('test_cases')}
           className={`px-6 py-3 rounded-xl font-medium transition-all ${
@@ -218,6 +377,185 @@ export default function FormDebug() {
           Risultati
         </button>
       </div>
+
+      {/* Tab Diagnostica */}
+      {activeTab === 'diagnostics' && (
+        <div className="space-y-6">
+          <NeumorphicCard className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">🔍 Diagnostica Form Dipendenti</h2>
+                <p className="text-sm text-slate-500 mt-1">Verifica la configurazione completa dei form per individuare problemi</p>
+              </div>
+              <NeumorphicButton
+                onClick={runDiagnostics}
+                disabled={runningDiagnostics}
+                variant="primary"
+              >
+                {runningDiagnostics ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="ml-2">Analisi in corso...</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4" />
+                    <span className="ml-2">Avvia Diagnostica</span>
+                  </>
+                )}
+              </NeumorphicButton>
+            </div>
+
+            {diagnosticResults && (
+              <div className="space-y-6">
+                {/* Problemi Critici */}
+                {diagnosticResults.criticalIssues.length > 0 && (
+                  <div className="neumorphic-pressed p-6 rounded-xl bg-red-50 border-2 border-red-300">
+                    <h3 className="font-bold text-red-800 mb-3 flex items-center gap-2">
+                      <AlertTriangle className="w-5 h-5" />
+                      PROBLEMI CRITICI ({diagnosticResults.criticalIssues.length})
+                    </h3>
+                    <ul className="space-y-2">
+                      {diagnosticResults.criticalIssues.map((issue, idx) => (
+                        <li key={idx} className="text-red-700 font-medium">{issue}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Warnings */}
+                {diagnosticResults.warnings.length > 0 && (
+                  <div className="neumorphic-pressed p-6 rounded-xl bg-yellow-50 border-2 border-yellow-300">
+                    <h3 className="font-bold text-yellow-800 mb-3 flex items-center gap-2">
+                      <AlertTriangle className="w-5 h-5" />
+                      ATTENZIONI ({diagnosticResults.warnings.length})
+                    </h3>
+                    <ul className="space-y-2">
+                      {diagnosticResults.warnings.map((warning, idx) => (
+                        <li key={idx} className="text-yellow-700">{warning}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Controlli OK */}
+                {diagnosticResults.successChecks.length > 0 && (
+                  <div className="neumorphic-pressed p-6 rounded-xl bg-green-50 border-2 border-green-300">
+                    <h3 className="font-bold text-green-800 mb-3 flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5" />
+                      CONTROLLI PASSATI ({diagnosticResults.successChecks.length})
+                    </h3>
+                    <ul className="space-y-1">
+                      {diagnosticResults.successChecks.map((check, idx) => (
+                        <li key={idx} className="text-green-700 text-sm">{check}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Dettagli Stores */}
+                {diagnosticResults.stores.length > 0 && (
+                  <div className="neumorphic-pressed p-4 rounded-xl">
+                    <h3 className="font-bold text-slate-800 mb-2">Stores Configurati</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {diagnosticResults.stores.map((store, idx) => (
+                        <span key={idx} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                          {store}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Dettagli Attrezzature */}
+                {diagnosticResults.attrezzature.length > 0 && (
+                  <div className="neumorphic-pressed p-4 rounded-xl">
+                    <h3 className="font-bold text-slate-800 mb-3">Attrezzature per Store</h3>
+                    <div className="space-y-2">
+                      {diagnosticResults.attrezzature.map((attr, idx) => (
+                        <div key={idx} className="flex items-center justify-between text-sm">
+                          <span className={attr.attivo ? 'text-slate-700' : 'text-slate-400 line-through'}>
+                            {attr.nome}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            {attr.global ? (
+                              <span className="px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-xs">
+                                Tutti i locali
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs">
+                                {attr.stores} store
+                              </span>
+                            )}
+                            {!attr.attivo && (
+                              <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs">
+                                Disattivo
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Dettagli Domande per Ruolo */}
+                {diagnosticResults.domande.length > 0 && (
+                  <div className="neumorphic-pressed p-4 rounded-xl">
+                    <h3 className="font-bold text-slate-800 mb-3">Domande Pulizia per Ruolo</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {diagnosticResults.domande.map((d, idx) => (
+                        <div key={idx} className="bg-slate-50 p-3 rounded-lg">
+                          <h4 className="font-bold text-slate-700">{d.ruolo}</h4>
+                          <p className="text-sm text-slate-600 mt-1">
+                            Totali: {d.totali} • Attive: {d.attive}
+                          </p>
+                          <p className="text-sm text-slate-600">
+                            Con attrezzatura: {d.conAttrezzatura}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Dipendenti */}
+                {diagnosticResults.employees.length > 0 && (
+                  <div className="neumorphic-pressed p-4 rounded-xl">
+                    <h3 className="font-bold text-slate-800 mb-3">Dipendenti con Ruoli</h3>
+                    <div className="space-y-2">
+                      {diagnosticResults.employees.slice(0, 10).map((emp, idx) => (
+                        <div key={idx} className="flex items-center justify-between text-sm">
+                          <span className="text-slate-700">{emp.nome}</span>
+                          <div className="flex gap-1">
+                            {emp.ruoli.map((ruolo, ridx) => (
+                              <span key={ridx} className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs">
+                                {ruolo}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                      {diagnosticResults.employees.length > 10 && (
+                        <p className="text-xs text-slate-500 text-center">
+                          ... e altri {diagnosticResults.employees.length - 10} dipendenti
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!diagnosticResults && !runningDiagnostics && (
+              <div className="text-center py-12">
+                <AlertTriangle className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <p className="text-slate-500">Clicca "Avvia Diagnostica" per verificare la configurazione</p>
+              </div>
+            )}
+          </NeumorphicCard>
+        </div>
+      )}
 
       {/* Tab Test Cases */}
       {activeTab === 'test_cases' && (
