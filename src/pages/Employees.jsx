@@ -1254,27 +1254,35 @@ export default function Employees() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <select
-            value={selectedStore}
-            onChange={(e) => setSelectedStore(e.target.value)}
-            className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
-          >
-            <option value="all">Tutti i Locali</option>
-            {stores.map(store => (
-              <option key={store.id} value={store.id}>{store.name}</option>
-            ))}
-          </select>
+           <input
+             type="text"
+             placeholder="Cerca dipendente..."
+             value={searchQuery}
+             onChange={(e) => setSearchQuery(e.target.value)}
+             className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm flex-1 min-w-[150px]"
+           />
 
-          <select
-            value={selectedPosition}
-            onChange={(e) => setSelectedPosition(e.target.value)}
-            className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
-          >
-            <option value="all">Tutti i Ruoli</option>
-            <option value="Pizzaiolo">Pizzaiolo</option>
-            <option value="Cassiere">Cassiere</option>
-            <option value="Store Manager">Store Manager</option>
-          </select>
+           <select
+             value={selectedStore}
+             onChange={(e) => setSelectedStore(e.target.value)}
+             className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
+           >
+             <option value="all">Tutti i Locali</option>
+             {stores.map(store => (
+               <option key={store.id} value={store.id}>{store.name}</option>
+             ))}
+           </select>
+
+           <select
+             value={selectedPosition}
+             onChange={(e) => setSelectedPosition(e.target.value)}
+             className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
+           >
+             <option value="all">Tutti i Ruoli</option>
+             <option value="Pizzaiolo">Pizzaiolo</option>
+             <option value="Cassiere">Cassiere</option>
+             <option value="Store Manager">Store Manager</option>
+           </select>
 
           <select
             value={dateRangePreset}
