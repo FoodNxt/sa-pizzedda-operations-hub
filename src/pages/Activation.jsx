@@ -408,8 +408,10 @@ export default function Activation() {
     createSubattivitaMutation.mutate({
       activation_id: activationId,
       titolo: newChecklistItem.trim(),
+      data_target: newSubattivitaData.data_target || undefined,
       ordine: maxOrdine + 1
     });
+    setNewSubattivitaData({ titolo: '', data_target: '' });
   };
 
   const handleGetSuggestions = async () => {
