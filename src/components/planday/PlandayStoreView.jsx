@@ -360,25 +360,76 @@ export default function PlandayStoreView({
               })}
             </div>
           );
-        })}
+            })}
 
-        {/* Riga totale ore */}
-        <div className="grid grid-cols-8 gap-1 border-t-2 border-slate-300 pt-2 mt-2 bg-slate-50">
-          <div className="p-2">
-            <div className="text-sm font-bold text-slate-700">Totale Ore</div>
-          </div>
-          {weekDays.map(day => {
-            const dayKey = day.format('YYYY-MM-DD');
-            const totaleOre = totaleOrePerGiorno[dayKey] || 0;
-            return (
-              <div key={dayKey} className="p-2 text-center">
-                <div className="font-bold text-blue-600 text-sm">
-                  {totaleOre.toFixed(1)}h
-                </div>
+            {/* Riga totale ore */}
+            <div className="grid grid-cols-8 gap-1 border-t-2 border-slate-300 pt-2 mt-2 bg-slate-50">
+              <div className="p-2">
+                <div className="text-sm font-bold text-slate-700">Totale Ore</div>
               </div>
-            );
-          })}
-        </div>
+              {weekDays.map(day => {
+                const dayKey = day.format('YYYY-MM-DD');
+                const totaleOre = totaleOrePerGiorno[dayKey] || 0;
+                return (
+                  <div key={dayKey} className="p-2 text-center">
+                    <div className="font-bold text-blue-600 text-sm">
+                      {totaleOre.toFixed(1)}h
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="space-y-4">
+              {weekDays.map(day => {
+                const dayKey = day.format('YYYY-MM-DD');
+                const dayTurni = turni.filter(t => t.data === dayKey);
+                return (
+                  <div key={dayKey} className="neumorphic-flat p-4 rounded-xl">
+                    <h4 className={`font-bold text-lg mb-3 ${day.isSame(moment(), 'day') ? 'text-blue-600' : 'text-slate-800'}`}>
+                      {day.format('dddd DD MMMM')}
+                    </h4>
+                    {dayTurni.length === 0 ? (
+                      <p className="text-slate-400 text-sm">Nessun turno</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {dayTurni.map(turno => {
+                          const dipendente = users.find(u => u.id === turno.dipendente_id);
+                          return (
+                            <div
+                              key={turno.id}
+                              className="p-3 rounded-lg text-white cursor-pointer transition-all hover:shadow-lg"
+                              style={getRuoloStyle(turno.ruolo)}
+                              onClick={(e) => handleTurnoClick(e, turno)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <div className="font-bold">{turno.ora_inizio} - {turno.ora_fine}</div>
+                                  <div className="text-sm opacity-90">{dipendente?.nome_cognome || dipendente?.full_name || 'Non assegnato'}</div>
+                                  <div className="text-xs opacity-90 mt-1">{turno.ruolo}</div>
+                                  {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
+                                    <div className="text-xs font-bold mt-1 px-2 py-0.5 bg-white bg-opacity-20 rounded w-fit">
+                                      {turno.tipo_turno}
+                                    </div>
+                                  )}
+                                </div>
+                                {!selectedStore && turno.store_id && (
+                                  <div className="text-xs opacity-80 text-right ml-2">{getStoreName(turno.store_id)}</div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
 
       {quickAddPopup && (
