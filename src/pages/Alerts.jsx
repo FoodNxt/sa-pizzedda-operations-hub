@@ -287,15 +287,33 @@ function ContrattiInScadenzaTab() {
     trentaGiorni.setDate(oggi.getDate() + 30);
 
     return users
-      .filter(user => user.data_inizio_contratto && user.durata_contratto_mesi)
+      .filter(user => {
+        if (!user.data_inizio_contratto) return false;
+        
+        // Check if user has explicit end date or duration
+        if (user.data_fine_contratto) return true;
+        if (user.durata_contratto_mesi && user.durata_contratto_mesi > 0) return true;
+        
+        return false;
+      })
       .map(user => {
-        const dataInizio = new Date(user.data_inizio_contratto);
-        const dataFine = new Date(dataInizio.setMonth(dataInizio.getMonth() + user.durata_contratto_mesi));
+        let dataFine;
+        
+        if (user.data_fine_contratto) {
+          // Use explicit end date
+          dataFine = new Date(user.data_fine_contratto);
+        } else if (user.durata_contratto_mesi && user.durata_contratto_mesi > 0) {
+          // Calculate from start date + duration
+          const dataInizio = new Date(user.data_inizio_contratto);
+          dataFine = new Date(dataInizio);
+          dataFine.setMonth(dataFine.getMonth() + parseInt(user.durata_contratto_mesi));
+        }
+        
         const giorniRimanenti = Math.floor((dataFine - oggi) / (1000 * 60 * 60 * 24));
         return { ...user, data_fine_contratto: dataFine, giorni_rimanenti: giorniRimanenti };
       })
-      .filter(user => user.data_fine_contratto > oggi && user.data_fine_contratto <= trentaGiorni)
-      .sort((a, b) => a.data_fine_contratto - b.data_fine_contratto);
+      .filter(user => user.data_fine_contratto >= oggi && user.data_fine_contratto <= trentaGiorni)
+      .sort((a, b) => a.giorni_rimanenti - b.giorni_rimanenti);
   }, [users]);
   
   if (isLoading) return <div>Caricamento...</div>;

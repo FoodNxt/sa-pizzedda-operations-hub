@@ -44,6 +44,7 @@ export default function Activation() {
   const [newChecklistItem, setNewChecklistItem] = useState('');
   const [showSuggestionsModal, setShowSuggestionsModal] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState('Italia');
+  const [selectedCity, setSelectedCity] = useState('');
   const [suggestedEvents, setSuggestedEvents] = useState([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [dismissedEvents, setDismissedEvents] = useState([]);
@@ -421,8 +422,12 @@ export default function Activation() {
         ? `\n\nNON includere i seguenti eventi già suggeriti in precedenza: ${dismissedEvents.join(', ')}`
         : '';
 
+      const cityContext = selectedCity 
+        ? `\n\nConcentrati anche su eventi locali specifici per la città di ${selectedCity}.`
+        : '';
+
       const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `Per il paese "${selectedCountry}", elenca tutte le festività nazionali, ricorrenze importanti ed eventi culturali significativi tra ${monthStart} e ${monthEnd}. Per ogni evento, fornisci:
+        prompt: `Per il paese "${selectedCountry}"${selectedCity ? ` e in particolare per la città di ${selectedCity}` : ''}, elenca tutte le festività nazionali, ricorrenze importanti ed eventi culturali significativi tra ${monthStart} e ${monthEnd}. Per ogni evento, fornisci:
 - Nome dell'evento
 - Data esatta (formato YYYY-MM-DD)
 - Breve descrizione (max 50 parole)
@@ -434,7 +439,7 @@ Includi:
 - Eventi culturali e ricorrenze commerciali
 - Giornate mondiali rilevanti (es. Giornata della Pizza)
 
-Concentrati su eventi che possono essere utili per attività di marketing di una pizzeria.${excludedEventsText}`,
+Concentrati su eventi che possono essere utili per attività di marketing di una pizzeria.${cityContext}${excludedEventsText}`,
         add_context_from_internet: true,
         response_json_schema: {
           type: "object",
