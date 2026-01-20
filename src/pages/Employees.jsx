@@ -955,20 +955,11 @@ export default function Employees() {
         });
       });
     });
-      
-    // Calcola percentuale pulito come in PulizieMatch
-    const totalControlli = puliti + sporchi;
-    if (totalControlli > 0) {
-      const percentualePulito = (puliti / totalControlli) * 100;
-      if (percentualePulito < 80) {
-        const cleaningPenalty = (80 - percentualePulito) * w_pulizie * 0.1;
-        performanceScore -= cleaningPenalty;
-      }
-    }
 
     if (totalControlli === 0) return { percentualePulito: null, count: 0, puliti: 0, sporchi: 0 };
 
-    const percentualePulito = (puliti / totalControlli) * 100;
+    const totalControlli = puliti + sporchi;
+    const percentualePulito = totalControlli > 0 ? (puliti / totalControlli) * 100 : null;
     return { percentualePulito, count: totalControlli, puliti, sporchi };
   };
 
