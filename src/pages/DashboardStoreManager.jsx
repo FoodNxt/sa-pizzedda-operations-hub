@@ -943,18 +943,24 @@ export default function DashboardStoreManager() {
           )}
 
           {/* Turni da Coprire */}
-          {turniLiberi.length > 0 && (
-            <NeumorphicCard className="p-6 bg-gradient-to-br from-orange-50 to-red-50 border-2 border-orange-200">
-              <div className="flex items-center gap-3 mb-4">
-                <AlertTriangle className="w-6 h-6 text-orange-600" />
-                <h2 className="text-xl font-bold text-orange-800">Turni da Coprire (Prossimi 14 Giorni)</h2>
-              </div>
-              
-              <div className="neumorphic-pressed p-4 rounded-xl mb-4 text-center bg-white">
-                <p className="text-xs text-slate-500 mb-1">Turni Non Assegnati</p>
-                <p className="text-4xl font-bold text-orange-600">{turniLiberi.length}</p>
-              </div>
+          <NeumorphicCard className="p-6 bg-gradient-to-br from-orange-50 to-red-50 border-2 border-orange-200">
+            <div className="flex items-center gap-3 mb-4">
+              <AlertTriangle className="w-6 h-6 text-orange-600" />
+              <h2 className="text-xl font-bold text-orange-800">Turni da Coprire (Prossimi 14 Giorni)</h2>
+            </div>
+            
+            <div className="neumorphic-pressed p-4 rounded-xl mb-4 text-center bg-white">
+              <p className="text-xs text-slate-500 mb-1">Turni Non Assegnati</p>
+              <p className="text-4xl font-bold text-orange-600">{turniLiberi.length}</p>
+            </div>
 
+            {turniLiberi.length === 0 ? (
+              <div className="text-center py-8">
+                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+                <p className="text-slate-600 font-medium">Nessun turno da coprire</p>
+                <p className="text-xs text-slate-500 mt-1">Tutti i turni dei prossimi 14 giorni sono assegnati</p>
+              </div>
+            ) : (
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {turniLiberi.map(turno => (
                   <div key={turno.id} className="neumorphic-flat p-4 rounded-xl border-2 border-orange-200">
@@ -980,8 +986,8 @@ export default function DashboardStoreManager() {
                   </div>
                 ))}
               </div>
-            </NeumorphicCard>
-          )}
+            )}
+          </NeumorphicCard>
 
           {/* Trasporto tra Locali */}
           <NeumorphicCard className="p-6">
