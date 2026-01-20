@@ -971,32 +971,80 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                           .filter(s => s.activation_id === editingActivation.id)
                           .sort((a, b) => (a.ordine || 0) - (b.ordine || 0))
                           .map(item => (
-                            <div
-                              key={item.id}
-                              className="neumorphic-pressed p-2 rounded-lg flex items-center justify-between text-sm"
-                            >
-                              <div className="flex items-center gap-2 flex-1">
-                                <button
-                                  type="button"
-                                  onClick={() => handleToggleSubattivita(item.id, item.completata)}
-                                >
-                                  {item.completata ? (
-                                    <CheckSquare className="w-4 h-4 text-green-600" />
-                                  ) : (
-                                    <Square className="w-4 h-4 text-slate-400" />
-                                  )}
-                                </button>
-                                <span className={item.completata ? 'line-through text-slate-500' : 'text-slate-800'}>
-                                  {item.titolo}
-                                </span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => deleteSubattivitaMutation.mutate(item.id)}
-                                className="p-1 rounded hover:bg-red-50"
-                              >
-                                <Trash2 className="w-3 h-3 text-red-600" />
-                              </button>
+                            <div key={item.id}>
+                              {editingSubattivita?.id === item.id ? (
+                                <div className="neumorphic-pressed p-2 rounded-lg space-y-2">
+                                  <input
+                                    type="text"
+                                    value={editingSubattivitaData.titolo}
+                                    onChange={(e) => setEditingSubattivitaData({ ...editingSubattivitaData, titolo: e.target.value })}
+                                    className="w-full neumorphic-pressed px-2 py-1 rounded text-sm outline-none"
+                                  />
+                                  <input
+                                    type="date"
+                                    value={editingSubattivitaData.data_target}
+                                    onChange={(e) => setEditingSubattivitaData({ ...editingSubattivitaData, data_target: e.target.value })}
+                                    className="w-full neumorphic-pressed px-2 py-1 rounded text-sm outline-none"
+                                  />
+                                  <div className="flex gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={handleSaveSubattivita}
+                                      className="flex-1 px-2 py-1 rounded bg-gradient-to-r from-green-500 to-green-600 text-white text-xs font-medium"
+                                    >
+                                      Salva
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditingSubattivita(null)}
+                                      className="flex-1 px-2 py-1 rounded bg-slate-300 text-slate-700 text-xs font-medium"
+                                    >
+                                      Annulla
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="neumorphic-pressed p-2 rounded-lg flex items-center justify-between text-sm">
+                                  <div className="flex items-center gap-2 flex-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleToggleSubattivita(item.id, item.completata)}
+                                    >
+                                      {item.completata ? (
+                                        <CheckSquare className="w-4 h-4 text-green-600" />
+                                      ) : (
+                                        <Square className="w-4 h-4 text-slate-400" />
+                                      )}
+                                    </button>
+                                    <div className="flex-1">
+                                      <span className={item.completata ? 'line-through text-slate-500' : 'text-slate-800'}>
+                                        {item.titolo}
+                                      </span>
+                                      {item.data_target && (
+                                        <div className="text-xs text-slate-500">
+                                          📅 {format(parseISO(item.data_target), 'dd/MM/yyyy')}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleEditSubattivita(item)}
+                                      className="p-1 rounded hover:bg-blue-50"
+                                    >
+                                      <Edit className="w-3 h-3 text-blue-600" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => deleteSubattivitaMutation.mutate(item.id)}
+                                      className="p-1 rounded hover:bg-red-50"
+                                    >
+                                      <Trash2 className="w-3 h-3 text-red-600" />
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           ))}
                         {subattivita.filter(s => s.activation_id === editingActivation.id).length === 0 && (
