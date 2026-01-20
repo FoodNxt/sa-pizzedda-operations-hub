@@ -846,11 +846,15 @@ export default function Layout({ children, currentPageName }) {
 
     if (!requiredUserType.includes(normalizedUserType)) return false;
 
-    // For managers, check if page is in allowed list
-    if (normalizedUserType === 'manager' && pageName) {
-      if (managerAllowedPages.length > 0 && !managerAllowedPages.includes(pageName)) {
-        return false;
+    // For managers, MUST check if page is in allowed list
+    if (normalizedUserType === 'manager') {
+      // If we have a pageName, check if it's in the allowed list
+      if (pageName) {
+        // Managers can only access pages in their allowed list
+        return managerAllowedPages.includes(pageName);
       }
+      // If no pageName provided (shouldn't happen), deny access
+      return false;
     }
 
     if (requiredRole && normalizedUserType === 'dipendente') {
