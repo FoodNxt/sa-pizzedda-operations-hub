@@ -1336,33 +1336,45 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                       )}
                     </div>
                     <div className="space-y-1">
-                      {(isExpanded ? dayActivations : dayActivations.slice(0, 3)).map(act => {
-                        const categoryColor = act.categorie_ids?.[0] 
-                          ? categories.find(c => c.id === act.categorie_ids[0])?.colore 
-                          : '#60a5fa';
-                        return (
-                          <div
-                            key={act.id}
-                            className={`text-xs px-2 py-1 rounded text-white cursor-pointer ${
-                              isExpanded ? '' : 'truncate'
-                            }`}
-                            style={{ backgroundColor: categoryColor }}
-                            title={act.nome}
-                            onClick={() => {
-                              setViewOnlyActivation(act);
-                              setShowViewOnlyModal(true);
-                            }}
-                          >
-                            {act.nome}
-                          </div>
-                        );
-                      })}
-                      {!isExpanded && dayActivations.length > 3 && (
-                        <div className="text-xs text-slate-500 text-center">
-                          +{dayActivations.length - 3}
-                        </div>
-                      )}
-                    </div>
+                       {(isExpanded ? dayActivations : dayActivations.slice(0, 3)).map(act => {
+                         const categoryColor = act.categorie_ids?.[0] 
+                           ? categories.find(c => c.id === act.categorie_ids[0])?.colore 
+                           : '#60a5fa';
+                         return (
+                           <div key={act.id}>
+                             <div
+                               className={`text-xs px-2 py-1 rounded text-white cursor-pointer ${
+                                 isExpanded ? '' : 'truncate'
+                               }`}
+                               style={{ backgroundColor: categoryColor }}
+                               title={act.nome}
+                               onClick={() => {
+                                 setViewOnlyActivation(act);
+                                 setShowViewOnlyModal(true);
+                               }}
+                             >
+                               {act.nome}
+                             </div>
+                             {calendarActivationFilter === act.id && (
+                               <div className="text-xs space-y-0.5 mt-1 pl-1 border-l border-slate-300">
+                                 {subattivita
+                                   .filter(s => s.activation_id === act.id && dayKey === format(parseISO(s.data_target), 'yyyy-MM-dd'))
+                                   .map(sub => (
+                                     <div key={sub.id} className="text-slate-600 text-[11px]">
+                                       {sub.completata ? '✓' : '○'} {sub.titolo}
+                                     </div>
+                                   ))}
+                               </div>
+                             )}
+                           </div>
+                         );
+                       })}
+                       {!isExpanded && dayActivations.length > 3 && (
+                         <div className="text-xs text-slate-500 text-center">
+                           +{dayActivations.length - 3}
+                         </div>
+                       )}
+                     </div>
                   </div>
                 );
               })}
