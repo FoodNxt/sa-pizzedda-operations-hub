@@ -344,14 +344,41 @@ export default function Activation() {
     const map = {};
     calendarData.days.forEach(day => {
       const dayKey = format(day, 'yyyy-MM-dd');
-      map[dayKey] = activations.filter(a => {
+      let filtered = activations.filter(a => {
         const start = a.data_inizio ? parseISO(a.data_inizio) : parseISO(a.data_completamento_target);
         const end = parseISO(a.data_completamento_target);
         return day >= start && day <= end;
       });
+      
+      // Applica filtri categoria e activation
+      if (calendarCategoryFilter !== 'all') {
+        filtered = filtered.filter(a => a.categorie_ids?.includes(calendarCategoryFilter));
+      }
+      if (calendarActivationFilter !== 'all') {
+        filtered = filtered.filter(a => a.id === calendarActivationFilter);
+      }
+      
+      map[dayKey] = filtered;
     });
     return map;
-  }, [activations, calendarData]);
+  }, [activations, calendarData, calendarCategoryFilter, calendarActivationFilter]);
+
+  const subattivitaByDay = useMemo(() => {
+    const map = {};
+    if (calendarActivationFilter !== 'all') {
+      // Mostra sottoattività solo se filtrata per activation singola
+      calendarData.days.forEach(day => {
+        const dayKey = format(day, 'yyyy-MM-dd');
+        map[dayKey] = subattivita.filter(s => {
+          const activation = activations.find(a => a.id === s.activation_id);
+          return s.activation_id === calendarActivationFilter && 
+                 s.data_target && 
+                 format(parseISO(s.data_target), 'yyyy-MM-dd') === dayKey;
+        });
+      });
+    }
+    return map;
+  }, [subattivita, activations, calendarData, calendarActivationFilter]);
 
   const activationsByCategory = useMemo(() => {
     const grouped = {};
