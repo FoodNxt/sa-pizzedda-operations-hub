@@ -956,10 +956,11 @@ export default function Employees() {
       });
     });
 
+    const totalControlli = puliti + sporchi;
+    
     if (totalControlli === 0) return { percentualePulito: null, count: 0, puliti: 0, sporchi: 0 };
 
-    const totalControlli = puliti + sporchi;
-    const percentualePulito = totalControlli > 0 ? (puliti / totalControlli) * 100 : null;
+    const percentualePulito = (puliti / totalControlli) * 100;
     return { percentualePulito, count: totalControlli, puliti, sporchi };
   };
 
