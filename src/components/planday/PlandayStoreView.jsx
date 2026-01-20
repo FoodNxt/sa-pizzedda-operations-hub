@@ -247,82 +247,75 @@ export default function PlandayStoreView({
         </div>
       </div>
 
-      {/* Dettaglio slot turni giornalieri */}
-      <div className="mb-6 space-y-3">
-        {weekDays.map(day => {
-          const dayKey = day.format('YYYY-MM-DD');
-          const dayTurni = turni.filter(t => t.data === dayKey).sort((a, b) => a.ora_inizio.localeCompare(b.ora_inizio));
-          const totaleOreGiorno = totaleOrePerGiorno[dayKey] || 0;
-          
-          if (dayTurni.length === 0) return null;
-          
-          return (
-            <div key={dayKey} className="neumorphic-flat p-4 rounded-xl">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-bold text-slate-800 text-lg">
-                  {day.format('dddd DD MMMM YYYY')}
-                </h3>
-                <div className="flex items-center gap-4">
-                  <div className="text-sm text-slate-600">
-                    <span className="font-medium">{dayTurni.length}</span> turni
-                  </div>
-                  <div className="text-sm font-bold text-blue-600">
-                    {totaleOreGiorno.toFixed(1)}h
+      {/* Vista Calendario Turni Giornalieri */}
+      <div className="mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
+          {weekDays.map(day => {
+            const dayKey = day.format('YYYY-MM-DD');
+            const dayTurni = turni.filter(t => t.data === dayKey).sort((a, b) => a.ora_inizio.localeCompare(b.ora_inizio));
+            const totaleOreGiorno = totaleOrePerGiorno[dayKey] || 0;
+            const isToday = day.isSame(moment(), 'day');
+            
+            return (
+              <div key={dayKey} className={`neumorphic-flat rounded-xl overflow-hidden ${isToday ? 'ring-2 ring-blue-400' : ''}`}>
+                {/* Header Giorno */}
+                <div className={`p-3 text-center ${isToday ? 'bg-blue-100' : 'bg-slate-100'}`}>
+                  <div className="font-bold text-slate-800">{day.format('ddd')}</div>
+                  <div className="text-2xl font-bold text-slate-700">{day.format('DD')}</div>
+                  <div className="text-xs text-slate-500">{day.format('MMM')}</div>
+                </div>
+                
+                {/* Stats */}
+                <div className="p-2 bg-white border-t border-slate-200">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-600">{dayTurni.length} turni</span>
+                    <span className="font-bold text-blue-600">{totaleOreGiorno.toFixed(1)}h</span>
                   </div>
                 </div>
-              </div>
-              
-              <div className="space-y-2">
-                {dayTurni.map(turno => (
-                  <div 
-                    key={turno.id} 
-                    className="neumorphic-pressed p-3 rounded-lg hover:bg-slate-50 cursor-pointer"
-                    onClick={(e) => handleTurnoClick(e, turno)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div 
-                          className="w-2 h-12 rounded-full" 
-                          style={{ backgroundColor: coloriRuolo[turno.ruolo] || '#94a3b8' }}
-                        />
-                        <div>
-                          <div className="font-bold text-slate-800">
-                            {turno.dipendente_nome || 'Non assegnato'}
-                          </div>
-                          <div className="text-sm text-slate-600">
-                            {turno.ruolo}
-                            {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
-                              <span className="ml-2 px-2 py-0.5 rounded text-xs font-medium" style={{ 
-                                backgroundColor: getTipoTurnoColor(turno.tipo_turno) + '20',
-                                color: getTipoTurnoColor(turno.tipo_turno)
-                              }}>
-                                {turno.tipo_turno}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="text-right">
-                        <div className="font-bold text-slate-800 text-lg">
-                          {turno.ora_inizio} - {turno.ora_fine}
-                        </div>
-                        <div className="text-xs text-slate-500">
-                          {(() => {
-                            const [startH, startM] = turno.ora_inizio.split(':').map(Number);
-                            const [endH, endM] = turno.ora_fine.split(':').map(Number);
-                            const ore = (endH - startH) + (endM - startM) / 60;
-                            return `${ore.toFixed(1)}h`;
-                          })()}
-                        </div>
-                      </div>
+                
+                {/* Lista Turni */}
+                <div className="p-2 space-y-2 min-h-[200px] max-h-[400px] overflow-y-auto">
+                  {dayTurni.length === 0 ? (
+                    <div className="text-center py-8">
+                      <div className="text-slate-300 text-xs">Nessun turno</div>
                     </div>
-                  </div>
-                ))}
+                  ) : (
+                    dayTurni.map(turno => (
+                      <div 
+                        key={turno.id}
+                        className="p-2 rounded-lg cursor-pointer hover:shadow-md transition-all text-white"
+                        style={{ backgroundColor: coloriRuolo[turno.ruolo] || '#94a3b8' }}
+                        onClick={(e) => handleTurnoClick(e, turno)}
+                      >
+                        <div className="font-bold text-xs mb-1">
+                          {turno.dipendente_nome || 'Non assegnato'}
+                        </div>
+                        <div className="text-xs opacity-90 flex items-center gap-1">
+                          <span>{turno.ora_inizio}</span>
+                          <span>→</span>
+                          <span>{turno.ora_fine}</span>
+                        </div>
+                        <div className="text-xs opacity-80 mt-1">
+                          {turno.ruolo}
+                        </div>
+                        {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
+                          <div className="text-[10px] mt-1 px-1.5 py-0.5 bg-white bg-opacity-30 rounded inline-block">
+                            {turno.tipo_turno}
+                          </div>
+                        )}
+                        {turno.is_prova && (
+                          <div className="text-[10px] mt-1 px-1.5 py-0.5 bg-purple-600 rounded inline-block">
+                            🧪 PROVA
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       <div className="min-w-[1000px]">
