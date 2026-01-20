@@ -751,60 +751,66 @@ export default function MatchingOrdiniSbagliati() {
                     Dipendenti Abbinati ({matchesByOrder[selectedOrder.id].length})
                   </h3>
                   <div className="space-y-2">
-                    {matchesByOrder[selectedOrder.id].map((match) => (
-                     <div key={match.id} className="neumorphic-flat p-3 rounded-lg">
-                       {editingMatch?.id === match.id ? (
-                         <div className="space-y-3">
-                           <input
-                             type="text"
-                             value={newEmployeeName}
-                             onChange={(e) => setNewEmployeeName(e.target.value)}
-                             className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-[#6b6b6b] outline-none"
-                             placeholder="Nome dipendente"
-                           />
-                           <div className="flex gap-2">
-                             <button
-                               onClick={handleSaveEdit}
-                               className="flex-1 neumorphic-flat px-3 py-2 rounded-lg text-sm text-green-600 hover:bg-green-50 transition-colors flex items-center justify-center gap-2"
-                             >
-                               <Save className="w-4 h-4" />
-                               Salva
-                             </button>
-                             <button
-                               onClick={() => setEditingMatch(null)}
-                               className="flex-1 neumorphic-flat px-3 py-2 rounded-lg text-sm text-[#9b9b9b] hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
-                             >
-                               <X className="w-4 h-4" />
-                               Annulla
-                             </button>
+                    {matchesByOrder[selectedOrder.id].map((match) => {
+                     const matchedShift = shifts.find(s => s.id === match.matched_shift_id);
+                     const shiftStart = matchedShift?.scheduled_start ? format(new Date(matchedShift.scheduled_start), 'HH:mm') : '-';
+                     const shiftEnd = matchedShift?.scheduled_end ? format(new Date(matchedShift.scheduled_end), 'HH:mm') : '-';
+
+                     return (
+                       <div key={match.id} className="neumorphic-flat p-3 rounded-lg">
+                         {editingMatch?.id === match.id ? (
+                           <div className="space-y-3">
+                             <input
+                               type="text"
+                               value={newEmployeeName}
+                               onChange={(e) => setNewEmployeeName(e.target.value)}
+                               className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-[#6b6b6b] outline-none"
+                               placeholder="Nome dipendente"
+                             />
+                             <div className="flex gap-2">
+                               <button
+                                 onClick={handleSaveEdit}
+                                 className="flex-1 neumorphic-flat px-3 py-2 rounded-lg text-sm text-green-600 hover:bg-green-50 transition-colors flex items-center justify-center gap-2"
+                               >
+                                 <Save className="w-4 h-4" />
+                                 Salva
+                               </button>
+                               <button
+                                 onClick={() => setEditingMatch(null)}
+                                 className="flex-1 neumorphic-flat px-3 py-2 rounded-lg text-sm text-[#9b9b9b] hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
+                               >
+                                 <X className="w-4 h-4" />
+                                 Annulla
+                               </button>
+                             </div>
                            </div>
-                         </div>
-                       ) : (
-                         <div className="flex items-center justify-between">
-                           <div>
-                             <p className="font-medium text-[#6b6b6b]">{match.matched_employee_name}</p>
-                             <p className="text-xs text-[#9b9b9b]">
-                               Metodo: {match.match_method === 'auto' ? 'Automatico' : 'Manuale'}
-                             </p>
+                         ) : (
+                           <div className="flex items-center justify-between">
+                             <div className="flex-1">
+                               <p className="font-medium text-[#6b6b6b]">{match.matched_employee_name}</p>
+                               <p className="text-xs text-[#9b9b9b]">
+                                 Turno: {shiftStart} - {shiftEnd} • Metodo: {match.match_method === 'auto' ? 'Automatico' : 'Manuale'}
+                               </p>
+                             </div>
+                             <div className="flex items-center gap-2">
+                               <span className={`px-3 py-1 rounded-full text-xs font-bold ${getConfidenceBadgeColor(match.match_confidence)}`}>
+                                 {match.match_confidence === 'high' ? 'Alta' :
+                                  match.match_confidence === 'medium' ? 'Media' :
+                                  match.match_confidence === 'low' ? 'Bassa' :
+                                  'Manuale'}
+                               </span>
+                               <button
+                                 onClick={() => handleEditMatch(match)}
+                                 className="neumorphic-flat p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                               >
+                                 <Edit className="w-4 h-4 text-blue-600" />
+                               </button>
+                             </div>
                            </div>
-                           <div className="flex items-center gap-2">
-                             <span className={`px-3 py-1 rounded-full text-xs font-bold ${getConfidenceBadgeColor(match.match_confidence)}`}>
-                               {match.match_confidence === 'high' ? 'Alta' :
-                                match.match_confidence === 'medium' ? 'Media' :
-                                match.match_confidence === 'low' ? 'Bassa' :
-                                'Manuale'}
-                             </span>
-                             <button
-                               onClick={() => handleEditMatch(match)}
-                               className="neumorphic-flat p-2 rounded-lg hover:bg-blue-50 transition-colors"
-                             >
-                               <Edit className="w-4 h-4 text-blue-600" />
-                             </button>
-                           </div>
-                         </div>
-                       )}
-                     </div>
-                    ))}
+                         )}
+                       </div>
+                     );
+                    })}
                   </div>
                 </div>
               )}
