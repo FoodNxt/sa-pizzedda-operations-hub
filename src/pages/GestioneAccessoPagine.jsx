@@ -189,6 +189,7 @@ export default function GestioneAccessoPagine() {
     { value: 'Google', label: 'Google Ads', category: 'Marketing' },
     { value: 'Meta', label: 'Meta Ads', category: 'Marketing' },
     { value: 'Activation', label: 'Activation', category: 'Marketing' },
+    { value: 'Contatti', label: 'Contatti Marketing', category: 'Marketing' },
     { value: 'MarketingSettings', label: 'Marketing Settings', category: 'Marketing' },
     { value: 'PrecottureAdmin', label: 'Precotture Admin', category: 'Inventory' },
     { value: 'TeglieButtate', label: 'Teglie Buttate', category: 'Inventory' },
