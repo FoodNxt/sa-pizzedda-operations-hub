@@ -325,11 +325,31 @@ export default function PianoQuarter() {
 
   // Filter piani per quarter selezionato
   const pianiAdsQuarter = useMemo(() => {
-    return pianiAds.filter(p => p.quarters?.includes(selectedQuarter));
+    return pianiAds.filter(p => {
+      if (p.quarters && p.quarters.length > 0) {
+        return p.quarters.includes(selectedQuarter);
+      }
+      // Fallback: calcola quarters dai dati se non presenti
+      if (p.data_inizio && p.data_fine) {
+        const quarters = getQuartersInRange(p.data_inizio, p.data_fine);
+        return quarters.includes(selectedQuarter);
+      }
+      return false;
+    });
   }, [pianiAds, selectedQuarter]);
 
   const pianiPromoQuarter = useMemo(() => {
-    return pianiPromo.filter(p => p.quarters?.includes(selectedQuarter));
+    return pianiPromo.filter(p => {
+      if (p.quarters && p.quarters.length > 0) {
+        return p.quarters.includes(selectedQuarter);
+      }
+      // Fallback: calcola quarters dai dati se non presenti
+      if (p.data_inizio && p.data_fine) {
+        const quarters = getQuartersInRange(p.data_inizio, p.data_fine);
+        return quarters.includes(selectedQuarter);
+      }
+      return false;
+    });
   }, [pianiPromo, selectedQuarter]);
 
   // Promo nel mese selezionato
