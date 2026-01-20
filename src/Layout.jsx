@@ -1090,16 +1090,20 @@ export default function Layout({ children, currentPageName }) {
   
   const filteredNavigation = (!isLoadingConfig && !isLoadingUser && currentUser) 
     ? processedNavigation
-        .filter(section => hasAccess(section.requiredUserType))
-        .map(section => ({
-          ...section,
-          items: section.items.filter(item => {
-            // Extract page name from URL
-            const pageName = item.url?.split('/').pop() || item.page;
+        .map(section => {
+          // Filter items first
+          const filteredItems = section.items.filter(item => {
+            // Extract page name from URL (remove leading slash)
+            const pageName = item.url?.replace(/^\//, '') || item.page;
             return hasAccess(item.requiredUserType, item.requiredRole, pageName);
-          })
-        }))
-        .filter(section => section.items.length > 0)
+          });
+          
+          return {
+            ...section,
+            items: filteredItems
+          };
+        })
+        .filter(section => section.items.length > 0) // Remove empty sections
     : [];
 
   const finalNavigation = (!isLoadingConfig && !isLoadingUser && currentUser)
