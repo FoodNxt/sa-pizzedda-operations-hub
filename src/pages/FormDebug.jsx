@@ -901,6 +901,11 @@ export default function FormDebug() {
                                   const hasProblems = storeCheck.problemiCaricamento && storeCheck.problemiCaricamento.length > 0;
                                   const isBlocked = storeCheck.domandeDisponibili === 0;
 
+                                  // Salta store senza problemi se non è pulizia e senza domande
+                                  if (isBlocked && test.tipo !== 'pulizia' && !hasProblems) {
+                                    return null;
+                                  }
+
                                   return (
                                     <div key={storeIdx} className={`p-2 rounded text-xs ${
                                       isBlocked ? 'bg-red-50 border border-red-200' :
@@ -908,17 +913,17 @@ export default function FormDebug() {
                                       'bg-green-50 border border-green-200'
                                     }`}>
                                       <div className="font-bold text-slate-800">{storeCheck.store}</div>
-                                      <div className={`mt-1 ${
+                                      <div className={`mt-1 font-medium ${
                                         isBlocked ? 'text-red-700' :
                                         hasProblems ? 'text-yellow-700' :
                                         'text-green-700'
                                       }`}>
-                                        Domande: {storeCheck.domandeDisponibili}
+                                        {isBlocked ? '❌ 0 domande disponibili' : `✅ Domande: ${storeCheck.domandeDisponibili}`}
                                       </div>
                                       {storeCheck.problemiCaricamento && storeCheck.problemiCaricamento.length > 0 && (
                                         <ul className="mt-1 text-red-700 space-y-0.5">
                                           {storeCheck.problemiCaricamento.map((prob, pIdx) => (
-                                            <li key={pIdx}>• {prob}</li>
+                                            <li key={pIdx} className="text-xs">• {prob}</li>
                                           ))}
                                         </ul>
                                       )}
