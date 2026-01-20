@@ -117,14 +117,14 @@ export default function PianoQuarter() {
   const [nuovoProdotto, setNuovoProdotto] = useState('');
 
   // Fetch data
-  const { data: stores = [] } = useQuery({
-    queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list()
-  });
-
   const { data: financeConfigs = [] } = useQuery({
     queryKey: ['finance-config'],
     queryFn: () => base44.entities.FinanceConfig.list()
+  });
+
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores'],
+    queryFn: () => base44.entities.Store.list()
   });
 
   const { data: pianiAds = [] } = useQuery({
