@@ -15,7 +15,11 @@ import {
   Save,
   BarChart3,
   Sparkles,
-  RefreshCw
+  RefreshCw,
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  TrendingDown
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -35,6 +39,10 @@ export default function Employees() {
   const [expandedView, setExpandedView] = useState(null);
   const [showWeightsModal, setShowWeightsModal] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
+  const [showClusters, setShowClusters] = useState(true);
+  const [expandedCluster, setExpandedCluster] = useState(null);
+  const [showLetteraForm, setShowLetteraForm] = useState(false);
+  const [selectedEmployeeForLettera, setSelectedEmployeeForLettera] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -98,6 +106,27 @@ export default function Employees() {
   const { data: domande = [] } = useQuery({
     queryKey: ['domande-pulizia'],
     queryFn: () => base44.entities.DomandaPulizia.list(),
+  });
+
+  const { data: richiesteAssenze = [] } = useQuery({
+    queryKey: ['richieste-assenze'],
+    queryFn: async () => {
+      const ferie = await base44.entities.RichiestaFerie.list();
+      return ferie.filter(f => f.stato === 'approvata').map(f => ({
+        ...f,
+        tipo: 'assenza_non_giustificata'
+      }));
+    },
+  });
+
+  const { data: malattie = [] } = useQuery({
+    queryKey: ['richieste-malattia'],
+    queryFn: () => base44.entities.RichiestaMalattia.list(),
+  });
+
+  const { data: templates = [] } = useQuery({
+    queryKey: ['lettera-templates'],
+    queryFn: () => base44.entities.LetteraRichiamoTemplate.list(),
   });
 
   const currentOrderIds = useMemo(() => new Set(wrongOrders.map(o => o.id)), [wrongOrders]);
@@ -293,6 +322,83 @@ export default function Employees() {
       });
       const avgLateMinutes = employeeShifts.length > 0 ? totalLateMinutes / employeeShifts.length : 0;
       const percentualeRitardi = employeeShifts.length > 0 ? (numeroRitardi / employeeShifts.length) * 100 : 0;
+
+      // Calcola assenze non giustificate (ore)
+      const assenzeNonGiustificate = employeeShifts.filter(s => {
+        // Turni passati senza timbratura E senza richiesta ferie approvata E senza malattia
+        if (s.timbratura_entrata) return false;
+        const shiftDate = safeParseDate(s.data);
+        if (!shiftDate) return false;
+        const today = new Date();
+        if (shiftDate > today) return false;
+
+        // Check se ha richiesta ferie approvata per questo giorno
+        const hasFerie = richiesteAssenze.some(f => {
+          const start = safeParseDate(f.data_inizio);
+          const end = safeParseDate(f.data_fine);
+          return f.dipendente_nome === employeeName && 
+                 start && end && 
+                 shiftDate >= start && shiftDate <= end;
+        });
+
+        // Check se ha malattia certificata per questo giorno
+        const hasMalattia = malattie.some(m => {
+          const start = safeParseDate(m.data_inizio);
+          const end = m.data_fine ? safeParseDate(m.data_fine) : start;
+          return m.dipendente_nome === employeeName && 
+                 m.stato === 'certificata' &&
+                 start && end && 
+                 shiftDate >= start && shiftDate <= end;
+        });
+
+        return !hasFerie && !hasMalattia;
+      });
+
+      const oreAssenzeNonGiustificate = assenzeNonGiustificate.reduce((sum, s) => {
+        if (!s.ora_inizio || !s.ora_fine) return sum;
+        try {
+          const [startH, startM] = s.ora_inizio.split(':').map(Number);
+          const [endH, endM] = s.ora_fine.split(':').map(Number);
+          const hours = (endH + endM / 60) - (startH + startM / 60);
+          return sum + hours;
+        } catch (e) {
+          return sum;
+        }
+      }, 0);
+
+      // Calcola ore malattia
+      const oreMalattia = malattie
+        .filter(m => {
+          if (m.dipendente_nome !== employeeName) return false;
+          if (m.stato !== 'certificata') return false;
+          
+          if (startDate || endDate) {
+            const start = safeParseDate(m.data_inizio);
+            if (!start) return false;
+            const filterStart = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
+            const filterEnd = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
+            
+            if (filterStart && start < filterStart) return false;
+            if (filterEnd && start > filterEnd) return false;
+          }
+          return true;
+        })
+        .reduce((sum, m) => {
+          if (!m.turni_coinvolti || m.turni_coinvolti.length === 0) return sum;
+          const turniMalattia = employeeShifts.filter(s => m.turni_coinvolti.includes(s.id));
+          const oreTurni = turniMalattia.reduce((total, s) => {
+            if (!s.ora_inizio || !s.ora_fine) return total;
+            try {
+              const [startH, startM] = s.ora_inizio.split(':').map(Number);
+              const [endH, endM] = s.ora_fine.split(':').map(Number);
+              const hours = (endH + endM / 60) - (startH + startM / 60);
+              return total + hours;
+            } catch (e) {
+              return total;
+            }
+          }, 0);
+          return sum + oreTurni;
+        }, 0);
       
       // Timbrature mancanti - SOLO turni passati SENZA timbratura
       const numeroTimbratureMancate = employeeShifts.filter(s => {
@@ -534,6 +640,8 @@ export default function Employees() {
         totalShifts: employeeShifts.length,
         avgGoogleRating,
         googleReviewCount: googleReviews.length,
+        oreAssenzeNonGiustificate,
+        oreMalattia,
         weights: {
           w_ordini,
           w_ritardi,
@@ -546,7 +654,7 @@ export default function Employees() {
         }
       };
     });
-  }, [users, shifts, reviews, wrongOrderMatches, startDate, endDate, metricWeights]);
+  }, [users, shifts, reviews, wrongOrderMatches, startDate, endDate, metricWeights, richiesteAssenze, malattie]);
 
   const filteredEmployees = useMemo(() => {
     let filtered = employeeMetrics;
@@ -991,6 +1099,87 @@ export default function Employees() {
     }
   };
 
+  const inviaLetteraMutation = useMutation({
+    mutationFn: async ({ userId, templateId }) => {
+      const template = templates.find(t => t.id === templateId);
+      const user = users.find(u => u.id === userId);
+      
+      let contenuto = template.contenuto;
+      contenuto = contenuto.replace(/{{nome_dipendente}}/g, user.nome_cognome || user.full_name || user.email);
+      contenuto = contenuto.replace(/{{data_oggi}}/g, new Date().toLocaleDateString('it-IT'));
+      
+      return base44.entities.LetteraRichiamo.create({
+        user_id: user.id,
+        user_email: user.email,
+        user_name: user.nome_cognome || user.full_name || user.email,
+        tipo_lettera: 'lettera_richiamo',
+        contenuto_lettera: contenuto,
+        data_invio: new Date().toISOString(),
+        status: 'inviata'
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lettere-richiamo'] });
+      alert('Lettera di richiamo inviata con successo!');
+      setShowLetteraForm(false);
+      setSelectedEmployeeForLettera(null);
+    },
+  });
+
+  // Cluster calculations
+  const getClusters = (metric) => {
+    const sorted = [...employeeMetrics]
+      .filter(e => {
+        // Apply store and position filters
+        let passFilter = true;
+        
+        if (selectedStore !== 'all') {
+          if (!e.assigned_stores || e.assigned_stores.length === 0) passFilter = true;
+          else {
+            const hasStore = e.assigned_stores.some(storeName => {
+              const store = stores.find(s => s.name === storeName);
+              return store && store.id === selectedStore;
+            });
+            passFilter = hasStore;
+          }
+        }
+        
+        if (selectedPosition !== 'all') {
+          passFilter = passFilter && e.ruoli_dipendente && e.ruoli_dipendente.includes(selectedPosition);
+        }
+        
+        return passFilter;
+      })
+      .sort((a, b) => {
+        const valA = metric === 'googleRating' ? a.avgGoogleRating :
+                     metric === 'googleReviews' ? a.googleReviewCount :
+                     metric === 'wrongOrders' ? a.wrongOrders :
+                     metric === 'ritardi' ? a.totalLateMinutes :
+                     metric === 'timbrature' ? a.numeroTimbratureMancate :
+                     metric === 'assenze' ? a.oreAssenzeNonGiustificate :
+                     metric === 'malattia' ? a.oreMalattia : 0;
+        const valB = metric === 'googleRating' ? b.avgGoogleRating :
+                     metric === 'googleReviews' ? b.googleReviewCount :
+                     metric === 'wrongOrders' ? b.wrongOrders :
+                     metric === 'ritardi' ? b.totalLateMinutes :
+                     metric === 'timbrature' ? b.numeroTimbratureMancate :
+                     metric === 'assenze' ? b.oreAssenzeNonGiustificate :
+                     metric === 'malattia' ? b.oreMalattia : 0;
+        
+        // For rating and reviews, higher is better
+        if (metric === 'googleRating' || metric === 'googleReviews') {
+          return valB - valA;
+        }
+        // For others, lower is better
+        return valA - valB;
+      });
+
+    const best = sorted.slice(0, 5);
+    const worst = sorted.slice(-5).reverse();
+    
+    return { best, worst };
+  };
+
   return (
     <ProtectedPage pageName="Employees">
       <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
@@ -1130,6 +1319,122 @@ export default function Employees() {
             <GaussianChart employees={filteredEmployees} />
           </NeumorphicCard>
         )}
+
+        {/* Best/Worst Clusters */}
+        <NeumorphicCard className="p-4 lg:p-6">
+          <button
+            onClick={() => setShowClusters(!showClusters)}
+            className="w-full flex items-center justify-between mb-4"
+          >
+            <div className="flex items-center gap-3">
+              <TrendingUp className="w-5 h-5 text-blue-600" />
+              <h3 className="font-bold text-slate-800">Classifica per Categoria</h3>
+            </div>
+            {showClusters ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+          </button>
+
+          {showClusters && (
+            <div className="space-y-6">
+              {/* Google Reviews Count */}
+              <ClusterSection
+                title="Numero Recensioni Google Maps"
+                metric="googleReviews"
+                getClusters={getClusters}
+                formatValue={(e) => e.googleReviewCount}
+                expandedCluster={expandedCluster}
+                setExpandedCluster={setExpandedCluster}
+                onSendLettera={(emp) => {
+                  setSelectedEmployeeForLettera(emp);
+                  setShowLetteraForm(true);
+                }}
+              />
+
+              {/* Google Rating Average */}
+              <ClusterSection
+                title="Punteggio Medio Recensioni Google Maps"
+                metric="googleRating"
+                getClusters={getClusters}
+                formatValue={(e) => e.googleReviewCount > 0 ? e.avgGoogleRating.toFixed(1) : '-'}
+                expandedCluster={expandedCluster}
+                setExpandedCluster={setExpandedCluster}
+                onSendLettera={(emp) => {
+                  setSelectedEmployeeForLettera(emp);
+                  setShowLetteraForm(true);
+                }}
+              />
+
+              {/* Wrong Orders */}
+              <ClusterSection
+                title="Ordini Sbagliati"
+                metric="wrongOrders"
+                getClusters={getClusters}
+                formatValue={(e) => e.wrongOrders}
+                expandedCluster={expandedCluster}
+                setExpandedCluster={setExpandedCluster}
+                onSendLettera={(emp) => {
+                  setSelectedEmployeeForLettera(emp);
+                  setShowLetteraForm(true);
+                }}
+              />
+
+              {/* Ritardi */}
+              <ClusterSection
+                title="Ritardi (minuti totali)"
+                metric="ritardi"
+                getClusters={getClusters}
+                formatValue={(e) => `${e.totalLateMinutes.toFixed(0)} min`}
+                expandedCluster={expandedCluster}
+                setExpandedCluster={setExpandedCluster}
+                onSendLettera={(emp) => {
+                  setSelectedEmployeeForLettera(emp);
+                  setShowLetteraForm(true);
+                }}
+              />
+
+              {/* Timbrature Mancanti */}
+              <ClusterSection
+                title="Timbrature Mancanti"
+                metric="timbrature"
+                getClusters={getClusters}
+                formatValue={(e) => e.numeroTimbratureMancate}
+                expandedCluster={expandedCluster}
+                setExpandedCluster={setExpandedCluster}
+                onSendLettera={(emp) => {
+                  setSelectedEmployeeForLettera(emp);
+                  setShowLetteraForm(true);
+                }}
+              />
+
+              {/* Assenze Non Giustificate */}
+              <ClusterSection
+                title="Assenze Non Giustificate (ore)"
+                metric="assenze"
+                getClusters={getClusters}
+                formatValue={(e) => `${e.oreAssenzeNonGiustificate.toFixed(1)}h`}
+                expandedCluster={expandedCluster}
+                setExpandedCluster={setExpandedCluster}
+                onSendLettera={(emp) => {
+                  setSelectedEmployeeForLettera(emp);
+                  setShowLetteraForm(true);
+                }}
+              />
+
+              {/* Malattia */}
+              <ClusterSection
+                title="Malattia (ore)"
+                metric="malattia"
+                getClusters={getClusters}
+                formatValue={(e) => `${e.oreMalattia.toFixed(1)}h`}
+                expandedCluster={expandedCluster}
+                setExpandedCluster={setExpandedCluster}
+                onSendLettera={(emp) => {
+                  setSelectedEmployeeForLettera(emp);
+                  setShowLetteraForm(true);
+                }}
+              />
+            </div>
+          )}
+        </NeumorphicCard>
 
         <div className="grid grid-cols-1 gap-3">
           {filteredEmployees.length > 0 ? (
@@ -1739,6 +2044,70 @@ export default function Employees() {
             onClose={() => setShowWeightsModal(false)}
           />
         )}
+
+        {/* Lettera Form Modal */}
+        {showLetteraForm && selectedEmployeeForLettera && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="max-w-md w-full p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-slate-800">Invia Lettera di Richiamo</h2>
+                <button onClick={() => { setShowLetteraForm(false); setSelectedEmployeeForLettera(null); }} className="nav-button p-2 rounded-lg">
+                  <X className="w-5 h-5 text-slate-600" />
+                </button>
+              </div>
+
+              <div className="mb-4 neumorphic-pressed p-4 rounded-xl">
+                <p className="text-sm text-slate-700"><strong>Dipendente:</strong></p>
+                <p className="text-lg font-bold text-slate-800">{selectedEmployeeForLettera.full_name}</p>
+              </div>
+
+              <div className="mb-4">
+                <label className="text-sm font-medium text-slate-700 mb-2 block">
+                  Seleziona Template
+                </label>
+                <select
+                  value={selectedEmployeeForLettera.selectedTemplate || ''}
+                  onChange={(e) => setSelectedEmployeeForLettera({ ...selectedEmployeeForLettera, selectedTemplate: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                  required
+                >
+                  <option value="">Seleziona template...</option>
+                  {templates.filter(t => t.tipo_lettera === 'lettera_richiamo' && t.attivo).map(t => (
+                    <option key={t.id} value={t.id}>{t.nome_template}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex gap-3">
+                <NeumorphicButton
+                  type="button"
+                  onClick={() => { setShowLetteraForm(false); setSelectedEmployeeForLettera(null); }}
+                  className="flex-1"
+                >
+                  Annulla
+                </NeumorphicButton>
+                <NeumorphicButton
+                  onClick={() => {
+                    if (!selectedEmployeeForLettera.selectedTemplate) {
+                      alert('Seleziona un template');
+                      return;
+                    }
+                    inviaLetteraMutation.mutate({
+                      userId: selectedEmployeeForLettera.id,
+                      templateId: selectedEmployeeForLettera.selectedTemplate
+                    });
+                  }}
+                  variant="primary"
+                  className="flex-1"
+                  disabled={inviaLetteraMutation.isPending}
+                >
+                  <FileText className="w-5 h-5 mr-2" />
+                  Invia
+                </NeumorphicButton>
+              </div>
+            </NeumorphicCard>
+          </div>
+        )}
       </div>
     </ProtectedPage>
   );
@@ -1952,6 +2321,84 @@ function MetricWeightsModal({ weights, onClose }) {
           </p>
         </div>
       </NeumorphicCard>
+    </div>
+  );
+}
+
+function ClusterSection({ title, metric, getClusters, formatValue, expandedCluster, setExpandedCluster, onSendLettera }) {
+  const { best, worst } = getClusters(metric);
+  const isExpanded = expandedCluster === metric;
+
+  if (best.length === 0 && worst.length === 0) return null;
+
+  return (
+    <div className="neumorphic-pressed p-4 rounded-xl">
+      <button
+        onClick={() => setExpandedCluster(isExpanded ? null : metric)}
+        className="w-full flex items-center justify-between mb-3"
+      >
+        <h4 className="font-bold text-slate-800 text-sm">{title}</h4>
+        {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+      </button>
+
+      {isExpanded && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Best */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="w-4 h-4 text-green-600" />
+              <h5 className="font-bold text-green-600 text-xs">Top 5</h5>
+            </div>
+            {best.map((emp, idx) => (
+              <div key={emp.id} className="neumorphic-flat p-3 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
+                      <span className="text-xs font-bold text-white">{idx + 1}</span>
+                    </div>
+                    <span className="text-sm font-medium text-slate-800 truncate">{emp.full_name}</span>
+                  </div>
+                  <span className="text-sm font-bold text-green-600">
+                    {formatValue(emp)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Worst */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingDown className="w-4 h-4 text-red-600" />
+              <h5 className="font-bold text-red-600 text-xs">Bottom 5</h5>
+            </div>
+            {worst.map((emp, idx) => (
+              <div key={emp.id} className="neumorphic-flat p-3 rounded-lg">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs font-bold text-white">{idx + 1}</span>
+                    </div>
+                    <span className="text-sm font-medium text-slate-800 truncate">{emp.full_name}</span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="text-sm font-bold text-red-600">
+                      {formatValue(emp)}
+                    </span>
+                    <button
+                      onClick={() => onSendLettera(emp)}
+                      className="p-1.5 rounded-lg hover:bg-orange-50 transition-colors"
+                      title="Invia lettera di richiamo"
+                    >
+                      <FileText className="w-4 h-4 text-orange-600" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
