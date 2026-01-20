@@ -47,6 +47,8 @@ export default function Activation() {
   const [suggestedEvents, setSuggestedEvents] = useState([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [expandedCalendarCell, setExpandedCalendarCell] = useState(null);
+  const [showViewOnlyModal, setShowViewOnlyModal] = useState(false);
+  const [viewOnlyActivation, setViewOnlyActivation] = useState(null);
   const [formData, setFormData] = useState({
     nome: '',
     descrizione: '',
@@ -197,6 +199,7 @@ export default function Activation() {
       stato: activation.stato || 'in_corso'
     });
     setSelectAllStores(!activation.stores_ids || activation.stores_ids.length === 0);
+    setSelectedActivationForChecklist(activation);
     setShowForm(true);
   };
 
@@ -372,17 +375,18 @@ export default function Activation() {
   };
 
   const handleAddChecklistItem = () => {
-    if (!newChecklistItem.trim() || !selectedActivationForChecklist) return;
+    const activationId = selectedActivationForChecklist?.id || editingActivation?.id;
+    if (!newChecklistItem.trim() || !activationId) return;
     
     const maxOrdine = Math.max(
       0,
       ...subattivita
-        .filter(s => s.activation_id === selectedActivationForChecklist.id)
+        .filter(s => s.activation_id === activationId)
         .map(s => s.ordine || 0)
     );
 
     createSubattivitaMutation.mutate({
-      activation_id: selectedActivationForChecklist.id,
+      activation_id: activationId,
       titolo: newChecklistItem.trim(),
       ordine: maxOrdine + 1
     });
@@ -777,6 +781,105 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                     )}
                   </div>
 
+                  {/* Checklist section in form */}
+                  {editingActivation && (
+                    <div className="border-t pt-4 mt-4">
+                      <h3 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                        <CheckSquare className="w-4 h-4" />
+                        Sottoattività / Checklist
+                      </h3>
+                      
+                      {/* Add new item */}
+                      <div className="mb-3 flex gap-2">
+                        <input
+                          type="text"
+                          value={newChecklistItem}
+                          onChange={(e) => setNewChecklistItem(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddChecklistItem();
+                            }
+                          }}
+                          placeholder="Aggiungi sottoattività..."
+                          className="flex-1 neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddChecklistItem}
+                          disabled={!newChecklistItem.trim()}
+                          className="px-3 py-2 rounded-xl bg-gradient-to-r from-green-500 to-green-600 text-white disabled:opacity-50"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Checklist items */}
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {subattivita
+                          .filter(s => s.activation_id === editingActivation.id)
+                          .sort((a, b) => (a.ordine || 0) - (b.ordine || 0))
+                          .map(item => (
+                            <div
+                              key={item.id}
+                              className="neumorphic-pressed p-2 rounded-lg flex items-center justify-between text-sm"
+                            >
+                              <div className="flex items-center gap-2 flex-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleSubattivita(item.id, item.completata)}
+                                >
+                                  {item.completata ? (
+                                    <CheckSquare className="w-4 h-4 text-green-600" />
+                                  ) : (
+                                    <Square className="w-4 h-4 text-slate-400" />
+                                  )}
+                                </button>
+                                <span className={item.completata ? 'line-through text-slate-500' : 'text-slate-800'}>
+                                  {item.titolo}
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => deleteSubattivitaMutation.mutate(item.id)}
+                                className="p-1 rounded hover:bg-red-50"
+                              >
+                                <Trash2 className="w-3 h-3 text-red-600" />
+                              </button>
+                            </div>
+                          ))}
+                        {subattivita.filter(s => s.activation_id === editingActivation.id).length === 0 && (
+                          <p className="text-center text-slate-400 py-4 text-xs">Nessuna sottoattività</p>
+                        )}
+                      </div>
+
+                      {/* Progress */}
+                      {subattivita.filter(s => s.activation_id === editingActivation.id).length > 0 && (
+                        <div className="mt-3">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-slate-600">Progresso</span>
+                            <span className="text-xs font-bold text-blue-600">
+                              {subattivita.filter(s => s.activation_id === editingActivation.id && s.completata).length}
+                              {' / '}
+                              {subattivita.filter(s => s.activation_id === editingActivation.id).length}
+                            </span>
+                          </div>
+                          <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all"
+                              style={{
+                                width: `${
+                                  (subattivita.filter(s => s.activation_id === editingActivation.id && s.completata).length /
+                                  subattivita.filter(s => s.activation_id === editingActivation.id).length) * 100
+                                }%`
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex gap-3 pt-4">
                     <NeumorphicButton type="button" onClick={resetForm} className="flex-1">
                       Annulla
@@ -1098,7 +1201,10 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                             }`}
                             style={{ backgroundColor: categoryColor }}
                             title={act.nome}
-                            onClick={() => handleEdit(act)}
+                            onClick={() => {
+                              setViewOnlyActivation(act);
+                              setShowViewOnlyModal(true);
+                            }}
                           >
                             {act.nome}
                           </div>
@@ -1223,6 +1329,148 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                 </div>
               </NeumorphicCard>
             )}
+          </div>
+        )}
+
+        {/* View Only Modal (from calendar) */}
+        {showViewOnlyModal && viewOnlyActivation && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="max-w-2xl w-full p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-slate-800">
+                  {viewOnlyActivation.nome}
+                </h2>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setShowViewOnlyModal(false);
+                      handleEdit(viewOnlyActivation);
+                    }}
+                    className="p-2 rounded-lg hover:bg-blue-50"
+                  >
+                    <Edit className="w-5 h-5 text-blue-600" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowViewOnlyModal(false);
+                      setViewOnlyActivation(null);
+                    }}
+                    className="p-2 rounded-lg hover:bg-slate-100"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Info */}
+              <div className="mb-4 space-y-2">
+                {viewOnlyActivation.descrizione && (
+                  <p className="text-sm text-slate-600">{viewOnlyActivation.descrizione}</p>
+                )}
+                <div className="flex items-center gap-3 text-sm">
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatoColor(viewOnlyActivation.stato)}`}>
+                    {getStatoIcon(viewOnlyActivation.stato)}
+                    {viewOnlyActivation.stato.replace('_', ' ').toUpperCase()}
+                  </span>
+                  {viewOnlyActivation.data_inizio && (
+                    <span className="text-slate-500">
+                      Inizio: {format(parseISO(viewOnlyActivation.data_inizio), 'dd/MM/yyyy')}
+                    </span>
+                  )}
+                  <span className="text-slate-500">
+                    Target: {format(parseISO(viewOnlyActivation.data_completamento_target), 'dd/MM/yyyy')}
+                  </span>
+                </div>
+              </div>
+
+              {/* Categories */}
+              {viewOnlyActivation.categorie_ids && viewOnlyActivation.categorie_ids.length > 0 && (
+                <div className="mb-4 flex gap-2">
+                  {viewOnlyActivation.categorie_ids.map(catId => {
+                    const cat = categories.find(c => c.id === catId);
+                    if (!cat) return null;
+                    return (
+                      <span
+                        key={catId}
+                        className="text-xs px-3 py-1 rounded-full text-white font-medium"
+                        style={{ backgroundColor: cat.colore }}
+                      >
+                        {cat.nome}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Checklist (read-only with toggle) */}
+              <div className="border-t pt-4">
+                <h3 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                  <CheckSquare className="w-4 h-4" />
+                  Checklist
+                </h3>
+
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {subattivita
+                    .filter(s => s.activation_id === viewOnlyActivation.id)
+                    .sort((a, b) => (a.ordine || 0) - (b.ordine || 0))
+                    .map(item => (
+                      <div
+                        key={item.id}
+                        className="neumorphic-pressed p-3 rounded-xl flex items-center gap-3"
+                      >
+                        <button
+                          onClick={() => handleToggleSubattivita(item.id, item.completata)}
+                          className="flex-shrink-0"
+                        >
+                          {item.completata ? (
+                            <CheckSquare className="w-5 h-5 text-green-600" />
+                          ) : (
+                            <Square className="w-5 h-5 text-slate-400" />
+                          )}
+                        </button>
+                        <div className="flex-1">
+                          <p className={`text-sm ${item.completata ? 'line-through text-slate-500' : 'text-slate-800'}`}>
+                            {item.titolo}
+                          </p>
+                          {item.completata && item.completata_da && (
+                            <p className="text-xs text-slate-400">
+                              ✓ {item.completata_da} • {format(parseISO(item.completata_il), 'dd/MM HH:mm')}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  {subattivita.filter(s => s.activation_id === viewOnlyActivation.id).length === 0 && (
+                    <p className="text-center text-slate-400 py-8 text-sm">Nessuna sottoattività</p>
+                  )}
+                </div>
+
+                {/* Progress */}
+                {subattivita.filter(s => s.activation_id === viewOnlyActivation.id).length > 0 && (
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-slate-600">Progresso</span>
+                      <span className="text-sm font-bold text-green-600">
+                        {subattivita.filter(s => s.activation_id === viewOnlyActivation.id && s.completata).length}
+                        {' / '}
+                        {subattivita.filter(s => s.activation_id === viewOnlyActivation.id).length}
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all"
+                        style={{
+                          width: `${
+                            (subattivita.filter(s => s.activation_id === viewOnlyActivation.id && s.completata).length /
+                            subattivita.filter(s => s.activation_id === viewOnlyActivation.id).length) * 100
+                          }%`
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </NeumorphicCard>
           </div>
         )}
 
