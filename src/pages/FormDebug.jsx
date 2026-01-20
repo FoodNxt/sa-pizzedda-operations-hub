@@ -95,6 +95,16 @@ export default function FormDebug() {
     queryFn: () => base44.entities.User.list(),
   });
 
+  const { data: pageAccessConfig = [] } = useQuery({
+    queryKey: ['page-access-config'],
+    queryFn: () => base44.entities.PageAccessConfig.list(),
+  });
+
+  const { data: turni = [] } = useQuery({
+    queryKey: ['turni'],
+    queryFn: () => base44.entities.TurnoPlanday.list(),
+  });
+
   const createTestCaseMutation = useMutation({
     mutationFn: (data) => base44.entities.FormTestCase.create(data),
     onSuccess: () => {
