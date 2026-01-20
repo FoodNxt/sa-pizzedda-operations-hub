@@ -677,6 +677,15 @@ export default function Employees() {
       });
     }
 
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(e => {
+        const name = (e.full_name || '').toLowerCase();
+        const email = (e.email || '').toLowerCase();
+        return name.includes(query) || email.includes(query);
+      });
+    }
+
     filtered.sort((a, b) => {
       let valueA, valueB;
       switch (sortBy) {
@@ -716,7 +725,7 @@ export default function Employees() {
     });
 
     return filtered;
-  }, [employeeMetrics, selectedStore, selectedPosition, sortBy, sortOrder, stores]);
+  }, [employeeMetrics, selectedStore, selectedPosition, searchQuery, sortBy, sortOrder, stores]);
 
   const getPerformanceColor = (level) => {
     switch (level) {
