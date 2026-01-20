@@ -582,7 +582,7 @@ export default function TurniDipendente() {
 
   // Completa attività
   const completaAttivitaMutation = useMutation({
-    mutationFn: async ({ turno, attivitaNome, importoPagato, turnoStraordinarioId, oraAttivita }) => {
+    mutationFn: async ({ turno, attivitaNome, importoPagato, turnoStraordinarioId, oraAttivita, dipendentePagatoNome, dipendentePagatoId }) => {
       // PROTEZIONE: Verifica che il turno sia iniziato prima di permettere il completamento
       if (!turno.timbratura_entrata) {
         throw new Error('Devi prima timbrare l\'entrata per completare questa attività');
@@ -606,6 +606,12 @@ export default function TurniDipendente() {
       }
       if (turnoStraordinarioId) {
         data.turno_straordinario_id = turnoStraordinarioId;
+      }
+      if (dipendentePagatoNome) {
+        data.dipendente_pagato_nome = dipendentePagatoNome;
+      }
+      if (dipendentePagatoId) {
+        data.dipendente_pagato_id = dipendentePagatoId;
       }
 
       return base44.entities.AttivitaCompletata.create(data);
@@ -1317,7 +1323,8 @@ export default function TurniDipendente() {
           isPagamentoStraordinari: true,
           turnoStraordinarioId: straord.id,
           importoPagamento: importo,
-          dipendenteStraordinario: straord.dipendente_nome
+          dipendenteStraordinario: straord.dipendente_nome,
+          dipendenteStraordinarioId: straord.dipendente_id
         });
       });
     }
@@ -1838,7 +1845,9 @@ export default function TurniDipendente() {
                                       turno: prossimoTurno, 
                                       attivitaNome: att.nome,
                                       importoPagato: att.importoPagamento,
-                                      turnoStraordinarioId: att.turnoStraordinarioId
+                                      turnoStraordinarioId: att.turnoStraordinarioId,
+                                      dipendentePagatoNome: att.dipendenteStraordinario,
+                                      dipendentePagatoId: att.dipendenteStraordinarioId
                                     })}
                                     disabled={completaAttivitaMutation.isPending}
                                     className="flex-1 px-4 py-2.5 bg-green-500 text-white text-sm font-medium rounded-xl flex items-col justify-center gap-1 hover:bg-green-600 shadow-sm"

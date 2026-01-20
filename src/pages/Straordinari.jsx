@@ -210,7 +210,7 @@ export default function Straordinari() {
                   <tr className="border-b-2 border-green-600">
                     <th className="text-left p-3 text-slate-600 font-medium text-sm">Data</th>
                     <th className="text-left p-3 text-slate-600 font-medium text-sm">Dipendente Pagato</th>
-                    <th className="text-left p-3 text-slate-600 font-medium text-sm">Completato da</th>
+                    <th className="text-left p-3 text-slate-600 font-medium text-sm">Pagato da (Cassiere)</th>
                     <th className="text-left p-3 text-slate-600 font-medium text-sm">Locale</th>
                     <th className="text-right p-3 text-slate-600 font-medium text-sm">Importo</th>
                   </tr>
@@ -227,10 +227,10 @@ export default function Straordinari() {
                         </div>
                       </td>
                       <td className="p-3">
-                        <span className="text-slate-700 font-medium">{attivita.dipendente_nome}</span>
+                        <span className="text-slate-700 font-medium">{attivita.dipendente_pagato_nome || '-'}</span>
                       </td>
                       <td className="p-3">
-                        <span className="text-slate-700 text-sm">{attivita.created_by || '-'}</span>
+                        <span className="text-slate-700 text-sm">{attivita.dipendente_nome || '-'}</span>
                       </td>
                       <td className="p-3">
                         <span className="text-slate-700 text-sm">{attivita.store_id || '-'}</span>
