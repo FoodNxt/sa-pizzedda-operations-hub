@@ -461,9 +461,7 @@ export default function Employees() {
         return weight ? weight.weight : 1;
       };
 
-      const w_ordini = getWeight('ordini_sbagliati');
-      const w_ritardi = getWeight('ritardi');
-      const w_timbrature = getWeight('timbrature_mancanti');
+      // Weights that are global (not role-specific)
       const w_bonus_recensione = getWeight('bonus_per_recensione');
       const w_min_recensioni = getWeight('min_recensioni');
       const w_malus_recensioni = getWeight('malus_sotto_minimo_recensioni');
