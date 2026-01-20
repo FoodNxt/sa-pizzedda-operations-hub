@@ -1409,6 +1409,34 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                   Checklist
                 </h3>
 
+                {/* Add new item */}
+                <div className="mb-3 flex gap-2">
+                  <input
+                    type="text"
+                    value={newChecklistItem}
+                    onChange={(e) => setNewChecklistItem(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        setSelectedActivationForChecklist(viewOnlyActivation);
+                        handleAddChecklistItem();
+                      }
+                    }}
+                    placeholder="Aggiungi sottoattività..."
+                    className="flex-1 neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
+                  />
+                  <button
+                    onClick={() => {
+                      setSelectedActivationForChecklist(viewOnlyActivation);
+                      handleAddChecklistItem();
+                    }}
+                    disabled={!newChecklistItem.trim()}
+                    className="px-3 py-2 rounded-xl bg-gradient-to-r from-green-500 to-green-600 text-white disabled:opacity-50"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {subattivita
                     .filter(s => s.activation_id === viewOnlyActivation.id)
