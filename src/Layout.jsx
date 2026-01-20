@@ -838,24 +838,22 @@ export default function Layout({ children, currentPageName }) {
   };
 
   const hasAccess = (requiredUserType, requiredRole, pageName) => {
-    if (!requiredUserType) return true;
     if (!currentUser) return false;
 
     const normalizedUserType = getNormalizedUserType(currentUser.user_type);
     const userRoles = currentUser.ruoli_dipendente || [];
 
-    if (!requiredUserType.includes(normalizedUserType)) return false;
-
-    // For managers, MUST check if page is in allowed list
+    // For managers, ALWAYS check the allowed list first, regardless of requiredUserType
     if (normalizedUserType === 'manager') {
-      // If we have a pageName, check if it's in the allowed list
       if (pageName) {
-        // Managers can only access pages in their allowed list
         return managerAllowedPages.includes(pageName);
       }
-      // If no pageName provided (shouldn't happen), deny access
       return false;
     }
+
+    // For non-managers (admin and dipendente), check requiredUserType
+    if (!requiredUserType) return true;
+    if (!requiredUserType.includes(normalizedUserType)) return false;
 
     if (requiredRole && normalizedUserType === 'dipendente') {
       return userRoles.includes(requiredRole);
