@@ -184,7 +184,7 @@ export default function Precotture() {
       rosseRichieste = datiOggi.cena_rosse || 0;
     }
 
-    const rosseDaFare = Math.max(0, rosseRichieste - parseInt(rossePresenti));
+    const rosseDaFare = rosseRichieste;
 
     return {
       turno,
@@ -318,10 +318,11 @@ export default function Precotture() {
                 <div className="neumorphic-card p-6 rounded-xl bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-400">
                   <div className="flex items-center gap-3 mb-3">
                     <Pizza className="w-6 h-6 text-green-700" />
-                    <p className="text-sm font-medium text-green-700">Precotture Rosse da preparare</p>
+                    <p className="text-sm font-medium text-green-700">Prepara Precotture Rosse</p>
                   </div>
                   
                   <p className="text-4xl font-bold text-green-800">{risultato.rosseDaFare}</p>
+                  <p className="text-xs text-green-600 mt-2">Prepara questa quantità totale</p>
                 </div>
               </NeumorphicCard>
             )}
