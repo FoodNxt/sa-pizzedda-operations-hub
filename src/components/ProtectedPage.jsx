@@ -97,7 +97,14 @@ export default function ProtectedPage({ children, pageName, requiredUserTypes = 
 
         if (!hasAccess) {
           // Redirect to first allowed page
-          const firstAllowedPage = allowedPages[0] || 'ProfiloDipendente';
+          let firstAllowedPage = 'ProfiloDipendente';
+          
+          if (normalizedUserType === 'manager' && allowedPages.length > 0) {
+            firstAllowedPage = typeof allowedPages[0] === 'string' ? allowedPages[0] : allowedPages[0].page;
+          } else if (normalizedUserType === 'dipendente' && allowedPages.length > 0) {
+            firstAllowedPage = typeof allowedPages[0] === 'string' ? allowedPages[0] : allowedPages[0].page;
+          }
+          
           navigate(createPageUrl(firstAllowedPage), { replace: true });
           setIsAuthorized(false);
         } else {
