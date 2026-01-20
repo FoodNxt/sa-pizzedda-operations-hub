@@ -122,7 +122,7 @@ export default function ControlloPuliziaCassiere() {
         return true;
       });
     },
-    enabled: !!selectedStore,
+    enabled: !!selectedStore && attrezzature.length > 0,
   });
 
   const handlePhotoCapture = (questionId, file) => {
