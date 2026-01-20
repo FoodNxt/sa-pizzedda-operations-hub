@@ -37,23 +37,14 @@ export default function ProtectedPage({ children, pageName, requiredUserTypes = 
 
         if (normalizedUserType === 'admin') {
           allowedPages = activeConfig.admin_pages || [];
-          // Always allow access to admin/manager pages for these user types
-          if (!allowedPages.includes(pageName)) {
-            // Allow any page for admins if not explicitly restricted
-            const adminPages = ['Dashboard', 'Presenze', 'SummaryAI', 'FormTracker', 'Meteo', 'Pulizie', 'PulizieMatch', 'FormPulizia', 'Attrezzature', 'Employees', 'Shifts', 'StoreReviews', 'Financials', 'VenditeAnalytics', 'Produttivita', 'UsersManagement', 'ATS', 'StoreManagerAdmin', 'Planday', 'GestioneAssistente', 'ValutazioneProvaForm', 'StrutturaTurno', 'Compliance', 'Documenti', 'FeedbackP2P', 'Inventory', 'MateriePrime', 'ElencoFornitori', 'ConfrontoListini', 'AnalisiSprechi', 'StoricoImpasti', 'PrecottureAdmin', 'InventarioAdmin', 'GestioneAccessoPagine', 'StrutturaMenù', 'FunzionamentoApp', 'NotificheMail', 'Alerts', 'OverviewContratti', 'RealTime', 'ChannelComparison', 'StoricoCassa', 'Costi', 'OrdiniSbagliati', 'MatchingOrdiniSbagliati', 'ProdottiVenduti', 'AcademyAdmin', 'Assenze', 'InventoryForms', 'FinancialForms', 'AssignReviews', 'EmployeeReviewsPerformance', 'Payroll', 'Segnalazioni', 'Pause', 'Ritardi', 'ZapierProduttivita', 'BulkImportProdottivita', 'FormInventario', 'FormCantina', 'Impasto', 'Preparazioni', 'Precotture', 'ControlloPuliziaCassiere', 'ControlloPuliziaPizzaiolo', 'ControlloPuliziaStoreManager', 'Google', 'Meta', 'MarketingSettings', 'Disponibilita', 'PianoQuarter', 'OrdiniAdmin', 'Activation', 'FormSpostamenti', 'SpostamentiAdmin'];
-            if (adminPages.includes(pageName)) {
-              allowedPages.push(pageName);
-            }
+          // If no config, allow all admin pages by default
+          if (allowedPages.length === 0) {
+            const adminPages = ['Dashboard', 'Presenze', 'SummaryAI', 'FormTracker', 'Meteo', 'Pulizie', 'PulizieMatch', 'FormPulizia', 'Attrezzature', 'Employees', 'Shifts', 'StoreReviews', 'Financials', 'VenditeAnalytics', 'Produttivita', 'UsersManagement', 'ATS', 'StoreManagerAdmin', 'Planday', 'GestioneAssistente', 'ValutazioneProvaForm', 'StrutturaTurno', 'Compliance', 'Documenti', 'FeedbackP2P', 'Inventory', 'MateriePrime', 'ElencoFornitori', 'ConfrontoListini', 'AnalisiSprechi', 'StoricoImpasti', 'PrecottureAdmin', 'InventarioAdmin', 'GestioneAccessoPagine', 'StrutturaMenù', 'FunzionamentoApp', 'NotificheMail', 'Alerts', 'OverviewContratti', 'RealTime', 'ChannelComparison', 'StoricoCassa', 'Costi', 'OrdiniSbagliati', 'MatchingOrdiniSbagliati', 'ProdottiVenduti', 'AcademyAdmin', 'Assenze', 'InventoryForms', 'FinancialForms', 'AssignReviews', 'EmployeeReviewsPerformance', 'Payroll', 'Segnalazioni', 'Pause', 'Ritardi', 'ZapierProduttivita', 'BulkImportProdottivita', 'FormInventario', 'FormCantina', 'Impasto', 'Preparazioni', 'Precotture', 'ControlloPuliziaCassiere', 'ControlloPuliziaPizzaiolo', 'ControlloPuliziaStoreManager', 'Google', 'Meta', 'MarketingSettings', 'Disponibilita', 'PianoQuarter', 'OrdiniAdmin', 'Activation', 'FormSpostamenti', 'SpostamentiAdmin', 'Straordinari', 'PreparazioniAdmin'];
+            allowedPages = adminPages;
           }
         } else if (normalizedUserType === 'manager') {
           allowedPages = activeConfig.manager_pages || [];
-          // Allow key pages for managers too
-          if (!allowedPages.includes(pageName)) {
-            const managerPages = ['Dashboard', 'Presenze', 'SummaryAI', 'FormTracker', 'Meteo', 'Pulizie', 'PulizieMatch', 'FormPulizia', 'Attrezzature', 'Employees', 'Shifts', 'StoreReviews', 'Financials', 'VenditeAnalytics', 'Produttivita', 'ATS', 'StoreManagerAdmin', 'Planday', 'ValutazioneProvaForm', 'StrutturaTurno', 'Compliance', 'Documenti', 'FeedbackP2P', 'Inventory', 'MateriePrime', 'ConfrontoListini', 'Alerts', 'OverviewContratti', 'AssignReviews', 'EmployeeReviewsPerformance', 'Segnalazioni', 'Pause', 'Ritardi', 'FormInventario', 'FormCantina', 'Impasto', 'Preparazioni', 'Precotture', 'ControlloPuliziaCassiere', 'ControlloPuliziaPizzaiolo', 'ControlloPuliziaStoreManager', 'Google', 'Meta', 'Disponibilita', 'Costi', 'PianoQuarter', 'OrdiniAdmin', 'ChannelComparison', 'StoricoCassa', 'Activation', 'FormSpostamenti'];
-            if (managerPages.includes(pageName)) {
-              allowedPages.push(pageName);
-            }
-          }
+          // If no manager config, deny access (must be explicitly configured)
         } else if (normalizedUserType === 'dipendente') {
           // Check contract status for dipendenti
           const userRoles = user.ruoli_dipendente || [];
