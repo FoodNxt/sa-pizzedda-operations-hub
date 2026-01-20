@@ -2368,6 +2368,7 @@ function MetricWeightsModal({ weights, onClose }) {
     ordini_sbagliati: 'Peso Ordini Sbagliati',
     ritardi: 'Peso Ritardi',
     timbrature_mancanti: 'Peso Timbrature Mancanti',
+    straordinari: 'Peso Straordinari',
     bonus_per_recensione: 'Bonus per Recensione',
     min_recensioni: 'Numero Minimo Recensioni',
     malus_sotto_minimo_recensioni: 'Malus per Recensione Mancante (sotto minimo)',
@@ -2375,18 +2376,36 @@ function MetricWeightsModal({ weights, onClose }) {
     pulizie: 'Peso Pulizie (se < 80%)'
   };
 
+  const ruoli = ['Pizzaiolo', 'Cassiere', 'Store Manager'];
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <NeumorphicCard className="max-w-md w-full p-6">
+      <NeumorphicCard className="max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-slate-800">Configura Pesi Metriche</h2>
-          <button onClick={onClose} className="nav-button p-2 rounded-lg">
+          <h2 className="text-2xl font-bold text-slate-800">Configura Pesi Metriche per Ruolo</h2>
+          <button onClick={onClose} className="nav-button p-2 rounded-lg flex-shrink-0">
             <X className="w-5 h-5 text-slate-600" />
           </button>
         </div>
 
+        <div className="flex gap-2 mb-6 border-b border-slate-200 pb-4">
+          {ruoli.map(role => (
+            <button
+              key={role}
+              onClick={() => setActiveRole(role)}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                activeRole === role
+                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                  : 'nav-button text-slate-700'
+              }`}
+            >
+              {role}
+            </button>
+          ))}
+        </div>
+
         <div className="space-y-4 mb-6">
-          {Object.entries(localWeights).map(([key, value]) => (
+          {Object.entries(localWeights[activeRole]).map(([key, value]) => (
             <div key={key}>
               <label className="text-sm font-medium text-slate-700 mb-2 block">
                 {metricLabels[key]}
@@ -2395,7 +2414,10 @@ function MetricWeightsModal({ weights, onClose }) {
                 type="number"
                 step="0.1"
                 value={value}
-                onChange={(e) => setLocalWeights({ ...localWeights, [key]: parseFloat(e.target.value) || 0 })}
+                onChange={(e) => setLocalWeights({
+                  ...localWeights,
+                  [activeRole]: { ...localWeights[activeRole], [key]: parseFloat(e.target.value) || 0 }
+                })}
                 className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
               />
             </div>
