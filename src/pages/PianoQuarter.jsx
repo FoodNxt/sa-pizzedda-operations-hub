@@ -411,7 +411,7 @@ export default function PianoQuarter() {
 
         {/* Tabs */}
         <NeumorphicCard className="p-2">
-          <div className="flex gap-2 flex-wrap">
+          <div className="grid grid-cols-3 gap-2">
             <button
               onClick={() => setActiveTab('ads')}
               className={`px-6 py-3 rounded-lg font-medium transition-all ${

@@ -323,49 +323,12 @@ export default function PlandayStoreView({
           <div className="p-2 text-left font-medium text-slate-500 text-sm">Dipendente</div>
           {weekDays.map(day => (
             <div key={day.format('YYYY-MM-DD')} className={`p-2 text-center rounded-lg ${day.isSame(moment(), 'day') ? 'bg-blue-100' : ''}`}>
-              <div className="font-medium text-slate-700">{day.format('ddd DD MMM')}</div>
-              <div className="text-xs text-slate-500">{turni.filter(t => t.data === day.format('YYYY-MM-DD')).length} turni</div>
+              <div className="font-medium text-slate-700">{day.format('ddd')}</div>
+              <div className="text-lg font-bold text-slate-800">{day.format('DD')}</div>
+              <div className="text-xs text-slate-500">{day.format('MMM')}</div>
             </div>
           ))}
         </div>
-
-        {turniNonAssegnati.length > 0 && (
-          <div className="grid grid-cols-8 gap-1 border-b border-slate-100 py-2">
-            <div className="p-2"><div className="text-sm font-medium text-slate-600">Turni liberi</div></div>
-            {weekDays.map(day => {
-              const dayKey = day.format('YYYY-MM-DD');
-              const dayTurni = turniNonAssegnati.filter(t => t.data === dayKey);
-              return (
-                <div key={dayKey} className="p-1 min-h-[60px]" onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, day, null)}>
-                  {dayTurni.map(turno => (
-                    <div 
-                      key={turno.id}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, turno)}
-                      className="p-2 rounded-lg mb-1 cursor-grab text-xs relative text-white opacity-70"
-                      style={getRuoloStyle(turno.ruolo)}
-                      onClick={(e) => handleTurnoClick(e, turno)}
-                    >
-                      {turno.is_prova && (
-                        <div className="absolute top-0 left-0 px-1 py-0.5 text-[7px] font-bold text-white rounded-br bg-purple-600">
-                          🧪
-                        </div>
-                      )}
-                      {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
-                        <div className="absolute top-0 right-0 w-0 h-0 border-t-[12px] border-l-[12px] border-l-transparent" style={{ borderTopColor: getTipoTurnoColor(turno.tipo_turno) }} />
-                      )}
-                      <div className="font-bold">{turno.ruolo}</div>
-                      <div>{turno.ora_inizio} - {turno.ora_fine}</div>
-                      {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
-                        <div className="text-[9px] font-bold mt-0.5">{turno.tipo_turno}</div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              );
-            })}
-          </div>
-        )}
 
         {dipendentiConTurni.map(dipendente => {
           const dipTurni = turniByDipendente[dipendente.id] || {};
@@ -393,45 +356,46 @@ export default function PlandayStoreView({
                     onDrop={(e) => handleDrop(e, day, dipendente.id)}
                     onClick={() => dayTurni.length === 0 && handleQuickAdd(day, dipendente.id)}
                   >
-                    {dayTurni.map(turno => (
-                      <div 
-                        key={turno.id}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, turno)}
-                        className="p-2 rounded-lg mb-1 cursor-grab text-xs relative text-white"
-                        style={getRuoloStyle(turno.ruolo)}
-                        onClick={(e) => handleTurnoClick(e, turno)}
-                      >
-                        {turno.is_prova && (
-                          <div className="absolute top-0 left-0 px-1 py-0.5 text-[7px] font-bold text-white rounded-br bg-purple-600">
-                            🧪
-                          </div>
-                        )}
-                        {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
-                          <div className="absolute top-0 right-0 w-0 h-0 border-t-[12px] border-l-[12px] border-l-transparent" style={{ borderTopColor: getTipoTurnoColor(turno.tipo_turno) }} />
-                        )}
-                        <div className="font-bold">{turno.ruolo}</div>
-                        <div>{turno.ora_inizio} - {turno.ora_fine}</div>
-                        {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
-                          <div className="text-[9px] font-bold mt-0.5">{turno.tipo_turno}</div>
-                        )}
-                        {!selectedStore && turno.store_id && <div className="opacity-80 text-[10px]">{getStoreName(turno.store_id)}</div>}
-                        {/* Form + Attività */}
-                        {(() => {
-                          const formDovuti = getFormDovutiPerTurno(turno, turni.filter(t => t.data === turno.data));
-                          const attivita = getAttivitaTurno(turno);
-                          const total = formDovuti.length + attivita.length;
-                          if (total > 0) {
-                            return (
-                              <div className="text-[8px] mt-0.5 px-1 bg-white bg-opacity-30 rounded">
-                                📋 {formDovuti.length} • ✓ {attivita.length}
-                              </div>
-                            );
-                          }
-                          return null;
-                        })()}
-                      </div>
-                    ))}
+                    <div className="space-y-1">
+                      {dayTurni.map(turno => (
+                        <div 
+                          key={turno.id}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, turno)}
+                          className="p-2 rounded-lg cursor-grab text-xs relative text-white"
+                          style={getRuoloStyle(turno.ruolo)}
+                          onClick={(e) => handleTurnoClick(e, turno)}
+                        >
+                          {turno.is_prova && (
+                            <div className="absolute top-0 left-0 px-1 py-0.5 text-[7px] font-bold text-white rounded-br bg-purple-600">
+                              🧪
+                            </div>
+                          )}
+                          {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
+                            <div className="absolute top-0 right-0 w-0 h-0 border-t-[12px] border-l-[12px] border-l-transparent" style={{ borderTopColor: getTipoTurnoColor(turno.tipo_turno) }} />
+                          )}
+                          <div className="font-bold">{turno.ora_inizio}-{turno.ora_fine}</div>
+                          <div className="text-[10px] opacity-90">{turno.ruolo}</div>
+                          {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
+                            <div className="text-[9px] font-bold mt-0.5">{turno.tipo_turno}</div>
+                          )}
+                          {!selectedStore && turno.store_id && <div className="opacity-80 text-[10px]">{getStoreName(turno.store_id)}</div>}
+                          {(() => {
+                            const formDovuti = getFormDovutiPerTurno(turno, turni.filter(t => t.data === turno.data));
+                            const attivita = getAttivitaTurno(turno);
+                            const total = formDovuti.length + attivita.length;
+                            if (total > 0) {
+                              return (
+                                <div className="text-[8px] mt-0.5 px-1 bg-white bg-opacity-30 rounded">
+                                  📋 {formDovuti.length} • ✓ {attivita.length}
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </div>
+                      ))}
+                    </div>
                     {dayTurni.length === 0 && (
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                         <Plus className="w-4 h-4 text-slate-400" />
