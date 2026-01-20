@@ -16,13 +16,20 @@ export default function ProtectedPage({ children, pageName, requiredUserTypes = 
         const user = await base44.auth.me();
         const normalizedUserType = user.user_type === 'user' ? 'dipendente' : user.user_type;
 
+        // Admins always have full access to all pages
+        if (normalizedUserType === 'admin') {
+          setIsAuthorized(true);
+          setIsLoading(false);
+          return;
+        }
+
         // Fetch page access configuration
         const configs = await base44.entities.PageAccessConfig.list();
         const activeConfig = configs.find(c => c.is_active);
 
         if (!activeConfig) {
-          // No config found, allow all pages for admin/manager, deny for dipendente
-          if (normalizedUserType === 'admin' || normalizedUserType === 'manager') {
+          // No config found, allow for manager, deny for dipendente
+          if (normalizedUserType === 'manager') {
             setIsAuthorized(true);
             setIsLoading(false);
             return;
@@ -35,14 +42,7 @@ export default function ProtectedPage({ children, pageName, requiredUserTypes = 
 
         let allowedPages = [];
 
-        if (normalizedUserType === 'admin') {
-          allowedPages = activeConfig.admin_pages || [];
-          // If no config, allow all admin pages by default
-          if (allowedPages.length === 0) {
-            const adminPages = ['Dashboard', 'Presenze', 'SummaryAI', 'FormTracker', 'Meteo', 'Pulizie', 'PulizieMatch', 'FormPulizia', 'Attrezzature', 'Employees', 'Shifts', 'StoreReviews', 'Financials', 'VenditeAnalytics', 'Produttivita', 'UsersManagement', 'ATS', 'StoreManagerAdmin', 'Planday', 'GestioneAssistente', 'ValutazioneProvaForm', 'StrutturaTurno', 'Compliance', 'Documenti', 'FeedbackP2P', 'Inventory', 'MateriePrime', 'ElencoFornitori', 'ConfrontoListini', 'AnalisiSprechi', 'StoricoImpasti', 'PrecottureAdmin', 'InventarioAdmin', 'GestioneAccessoPagine', 'StrutturaMenù', 'FunzionamentoApp', 'NotificheMail', 'Alerts', 'OverviewContratti', 'RealTime', 'ChannelComparison', 'StoricoCassa', 'Costi', 'OrdiniSbagliati', 'MatchingOrdiniSbagliati', 'ProdottiVenduti', 'AcademyAdmin', 'Assenze', 'InventoryForms', 'FinancialForms', 'AssignReviews', 'EmployeeReviewsPerformance', 'Payroll', 'Segnalazioni', 'Pause', 'Ritardi', 'ZapierProduttivita', 'BulkImportProdottivita', 'FormInventario', 'FormCantina', 'Impasto', 'Preparazioni', 'Precotture', 'ControlloPuliziaCassiere', 'ControlloPuliziaPizzaiolo', 'ControlloPuliziaStoreManager', 'Google', 'Meta', 'MarketingSettings', 'Disponibilita', 'PianoQuarter', 'OrdiniAdmin', 'Activation', 'FormSpostamenti', 'SpostamentiAdmin', 'Straordinari', 'PreparazioniAdmin'];
-            allowedPages = adminPages;
-          }
-        } else if (normalizedUserType === 'manager') {
+        if (normalizedUserType === 'manager') {
           allowedPages = activeConfig.manager_pages || [];
           // If no manager config, deny access (must be explicitly configured)
         } else if (normalizedUserType === 'dipendente') {
