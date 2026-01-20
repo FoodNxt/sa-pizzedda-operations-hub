@@ -205,6 +205,7 @@ export default function FormDebug() {
       attrezzature: [],
       domande: [],
       employees: [],
+      simulazioni: [],
       criticalIssues: [],
       warnings: [],
       successChecks: []
@@ -230,7 +231,19 @@ export default function FormDebug() {
           results.warnings.push(`⚠️ ${attrezzatureInattive.length} attrezzature disattivate`);
         }
 
-        const attrezzatureSenzaStore = attrezzature.filter(a => !a.stores_assegnati || a.stores_assegnati.length === 0);
+        // Verifica stores senza attrezzature
+        for (const store of stores) {
+          const attrStoreCount = attrezzature.filter(a => {
+            if (a.attivo === false) return false;
+            if (!a.stores_assegnati || a.stores_assegnati.length === 0) return true;
+            return a.stores_assegnati.includes(store.id);
+          }).length;
+          
+          if (attrStoreCount === 0) {
+            results.warnings.push(`⚠️ Store "${store.name}" non ha attrezzature assegnate`);
+          }
+        }
+
         results.attrezzature = attrezzature.map(a => ({
           nome: a.nome,
           attivo: a.attivo,
@@ -255,6 +268,20 @@ export default function FormDebug() {
         })
       };
 
+      // Verifica domande disattivate o con problemi di filtro
+      const domandeDisattivate = domandePulizia.filter(d => d.attiva === false);
+      if (domandeDisattivate.length > 0) {
+        results.warnings.push(`⚠️ ${domandeDisattivate.length} domande disattivate (non visibili)`);
+      }
+
+      const domandeConRuoliInvalidi = domandePulizia.filter(d => {
+        const ruoli = d.ruoli_assegnati || [];
+        return ruoli.some(r => !['Cassiere', 'Pizzaiolo', 'Store Manager'].includes(r));
+      });
+      if (domandeConRuoliInvalidi.length > 0) {
+        results.warnings.push(`⚠️ ${domandeConRuoliInvalidi.length} domande con ruoli non validi`);
+      }
+
       for (const [ruolo, domande] of Object.entries(domandePerRuolo)) {
         const domandeAttive = domande.filter(d => d.attiva !== false);
         
@@ -266,11 +293,19 @@ export default function FormDebug() {
           // Verifica domande con attrezzature inesistenti
           for (const d of domandeAttive) {
             if (d.attrezzatura && !attrezzature.find(a => a.nome === d.attrezzatura)) {
-              results.warnings.push(`⚠️ Domanda "${d.domanda_testo || d.attrezzatura}" riferisce attrezzatura inesistente: ${d.attrezzatura}`);
+              results.criticalIssues.push(`❌ CRITICO: Domanda "${d.domanda_testo || d.attrezzatura}" riferisce attrezzatura inesistente: ${d.attrezzatura}`);
+            }
+            
+            // Verifica domande con attrezzature disattivate
+            if (d.attrezzatura) {
+              const attr = attrezzature.find(a => a.nome === d.attrezzatura);
+              if (attr && attr.attivo === false) {
+                results.warnings.push(`⚠️ Domanda "${d.domanda_testo || d.attrezzatura}" usa attrezzatura disattivata: ${d.attrezzatura}`);
+              }
             }
           }
 
-          // Simula caricamento per ogni store
+          // SIMULAZIONE COMPLETA: Simula cosa vede un dipendente per ogni store
           for (const store of stores) {
             const attrezzatureDelLocale = attrezzature.filter(a => {
               if (a.attivo === false) return false;
@@ -285,8 +320,20 @@ export default function FormDebug() {
               return true;
             });
 
+            const simulazione = {
+              store: store.name,
+              ruolo,
+              attrezzaturaDisponibili: attrezzatureDelLocale.length,
+              domandeVisibili: domandeVisibili.length,
+              domandeSenzaAttr: domandeVisibili.filter(d => !d.attrezzatura).length,
+              domandeConAttr: domandeVisibili.filter(d => d.attrezzatura).length
+            };
+            results.simulazioni.push(simulazione);
+
             if (domandeVisibili.length === 0) {
-              results.criticalIssues.push(`❌ CRITICO: ${ruolo} vedrà 0 domande in ${store.name}`);
+              results.criticalIssues.push(`❌ CRITICO: ${ruolo} vedrà 0 domande in "${store.name}" (${attrezzatureDelLocale.length} attrezzature disponibili)`);
+            } else if (domandeVisibili.length < 3) {
+              results.warnings.push(`⚠️ ${ruolo} vedrà solo ${domandeVisibili.length} domande in "${store.name}"`);
             }
           }
         }
@@ -296,7 +343,9 @@ export default function FormDebug() {
         ruolo,
         totali: domande.length,
         attive: domande.filter(d => d.attiva !== false).length,
-        conAttrezzatura: domande.filter(d => d.attrezzatura).length
+        disattivate: domande.filter(d => d.attiva === false).length,
+        conAttrezzatura: domande.filter(d => d.attrezzatura).length,
+        senzaAttrezzatura: domande.filter(d => !d.attrezzatura).length
       }));
 
       // Check 4: Verifica dipendenti con ruoli
@@ -309,6 +358,46 @@ export default function FormDebug() {
           nome: u.nome_cognome || u.full_name,
           ruoli: u.ruoli_dipendente
         }));
+      }
+
+      // Check 5: Verifica configurazione PageAccessConfig
+      const activeConfig = pageAccessConfig.find(c => c.is_active);
+      if (!activeConfig) {
+        results.warnings.push('⚠️ Nessuna configurazione PageAccessConfig attiva');
+      } else {
+        const formsPerRuolo = {
+          'Pizzaiolo': activeConfig.pizzaiolo_pages || [],
+          'Cassiere': activeConfig.cassiere_pages || [],
+          'Store Manager': activeConfig.store_manager_pages || []
+        };
+
+        for (const [ruolo, pages] of Object.entries(formsPerRuolo)) {
+          const pageNames = pages.map(p => typeof p === 'string' ? p : p.page);
+          const hasControlloForm = pageNames.some(p => p.includes('ControlloPulizia'));
+          
+          if (!hasControlloForm) {
+            results.warnings.push(`⚠️ ${ruolo}: form pulizia non configurato in PageAccessConfig`);
+          }
+        }
+
+        results.successChecks.push('✅ PageAccessConfig attiva trovata');
+      }
+
+      // Check 6: Verifica turni attivi (per testing completamento attività)
+      const oggi = new Date().toISOString().split('T')[0];
+      const turniOggi = turni.filter(t => t.data === oggi);
+      if (turniOggi.length === 0) {
+        results.warnings.push(`⚠️ Nessun turno programmato per oggi (${oggi})`);
+      } else {
+        results.successChecks.push(`✅ ${turniOggi.length} turni programmati per oggi`);
+      }
+
+      // Check 7: Verifica esistenza attività completate (storico form)
+      const attivitaQuery = await base44.entities.AttivitaCompletata.list('-created_date', 5);
+      if (attivitaQuery.length > 0) {
+        results.successChecks.push(`✅ Sistema attività completate funzionante (${attivitaQuery.length} attività recenti)`);
+      } else {
+        results.warnings.push('⚠️ Nessuna attività completata registrata');
       }
 
     } catch (error) {
