@@ -62,35 +62,6 @@ export default function PianoQuarter() {
   const [foodCostPercentage, setFoodCostPercentage] = useState(30);
   const [selectedPromoDay, setSelectedPromoDay] = useState(null);
 
-  const updateFoodCostMutation = useMutation({
-    mutationFn: async (newPercentage) => {
-      const activeConfig = financeConfigs.find(c => c.is_active);
-      if (activeConfig) {
-        await base44.entities.FinanceConfig.update(activeConfig.id, { 
-          default_food_cost_percentage: newPercentage 
-        });
-      } else {
-        await base44.entities.FinanceConfig.create({ 
-          default_food_cost_percentage: newPercentage,
-          is_active: true
-        });
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['finance-config'] });
-    },
-  });
-
-  // Carica food cost percentage dalla configurazione
-  useEffect(() => {
-    if (financeConfigs.length > 0) {
-      const activeConfig = financeConfigs.find(c => c.is_active);
-      if (activeConfig?.default_food_cost_percentage) {
-        setFoodCostPercentage(activeConfig.default_food_cost_percentage);
-      }
-    }
-  }, [financeConfigs]);
-
   const [formAds, setFormAds] = useState({
     nome: '',
     piattaforma: 'Glovo',
@@ -142,7 +113,36 @@ export default function PianoQuarter() {
     queryFn: () => base44.entities.iPratico.list()
   });
 
+  // Carica food cost percentage dalla configurazione
+  useEffect(() => {
+    if (financeConfigs.length > 0) {
+      const activeConfig = financeConfigs.find(c => c.is_active);
+      if (activeConfig?.default_food_cost_percentage) {
+        setFoodCostPercentage(activeConfig.default_food_cost_percentage);
+      }
+    }
+  }, [financeConfigs]);
+
   // Mutations
+  const updateFoodCostMutation = useMutation({
+    mutationFn: async (newPercentage) => {
+      const activeConfig = financeConfigs.find(c => c.is_active);
+      if (activeConfig) {
+        await base44.entities.FinanceConfig.update(activeConfig.id, { 
+          default_food_cost_percentage: newPercentage 
+        });
+      } else {
+        await base44.entities.FinanceConfig.create({ 
+          default_food_cost_percentage: newPercentage,
+          is_active: true
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['finance-config'] });
+    },
+  });
+
   const createAdsMutation = useMutation({
     mutationFn: (data) => base44.entities.PianoAdsQuarterly.create(data),
     onSuccess: () => {
