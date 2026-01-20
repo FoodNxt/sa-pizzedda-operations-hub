@@ -315,7 +315,10 @@ export default function Straordinari() {
                       <td className="p-3">
                         <div className="flex items-center gap-2">
                           <User className="w-4 h-4 text-green-600" />
-                          <span className="text-slate-700 font-medium">{attivita.dipendente_pagato_nome || '-'}</span>
+                          <span className="text-slate-700 font-medium">
+                            {attivita.dipendente_pagato_nome || 
+                             (attivita.attivita_nome ? attivita.attivita_nome.replace('Pagamento straordinari - ', '') : '-')}
+                          </span>
                         </div>
                       </td>
                       <td className="p-3">
