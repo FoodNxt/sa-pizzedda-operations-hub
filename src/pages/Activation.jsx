@@ -1342,30 +1342,67 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                 {activationsByCategory[category.id]?.length === 0 ? (
                   <p className="text-slate-400 text-sm text-center py-6">Nessuna activation in questa categoria</p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {activationsByCategory[category.id]?.map(activation => (
                       <div key={activation.id} className="neumorphic-pressed p-4 rounded-xl">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className="flex items-center gap-2 mb-2">
                               <h3 className="font-bold text-slate-800">{activation.nome}</h3>
                               <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatoColor(activation.stato)}`}>
                                 {activation.stato.replace('_', ' ').toUpperCase()}
                               </span>
                             </div>
-                            <div className="flex gap-3 text-xs text-slate-500">
+                            <div className="flex flex-wrap gap-3 text-xs text-slate-500 mb-2">
                               {activation.data_inizio && (
                                 <span>Inizio: {format(parseISO(activation.data_inizio), 'dd/MM/yy')}</span>
                               )}
                               <span>Target: {format(parseISO(activation.data_completamento_target), 'dd/MM/yy')}</span>
+                              {activation.assegnato_a_nome && (
+                                <span className="flex items-center gap-1 text-slate-600 bg-slate-100 px-2 py-1 rounded">
+                                  <User className="w-3 h-3" />
+                                  {activation.assegnato_a_nome}
+                                </span>
+                              )}
                             </div>
                           </div>
-                          <div className="flex gap-2">
-                            <button onClick={() => handleEdit(activation)} className="p-2 rounded-lg hover:bg-blue-50">
+                          <div className="flex gap-2 ml-2">
+                            <button onClick={() => handleEdit(activation)} className="p-2 rounded-lg hover:bg-blue-50 flex-shrink-0">
                               <Edit className="w-4 h-4 text-blue-600" />
                             </button>
                           </div>
                         </div>
+
+                        {/* Sottoattività */}
+                        {subattivita.filter(s => s.activation_id === activation.id).length > 0 && (
+                          <div className="bg-slate-50 rounded-lg p-3 mt-3 border-l-2 border-slate-300">
+                            <p className="text-xs font-medium text-slate-600 mb-2">Sottoattività:</p>
+                            <div className="space-y-1">
+                              {subattivita
+                                .filter(s => s.activation_id === activation.id)
+                                .sort((a, b) => (a.ordine || 0) - (b.ordine || 0))
+                                .map(item => (
+                                  <div key={item.id} className="flex items-start gap-2 text-xs">
+                                    <span className="mt-1">
+                                      {item.completata ? (
+                                        <CheckSquare className="w-3 h-3 text-green-600" />
+                                      ) : (
+                                        <Square className="w-3 h-3 text-slate-400" />
+                                      )}
+                                    </span>
+                                    <div className="flex-1">
+                                      <p className={item.completata ? 'line-through text-slate-500' : 'text-slate-700'}>
+                                        {item.titolo}
+                                      </p>
+                                      {item.completata && item.completata_da && (
+                                        <p className="text-slate-400">✓ {item.completata_da}</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
