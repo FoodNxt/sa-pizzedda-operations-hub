@@ -346,9 +346,9 @@ export default function Contatti() {
 
         {/* Form Modal */}
         {showForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="max-w-2xl w-full my-8">
-              <NeumorphicCard className="p-6">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <NeumorphicCard className="p-6 my-8">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold text-slate-800">
                     {editingContatto ? 'Modifica Contatto' : 'Nuovo Contatto'}
