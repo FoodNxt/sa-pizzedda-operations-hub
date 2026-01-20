@@ -988,6 +988,25 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                                     onChange={(e) => setEditingSubattivitaData({ ...editingSubattivitaData, data_target: e.target.value })}
                                     className="w-full neumorphic-pressed px-2 py-1 rounded text-sm outline-none"
                                   />
+                                  <select
+                                    value={editingSubattivitaData.assegnato_a_id}
+                                    onChange={(e) => {
+                                      const selectedUser = allUsers.find(u => u.id === e.target.value);
+                                      setEditingSubattivitaData({
+                                        ...editingSubattivitaData,
+                                        assegnato_a_id: e.target.value,
+                                        assegnato_a_nome: selectedUser ? (selectedUser.nome_cognome || selectedUser.full_name || selectedUser.email) : ''
+                                      });
+                                    }}
+                                    className="w-full neumorphic-pressed px-2 py-1 rounded text-sm outline-none"
+                                  >
+                                    <option value="">Non assegnato</option>
+                                    {allUsers.map(u => (
+                                      <option key={u.id} value={u.id}>
+                                        {u.nome_cognome || u.full_name || u.email}
+                                      </option>
+                                    ))}
+                                  </select>
                                   <div className="flex gap-2">
                                     <button
                                       type="button"
