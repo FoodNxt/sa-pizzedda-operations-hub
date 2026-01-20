@@ -411,7 +411,7 @@ export default function PianoQuarter() {
       adsBudget: -adsBudget,
       total: revenue - foodCost - adsBudget
     };
-  }, [pianiAds, contoEconomicoDateRange, selectedDeliveryApp, iPraticoData]);
+  }, [pianiAds, contoEconomicoDateRange, selectedDeliveryApp, iPraticoData, foodCostPercentage]);
 
   const promoCalendarDays = useMemo(() => {
     const monthStart = startOfMonth(promoCalendarMonth);
