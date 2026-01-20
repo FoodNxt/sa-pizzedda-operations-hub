@@ -13,7 +13,8 @@ import {
   Loader2,
   Eye,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Trash
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
