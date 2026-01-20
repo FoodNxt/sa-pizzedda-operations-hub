@@ -30,6 +30,9 @@ Deno.serve(async (req) => {
 
     const daRecuperare = [];
 
+    // Carica anche i turni per identificare i negozi
+    const turni = await base44.asServiceRole.entities.TurnoPlanday.list();
+
     for (const attivita of attivitaPrecotture) {
       const chiave = `${attivita.dipendente_id}_${attivita.store_id}_${attivita.completato_at.split('T')[0]}_${attivita.turno_precotture}`;
       
@@ -58,10 +61,19 @@ Deno.serve(async (req) => {
             rossePresenti = Math.max(0, rosseRichieste - (attivita.rosse_da_fare || 0));
           }
         }
+
+        // Trova il negozio corretto dal turno del dipendente
+        let storeName = attivita.store_name || 'N/A';
+        if (attivita.turno_id) {
+          const turno = turni.find(t => t.id === attivita.turno_id);
+          if (turno && turno.store_nome) {
+            storeName = turno.store_nome;
+          }
+        }
         
         daRecuperare.push({
           store_id: attivita.store_id,
-          store_name: attivita.store_name || 'N/A',
+          store_name: storeName,
           dipendente_id: attivita.dipendente_id,
           dipendente_nome: attivita.dipendente_nome,
           data_compilazione: attivita.completato_at,

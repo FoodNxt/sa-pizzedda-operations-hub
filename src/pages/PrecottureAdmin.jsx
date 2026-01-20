@@ -320,6 +320,8 @@ export default function PrecottureAdmin() {
   const allTeglieVendute = useMemo(() => {
     const filtered = prodottiVenduti.filter(p => {
       if (!teglieConfig.categorie.includes(p.category)) return false;
+      // Filter by selected date range
+      if (p.data_vendita < teglieStartDate || p.data_vendita > teglieEndDate) return false;
       return true;
     });
 
