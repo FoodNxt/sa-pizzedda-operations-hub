@@ -36,6 +36,7 @@ export default function Employees() {
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [dateRangePreset, setDateRangePreset] = useState('all');
   const [expandedView, setExpandedView] = useState(null);
   const [showWeightsModal, setShowWeightsModal] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
@@ -1082,6 +1083,31 @@ export default function Employees() {
     }
   };
 
+  const handleDateRangePreset = (preset) => {
+    setDateRangePreset(preset);
+    const now = new Date();
+    
+    if (preset === 'current_month') {
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      setStartDate(firstDay.toISOString().split('T')[0]);
+      setEndDate(lastDay.toISOString().split('T')[0]);
+    } else if (preset === 'last_month') {
+      const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastDay = new Date(now.getFullYear(), now.getMonth(), 0);
+      setStartDate(firstDay.toISOString().split('T')[0]);
+      setEndDate(lastDay.toISOString().split('T')[0]);
+    } else if (preset === 'current_year') {
+      const firstDay = new Date(now.getFullYear(), 0, 1);
+      const lastDay = new Date(now.getFullYear(), 11, 31);
+      setStartDate(firstDay.toISOString().split('T')[0]);
+      setEndDate(lastDay.toISOString().split('T')[0]);
+    } else if (preset === 'all') {
+      setStartDate('');
+      setEndDate('');
+    }
+  };
+
   const handleRecalculateDelays = async () => {
     if (!confirm('Vuoi ricalcolare i ritardi per tutti i turni? Questo potrebbe richiedere alcuni secondi.')) {
       return;
@@ -1232,27 +1258,44 @@ export default function Employees() {
             <option value="Store Manager">Store Manager</option>
           </select>
 
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
+          <select
+            value={dateRangePreset}
+            onChange={(e) => handleDateRangePreset(e.target.value)}
             className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
-            placeholder="Data inizio"
-          />
+          >
+            <option value="all">Tutto il periodo</option>
+            <option value="current_month">Mese in corso</option>
+            <option value="last_month">Mese scorso</option>
+            <option value="current_year">Anno in corso</option>
+            <option value="custom">Personalizzato</option>
+          </select>
 
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
-            placeholder="Data fine"
-          />
+          {dateRangePreset === 'custom' && (
+            <>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
+                placeholder="Data inizio"
+              />
+
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
+                placeholder="Data fine"
+              />
+            </>
+          )}
 
           {(startDate || endDate) && (
             <button
               onClick={() => {
                 setStartDate('');
                 setEndDate('');
+                setDateRangePreset('all');
               }}
               className="neumorphic-flat px-3 py-2 rounded-lg text-sm text-slate-500 hover:text-slate-700"
             >
