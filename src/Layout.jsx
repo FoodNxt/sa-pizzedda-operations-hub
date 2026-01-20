@@ -531,6 +531,7 @@ export default function Layout({ children, currentPageName }) {
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [isLoadingConfig, setIsLoadingConfig] = useState(true);
   const [notifications, setNotifications] = useState({});
+  const [managerAllowedPages, setManagerAllowedPages] = useState([]);
 
   useEffect(() => {
     const loadMenuStructure = async () => {
@@ -554,6 +555,12 @@ export default function Layout({ children, currentPageName }) {
         const configs = await base44.entities.PageAccessConfig.list();
         const activeConfig = configs.find(c => c.is_active);
         setPageAccessConfig(activeConfig || null);
+        
+        // Extract manager allowed pages
+        if (activeConfig?.manager_pages) {
+          const pages = activeConfig.manager_pages.map(p => typeof p === 'string' ? p : p.page);
+          setManagerAllowedPages(pages);
+        }
       } catch (error) {
         console.error('Error fetching page access config:', error);
         setPageAccessConfig(null);
@@ -830,7 +837,7 @@ export default function Layout({ children, currentPageName }) {
     return false;
   };
 
-  const hasAccess = (requiredUserType, requiredRole) => {
+  const hasAccess = (requiredUserType, requiredRole, pageName) => {
     if (!requiredUserType) return true;
     if (!currentUser) return false;
 
@@ -838,6 +845,13 @@ export default function Layout({ children, currentPageName }) {
     const userRoles = currentUser.ruoli_dipendente || [];
 
     if (!requiredUserType.includes(normalizedUserType)) return false;
+
+    // For managers, check if page is in allowed list
+    if (normalizedUserType === 'manager' && pageName) {
+      if (managerAllowedPages.length > 0 && !managerAllowedPages.includes(pageName)) {
+        return false;
+      }
+    }
 
     if (requiredRole && normalizedUserType === 'dipendente') {
       return userRoles.includes(requiredRole);
@@ -1077,7 +1091,11 @@ export default function Layout({ children, currentPageName }) {
         .filter(section => hasAccess(section.requiredUserType))
         .map(section => ({
           ...section,
-          items: section.items.filter(item => hasAccess(item.requiredUserType, item.requiredRole))
+          items: section.items.filter(item => {
+            // Extract page name from URL
+            const pageName = item.url?.split('/').pop() || item.page;
+            return hasAccess(item.requiredUserType, item.requiredRole, pageName);
+          })
         }))
         .filter(section => section.items.length > 0)
     : [];
