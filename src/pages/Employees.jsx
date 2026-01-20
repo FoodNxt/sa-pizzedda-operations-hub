@@ -451,8 +451,13 @@ export default function Employees() {
         ? googleReviews.reduce((sum, r) => sum + r.rating, 0) / googleReviews.length
         : 0;
 
-      const getWeight = (metricName) => {
-        const weight = metricWeights.find(w => w.metric_name === metricName && w.is_active);
+      const getWeight = (metricName, ruolo = null) => {
+        let weight;
+        if (ruolo) {
+          weight = metricWeights.find(w => w.metric_name === metricName && w.ruolo === ruolo && w.is_active);
+        } else {
+          weight = metricWeights.find(w => w.metric_name === metricName && w.is_active);
+        }
         return weight ? weight.weight : 1;
       };
 
