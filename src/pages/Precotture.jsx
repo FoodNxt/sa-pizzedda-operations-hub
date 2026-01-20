@@ -73,6 +73,26 @@ export default function Precotture() {
       };
     },
     onSuccess: async (result) => {
+       // Salva SEMPRE in PrecottureForm per lo storico compilazioni
+       try {
+         const precottureFormData = {
+           store_id: result.store.id,
+           store_name: result.store.name,
+           dipendente_id: user.id,
+           dipendente_nome: user.nome_cognome || user.full_name,
+           data_compilazione: new Date().toISOString(),
+           turno: result.turno,
+           rosse_presenti: result.rossePresenti,
+           rosse_richieste: result.rosseRichieste,
+           rosse_da_fare: result.rosseDaFare
+         };
+         
+         console.log('Salvando PrecottureForm:', precottureFormData);
+         await base44.entities.PrecottureForm.create(precottureFormData);
+       } catch (error) {
+         console.error('Errore salvataggio PrecottureForm:', error);
+       }
+
        // Segna SOLO l'attività specifica come completata (usando attivita_id)
        if (attivitaId && user) {
          const attivitaData = {
@@ -99,23 +119,6 @@ export default function Precotture() {
 
          console.log('Salvando attività Precotture:', attivitaData);
          await base44.entities.AttivitaCompletata.create(attivitaData);
-
-         // Salva in PrecottureForm per lo storico compilazioni
-         try {
-           await base44.entities.PrecottureForm.create({
-             store_id: result.store.id,
-             store_name: result.store.name,
-             dipendente_id: user.id,
-             dipendente_nome: user.nome_cognome || user.full_name,
-             data_compilazione: new Date().toISOString(),
-             turno: result.turno,
-             rosse_presenti: result.rossePresenti,
-             rosse_richieste: result.rosseRichieste,
-             rosse_da_fare: result.rosseDaFare
-           });
-         } catch (error) {
-           console.error('Errore salvataggio PrecottureForm:', error);
-         }
        }
       
       setConfermato(true);
