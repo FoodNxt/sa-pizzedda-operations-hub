@@ -82,11 +82,12 @@ export default function ControlloPuliziaStoreManager() {
       
       const allDomande = await base44.entities.DomandaPulizia.list('ordine');
       
-      // Filtra domande per ruolo Store Manager
-      const domandePerRuolo = allDomande.filter(d => 
-        d.attiva !== false && 
-        d.ruoli_assegnati?.includes('Store Manager')
-      );
+      // Filtra domande per ruolo Store Manager - se ruoli_assegnati è vuoto, è per tutti i ruoli
+      const domandePerRuolo = allDomande.filter(d => {
+        if (d.attiva === false) return false;
+        const ruoli = d.ruoli_assegnati || [];
+        return ruoli.length === 0 || ruoli.includes('Store Manager');
+      });
       
       // Filtra domande con attrezzature in base a quelle presenti nel locale
       const attrezzatureDelLocale = attrezzature.filter(a => {
@@ -104,7 +105,7 @@ export default function ControlloPuliziaStoreManager() {
         return true;
       });
     },
-    enabled: !!selectedStore,
+    enabled: !!selectedStore && attrezzature.length > 0,
   });
 
   const handlePhotoChange = (questionId, e) => {

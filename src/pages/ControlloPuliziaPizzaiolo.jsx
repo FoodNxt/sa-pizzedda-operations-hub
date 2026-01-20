@@ -98,11 +98,12 @@ export default function ControlloPuliziaPizzaiolo() {
       
       const allDomande = await base44.entities.DomandaPulizia.list('ordine');
       
-      // Filtra domande per ruolo Pizzaiolo
-      const domandePerRuolo = allDomande.filter(d => 
-        d.attivo !== false && 
-        d.ruoli_assegnati?.includes('Pizzaiolo')
-      );
+      // Filtra domande per ruolo Pizzaiolo - se ruoli_assegnati è vuoto, è per tutti i ruoli
+      const domandePerRuolo = allDomande.filter(d => {
+        if (d.attiva === false) return false;
+        const ruoli = d.ruoli_assegnati || [];
+        return ruoli.length === 0 || ruoli.includes('Pizzaiolo');
+      });
       
       // Filtra domande in base agli stores_assegnati della domanda E alle attrezzature del locale
       const attrezzatureDelLocale = attrezzature.filter(a => {
