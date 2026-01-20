@@ -46,6 +46,7 @@ export default function Activation() {
   const [selectedCountry, setSelectedCountry] = useState('Italia');
   const [suggestedEvents, setSuggestedEvents] = useState([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [dismissedEvents, setDismissedEvents] = useState([]);
   const [expandedCalendarCell, setExpandedCalendarCell] = useState(null);
   const [showViewOnlyModal, setShowViewOnlyModal] = useState(false);
   const [viewOnlyActivation, setViewOnlyActivation] = useState(null);
@@ -402,6 +403,10 @@ export default function Activation() {
         ? format(calendarData.end, 'yyyy-MM-dd')
         : format(endOfMonth(currentDate), 'yyyy-MM-dd');
 
+      const excludedEventsText = dismissedEvents.length > 0 
+        ? `\n\nNON includere i seguenti eventi già suggeriti in precedenza: ${dismissedEvents.join(', ')}`
+        : '';
+
       const response = await base44.integrations.Core.InvokeLLM({
         prompt: `Per il paese "${selectedCountry}", elenca tutte le festività nazionali, ricorrenze importanti ed eventi culturali significativi tra ${monthStart} e ${monthEnd}. Per ogni evento, fornisci:
 - Nome dell'evento
@@ -409,7 +414,7 @@ export default function Activation() {
 - Breve descrizione (max 50 parole)
 - Suggerimento per activation di marketing (max 30 parole)
 
-Concentrati su eventi che possono essere utili per attività di marketing di una pizzeria.`,
+Concentrati su eventi che possono essere utili per attività di marketing di una pizzeria.${excludedEventsText}`,
         add_context_from_internet: true,
         response_json_schema: {
           type: "object",
@@ -440,6 +445,7 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
   };
 
   const handleCreateActivationFromEvent = (event) => {
+    setDismissedEvents(prev => [...prev, event.nome]);
     setFormData({
       nome: event.nome,
       descrizione: `${event.descrizione}\n\n${event.suggerimento_marketing}`,
@@ -450,8 +456,13 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
       stato: 'in_corso'
     });
     setSelectAllStores(true);
-    setShowSuggestionsModal(false);
+    setSuggestedEvents(prev => prev.filter(e => e.nome !== event.nome));
     setShowForm(true);
+  };
+
+  const handleDismissEvent = (event) => {
+    setDismissedEvents(prev => [...prev, event.nome]);
+    setSuggestedEvents(prev => prev.filter(e => e.nome !== event.nome));
   };
 
   return (
@@ -1696,14 +1707,23 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                               </p>
                             </div>
                           </div>
-                          <NeumorphicButton
-                            onClick={() => handleCreateActivationFromEvent(event)}
-                            variant="primary"
-                            className="ml-3 flex items-center gap-1 text-sm"
-                          >
-                            <Plus className="w-4 h-4" />
-                            Crea
-                          </NeumorphicButton>
+                          <div className="ml-3 flex flex-col gap-2">
+                            <NeumorphicButton
+                              onClick={() => handleCreateActivationFromEvent(event)}
+                              variant="primary"
+                              className="flex items-center gap-1 text-sm"
+                            >
+                              <Plus className="w-4 h-4" />
+                              Crea
+                            </NeumorphicButton>
+                            <NeumorphicButton
+                              onClick={() => handleDismissEvent(event)}
+                              className="flex items-center gap-1 text-sm"
+                            >
+                              <X className="w-4 h-4" />
+                              Scarta
+                            </NeumorphicButton>
+                          </div>
                         </div>
                       </div>
                     ))}
