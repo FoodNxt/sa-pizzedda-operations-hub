@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
@@ -120,6 +120,11 @@ export default function PianoQuarter() {
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
     queryFn: () => base44.entities.Store.list()
+  });
+
+  const { data: financeConfigs = [] } = useQuery({
+    queryKey: ['finance-config'],
+    queryFn: () => base44.entities.FinanceConfig.list()
   });
 
   const { data: pianiAds = [] } = useQuery({
