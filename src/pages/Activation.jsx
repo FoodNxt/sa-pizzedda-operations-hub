@@ -911,28 +911,37 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                       </h3>
                       
                       {/* Add new item */}
-                      <div className="mb-3 flex gap-2">
+                      <div className="mb-3 space-y-2">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={newChecklistItem}
+                            onChange={(e) => setNewChecklistItem(e.target.value)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddChecklistItem();
+                              }
+                            }}
+                            placeholder="Aggiungi sottoattività..."
+                            className="flex-1 neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAddChecklistItem}
+                            disabled={!newChecklistItem.trim()}
+                            className="px-3 py-2 rounded-xl bg-gradient-to-r from-green-500 to-green-600 text-white disabled:opacity-50"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
                         <input
-                          type="text"
-                          value={newChecklistItem}
-                          onChange={(e) => setNewChecklistItem(e.target.value)}
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              handleAddChecklistItem();
-                            }
-                          }}
-                          placeholder="Aggiungi sottoattività..."
-                          className="flex-1 neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
+                          type="date"
+                          value={newSubattivitaData.data_target}
+                          onChange={(e) => setNewSubattivitaData({ ...newSubattivitaData, data_target: e.target.value })}
+                          placeholder="Data target (opzionale)"
+                          className="w-full neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
                         />
-                        <button
-                          type="button"
-                          onClick={handleAddChecklistItem}
-                          disabled={!newChecklistItem.trim()}
-                          className="px-3 py-2 rounded-xl bg-gradient-to-r from-green-500 to-green-600 text-white disabled:opacity-50"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
                       </div>
 
                       {/* Checklist items */}
