@@ -824,6 +824,82 @@ export default function FormDebug() {
                     </div>
                   </div>
                 )}
+
+                {/* End-to-End Test Form Pulizia */}
+                {diagnosticResults.endToEndTests && diagnosticResults.endToEndTests.length > 0 && (
+                  <div className="neumorphic-pressed p-4 rounded-xl border-2 border-purple-300">
+                    <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
+                      🎯 Simulazione End-to-End Form Pulizia
+                    </h3>
+                    <div className="space-y-4">
+                      {diagnosticResults.endToEndTests.map((test, testIdx) => (
+                        <div key={testIdx} className="bg-slate-50 p-4 rounded-lg border-l-4 border-purple-500">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-bold text-slate-800">{test.form}</h4>
+                            <span className="px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-medium">
+                              {test.ruolo}
+                            </span>
+                          </div>
+
+                          {/* Problemi generali */}
+                          {test.issues.length > 0 && (
+                            <div className="mb-3 p-2 bg-red-50 rounded border border-red-200">
+                              {test.issues.map((issue, idx) => (
+                                <p key={idx} className="text-sm text-red-700 font-medium">{issue}</p>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Details per store */}
+                          {test.checks.length > 0 && (
+                            <details className="text-sm">
+                              <summary className="cursor-pointer font-medium text-slate-700 hover:text-slate-900">
+                                📋 Dettagli per Store ({test.checks.length})
+                              </summary>
+                              <div className="mt-2 space-y-2 ml-4">
+                                {test.checks.map((storeCheck, storeIdx) => {
+                                  const hasProblems = storeCheck.problemiCaricamento && storeCheck.problemiCaricamento.length > 0;
+                                  const isBlocked = storeCheck.domandeDisponibili === 0;
+
+                                  return (
+                                    <div key={storeIdx} className={`p-2 rounded text-xs ${
+                                      isBlocked ? 'bg-red-50 border border-red-200' :
+                                      hasProblems ? 'bg-yellow-50 border border-yellow-200' :
+                                      'bg-green-50 border border-green-200'
+                                    }`}>
+                                      <div className="font-bold text-slate-800">{storeCheck.store}</div>
+                                      <div className={`mt-1 ${
+                                        isBlocked ? 'text-red-700' :
+                                        hasProblems ? 'text-yellow-700' :
+                                        'text-green-700'
+                                      }`}>
+                                        Domande: {storeCheck.domandeDisponibili}
+                                      </div>
+                                      {storeCheck.problemiCaricamento && storeCheck.problemiCaricamento.length > 0 && (
+                                        <ul className="mt-1 text-red-700 space-y-0.5">
+                                          {storeCheck.problemiCaricamento.map((prob, pIdx) => (
+                                            <li key={pIdx}>• {prob}</li>
+                                          ))}
+                                        </ul>
+                                      )}
+                                      {storeCheck.validazione && storeCheck.validazione.length > 0 && (
+                                        <ul className="mt-1 text-green-700 space-y-0.5">
+                                          {storeCheck.validazione.slice(0, 2).map((val, vIdx) => (
+                                            <li key={vIdx} className="text-xs">• {val}</li>
+                                          ))}
+                                        </ul>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </details>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
