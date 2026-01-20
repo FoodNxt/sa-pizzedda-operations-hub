@@ -62,6 +62,35 @@ export default function PianoQuarter() {
   const [foodCostPercentage, setFoodCostPercentage] = useState(30);
   const [selectedPromoDay, setSelectedPromoDay] = useState(null);
 
+  const updateFoodCostMutation = useMutation({
+    mutationFn: async (newPercentage) => {
+      const activeConfig = financeConfigs.find(c => c.is_active);
+      if (activeConfig) {
+        await base44.entities.FinanceConfig.update(activeConfig.id, { 
+          default_food_cost_percentage: newPercentage 
+        });
+      } else {
+        await base44.entities.FinanceConfig.create({ 
+          default_food_cost_percentage: newPercentage,
+          is_active: true
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['finance-config'] });
+    },
+  });
+
+  // Carica food cost percentage dalla configurazione
+  useEffect(() => {
+    if (financeConfigs.length > 0) {
+      const activeConfig = financeConfigs.find(c => c.is_active);
+      if (activeConfig?.default_food_cost_percentage) {
+        setFoodCostPercentage(activeConfig.default_food_cost_percentage);
+      }
+    }
+  }, [financeConfigs]);
+
   const [formAds, setFormAds] = useState({
     nome: '',
     piattaforma: 'Glovo',
@@ -1016,7 +1045,11 @@ export default function PianoQuarter() {
                   max="100"
                   step="1"
                   value={foodCostPercentage}
-                  onChange={(e) => setFoodCostPercentage(parseFloat(e.target.value))}
+                  onChange={(e) => {
+                    const newValue = parseFloat(e.target.value);
+                    setFoodCostPercentage(newValue);
+                    updateFoodCostMutation.mutate(newValue);
+                  }}
                   className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
                 />
               </div>
