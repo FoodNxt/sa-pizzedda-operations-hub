@@ -21,7 +21,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Folder,
-  X
+  X,
+  CheckSquare,
+  Square,
+  Lightbulb,
+  Loader2,
+  MapPin
 } from 'lucide-react';
 import { format, differenceInDays, parseISO, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, startOfMonth, endOfMonth, addMonths, subMonths, addWeeks, subWeeks } from 'date-fns';
 import { it } from 'date-fns/locale';
@@ -34,6 +39,14 @@ export default function Activation() {
   const [editingCategory, setEditingCategory] = useState(null);
   const [calendarView, setCalendarView] = useState('week'); // 'week' or 'month'
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [showChecklistModal, setShowChecklistModal] = useState(false);
+  const [selectedActivationForChecklist, setSelectedActivationForChecklist] = useState(null);
+  const [newChecklistItem, setNewChecklistItem] = useState('');
+  const [showSuggestionsModal, setShowSuggestionsModal] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState('Italia');
+  const [suggestedEvents, setSuggestedEvents] = useState([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [expandedCalendarCell, setExpandedCalendarCell] = useState(null);
   const [formData, setFormData] = useState({
     nome: '',
     descrizione: '',
@@ -66,6 +79,11 @@ export default function Activation() {
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
     queryFn: () => base44.entities.Store.list(),
+  });
+
+  const { data: subattivita = [] } = useQuery({
+    queryKey: ['subattivita'],
+    queryFn: () => base44.entities.SubAttivita.list('ordine'),
   });
 
   const { data: user } = useQuery({
@@ -116,6 +134,28 @@ export default function Activation() {
     mutationFn: (id) => base44.entities.ActivationCategoria.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['activation-categories'] });
+    },
+  });
+
+  const createSubattivitaMutation = useMutation({
+    mutationFn: (data) => base44.entities.SubAttivita.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subattivita'] });
+      setNewChecklistItem('');
+    },
+  });
+
+  const updateSubattivitaMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.SubAttivita.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subattivita'] });
+    },
+  });
+
+  const deleteSubattivitaMutation = useMutation({
+    mutationFn: (id) => base44.entities.SubAttivita.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subattivita'] });
     },
   });
 
@@ -318,6 +358,97 @@ export default function Activation() {
   };
 
   const getCategoryName = (categoryId) => categories.find(c => c.id === categoryId)?.nome || '';
+
+  const handleToggleSubattivita = (subattivitaId, currentStatus) => {
+    const userData = user?.nome_cognome || user?.full_name || user?.email;
+    updateSubattivitaMutation.mutate({
+      id: subattivitaId,
+      data: {
+        completata: !currentStatus,
+        completata_da: !currentStatus ? userData : null,
+        completata_il: !currentStatus ? new Date().toISOString() : null
+      }
+    });
+  };
+
+  const handleAddChecklistItem = () => {
+    if (!newChecklistItem.trim() || !selectedActivationForChecklist) return;
+    
+    const maxOrdine = Math.max(
+      0,
+      ...subattivita
+        .filter(s => s.activation_id === selectedActivationForChecklist.id)
+        .map(s => s.ordine || 0)
+    );
+
+    createSubattivitaMutation.mutate({
+      activation_id: selectedActivationForChecklist.id,
+      titolo: newChecklistItem.trim(),
+      ordine: maxOrdine + 1
+    });
+  };
+
+  const handleGetSuggestions = async () => {
+    setLoadingSuggestions(true);
+    try {
+      const monthStart = calendarView === 'week' 
+        ? format(calendarData.start, 'yyyy-MM-dd')
+        : format(startOfMonth(currentDate), 'yyyy-MM-dd');
+      const monthEnd = calendarView === 'week'
+        ? format(calendarData.end, 'yyyy-MM-dd')
+        : format(endOfMonth(currentDate), 'yyyy-MM-dd');
+
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: `Per il paese "${selectedCountry}", elenca tutte le festività nazionali, ricorrenze importanti ed eventi culturali significativi tra ${monthStart} e ${monthEnd}. Per ogni evento, fornisci:
+- Nome dell'evento
+- Data esatta (formato YYYY-MM-DD)
+- Breve descrizione (max 50 parole)
+- Suggerimento per activation di marketing (max 30 parole)
+
+Concentrati su eventi che possono essere utili per attività di marketing di una pizzeria.`,
+        add_context_from_internet: true,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            eventi: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  nome: { type: "string" },
+                  data: { type: "string" },
+                  descrizione: { type: "string" },
+                  suggerimento_marketing: { type: "string" }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      setSuggestedEvents(response.eventi || []);
+    } catch (error) {
+      console.error('Error getting suggestions:', error);
+      alert('Errore nel caricamento dei suggerimenti');
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
+  const handleCreateActivationFromEvent = (event) => {
+    setFormData({
+      nome: event.nome,
+      descrizione: `${event.descrizione}\n\n${event.suggerimento_marketing}`,
+      data_inizio: event.data,
+      data_completamento_target: event.data,
+      stores_ids: [],
+      categorie_ids: [],
+      stato: 'in_corso'
+    });
+    setSelectAllStores(true);
+    setShowSuggestionsModal(false);
+    setShowForm(true);
+  };
 
   return (
     <ProtectedPage pageName="Activation">
@@ -734,6 +865,15 @@ export default function Activation() {
                       </div>
                       <div className="flex gap-2">
                         <button
+                          onClick={() => {
+                            setSelectedActivationForChecklist(activation);
+                            setShowChecklistModal(true);
+                          }}
+                          className="nav-button p-2 rounded-lg hover:bg-green-50"
+                        >
+                          <CheckSquare className="w-4 h-4 text-green-600" />
+                        </button>
+                        <button
                           onClick={() => handleEdit(activation)}
                           className="nav-button p-2 rounded-lg hover:bg-blue-50"
                         >
@@ -890,12 +1030,19 @@ export default function Activation() {
               </div>
             </div>
 
-            <div className="text-center mb-4">
+            <div className="flex items-center justify-between mb-4">
               <p className="text-lg font-bold text-slate-700 capitalize">
                 {calendarView === 'week' 
                   ? `${format(calendarData.start, 'dd MMM', { locale: it })} - ${format(calendarData.end, 'dd MMM yyyy', { locale: it })}`
                   : format(currentDate, 'MMMM yyyy', { locale: it })}
               </p>
+              <NeumorphicButton
+                onClick={() => setShowSuggestionsModal(true)}
+                className="flex items-center gap-2"
+              >
+                <Lightbulb className="w-4 h-4" />
+                Suggerimenti
+              </NeumorphicButton>
             </div>
 
             <div className={`grid ${calendarView === 'week' ? 'grid-cols-7' : 'grid-cols-7'} gap-2`}>
@@ -916,28 +1063,39 @@ export default function Activation() {
                 const dayKey = format(day, 'yyyy-MM-dd');
                 const dayActivations = activationsByDay[dayKey] || [];
                 const isToday = isSameDay(day, new Date());
+                const isExpanded = expandedCalendarCell === dayKey;
 
                 return (
                   <div
                     key={dayKey}
-                    className={`neumorphic-pressed p-2 rounded-xl min-h-24 ${
+                    className={`neumorphic-pressed p-2 rounded-xl min-h-24 relative ${
                       isToday ? 'border-2 border-blue-500 bg-blue-50' : ''
-                    }`}
+                    } ${isExpanded ? 'col-span-2 row-span-2 z-10' : ''}`}
                   >
-                    <div className={`text-center text-sm font-bold mb-2 ${
+                    <div className={`text-center text-sm font-bold mb-2 flex items-center justify-between ${
                       isToday ? 'text-blue-600' : 'text-slate-700'
                     }`}>
-                      {format(day, 'd')}
+                      <span>{format(day, 'd')}</span>
+                      {dayActivations.length > 0 && (
+                        <button
+                          onClick={() => setExpandedCalendarCell(isExpanded ? null : dayKey)}
+                          className="text-xs hover:bg-slate-200 rounded px-1"
+                        >
+                          {isExpanded ? '−' : '+'}
+                        </button>
+                      )}
                     </div>
                     <div className="space-y-1">
-                      {dayActivations.slice(0, 3).map(act => {
+                      {(isExpanded ? dayActivations : dayActivations.slice(0, 3)).map(act => {
                         const categoryColor = act.categorie_ids?.[0] 
                           ? categories.find(c => c.id === act.categorie_ids[0])?.colore 
                           : '#60a5fa';
                         return (
                           <div
                             key={act.id}
-                            className="text-xs px-2 py-1 rounded text-white truncate cursor-pointer"
+                            className={`text-xs px-2 py-1 rounded text-white cursor-pointer ${
+                              isExpanded ? '' : 'truncate'
+                            }`}
                             style={{ backgroundColor: categoryColor }}
                             title={act.nome}
                             onClick={() => handleEdit(act)}
@@ -946,7 +1104,7 @@ export default function Activation() {
                           </div>
                         );
                       })}
-                      {dayActivations.length > 3 && (
+                      {!isExpanded && dayActivations.length > 3 && (
                         <div className="text-xs text-slate-500 text-center">
                           +{dayActivations.length - 3}
                         </div>
@@ -1046,6 +1204,15 @@ export default function Activation() {
                           </div>
                         </div>
                         <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setSelectedActivationForChecklist(activation);
+                              setShowChecklistModal(true);
+                            }}
+                            className="p-2 rounded-lg hover:bg-green-50"
+                          >
+                            <CheckSquare className="w-4 h-4 text-green-600" />
+                          </button>
                           <button onClick={() => handleEdit(activation)} className="p-2 rounded-lg hover:bg-blue-50">
                             <Edit className="w-4 h-4 text-blue-600" />
                           </button>
@@ -1056,6 +1223,225 @@ export default function Activation() {
                 </div>
               </NeumorphicCard>
             )}
+          </div>
+        )}
+
+        {/* Checklist Modal */}
+        {showChecklistModal && selectedActivationForChecklist && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="max-w-2xl w-full p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-slate-800">
+                  Checklist: {selectedActivationForChecklist.nome}
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowChecklistModal(false);
+                    setSelectedActivationForChecklist(null);
+                    setNewChecklistItem('');
+                  }}
+                  className="p-2 rounded-lg hover:bg-slate-100"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Add new item */}
+              <div className="mb-4 flex gap-2">
+                <input
+                  type="text"
+                  value={newChecklistItem}
+                  onChange={(e) => setNewChecklistItem(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleAddChecklistItem();
+                    }
+                  }}
+                  placeholder="Aggiungi sottoattività..."
+                  className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                />
+                <NeumorphicButton
+                  onClick={handleAddChecklistItem}
+                  variant="primary"
+                  disabled={!newChecklistItem.trim()}
+                >
+                  <Plus className="w-5 h-5" />
+                </NeumorphicButton>
+              </div>
+
+              {/* Checklist items */}
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {subattivita
+                  .filter(s => s.activation_id === selectedActivationForChecklist.id)
+                  .sort((a, b) => (a.ordine || 0) - (b.ordine || 0))
+                  .map(item => (
+                    <div
+                      key={item.id}
+                      className="neumorphic-pressed p-3 rounded-xl flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-3 flex-1">
+                        <button
+                          onClick={() => handleToggleSubattivita(item.id, item.completata)}
+                          className="flex-shrink-0"
+                        >
+                          {item.completata ? (
+                            <CheckSquare className="w-5 h-5 text-green-600" />
+                          ) : (
+                            <Square className="w-5 h-5 text-slate-400" />
+                          )}
+                        </button>
+                        <div className="flex-1">
+                          <p className={`text-sm ${item.completata ? 'line-through text-slate-500' : 'text-slate-800'}`}>
+                            {item.titolo}
+                          </p>
+                          {item.completata && item.completata_da && (
+                            <p className="text-xs text-slate-400">
+                              ✓ {item.completata_da} • {format(parseISO(item.completata_il), 'dd/MM HH:mm')}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (confirm('Eliminare questa sottoattività?')) {
+                            deleteSubattivitaMutation.mutate(item.id);
+                          }
+                        }}
+                        className="p-2 rounded-lg hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </button>
+                    </div>
+                  ))}
+                {subattivita.filter(s => s.activation_id === selectedActivationForChecklist.id).length === 0 && (
+                  <p className="text-center text-slate-500 py-8">Nessuna sottoattività. Aggiungine una!</p>
+                )}
+              </div>
+
+              {/* Progress */}
+              {subattivita.filter(s => s.activation_id === selectedActivationForChecklist.id).length > 0 && (
+                <div className="mt-4 pt-4 border-t border-slate-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-slate-600">Progresso</span>
+                    <span className="text-sm font-bold text-blue-600">
+                      {subattivita.filter(s => s.activation_id === selectedActivationForChecklist.id && s.completata).length}
+                      {' / '}
+                      {subattivita.filter(s => s.activation_id === selectedActivationForChecklist.id).length}
+                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all"
+                      style={{
+                        width: `${
+                          (subattivita.filter(s => s.activation_id === selectedActivationForChecklist.id && s.completata).length /
+                          subattivita.filter(s => s.activation_id === selectedActivationForChecklist.id).length) * 100
+                        }%`
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </NeumorphicCard>
+          </div>
+        )}
+
+        {/* Suggestions Modal */}
+        {showSuggestionsModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="max-w-4xl w-full my-8">
+              <NeumorphicCard className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-2xl font-bold text-slate-800">Suggerimenti Eventi</h2>
+                  <button
+                    onClick={() => {
+                      setShowSuggestionsModal(false);
+                      setSuggestedEvents([]);
+                    }}
+                    className="p-2 rounded-lg hover:bg-slate-100"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="mb-4">
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Seleziona Paese</label>
+                  <div className="flex gap-2">
+                    <select
+                      value={selectedCountry}
+                      onChange={(e) => setSelectedCountry(e.target.value)}
+                      className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    >
+                      <option value="Italia">🇮🇹 Italia</option>
+                      <option value="Francia">🇫🇷 Francia</option>
+                      <option value="Spagna">🇪🇸 Spagna</option>
+                      <option value="Germania">🇩🇪 Germania</option>
+                      <option value="Regno Unito">🇬🇧 Regno Unito</option>
+                      <option value="Stati Uniti">🇺🇸 Stati Uniti</option>
+                    </select>
+                    <NeumorphicButton
+                      onClick={handleGetSuggestions}
+                      variant="primary"
+                      disabled={loadingSuggestions}
+                      className="flex items-center gap-2"
+                    >
+                      {loadingSuggestions ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Lightbulb className="w-5 h-5" />
+                      )}
+                      Genera
+                    </NeumorphicButton>
+                  </div>
+                </div>
+
+                {loadingSuggestions && (
+                  <div className="text-center py-12">
+                    <Loader2 className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
+                    <p className="text-slate-500">Sto cercando eventi e festività...</p>
+                  </div>
+                )}
+
+                {!loadingSuggestions && suggestedEvents.length > 0 && (
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {suggestedEvents.map((event, idx) => (
+                      <div key={idx} className="neumorphic-pressed p-4 rounded-xl">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <h3 className="font-bold text-slate-800 mb-1">{event.nome}</h3>
+                            <p className="text-xs text-slate-500 mb-2 flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {format(parseISO(event.data), 'dd MMMM yyyy', { locale: it })}
+                            </p>
+                            <p className="text-sm text-slate-600 mb-2">{event.descrizione}</p>
+                            <div className="bg-blue-50 p-2 rounded-lg">
+                              <p className="text-xs text-blue-700">
+                                <strong>💡 Idea:</strong> {event.suggerimento_marketing}
+                              </p>
+                            </div>
+                          </div>
+                          <NeumorphicButton
+                            onClick={() => handleCreateActivationFromEvent(event)}
+                            variant="primary"
+                            className="ml-3 flex items-center gap-1 text-sm"
+                          >
+                            <Plus className="w-4 h-4" />
+                            Crea
+                          </NeumorphicButton>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {!loadingSuggestions && suggestedEvents.length === 0 && (
+                  <div className="text-center py-12">
+                    <MapPin className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                    <p className="text-slate-500">Seleziona un paese e clicca "Genera"</p>
+                  </div>
+                )}
+              </NeumorphicCard>
+            </div>
           </div>
         )}
       </div>
