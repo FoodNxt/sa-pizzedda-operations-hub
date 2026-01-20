@@ -474,9 +474,63 @@ export default function Employees() {
       let performanceScore = 100;
       
       // Deduct points for negative metrics (these ALWAYS reduce score)
-      performanceScore -= (wrongOrdersCount * w_ordini);
-      performanceScore -= (numeroRitardi * w_ritardi);
-      performanceScore -= (numeroTimbratureMancate * w_timbrature);
+      // For wrong orders, ritardi, timbrature - use weights based on role at time of event
+      let deductionOrdini = 0;
+      let deductionRitardi = 0;
+      let deductionTimbrature = 0;
+      
+      // Ordini sbagliati - use weight based on role during shift
+      employeeWrongOrders.forEach(order => {
+        const shiftData = employeeShifts.find(s => {
+          if (!s.data) return false;
+          const shiftDate = safeParseDate(s.data);
+          if (!shiftDate) return false;
+          const orderDate = safeParseDate(order.order_date);
+          if (!orderDate) return false;
+          return shiftDate.toISOString().split('T')[0] === orderDate.toISOString().split('T')[0];
+        });
+        const ruolo = shiftData ? shiftData.ruolo : null;
+        const weight = getWeight('ordini_sbagliati', ruolo);
+        deductionOrdini += weight;
+      });
+      
+      // Ritardi - use weight based on role during shift
+      employeeShifts.forEach(shift => {
+        if (!shift.timbratura_entrata || !shift.ora_inizio) return;
+        try {
+          const clockInTime = new Date(shift.timbratura_entrata);
+          const [oraInizioHH, oraInizioMM] = shift.ora_inizio.split(':').map(Number);
+          const scheduledStart = new Date(clockInTime);
+          scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
+          const delayMs = clockInTime - scheduledStart;
+          const delayMinutes = Math.floor(delayMs / 60000);
+          if (delayMinutes > 0) {
+            const weight = getWeight('ritardi', shift.ruolo);
+            deductionRitardi += weight;
+          }
+        } catch (e) {
+          // Skip
+        }
+      });
+      
+      // Timbrature mancanti - use weight based on role during shift
+      const missingClockIns = employeeShifts.filter(s => {
+        if (s.timbratura_entrata) return false;
+        const shiftDate = safeParseDate(s.data);
+        if (!shiftDate) return false;
+        const today = new Date();
+        if (shiftDate > today) return false;
+        return true;
+      });
+      
+      missingClockIns.forEach(shift => {
+        const weight = getWeight('timbrature_mancanti', shift.ruolo);
+        deductionTimbrature += weight;
+      });
+      
+      performanceScore -= deductionOrdini;
+      performanceScore -= deductionRitardi;
+      performanceScore -= deductionTimbrature;
       
       // Reduce score if average review rating is below 5 (scale: 5=0 penalty, 4=-5, 3=-10, 2=-15, 1=-20)
       if (googleReviews.length > 0 && avgGoogleRating < 5) {
