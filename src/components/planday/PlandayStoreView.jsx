@@ -45,6 +45,7 @@ export default function PlandayStoreView({
     candidato_id: ''
   });
   const [selectedTurno, setSelectedTurno] = useState(null);
+  const [viewMode, setViewMode] = useState('byemployee'); // 'byemployee' o 'byday'
 
   const weekDays = useMemo(() => {
     const days = [];
