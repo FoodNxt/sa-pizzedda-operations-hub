@@ -52,6 +52,9 @@ export default function Activation() {
   const [expandedCalendarCell, setExpandedCalendarCell] = useState(null);
   const [showViewOnlyModal, setShowViewOnlyModal] = useState(false);
   const [viewOnlyActivation, setViewOnlyActivation] = useState(null);
+  const [calendarCategoryFilter, setCalendarCategoryFilter] = useState('all');
+  const [calendarActivationFilter, setCalendarActivationFilter] = useState('all');
+  const [newSubattivitaData, setNewSubattivitaData] = useState({ titolo: '', data_target: '' });
   const [formData, setFormData] = useState({
     nome: '',
     descrizione: '',
