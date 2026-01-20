@@ -1201,7 +1201,15 @@ export default function Employees() {
       });
 
     const best = sorted.slice(0, 5);
-    const worst = sorted.slice(-5).reverse();
+    
+    // For googleRating worst, exclude employees with no reviews
+    let worst;
+    if (metric === 'googleRating') {
+      const withReviews = sorted.filter(e => e.googleReviewCount > 0);
+      worst = withReviews.slice(-5).reverse();
+    } else {
+      worst = sorted.slice(-5).reverse();
+    }
     
     return { best, worst };
   };
