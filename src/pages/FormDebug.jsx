@@ -456,11 +456,29 @@ export default function FormDebug() {
 
           // Sub-check 2: Verifica accesso entità
           try {
-            const entityExists = await base44.entities[formConfig.entita];
-            if (!entityExists || !entityExists.schema) {
-              testResult.issues.push(`❌ Entità ${formConfig.entita} non accessibile`);
-            } else {
+            // Mappa entità disponibili
+            const entitiesMap = {
+              'CleaningInspection': base44.entities.CleaningInspection,
+              'RilevazioneInventario': base44.entities.RilevazioneInventario,
+              'RilevazioneInventarioCantina': base44.entities.RilevazioneInventarioCantina,
+              'ConteggioCassa': base44.entities.ConteggioCassa,
+              'Preparazioni': base44.entities.Preparazioni,
+              'GestioneImpasti': base44.entities.GestioneImpasti,
+              'PrecottureForm': base44.entities.PrecottureForm,
+              'TeglieButtate': base44.entities.TeglieButtate,
+              'Spreco': base44.entities.Spreco,
+              'Deposito': base44.entities.Deposito,
+              'Prelievo': base44.entities.Prelievo,
+              'PagamentoContanti': base44.entities.PagamentoContanti,
+              'Spostamento': base44.entities.Spostamento,
+              'OrdineFornitore': base44.entities.OrdineFornitore
+            };
+
+            const entity = entitiesMap[formConfig.entita];
+            if (entity) {
               testResult.checks.push(`✅ Entità ${formConfig.entita} accessibile`);
+            } else {
+              testResult.issues.push(`❌ Entità ${formConfig.entita} non mappata`);
             }
           } catch (err) {
             testResult.issues.push(`❌ Errore accesso entità: ${err.message}`);
