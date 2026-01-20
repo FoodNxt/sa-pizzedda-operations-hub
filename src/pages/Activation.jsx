@@ -1218,9 +1218,9 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
         {/* Calendario View */}
         {activeView === 'calendario' && (
           <NeumorphicCard className="p-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
               <h2 className="text-xl font-bold text-slate-800">Vista Calendario</h2>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <select
                   value={calendarView}
                   onChange={(e) => setCalendarView(e.target.value)}
@@ -1228,6 +1228,26 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                 >
                   <option value="week">Settimana</option>
                   <option value="month">Mese</option>
+                </select>
+                <select
+                  value={calendarCategoryFilter}
+                  onChange={(e) => setCalendarCategoryFilter(e.target.value)}
+                  className="neumorphic-pressed px-3 py-2 rounded-xl text-sm outline-none"
+                >
+                  <option value="all">Tutte le categorie</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.nome}</option>
+                  ))}
+                </select>
+                <select
+                  value={calendarActivationFilter}
+                  onChange={(e) => setCalendarActivationFilter(e.target.value)}
+                  className="neumorphic-pressed px-3 py-2 rounded-xl text-sm outline-none"
+                >
+                  <option value="all">Tutte le activation</option>
+                  {activations.map(act => (
+                    <option key={act.id} value={act.id}>{act.nome}</option>
+                  ))}
                 </select>
                 <NeumorphicButton
                   onClick={() => {
