@@ -16,6 +16,10 @@ Deno.serve(async (req) => {
 
     console.log(`Trovate ${attivitaPrecotture.length} attività precotture`);
 
+    // Carica configurazione impasti per calcolare rosse_richieste
+    const impasti = await base44.asServiceRole.entities.GestioneImpasti.list();
+    const giorni = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
+
     // Controlla quali sono già salvate in PrecottureForm
     const precottureFormEsistenti = await base44.asServiceRole.entities.PrecottureForm.list();
     const esistentiSet = new Set(
@@ -30,6 +34,31 @@ Deno.serve(async (req) => {
       const chiave = `${attivita.dipendente_id}_${attivita.store_id}_${attivita.completato_at.split('T')[0]}_${attivita.turno_precotture}`;
       
       if (!esistentiSet.has(chiave) && attivita.turno_precotture) {
+        // Calcola rosse_richieste e rosse_presenti se non disponibili
+        let rosseRichieste = attivita.rosse_richieste || 0;
+        let rossePresenti = attivita.rosse_presenti || 0;
+        
+        if (!attivita.rosse_richieste || !attivita.rosse_presenti) {
+          // Prova a ricavare dalla configurazione
+          const dataCompilazione = new Date(attivita.completato_at);
+          const giornoNome = giorni[dataCompilazione.getDay()];
+          const storeImpasti = impasti.filter(i => i.store_id === attivita.store_id);
+          const datiGiorno = storeImpasti.find(imp => imp.giorno_settimana === giornoNome);
+          
+          if (datiGiorno) {
+            if (attivita.turno_precotture === 'pranzo') {
+              rosseRichieste = datiGiorno.pranzo_rosse || 0;
+            } else if (attivita.turno_precotture === 'pomeriggio') {
+              rosseRichieste = datiGiorno.pomeriggio_rosse || 0;
+            } else if (attivita.turno_precotture === 'cena') {
+              rosseRichieste = datiGiorno.cena_rosse || 0;
+            }
+            
+            // Calcola rosse_presenti da: rosse_presenti = rosse_richieste - rosse_da_fare
+            rossePresenti = Math.max(0, rosseRichieste - (attivita.rosse_da_fare || 0));
+          }
+        }
+        
         daRecuperare.push({
           store_id: attivita.store_id,
           store_name: attivita.store_name || 'N/A',
@@ -37,8 +66,8 @@ Deno.serve(async (req) => {
           dipendente_nome: attivita.dipendente_nome,
           data_compilazione: attivita.completato_at,
           turno: attivita.turno_precotture,
-          rosse_presenti: attivita.rosse_presenti || 0,
-          rosse_richieste: attivita.rosse_richieste || 0,
+          rosse_presenti: rossePresenti,
+          rosse_richieste: rosseRichieste,
           rosse_da_fare: attivita.rosse_da_fare || 0
         });
       }
