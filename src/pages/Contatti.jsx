@@ -29,9 +29,13 @@ export default function Contatti() {
     telefono: '',
     link: '',
     societa: '',
-    proposta_commerciale_descrizione: '',
-    proposta_commerciale_prezzo: '',
+    followers: '',
+    proposte_commerciali: [],
     note: ''
+  });
+  const [nuovaProposta, setNuovaProposta] = useState({
+    descrizione: '',
+    prezzo: ''
   });
 
   const queryClient = useQueryClient();
@@ -73,10 +77,11 @@ export default function Contatti() {
       telefono: '',
       link: '',
       societa: '',
-      proposta_commerciale_descrizione: '',
-      proposta_commerciale_prezzo: '',
+      followers: '',
+      proposte_commerciali: [],
       note: ''
     });
+    setNuovaProposta({ descrizione: '', prezzo: '' });
     setEditingContatto(null);
     setShowForm(false);
   };
@@ -91,8 +96,8 @@ export default function Contatti() {
       telefono: contatto.telefono || '',
       link: contatto.link || '',
       societa: contatto.societa || '',
-      proposta_commerciale_descrizione: contatto.proposta_commerciale_descrizione || '',
-      proposta_commerciale_prezzo: contatto.proposta_commerciale_prezzo || '',
+      followers: contatto.followers || '',
+      proposte_commerciali: contatto.proposte_commerciali || [],
       note: contatto.note || ''
     });
     setShowForm(true);
@@ -102,7 +107,7 @@ export default function Contatti() {
     e.preventDefault();
     const data = {
       ...formData,
-      proposta_commerciale_prezzo: formData.proposta_commerciale_prezzo ? parseFloat(formData.proposta_commerciale_prezzo) : null
+      followers: formData.followers ? parseFloat(formData.followers) : null
     };
 
     if (editingContatto) {
@@ -110,6 +115,29 @@ export default function Contatti() {
     } else {
       createMutation.mutate(data);
     }
+  };
+
+  const handleAggiungiProposta = () => {
+    if (!nuovaProposta.descrizione.trim()) return;
+    
+    setFormData({
+      ...formData,
+      proposte_commerciali: [
+        ...formData.proposte_commerciali,
+        {
+          descrizione: nuovaProposta.descrizione,
+          prezzo: nuovaProposta.prezzo ? parseFloat(nuovaProposta.prezzo) : 0
+        }
+      ]
+    });
+    setNuovaProposta({ descrizione: '', prezzo: '' });
+  };
+
+  const handleRimuoviProposta = (index) => {
+    setFormData({
+      ...formData,
+      proposte_commerciali: formData.proposte_commerciali.filter((_, i) => i !== index)
+    });
   };
 
   const categorieStats = {
@@ -279,16 +307,29 @@ export default function Contatti() {
                     )}
                   </div>
 
-                  {contatto.proposta_commerciale_descrizione && (
+                  {contatto.categoria === 'Food influencers' && contatto.followers && (
                     <div className="mt-3 pt-3 border-t border-slate-200">
-                      <p className="text-xs font-bold text-slate-700 mb-1">Proposta Commerciale</p>
-                      <p className="text-sm text-slate-600 mb-2">{contatto.proposta_commerciale_descrizione}</p>
-                      {contatto.proposta_commerciale_prezzo && (
-                        <div className="flex items-center gap-2 text-green-600 font-bold">
-                          <Euro className="w-4 h-4" />
-                          {contatto.proposta_commerciale_prezzo.toFixed(2)}
-                        </div>
-                      )}
+                      <p className="text-xs font-bold text-slate-700 mb-1">Followers</p>
+                      <p className="text-lg font-bold text-purple-600">
+                        {contatto.followers.toLocaleString()}
+                      </p>
+                    </div>
+                  )}
+
+                  {contatto.proposte_commerciali && contatto.proposte_commerciali.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-slate-200">
+                      <p className="text-xs font-bold text-slate-700 mb-2">Proposte Commerciali</p>
+                      <div className="space-y-2">
+                        {contatto.proposte_commerciali.map((proposta, idx) => (
+                          <div key={idx} className="bg-slate-50 p-2 rounded-lg">
+                            <p className="text-sm text-slate-600 mb-1">{proposta.descrizione}</p>
+                            <div className="flex items-center gap-2 text-green-600 font-bold text-sm">
+                              <Euro className="w-3 h-3" />
+                              {proposta.prezzo.toFixed(2)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
 
@@ -419,18 +460,58 @@ export default function Contatti() {
                     />
                   </div>
 
+                  {formData.categoria === 'Food influencers' && (
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-2 block">
+                        Numero Followers
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.followers}
+                        onChange={(e) => setFormData({ ...formData, followers: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                        placeholder="es. 50000"
+                      />
+                    </div>
+                  )}
+
                   <div className="border-t pt-4 mt-4">
-                    <h3 className="text-sm font-bold text-slate-700 mb-3">Proposta Commerciale</h3>
+                    <h3 className="text-sm font-bold text-slate-700 mb-3">Proposte Commerciali</h3>
                     
-                    <div className="space-y-4">
+                    {/* Lista proposte esistenti */}
+                    {formData.proposte_commerciali.length > 0 && (
+                      <div className="space-y-2 mb-4">
+                        {formData.proposte_commerciali.map((proposta, idx) => (
+                          <div key={idx} className="neumorphic-pressed p-3 rounded-xl flex items-start justify-between">
+                            <div className="flex-1">
+                              <p className="text-sm text-slate-700 font-medium mb-1">{proposta.descrizione}</p>
+                              <div className="flex items-center gap-2 text-green-600 font-bold text-sm">
+                                <Euro className="w-3 h-3" />
+                                {proposta.prezzo.toFixed(2)}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRimuoviProposta(idx)}
+                              className="p-2 rounded-lg hover:bg-red-50 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Form per nuova proposta */}
+                    <div className="space-y-3 neumorphic-pressed p-4 rounded-xl">
                       <div>
                         <label className="text-sm font-medium text-slate-700 mb-2 block">
                           Descrizione
                         </label>
                         <textarea
-                          value={formData.proposta_commerciale_descrizione}
-                          onChange={(e) => setFormData({ ...formData, proposta_commerciale_descrizione: e.target.value })}
-                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none resize-none h-24"
+                          value={nuovaProposta.descrizione}
+                          onChange={(e) => setNuovaProposta({ ...nuovaProposta, descrizione: e.target.value })}
+                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none resize-none h-20"
                           placeholder="Descrizione della proposta..."
                         />
                       </div>
@@ -442,12 +523,22 @@ export default function Contatti() {
                         <input
                           type="number"
                           step="0.01"
-                          value={formData.proposta_commerciale_prezzo}
-                          onChange={(e) => setFormData({ ...formData, proposta_commerciale_prezzo: e.target.value })}
+                          value={nuovaProposta.prezzo}
+                          onChange={(e) => setNuovaProposta({ ...nuovaProposta, prezzo: e.target.value })}
                           className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
                           placeholder="0.00"
                         />
                       </div>
+
+                      <NeumorphicButton
+                        type="button"
+                        onClick={handleAggiungiProposta}
+                        className="w-full flex items-center justify-center gap-2"
+                        disabled={!nuovaProposta.descrizione.trim()}
+                      >
+                        <Plus className="w-4 h-4" />
+                        Aggiungi Proposta
+                      </NeumorphicButton>
                     </div>
                   </div>
 
