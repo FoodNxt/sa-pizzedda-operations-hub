@@ -1027,7 +1027,6 @@ export default function PianoQuarter() {
                     <div className="flex justify-between text-sm mb-1">
                       <span>Utile Lordo</span>
                       <span className="font-bold">{((contoEconomico.total / contoEconomico.revenue) * 100).toFixed(1)}%</span>
-                    </span>
                     </div>
                     <div className="w-full bg-slate-200 rounded-full h-2">
                       <div
