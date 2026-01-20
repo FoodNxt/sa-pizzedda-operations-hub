@@ -225,20 +225,14 @@ export default function MatchingOrdiniSbagliati() {
 
           let confidence = null;
 
-          // High confidence: exact overlap
+          // High confidence: exact overlap (NO TOLERANCE)
           if (orderTime >= shiftStart && orderTime <= shiftEnd) {
             confidence = 'high';
             log.push(`      ✅ HIGH confidence - ordine durante turno`);
           }
-          // Medium confidence: within 1 hour
-          else if (orderTime >= (shiftStart - oneHour) && orderTime <= (shiftEnd + oneHour)) {
-            confidence = 'medium';
-            log.push(`      ⚠️ MEDIUM confidence - ordine entro ±1 ora`);
-          }
-          // Low confidence: same day (already filtered by date, so if no time overlap, it's low)
+          // Skip any order outside exact shift time
           else {
-            // SKIP LOW confidence matches as per the new requirement
-            log.push(`      ⏭️ SKIP - ordine fuori orario (LOW confidence non permesso)`);
+            log.push(`      ⏭️ SKIP - ordine fuori orario esatto del turno`);
             continue; // Skip this shift, do not consider it for matching
           }
 
@@ -246,24 +240,18 @@ export default function MatchingOrdiniSbagliati() {
           if (!employeeMatches.has(employeeName)) {
             employeeMatches.set(employeeName, { shift, confidence });
           } else {
-            const existing = employeeMatches.get(employeeName);
-            // FIXED: Adjust confidenceRank to only consider 'high' and 'medium'
-            const confidenceRank = { high: 3, medium: 2 };
-            // If the current confidence is better than the existing one for this employee
-            if (confidenceRank[confidence] > confidenceRank[existing.confidence]) {
-              log.push(`      🔄 Aggiornato match per ${employeeName} da ${existing.confidence} a ${confidence}`);
-              employeeMatches.set(employeeName, { shift, confidence });
-            }
+            // Since we only have 'high' confidence now, no need to compare
+            log.push(`      🔄 Dipendente ${employeeName} già trovato, mantengo primo match`);
           }
         }
         
         if (employeeMatches.size === 0) {
-            log.push(`   ❌ Nessun dipendente con HIGH/MEDIUM confidence per ordine ${order.order_id}`); // Adjusted message
+            log.push(`   ❌ Nessun dipendente in turno durante l'orario esatto dell'ordine ${order.order_id}`);
             failedCount++;
             continue; // Move to the next order
         }
 
-        log.push(`   ✅ Trovati ${employeeMatches.size} dipendenti da abbinare per ordine ${order.order_id}`); // Adjusted message
+        log.push(`   ✅ Trovati ${employeeMatches.size} dipendenti in turno per ordine ${order.order_id}`);
 
         // Create matches for each unique employee who was found with a confidence level
         for (const [employeeName, { shift, confidence }] of employeeMatches) {
@@ -504,19 +492,11 @@ export default function MatchingOrdiniSbagliati() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="neumorphic-pressed p-4 rounded-xl text-center">
             <div className="text-2xl font-bold text-green-600 mb-1">{stats.highConfidence}</div>
-            <p className="text-sm text-[#9b9b9b]">Alta (Orario Esatto)</p>
-          </div>
-          <div className="neumorphic-pressed p-4 rounded-xl text-center">
-            <div className="text-2xl font-bold text-yellow-600 mb-1">{stats.mediumConfidence}</div>
-            <p className="text-sm text-[#9b9b9b]">Media (±1 ora)</p>
-          </div>
-          <div className="neumorphic-pressed p-4 rounded-xl text-center">
-            <div className="text-2xl font-bold text-orange-600 mb-1">{stats.lowConfidence}</div>
-            <p className="text-sm text-[#9b9b9b]">Bassa (Stesso giorno)</p>
+            <p className="text-sm text-[#9b9b9b]">Automatici (Orario Esatto)</p>
           </div>
           <div className="neumorphic-pressed p-4 rounded-xl text-center">
             <div className="text-2xl font-bold text-blue-600 mb-1">{stats.manualMatches}</div>
-            <p className="text-sm text-[#9b9b9b]">Manuale</p>
+            <p className="text-sm text-[#9b9b9b]">Modificati Manualmente</p>
           </div>
         </div>
       </NeumorphicCard>
@@ -772,22 +752,58 @@ export default function MatchingOrdiniSbagliati() {
                   </h3>
                   <div className="space-y-2">
                     {matchesByOrder[selectedOrder.id].map((match) => (
-                      <div key={match.id} className="neumorphic-flat p-3 rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium text-[#6b6b6b]">{match.matched_employee_name}</p>
-                            <p className="text-xs text-[#9b9b9b]">
-                              Metodo: {match.match_method === 'auto' ? 'Automatico' : 'Manuale'}
-                            </p>
-                          </div>
-                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${getConfidenceBadgeColor(match.match_confidence)}`}>
-                            {match.match_confidence === 'high' ? 'Alta' :
-                             match.match_confidence === 'medium' ? 'Media' :
-                             match.match_confidence === 'low' ? 'Bassa' :
-                             'Manuale'}
-                          </span>
-                        </div>
-                      </div>
+                     <div key={match.id} className="neumorphic-flat p-3 rounded-lg">
+                       {editingMatch?.id === match.id ? (
+                         <div className="space-y-3">
+                           <input
+                             type="text"
+                             value={newEmployeeName}
+                             onChange={(e) => setNewEmployeeName(e.target.value)}
+                             className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-[#6b6b6b] outline-none"
+                             placeholder="Nome dipendente"
+                           />
+                           <div className="flex gap-2">
+                             <button
+                               onClick={handleSaveEdit}
+                               className="flex-1 neumorphic-flat px-3 py-2 rounded-lg text-sm text-green-600 hover:bg-green-50 transition-colors flex items-center justify-center gap-2"
+                             >
+                               <Save className="w-4 h-4" />
+                               Salva
+                             </button>
+                             <button
+                               onClick={() => setEditingMatch(null)}
+                               className="flex-1 neumorphic-flat px-3 py-2 rounded-lg text-sm text-[#9b9b9b] hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
+                             >
+                               <X className="w-4 h-4" />
+                               Annulla
+                             </button>
+                           </div>
+                         </div>
+                       ) : (
+                         <div className="flex items-center justify-between">
+                           <div>
+                             <p className="font-medium text-[#6b6b6b]">{match.matched_employee_name}</p>
+                             <p className="text-xs text-[#9b9b9b]">
+                               Metodo: {match.match_method === 'auto' ? 'Automatico' : 'Manuale'}
+                             </p>
+                           </div>
+                           <div className="flex items-center gap-2">
+                             <span className={`px-3 py-1 rounded-full text-xs font-bold ${getConfidenceBadgeColor(match.match_confidence)}`}>
+                               {match.match_confidence === 'high' ? 'Alta' :
+                                match.match_confidence === 'medium' ? 'Media' :
+                                match.match_confidence === 'low' ? 'Bassa' :
+                                'Manuale'}
+                             </span>
+                             <button
+                               onClick={() => handleEditMatch(match)}
+                               className="neumorphic-flat p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                             >
+                               <Edit className="w-4 h-4 text-blue-600" />
+                             </button>
+                           </div>
+                         </div>
+                       )}
+                     </div>
                     ))}
                   </div>
                 </div>
@@ -804,12 +820,11 @@ export default function MatchingOrdiniSbagliati() {
           <div className="text-sm text-blue-800">
             <p className="font-medium mb-2">💡 Come funziona il matching</p>
             <ul className="text-xs space-y-1 list-disc list-inside">
-              <li><strong>Alta confidenza:</strong> Ordine ricevuto durante l'orario esatto del turno</li>
-              <li><strong>Media confidenza:</strong> Ordine ricevuto entro 1 ora dall'inizio/fine turno</li>
-              <li><strong>Esclusioni di confidenza:</strong> I match a "Bassa confidenza" (stesso giorno ma fuori orario) sono stati rimossi dal matching automatico.</li>
+              <li><strong>Matching senza tolleranza:</strong> Gli ordini vengono abbinati SOLO ai dipendenti che erano in turno all'ora ESATTA dell'ordine (senza tolleranza)</li>
               <li><strong>Manuale:</strong> Modificato manualmente dall'utente</li>
-              <li><strong>Abbinamento multiplo:</strong> Un ordine può essere abbinato a TUTTI i dipendenti in turno, se rientrano nei criteri di matching.</li>
-              <li><strong>Esclusioni:</strong> Non vengono considerati turni di tipo "Malattia (Certificato)", "Assenza non retribuita", "Ferie", né dipendenti con "Volantinaggio" o "Preparazioni" come gruppo.</li>
+              <li><strong>Abbinamento multiplo:</strong> Un ordine può essere abbinato a TUTTI i dipendenti in turno al momento dell'ordine</li>
+              <li><strong>Esclusioni:</strong> Non vengono considerati turni di tipo "Malattia (Certificato)", "Assenza non retribuita", "Ferie", né dipendenti con "Volantinaggio" o "Preparazioni" come gruppo</li>
+              <li><strong>Modifica abbinamenti:</strong> Clicca sull'icona matita per modificare manualmente l'assegnazione di un ordine</li>
               <li>Clicca su "Fai Match" e controlla il <strong>"Log Matching"</strong> sopra per vedere i dettagli del processo</li>
               <li>Clicca su un ordine per vederne i dettagli completi</li>
             </ul>
