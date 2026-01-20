@@ -1102,11 +1102,17 @@ export default function Layout({ children, currentPageName }) {
           const filteredItems = section.items.filter(item => {
             // Extract page name from URL - handle both /PageName and PageName formats
             let pageName = item.page || item.url?.split('/').filter(Boolean).pop() || '';
-            
-            // Check access including page-level verification for managers
+
+            // For managers, ALWAYS check managerAllowedPages list
+            const normalizedUserType = currentUser ? getNormalizedUserType(currentUser.user_type) : null;
+            if (normalizedUserType === 'manager') {
+              return managerAllowedPages.includes(pageName);
+            }
+
+            // For non-managers, check normal access
             return hasAccess(item.requiredUserType, item.requiredRole, pageName);
           });
-          
+
           return {
             ...section,
             items: filteredItems
@@ -1115,13 +1121,13 @@ export default function Layout({ children, currentPageName }) {
         .filter(section => {
           // Remove sections with no accessible items
           if (section.items.length === 0) return false;
-          
+
           // For managers, also check section-level access
           const normalizedUserType = currentUser ? getNormalizedUserType(currentUser.user_type) : null;
           if (normalizedUserType === 'manager' && section.requiredUserType) {
             return section.requiredUserType.includes('manager');
           }
-          
+
           return true;
         })
     : [];
