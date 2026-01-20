@@ -19,6 +19,7 @@ import { format, parseISO } from 'date-fns';
 export default function Straordinari() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [editingDefaultRate, setEditingDefaultRate] = useState(false);
   const [formData, setFormData] = useState({
     dipendente_id: '',
     dipendente_nome: '',
@@ -38,6 +39,16 @@ export default function Straordinari() {
     queryFn: () => base44.entities.Employee.list(),
   });
 
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores'],
+    queryFn: () => base44.entities.Store.list(),
+  });
+
+  const { data: disponibilitaConfigs = [] } = useQuery({
+    queryKey: ['disponibilita-config'],
+    queryFn: () => base44.entities.DisponibilitaConfig.filter({ is_active: true }),
+  });
+
   const { data: attivitaPagamenti = [] } = useQuery({
     queryKey: ['attivita-pagamenti-straordinari'],
     queryFn: async () => {
@@ -47,6 +58,8 @@ export default function Straordinari() {
       return attivita.sort((a, b) => new Date(b.completato_at) - new Date(a.completato_at));
     },
   });
+
+  const activeConfig = disponibilitaConfigs[0] || null;
 
   const saveMutation = useMutation({
     mutationFn: (data) => {
@@ -65,6 +78,24 @@ export default function Straordinari() {
     mutationFn: (id) => base44.entities.StraordinarioDipendente.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['straordinari'] });
+    },
+  });
+
+  const updateDefaultRateMutation = useMutation({
+    mutationFn: (newRate) => {
+      if (activeConfig?.id) {
+        return base44.entities.DisponibilitaConfig.update(activeConfig.id, {
+          retribuzione_oraria_straordinari: newRate
+        });
+      }
+      return base44.entities.DisponibilitaConfig.create({
+        retribuzione_oraria_straordinari: newRate,
+        is_active: true
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['disponibilita-config'] });
+      setEditingDefaultRate(false);
     },
   });
 
@@ -112,6 +143,8 @@ export default function Straordinari() {
     });
   };
 
+  const getStoreName = (storeId) => stores.find(s => s.id === storeId)?.name || '-';
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
         <div className="mb-6">
@@ -120,6 +153,59 @@ export default function Straordinari() {
           </h1>
           <p className="text-sm text-slate-500">Gestisci il costo orario dello straordinario per ogni dipendente</p>
         </div>
+
+        <NeumorphicCard className="p-6 bg-blue-50 border border-blue-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-blue-600" />
+                Tariffa Oraria Default Straordinari
+              </h2>
+              <p className="text-sm text-slate-500 mt-1">
+                Applicata ai dipendenti senza tariffa personalizzata
+              </p>
+            </div>
+            {!editingDefaultRate ? (
+              <div className="flex items-center gap-3">
+                <span className="text-3xl font-bold text-blue-600">
+                  €{(activeConfig?.retribuzione_oraria_straordinari || 10).toFixed(2)}/h
+                </span>
+                <button
+                  onClick={() => setEditingDefaultRate(true)}
+                  className="p-2 rounded-lg hover:bg-blue-100 text-blue-600 transition-colors"
+                >
+                  <Edit className="w-5 h-5" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  defaultValue={activeConfig?.retribuzione_oraria_straordinari || 10}
+                  className="w-32 neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
+                  id="defaultRate"
+                />
+                <button
+                  onClick={() => {
+                    const input = document.getElementById('defaultRate');
+                    updateDefaultRateMutation.mutate(parseFloat(input.value));
+                  }}
+                  className="p-2 rounded-lg bg-green-500 text-white hover:bg-green-600"
+                >
+                  <Save className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setEditingDefaultRate(false)}
+                  className="p-2 rounded-lg hover:bg-slate-100"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+          </div>
+        </NeumorphicCard>
 
         <NeumorphicCard className="p-6">
           <div className="flex items-center justify-between mb-4">
@@ -227,13 +313,16 @@ export default function Straordinari() {
                         </div>
                       </td>
                       <td className="p-3">
-                        <span className="text-slate-700 font-medium">{attivita.dipendente_pagato_nome || '-'}</span>
+                        <div className="flex items-center gap-2">
+                          <User className="w-4 h-4 text-green-600" />
+                          <span className="text-slate-700 font-medium">{attivita.dipendente_pagato_nome || '-'}</span>
+                        </div>
                       </td>
                       <td className="p-3">
                         <span className="text-slate-700 text-sm">{attivita.dipendente_nome || '-'}</span>
                       </td>
                       <td className="p-3">
-                        <span className="text-slate-700 text-sm">{attivita.store_id || '-'}</span>
+                        <span className="text-slate-700 text-sm">{getStoreName(attivita.store_id)}</span>
                       </td>
                       <td className="p-3 text-right">
                         <span className="text-lg font-bold text-green-600">
