@@ -206,6 +206,7 @@ export default function FormDebug() {
       domande: [],
       employees: [],
       simulazioni: [],
+      endToEndTests: [],
       criticalIssues: [],
       warnings: [],
       successChecks: []
