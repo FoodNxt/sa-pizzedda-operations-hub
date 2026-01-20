@@ -443,6 +443,25 @@ export default function Activation() {
     setNewSubattivitaData({ titolo: '', data_target: '' });
   };
 
+  const handleEditSubattivita = (subattivita) => {
+    setEditingSubattivita(subattivita);
+    setEditingSubattivitaData({
+      titolo: subattivita.titolo,
+      data_target: subattivita.data_target || ''
+    });
+  };
+
+  const handleSaveSubattivita = () => {
+    if (!editingSubattivita || !editingSubattivitaData.titolo.trim()) return;
+    
+    updateSubattivitaMutation.mutate({
+      id: editingSubattivita.id,
+      data: editingSubattivitaData
+    });
+    setEditingSubattivita(null);
+    setEditingSubattivitaData({ titolo: '', data_target: '' });
+  };
+
   const handleGetSuggestions = async () => {
     setLoadingSuggestions(true);
     try {
