@@ -147,13 +147,20 @@ export default function PlandayStoreView({
     e.stopPropagation();
     setSelectedTurno(turno);
     
-    // Trova l'ID del dipendente per nome se non c'è l'ID o se l'ID non matcha
-    let dipendenteId = turno.dipendente_id || '';
-    if (turno.dipendente_nome && !users.find(u => u.id === turno.dipendente_id)) {
-      const foundUser = users.find(u => 
-        u.nome_cognome === turno.dipendente_nome || 
-        u.full_name === turno.dipendente_nome
-      );
+    // Trova il dipendente: prima per ID, poi per nome
+    let dipendenteId = '';
+    
+    if (turno.dipendente_id && users.find(u => u.id === turno.dipendente_id)) {
+      // ID presente e valido
+      dipendenteId = turno.dipendente_id;
+    } else if (turno.dipendente_nome) {
+      // Cerca per nome (case-insensitive e trim)
+      const nomeTurno = turno.dipendente_nome.trim().toLowerCase();
+      const foundUser = users.find(u => {
+        const nomeCognome = (u.nome_cognome || '').trim().toLowerCase();
+        const fullName = (u.full_name || '').trim().toLowerCase();
+        return nomeCognome === nomeTurno || fullName === nomeTurno;
+      });
       if (foundUser) {
         dipendenteId = foundUser.id;
       }
