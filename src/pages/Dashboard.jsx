@@ -413,20 +413,19 @@ export default function Dashboard() {
   const cassaStats = useMemo(() => {
     const storeLastCassa = stores.map(store => {
       const storeConteggios = conteggiosCassa
-        .filter(c => c.store_id === store.id)
+        .filter(c => c.store_id === store.id && c.data_conteggio)
         .sort((a, b) => new Date(b.data_conteggio) - new Date(a.data_conteggio));
+      
+      if (storeConteggios.length === 0) return null;
+      
       const lastConteggio = storeConteggios[0];
-      
-      if (!lastConteggio) return null;
-      
-      const differenza = (lastConteggio.totale_effettivo || 0) - (lastConteggio.totale_teorico || 0);
       const alert = alertsCassaConfig.find(a => a.store_id === store.id && a.is_active);
-      const hasAlert = alert && Math.abs(differenza) > (alert.soglia_alert || 50);
+      const hasAlert = alert && (lastConteggio.valore_conteggio || 0) > (alert.soglia_alert || 50);
       
       return {
         storeName: store.name,
         lastDate: lastConteggio.data_conteggio,
-        differenza,
+        differenza: lastConteggio.valore_conteggio || 0,
         hasAlert
       };
     }).filter(s => s !== null);
@@ -436,13 +435,16 @@ export default function Dashboard() {
   const sprechiStats = useMemo(() => {
     const last30Days = moment().subtract(30, 'days').format('YYYY-MM-DD');
     return sprechi
-      .filter(s => s.data && s.data >= last30Days)
-      .map(s => ({
-        storeName: stores.find(st => st.id === s.store_id)?.name || 'N/A',
-        data: s.data,
-        valore: s.valore_euro || 0,
-        prodotto: s.prodotto_nome || 'N/A'
-      }))
+      .filter(s => s.data_rilevazione && s.data_rilevazione.split('T')[0] >= last30Days)
+      .map(s => {
+        const valore = (s.quantita_grammi || 0) * (s.costo_unitario || 0) / 1000;
+        return {
+          storeName: stores.find(st => st.id === s.store_id)?.name || 'N/A',
+          data: s.data_rilevazione.split('T')[0],
+          valore,
+          prodotto: s.prodotto_nome || 'N/A'
+        };
+      })
       .sort((a, b) => b.data.localeCompare(a.data));
   }, [stores, sprechi]);
 
