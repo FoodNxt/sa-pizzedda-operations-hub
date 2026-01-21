@@ -1,12 +1,14 @@
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Store, TrendingUp, Users, DollarSign, Star, AlertTriangle, Filter, Calendar, X, RefreshCw } from "lucide-react";
+import { Store, TrendingUp, Users, DollarSign, Star, AlertTriangle, Filter, Calendar, X, RefreshCw, Package, Clock, FileText, UserX, Sparkles } from "lucide-react";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { format, subDays, isAfter, isBefore, parseISO, isValid } from 'date-fns';
+import { format, subDays, isAfter, isBefore, parseISO, isValid, addDays } from 'date-fns';
+import { formatEuro } from "../components/utils/formatCurrency";
+import moment from 'moment';
 
 export default function Dashboard() {
   const [dateRange, setDateRange] = useState('30');
@@ -32,6 +34,71 @@ export default function Dashboard() {
   const { data: iPraticoData = [], isLoading: dataLoading } = useQuery({
     queryKey: ['iPratico'],
     queryFn: () => base44.entities.iPratico.list('-order_date', 1000),
+  });
+
+  const { data: ordini = [] } = useQuery({
+    queryKey: ['ordini-fornitori'],
+    queryFn: async () => {
+      const allOrdini = await base44.entities.OrdineFornitore.list();
+      return allOrdini.filter(o => o.status === 'completato');
+    },
+  });
+
+  const { data: turni = [] } = useQuery({
+    queryKey: ['turni-planday'],
+    queryFn: () => base44.entities.TurnoPlanday.list(),
+  });
+
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ['all-users'],
+    queryFn: () => base44.entities.User.list(),
+  });
+
+  const { data: conteggiosCassa = [] } = useQuery({
+    queryKey: ['conteggi-cassa'],
+    queryFn: () => base44.entities.ConteggioCassa.list('-data_conteggio', 100),
+  });
+
+  const { data: alertsCassaConfig = [] } = useQuery({
+    queryKey: ['alerts-cassa-config'],
+    queryFn: () => base44.entities.AlertCassaConfig.list(),
+  });
+
+  const { data: sprechi = [] } = useQuery({
+    queryKey: ['sprechi'],
+    queryFn: () => base44.entities.Spreco.list('-data', 200),
+  });
+
+  const { data: cleaningInspections = [] } = useQuery({
+    queryKey: ['cleaning-inspections'],
+    queryFn: () => base44.entities.CleaningInspection.list('-data_ispezione', 200),
+  });
+
+  const { data: richiesteAssenze = [] } = useQuery({
+    queryKey: ['richieste-assenze'],
+    queryFn: async () => {
+      const [ferie, malattie, turniLiberi] = await Promise.all([
+        base44.entities.RichiestaFerie.filter({ stato: 'pending' }),
+        base44.entities.RichiestaMalattia.filter({ stato: 'pending' }),
+        base44.entities.RichiestaTurnoLibero.filter({ stato: 'pending' })
+      ]);
+      return { ferie, malattie, turniLiberi };
+    },
+  });
+
+  const { data: contratti = [] } = useQuery({
+    queryKey: ['contratti'],
+    queryFn: () => base44.entities.Contratto.list(),
+  });
+
+  const { data: regoleOrdini = [] } = useQuery({
+    queryKey: ['regole-ordini'],
+    queryFn: () => base44.entities.RegolaOrdine.filter({ is_active: true }),
+  });
+
+  const { data: inventario = [] } = useQuery({
+    queryKey: ['inventario'],
+    queryFn: () => base44.entities.RilevazioneInventario.list('-data_rilevazione', 100),
   });
 
   const safeParseDate = (dateString) => {
@@ -87,6 +154,44 @@ export default function Dashboard() {
       sum + (item.total_orders || 0), 0
     );
 
+    // Revenue by store
+    const revenueByStore = {};
+    filteredData.forEach(item => {
+      const storeId = item.store_id;
+      if (!revenueByStore[storeId]) {
+        revenueByStore[storeId] = 0;
+      }
+      revenueByStore[storeId] += item.total_revenue || 0;
+    });
+
+    // Food Cost by store
+    const foodCostByStore = {};
+    stores.forEach(store => {
+      const storeRevenue = revenueByStore[store.id] || 0;
+      const storeCOGS = ordini
+        .filter(o => o.store_id === store.id)
+        .reduce((sum, o) => sum + (o.totale_ordine || 0), 0);
+      const foodCostPerc = storeRevenue > 0 ? (storeCOGS / storeRevenue) * 100 : 0;
+      foodCostByStore[store.id] = { cogs: storeCOGS, revenue: storeRevenue, percentage: foodCostPerc };
+    });
+
+    // Produttività by store (€/h lavorata)
+    const produttivitaByStore = {};
+    stores.forEach(store => {
+      const storeRevenue = revenueByStore[store.id] || 0;
+      const storeTurni = turni.filter(t => 
+        t.store_id === store.id && 
+        t.timbratura_entrata && 
+        t.timbratura_uscita
+      );
+      const totaleOre = storeTurni.reduce((sum, t) => {
+        const entrata = new Date(t.timbratura_entrata);
+        const uscita = new Date(t.timbratura_uscita);
+        return sum + ((uscita - entrata) / (1000 * 60 * 60));
+      }, 0);
+      produttivitaByStore[store.id] = totaleOre > 0 ? storeRevenue / totaleOre : 0;
+    });
+
     const revenueByDate = {};
     filteredData.forEach(item => {
       if (!item.order_date) return;
@@ -115,25 +220,229 @@ export default function Dashboard() {
       }))
       .filter(d => d.date !== 'N/A');
 
-    return { totalRevenue, totalOrders, dailyRevenue };
-  }, [iPraticoData, dateRange, startDate, endDate]);
+    return { 
+      totalRevenue, 
+      totalOrders, 
+      dailyRevenue, 
+      revenueByStore, 
+      foodCostByStore, 
+      produttivitaByStore 
+    };
+  }, [iPraticoData, dateRange, startDate, endDate, ordini, turni, stores]);
 
-  const totalStores = stores.length;
-  const activeStores = stores.filter(s => s.status === 'active').length;
-  const averageRating = reviews.length > 0 
-    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
-    : '0.0';
-  const totalEmployees = employees.filter(e => e.status === 'active').length;
+  // Metriche principali
+  const topRevenueStore = useMemo(() => {
+    const storeRevenues = stores.map(s => ({
+      name: s.name,
+      revenue: processedData.revenueByStore[s.id] || 0
+    })).sort((a, b) => b.revenue - a.revenue);
+    return { top: storeRevenues[0], worst: storeRevenues[storeRevenues.length - 1] };
+  }, [stores, processedData.revenueByStore]);
 
-  const storeRatings = stores.map(store => {
-    const storeReviews = reviews.filter(r => r.store_id === store.id);
-    const avgRating = storeReviews.length > 0
-      ? storeReviews.reduce((sum, r) => sum + r.rating, 0) / storeReviews.length
+  const foodCostStats = useMemo(() => {
+    const storeFoodCosts = stores.map(s => ({
+      name: s.name,
+      percentage: processedData.foodCostByStore[s.id]?.percentage || 0
+    })).filter(s => s.percentage > 0).sort((a, b) => a.percentage - b.percentage);
+    const avgFoodCost = storeFoodCosts.length > 0 
+      ? storeFoodCosts.reduce((sum, s) => sum + s.percentage, 0) / storeFoodCosts.length 
       : 0;
-    return { ...store, avgRating, reviewCount: storeReviews.length };
-  });
+    return { avg: avgFoodCost, best: storeFoodCosts[0], worst: storeFoodCosts[storeFoodCosts.length - 1] };
+  }, [stores, processedData.foodCostByStore]);
 
-  const alertStores = storeRatings.filter(s => s.avgRating < 3.5 && s.reviewCount > 0);
+  const employeePerformance = useMemo(() => {
+    const employeeScores = allUsers
+      .filter(u => u.user_type === 'user' && u.ruoli_dipendente?.length > 0)
+      .map(emp => {
+        const empReviews = reviews.filter(r => r.responsabile_id === emp.id || r.employee_id === emp.id);
+        const avgScore = empReviews.length > 0 
+          ? empReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / empReviews.length 
+          : 0;
+        return { name: emp.nome_cognome || emp.full_name, score: avgScore, reviewCount: empReviews.length };
+      })
+      .filter(e => e.reviewCount > 0)
+      .sort((a, b) => b.score - a.score);
+    return { top: employeeScores[0], worst: employeeScores[employeeScores.length - 1], total: allUsers.filter(u => u.user_type === 'user' && u.ruoli_dipendente?.length > 0).length };
+  }, [allUsers, reviews]);
+
+  const produttivitaStats = useMemo(() => {
+    const storeProd = stores.map(s => ({
+      name: s.name,
+      produttivita: processedData.produttivitaByStore[s.id] || 0
+    })).filter(s => s.produttivita > 0).sort((a, b) => b.produttivita - a.produttivita);
+    const avgProd = storeProd.length > 0 
+      ? storeProd.reduce((sum, s) => sum + s.produttivita, 0) / storeProd.length 
+      : 0;
+    return { avg: avgProd, best: storeProd[0], worst: storeProd[storeProd.length - 1] };
+  }, [stores, processedData.produttivitaByStore]);
+
+  const googleMapsStats = useMemo(() => {
+    const reviewsByStore = stores.map(s => ({
+      name: s.name,
+      count: reviews.filter(r => r.store_id === s.id).length,
+      avgRating: reviews.filter(r => r.store_id === s.id).reduce((sum, r) => sum + r.rating, 0) / (reviews.filter(r => r.store_id === s.id).length || 1)
+    })).sort((a, b) => b.count - a.count);
+    
+    const reviewsByEmployee = allUsers
+      .filter(u => u.user_type === 'user')
+      .map(emp => ({
+        name: emp.nome_cognome || emp.full_name,
+        count: reviews.filter(r => r.responsabile_id === emp.id || r.employee_id === emp.id).length
+      }))
+      .filter(e => e.count > 0)
+      .sort((a, b) => b.count - a.count);
+
+    const avgRatingByStore = stores.map(s => ({
+      name: s.name,
+      rating: reviews.filter(r => r.store_id === s.id).reduce((sum, r) => sum + r.rating, 0) / (reviews.filter(r => r.store_id === s.id).length || 1)
+    })).filter(s => s.rating > 0).sort((a, b) => b.rating - a.rating);
+
+    const avgRatingByEmployee = allUsers
+      .filter(u => u.user_type === 'user')
+      .map(emp => ({
+        name: emp.nome_cognome || emp.full_name,
+        rating: reviews.filter(r => r.responsabile_id === emp.id || r.employee_id === emp.id).reduce((sum, r) => sum + r.rating, 0) / (reviews.filter(r => r.responsabile_id === emp.id || r.employee_id === emp.id).length || 1)
+      }))
+      .filter(e => e.rating > 0)
+      .sort((a, b) => b.rating - a.rating);
+
+    return {
+      totalReviews: reviews.length,
+      bestStoreCount: reviewsByStore[0],
+      worstStoreCount: reviewsByStore[reviewsByStore.length - 1],
+      bestEmployeeCount: reviewsByEmployee[0],
+      worstEmployeeCount: reviewsByEmployee[reviewsByEmployee.length - 1],
+      avgScore: reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0,
+      bestStoreScore: avgRatingByStore[0],
+      worstStoreScore: avgRatingByStore[avgRatingByStore.length - 1],
+      bestEmployeeScore: avgRatingByEmployee[0],
+      worstEmployeeScore: avgRatingByEmployee[avgRatingByEmployee.length - 1]
+    };
+  }, [stores, reviews, allUsers]);
+
+  // Metriche operative
+  const cassaStats = useMemo(() => {
+    const storeLastCassa = stores.map(store => {
+      const storeConteggios = conteggiosCassa.filter(c => c.store_id === store.id).sort((a, b) => new Date(b.data_conteggio) - new Date(a.data_conteggio));
+      const lastConteggio = storeConteggios[0];
+      const alert = alertsCassaConfig.find(a => a.store_id === store.id && a.is_active);
+      const hasAlert = lastConteggio && alert && Math.abs(lastConteggio.differenza || 0) > (alert.soglia_alert || 50);
+      return {
+        storeName: store.name,
+        lastDate: lastConteggio?.data_conteggio,
+        differenza: lastConteggio?.differenza || 0,
+        hasAlert
+      };
+    }).filter(s => s.lastDate);
+    return storeLastCassa;
+  }, [stores, conteggiosCassa, alertsCassaConfig]);
+
+  const sprechiStats = useMemo(() => {
+    const last30Days = moment().subtract(30, 'days').format('YYYY-MM-DD');
+    const sprechiRecenti = sprechi.filter(s => s.data >= last30Days);
+    
+    const sprechiByStore = stores.map(store => {
+      const storeSprechi = sprechiRecenti.filter(s => s.store_id === store.id);
+      const totaleSprechi = storeSprechi.reduce((sum, s) => sum + (s.valore_euro || 0), 0);
+      return { storeName: store.name, totale: totaleSprechi };
+    }).filter(s => s.totale > 0).sort((a, b) => b.totale - a.totale);
+    
+    return sprechiByStore;
+  }, [stores, sprechi]);
+
+  // Alert operativi
+  const ordiniDaFare = useMemo(() => {
+    const oggi = moment().format('YYYY-MM-DD');
+    const ordiniOggi = [];
+    
+    stores.forEach(store => {
+      const lastInventario = inventario
+        .filter(i => i.store_id === store.id)
+        .sort((a, b) => new Date(b.data_rilevazione) - new Date(a.data_rilevazione))[0];
+      
+      if (!lastInventario) return;
+      
+      regoleOrdini.forEach(regola => {
+        const materia = lastInventario.materie_prime?.find(m => m.materia_prima_id === regola.materia_prima_id);
+        const quantita = materia?.quantita || 0;
+        
+        if (quantita < (regola.quantita_minima || 0)) {
+          ordiniDaFare.push({
+            store: store.name,
+            materia: regola.materia_prima_nome,
+            quantita: quantita,
+            minima: regola.quantita_minima
+          });
+        }
+      });
+    });
+    
+    return ordiniDaFare;
+  }, [stores, inventario, regoleOrdini]);
+
+  const contrattiInScadenza = useMemo(() => {
+    const oggi = moment();
+    const tra30Giorni = moment().add(30, 'days');
+    
+    return contratti.filter(c => {
+      if (!c.data_fine || c.status !== 'firmato') return false;
+      const dataFine = moment(c.data_fine);
+      return dataFine.isBetween(oggi, tra30Giorni, 'day', '[]');
+    }).map(c => {
+      const user = allUsers.find(u => u.id === c.user_id);
+      return {
+        dipendente: user?.nome_cognome || user?.full_name || 'N/A',
+        dataScadenza: c.data_fine,
+        giorniRimanenti: moment(c.data_fine).diff(oggi, 'days')
+      };
+    }).sort((a, b) => a.giorniRimanenti - b.giorniRimanenti);
+  }, [contratti, allUsers]);
+
+  const pulizieScores = useMemo(() => {
+    const last30Days = moment().subtract(30, 'days').format('YYYY-MM-DD');
+    const pulizieRecenti = cleaningInspections.filter(c => c.data_ispezione >= last30Days);
+    
+    const scoresByStore = stores.map(store => {
+      const storeInspections = pulizieRecenti.filter(i => i.store_id === store.id);
+      const avgScore = storeInspections.length > 0 
+        ? storeInspections.reduce((sum, i) => sum + (i.punteggio_totale || 0), 0) / storeInspections.length 
+        : 0;
+      
+      const employeeScores = allUsers
+        .filter(u => u.user_type === 'user')
+        .map(emp => {
+          const empInspections = storeInspections.filter(i => i.dipendente_id === emp.id);
+          return {
+            name: emp.nome_cognome || emp.full_name,
+            score: empInspections.length > 0 ? empInspections.reduce((sum, i) => sum + (i.punteggio_totale || 0), 0) / empInspections.length : 0,
+            count: empInspections.length
+          };
+        })
+        .filter(e => e.count > 0)
+        .sort((a, b) => b.score - a.score);
+      
+      return {
+        storeName: store.name,
+        avgScore,
+        topEmployee: employeeScores[0],
+        worstEmployee: employeeScores[employeeScores.length - 1]
+      };
+    }).filter(s => s.avgScore > 0).sort((a, b) => b.avgScore - a.avgScore);
+    
+    return scoresByStore;
+  }, [stores, cleaningInspections, allUsers]);
+
+  const turniLiberi = useMemo(() => {
+    const oggi = moment().format('YYYY-MM-DD');
+    const tra14Giorni = moment().add(14, 'days').format('YYYY-MM-DD');
+    
+    return turni.filter(t => 
+      !t.dipendente_id && 
+      t.data >= oggi && 
+      t.data <= tra14Giorni &&
+      t.stato === 'programmato'
+    ).sort((a, b) => a.data.localeCompare(b.data));
+  }, [turni]);
 
   const clearCustomDates = () => {
     setStartDate('');
@@ -249,216 +558,398 @@ export default function Dashboard() {
           </div>
         </NeumorphicCard>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+        {/* Metriche Principali */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Ricavi */}
           <NeumorphicCard className="p-4">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-3 shadow-lg">
-                <Store className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg">
+                <DollarSign className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1">
-                {activeStores}/{totalStores}
-              </h3>
-              <p className="text-xs text-slate-500">Stores Attivi</p>
+              <div>
+                <h3 className="text-2xl font-bold text-slate-800">{formatEuro(processedData.totalRevenue)}</h3>
+                <p className="text-xs text-slate-500">Ricavi Totali</p>
+              </div>
+            </div>
+            <div className="space-y-1 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-green-600">🏆 {topRevenueStore.top?.name || 'N/A'}</span>
+                <span className="font-medium">{formatEuro(topRevenueStore.top?.revenue || 0)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-red-600">📉 {topRevenueStore.worst?.name || 'N/A'}</span>
+                <span className="font-medium">{formatEuro(topRevenueStore.worst?.revenue || 0)}</span>
+              </div>
             </div>
           </NeumorphicCard>
 
+          {/* Food Cost % */}
           <NeumorphicCard className="p-4">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center mb-3 shadow-lg">
-                <Star className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg">
+                <Package className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1">{averageRating}</h3>
-              <p className="text-xs text-slate-500">Rating Medio</p>
+              <div>
+                <h3 className="text-2xl font-bold text-slate-800">{foodCostStats.avg.toFixed(1)}%</h3>
+                <p className="text-xs text-slate-500">Food Cost Medio</p>
+              </div>
+            </div>
+            <div className="space-y-1 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-green-600">🏆 {foodCostStats.best?.name || 'N/A'}</span>
+                <span className="font-medium">{foodCostStats.best?.percentage.toFixed(1)}%</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-red-600">📉 {foodCostStats.worst?.name || 'N/A'}</span>
+                <span className="font-medium">{foodCostStats.worst?.percentage.toFixed(1)}%</span>
+              </div>
             </div>
           </NeumorphicCard>
 
+          {/* Dipendenti */}
           <NeumorphicCard className="p-4">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center mb-3 shadow-lg">
-                <DollarSign className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-lg">
+                <Users className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-lg lg:text-xl font-bold text-slate-800 mb-1">
-                €{(processedData.totalRevenue / 1000).toFixed(1)}k
-              </h3>
-              <p className="text-xs text-slate-500">Revenue</p>
+              <div>
+                <h3 className="text-2xl font-bold text-slate-800">{employeePerformance.total}</h3>
+                <p className="text-xs text-slate-500">Dipendenti Totali</p>
+              </div>
+            </div>
+            <div className="space-y-1 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-green-600">🏆 {employeePerformance.top?.name || 'N/A'}</span>
+                <span className="font-medium">{employeePerformance.top?.score.toFixed(1)} ⭐</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-red-600">📉 {employeePerformance.worst?.name || 'N/A'}</span>
+                <span className="font-medium">{employeePerformance.worst?.score.toFixed(1)} ⭐</span>
+              </div>
             </div>
           </NeumorphicCard>
 
+          {/* Produttività */}
           <NeumorphicCard className="p-4">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center mb-3 shadow-lg">
-                <Users className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
+                <Clock className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1">{totalEmployees}</h3>
-              <p className="text-xs text-slate-500">Dipendenti</p>
+              <div>
+                <h3 className="text-2xl font-bold text-slate-800">{formatEuro(produttivitaStats.avg)}/h</h3>
+                <p className="text-xs text-slate-500">Produttività Media</p>
+              </div>
+            </div>
+            <div className="space-y-1 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-green-600">🏆 {produttivitaStats.best?.name || 'N/A'}</span>
+                <span className="font-medium">{formatEuro(produttivitaStats.best?.produttivita || 0)}/h</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-red-600">📉 {produttivitaStats.worst?.name || 'N/A'}</span>
+                <span className="font-medium">{formatEuro(produttivitaStats.worst?.produttivita || 0)}/h</span>
+              </div>
+            </div>
+          </NeumorphicCard>
+
+          {/* # Recensioni Google Maps */}
+          <NeumorphicCard className="p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center shadow-lg">
+                <Star className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-slate-800">{googleMapsStats.totalReviews}</h3>
+                <p className="text-xs text-slate-500">Recensioni Totali</p>
+              </div>
+            </div>
+            <div className="space-y-1 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-green-600">🏆 {googleMapsStats.bestStoreCount?.name || 'N/A'}</span>
+                <span className="font-medium">{googleMapsStats.bestStoreCount?.count || 0}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-600">👤 {googleMapsStats.bestEmployeeCount?.name || 'N/A'}</span>
+                <span className="font-medium">{googleMapsStats.bestEmployeeCount?.count || 0}</span>
+              </div>
+            </div>
+          </NeumorphicCard>
+
+          {/* Score Medio Google Maps */}
+          <NeumorphicCard className="p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center shadow-lg">
+                <Star className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-slate-800">{googleMapsStats.avgScore.toFixed(1)} ⭐</h3>
+                <p className="text-xs text-slate-500">Score Medio</p>
+              </div>
+            </div>
+            <div className="space-y-1 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-green-600">🏆 {googleMapsStats.bestStoreScore?.name || 'N/A'}</span>
+                <span className="font-medium">{googleMapsStats.bestStoreScore?.rating.toFixed(1)} ⭐</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-600">👤 {googleMapsStats.bestEmployeeScore?.name || 'N/A'}</span>
+                <span className="font-medium">{googleMapsStats.bestEmployeeScore?.rating.toFixed(1)} ⭐</span>
+              </div>
             </div>
           </NeumorphicCard>
         </div>
 
-        {alertStores.length > 0 && (
-          <NeumorphicCard className="p-4 lg:p-6 bg-red-50">
-            <div className="flex items-center gap-2 mb-3">
-              <AlertTriangle className="w-5 h-5 text-red-600" />
-              <h2 className="text-base lg:text-lg font-bold text-slate-800">Attenzione</h2>
-            </div>
-            <div className="space-y-2">
-              {alertStores.map(store => (
-                <div key={store.id} className="neumorphic-pressed p-3 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="font-medium text-slate-700 truncate">{store.name}</p>
-                    <p className="text-sm text-slate-500">Rating: {store.avgRating.toFixed(1)} ⭐</p>
+        {/* Metriche Operative */}
+        <NeumorphicCard className="p-6">
+          <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-blue-500" />
+            Metriche Operative
+          </h2>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Ultima Rilevazione Cassa */}
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <h3 className="font-bold text-slate-700 mb-3 text-sm">Ultima Rilevazione Cassa</h3>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {cassaStats.map((cassa, idx) => (
+                  <div key={idx} className={`p-2 rounded-lg ${cassa.hasAlert ? 'bg-red-50' : 'bg-slate-50'}`}>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-medium text-slate-700">{cassa.storeName}</span>
+                      <div className="text-right">
+                        <p className={`text-xs font-bold ${cassa.hasAlert ? 'text-red-600' : 'text-slate-600'}`}>
+                          {cassa.differenza > 0 ? '+' : ''}{formatEuro(cassa.differenza)}
+                        </p>
+                        <p className="text-[10px] text-slate-400">{moment(cassa.lastDate).format('DD/MM/YYYY')}</p>
+                      </div>
+                    </div>
+                    {cassa.hasAlert && (
+                      <p className="text-[10px] text-red-600 mt-1">⚠️ Sopra soglia alert</p>
+                    )}
                   </div>
-                  <span className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-xs font-bold whitespace-nowrap self-start sm:self-auto">
-                    Basso
+                ))}
+              </div>
+            </div>
+
+            {/* Sprechi */}
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <h3 className="font-bold text-slate-700 mb-3 text-sm">Sprechi (Ultimi 30 giorni)</h3>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {sprechiStats.length > 0 ? sprechiStats.map((spreco, idx) => (
+                  <div key={idx} className="p-2 rounded-lg bg-slate-50 flex justify-between items-center">
+                    <span className="text-xs font-medium text-slate-700">{spreco.storeName}</span>
+                    <span className="text-xs font-bold text-red-600">{formatEuro(spreco.totale)}</span>
+                  </div>
+                )) : (
+                  <p className="text-xs text-slate-400 text-center py-4">Nessuno spreco registrato</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </NeumorphicCard>
+
+        {/* Alert Operativi */}
+        <NeumorphicCard className="p-6">
+          <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-red-500" />
+            Alert Operativi
+          </h2>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Ordini da fare */}
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <h3 className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2">
+                <Package className="w-4 h-4 text-orange-600" />
+                Ordini da Fare
+                {ordiniDaFare.length > 0 && (
+                  <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{ordiniDaFare.length}</span>
+                )}
+              </h3>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {ordiniDaFare.length > 0 ? ordiniDaFare.map((ord, idx) => (
+                  <div key={idx} className="p-2 rounded-lg bg-orange-50 border border-orange-200">
+                    <p className="text-xs font-medium text-slate-700">{ord.store}</p>
+                    <p className="text-xs text-slate-600">{ord.materia}</p>
+                    <p className="text-[10px] text-orange-600">Attuale: {ord.quantita} | Min: {ord.minima}</p>
+                  </div>
+                )) : (
+                  <p className="text-xs text-slate-400 text-center py-4">Nessun ordine urgente</p>
+                )}
+              </div>
+            </div>
+
+            {/* Richieste Ferie/Malattia */}
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <h3 className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-blue-600" />
+                Richieste in Attesa
+                {richiesteAssenze && (richiesteAssenze.ferie?.length + richiesteAssenze.malattie?.length + richiesteAssenze.turniLiberi?.length) > 0 && (
+                  <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                    {(richiesteAssenze.ferie?.length || 0) + (richiesteAssenze.malattie?.length || 0) + (richiesteAssenze.turniLiberi?.length || 0)}
                   </span>
-                </div>
-              ))}
-            </div>
-          </NeumorphicCard>
-        )}
-
-        <div className="grid grid-cols-1 gap-4 lg:gap-6">
-          <NeumorphicCard className="p-4 lg:p-6">
-            <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Trend Revenue</h2>
-            {processedData.dailyRevenue.length > 0 ? (
-              <div className="w-full overflow-x-auto">
-                <div style={{ minWidth: '300px' }}>
-                  <ResponsiveContainer width="100%" height={250}>
-                    <LineChart data={processedData.dailyRevenue}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
-                      <XAxis 
-                        dataKey="date" 
-                        stroke="#64748b" 
-                        tick={{ fontSize: 12 }}
-                        angle={-45}
-                        textAnchor="end"
-                        height={60}
-                      />
-                      <YAxis 
-                        stroke="#64748b"
-                        tick={{ fontSize: 12 }}
-                        width={60}
-                      />
-                      <Tooltip 
-                        contentStyle={{ 
-                          background: 'rgba(248, 250, 252, 0.95)', 
-                          border: 'none',
-                          borderRadius: '12px',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                          fontSize: '12px'
-                        }}
-                        formatter={(value) => `€${value.toFixed(2)}`}
-                      />
-                      <Legend wrapperStyle={{ fontSize: '12px' }} />
-                      <Line 
-                        type="monotone" 
-                        dataKey="revenue" 
-                        stroke="#3b82f6" 
-                        strokeWidth={2} 
-                        name="Revenue €"
-                        dot={{ fill: '#3b82f6', r: 3 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            ) : (
-              <div className="h-[250px] flex items-center justify-center text-slate-500">
-                Nessun dato disponibile per il periodo selezionato
-              </div>
-            )}
-          </NeumorphicCard>
-
-          <NeumorphicCard className="p-4 lg:p-6">
-            <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Rating per Store</h2>
-            {storeRatings.length > 0 ? (
-              <div className="w-full overflow-x-auto">
-                <div style={{ minWidth: '300px' }}>
-                  <ResponsiveContainer width="100%" height={250}>
-                    <BarChart data={storeRatings.slice(0, 5)}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
-                      <XAxis 
-                        dataKey="name" 
-                        stroke="#64748b"
-                        tick={{ fontSize: 12 }}
-                        angle={-45}
-                        textAnchor="end"
-                        height={60}
-                      />
-                      <YAxis 
-                        stroke="#64748b" 
-                        domain={[0, 5]}
-                        tick={{ fontSize: 12 }}
-                        width={40}
-                      />
-                      <Tooltip 
-                        contentStyle={{ 
-                          background: 'rgba(248, 250, 252, 0.95)', 
-                          border: 'none',
-                          borderRadius: '12px',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                          fontSize: '12px'
-                        }}
-                      />
-                      <Bar 
-                        dataKey="avgRating" 
-                        fill="url(#colorGradient)" 
-                        name="Avg Rating" 
-                        radius={[8, 8, 0, 0]} 
-                      />
-                      <defs>
-                        <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#f59e0b" />
-                          <stop offset="100%" stopColor="#f97316" />
-                        </linearGradient>
-                      </defs>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            ) : (
-              <div className="h-[250px] flex items-center justify-center text-slate-500">
-                Nessun dato disponibile
-              </div>
-            )}
-          </NeumorphicCard>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
-          <NeumorphicCard className="p-4">
-            <div className="text-center">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-yellow-400 to-orange-500 mx-auto mb-3 flex items-center justify-center shadow-lg">
-                <Star className="w-7 h-7 text-white" />
-              </div>
-              <h3 className="text-2xl font-bold text-slate-800 mb-1">{reviews.length}</h3>
-              <p className="text-xs text-slate-500">Recensioni</p>
-            </div>
-          </NeumorphicCard>
-
-          <NeumorphicCard className="p-4">
-            <div className="text-center">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-400 to-emerald-500 mx-auto mb-3 flex items-center justify-center shadow-lg">
-                <TrendingUp className="w-7 h-7 text-white" />
-              </div>
-              <h3 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1">
-                €{(processedData.totalRevenue / (stores.length || 1)).toFixed(0)}
+                )}
               </h3>
-              <p className="text-xs text-slate-500">Avg/Store</p>
-            </div>
-          </NeumorphicCard>
-
-          <NeumorphicCard className="p-4">
-            <div className="text-center">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-400 to-pink-500 mx-auto mb-3 flex items-center justify-center shadow-lg">
-                <Users className="w-7 h-7 text-white" />
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {richiesteAssenze?.ferie?.map(f => {
+                  const user = allUsers.find(u => u.id === f.dipendente_id);
+                  return (
+                    <div key={f.id} className="p-2 rounded-lg bg-blue-50 border border-blue-200">
+                      <p className="text-xs font-medium text-slate-700">{user?.nome_cognome || user?.full_name}</p>
+                      <p className="text-[10px] text-blue-600">🏖️ Ferie: {moment(f.data_inizio).format('DD/MM')} - {moment(f.data_fine).format('DD/MM')}</p>
+                    </div>
+                  );
+                })}
+                {richiesteAssenze?.malattie?.map(m => {
+                  const user = allUsers.find(u => u.id === m.dipendente_id);
+                  return (
+                    <div key={m.id} className="p-2 rounded-lg bg-red-50 border border-red-200">
+                      <p className="text-xs font-medium text-slate-700">{user?.nome_cognome || user?.full_name}</p>
+                      <p className="text-[10px] text-red-600">🤒 Malattia: {moment(m.data_inizio).format('DD/MM')} - {moment(m.data_fine).format('DD/MM')}</p>
+                    </div>
+                  );
+                })}
+                {richiesteAssenze?.turniLiberi?.map(t => {
+                  const user = allUsers.find(u => u.id === t.dipendente_id);
+                  return (
+                    <div key={t.id} className="p-2 rounded-lg bg-purple-50 border border-purple-200">
+                      <p className="text-xs font-medium text-slate-700">{user?.nome_cognome || user?.full_name}</p>
+                      <p className="text-[10px] text-purple-600">📅 Turno libero: {moment(t.data).format('DD/MM/YYYY')}</p>
+                    </div>
+                  );
+                })}
+                {(!richiesteAssenze || ((richiesteAssenze.ferie?.length || 0) + (richiesteAssenze.malattie?.length || 0) + (richiesteAssenze.turniLiberi?.length || 0)) === 0) && (
+                  <p className="text-xs text-slate-400 text-center py-4">Nessuna richiesta in attesa</p>
+                )}
               </div>
-              <h3 className="text-2xl font-bold text-slate-800 mb-1">
-                {(employees.length / (stores.length || 1)).toFixed(1)}
-              </h3>
-              <p className="text-xs text-slate-500">Emp/Store</p>
             </div>
-          </NeumorphicCard>
-        </div>
+
+            {/* Contratti in Scadenza */}
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <h3 className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2">
+                <FileText className="w-4 h-4 text-purple-600" />
+                Contratti in Scadenza (30gg)
+                {contrattiInScadenza.length > 0 && (
+                  <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{contrattiInScadenza.length}</span>
+                )}
+              </h3>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {contrattiInScadenza.length > 0 ? contrattiInScadenza.map((c, idx) => (
+                  <div key={idx} className="p-2 rounded-lg bg-purple-50 border border-purple-200">
+                    <p className="text-xs font-medium text-slate-700">{c.dipendente}</p>
+                    <p className="text-[10px] text-purple-600">
+                      Scade il {moment(c.dataScadenza).format('DD/MM/YYYY')} ({c.giorniRimanenti} giorni)
+                    </p>
+                  </div>
+                )) : (
+                  <p className="text-xs text-slate-400 text-center py-4">Nessun contratto in scadenza</p>
+                )}
+              </div>
+            </div>
+
+            {/* Score Pulizie */}
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <h3 className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-cyan-600" />
+                Score Pulizie per Store
+              </h3>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {pulizieScores.length > 0 ? pulizieScores.map((ps, idx) => (
+                  <div key={idx} className="p-2 rounded-lg bg-cyan-50 border border-cyan-200">
+                    <div className="flex justify-between items-center mb-1">
+                      <p className="text-xs font-medium text-slate-700">{ps.storeName}</p>
+                      <span className="text-xs font-bold text-cyan-600">{ps.avgScore.toFixed(1)}</span>
+                    </div>
+                    {ps.topEmployee && (
+                      <p className="text-[10px] text-green-600">🏆 {ps.topEmployee.name}: {ps.topEmployee.score.toFixed(1)}</p>
+                    )}
+                    {ps.worstEmployee && (
+                      <p className="text-[10px] text-red-600">📉 {ps.worstEmployee.name}: {ps.worstEmployee.score.toFixed(1)}</p>
+                    )}
+                  </div>
+                )) : (
+                  <p className="text-xs text-slate-400 text-center py-4">Nessun dato pulizie</p>
+                )}
+              </div>
+            </div>
+
+            {/* Turni Liberi */}
+            <div className="neumorphic-pressed p-4 rounded-xl lg:col-span-2">
+              <h3 className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2">
+                <UserX className="w-4 h-4 text-red-600" />
+                Turni Liberi (Prossimi 14 giorni)
+                {turniLiberi.length > 0 && (
+                  <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{turniLiberi.length}</span>
+                )}
+              </h3>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {turniLiberi.length > 0 ? turniLiberi.map(t => {
+                  const store = stores.find(s => s.id === t.store_id);
+                  return (
+                    <div key={t.id} className="p-2 rounded-lg bg-red-50 border border-red-200 flex justify-between items-center">
+                      <div>
+                        <p className="text-xs font-medium text-slate-700">{store?.name || 'N/A'}</p>
+                        <p className="text-[10px] text-slate-600">{moment(t.data).format('DD/MM/YYYY')} • {t.ora_inizio}-{t.ora_fine} • {t.ruolo}</p>
+                      </div>
+                      <span className="text-xs text-red-600 font-bold whitespace-nowrap ml-2">NON ASSEGNATO</span>
+                    </div>
+                  );
+                }) : (
+                  <p className="text-xs text-slate-400 text-center py-4">Tutti i turni sono assegnati</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </NeumorphicCard>
+
+        <NeumorphicCard className="p-4 lg:p-6">
+          <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Trend Revenue</h2>
+          {processedData.dailyRevenue.length > 0 ? (
+            <div className="w-full overflow-x-auto">
+              <div style={{ minWidth: '300px' }}>
+                <ResponsiveContainer width="100%" height={250}>
+                  <LineChart data={processedData.dailyRevenue}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                    <XAxis 
+                      dataKey="date" 
+                      stroke="#64748b" 
+                      tick={{ fontSize: 12 }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis 
+                      stroke="#64748b"
+                      tick={{ fontSize: 12 }}
+                      width={60}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        background: 'rgba(248, 250, 252, 0.95)', 
+                        border: 'none',
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                        fontSize: '12px'
+                      }}
+                      formatter={(value) => `€${value.toFixed(2)}`}
+                    />
+                    <Legend wrapperStyle={{ fontSize: '12px' }} />
+                    <Line 
+                      type="monotone" 
+                      dataKey="revenue" 
+                      stroke="#3b82f6" 
+                      strokeWidth={2} 
+                      name="Revenue €"
+                      dot={{ fill: '#3b82f6', r: 3 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          ) : (
+            <div className="h-[250px] flex items-center justify-center text-slate-500">
+              Nessun dato disponibile per il periodo selezionato
+            </div>
+          )}
+        </NeumorphicCard>
       </div>
     </ProtectedPage>
   );
