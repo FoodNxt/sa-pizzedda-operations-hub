@@ -357,17 +357,36 @@ export default function Costi() {
                       }
                     });
 
-                    // Cerca commissione specifica per app + metodo
+                    // Trova moneyTypeName
+                    let moneyTypeName = null;
+                    const moneyTypeNameKey = key.replace('moneyType_', 'moneyTypeName_');
+                    if (record[moneyTypeNameKey]) {
+                      const mtn = record[moneyTypeNameKey].replace(/_/g, ' ');
+                      moneyTypeName = mtn.charAt(0).toUpperCase() + mtn.slice(1);
+                    }
+
+                    // Cerca commissione più specifica (app + money_type_name + metodo)
                     let commissioneApplicabile = commissioni.find(c => 
                       c.metodo_pagamento === metodoFormatted && 
-                      c.app_delivery === appDelivery
+                      c.app_delivery === appDelivery &&
+                      c.money_type_name === moneyTypeName
                     );
 
-                    // Altrimenti cerca commissione generale per metodo (senza app)
+                    // Altrimenti cerca per app + metodo (senza money_type_name)
                     if (!commissioneApplicabile) {
                       commissioneApplicabile = commissioni.find(c => 
                         c.metodo_pagamento === metodoFormatted && 
-                        !c.app_delivery
+                        c.app_delivery === appDelivery &&
+                        !c.money_type_name
+                      );
+                    }
+
+                    // Altrimenti cerca commissione generale per metodo (senza app e senza money_type_name)
+                    if (!commissioneApplicabile) {
+                      commissioneApplicabile = commissioni.find(c => 
+                        c.metodo_pagamento === metodoFormatted && 
+                        !c.app_delivery &&
+                        !c.money_type_name
                       );
                     }
 
@@ -607,13 +626,35 @@ export default function Costi() {
                                       if (!appDelivery) appDelivery = app.charAt(0).toUpperCase() + app.slice(1);
                                     }
                                   });
+
+                                  // Trova moneyTypeName
+                                  let moneyTypeName = null;
+                                  const moneyTypeNameKey = key.replace('moneyType_', 'moneyTypeName_');
+                                  if (record[moneyTypeNameKey]) {
+                                    const mtn = record[moneyTypeNameKey].replace(/_/g, ' ');
+                                    moneyTypeName = mtn.charAt(0).toUpperCase() + mtn.slice(1);
+                                  }
                                   
                                   // Verifica match app
                                   if (c.app_delivery && appDelivery !== c.app_delivery) return;
+                                  
+                                  // Verifica match money_type_name
+                                  if (c.money_type_name && moneyTypeName !== c.money_type_name) return;
+                                  
+                                  // Salta se esiste una commissione più specifica
                                   if (!c.app_delivery && appDelivery) {
-                                    // Verifica che non esista una commissione più specifica
                                     const hasSpecific = commissioni.find(cc => 
-                                      cc.metodo_pagamento === metodoFormatted && cc.app_delivery === appDelivery
+                                      cc.metodo_pagamento === metodoFormatted && 
+                                      cc.app_delivery === appDelivery &&
+                                      (!c.money_type_name || cc.money_type_name === moneyTypeName)
+                                    );
+                                    if (hasSpecific) return;
+                                  }
+                                  if (!c.money_type_name && moneyTypeName) {
+                                    const hasSpecific = commissioni.find(cc => 
+                                      cc.metodo_pagamento === metodoFormatted && 
+                                      cc.money_type_name === moneyTypeName &&
+                                      (!c.app_delivery || cc.app_delivery === appDelivery)
                                     );
                                     if (hasSpecific) return;
                                   }
@@ -627,7 +668,12 @@ export default function Costi() {
                             
                             return (
                               <div key={c.id} className="text-xs text-slate-500 flex justify-between">
-                                <span>{c.metodo_pagamento} {c.app_delivery && `(${c.app_delivery})`} - {c.percentuale}%</span>
+                                <span>
+                                  {c.metodo_pagamento} 
+                                  {c.app_delivery && ` (${c.app_delivery})`}
+                                  {c.money_type_name && ` [${c.money_type_name}]`}
+                                  {' '}- {c.percentuale}%
+                                </span>
                                 <span>{formatEuro(importoCommissione)}</span>
                               </div>
                             );
@@ -1205,6 +1251,33 @@ export default function Costi() {
                   <p className="text-xs text-slate-500 mt-1">Lascia vuoto per applicare a tutte le app</p>
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Money Type Name (opzionale)</label>
+                  <select
+                    value={formData.money_type_name || ''}
+                    onChange={(e) => setFormData({ ...formData, money_type_name: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                  >
+                    <option value="">Tutti i money types</option>
+                    {(() => {
+                      const moneyTypes = new Set();
+                      iPraticoData.forEach(record => {
+                        Object.keys(record).forEach(key => {
+                          if (key.startsWith('moneyTypeName_') && !key.endsWith('_orders')) {
+                            const moneyType = key.replace('moneyTypeName_', '').replace(/_/g, ' ');
+                            if (moneyType && moneyType !== 'undefined') {
+                              moneyTypes.add(moneyType.charAt(0).toUpperCase() + moneyType.slice(1));
+                            }
+                          }
+                        });
+                      });
+                      return Array.from(moneyTypes).sort().map(mt => (
+                        <option key={mt} value={mt}>{mt}</option>
+                      ));
+                    })()}
+                  </select>
+                  <p className="text-xs text-slate-500 mt-1">Lascia vuoto per applicare a tutti i money types</p>
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Percentuale Commissione (%)</label>
                   <input
                     type="number"
@@ -1240,6 +1313,11 @@ export default function Costi() {
                       {item.app_delivery && (
                         <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
                           {item.app_delivery}
+                        </span>
+                      )}
+                      {item.money_type_name && (
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                          {item.money_type_name}
                         </span>
                       )}
                     </div>
