@@ -473,7 +473,7 @@ export default function Dashboard() {
       .sort((a, b) => b.data.localeCompare(a.data));
   }, [stores, sprechi]);
 
-  // Alert operativi - Ordini suggeriti (logica OrdiniAdmin)
+  // Alert operativi - Ordini suggeriti (stessa logica di OrdiniAdmin)
   const ordiniDaFare = useMemo(() => {
     if (!inventario || !inventarioCantina || !materiePrime || !stores) return [];
     const ordiniSuggeriti = [];
@@ -481,14 +481,14 @@ export default function Dashboard() {
     const latestByProduct = {};
     
     allInventory.forEach(item => {
-      const key = `${item.store_id}-${item.materia_prima_id}`;
+      const key = `${item.store_id}-${item.prodotto_id}`;
       if (!latestByProduct[key] || new Date(item.data_rilevazione) > new Date(latestByProduct[key].data_rilevazione)) {
         latestByProduct[key] = item;
       }
     });
     
     Object.values(latestByProduct).forEach(reading => {
-      const product = materiePrime.find(p => p.id === reading.materia_prima_id);
+      const product = materiePrime.find(p => p.id === reading.prodotto_id);
       if (!product) return;
       
       const store = stores.find(s => s.id === reading.store_id);
@@ -506,16 +506,16 @@ export default function Dashboard() {
       const quantitaCritica = product.store_specific_quantita_critica?.[reading.store_id] || product.quantita_critica || product.quantita_minima || 0;
       const quantitaOrdine = product.store_specific_quantita_ordine?.[reading.store_id] || product.quantita_ordine || 0;
       
-      if ((reading.quantita || 0) <= quantitaCritica && quantitaOrdine > 0) {
+      if (reading.quantita_rilevata <= quantitaCritica && quantitaOrdine > 0) {
         ordiniSuggeriti.push({
           store: store.name,
           storeId: store.id,
-          materia: product.nome_prodotto,
-          materiaId: reading.materia_prima_id,
-          quantitaAttuale: reading.quantita || 0,
+          materia: reading.nome_prodotto,
+          materiaId: reading.prodotto_id,
+          quantitaAttuale: reading.quantita_rilevata,
           quantitaMinima: quantitaCritica,
           quantitaDaOrdinare: quantitaOrdine,
-          unitaMisura: reading.unita_misura || product.unita_misura || 'kg',
+          unitaMisura: reading.unita_misura,
           fornitore: product.fornitore || 'Non specificato'
         });
       }
