@@ -331,9 +331,16 @@ const navigationStructure = [
         url: createPageUrl("Straordinari"),
         icon: Clock,
         requiredUserType: ["admin"]
-      }
-      ]
       },
+      {
+        title: "Uscite",
+        page: "Uscite",
+        url: createPageUrl("Uscite"),
+        icon: AlertTriangle,
+        requiredUserType: ["admin"]
+      }
+       ]
+       },
   {
     title: "Pulizie",
     icon: Zap,
