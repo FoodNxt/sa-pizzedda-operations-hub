@@ -56,26 +56,45 @@ export default function PlandayStoreView({
   }, [weekStart]);
 
   const dipendentiConTurni = useMemo(() => {
-    // Mostra TUTTI i dipendenti che hanno turni nella settimana corrente
-    const dipendentiIds = new Set(turni.filter(t => t.dipendente_id).map(t => t.dipendente_id));
+    // Raggruppa per nome dipendente (già salvato nel turno)
+    const dipendentiMap = new Map();
     
-    // Se c'è uno store selezionato, aggiungi anche i dipendenti assegnati a quello store
+    turni.forEach(turno => {
+      if (turno.dipendente_nome) {
+        const key = turno.dipendente_id || turno.dipendente_nome;
+        if (!dipendentiMap.has(key)) {
+          dipendentiMap.set(key, {
+            id: turno.dipendente_id || turno.dipendente_nome,
+            nome_cognome: turno.dipendente_nome,
+            full_name: turno.dipendente_nome,
+            turniSettimana: []
+          });
+        }
+        dipendentiMap.get(key).turniSettimana.push(turno);
+      }
+    });
+    
+    // Aggiungi dipendenti dello store anche se non hanno turni
     if (selectedStore) {
       const storeName = stores.find(s => s.id === selectedStore)?.name;
       if (storeName) {
         users.filter(u => {
           const assigned = u.assigned_stores || [];
           return assigned.includes(storeName);
-        }).forEach(u => dipendentiIds.add(u.id));
+        }).forEach(u => {
+          if (!dipendentiMap.has(u.id)) {
+            dipendentiMap.set(u.id, {
+              ...u,
+              turniSettimana: []
+            });
+          }
+        });
       }
     }
     
-    const dipendentiList = users.filter(u => dipendentiIds.has(u.id));
-    
-    return dipendentiList.map(u => ({
-      ...u,
-      turniSettimana: turni.filter(t => t.dipendente_id === u.id)
-    }));
+    return Array.from(dipendentiMap.values()).sort((a, b) => 
+      (a.nome_cognome || '').localeCompare(b.nome_cognome || '')
+    );
   }, [turni, users, selectedStore, stores]);
 
   const turniByDipendente = useMemo(() => {
