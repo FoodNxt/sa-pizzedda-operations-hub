@@ -35,6 +35,11 @@ export default function OverviewContratti() {
     queryFn: () => base44.entities.ContrattoTemplate.filter({ attivo: true }),
   });
 
+  const { data: uscite = [] } = useQuery({
+    queryKey: ['uscite'],
+    queryFn: () => base44.entities.Uscita.list(),
+  });
+
   const createContractMutation = useMutation({
     mutationFn: (contractData) => base44.entities.Contratto.create(contractData),
     onSuccess: () => {
@@ -94,7 +99,9 @@ export default function OverviewContratti() {
         dataFine = null;
       }
 
-      const giorniRimanenti = dataFine ? Math.ceil((dataFine - oggi) / (1000 * 60 * 60 * 24)) : null;
+      // Check if employee has exit record
+      const uscita = uscite.find(u => u.dipendente_id === userId);
+      const giorniRimanenti = uscita ? null : (dataFine ? Math.ceil((dataFine - oggi) / (1000 * 60 * 60 * 24)) : null);
 
       // Calculate tenure from first contract
       const primoContratto = userContracts.sort((a, b) => 
@@ -116,7 +123,8 @@ export default function OverviewContratti() {
         ruoli: (currentContract.ruoli_dipendente || []).join(', ') || currentContract.function_name || 'N/A',
         tenure_mesi: mesiTenure,
         tutti_contratti: sortedContracts,
-        ore_settimanali: userData?.ore_settimanali ?? currentContract.ore_settimanali ?? 0
+        ore_settimanali: userData?.ore_settimanali ?? currentContract.ore_settimanali ?? 0,
+        uscita: uscite.find(u => u.dipendente_id === userId)
       };
     }).sort((a, b) => {
       let aVal = a[sortField];
@@ -266,13 +274,14 @@ export default function OverviewContratti() {
 
   const stats = useMemo(() => {
     const totale = dipendentiConContratti.length;
-    const inScadenza30 = dipendentiConContratti.filter(d => d.giorni_rimanenti !== null && d.giorni_rimanenti <= 30 && d.giorni_rimanenti >= 0).length;
-    const scaduti = dipendentiConContratti.filter(d => d.giorni_rimanenti !== null && d.giorni_rimanenti < 0).length;
+    const usciti = dipendentiConContratti.filter(d => d.uscita).length;
+    const inScadenza30 = dipendentiConContratti.filter(d => !d.uscita && d.giorni_rimanenti !== null && d.giorni_rimanenti <= 30 && d.giorni_rimanenti >= 0).length;
+    const scaduti = dipendentiConContratti.filter(d => !d.uscita && d.giorni_rimanenti !== null && d.giorni_rimanenti < 0).length;
     const fullTime = dipendentiConContratti.filter(d => d.employee_group === 'FT').length;
     const partTime = dipendentiConContratti.filter(d => d.employee_group === 'PT').length;
     const senzaContratto = dipendentiSenzaContratto.length;
     
-    return { totale, inScadenza30, scaduti, fullTime, partTime, senzaContratto };
+    return { totale, inScadenza30, scaduti, fullTime, partTime, senzaContratto, usciti };
   }, [dipendentiConContratti, dipendentiSenzaContratto]);
 
   return (
@@ -302,8 +311,8 @@ export default function OverviewContratti() {
 
           <NeumorphicCard className="p-4 text-center">
             <AlertTriangle className="w-8 h-8 text-red-600 mx-auto mb-2" />
-            <p className="text-2xl font-bold text-red-700">{stats.scaduti}</p>
-            <p className="text-xs text-slate-500">Scaduti</p>
+            <p className="text-2xl font-bold text-red-700">{stats.usciti}</p>
+            <p className="text-xs text-slate-500">Usciti</p>
           </NeumorphicCard>
 
           <NeumorphicCard className="p-4 text-center">
@@ -409,14 +418,15 @@ export default function OverviewContratti() {
                 </thead>
                 <tbody>
                   {dipendentiConContratti.map(dip => {
-                    const isScaduto = dip.giorni_rimanenti !== null && dip.giorni_rimanenti < 0;
-                    const isInScadenza = dip.giorni_rimanenti !== null && dip.giorni_rimanenti >= 0 && dip.giorni_rimanenti <= 30;
+                    const hasUscita = !!dip.uscita;
+                    const isScaduto = !hasUscita && dip.giorni_rimanenti !== null && dip.giorni_rimanenti < 0;
+                    const isInScadenza = !hasUscita && dip.giorni_rimanenti !== null && dip.giorni_rimanenti >= 0 && dip.giorni_rimanenti <= 30;
                     
                     return (
                       <tr 
                         key={dip.id} 
                         className={`border-b border-slate-100 hover:bg-slate-50 ${
-                          isScaduto ? 'bg-red-50' : isInScadenza ? 'bg-orange-50' : ''
+                          hasUscita ? 'bg-red-100' : isScaduto ? 'bg-red-50' : isInScadenza ? 'bg-orange-50' : ''
                         }`}
                       >
                         <td className="py-3 px-2 font-medium text-slate-800">
@@ -448,10 +458,27 @@ export default function OverviewContratti() {
                           {dip.data_inizio ? moment(dip.data_inizio).format('DD/MM/YYYY') : 'N/A'}
                         </td>
                         <td className="py-3 px-2 text-center text-slate-700">
-                          {dip.data_fine ? moment(dip.data_fine).format('DD/MM/YYYY') : 'N/A'}
+                          {hasUscita ? (
+                            <span className="text-red-600 font-bold">
+                              {moment(dip.uscita.data_uscita).format('DD/MM/YYYY')}
+                            </span>
+                          ) : dip.data_fine ? (
+                            moment(dip.data_fine).format('DD/MM/YYYY')
+                          ) : (
+                            'N/A'
+                          )}
                         </td>
                         <td className="py-3 px-2 text-center">
-                          {dip.durata_contratto === 'Indeterminato' ? (
+                          {hasUscita ? (
+                            <div className="flex flex-col items-center gap-1">
+                              <span className="px-2 py-1 bg-red-600 text-white rounded-full text-xs font-bold">
+                                {dip.uscita.tipo_uscita === 'licenziamento' ? '❌ LICENZIATO' : '📤 DIMESSO'}
+                              </span>
+                              <span className="text-xs text-red-600 font-medium">
+                                {moment(dip.uscita.data_uscita).format('DD/MM/YYYY')}
+                              </span>
+                            </div>
+                          ) : dip.durata_contratto === 'Indeterminato' ? (
                             <span className="text-slate-400">-</span>
                           ) : dip.giorni_rimanenti !== null ? (
                             <span className={`font-bold ${

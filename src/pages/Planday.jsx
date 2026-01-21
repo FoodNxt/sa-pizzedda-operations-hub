@@ -225,6 +225,11 @@ export default function Planday() {
     queryFn: () => base44.entities.Candidato.filter({ stato: { $in: ['nuovo', 'in_valutazione', 'prova_programmata'] } }),
   });
 
+  const { data: uscite = [] } = useQuery({
+    queryKey: ['uscite'],
+    queryFn: () => base44.entities.Uscita.list(),
+  });
+
   // Carica TUTTE le disponibilità (non filtrate) per verifiche nel form
   const { data: tutteDisponibilita = [] } = useQuery({
     queryKey: ['tutte-disponibilita'],
@@ -1079,18 +1084,28 @@ export default function Planday() {
     });
   };
 
-  // Tutti i dipendenti assegnati allo store selezionato
+  // Tutti i dipendenti assegnati allo store selezionato, escludendo quelli con uscita
   const dipendentiPerStore = useMemo(() => {
-    if (!turnoForm.store_id) return users.filter(u => u.ruoli_dipendente?.length > 0);
+    const baseFilter = turnoForm.store_id 
+      ? users.filter(u => {
+          const assignedStores = u.assigned_stores || [];
+          if (assignedStores.length === 0) return u.ruoli_dipendente?.length > 0;
+          return assignedStores.includes(turnoForm.store_id) && u.ruoli_dipendente?.length > 0;
+        })
+      : users.filter(u => u.ruoli_dipendente?.length > 0);
     
-    return users.filter(u => {
-      const assignedStores = u.assigned_stores || [];
-      // Se il dipendente non ha store assegnati, mostralo comunque (per retrocompatibilità)
-      if (assignedStores.length === 0) return u.ruoli_dipendente?.length > 0;
-      // Altrimenti verifica che sia assegnato allo store del turno
-      return assignedStores.includes(turnoForm.store_id) && u.ruoli_dipendente?.length > 0;
+    // Escludi dipendenti con uscita registrata PRIMA o NELLA data del turno
+    return baseFilter.filter(u => {
+      const uscita = uscite.find(usc => usc.dipendente_id === u.id);
+      if (!uscita || !turnoForm.data) return true;
+      
+      const dataUscita = moment(uscita.data_uscita);
+      const dataTurno = moment(turnoForm.data);
+      
+      // Escludi se la data turno è uguale o dopo la data uscita
+      return dataTurno.isBefore(dataUscita);
     });
-  }, [users, turnoForm.store_id]);
+  }, [users, turnoForm.store_id, turnoForm.data, uscite]);
 
   // Verifica se un dipendente può essere assegnato al ruolo del turno
   const canAssignToRole = (user, role) => {
