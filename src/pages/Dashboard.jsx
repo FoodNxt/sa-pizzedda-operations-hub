@@ -251,6 +251,7 @@ export default function Dashboard() {
   }, [stores, processedData.foodCostByStore]);
 
   const employeePerformance = useMemo(() => {
+    const totalEmployees = allUsers.filter(u => u.user_type === 'user' && u.ruoli_dipendente?.length > 0).length;
     const employeeScores = allUsers
       .filter(u => u.user_type === 'user' && u.ruoli_dipendente?.length > 0)
       .map(emp => {
@@ -262,7 +263,7 @@ export default function Dashboard() {
       })
       .filter(e => e.reviewCount > 0)
       .sort((a, b) => b.score - a.score);
-    return { top: employeeScores[0], worst: employeeScores[employeeScores.length - 1], total: allUsers.filter(u => u.user_type === 'user' && u.ruoli_dipendente?.length > 0).length };
+    return { top: employeeScores[0], worst: employeeScores[employeeScores.length - 1], total: totalEmployees };
   }, [allUsers, reviews]);
 
   const produttivitaStats = useMemo(() => {
@@ -277,48 +278,51 @@ export default function Dashboard() {
   }, [stores, processedData.produttivitaByStore]);
 
   const googleMapsStats = useMemo(() => {
-    const reviewsByStore = stores.map(s => ({
-      name: s.name,
-      count: reviews.filter(r => r.store_id === s.id).length,
-      avgRating: reviews.filter(r => r.store_id === s.id).reduce((sum, r) => sum + r.rating, 0) / (reviews.filter(r => r.store_id === s.id).length || 1)
-    })).sort((a, b) => b.count - a.count);
-    
+    let cutoffDate, endFilterDate;
+    if (startDate || endDate) {
+      cutoffDate = startDate ? safeParseDate(startDate) : new Date(0);
+      endFilterDate = endDate ? safeParseDate(endDate) : new Date();
+    } else {
+      const days = parseInt(dateRange);
+      cutoffDate = subDays(new Date(), days);
+      endFilterDate = new Date();
+    }
+
+    const filteredReviews = reviews.filter(r => {
+      if (!r.inspection_date) return false;
+      const itemDate = safeParseDate(r.inspection_date);
+      if (!itemDate) return false;
+      if (cutoffDate && isBefore(itemDate, cutoffDate)) return false;
+      if (endFilterDate && isAfter(itemDate, endFilterDate)) return false;
+      return true;
+    });
+
     const reviewsByEmployee = allUsers
       .filter(u => u.user_type === 'user')
       .map(emp => ({
         name: emp.nome_cognome || emp.full_name,
-        count: reviews.filter(r => r.responsabile_id === emp.id || r.employee_id === emp.id).length
+        count: filteredReviews.filter(r => r.responsabile_id === emp.id || r.employee_id === emp.id).length
       }))
-      .filter(e => e.count > 0)
       .sort((a, b) => b.count - a.count);
-
-    const avgRatingByStore = stores.map(s => ({
-      name: s.name,
-      rating: reviews.filter(r => r.store_id === s.id).reduce((sum, r) => sum + r.rating, 0) / (reviews.filter(r => r.store_id === s.id).length || 1)
-    })).filter(s => s.rating > 0).sort((a, b) => b.rating - a.rating);
 
     const avgRatingByEmployee = allUsers
       .filter(u => u.user_type === 'user')
       .map(emp => ({
         name: emp.nome_cognome || emp.full_name,
-        rating: reviews.filter(r => r.responsabile_id === emp.id || r.employee_id === emp.id).reduce((sum, r) => sum + r.rating, 0) / (reviews.filter(r => r.responsabile_id === emp.id || r.employee_id === emp.id).length || 1)
+        rating: filteredReviews.filter(r => r.responsabile_id === emp.id || r.employee_id === emp.id).reduce((sum, r) => sum + (r.rating || 0), 0) / (filteredReviews.filter(r => r.responsabile_id === emp.id || r.employee_id === emp.id).length || 1)
       }))
       .filter(e => e.rating > 0)
       .sort((a, b) => b.rating - a.rating);
 
     return {
-      totalReviews: reviews.length,
-      bestStoreCount: reviewsByStore[0],
-      worstStoreCount: reviewsByStore[reviewsByStore.length - 1],
+      totalReviews: filteredReviews.length,
       bestEmployeeCount: reviewsByEmployee[0],
       worstEmployeeCount: reviewsByEmployee[reviewsByEmployee.length - 1],
-      avgScore: reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0,
-      bestStoreScore: avgRatingByStore[0],
-      worstStoreScore: avgRatingByStore[avgRatingByStore.length - 1],
+      avgScore: filteredReviews.length > 0 ? filteredReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / filteredReviews.length : 0,
       bestEmployeeScore: avgRatingByEmployee[0],
       worstEmployeeScore: avgRatingByEmployee[avgRatingByEmployee.length - 1]
     };
-  }, [stores, reviews, allUsers]);
+  }, [reviews, allUsers, dateRange, startDate, endDate]);
 
   // Metriche operative
   const cassaStats = useMemo(() => {
@@ -339,15 +343,12 @@ export default function Dashboard() {
 
   const sprechiStats = useMemo(() => {
     const last30Days = moment().subtract(30, 'days').format('YYYY-MM-DD');
-    const sprechiRecenti = sprechi.filter(s => s.data >= last30Days);
+    const sprechiRecenti = sprechi.filter(s => s.data && s.data >= last30Days);
     
-    const sprechiByStore = stores.map(store => {
-      const storeSprechi = sprechiRecenti.filter(s => s.store_id === store.id);
-      const totaleSprechi = storeSprechi.reduce((sum, s) => sum + (s.valore_euro || 0), 0);
-      return { storeName: store.name, totale: totaleSprechi };
-    }).filter(s => s.totale > 0).sort((a, b) => b.totale - a.totale);
-    
-    return sprechiByStore;
+    return sprechiRecenti.map(s => ({
+      storeName: (stores.find(st => st.id === s.store_id)?.name || 'N/A'),
+      totale: s.valore_euro || 0
+    })).sort((a, b) => b.totale - a.totale);
   }, [stores, sprechi]);
 
   // Alert operativi
@@ -668,12 +669,12 @@ export default function Dashboard() {
             </div>
             <div className="space-y-1 text-xs">
               <div className="flex justify-between items-center">
-                <span className="text-green-600">🏆 {googleMapsStats.bestStoreCount?.name || 'N/A'}</span>
-                <span className="font-medium">{googleMapsStats.bestStoreCount?.count || 0}</span>
+                <span className="text-green-600">🏆 {googleMapsStats.bestEmployeeCount?.name || 'N/A'}</span>
+                <span className="font-medium">{googleMapsStats.bestEmployeeCount?.count || 0}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-600">👤 {googleMapsStats.bestEmployeeCount?.name || 'N/A'}</span>
-                <span className="font-medium">{googleMapsStats.bestEmployeeCount?.count || 0}</span>
+                <span className="text-red-600">📉 {googleMapsStats.worstEmployeeCount?.name || 'N/A'}</span>
+                <span className="font-medium">{googleMapsStats.worstEmployeeCount?.count || 0}</span>
               </div>
             </div>
           </NeumorphicCard>
@@ -691,12 +692,12 @@ export default function Dashboard() {
             </div>
             <div className="space-y-1 text-xs">
               <div className="flex justify-between items-center">
-                <span className="text-green-600">🏆 {googleMapsStats.bestStoreScore?.name || 'N/A'}</span>
-                <span className="font-medium">{googleMapsStats.bestStoreScore?.rating.toFixed(1)} ⭐</span>
+                <span className="text-green-600">🏆 {googleMapsStats.bestEmployeeScore?.name || 'N/A'}</span>
+                <span className="font-medium">{googleMapsStats.bestEmployeeScore?.rating.toFixed(1)} ⭐</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-600">👤 {googleMapsStats.bestEmployeeScore?.name || 'N/A'}</span>
-                <span className="font-medium">{googleMapsStats.bestEmployeeScore?.rating.toFixed(1)} ⭐</span>
+                <span className="text-red-600">📉 {googleMapsStats.worstEmployeeScore?.name || 'N/A'}</span>
+                <span className="font-medium">{googleMapsStats.worstEmployeeScore?.rating.toFixed(1) || 0} ⭐</span>
               </div>
             </div>
           </NeumorphicCard>
@@ -714,7 +715,7 @@ export default function Dashboard() {
             <div className="neumorphic-pressed p-4 rounded-xl">
               <h3 className="font-bold text-slate-700 mb-3 text-sm">Ultima Rilevazione Cassa</h3>
               <div className="space-y-2 max-h-64 overflow-y-auto">
-                {cassaStats.map((cassa, idx) => (
+                {cassaStats.length > 0 ? cassaStats.map((cassa, idx) => (
                   <div key={idx} className={`p-2 rounded-lg ${cassa.hasAlert ? 'bg-red-50' : 'bg-slate-50'}`}>
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-medium text-slate-700">{cassa.storeName}</span>
@@ -729,7 +730,9 @@ export default function Dashboard() {
                       <p className="text-[10px] text-red-600 mt-1">⚠️ Sopra soglia alert</p>
                     )}
                   </div>
-                ))}
+                )) : (
+                  <p className="text-xs text-slate-400 text-center py-4">Nessun conteggio cassa registrato</p>
+                )}
               </div>
             </div>
 
