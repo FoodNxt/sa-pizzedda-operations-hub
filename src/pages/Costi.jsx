@@ -175,12 +175,20 @@ export default function Costi() {
       alert('Compila tutti i campi obbligatori (Nome, Costo e Periodo)');
       return;
     }
+    if (activeTab === 'subscriptions' && formData.assegnazione === 'singolo' && !formData.store_id) {
+      alert('Seleziona un locale per la subscription');
+      return;
+    }
     if (activeTab === 'commissioni' && (!formData.metodo_pagamento || !formData.percentuale)) {
       alert('Compila tutti i campi obbligatori (Metodo e Percentuale)');
       return;
     }
     if (activeTab === 'ads' && (!formData.piattaforma || !formData.budget_mensile)) {
       alert('Compila tutti i campi obbligatori (Piattaforma e Budget)');
+      return;
+    }
+    if (activeTab === 'ads' && formData.assegnazione === 'singolo' && !formData.store_id) {
+      alert('Seleziona un locale per gli Ads');
       return;
     }
 
@@ -305,12 +313,27 @@ export default function Costi() {
               }, 0);
 
               // Subscriptions (calcolate mensilmente con pro rata)
+              const numStores = stores.length;
               const costoSubscriptions = subscriptions
                 .filter(s => s.periodo === 'mensile')
-                .reduce((sum, s) => sum + (s.costo || 0), 0) * proRata;
+                .reduce((sum, s) => {
+                  if (s.assegnazione === 'singolo' && s.store_id === storeId) {
+                    return sum + (s.costo || 0);
+                  } else if (s.assegnazione === 'tutti') {
+                    return sum + ((s.costo || 0) / numStores);
+                  }
+                  return sum;
+                }, 0) * proRata;
               const costoSubscriptionsAnnuali = subscriptions
                 .filter(s => s.periodo === 'annuale')
-                .reduce((sum, s) => sum + ((s.costo || 0) / 12), 0) * proRata;
+                .reduce((sum, s) => {
+                  if (s.assegnazione === 'singolo' && s.store_id === storeId) {
+                    return sum + ((s.costo || 0) / 12);
+                  } else if (s.assegnazione === 'tutti') {
+                    return sum + ((s.costo || 0) / 12 / numStores);
+                  }
+                  return sum;
+                }, 0) * proRata;
               const totaleSubscriptions = costoSubscriptions + costoSubscriptionsAnnuali;
 
               // Commissioni (calcolate sui pagamenti iPratico)
@@ -357,7 +380,14 @@ export default function Costi() {
               }, 0);
 
               // Ads (budget mensile con pro rata)
-              const costoAds = budgetAds.reduce((sum, b) => sum + (b.budget_mensile || 0), 0) * proRata;
+              const costoAds = budgetAds.reduce((sum, b) => {
+                if (b.assegnazione === 'singolo' && b.store_id === storeId) {
+                  return sum + (b.budget_mensile || 0);
+                } else if (b.assegnazione === 'tutti') {
+                  return sum + ((b.budget_mensile || 0) / numStores);
+                }
+                return sum;
+              }, 0) * proRata;
 
               // Totali
               const totCosti = costoAffitto + costoUtenze + costoMateriePrime + costoPersonale + totaleSubscriptions + costoCommissioni + costoAds;
@@ -493,14 +523,23 @@ export default function Costi() {
                         <span className="font-medium text-slate-800">{formatEuro(totaleSubscriptions)}</span>
                       </button>
                       {expandedDetails[`${storeId}-subscriptions`] && subscriptions.length > 0 && (
-                        <div className="pl-6 pb-2 space-y-1">
-                          {subscriptions.map(s => (
-                            <div key={s.id} className="text-xs text-slate-500 flex justify-between">
-                              <span>{s.nome} ({s.periodo})</span>
-                              <span>{formatEuro(s.periodo === 'annuale' ? s.costo / 12 : s.costo)}</span>
-                            </div>
-                          ))}
-                        </div>
+                       <div className="pl-6 pb-2 space-y-1">
+                         {subscriptions
+                           .filter(s => s.assegnazione === 'tutti' || (s.assegnazione === 'singolo' && s.store_id === storeId))
+                           .map(s => {
+                             const costoBase = s.periodo === 'annuale' ? s.costo / 12 : s.costo;
+                             const costoFinale = s.assegnazione === 'tutti' ? costoBase / numStores : costoBase;
+                             return (
+                               <div key={s.id} className="text-xs text-slate-500 flex justify-between">
+                                 <span>
+                                   {s.nome} ({s.periodo})
+                                   {s.assegnazione === 'tutti' && <span className="ml-1 text-blue-600">÷{numStores}</span>}
+                                 </span>
+                                 <span>{formatEuro(costoFinale)}</span>
+                               </div>
+                             );
+                           })}
+                       </div>
                       )}
                     </div>
 
@@ -540,14 +579,22 @@ export default function Costi() {
                         <span className="font-medium text-slate-800">{formatEuro(costoAds)}</span>
                       </button>
                       {expandedDetails[`${storeId}-ads`] && budgetAds.length > 0 && (
-                        <div className="pl-6 pb-2 space-y-1">
-                          {budgetAds.map(b => (
-                            <div key={b.id} className="text-xs text-slate-500 flex justify-between">
-                              <span>{b.piattaforma}</span>
-                              <span>{formatEuro(b.budget_mensile)}</span>
-                            </div>
-                          ))}
-                        </div>
+                       <div className="pl-6 pb-2 space-y-1">
+                         {budgetAds
+                           .filter(b => b.assegnazione === 'tutti' || (b.assegnazione === 'singolo' && b.store_id === storeId))
+                           .map(b => {
+                             const costoFinale = b.assegnazione === 'tutti' ? b.budget_mensile / numStores : b.budget_mensile;
+                             return (
+                               <div key={b.id} className="text-xs text-slate-500 flex justify-between">
+                                 <span>
+                                   {b.piattaforma}
+                                   {b.assegnazione === 'tutti' && <span className="ml-1 text-blue-600">÷{numStores}</span>}
+                                 </span>
+                                 <span>{formatEuro(costoFinale)}</span>
+                               </div>
+                             );
+                           })}
+                       </div>
                       )}
                     </div>
                   </div>
@@ -927,6 +974,38 @@ export default function Costi() {
                   </select>
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Assegnazione</label>
+                  <select
+                    value={formData.assegnazione || 'tutti'}
+                    onChange={(e) => setFormData({ ...formData, assegnazione: e.target.value, store_id: '', store_name: '' })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                  >
+                    <option value="tutti">Tutti i locali (costo diviso)</option>
+                    <option value="singolo">Singolo locale</option>
+                  </select>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {formData.assegnazione === 'tutti' ? 'Il costo verrà diviso equamente tra tutti i locali' : 'Il costo verrà assegnato solo al locale selezionato'}
+                  </p>
+                </div>
+                {formData.assegnazione === 'singolo' && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Locale</label>
+                    <select
+                      value={formData.store_id || ''}
+                      onChange={(e) => {
+                        const store = stores.find(s => s.id === e.target.value);
+                        setFormData({ ...formData, store_id: e.target.value, store_name: store?.name });
+                      }}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    >
+                      <option value="">Seleziona locale</option>
+                      {stores.map(store => (
+                        <option key={store.id} value={store.id}>{store.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Note</label>
                   <textarea
                     value={formData.note || ''}
@@ -946,8 +1025,22 @@ export default function Costi() {
               {subscriptions.map(item => (
                 <div key={item.id} className="neumorphic-flat p-4 rounded-xl flex items-center justify-between">
                   <div>
-                    <p className="font-bold text-slate-800">{item.nome}</p>
-                    <p className="text-sm text-slate-600">{formatEuro(item.costo)}/{item.periodo}</p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-bold text-slate-800">{item.nome}</p>
+                      {item.assegnazione === 'tutti' ? (
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                          Tutti i locali
+                        </span>
+                      ) : (
+                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                          {item.store_name}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-slate-600">
+                      {formatEuro(item.costo)}/{item.periodo}
+                      {item.assegnazione === 'tutti' && <span className="text-blue-600 ml-1">(÷{stores.length} locali)</span>}
+                    </p>
                     {item.note && <p className="text-xs text-slate-500 mt-1">{item.note}</p>}
                   </div>
                   <div className="flex gap-2">
@@ -1137,6 +1230,38 @@ export default function Costi() {
                   />
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Assegnazione</label>
+                  <select
+                    value={formData.assegnazione || 'tutti'}
+                    onChange={(e) => setFormData({ ...formData, assegnazione: e.target.value, store_id: '', store_name: '' })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                  >
+                    <option value="tutti">Tutti i locali (budget diviso)</option>
+                    <option value="singolo">Singolo locale</option>
+                  </select>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {formData.assegnazione === 'tutti' ? 'Il budget verrà diviso equamente tra tutti i locali' : 'Il budget verrà assegnato solo al locale selezionato'}
+                  </p>
+                </div>
+                {formData.assegnazione === 'singolo' && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Locale</label>
+                    <select
+                      value={formData.store_id || ''}
+                      onChange={(e) => {
+                        const store = stores.find(s => s.id === e.target.value);
+                        setFormData({ ...formData, store_id: e.target.value, store_name: store?.name });
+                      }}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    >
+                      <option value="">Seleziona locale</option>
+                      {stores.map(store => (
+                        <option key={store.id} value={store.id}>{store.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Note</label>
                   <textarea
                     value={formData.note || ''}
@@ -1156,8 +1281,22 @@ export default function Costi() {
               {budgetAds.map(item => (
                 <div key={item.id} className="neumorphic-flat p-4 rounded-xl flex items-center justify-between">
                   <div>
-                    <p className="font-bold text-slate-800">{item.piattaforma}</p>
-                    <p className="text-sm text-slate-600">{formatEuro(item.budget_mensile)}/mese</p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-bold text-slate-800">{item.piattaforma}</p>
+                      {item.assegnazione === 'tutti' ? (
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                          Tutti i locali
+                        </span>
+                      ) : (
+                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                          {item.store_name}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-slate-600">
+                      {formatEuro(item.budget_mensile)}/mese
+                      {item.assegnazione === 'tutti' && <span className="text-blue-600 ml-1">(÷{stores.length} locali)</span>}
+                    </p>
                     {item.note && <p className="text-xs text-slate-500 mt-1">{item.note}</p>}
                   </div>
                   <div className="flex gap-2">
