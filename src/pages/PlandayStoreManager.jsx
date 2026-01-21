@@ -68,25 +68,25 @@ export default function PlandayStoreManager() {
     }
   }, [myStores, selectedStore]);
 
-  const { data: allUsers = [] } = useQuery({
-    queryKey: ['users-store-manager'],
+  const { data: allEmployees = [] } = useQuery({
+    queryKey: ['employees-store-manager'],
     queryFn: async () => {
-      const allUsersData = await base44.entities.User.list();
-      return allUsersData.filter(u => u.user_type === 'dipendente');
+      const employees = await base44.entities.Employee.list();
+      return employees.filter(e => e.status === 'active');
     }
   });
 
-  // Use users directly from User entity - assigned_stores is already there
+  // Map employees to users format for compatibility
   const users = useMemo(() => {
-    return allUsers.map(user => ({
-      id: user.id,
-      nome_cognome: user.nome_cognome || user.full_name,
-      full_name: user.full_name || user.nome_cognome,
-      email: user.email,
-      ruoli_dipendente: user.ruoli_dipendente || [],
-      assigned_stores: user.assigned_stores || []
+    return allEmployees.map(emp => ({
+      id: emp.id,
+      nome_cognome: emp.full_name,
+      full_name: emp.full_name,
+      email: emp.email,
+      ruoli_dipendente: emp.function_name ? [emp.function_name] : [],
+      assigned_stores: emp.assigned_stores || []
     }));
-  }, [allUsers]);
+  }, [allEmployees]);
 
   const { data: turni = [], isLoading } = useQuery({
     queryKey: ['turni-store-manager', selectedStore, weekStart.format('YYYY-MM-DD')],
