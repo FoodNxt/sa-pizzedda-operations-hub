@@ -83,7 +83,22 @@ export default function PlandayStoreView({
           const assigned = u.assigned_stores || [];
           return assigned.includes(storeName);
         }).forEach(u => {
-          if (!dipendentiMap.has(u.id)) {
+          // Controlla se già esiste per ID o per nome
+          const nomeUser = (u.nome_cognome || u.full_name || '').trim().toLowerCase();
+          let exists = dipendentiMap.has(u.id);
+          
+          if (!exists && nomeUser) {
+            // Controlla se esiste già con lo stesso nome
+            for (const [key, dip] of dipendentiMap.entries()) {
+              const nomeDip = (dip.nome_cognome || dip.full_name || '').trim().toLowerCase();
+              if (nomeDip === nomeUser) {
+                exists = true;
+                break;
+              }
+            }
+          }
+          
+          if (!exists) {
             dipendentiMap.set(u.id, {
               ...u,
               turniSettimana: []
