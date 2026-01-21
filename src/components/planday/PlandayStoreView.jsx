@@ -146,14 +146,27 @@ export default function PlandayStoreView({
   const handleTurnoClick = (e, turno) => {
     e.stopPropagation();
     setSelectedTurno(turno);
-    setQuickAddPopup({ day: turno.data, dipendenteId: turno.dipendente_id });
+    
+    // Trova l'ID del dipendente per nome se non c'è l'ID o se l'ID non matcha
+    let dipendenteId = turno.dipendente_id || '';
+    if (turno.dipendente_nome && !users.find(u => u.id === turno.dipendente_id)) {
+      const foundUser = users.find(u => 
+        u.nome_cognome === turno.dipendente_nome || 
+        u.full_name === turno.dipendente_nome
+      );
+      if (foundUser) {
+        dipendenteId = foundUser.id;
+      }
+    }
+    
+    setQuickAddPopup({ day: turno.data, dipendenteId });
     setQuickForm({
       store_id: turno.store_id,
       ruolo: turno.ruolo,
       ora_inizio: turno.ora_inizio,
       ora_fine: turno.ora_fine,
       tipo_turno: turno.tipo_turno || 'Normale',
-      dipendente_id: turno.dipendente_id || '',
+      dipendente_id: dipendenteId,
       is_prova: turno.is_prova || false,
       candidato_id: turno.candidato_id || ''
     });
