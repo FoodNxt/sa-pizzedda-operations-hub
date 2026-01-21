@@ -89,15 +89,25 @@ export default function Dashboard() {
     queryFn: () => base44.entities.MetricWeight.list(),
   });
 
-  const { data: richiesteAssenze = [] } = useQuery({
+  const { data: richiesteAssenze = { ferie: [], malattie: [], turniLiberi: [], scambi: [] } } = useQuery({
     queryKey: ['richieste-assenze'],
     queryFn: async () => {
-      const [ferie, malattie, turniLiberi] = await Promise.all([
-        base44.entities.RichiestaFerie.filter({ stato: 'pending' }),
-        base44.entities.RichiestaMalattia.filter({ stato: 'pending' }),
-        base44.entities.RichiestaTurnoLibero.filter({ stato: 'pending' })
+      const [ferie, malattie, turniLiberi, scambi] = await Promise.all([
+        base44.entities.RichiestaFerie.filter({ stato: 'in_attesa' }),
+        base44.entities.RichiestaMalattia.list(),
+        base44.entities.RichiestaTurnoLibero.filter({ stato: 'in_attesa' }),
+        base44.entities.TurnoPlanday.list()
       ]);
-      return { ferie, malattie, turniLiberi };
+      const malattieInAttesa = malattie.filter(m => 
+        (m.stato === 'non_certificata' || m.stato === 'in_attesa_verifica') &&
+        Array.isArray(m.turni_coinvolti) &&
+        m.turni_coinvolti.length > 0
+      );
+      const scambiInAttesa = scambi.filter(t => 
+        t.richiesta_scambio?.stato === 'accepted_by_colleague' &&
+        t.id === t.richiesta_scambio.mio_turno_id
+      );
+      return { ferie, malattie: malattieInAttesa, turniLiberi, scambi: scambiInAttesa };
     },
   });
 
@@ -114,6 +124,11 @@ export default function Dashboard() {
   const { data: inventario = [] } = useQuery({
     queryKey: ['inventario'],
     queryFn: () => base44.entities.RilevazioneInventario.list('-data_rilevazione', 100),
+  });
+
+  const { data: inventarioCantina = [] } = useQuery({
+    queryKey: ['inventario-cantina'],
+    queryFn: () => base44.entities.RilevazioneInventarioCantina.list('-data_rilevazione', 100),
   });
 
   const { data: uscite = [] } = useQuery({
@@ -458,54 +473,56 @@ export default function Dashboard() {
       .sort((a, b) => b.data.localeCompare(a.data));
   }, [stores, sprechi]);
 
-  // Alert operativi
+  // Alert operativi - Ordini suggeriti (logica OrdiniAdmin)
   const ordiniDaFare = useMemo(() => {
-    if (!regoleOrdini || !inventario || !materiePrime) return [];
+    if (!inventario || !inventarioCantina || !materiePrime || !stores) return [];
     const ordiniSuggeriti = [];
+    const allInventory = [...inventario, ...inventarioCantina];
+    const latestByProduct = {};
     
-    stores.forEach(store => {
-      const lastInventario = inventario
-        .filter(i => i.store_id === store.id)
-        .sort((a, b) => new Date(b.data_rilevazione) - new Date(a.data_rilevazione))[0];
+    allInventory.forEach(item => {
+      const key = `${item.store_id}-${item.materia_prima_id}`;
+      if (!latestByProduct[key] || new Date(item.data_rilevazione) > new Date(latestByProduct[key].data_rilevazione)) {
+        latestByProduct[key] = item;
+      }
+    });
+    
+    Object.values(latestByProduct).forEach(reading => {
+      const product = materiePrime.find(p => p.id === reading.materia_prima_id);
+      if (!product) return;
       
-      if (!lastInventario || !lastInventario.materie_prime) return;
+      const store = stores.find(s => s.id === reading.store_id);
+      if (!store) return;
       
-      regoleOrdini.forEach(regola => {
-        const materia = lastInventario.materie_prime.find(m => m.materia_prima_id === regola.materia_prima_id);
-        if (!materia) return;
-        
-        const materiaPrima = materiePrime.find(mp => mp.id === regola.materia_prima_id);
-        if (!materiaPrima) return;
-        
-        const quantitaAttuale = materia.quantita || 0;
-        const quantitaMinima = regola.quantita_minima || 0;
-        const quantitaOttimale = regola.quantita_ottimale || quantitaMinima;
-        
-        if (quantitaAttuale < quantitaMinima) {
-          const quantitaDaOrdinare = quantitaOttimale - quantitaAttuale;
-          const conversioni = materiaPrima.fattori_conversione || {};
-          const unitaMisuraOrdine = materiaPrima.unita_misura_ordine || materiaPrima.unita_misura || 'kg';
-          const fattoreConversione = conversioni[unitaMisuraOrdine] || 1;
-          const quantitaInUnitaOrdine = quantitaDaOrdinare / fattoreConversione;
-          
-          ordiniSuggeriti.push({
-            store: store.name,
-            storeId: store.id,
-            materia: regola.materia_prima_nome,
-            materiaId: regola.materia_prima_id,
-            quantitaAttuale,
-            quantitaMinima,
-            quantitaOttimale,
-            quantitaDaOrdinare: Math.ceil(quantitaInUnitaOrdine),
-            unitaMisura: unitaMisuraOrdine,
-            fornitore: materiaPrima.fornitore_principale || 'N/A'
-          });
-        }
-      });
+      const isAssignedToStore = !product.assigned_stores || 
+                                 product.assigned_stores.length === 0 || 
+                                 product.assigned_stores.includes(reading.store_id);
+      if (!isAssignedToStore) return;
+      
+      const isInUsoForStore = product.in_uso_per_store?.[reading.store_id] === true || 
+                              (!product.in_uso_per_store?.[reading.store_id] && product.in_uso === true);
+      if (!isInUsoForStore) return;
+      
+      const quantitaCritica = product.store_specific_quantita_critica?.[reading.store_id] || product.quantita_critica || product.quantita_minima || 0;
+      const quantitaOrdine = product.store_specific_quantita_ordine?.[reading.store_id] || product.quantita_ordine || 0;
+      
+      if ((reading.quantita || 0) <= quantitaCritica && quantitaOrdine > 0) {
+        ordiniSuggeriti.push({
+          store: store.name,
+          storeId: store.id,
+          materia: product.nome_prodotto,
+          materiaId: reading.materia_prima_id,
+          quantitaAttuale: reading.quantita || 0,
+          quantitaMinima: quantitaCritica,
+          quantitaDaOrdinare: quantitaOrdine,
+          unitaMisura: reading.unita_misura || product.unita_misura || 'kg',
+          fornitore: product.fornitore || 'Non specificato'
+        });
+      }
     });
     
     return ordiniSuggeriti;
-  }, [stores, inventario, regoleOrdini, materiePrime]);
+  }, [stores, inventario, inventarioCantina, materiePrime]);
 
   const contrattiInScadenza = useMemo(() => {
     if (!allUsers) return [];
@@ -937,10 +954,10 @@ export default function Dashboard() {
               <h3 className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-blue-600" />
                 Richieste in Attesa
-                {richiesteAssenze && (richiesteAssenze.ferie?.length + richiesteAssenze.malattie?.length + richiesteAssenze.turniLiberi?.length) > 0 && (
-                  <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-                    {(richiesteAssenze.ferie?.length || 0) + (richiesteAssenze.malattie?.length || 0) + (richiesteAssenze.turniLiberi?.length || 0)}
-                  </span>
+                {richiesteAssenze && (richiesteAssenze.ferie?.length + richiesteAssenze.malattie?.length + richiesteAssenze.turniLiberi?.length + richiesteAssenze.scambi?.length) > 0 && (
+                 <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                   {(richiesteAssenze.ferie?.length || 0) + (richiesteAssenze.malattie?.length || 0) + (richiesteAssenze.turniLiberi?.length || 0) + (richiesteAssenze.scambi?.length || 0)}
+                 </span>
                 )}
               </h3>
               <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -967,11 +984,19 @@ export default function Dashboard() {
                   return (
                     <div key={t.id} className="p-2 rounded-lg bg-purple-50 border border-purple-200">
                       <p className="text-xs font-medium text-slate-700">{user?.nome_cognome || user?.full_name}</p>
-                      <p className="text-[10px] text-purple-600">📅 Turno libero: {moment(t.data).format('DD/MM/YYYY')}</p>
+                      <p className="text-[10px] text-purple-600">📅 Turno libero: {moment(t.data_turno).format('DD/MM/YYYY')}</p>
                     </div>
                   );
                 })}
-                {(!richiesteAssenze || ((richiesteAssenze.ferie?.length || 0) + (richiesteAssenze.malattie?.length || 0) + (richiesteAssenze.turniLiberi?.length || 0)) === 0) && (
+                {richiesteAssenze?.scambi?.map(t => {
+                  return (
+                    <div key={t.id} className="p-2 rounded-lg bg-indigo-50 border border-indigo-200">
+                      <p className="text-xs font-medium text-slate-700">{t.richiesta_scambio.richiesto_da_nome} ↔ {t.richiesta_scambio.richiesto_a_nome}</p>
+                      <p className="text-[10px] text-indigo-600">🔄 Scambio: {moment(t.data).format('DD/MM/YYYY')}</p>
+                    </div>
+                  );
+                })}
+                {(!richiesteAssenze || ((richiesteAssenze.ferie?.length || 0) + (richiesteAssenze.malattie?.length || 0) + (richiesteAssenze.turniLiberi?.length || 0) + (richiesteAssenze.scambi?.length || 0)) === 0) && (
                   <p className="text-xs text-slate-400 text-center py-4">Nessuna richiesta in attesa</p>
                 )}
               </div>
