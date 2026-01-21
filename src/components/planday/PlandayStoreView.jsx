@@ -147,14 +147,11 @@ export default function PlandayStoreView({
     e.stopPropagation();
     setSelectedTurno(turno);
     
-    // Trova il dipendente: prima per ID, poi per nome
-    let dipendenteId = '';
+    // PRIMA: prova a usare direttamente l'ID se presente
+    let dipendenteId = turno.dipendente_id || '';
     
-    if (turno.dipendente_id && users.find(u => u.id === turno.dipendente_id)) {
-      // ID presente e valido
-      dipendenteId = turno.dipendente_id;
-    } else if (turno.dipendente_nome) {
-      // Cerca per nome (case-insensitive e trim)
+    // SE NON PRESENTE, cerca per nome esatto
+    if (!dipendenteId && turno.dipendente_nome) {
       const nomeTurno = turno.dipendente_nome.trim().toLowerCase();
       const foundUser = users.find(u => {
         const nomeCognome = (u.nome_cognome || '').trim().toLowerCase();
