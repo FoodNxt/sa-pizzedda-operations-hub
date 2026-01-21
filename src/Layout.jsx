@@ -961,7 +961,7 @@ export default function Layout({ children, currentPageName }) {
       .filter(pageName => !pageName.toLowerCase().includes('teglie'));
 
     // Pagine core che devono sempre essere presenti per dipendenti con ruoli
-    const corePages = ['ProfiloDipendente', 'TurniDipendente', 'Academy', 'ContrattiDipendente'];
+    const corePages = ['ProfiloDipendente', 'TurniDipendente', 'ContrattiDipendente'];
     corePages.forEach(corePage => {
       if (!menuPages.includes(corePage)) {
         menuPages.push(corePage);
