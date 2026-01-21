@@ -66,12 +66,17 @@ export default function Dashboard() {
 
   const { data: sprechi = [] } = useQuery({
     queryKey: ['sprechi'],
-    queryFn: () => base44.entities.Spreco.list('-data', 200),
+    queryFn: () => base44.entities.Spreco.list('-data_rilevazione', 200),
   });
 
   const { data: cleaningInspections = [] } = useQuery({
     queryKey: ['cleaning-inspections'],
-    queryFn: () => base44.entities.CleaningInspection.list('-data_ispezione', 200),
+    queryFn: () => base44.entities.CleaningInspection.list('-inspection_date', 200),
+  });
+
+  const { data: materiePrime = [] } = useQuery({
+    queryKey: ['materie-prime'],
+    queryFn: () => base44.entities.MateriePrime.list(),
   });
 
   const { data: wrongOrderMatches = [] } = useQuery({
@@ -450,87 +455,115 @@ export default function Dashboard() {
 
   // Alert operativi
   const ordiniDaFare = useMemo(() => {
-    if (!regoleOrdini || !inventario) return [];
-    const ordiniOggi = [];
+    if (!regoleOrdini || !inventario || !materiePrime) return [];
+    const ordiniSuggeriti = [];
     
     stores.forEach(store => {
       const lastInventario = inventario
         .filter(i => i.store_id === store.id)
         .sort((a, b) => new Date(b.data_rilevazione) - new Date(a.data_rilevazione))[0];
       
-      if (!lastInventario) return;
+      if (!lastInventario || !lastInventario.materie_prime) return;
       
       regoleOrdini.forEach(regola => {
-        const materia = lastInventario.materie_prime?.find(m => m.materia_prima_id === regola.materia_prima_id);
-        const quantita = materia?.quantita || 0;
+        const materia = lastInventario.materie_prime.find(m => m.materia_prima_id === regola.materia_prima_id);
+        if (!materia) return;
         
-        if (quantita < (regola.quantita_minima || 0)) {
-          ordiniOggi.push({
+        const materiaPrima = materiePrime.find(mp => mp.id === regola.materia_prima_id);
+        if (!materiaPrima) return;
+        
+        const quantitaAttuale = materia.quantita || 0;
+        const quantitaMinima = regola.quantita_minima || 0;
+        const quantitaOttimale = regola.quantita_ottimale || quantitaMinima;
+        
+        if (quantitaAttuale < quantitaMinima) {
+          const quantitaDaOrdinare = quantitaOttimale - quantitaAttuale;
+          const conversioni = materiaPrima.fattori_conversione || {};
+          const unitaMisuraOrdine = materiaPrima.unita_misura_ordine || materiaPrima.unita_misura || 'kg';
+          const fattoreConversione = conversioni[unitaMisuraOrdine] || 1;
+          const quantitaInUnitaOrdine = quantitaDaOrdinare / fattoreConversione;
+          
+          ordiniSuggeriti.push({
             store: store.name,
+            storeId: store.id,
             materia: regola.materia_prima_nome,
-            quantita: quantita,
-            minima: regola.quantita_minima
+            materiaId: regola.materia_prima_id,
+            quantitaAttuale,
+            quantitaMinima,
+            quantitaOttimale,
+            quantitaDaOrdinare: Math.ceil(quantitaInUnitaOrdine),
+            unitaMisura: unitaMisuraOrdine,
+            fornitore: materiaPrima.fornitore_principale || 'N/A'
           });
         }
       });
     });
     
-    return ordiniOggi;
-  }, [stores, inventario, regoleOrdini]);
+    return ordiniSuggeriti;
+  }, [stores, inventario, regoleOrdini, materiePrime]);
 
   const contrattiInScadenza = useMemo(() => {
-    if (!contratti || !allUsers) return [];
+    if (!allUsers) return [];
     const oggi = moment();
     const tra30Giorni = moment().add(30, 'days');
     
-    return contratti.filter(c => {
-      if (!c.data_fine || c.status !== 'firmato') return false;
-      const dataFine = moment(c.data_fine);
-      return dataFine.isBetween(oggi, tra30Giorni, 'day', '[]');
-    }).map(c => {
-      const user = allUsers.find(u => u.id === c.user_id);
-      return {
-        dipendente: user?.nome_cognome || user?.full_name || 'N/A',
-        dataScadenza: c.data_fine,
-        giorniRimanenti: moment(c.data_fine).diff(oggi, 'days')
-      };
-    }).sort((a, b) => a.giorniRimanenti - b.giorniRimanenti);
-    }, [contratti, allUsers]);
+    return allUsers
+      .filter(user => {
+        if (user.user_type !== 'dipendente' && user.user_type !== 'user') return false;
+        if (!user.data_inizio_contratto) return false;
+        return user.data_fine_contratto || (user.durata_contratto_mesi && user.durata_contratto_mesi > 0);
+      })
+      .map(user => {
+        let dataFine;
+        
+        if (user.data_fine_contratto) {
+          dataFine = moment(user.data_fine_contratto);
+        } else if (user.durata_contratto_mesi && user.durata_contratto_mesi > 0) {
+          dataFine = moment(user.data_inizio_contratto).add(parseInt(user.durata_contratto_mesi), 'months');
+        }
+        
+        if (!dataFine) return null;
+        
+        const giorniRimanenti = dataFine.diff(oggi, 'days');
+        if (dataFine.isBetween(oggi, tra30Giorni, 'day', '[]')) {
+          return {
+            dipendente: user.nome_cognome || user.full_name || 'N/A',
+            dataScadenza: dataFine.format('YYYY-MM-DD'),
+            giorniRimanenti
+          };
+        }
+        return null;
+      })
+      .filter(c => c !== null)
+      .sort((a, b) => a.giorniRimanenti - b.giorniRimanenti);
+  }, [allUsers]);
 
   const pulizieScores = useMemo(() => {
-    if (!cleaningInspections || !stores || !allUsers) return [];
+    if (!cleaningInspections || !stores) return [];
     const last30Days = moment().subtract(30, 'days').format('YYYY-MM-DD');
-    const pulizieRecenti = cleaningInspections.filter(c => c.data_ispezione >= last30Days);
     
     const scoresByStore = stores.map(store => {
-      const storeInspections = pulizieRecenti.filter(i => i.store_id === store.id);
-      const avgScore = storeInspections.length > 0 
-        ? storeInspections.reduce((sum, i) => sum + (i.punteggio_totale || 0), 0) / storeInspections.length 
-        : 0;
+      const storeInspections = cleaningInspections.filter(i => 
+        i.store_id === store.id && 
+        i.inspection_date && 
+        i.inspection_date.split('T')[0] >= last30Days &&
+        i.analysis_status === 'completed' &&
+        i.overall_score !== null && i.overall_score !== undefined
+      );
       
-      const employeeScores = allUsers
-        .filter(u => u.user_type === 'user')
-        .map(emp => {
-          const empInspections = storeInspections.filter(i => i.dipendente_id === emp.id);
-          return {
-            name: emp.nome_cognome || emp.full_name,
-            score: empInspections.length > 0 ? empInspections.reduce((sum, i) => sum + (i.punteggio_totale || 0), 0) / empInspections.length : 0,
-            count: empInspections.length
-          };
-        })
-        .filter(e => e.count > 0)
-        .sort((a, b) => b.score - a.score);
+      const avgScore = storeInspections.length > 0 
+        ? storeInspections.reduce((sum, i) => sum + (i.overall_score || 0), 0) / storeInspections.length 
+        : null;
       
       return {
         storeName: store.name,
         avgScore,
-        topEmployee: employeeScores[0],
-        worstEmployee: employeeScores[employeeScores.length - 1]
+        count: storeInspections.length
       };
-    }).filter(s => s.avgScore > 0).sort((a, b) => b.avgScore - a.avgScore);
+    }).filter(s => s.avgScore !== null).sort((a, b) => b.avgScore - a.avgScore);
     
     return scoresByStore;
-  }, [stores, cleaningInspections, allUsers]);
+  }, [stores, cleaningInspections]);
 
   const turniLiberi = useMemo(() => {
     if (!turni) return [];
@@ -875,9 +908,15 @@ export default function Dashboard() {
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {ordiniDaFare.length > 0 ? ordiniDaFare.map((ord, idx) => (
                   <div key={idx} className="p-2 rounded-lg bg-orange-50 border border-orange-200">
-                    <p className="text-xs font-medium text-slate-700">{ord.store}</p>
+                    <div className="flex justify-between items-start mb-1">
+                      <p className="text-xs font-medium text-slate-700">{ord.store}</p>
+                      <span className="text-xs font-bold text-orange-700">{ord.quantitaDaOrdinare} {ord.unitaMisura}</span>
+                    </div>
                     <p className="text-xs text-slate-600">{ord.materia}</p>
-                    <p className="text-[10px] text-orange-600">Attuale: {ord.quantita} | Min: {ord.minima}</p>
+                    <div className="flex justify-between items-center mt-1">
+                      <p className="text-[10px] text-slate-500">Attuale: {ord.quantitaAttuale.toFixed(0)} | Min: {ord.quantitaMinima}</p>
+                      <p className="text-[10px] text-slate-500">{ord.fornitore}</p>
+                    </div>
                   </div>
                 )) : (
                   <p className="text-xs text-slate-400 text-center py-4">Nessun ordine urgente</p>
@@ -962,16 +1001,15 @@ export default function Dashboard() {
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {pulizieScores.length > 0 ? pulizieScores.map((ps, idx) => (
                   <div key={idx} className="p-2 rounded-lg bg-cyan-50 border border-cyan-200">
-                    <div className="flex justify-between items-center mb-1">
+                    <div className="flex justify-between items-center">
                       <p className="text-xs font-medium text-slate-700">{ps.storeName}</p>
-                      <span className="text-xs font-bold text-cyan-600">{ps.avgScore.toFixed(1)}</span>
+                      <span className={`text-xs font-bold ${
+                        ps.avgScore >= 80 ? 'text-green-600' :
+                        ps.avgScore >= 60 ? 'text-blue-600' :
+                        ps.avgScore >= 40 ? 'text-yellow-600' : 'text-red-600'
+                      }`}>{ps.avgScore.toFixed(0)}/100</span>
                     </div>
-                    {ps.topEmployee && (
-                      <p className="text-[10px] text-green-600">🏆 {ps.topEmployee.name}: {ps.topEmployee.score.toFixed(1)}</p>
-                    )}
-                    {ps.worstEmployee && (
-                      <p className="text-[10px] text-red-600">📉 {ps.worstEmployee.name}: {ps.worstEmployee.score.toFixed(1)}</p>
-                    )}
+                    <p className="text-[10px] text-slate-500 mt-1">{ps.count} controlli</p>
                   </div>
                 )) : (
                   <p className="text-xs text-slate-400 text-center py-4">Nessun dato pulizie</p>
