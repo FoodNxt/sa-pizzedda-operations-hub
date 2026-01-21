@@ -703,6 +703,7 @@ export default function PlandayStoreManager() {
             {/* Vista Store */}
             <PlandayStoreView
               turni={turni}
+              allTurniWeek={allTurniWeek}
               users={users}
               stores={myStores}
               selectedStore={selectedStore}

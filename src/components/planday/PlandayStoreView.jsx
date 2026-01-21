@@ -12,6 +12,7 @@ const DEFAULT_COLORI_RUOLO = {
 
 export default function PlandayStoreView({ 
   turni, 
+  allTurniWeek = [],
   users, 
   stores,
   selectedStore,
@@ -547,9 +548,10 @@ export default function PlandayStoreView({
                   return ruoli.includes(quickForm.ruolo);
                 })
                 .map(u => {
-                  // Controlla se il dipendente ha già un turno in quella data/orario
+                  // Controlla se il dipendente ha già un turno in quella data/orario (in TUTTI gli store)
                   const dayKey = quickAddPopup?.day;
-                  const altriTurni = turni.filter(t => 
+                  const turniDaControllare = allTurniWeek.length > 0 ? allTurniWeek : turni;
+                  const altriTurni = turniDaControllare.filter(t => 
                     t.dipendente_id === u.id && 
                     t.data === dayKey &&
                     t.id !== selectedTurno?.id // Escludi il turno corrente se in modifica
