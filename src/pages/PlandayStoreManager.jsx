@@ -68,17 +68,19 @@ export default function PlandayStoreManager() {
   }, [myStores, selectedStore]);
 
   const { data: allEmployees = [] } = useQuery({
-    queryKey: ['employees-store-manager'],
+    queryKey: ['employees-store-manager-all'],
     queryFn: async () => {
       const employees = await base44.entities.Employee.list();
+      // Carica TUTTI gli employee attivi, senza filtro per store
       return employees.filter(e => e.status === 'active');
     }
   });
 
   const { data: allUsers = [] } = useQuery({
-    queryKey: ['users-store-manager'],
+    queryKey: ['users-store-manager-all'],
     queryFn: async () => {
       const usersData = await base44.entities.User.list();
+      // Carica TUTTI i dipendenti, senza filtro per store
       return usersData.filter(u => u.user_type === 'dipendente');
     }
   });
