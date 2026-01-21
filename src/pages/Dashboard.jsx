@@ -398,7 +398,7 @@ export default function Dashboard() {
         giorniRimanenti: moment(c.data_fine).diff(oggi, 'days')
       };
     }).sort((a, b) => a.giorniRimanenti - b.giorniRimanenti);
-  }, [contratti, allUsers]);
+    }, [contratti, allUsers]);
 
   const pulizieScores = useMemo(() => {
     if (!cleaningInspections || !stores || !allUsers) return [];
