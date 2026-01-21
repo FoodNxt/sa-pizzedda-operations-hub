@@ -541,14 +541,49 @@ export default function PlandayStoreView({
               disabled={quickForm.is_prova}
             >
               <option value="">Non assegnato</option>
-              {users.filter(u => {
-                const ruoli = u.ruoli_dipendente || [];
-                return ruoli.includes(quickForm.ruolo);
-              }).map(u => (
-                <option key={u.id} value={u.id}>
-                  {u.nome_cognome || u.full_name}
-                </option>
-              ))}
+              {users
+                .filter(u => {
+                  const ruoli = u.ruoli_dipendente || [];
+                  return ruoli.includes(quickForm.ruolo);
+                })
+                .map(u => {
+                  // Controlla se il dipendente ha già un turno in quella data/orario
+                  const dayKey = quickAddPopup?.day;
+                  const altriTurni = turni.filter(t => 
+                    t.dipendente_id === u.id && 
+                    t.data === dayKey &&
+                    t.id !== selectedTurno?.id // Escludi il turno corrente se in modifica
+                  );
+                  
+                  let conflitto = false;
+                  if (quickForm.ora_inizio && quickForm.ora_fine && altriTurni.length > 0) {
+                    const [startH, startM] = quickForm.ora_inizio.split(':').map(Number);
+                    const [endH, endM] = quickForm.ora_fine.split(':').map(Number);
+                    const startMinutes = startH * 60 + startM;
+                    const endMinutes = endH * 60 + endM;
+                    
+                    conflitto = altriTurni.some(t => {
+                      const [tStartH, tStartM] = t.ora_inizio.split(':').map(Number);
+                      const [tEndH, tEndM] = t.ora_fine.split(':').map(Number);
+                      const tStartMinutes = tStartH * 60 + tStartM;
+                      const tEndMinutes = tEndH * 60 + tEndM;
+                      
+                      return (
+                        (startMinutes >= tStartMinutes && startMinutes < tEndMinutes) ||
+                        (endMinutes > tStartMinutes && endMinutes <= tEndMinutes) ||
+                        (startMinutes <= tStartMinutes && endMinutes >= tEndMinutes)
+                      );
+                    });
+                  }
+                  
+                  const label = `${u.nome_cognome || u.full_name}${conflitto ? ' ⚠️ GIÀ IN TURNO' : altriTurni.length > 0 ? ' ✓ Disponibile' : ''}`;
+                  
+                  return (
+                    <option key={u.id} value={u.id} disabled={conflitto}>
+                      {label}
+                    </option>
+                  );
+                })}
             </select>
 
             {/* Turno di Prova */}

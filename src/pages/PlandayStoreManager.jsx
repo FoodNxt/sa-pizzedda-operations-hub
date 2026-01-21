@@ -644,26 +644,51 @@ export default function PlandayStoreManager() {
                     <option value="">Non assegnato</option>
                     {users
                       .filter(u => {
-                        // Deve avere il ruolo selezionato
-                        if (!u.ruoli_dipendente?.includes(turnoForm.ruolo)) return false;
-                        
-                        // Trova il nome dello store del turno
-                        const selectedStoreName = allStores.find(s => s.id === turnoForm.store_id)?.name;
-                        if (!selectedStoreName) return false;
-                        
-                        // Deve essere assegnato allo store selezionato - NO fallback!
-                        return u.assigned_stores && Array.isArray(u.assigned_stores) && u.assigned_stores.includes(selectedStoreName);
+                        // Filtra solo per ruolo
+                        return u.ruoli_dipendente?.includes(turnoForm.ruolo);
                       })
                       .sort((a, b) => {
                         const nameA = a.nome_cognome || a.full_name || '';
                         const nameB = b.nome_cognome || b.full_name || '';
                         return nameA.localeCompare(nameB);
                       })
-                      .map(u => (
-                        <option key={u.id} value={u.id}>
-                          {u.nome_cognome || u.full_name}
-                        </option>
-                      ))}
+                      .map(u => {
+                        // Controlla se ha già turni in quella data/orario
+                        const altriTurni = turni.filter(t => 
+                          t.dipendente_id === u.id && 
+                          t.data === turnoForm.data &&
+                          t.id !== editingTurno?.id
+                        );
+                        
+                        let conflitto = false;
+                        if (turnoForm.ora_inizio && turnoForm.ora_fine && altriTurni.length > 0) {
+                          const [startH, startM] = turnoForm.ora_inizio.split(':').map(Number);
+                          const [endH, endM] = turnoForm.ora_fine.split(':').map(Number);
+                          const startMinutes = startH * 60 + startM;
+                          const endMinutes = endH * 60 + endM;
+                          
+                          conflitto = altriTurni.some(t => {
+                            const [tStartH, tStartM] = t.ora_inizio.split(':').map(Number);
+                            const [tEndH, tEndM] = t.ora_fine.split(':').map(Number);
+                            const tStartMinutes = tStartH * 60 + tStartM;
+                            const tEndMinutes = tEndH * 60 + tEndM;
+                            
+                            return (
+                              (startMinutes >= tStartMinutes && startMinutes < tEndMinutes) ||
+                              (endMinutes > tStartMinutes && endMinutes <= tEndMinutes) ||
+                              (startMinutes <= tStartMinutes && endMinutes >= tEndMinutes)
+                            );
+                          });
+                        }
+                        
+                        const label = `${u.nome_cognome || u.full_name}${conflitto ? ' ⚠️ GIÀ IN TURNO' : altriTurni.length > 0 ? ' ✓ Disponibile' : ''}`;
+                        
+                        return (
+                          <option key={u.id} value={u.id} disabled={conflitto}>
+                            {label}
+                          </option>
+                        );
+                      })}
                   </select>
                 </div>
 
