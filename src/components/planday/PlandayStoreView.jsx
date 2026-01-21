@@ -420,7 +420,6 @@ export default function PlandayStoreView({
                     ) : (
                       <div className="space-y-2">
                         {dayTurni.map(turno => {
-                          const dipendente = users.find(u => u.id === turno.dipendente_id);
                           return (
                             <div
                               key={turno.id}
@@ -431,7 +430,7 @@ export default function PlandayStoreView({
                               <div className="flex items-center justify-between">
                                 <div className="flex-1">
                                   <div className="font-bold">{turno.ora_inizio} - {turno.ora_fine}</div>
-                                  <div className="text-sm opacity-90">{dipendente?.nome_cognome || dipendente?.full_name || 'Non assegnato'}</div>
+                                  <div className="text-sm opacity-90">{turno.dipendente_nome || 'Non assegnato'}</div>
                                   <div className="text-xs opacity-90 mt-1">{turno.ruolo}</div>
                                   {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
                                     <div className="text-xs font-bold mt-1 px-2 py-0.5 bg-white bg-opacity-20 rounded w-fit">
