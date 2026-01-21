@@ -119,25 +119,31 @@ export default function PlandayStoreManager() {
     return Array.from(userMap.values());
   }, [allEmployees, allUsers]);
 
-  const { data: turni = [], isLoading } = useQuery({
-    queryKey: ['turni-store-manager', selectedStore, weekStart.format('YYYY-MM-DD')],
+  // Carica TUTTI i turni della settimana (non filtrati per store)
+  const { data: allTurniWeek = [], isLoading } = useQuery({
+    queryKey: ['turni-store-manager-all', weekStart.format('YYYY-MM-DD')],
     queryFn: async () => {
-      if (!selectedStore) return [];
       const startDate = weekStart.format('YYYY-MM-DD');
       const endDate = weekStart.clone().add(6, 'days').format('YYYY-MM-DD');
       
-      // Recupera TUTTI i turni e filtra lato client
       const allTurni = await base44.entities.TurnoPlanday.list();
-      const selectedStoreName = allStores.find(s => s.id === selectedStore)?.name;
       
       return allTurni.filter(t => 
-        (t.store_id === selectedStore || t.store_nome === selectedStoreName) &&
         t.data >= startDate &&
         t.data <= endDate
       );
-    },
-    enabled: !!selectedStore && allStores.length > 0,
+    }
   });
+
+  // Filtra i turni lato client per lo store selezionato (se presente)
+  const turni = useMemo(() => {
+    if (!selectedStore) return allTurniWeek;
+    
+    const selectedStoreName = allStores.find(s => s.id === selectedStore)?.name;
+    return allTurniWeek.filter(t => 
+      t.store_id === selectedStore || t.store_nome === selectedStoreName
+    );
+  }, [allTurniWeek, selectedStore, allStores]);
 
   const { data: tipiTurnoConfigs = [] } = useQuery({
     queryKey: ['tipo-turno-configs'],
