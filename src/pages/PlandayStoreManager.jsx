@@ -76,21 +76,13 @@ export default function PlandayStoreManager() {
     }
   });
 
-  const { data: allUsers = [] } = useQuery({
-    queryKey: ['users-store-manager'],
-    queryFn: async () => {
-      const usersData = await base44.entities.User.list();
-      return usersData.filter(u => u.user_type === 'dipendente');
-    }
-  });
-
-  // Combina Employee e User per avere tutti i dipendenti
+  // Map employees to users format + aggiungi dipendenti dai turni
   const users = useMemo(() => {
     const userMap = new Map();
     
     // Aggiungi tutti gli Employee
     allEmployees.forEach(emp => {
-      userMap.set(emp.id, {
+      userMap.set(emp.full_name, {
         id: emp.id,
         nome_cognome: emp.full_name,
         full_name: emp.full_name,
@@ -100,22 +92,22 @@ export default function PlandayStoreManager() {
       });
     });
     
-    // Aggiungi User che non sono già presenti come Employee
-    allUsers.forEach(user => {
-      if (!userMap.has(user.id)) {
-        userMap.set(user.id, {
-          id: user.id,
-          nome_cognome: user.nome_cognome || user.full_name,
-          full_name: user.full_name || user.nome_cognome,
-          email: user.email,
-          ruoli_dipendente: user.ruoli_dipendente || [],
-          assigned_stores: user.assigned_stores || []
+    // Aggiungi dipendenti trovati nei turni (se non già presenti)
+    turni.forEach(turno => {
+      if (turno.dipendente_nome && !userMap.has(turno.dipendente_nome)) {
+        userMap.set(turno.dipendente_nome, {
+          id: turno.dipendente_id || turno.dipendente_nome,
+          nome_cognome: turno.dipendente_nome,
+          full_name: turno.dipendente_nome,
+          email: '',
+          ruoli_dipendente: turno.ruolo ? [turno.ruolo] : [],
+          assigned_stores: turno.store_nome ? [turno.store_nome] : []
         });
       }
     });
     
     return Array.from(userMap.values());
-  }, [allEmployees, allUsers]);
+  }, [allEmployees, turni]);
 
   const { data: turni = [], isLoading } = useQuery({
     queryKey: ['turni-store-manager', selectedStore, weekStart.format('YYYY-MM-DD')],
