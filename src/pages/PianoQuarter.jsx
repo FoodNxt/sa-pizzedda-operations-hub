@@ -390,20 +390,22 @@ export default function PianoQuarter() {
     }
 
     let adsBudget = 0;
-    pianiAds.forEach(p => {
-      const pStart = new Date(p.data_inizio);
-      const pEnd = new Date(p.data_fine);
-      const pDays = Math.floor((pEnd - pStart) / (1000 * 60 * 60 * 24)) + 1;
-      
-      // Giorni di overlap
-      const overlapStart = new Date(Math.max(startDate.getTime(), pStart.getTime()));
-      const overlapEnd = new Date(Math.min(endDate.getTime(), pEnd.getTime()));
-      
-      if (overlapStart <= overlapEnd) {
-        const overlapDays = Math.floor((overlapEnd - overlapStart) / (1000 * 60 * 60 * 24)) + 1;
-        adsBudget += (p.budget / pDays) * overlapDays;
-      }
-    });
+    pianiAds
+      .filter(p => p.piattaforma === selectedDeliveryApp)
+      .forEach(p => {
+        const pStart = new Date(p.data_inizio);
+        const pEnd = new Date(p.data_fine);
+        const pDays = Math.floor((pEnd - pStart) / (1000 * 60 * 60 * 24)) + 1;
+        
+        // Giorni di overlap
+        const overlapStart = new Date(Math.max(startDate.getTime(), pStart.getTime()));
+        const overlapEnd = new Date(Math.min(endDate.getTime(), pEnd.getTime()));
+        
+        if (overlapStart <= overlapEnd) {
+          const overlapDays = Math.floor((overlapEnd - overlapStart) / (1000 * 60 * 60 * 24)) + 1;
+          adsBudget += (p.budget / pDays) * overlapDays;
+        }
+      });
 
     return {
       revenue,
