@@ -75,39 +75,6 @@ export default function PlandayStoreView({
       }
     });
     
-    // Aggiungi dipendenti dello store anche se non hanno turni
-    if (selectedStore) {
-      const storeName = stores.find(s => s.id === selectedStore)?.name;
-      if (storeName) {
-        users.filter(u => {
-          const assigned = u.assigned_stores || [];
-          return assigned.includes(storeName);
-        }).forEach(u => {
-          // Controlla se già esiste per ID o per nome
-          const nomeUser = (u.nome_cognome || u.full_name || '').trim().toLowerCase();
-          let exists = dipendentiMap.has(u.id);
-          
-          if (!exists && nomeUser) {
-            // Controlla se esiste già con lo stesso nome
-            for (const [key, dip] of dipendentiMap.entries()) {
-              const nomeDip = (dip.nome_cognome || dip.full_name || '').trim().toLowerCase();
-              if (nomeDip === nomeUser) {
-                exists = true;
-                break;
-              }
-            }
-          }
-          
-          if (!exists) {
-            dipendentiMap.set(u.id, {
-              ...u,
-              turniSettimana: []
-            });
-          }
-        });
-      }
-    }
-    
     return Array.from(dipendentiMap.values()).sort((a, b) => 
       (a.nome_cognome || '').localeCompare(b.nome_cognome || '')
     );
