@@ -75,7 +75,7 @@ export default function Uscite() {
 
   const dipendenteAttivi = useMemo(() => {
     return allUsers
-      .filter(u => u.user_type === 'user' && u.ruoli_dipendente?.length > 0)
+      .filter(u => u.user_type === 'user')
       .filter(u => !uscite.some(usc => usc.dipendente_id === u.id))
       .sort((a, b) => (a.nome_cognome || a.full_name).localeCompare(b.nome_cognome || b.full_name));
   }, [allUsers, uscite]);

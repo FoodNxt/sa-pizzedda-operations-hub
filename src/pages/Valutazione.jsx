@@ -21,7 +21,10 @@ import { it } from 'date-fns/locale';
 export default function Valutazione() {
   const [expandedView, setExpandedView] = useState(null);
   const [matchedEmployee, setMatchedEmployee] = useState(null);
-  const [dateRange, setDateRange] = useState('30'); // '30' or '90'
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
 
   // Fetch current user
   const { data: user, isLoading: userLoading } = useQuery({
@@ -67,18 +70,18 @@ export default function Valutazione() {
     }
   }, [user]);
 
-  // Calculate date filter (SAME AS DASHBOARDSTOREMANAGER - use date range)
-  const filterDate = useMemo(() => {
-    const now = new Date();
-    return dateRange === '30' ? subDays(now, 30) : subMonths(now, 3);
-  }, [dateRange]);
-
-  // Calculate month filter (SAME AS DASHBOARDSTOREMANAGER - for shifts & inspections)
+  // Calculate month filter based on selected month
   const monthStart = useMemo(() => {
-    const now = new Date();
-    return dateRange === '30' ? subDays(now, 30) : subMonths(now, 3);
-  }, [dateRange]);
-  const monthEnd = useMemo(() => new Date(), []);
+    const [year, month] = selectedMonth.split('-').map(Number);
+    return new Date(year, month - 1, 1);
+  }, [selectedMonth]);
+
+  const monthEnd = useMemo(() => {
+    const [year, month] = selectedMonth.split('-').map(Number);
+    return new Date(year, month, 0, 23, 59, 59);
+  }, [selectedMonth]);
+
+  const filterDate = monthStart;
 
   // Helper function to safely format dates
   const safeFormatDate = (dateString, formatString, options = {}) => {
@@ -317,33 +320,17 @@ export default function Valutazione() {
         <p className="text-[#9b9b9b]">Monitora i tuoi turni, timbrature e recensioni</p>
       </div>
 
-      {/* Date Range Filter */}
+      {/* Month Selector Filter */}
       <NeumorphicCard className="p-4">
         <div className="flex items-center gap-3 flex-wrap">
           <Filter className="w-5 h-5 text-[#8b7355]" />
-          <span className="text-sm font-medium text-[#6b6b6b]">Periodo:</span>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setDateRange('30')}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                dateRange === '30'
-                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                  : 'neumorphic-flat text-[#6b6b6b]'
-              }`}
-            >
-              Ultimi 30 giorni
-            </button>
-            <button
-              onClick={() => setDateRange('90')}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                dateRange === '90'
-                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                  : 'neumorphic-flat text-[#6b6b6b]'
-              }`}
-            >
-              Ultimi 3 mesi
-            </button>
-          </div>
+          <span className="text-sm font-medium text-[#6b6b6b]">Mese:</span>
+          <input
+            type="month"
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
+          />
         </div>
       </NeumorphicCard>
 
