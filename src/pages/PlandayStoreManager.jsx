@@ -215,7 +215,8 @@ export default function PlandayStoreManager() {
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.TurnoPlanday.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['turni-store-manager'] });
+      queryClient.invalidateQueries({ queryKey: ['turni-store-manager-all'] });
+      queryClient.invalidateQueries({ queryKey: ['scambi-turni-sm'] });
     },
   });
 
