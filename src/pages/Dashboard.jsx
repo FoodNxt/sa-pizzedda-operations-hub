@@ -116,6 +116,11 @@ export default function Dashboard() {
     queryFn: () => base44.entities.RilevazioneInventario.list('-data_rilevazione', 100),
   });
 
+  const { data: uscite = [] } = useQuery({
+    queryKey: ['uscite'],
+    queryFn: () => base44.entities.Uscita.list(),
+  });
+
   const safeParseDate = (dateString) => {
     if (!dateString) return null;
     try {
@@ -509,6 +514,9 @@ export default function Dashboard() {
     
     return allUsers
       .filter(user => {
+        // Escludi dipendenti che hanno un'uscita registrata
+        if (uscite.some(u => u.dipendente_id === user.id)) return false;
+        
         if (user.user_type !== 'dipendente' && user.user_type !== 'user') return false;
         if (!user.data_inizio_contratto) return false;
         return user.data_fine_contratto || (user.durata_contratto_mesi && user.durata_contratto_mesi > 0);
@@ -536,7 +544,7 @@ export default function Dashboard() {
       })
       .filter(c => c !== null)
       .sort((a, b) => a.giorniRimanenti - b.giorniRimanenti);
-  }, [allUsers]);
+  }, [allUsers, uscite]);
 
   const pulizieScores = useMemo(() => {
     if (!cleaningInspections || !stores) return [];

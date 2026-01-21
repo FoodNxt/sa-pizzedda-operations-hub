@@ -281,6 +281,11 @@ function ContrattiInScadenzaTab() {
     queryFn: () => base44.entities.User.list(),
   });
 
+  const { data: uscite = [] } = useQuery({
+    queryKey: ['uscite'],
+    queryFn: () => base44.entities.Uscita.list(),
+  });
+
   const expiringContracts = useMemo(() => {
     const oggi = new Date();
     const trentaGiorni = new Date();
@@ -288,6 +293,9 @@ function ContrattiInScadenzaTab() {
 
     return users
       .filter(user => {
+        // Escludi dipendenti che hanno un'uscita registrata
+        if (uscite.some(u => u.dipendente_id === user.id)) return false;
+        
         if (!user.data_inizio_contratto) return false;
         
         // Check if user has explicit end date or duration
@@ -314,7 +322,7 @@ function ContrattiInScadenzaTab() {
       })
       .filter(user => user.data_fine_contratto >= oggi && user.data_fine_contratto <= trentaGiorni)
       .sort((a, b) => a.giorni_rimanenti - b.giorni_rimanenti);
-  }, [users]);
+  }, [users, uscite]);
   
   if (isLoading) return <div>Caricamento...</div>;
 
