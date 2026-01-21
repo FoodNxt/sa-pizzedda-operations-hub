@@ -641,7 +641,7 @@ export default function PlandayStoreManager() {
                         
                         let label = u.nome_cognome || u.full_name;
                         if (conflitoStessoStore) {
-                          label += ' ⚠️ GIÀ IN TURNO';
+                          label += ` ⚠️ In turno a ${getStoreName(turnoForm.store_id)}`;
                         } else if (conflitoAltroStore) {
                           label += ` 🔔 In turno a ${storeConflitto}`;
                         }
