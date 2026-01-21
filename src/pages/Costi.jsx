@@ -180,8 +180,8 @@ export default function Costi() {
       alert('Seleziona un locale per la subscription');
       return;
     }
-    if (activeTab === 'commissioni' && (!formData.money_type_name || !formData.percentuale)) {
-      alert('Compila tutti i campi obbligatori (Money Type Name e Percentuale)');
+    if (activeTab === 'commissioni' && (!formData.app_delivery || !formData.percentuale)) {
+      alert('Compila tutti i campi obbligatori (App Delivery e Percentuale)');
       return;
     }
     if (activeTab === 'ads' && (!formData.piattaforma || !formData.budget_mensile)) {
@@ -674,8 +674,8 @@ export default function Costi() {
                             return (
                               <div key={c.id} className="text-xs text-slate-500 flex justify-between">
                                 <span>
-                                  {c.money_type_name || 'Tutti'}
-                                  {c.app_delivery && ` (${c.app_delivery})`}
+                                  {c.app_delivery}
+                                  {c.money_type_name && ` - ${c.money_type_name}`}
                                   {' '}- {c.percentuale}%
                                 </span>
                                 <span>{formatEuro(importoCommissione)}</span>
@@ -1205,13 +1205,38 @@ export default function Costi() {
             {showAddForm && (
               <div className="neumorphic-pressed p-4 rounded-xl mb-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Money Type Name</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">App Delivery</label>
+                  <select
+                    value={formData.app_delivery || ''}
+                    onChange={(e) => setFormData({ ...formData, app_delivery: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                  >
+                    <option value="">Seleziona app</option>
+                    {(() => {
+                      const apps = new Set();
+                      iPraticoData.forEach(record => {
+                        Object.keys(record).forEach(key => {
+                          if (key.startsWith('sourceApp_') && !key.endsWith('_orders')) {
+                            const app = key.replace('sourceApp_', '');
+                            apps.add(app.charAt(0).toUpperCase() + app.slice(1));
+                          }
+                        });
+                      });
+                      return Array.from(apps).sort().map(app => (
+                        <option key={app} value={app}>{app}</option>
+                      ));
+                    })()}
+                  </select>
+                  <p className="text-xs text-slate-500 mt-1">Es: Deliveroo, Glovo, ecc.</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Money Type Name (opzionale)</label>
                   <select
                     value={formData.money_type_name || ''}
                     onChange={(e) => setFormData({ ...formData, money_type_name: e.target.value })}
                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
                   >
-                    <option value="">Seleziona money type</option>
+                    <option value="">Tutti i money types</option>
                     {(() => {
                       const moneyTypes = new Set();
                       iPraticoData.forEach(record => {
@@ -1229,32 +1254,7 @@ export default function Costi() {
                       ));
                     })()}
                   </select>
-                  <p className="text-xs text-slate-500 mt-1">Es: Online, Delivery, ecc.</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">App Delivery (opzionale)</label>
-                  <select
-                    value={formData.app_delivery || ''}
-                    onChange={(e) => setFormData({ ...formData, app_delivery: e.target.value })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                  >
-                    <option value="">Tutte le app</option>
-                    {(() => {
-                      const apps = new Set();
-                      iPraticoData.forEach(record => {
-                        Object.keys(record).forEach(key => {
-                          if (key.startsWith('sourceApp_') && !key.endsWith('_orders')) {
-                            const app = key.replace('sourceApp_', '');
-                            apps.add(app.charAt(0).toUpperCase() + app.slice(1));
-                          }
-                        });
-                      });
-                      return Array.from(apps).sort().map(app => (
-                        <option key={app} value={app}>{app}</option>
-                      ));
-                    })()}
-                  </select>
-                  <p className="text-xs text-slate-500 mt-1">Lascia vuoto per applicare a tutte le app</p>
+                  <p className="text-xs text-slate-500 mt-1">Lascia vuoto per tutti (Online, Delivery, ecc.)</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Percentuale Commissione (%)</label>
@@ -1289,8 +1289,8 @@ export default function Costi() {
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <p className="font-bold text-slate-800">
-                        {item.money_type_name || 'Tutti i money types'}
-                        {item.app_delivery && ` (${item.app_delivery})`}
+                        {item.app_delivery}
+                        {item.money_type_name && ` - ${item.money_type_name}`}
                       </p>
                     </div>
                     <p className="text-sm text-slate-600">{item.percentuale}%</p>
