@@ -1237,22 +1237,13 @@ export default function Costi() {
                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
                   >
                     <option value="">Tutti i money types</option>
-                    {(() => {
-                      const moneyTypes = new Set();
-                      iPraticoData.forEach(record => {
-                        Object.keys(record).forEach(key => {
-                          if (key.startsWith('moneyTypeName_') && !key.endsWith('_orders')) {
-                            const moneyType = key.replace('moneyTypeName_', '').replace(/_/g, ' ');
-                            if (moneyType && moneyType !== 'undefined') {
-                              moneyTypes.add(moneyType.charAt(0).toUpperCase() + moneyType.slice(1));
-                            }
-                          }
-                        });
-                      });
-                      return Array.from(moneyTypes).sort().map(mt => (
-                        <option key={mt} value={mt}>{mt}</option>
-                      ));
-                    })()}
+                    <option value="Online">Online</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Credit card">Credit card</option>
+                    <option value="Debit card">Debit card</option>
+                    <option value="Delivery">Delivery</option>
+                    <option value="Voucher">Voucher</option>
+                    <option value="Gift card">Gift card</option>
                   </select>
                   <p className="text-xs text-slate-500 mt-1">Lascia vuoto per tutti (Online, Delivery, ecc.)</p>
                 </div>
