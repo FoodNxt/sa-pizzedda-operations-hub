@@ -352,6 +352,7 @@ export default function Dashboard() {
 
   // Alert operativi
   const ordiniDaFare = useMemo(() => {
+    if (!regoleOrdini || !inventario) return [];
     const oggi = moment().format('YYYY-MM-DD');
     const ordiniOggi = [];
     
@@ -381,6 +382,7 @@ export default function Dashboard() {
   }, [stores, inventario, regoleOrdini]);
 
   const contrattiInScadenza = useMemo(() => {
+    if (!contratti || !allUsers) return [];
     const oggi = moment();
     const tra30Giorni = moment().add(30, 'days');
     
@@ -399,6 +401,7 @@ export default function Dashboard() {
   }, [contratti, allUsers]);
 
   const pulizieScores = useMemo(() => {
+    if (!cleaningInspections || !stores || !allUsers) return [];
     const last30Days = moment().subtract(30, 'days').format('YYYY-MM-DD');
     const pulizieRecenti = cleaningInspections.filter(c => c.data_ispezione >= last30Days);
     
@@ -433,6 +436,7 @@ export default function Dashboard() {
   }, [stores, cleaningInspections, allUsers]);
 
   const turniLiberi = useMemo(() => {
+    if (!turni) return [];
     const oggi = moment().format('YYYY-MM-DD');
     const tra14Giorni = moment().add(14, 'days').format('YYYY-MM-DD');
     
