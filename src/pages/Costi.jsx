@@ -585,11 +585,53 @@ export default function Costi() {
                       </button>
                       {expandedDetails[`${storeId}-commissioni`] && (
                         <div className="pl-6 pb-2 space-y-1">
-                          {commissioni.map(c => (
-                            <div key={c.id} className="text-xs text-slate-500 flex justify-between">
-                              <span>{c.metodo_pagamento} {c.app_delivery && `(${c.app_delivery})`} - {c.percentuale}%</span>
-                            </div>
-                          ))}
+                          {commissioni.map(c => {
+                            // Calcola importo per questa commissione specifica
+                            const importoCommissione = datiPagamenti.reduce((sum, record) => {
+                              let totCommissione = 0;
+                              
+                              Object.keys(record).forEach(key => {
+                                if (key.startsWith('moneyType_') && !key.endsWith('_orders')) {
+                                  const metodo = key.replace('moneyType_', '').replace(/_/g, ' ');
+                                  const metodoFormatted = metodo.charAt(0).toUpperCase() + metodo.slice(1);
+                                  
+                                  if (metodoFormatted !== c.metodo_pagamento) return;
+                                  
+                                  const importo = record[key] || 0;
+                                  
+                                  // Trova app
+                                  let appDelivery = null;
+                                  Object.keys(record).forEach(appKey => {
+                                    if (appKey.startsWith('sourceApp_') && !appKey.endsWith('_orders') && record[appKey] > 0) {
+                                      const app = appKey.replace('sourceApp_', '');
+                                      if (!appDelivery) appDelivery = app.charAt(0).toUpperCase() + app.slice(1);
+                                    }
+                                  });
+                                  
+                                  // Verifica match app
+                                  if (c.app_delivery && appDelivery !== c.app_delivery) return;
+                                  if (!c.app_delivery && appDelivery) {
+                                    // Verifica che non esista una commissione più specifica
+                                    const hasSpecific = commissioni.find(cc => 
+                                      cc.metodo_pagamento === metodoFormatted && cc.app_delivery === appDelivery
+                                    );
+                                    if (hasSpecific) return;
+                                  }
+                                  
+                                  totCommissione += importo * (c.percentuale / 100);
+                                }
+                              });
+                              
+                              return sum + totCommissione;
+                            }, 0);
+                            
+                            return (
+                              <div key={c.id} className="text-xs text-slate-500 flex justify-between">
+                                <span>{c.metodo_pagamento} {c.app_delivery && `(${c.app_delivery})`} - {c.percentuale}%</span>
+                                <span>{formatEuro(importoCommissione)}</span>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
