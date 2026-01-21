@@ -55,11 +55,10 @@ export default function PlandayStoreManager() {
     queryFn: () => base44.entities.Store.list(),
   });
 
-  // Filtra solo gli store dove sono store manager (usando store_manager_id)
+  // Store manager ha accesso a TUTTI gli store
   const myStores = useMemo(() => {
-    if (!currentUser?.id) return [];
-    return allStores.filter(s => s.store_manager_id === currentUser.id);
-  }, [allStores, currentUser]);
+    return allStores;
+  }, [allStores]);
 
   // Imposta primo store come selezionato di default
   useEffect(() => {

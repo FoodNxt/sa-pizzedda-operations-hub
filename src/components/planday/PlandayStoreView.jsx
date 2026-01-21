@@ -403,6 +403,40 @@ export default function PlandayStoreView({
               );
             })}
 
+            {/* Riga Turni Non Assegnati */}
+            {turniNonAssegnati.length > 0 && (
+              <div className="grid grid-cols-8 gap-1 border-b-2 border-orange-200 py-2 bg-orange-50">
+                <div className="p-2">
+                  <div className="text-sm font-medium text-orange-800 truncate">⚠️ Non Assegnati</div>
+                  <div className="text-xs text-orange-600">{turniNonAssegnati.length} turni</div>
+                </div>
+                {weekDays.map(day => {
+                  const dayKey = day.format('YYYY-MM-DD');
+                  const dayTurni = turniNonAssegnati.filter(t => t.data === dayKey);
+                  return (
+                    <div 
+                      key={dayKey} 
+                      className="p-1 min-h-[60px] relative"
+                    >
+                      <div className="space-y-1">
+                        {dayTurni.map(turno => (
+                          <div 
+                            key={turno.id}
+                            className="p-2 rounded-lg cursor-pointer text-xs relative bg-orange-300 text-orange-900"
+                            onClick={(e) => handleTurnoClick(e, turno)}
+                          >
+                            <div className="font-bold">{turno.ora_inizio}-{turno.ora_fine}</div>
+                            <div className="text-[10px] opacity-90">{turno.ruolo}</div>
+                            {!selectedStore && turno.store_id && <div className="opacity-80 text-[10px]">{getStoreName(turno.store_id)}</div>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             {/* Riga totale ore */}
             <div className="grid grid-cols-8 gap-1 border-t-2 border-slate-300 pt-2 mt-2 bg-slate-50">
               <div className="p-2">
