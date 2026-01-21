@@ -112,6 +112,7 @@ import SummaryAI from './pages/SummaryAI';
 import TeglieButtate from './pages/TeglieButtate';
 import TurniDipendente from './pages/TurniDipendente';
 import UploadFattureXML from './pages/UploadFattureXML';
+import Uscite from './pages/Uscite';
 import UsersManagement from './pages/UsersManagement';
 import Valutazione from './pages/Valutazione';
 import ValutazioneProvaForm from './pages/ValutazioneProvaForm';
@@ -119,7 +120,6 @@ import ValutazionePulizie from './pages/ValutazionePulizie';
 import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSetup from './pages/ZapierSetup';
-import Uscite from './pages/Uscite';
 import __Layout from './Layout.jsx';
 
 
@@ -238,6 +238,7 @@ export const PAGES = {
     "TeglieButtate": TeglieButtate,
     "TurniDipendente": TurniDipendente,
     "UploadFattureXML": UploadFattureXML,
+    "Uscite": Uscite,
     "UsersManagement": UsersManagement,
     "Valutazione": Valutazione,
     "ValutazioneProvaForm": ValutazioneProvaForm,
@@ -245,7 +246,6 @@ export const PAGES = {
     "ZapierProdottiVenduti": ZapierProdottiVenduti,
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSetup": ZapierSetup,
-    "Uscite": Uscite,
 }
 
 export const pagesConfig = {

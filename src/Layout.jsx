@@ -231,103 +231,123 @@ const navigationStructure = [
     items: [
       {
         title: "Performance Dipendenti",
+        page: "Employees",
         url: createPageUrl("Employees"),
         icon: Users,
       },
       {
         title: "Payroll",
+        page: "Payroll",
         url: createPageUrl("Payroll"),
         icon: Euro,
       },
       {
         title: "Alerts",
+        page: "Alerts",
         url: createPageUrl("Alerts"),
         icon: AlertTriangle,
       },
       {
         title: "Overview Contratti",
+        page: "OverviewContratti",
         url: createPageUrl("OverviewContratti"),
         icon: FileText,
       },
       {
         title: "Academy",
+        page: "AcademyAdmin",
         url: createPageUrl("AcademyAdmin"),
         icon: GraduationCap,
       },
       {
         title: "Documenti",
+        page: "Documenti",
         url: createPageUrl("Documenti"),
         icon: FileText,
       },
       {
         title: "Feedback P2P",
+        page: "FeedbackP2P",
         url: createPageUrl("FeedbackP2P"),
         icon: Users,
       },
       {
         title: "Struttura Turno",
+        page: "StrutturaTurno",
         url: createPageUrl("StrutturaTurno"),
         icon: Calendar,
       },
       {
         title: "Assistente AI",
+        page: "GestioneAssistente",
         url: createPageUrl("GestioneAssistente"),
         icon: Users,
       },
       {
         title: "Planday",
+        page: "Planday",
         url: createPageUrl("Planday"),
         icon: Calendar,
       },
       {
         title: "Richieste",
+        page: "Assenze",
         url: createPageUrl("Assenze"),
         icon: Calendar,
       },
       {
         title: "Pause",
+        page: "Pause",
         url: createPageUrl("Pause"),
         icon: Clock,
       },
       {
         title: "Ritardi",
+        page: "Ritardi",
         url: createPageUrl("Ritardi"),
         icon: AlertTriangle,
       },
       {
         title: "Assegnazione Locali",
+        page: "HRAdmin",
         url: createPageUrl("HRAdmin"),
         icon: MapPin,
       },
       {
         title: "Disponibilità",
+        page: "Disponibilita",
         url: createPageUrl("Disponibilita"),
         icon: Clock,
       },
       {
         title: "Store Manager",
+        page: "StoreManagerAdmin",
         url: createPageUrl("StoreManagerAdmin"),
         icon: Users,
       },
       {
         title: "Compliance",
+        page: "Compliance",
         url: createPageUrl("Compliance"),
         icon: CheckSquare,
       },
       {
         title: "ATS",
+        page: "ATS",
         url: createPageUrl("ATS"),
         icon: Users,
         requiredUserType: ["admin", "manager"]
       },
       {
         title: "Segnalazioni",
+        page: "Segnalazioni",
         url: createPageUrl("Segnalazioni"),
         icon: AlertTriangle,
         requiredUserType: ["admin", "manager"]
       },
       {
         title: "Straordinari",
+        page: "Straordinari",
         url: createPageUrl("Straordinari"),
         icon: Clock,
         requiredUserType: ["admin"]
