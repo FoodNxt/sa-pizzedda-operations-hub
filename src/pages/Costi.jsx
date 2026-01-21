@@ -27,6 +27,7 @@ export default function Costi() {
   const [activeTab, setActiveTab] = useState("budget");
   const [selectedMonth, setSelectedMonth] = useState(moment().format('YYYY-MM'));
   const [expandedDetails, setExpandedDetails] = useState({});
+  const [expandedStores, setExpandedStores] = useState({});
   const [editingItem, setEditingItem] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState({});
@@ -396,7 +397,15 @@ export default function Costi() {
 
               return (
                 <div key={storeId} className="neumorphic-flat p-6 rounded-xl mb-4">
-                  <h3 className="text-lg font-bold text-slate-800 mb-4">{storeName}</h3>
+                  <button
+                    onClick={() => setExpandedStores({...expandedStores, [storeId]: !expandedStores[storeId]})}
+                    className="w-full text-left"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-bold text-slate-800">{storeName}</h3>
+                      {expandedStores[storeId] ? <ChevronDown className="w-5 h-5 text-slate-600" /> : <ChevronRight className="w-5 h-5 text-slate-600" />}
+                    </div>
+                  </button>
                   
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div className="neumorphic-pressed p-4 rounded-xl">
@@ -417,6 +426,7 @@ export default function Costi() {
                     </p>
                   </div>
 
+                  {expandedStores[storeId] && (
                   <div className="space-y-2 text-sm">
                     {/* Affitto */}
                     <div className="border-b border-slate-200">
@@ -428,7 +438,10 @@ export default function Costi() {
                           {expandedDetails[`${storeId}-affitto`] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                           <span className="text-slate-600">Affitto</span>
                         </div>
-                        <span className="font-medium text-slate-800">{formatEuro(costoAffitto)}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-500">{((costoAffitto / totCosti) * 100).toFixed(1)}%</span>
+                          <span className="font-medium text-slate-800">{formatEuro(costoAffitto)}</span>
+                        </div>
                       </button>
                       {expandedDetails[`${storeId}-affitto`] && affitto && (
                         <div className="pl-6 pb-2 text-xs text-slate-500">
@@ -448,7 +461,10 @@ export default function Costi() {
                           {expandedDetails[`${storeId}-utenze`] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                           <span className="text-slate-600">Utenze</span>
                         </div>
-                        <span className="font-medium text-slate-800">{formatEuro(costoUtenze)}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-500">{((costoUtenze / totCosti) * 100).toFixed(1)}%</span>
+                          <span className="font-medium text-slate-800">{formatEuro(costoUtenze)}</span>
+                        </div>
                       </button>
                       {expandedDetails[`${storeId}-utenze`] && utenzeStore.length > 0 && (
                         <div className="pl-6 pb-2 space-y-1">
@@ -472,7 +488,10 @@ export default function Costi() {
                           {expandedDetails[`${storeId}-cogs`] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                           <span className="text-slate-600">Materie Prime (COGS)</span>
                         </div>
-                        <span className="font-medium text-slate-800">{formatEuro(costoMateriePrime)}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-500">{((costoMateriePrime / totCosti) * 100).toFixed(1)}%</span>
+                          <span className="font-medium text-slate-800">{formatEuro(costoMateriePrime)}</span>
+                        </div>
                       </button>
                       {expandedDetails[`${storeId}-cogs`] && (
                         <div className="pl-6 pb-2 space-y-1">
@@ -496,7 +515,10 @@ export default function Costi() {
                           {expandedDetails[`${storeId}-personale`] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                           <span className="text-slate-600">Personale</span>
                         </div>
-                        <span className="font-medium text-slate-800">{formatEuro(costoPersonale)}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-500">{((costoPersonale / totCosti) * 100).toFixed(1)}%</span>
+                          <span className="font-medium text-slate-800">{formatEuro(costoPersonale)}</span>
+                        </div>
                       </button>
                       {expandedDetails[`${storeId}-personale`] && (
                         <div className="pl-6 pb-2 text-xs text-slate-500">
@@ -520,7 +542,10 @@ export default function Costi() {
                           {expandedDetails[`${storeId}-subscriptions`] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                           <span className="text-slate-600">Subscriptions</span>
                         </div>
-                        <span className="font-medium text-slate-800">{formatEuro(totaleSubscriptions)}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-500">{((totaleSubscriptions / totCosti) * 100).toFixed(1)}%</span>
+                          <span className="font-medium text-slate-800">{formatEuro(totaleSubscriptions)}</span>
+                        </div>
                       </button>
                       {expandedDetails[`${storeId}-subscriptions`] && subscriptions.length > 0 && (
                        <div className="pl-6 pb-2 space-y-1">
@@ -553,7 +578,10 @@ export default function Costi() {
                           {expandedDetails[`${storeId}-commissioni`] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                           <span className="text-slate-600">Commissioni Pagamento</span>
                         </div>
-                        <span className="font-medium text-slate-800">{formatEuro(costoCommissioni)}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-500">{((costoCommissioni / totCosti) * 100).toFixed(1)}%</span>
+                          <span className="font-medium text-slate-800">{formatEuro(costoCommissioni)}</span>
+                        </div>
                       </button>
                       {expandedDetails[`${storeId}-commissioni`] && (
                         <div className="pl-6 pb-2 space-y-1">
@@ -576,7 +604,10 @@ export default function Costi() {
                           {expandedDetails[`${storeId}-ads`] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                           <span className="text-slate-600">Marketing Ads</span>
                         </div>
-                        <span className="font-medium text-slate-800">{formatEuro(costoAds)}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-500">{((costoAds / totCosti) * 100).toFixed(1)}%</span>
+                          <span className="font-medium text-slate-800">{formatEuro(costoAds)}</span>
+                        </div>
                       </button>
                       {expandedDetails[`${storeId}-ads`] && budgetAds.length > 0 && (
                        <div className="pl-6 pb-2 space-y-1">
@@ -598,6 +629,7 @@ export default function Costi() {
                       )}
                     </div>
                   </div>
+                  )}
                 </div>
               );
             })}
