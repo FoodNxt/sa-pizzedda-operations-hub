@@ -54,21 +54,25 @@ const navigationStructure = [
     items: [
       {
         title: "Dashboard",
+        page: "Dashboard",
         url: createPageUrl("Dashboard"),
         icon: LayoutDashboard,
       },
       {
         title: "Presenze",
+        page: "Presenze",
         url: createPageUrl("Presenze"),
         icon: Users,
       },
       {
         title: "Form Tracker",
+        page: "FormTracker",
         url: createPageUrl("FormTracker"),
         icon: ClipboardCheck,
       },
       {
         title: "Meteo",
+        page: "Meteo",
         url: createPageUrl("Meteo"),
         icon: Cloud,
       }
@@ -82,16 +86,19 @@ const navigationStructure = [
     items: [
       {
         title: "Store Reviews",
+        page: "StoreReviews",
         url: createPageUrl("StoreReviews"),
         icon: MapPin,
       },
       {
         title: "Assign Reviews",
+        page: "AssignReviews",
         url: createPageUrl("AssignReviews"),
         icon: UserCheck,
       },
       {
         title: "Employee Reviews",
+        page: "EmployeeReviewsPerformance",
         url: createPageUrl("EmployeeReviewsPerformance"),
         icon: Users,
       }
@@ -105,31 +112,37 @@ const navigationStructure = [
     items: [
       {
         title: "Financials",
+        page: "Financials",
         url: createPageUrl("Financials"),
         icon: Euro,
       },
       {
         title: "Channel Comparison",
+        page: "ChannelComparison",
         url: createPageUrl("ChannelComparison"),
         icon: BarChart3,
       },
       {
         title: "Storico Cassa",
+        page: "StoricoCassa",
         url: createPageUrl("StoricoCassa"),
         icon: Euro,
       },
       {
         title: "Costi",
+        page: "Costi",
         url: createPageUrl("Costi"),
         icon: TrendingUp,
       },
       {
         title: "Forms",
+        page: "FinancialForms",
         url: createPageUrl("FinancialForms"),
         icon: FileText,
       },
       {
         title: "Produttività",
+        page: "Produttivita",
         url: createPageUrl("Produttivita"),
         icon: Clock,
       }
@@ -367,6 +380,7 @@ const navigationStructure = [
       },
       {
         title: "Piano Quarter",
+        page: "PianoQuarter",
         url: createPageUrl("PianoQuarter"),
         icon: Calendar,
       }
@@ -391,16 +405,19 @@ const navigationStructure = [
       },
       {
         title: "Activation",
+        page: "Activation",
         url: createPageUrl("Activation"),
         icon: Zap,
       },
       {
         title: "Contatti",
+        page: "Contatti",
         url: createPageUrl("Contatti"),
         icon: Users,
       },
       {
         title: "Configurazione",
+        page: "MarketingSettings",
         url: createPageUrl("MarketingSettings"),
         icon: Settings,
         requiredUserType: ["admin"]
