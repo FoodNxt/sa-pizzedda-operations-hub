@@ -57,82 +57,43 @@ export default function PlandayStoreView({
   }, [weekStart]);
 
   const dipendentiConTurni = useMemo(() => {
+    // Raggruppa per nome dipendente (già salvato nel turno)
     const dipendentiMap = new Map();
     
-    // Aggiungi tutti gli utenti reali dal sistema
-    users.forEach(u => {
-      dipendentiMap.set(u.id, {
-        ...u,
-        turniSettimana: []
-      });
-    });
-    
-    // Associa i turni ai dipendenti
     turni.forEach(turno => {
       if (turno.dipendente_nome) {
-        let dipendente = null;
-        
-        // Cerca prima per ID
-        if (turno.dipendente_id && dipendentiMap.has(turno.dipendente_id)) {
-          dipendente = dipendentiMap.get(turno.dipendente_id);
-        } else if (turno.dipendente_id) {
-          // Se ha ID ma non è nella mappa, cercalo per nome negli users
-          const user = users.find(u => u.id === turno.dipendente_id);
-          if (user && !dipendentiMap.has(user.id)) {
-            dipendentiMap.set(user.id, {
-              ...user,
-              turniSettimana: []
-            });
-            dipendente = dipendentiMap.get(user.id);
-          }
+        const key = turno.dipendente_id || turno.dipendente_nome;
+        if (!dipendentiMap.has(key)) {
+          dipendentiMap.set(key, {
+            id: turno.dipendente_id || turno.dipendente_nome,
+            nome_cognome: turno.dipendente_nome,
+            full_name: turno.dipendente_nome,
+            turniSettimana: []
+          });
         }
-        
-        // Se non trovato per ID, cerca per nome
-        if (!dipendente) {
-          const nomeTurno = turno.dipendente_nome.trim().toLowerCase();
-          for (const [id, dip] of dipendentiMap.entries()) {
-            const nomeDip = (dip.nome_cognome || dip.full_name || '').trim().toLowerCase();
-            if (nomeDip === nomeTurno) {
-              dipendente = dip;
-              break;
-            }
-          }
-        }
-        
-        // Se ancora non trovato, crea un entry fittizio
-        if (!dipendente) {
-          const key = 'nome_' + turno.dipendente_nome.trim().toLowerCase().replace(/\s+/g, '_');
-          if (!dipendentiMap.has(key)) {
-            dipendentiMap.set(key, {
-              id: key,
-              nome_cognome: turno.dipendente_nome,
-              full_name: turno.dipendente_nome,
-              turniSettimana: []
-            });
-          }
-          dipendente = dipendentiMap.get(key);
-        }
-        
-        if (dipendente) {
-          dipendente.turniSettimana.push(turno);
-        }
+        dipendentiMap.get(key).turniSettimana.push(turno);
       }
     });
     
-    // Filtra per store selezionato se presente
-    let risultato = Array.from(dipendentiMap.values());
+    // Aggiungi dipendenti dello store anche se non hanno turni
     if (selectedStore) {
       const storeName = stores.find(s => s.id === selectedStore)?.name;
-      risultato = risultato.filter(dip => {
-        // Mostra se ha turni nella settimana o se è assegnato allo store
-        const haTurni = dip.turniSettimana.length > 0;
-        const assigned = dip.assigned_stores || [];
-        const assegnatoStore = storeName && assigned.includes(storeName);
-        return haTurni || assegnatoStore;
-      });
+      if (storeName) {
+        users.filter(u => {
+          const assigned = u.assigned_stores || [];
+          return assigned.includes(storeName);
+        }).forEach(u => {
+          if (!dipendentiMap.has(u.id)) {
+            dipendentiMap.set(u.id, {
+              ...u,
+              turniSettimana: []
+            });
+          }
+        });
+      }
     }
     
-    return risultato.sort((a, b) => 
+    return Array.from(dipendentiMap.values()).sort((a, b) => 
       (a.nome_cognome || '').localeCompare(b.nome_cognome || '')
     );
   }, [turni, users, selectedStore, stores]);
