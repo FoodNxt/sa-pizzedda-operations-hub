@@ -74,6 +74,16 @@ export default function Dashboard() {
     queryFn: () => base44.entities.CleaningInspection.list('-data_ispezione', 200),
   });
 
+  const { data: wrongOrderMatches = [] } = useQuery({
+    queryKey: ['wrong-order-matches'],
+    queryFn: () => base44.entities.WrongOrderMatch.list(),
+  });
+
+  const { data: metricWeights = [] } = useQuery({
+    queryKey: ['metric-weights'],
+    queryFn: () => base44.entities.MetricWeight.list(),
+  });
+
   const { data: richiesteAssenze = [] } = useQuery({
     queryKey: ['richieste-assenze'],
     queryFn: async () => {
@@ -251,20 +261,81 @@ export default function Dashboard() {
   }, [stores, processedData.foodCostByStore]);
 
   const employeePerformance = useMemo(() => {
-    const totalEmployees = allUsers.filter(u => u.user_type === 'user' && u.ruoli_dipendente?.length > 0).length;
-    const employeeScores = allUsers
-      .filter(u => u.user_type === 'user' && u.ruoli_dipendente?.length > 0)
-      .map(emp => {
-        const empReviews = reviews.filter(r => r.responsabile_id === emp.id || r.employee_id === emp.id);
-        const avgScore = empReviews.length > 0 
-          ? empReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / empReviews.length 
-          : 0;
-        return { name: emp.nome_cognome || emp.full_name, score: avgScore, reviewCount: empReviews.length };
-      })
-      .filter(e => e.reviewCount > 0)
-      .sort((a, b) => b.score - a.score);
-    return { top: employeeScores[0], worst: employeeScores[employeeScores.length - 1], total: totalEmployees };
-  }, [allUsers, reviews]);
+    const dipendenti = allUsers.filter(u => (u.user_type === 'dipendente' || u.user_type === 'user') && u.ruoli_dipendente?.length > 0);
+    const totalEmployees = dipendenti.length;
+
+    // Calcola performanceScore per ogni dipendente (stesso calcolo di HR > Performance Dipendenti)
+    const employeeScores = dipendenti.map(user => {
+      const employeeName = user.nome_cognome || user.full_name || user.email;
+      
+      const employeeShifts = turni.filter(s => s.dipendente_nome === employeeName);
+      const employeeWrongOrders = wrongOrderMatches.filter(m => m.matched_employee_name === employeeName);
+      
+      const getWeight = (metricName, ruolo = null) => {
+        let weight;
+        if (ruolo) {
+          weight = metricWeights.find(w => w.metric_name === metricName && w.ruolo === ruolo && w.is_active);
+        }
+        if (!weight) {
+          weight = metricWeights.find(w => w.metric_name === metricName && w.is_active);
+        }
+        return weight ? weight.weight : (metricName === 'ordini_sbagliati' ? 2 : metricName === 'ritardi' ? 0.3 : metricName === 'timbrature_mancanti' ? 1 : 1);
+      };
+
+      let performanceScore = 100;
+      
+      // Deduzioni ordini sbagliati
+      employeeWrongOrders.forEach(order => {
+        const shiftData = employeeShifts.find(s => s.data === order.order_date?.split('T')[0]);
+        const ruolo = shiftData ? shiftData.ruolo : null;
+        performanceScore -= getWeight('ordini_sbagliati', ruolo);
+      });
+      
+      // Deduzioni ritardi
+      employeeShifts.forEach(shift => {
+        if (!shift.timbratura_entrata || !shift.ora_inizio) return;
+        try {
+          const clockInTime = new Date(shift.timbratura_entrata);
+          const [oraInizioHH, oraInizioMM] = shift.ora_inizio.split(':').map(Number);
+          const scheduledStart = new Date(clockInTime);
+          scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
+          const delayMs = clockInTime - scheduledStart;
+          const delayMinutes = Math.floor(delayMs / 60000);
+          if (delayMinutes > 0) {
+            performanceScore -= getWeight('ritardi', shift.ruolo);
+          }
+        } catch (e) {}
+      });
+      
+      // Deduzioni timbrature mancanti
+      const missingClockIns = employeeShifts.filter(s => {
+        if (s.timbratura_entrata) return false;
+        const shiftDate = safeParseDate(s.data);
+        if (!shiftDate) return false;
+        const today = new Date();
+        if (shiftDate > today) return false;
+        return true;
+      });
+      
+      missingClockIns.forEach(shift => {
+        performanceScore -= getWeight('timbrature_mancanti', shift.ruolo);
+      });
+
+      performanceScore = Math.max(0, Math.min(100, performanceScore));
+      
+      return {
+        id: user.id,
+        name: employeeName,
+        performanceScore: Math.round(performanceScore)
+      };
+    }).sort((a, b) => b.performanceScore - a.performanceScore);
+
+    return {
+      top: employeeScores[0],
+      worst: employeeScores[employeeScores.length - 1],
+      total: totalEmployees
+    };
+  }, [allUsers, turni, wrongOrderMatches, metricWeights]);
 
   const produttivitaStats = useMemo(() => {
     const storeProd = stores.map(s => ({
@@ -289,8 +360,8 @@ export default function Dashboard() {
     }
 
     const filteredReviews = reviews.filter(r => {
-      if (!r.inspection_date) return false;
-      const itemDate = safeParseDate(r.inspection_date);
+      if (!r.review_date) return false;
+      const itemDate = safeParseDate(r.review_date);
       if (!itemDate) return false;
       if (cutoffDate && isBefore(itemDate, cutoffDate)) return false;
       if (endFilterDate && isAfter(itemDate, endFilterDate)) return false;
@@ -298,20 +369,34 @@ export default function Dashboard() {
     });
 
     const reviewsByEmployee = allUsers
-      .filter(u => u.user_type === 'user')
-      .map(emp => ({
-        name: emp.nome_cognome || emp.full_name,
-        count: filteredReviews.filter(r => r.responsabile_id === emp.id || r.employee_id === emp.id).length
-      }))
+      .filter(u => (u.user_type === 'dipendente' || u.user_type === 'user') && u.ruoli_dipendente?.length > 0)
+      .map(emp => {
+        const employeeName = emp.nome_cognome || emp.full_name;
+        const assignedReviews = filteredReviews.filter(r => {
+          if (!r.employee_assigned_name) return false;
+          const assignedNames = r.employee_assigned_name.split(',').map(n => n.trim().toLowerCase());
+          return assignedNames.includes(employeeName.toLowerCase());
+        });
+        return { name: employeeName, count: assignedReviews.length };
+      })
+      .filter(e => e.count > 0)
       .sort((a, b) => b.count - a.count);
 
     const avgRatingByEmployee = allUsers
-      .filter(u => u.user_type === 'user')
-      .map(emp => ({
-        name: emp.nome_cognome || emp.full_name,
-        rating: filteredReviews.filter(r => r.responsabile_id === emp.id || r.employee_id === emp.id).reduce((sum, r) => sum + (r.rating || 0), 0) / (filteredReviews.filter(r => r.responsabile_id === emp.id || r.employee_id === emp.id).length || 1)
-      }))
-      .filter(e => e.rating > 0)
+      .filter(u => (u.user_type === 'dipendente' || u.user_type === 'user') && u.ruoli_dipendente?.length > 0)
+      .map(emp => {
+        const employeeName = emp.nome_cognome || emp.full_name;
+        const assignedReviews = filteredReviews.filter(r => {
+          if (!r.employee_assigned_name) return false;
+          const assignedNames = r.employee_assigned_name.split(',').map(n => n.trim().toLowerCase());
+          return assignedNames.includes(employeeName.toLowerCase());
+        });
+        const avgRating = assignedReviews.length > 0 
+          ? assignedReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / assignedReviews.length 
+          : 0;
+        return { name: employeeName, rating: avgRating, count: assignedReviews.length };
+      })
+      .filter(e => e.count > 0)
       .sort((a, b) => b.rating - a.rating);
 
     return {
@@ -327,28 +412,38 @@ export default function Dashboard() {
   // Metriche operative
   const cassaStats = useMemo(() => {
     const storeLastCassa = stores.map(store => {
-      const storeConteggios = conteggiosCassa.filter(c => c.store_id === store.id).sort((a, b) => new Date(b.data_conteggio) - new Date(a.data_conteggio));
+      const storeConteggios = conteggiosCassa
+        .filter(c => c.store_id === store.id)
+        .sort((a, b) => new Date(b.data_conteggio) - new Date(a.data_conteggio));
       const lastConteggio = storeConteggios[0];
+      
+      if (!lastConteggio) return null;
+      
+      const differenza = (lastConteggio.totale_effettivo || 0) - (lastConteggio.totale_teorico || 0);
       const alert = alertsCassaConfig.find(a => a.store_id === store.id && a.is_active);
-      const hasAlert = lastConteggio && alert && Math.abs(lastConteggio.differenza || 0) > (alert.soglia_alert || 50);
+      const hasAlert = alert && Math.abs(differenza) > (alert.soglia_alert || 50);
+      
       return {
         storeName: store.name,
-        lastDate: lastConteggio?.data_conteggio,
-        differenza: lastConteggio?.differenza || 0,
+        lastDate: lastConteggio.data_conteggio,
+        differenza,
         hasAlert
       };
-    }).filter(s => s.lastDate);
+    }).filter(s => s !== null);
     return storeLastCassa;
   }, [stores, conteggiosCassa, alertsCassaConfig]);
 
   const sprechiStats = useMemo(() => {
     const last30Days = moment().subtract(30, 'days').format('YYYY-MM-DD');
-    const sprechiRecenti = sprechi.filter(s => s.data && s.data >= last30Days);
-    
-    return sprechiRecenti.map(s => ({
-      storeName: (stores.find(st => st.id === s.store_id)?.name || 'N/A'),
-      totale: s.valore_euro || 0
-    })).sort((a, b) => b.totale - a.totale);
+    return sprechi
+      .filter(s => s.data && s.data >= last30Days)
+      .map(s => ({
+        storeName: stores.find(st => st.id === s.store_id)?.name || 'N/A',
+        data: s.data,
+        valore: s.valore_euro || 0,
+        prodotto: s.prodotto_nome || 'N/A'
+      }))
+      .sort((a, b) => b.data.localeCompare(a.data));
   }, [stores, sprechi]);
 
   // Alert operativi
@@ -624,11 +719,11 @@ export default function Dashboard() {
             <div className="space-y-1 text-xs">
               <div className="flex justify-between items-center">
                 <span className="text-green-600">🏆 {employeePerformance.top?.name || 'N/A'}</span>
-                <span className="font-medium">{employeePerformance.top?.score.toFixed(1)} ⭐</span>
+                <span className="font-medium">{employeePerformance.top?.performanceScore || 0} pts</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-red-600">📉 {employeePerformance.worst?.name || 'N/A'}</span>
-                <span className="font-medium">{employeePerformance.worst?.score.toFixed(1)} ⭐</span>
+                <span className="font-medium">{employeePerformance.worst?.performanceScore || 0} pts</span>
               </div>
             </div>
           </NeumorphicCard>
@@ -741,9 +836,14 @@ export default function Dashboard() {
               <h3 className="font-bold text-slate-700 mb-3 text-sm">Sprechi (Ultimi 30 giorni)</h3>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {sprechiStats.length > 0 ? sprechiStats.map((spreco, idx) => (
-                  <div key={idx} className="p-2 rounded-lg bg-slate-50 flex justify-between items-center">
-                    <span className="text-xs font-medium text-slate-700">{spreco.storeName}</span>
-                    <span className="text-xs font-bold text-red-600">{formatEuro(spreco.totale)}</span>
+                  <div key={idx} className="p-2 rounded-lg bg-red-50 border border-red-200">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs font-medium text-slate-700">{spreco.storeName}</span>
+                      <span className="text-xs font-bold text-red-600">{formatEuro(spreco.valore)}</span>
+                    </div>
+                    <div className="text-[10px] text-slate-500">
+                      {spreco.prodotto} • {moment(spreco.data).format('DD/MM/YYYY')}
+                    </div>
                   </div>
                 )) : (
                   <p className="text-xs text-slate-400 text-center py-4">Nessuno spreco registrato</p>
