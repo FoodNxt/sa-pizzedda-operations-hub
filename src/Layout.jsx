@@ -681,6 +681,17 @@ export default function Layout({ children, currentPageName }) {
 
         const normalizedUserType = getNormalizedUserType(user.user_type);
 
+        // Check if employee has an exit record
+        if (normalizedUserType === 'dipendente') {
+          const uscite = await base44.entities.Uscita.filter({ dipendente_id: user.id });
+          if (uscite.length > 0) {
+            // Employee has exit recorded, redirect to login
+            base44.auth.redirectToLogin();
+            setIsLoadingUser(false);
+            return;
+          }
+        }
+
         if (normalizedUserType === 'dipendente') {
           if (isLoadingConfig) {
             return;
