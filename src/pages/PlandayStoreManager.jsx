@@ -67,73 +67,14 @@ export default function PlandayStoreManager() {
     }
   }, [myStores, selectedStore]);
 
-  const { data: allEmployees = [] } = useQuery({
-    queryKey: ['employees-store-manager-all'],
+  // Carica TUTTI i dipendenti usando funzione backend con service role
+  const { data: users = [] } = useQuery({
+    queryKey: ['all-dipendenti-planday'],
     queryFn: async () => {
-      const employees = await base44.entities.Employee.list();
-      // Carica TUTTI gli employee attivi, senza filtro per store
-      return employees.filter(e => e.status === 'active');
+      const response = await base44.functions.invoke('getAllDipendentiForPlanday', {});
+      return response.data.dipendenti || [];
     }
   });
-
-  const { data: allUsers = [] } = useQuery({
-    queryKey: ['users-store-manager-all'],
-    queryFn: async () => {
-      const usersData = await base44.entities.User.list();
-      // Carica TUTTI i dipendenti, senza filtro per store
-      return usersData.filter(u => u.user_type === 'dipendente');
-    }
-  });
-
-  // Combina Employee e User per avere lista completa dipendenti
-  const users = useMemo(() => {
-    const userMap = new Map();
-    
-    // Prima passa: aggiungi tutti gli Employee
-    allEmployees.forEach(emp => {
-      const key = emp.full_name.toLowerCase().trim();
-      userMap.set(key, {
-        id: emp.id,
-        nome_cognome: emp.full_name,
-        full_name: emp.full_name,
-        email: emp.email,
-        ruoli_dipendente: emp.function_name ? [emp.function_name] : [],
-        assigned_stores: emp.assigned_stores || [],
-        source: 'employee'
-      });
-    });
-    
-    // Seconda passa: aggiungi/unisci User
-    allUsers.forEach(user => {
-      const key = (user.nome_cognome || user.full_name || '').toLowerCase().trim();
-      if (!key) return;
-      
-      const existing = userMap.get(key);
-      if (existing) {
-        // Se esiste già, unisci i ruoli
-        const userRuoli = user.ruoli_dipendente || [];
-        const combinedRuoli = [...new Set([...existing.ruoli_dipendente, ...userRuoli])];
-        userMap.set(key, {
-          ...existing,
-          ruoli_dipendente: combinedRuoli,
-          assigned_stores: user.assigned_stores || existing.assigned_stores
-        });
-      } else {
-        // Se non esiste, aggiungilo
-        userMap.set(key, {
-          id: user.id,
-          nome_cognome: user.nome_cognome || user.full_name,
-          full_name: user.full_name || user.nome_cognome,
-          email: user.email,
-          ruoli_dipendente: user.ruoli_dipendente || [],
-          assigned_stores: user.assigned_stores || [],
-          source: 'user'
-        });
-      }
-    });
-    
-    return Array.from(userMap.values()).filter(u => u.ruoli_dipendente.length > 0);
-  }, [allEmployees, allUsers]);
 
   // Carica TUTTI i turni della settimana (non filtrati per store)
   const { data: allTurniWeek = [], isLoading } = useQuery({
