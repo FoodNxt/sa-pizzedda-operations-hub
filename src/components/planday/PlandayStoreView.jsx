@@ -556,7 +556,7 @@ export default function PlandayStoreView({
                   );
                   
                   let conflittoStessoStore = false;
-                  let conflitoAltroStore = false;
+                  let conflittoAltroStore = false;
                   let storeConflitto = '';
                   
                   if (quickForm.ora_inizio && quickForm.ora_fine && altriTurni.length > 0) {
@@ -579,9 +579,9 @@ export default function PlandayStoreView({
                       
                       if (hasOverlap) {
                         if (t.store_id === quickForm.store_id) {
-                          conflitoStessoStore = true;
+                          conflittoStessoStore = true;
                         } else {
-                          conflitoAltroStore = true;
+                          conflittoAltroStore = true;
                           storeConflitto = getStoreName(t.store_id);
                         }
                       }
@@ -589,14 +589,14 @@ export default function PlandayStoreView({
                   }
                   
                   let label = u.nome_cognome || u.full_name;
-                  if (conflitoStessoStore) {
+                  if (conflittoStessoStore) {
                     label += ' ⚠️ GIÀ IN TURNO';
-                  } else if (conflitoAltroStore) {
+                  } else if (conflittoAltroStore) {
                     label += ` 🔔 In turno a ${storeConflitto}`;
                   }
                   
                   return (
-                    <option key={u.id} value={u.id} disabled={conflitoStessoStore}>
+                    <option key={u.id} value={u.id} disabled={conflittoStessoStore}>
                       {label}
                     </option>
                   );
