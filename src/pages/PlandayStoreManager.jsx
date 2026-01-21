@@ -599,38 +599,55 @@ export default function PlandayStoreManager() {
                         return nameA.localeCompare(nameB);
                       })
                       .map(u => {
-                        // Controlla se ha già turni in quella data/orario
-                        const altriTurni = turni.filter(t => 
+                        // Controlla se ha già turni in quella data/orario (in TUTTI gli store)
+                        const altriTurni = allTurniWeek.filter(t => 
                           t.dipendente_id === u.id && 
                           t.data === turnoForm.data &&
                           t.id !== editingTurno?.id
                         );
                         
-                        let conflitto = false;
+                        let conflitoStessoStore = false;
+                        let conflitoAltroStore = false;
+                        let storeConflitto = '';
+                        
                         if (turnoForm.ora_inizio && turnoForm.ora_fine && altriTurni.length > 0) {
                           const [startH, startM] = turnoForm.ora_inizio.split(':').map(Number);
                           const [endH, endM] = turnoForm.ora_fine.split(':').map(Number);
                           const startMinutes = startH * 60 + startM;
                           const endMinutes = endH * 60 + endM;
                           
-                          conflitto = altriTurni.some(t => {
+                          altriTurni.forEach(t => {
                             const [tStartH, tStartM] = t.ora_inizio.split(':').map(Number);
                             const [tEndH, tEndM] = t.ora_fine.split(':').map(Number);
                             const tStartMinutes = tStartH * 60 + tStartM;
                             const tEndMinutes = tEndH * 60 + tEndM;
                             
-                            return (
+                            const hasOverlap = (
                               (startMinutes >= tStartMinutes && startMinutes < tEndMinutes) ||
                               (endMinutes > tStartMinutes && endMinutes <= tEndMinutes) ||
                               (startMinutes <= tStartMinutes && endMinutes >= tEndMinutes)
                             );
+                            
+                            if (hasOverlap) {
+                              if (t.store_id === turnoForm.store_id) {
+                                conflitoStessoStore = true;
+                              } else {
+                                conflitoAltroStore = true;
+                                storeConflitto = getStoreName(t.store_id);
+                              }
+                            }
                           });
                         }
                         
-                        const label = `${u.nome_cognome || u.full_name}${conflitto ? ' ⚠️ GIÀ IN TURNO' : altriTurni.length > 0 ? ' ✓ Disponibile' : ''}`;
+                        let label = u.nome_cognome || u.full_name;
+                        if (conflitoStessoStore) {
+                          label += ' ⚠️ GIÀ IN TURNO';
+                        } else if (conflitoAltroStore) {
+                          label += ` 🔔 In turno a ${storeConflitto}`;
+                        }
                         
                         return (
-                          <option key={u.id} value={u.id} disabled={conflitto}>
+                          <option key={u.id} value={u.id} disabled={conflitoStessoStore}>
                             {label}
                           </option>
                         );

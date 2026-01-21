@@ -147,10 +147,10 @@ export default function PlandayStoreView({
     e.stopPropagation();
     setSelectedTurno(turno);
     
-    // PRIMA: prova a usare direttamente l'ID se presente
+    // Trova il dipendente usando l'ID o il nome
     let dipendenteId = turno.dipendente_id || '';
     
-    // SE NON PRESENTE, cerca per nome esatto
+    // Se non c'è ID ma c'è il nome, cerca per nome
     if (!dipendenteId && turno.dipendente_nome) {
       const nomeTurno = turno.dipendente_nome.trim().toLowerCase();
       const foundUser = users.find(u => {
@@ -325,6 +325,40 @@ export default function PlandayStoreView({
               ))}
             </div>
 
+            {/* Riga Turni Non Assegnati - PRIMA */}
+            {turniNonAssegnati.length > 0 && (
+              <div className="grid grid-cols-8 gap-1 border-b-2 border-orange-200 py-2 bg-orange-50">
+                <div className="p-2">
+                  <div className="text-sm font-medium text-orange-800 truncate">⚠️ Non Assegnati</div>
+                  <div className="text-xs text-orange-600">{turniNonAssegnati.length} turni</div>
+                </div>
+                {weekDays.map(day => {
+                  const dayKey = day.format('YYYY-MM-DD');
+                  const dayTurni = turniNonAssegnati.filter(t => t.data === dayKey);
+                  return (
+                    <div 
+                      key={dayKey} 
+                      className="p-1 min-h-[60px] relative"
+                    >
+                      <div className="space-y-1">
+                        {dayTurni.map(turno => (
+                          <div 
+                            key={turno.id}
+                            className="p-2 rounded-lg cursor-pointer text-xs relative bg-orange-300 text-orange-900"
+                            onClick={(e) => handleTurnoClick(e, turno)}
+                          >
+                            <div className="font-bold">{turno.ora_inizio}-{turno.ora_fine}</div>
+                            <div className="text-[10px] opacity-90">{turno.ruolo}</div>
+                            {!selectedStore && turno.store_id && <div className="opacity-80 text-[10px]">{getStoreName(turno.store_id)}</div>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             {dipendentiConTurni.map(dipendente => {
               const dipTurni = turniByDipendente[dipendente.id] || {};
               const totaleTurni = Object.values(dipTurni).flat().length;
@@ -402,40 +436,6 @@ export default function PlandayStoreView({
                 </div>
               );
             })}
-
-            {/* Riga Turni Non Assegnati */}
-            {turniNonAssegnati.length > 0 && (
-              <div className="grid grid-cols-8 gap-1 border-b-2 border-orange-200 py-2 bg-orange-50">
-                <div className="p-2">
-                  <div className="text-sm font-medium text-orange-800 truncate">⚠️ Non Assegnati</div>
-                  <div className="text-xs text-orange-600">{turniNonAssegnati.length} turni</div>
-                </div>
-                {weekDays.map(day => {
-                  const dayKey = day.format('YYYY-MM-DD');
-                  const dayTurni = turniNonAssegnati.filter(t => t.data === dayKey);
-                  return (
-                    <div 
-                      key={dayKey} 
-                      className="p-1 min-h-[60px] relative"
-                    >
-                      <div className="space-y-1">
-                        {dayTurni.map(turno => (
-                          <div 
-                            key={turno.id}
-                            className="p-2 rounded-lg cursor-pointer text-xs relative bg-orange-300 text-orange-900"
-                            onClick={(e) => handleTurnoClick(e, turno)}
-                          >
-                            <div className="font-bold">{turno.ora_inizio}-{turno.ora_fine}</div>
-                            <div className="text-[10px] opacity-90">{turno.ruolo}</div>
-                            {!selectedStore && turno.store_id && <div className="opacity-80 text-[10px]">{getStoreName(turno.store_id)}</div>}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
 
             {/* Riga totale ore */}
             <div className="grid grid-cols-8 gap-1 border-t-2 border-slate-300 pt-2 mt-2 bg-slate-50">
@@ -555,31 +555,48 @@ export default function PlandayStoreView({
                     t.id !== selectedTurno?.id // Escludi il turno corrente se in modifica
                   );
                   
-                  let conflitto = false;
+                  let conflittoStessoStore = false;
+                  let conflitoAltroStore = false;
+                  let storeConflitto = '';
+                  
                   if (quickForm.ora_inizio && quickForm.ora_fine && altriTurni.length > 0) {
                     const [startH, startM] = quickForm.ora_inizio.split(':').map(Number);
                     const [endH, endM] = quickForm.ora_fine.split(':').map(Number);
                     const startMinutes = startH * 60 + startM;
                     const endMinutes = endH * 60 + endM;
                     
-                    conflitto = altriTurni.some(t => {
+                    altriTurni.forEach(t => {
                       const [tStartH, tStartM] = t.ora_inizio.split(':').map(Number);
                       const [tEndH, tEndM] = t.ora_fine.split(':').map(Number);
                       const tStartMinutes = tStartH * 60 + tStartM;
                       const tEndMinutes = tEndH * 60 + tEndM;
                       
-                      return (
+                      const hasOverlap = (
                         (startMinutes >= tStartMinutes && startMinutes < tEndMinutes) ||
                         (endMinutes > tStartMinutes && endMinutes <= tEndMinutes) ||
                         (startMinutes <= tStartMinutes && endMinutes >= tEndMinutes)
                       );
+                      
+                      if (hasOverlap) {
+                        if (t.store_id === quickForm.store_id) {
+                          conflitoStessoStore = true;
+                        } else {
+                          conflitoAltroStore = true;
+                          storeConflitto = getStoreName(t.store_id);
+                        }
+                      }
                     });
                   }
                   
-                  const label = `${u.nome_cognome || u.full_name}${conflitto ? ' ⚠️ GIÀ IN TURNO' : altriTurni.length > 0 ? ' ✓ Disponibile' : ''}`;
+                  let label = u.nome_cognome || u.full_name;
+                  if (conflitoStessoStore) {
+                    label += ' ⚠️ GIÀ IN TURNO';
+                  } else if (conflitoAltroStore) {
+                    label += ` 🔔 In turno a ${storeConflitto}`;
+                  }
                   
                   return (
-                    <option key={u.id} value={u.id} disabled={conflitto}>
+                    <option key={u.id} value={u.id} disabled={conflitoStessoStore}>
                       {label}
                     </option>
                   );
