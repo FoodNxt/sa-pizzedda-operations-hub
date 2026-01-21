@@ -89,7 +89,7 @@ export default function PlandayStoreManager() {
   const users = useMemo(() => {
     const userMap = new Map();
     
-    // Aggiungi Employee usando full_name come chiave
+    // Prima passa: aggiungi tutti gli Employee
     allEmployees.forEach(emp => {
       const key = emp.full_name.toLowerCase().trim();
       userMap.set(key, {
@@ -98,26 +98,41 @@ export default function PlandayStoreManager() {
         full_name: emp.full_name,
         email: emp.email,
         ruoli_dipendente: emp.function_name ? [emp.function_name] : [],
-        assigned_stores: emp.assigned_stores || []
+        assigned_stores: emp.assigned_stores || [],
+        source: 'employee'
       });
     });
     
-    // Aggiungi User che non sono già Employee
+    // Seconda passa: aggiungi/unisci User
     allUsers.forEach(user => {
       const key = (user.nome_cognome || user.full_name || '').toLowerCase().trim();
-      if (key && !userMap.has(key)) {
+      if (!key) return;
+      
+      const existing = userMap.get(key);
+      if (existing) {
+        // Se esiste già, unisci i ruoli
+        const userRuoli = user.ruoli_dipendente || [];
+        const combinedRuoli = [...new Set([...existing.ruoli_dipendente, ...userRuoli])];
+        userMap.set(key, {
+          ...existing,
+          ruoli_dipendente: combinedRuoli,
+          assigned_stores: user.assigned_stores || existing.assigned_stores
+        });
+      } else {
+        // Se non esiste, aggiungilo
         userMap.set(key, {
           id: user.id,
           nome_cognome: user.nome_cognome || user.full_name,
           full_name: user.full_name || user.nome_cognome,
           email: user.email,
           ruoli_dipendente: user.ruoli_dipendente || [],
-          assigned_stores: user.assigned_stores || []
+          assigned_stores: user.assigned_stores || [],
+          source: 'user'
         });
       }
     });
     
-    return Array.from(userMap.values());
+    return Array.from(userMap.values()).filter(u => u.ruoli_dipendente.length > 0);
   }, [allEmployees, allUsers]);
 
   // Carica TUTTI i turni della settimana (non filtrati per store)
@@ -517,18 +532,6 @@ export default function PlandayStoreManager() {
             {/* Controls */}
             <NeumorphicCard className="p-4">
               <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <select
-                    value={selectedStore}
-                    onChange={(e) => setSelectedStore(e.target.value)}
-                    className="neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
-                  >
-                    {myStores.map(store => (
-                      <option key={store.id} value={store.id}>{store.name}</option>
-                    ))}
-                  </select>
-                </div>
-
                 <div className="flex items-center gap-2">
                   <NeumorphicButton onClick={() => setWeekStart(weekStart.clone().subtract(1, 'week'))}>
                     <ChevronLeft className="w-4 h-4" />
