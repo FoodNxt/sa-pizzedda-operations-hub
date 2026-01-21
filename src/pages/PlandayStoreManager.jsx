@@ -76,17 +76,46 @@ export default function PlandayStoreManager() {
     }
   });
 
-  // Map employees to users format for compatibility
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ['users-store-manager'],
+    queryFn: async () => {
+      const usersData = await base44.entities.User.list();
+      return usersData.filter(u => u.user_type === 'dipendente');
+    }
+  });
+
+  // Combina Employee e User per avere tutti i dipendenti
   const users = useMemo(() => {
-    return allEmployees.map(emp => ({
-      id: emp.id,
-      nome_cognome: emp.full_name,
-      full_name: emp.full_name,
-      email: emp.email,
-      ruoli_dipendente: emp.function_name ? [emp.function_name] : [],
-      assigned_stores: emp.assigned_stores || []
-    }));
-  }, [allEmployees]);
+    const userMap = new Map();
+    
+    // Aggiungi tutti gli Employee
+    allEmployees.forEach(emp => {
+      userMap.set(emp.id, {
+        id: emp.id,
+        nome_cognome: emp.full_name,
+        full_name: emp.full_name,
+        email: emp.email,
+        ruoli_dipendente: emp.function_name ? [emp.function_name] : [],
+        assigned_stores: emp.assigned_stores || []
+      });
+    });
+    
+    // Aggiungi User che non sono già presenti come Employee
+    allUsers.forEach(user => {
+      if (!userMap.has(user.id)) {
+        userMap.set(user.id, {
+          id: user.id,
+          nome_cognome: user.nome_cognome || user.full_name,
+          full_name: user.full_name || user.nome_cognome,
+          email: user.email,
+          ruoli_dipendente: user.ruoli_dipendente || [],
+          assigned_stores: user.assigned_stores || []
+        });
+      }
+    });
+    
+    return Array.from(userMap.values());
+  }, [allEmployees, allUsers]);
 
   const { data: turni = [], isLoading } = useQuery({
     queryKey: ['turni-store-manager', selectedStore, weekStart.format('YYYY-MM-DD')],
