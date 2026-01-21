@@ -473,10 +473,10 @@ export default function Dashboard() {
       .sort((a, b) => b.data.localeCompare(a.data));
   }, [stores, sprechi]);
 
-  // Alert operativi - Ordini suggeriti (stessa logica di OrdiniAdmin)
+  // Alert operativi - Ordini suggeriti aggregati per fornitore/store
   const ordiniDaFare = useMemo(() => {
     if (!inventario || !inventarioCantina || !materiePrime || !stores) return [];
-    const ordiniSuggeriti = [];
+    const ordiniDettagliati = [];
     const allInventory = [...inventario, ...inventarioCantina];
     const latestByProduct = {};
     
@@ -507,21 +507,41 @@ export default function Dashboard() {
       const quantitaOrdine = product.store_specific_quantita_ordine?.[reading.store_id] || product.quantita_ordine || 0;
       
       if (reading.quantita_rilevata <= quantitaCritica && quantitaOrdine > 0) {
-        ordiniSuggeriti.push({
+        const prezzoUnitario = product.prezzo_unitario || 0;
+        const ivaPerc = product.iva_percentuale ?? 22;
+        const prezzoConIva = prezzoUnitario * (1 + (ivaPerc / 100));
+        const costoTotale = prezzoConIva * quantitaOrdine;
+        
+        ordiniDettagliati.push({
           store: store.name,
           storeId: store.id,
-          materia: reading.nome_prodotto,
-          materiaId: reading.prodotto_id,
-          quantitaAttuale: reading.quantita_rilevata,
-          quantitaMinima: quantitaCritica,
-          quantitaDaOrdinare: quantitaOrdine,
+          fornitore: product.fornitore || 'Non specificato',
+          prodotto: reading.nome_prodotto,
+          quantitaOrdine,
           unitaMisura: reading.unita_misura,
-          fornitore: product.fornitore || 'Non specificato'
+          costoRiga: costoTotale
         });
       }
     });
     
-    return ordiniSuggeriti;
+    // Aggrega per fornitore/store
+    const ordiniAggregati = {};
+    ordiniDettagliati.forEach(ord => {
+      const key = `${ord.fornitore}|${ord.storeId}`;
+      if (!ordiniAggregati[key]) {
+        ordiniAggregati[key] = {
+          fornitore: ord.fornitore,
+          store: ord.store,
+          storeId: ord.storeId,
+          costoTotale: 0,
+          numeroArticoli: 0
+        };
+      }
+      ordiniAggregati[key].costoTotale += ord.costoRiga;
+      ordiniAggregati[key].numeroArticoli += 1;
+    });
+    
+    return Object.values(ordiniAggregati);
   }, [stores, inventario, inventarioCantina, materiePrime]);
 
   const contrattiInScadenza = useMemo(() => {
@@ -934,13 +954,14 @@ export default function Dashboard() {
                 {ordiniDaFare.length > 0 ? ordiniDaFare.map((ord, idx) => (
                   <div key={idx} className="p-2 rounded-lg bg-orange-50 border border-orange-200">
                     <div className="flex justify-between items-start mb-1">
-                      <p className="text-xs font-medium text-slate-700">{ord.store}</p>
-                      <span className="text-xs font-bold text-orange-700">{ord.quantitaDaOrdinare} {ord.unitaMisura}</span>
-                    </div>
-                    <p className="text-xs text-slate-600">{ord.materia}</p>
-                    <div className="flex justify-between items-center mt-1">
-                      <p className="text-[10px] text-slate-500">Attuale: {ord.quantitaAttuale.toFixed(0)} | Min: {ord.quantitaMinima}</p>
-                      <p className="text-[10px] text-slate-500">{ord.fornitore}</p>
+                      <div>
+                        <p className="text-xs font-bold text-slate-800">{ord.fornitore}</p>
+                        <p className="text-[10px] text-slate-600">{ord.store}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs font-bold text-orange-700">{formatEuro(ord.costoTotale)}</p>
+                        <p className="text-[10px] text-slate-500">{ord.numeroArticoli} articoli</p>
+                      </div>
                     </div>
                   </div>
                 )) : (
