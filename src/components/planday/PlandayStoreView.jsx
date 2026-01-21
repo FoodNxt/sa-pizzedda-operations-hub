@@ -100,11 +100,11 @@ export default function PlandayStoreView({
   const turniByDipendente = useMemo(() => {
     const grouped = {};
     turni.forEach(turno => {
-      const dipId = turno.dipendente_id || 'non_assegnato';
-      if (!grouped[dipId]) grouped[dipId] = {};
+      const dipKey = turno.dipendente_id || turno.dipendente_nome || 'non_assegnato';
+      if (!grouped[dipKey]) grouped[dipKey] = {};
       const dayKey = turno.data;
-      if (!grouped[dipId][dayKey]) grouped[dipId][dayKey] = [];
-      grouped[dipId][dayKey].push(turno);
+      if (!grouped[dipKey][dayKey]) grouped[dipKey][dayKey] = [];
+      grouped[dipKey][dayKey].push(turno);
     });
     return grouped;
   }, [turni]);
