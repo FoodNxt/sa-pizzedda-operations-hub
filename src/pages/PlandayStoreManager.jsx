@@ -606,9 +606,9 @@ export default function PlandayStoreManager() {
                           t.id !== editingTurno?.id
                         );
                         
+                        let hasConflict = false;
                         let conflitoStessoStore = false;
-                        let conflitoAltroStore = false;
-                        let storeConflitto = '';
+                        let storesConflitto = [];
                         
                         if (turnoForm.ora_inizio && turnoForm.ora_fine && altriTurni.length > 0) {
                           const [startH, startM] = turnoForm.ora_inizio.split(':').map(Number);
@@ -629,21 +629,22 @@ export default function PlandayStoreManager() {
                             );
                             
                             if (hasOverlap) {
+                              hasConflict = true;
+                              const storeName = getStoreName(t.store_id);
+                              if (!storesConflitto.includes(storeName)) {
+                                storesConflitto.push(storeName);
+                              }
                               if (t.store_id === turnoForm.store_id) {
                                 conflitoStessoStore = true;
-                              } else {
-                                conflitoAltroStore = true;
-                                storeConflitto = getStoreName(t.store_id);
                               }
                             }
                           });
                         }
                         
                         let label = u.nome_cognome || u.full_name;
-                        if (conflitoStessoStore) {
-                          label += ` ⚠️ In turno a ${getStoreName(turnoForm.store_id)}`;
-                        } else if (conflitoAltroStore) {
-                          label += ` 🔔 In turno a ${storeConflitto}`;
+                        if (hasConflict) {
+                          const icon = conflitoStessoStore ? '⚠️' : '🔔';
+                          label += ` ${icon} In turno: ${storesConflitto.join(', ')}`;
                         }
                         
                         return (
