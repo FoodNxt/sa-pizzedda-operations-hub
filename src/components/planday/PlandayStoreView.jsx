@@ -551,11 +551,13 @@ export default function PlandayStoreView({
                   // Controlla se il dipendente ha già un turno in quella data/orario (in TUTTI gli store)
                   const dayKey = quickAddPopup?.day;
                   const turniDaControllare = allTurniWeek.length > 0 ? allTurniWeek : turni;
-                  const altriTurni = turniDaControllare.filter(t => 
-                    t.dipendente_id === u.id && 
-                    t.data === dayKey &&
-                    t.id !== selectedTurno?.id // Escludi il turno corrente se in modifica
-                  );
+                  const altriTurni = turniDaControllare.filter(t => {
+                    const matchById = t.dipendente_id === u.id;
+                    const nomeTurno = (t.dipendente_nome || '').trim().toLowerCase();
+                    const nomeUtente = (u.nome_cognome || u.full_name || '').trim().toLowerCase();
+                    const matchByName = nomeTurno && nomeUtente && nomeTurno === nomeUtente;
+                    return (matchById || matchByName) && t.data === dayKey && t.id !== selectedTurno?.id;
+                  });
                   
                   let hasConflict = false;
                   let conflittoStessoStore = false;

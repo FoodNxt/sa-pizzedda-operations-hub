@@ -600,11 +600,13 @@ export default function PlandayStoreManager() {
                       })
                       .map(u => {
                         // Controlla se ha già turni in quella data/orario (in TUTTI gli store)
-                        const altriTurni = allTurniWeek.filter(t => 
-                          t.dipendente_id === u.id && 
-                          t.data === turnoForm.data &&
-                          t.id !== editingTurno?.id
-                        );
+                        const altriTurni = allTurniWeek.filter(t => {
+                          const matchById = t.dipendente_id === u.id;
+                          const nomeTurno = (t.dipendente_nome || '').trim().toLowerCase();
+                          const nomeUtente = (u.nome_cognome || u.full_name || '').trim().toLowerCase();
+                          const matchByName = nomeTurno && nomeUtente && nomeTurno === nomeUtente;
+                          return (matchById || matchByName) && t.data === turnoForm.data && t.id !== editingTurno?.id;
+                        });
                         
                         let hasConflict = false;
                         let conflitoStessoStore = false;
