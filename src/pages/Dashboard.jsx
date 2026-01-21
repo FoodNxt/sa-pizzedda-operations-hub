@@ -353,7 +353,6 @@ export default function Dashboard() {
   // Alert operativi
   const ordiniDaFare = useMemo(() => {
     if (!regoleOrdini || !inventario) return [];
-    const oggi = moment().format('YYYY-MM-DD');
     const ordiniOggi = [];
     
     stores.forEach(store => {
@@ -368,7 +367,7 @@ export default function Dashboard() {
         const quantita = materia?.quantita || 0;
         
         if (quantita < (regola.quantita_minima || 0)) {
-          ordiniDaFare.push({
+          ordiniOggi.push({
             store: store.name,
             materia: regola.materia_prima_nome,
             quantita: quantita,
@@ -378,7 +377,7 @@ export default function Dashboard() {
       });
     });
     
-    return ordiniDaFare;
+    return ordiniOggi;
   }, [stores, inventario, regoleOrdini]);
 
   const contrattiInScadenza = useMemo(() => {
