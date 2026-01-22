@@ -705,26 +705,26 @@ export default function Costi() {
                            .map(piano => {
                              const dataInizio = moment(piano.data_inizio);
                              const dataFine = moment(piano.data_fine);
-                             const meseInizio = moment(selectedMonth).startOf('month');
-                             const meseFine = moment(selectedMonth).endOf('month');
                              
-                             const inizioPiano = dataInizio.isBefore(meseInizio) ? meseInizio : dataInizio;
-                             const finePiano = dataFine.isAfter(meseFine) ? meseFine : dataFine;
-                             const giorniPianoNelMese = finePiano.diff(inizioPiano, 'days') + 1;
-                             const giorniTotaliPiano = dataFine.diff(dataInizio, 'days') + 1;
+                             // Calcola numero di mesi del piano
+                             const durataInMesi = dataFine.diff(dataInizio, 'months', true);
                              
+                             // Calcola budget mensile per locale
                              const numStoresAssegnati = piano.stores_ids.length;
-                             const costoPerStore = piano.budget / numStoresAssegnati;
-                             const costoProrata = (costoPerStore / giorniTotaliPiano) * giorniPianoNelMese;
+                             const budgetPerLocale = piano.budget / numStoresAssegnati;
+                             const budgetMensilePerLocale = budgetPerLocale / durataInMesi;
+                             
+                             // Applica pro rata del mese corrente (stesso calcolo del totale)
+                             const costoMeseConProrata = budgetMensilePerLocale * proRata;
                              
                              return (
                                <div key={piano.id} className="text-xs text-slate-500 flex justify-between">
                                  <span>
                                    {piano.nome} ({piano.piattaforma})
                                    {numStoresAssegnati > 1 && <span className="ml-1 text-blue-600">÷{numStoresAssegnati}</span>}
-                                   <span className="ml-1 text-orange-600">({giorniPianoNelMese}/{giorniTotaliPiano}gg)</span>
+                                   <span className="ml-1 text-orange-600">({giornoCorrente}/{ultimoGiornoMese}gg)</span>
                                  </span>
-                                 <span>{formatEuro(costoProrata)}</span>
+                                 <span>{formatEuro(costoMeseConProrata)}</span>
                                </div>
                              );
                            })}
