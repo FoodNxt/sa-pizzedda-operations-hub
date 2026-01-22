@@ -276,6 +276,17 @@ export default function Produttivita() {
     const daySlotMap = {};
     const daysOfWeek = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
     
+    // Pre-calculate average hours per hour slot (sum of 30-min slots)
+    const avgHoursPerSlot = {};
+    Object.entries(hoursWorkedBySlot || {}).forEach(([slot, hours]) => {
+      if (timeSlotView === '1hour') {
+        const hour = slot.split(':')[0] + ':00';
+        avgHoursPerSlot[hour] = (avgHoursPerSlot[hour] || 0) + hours;
+      } else {
+        avgHoursPerSlot[slot] = hours;
+      }
+    });
+    
     filteredData.forEach(record => {
       const date = parseISO(record.date);
       const dayIndex = date.getDay(); // 0=Sunday, 1=Monday, etc.
@@ -293,10 +304,9 @@ export default function Produttivita() {
         
         const mapKey = `${dayName}|${key}`;
         if (!daySlotMap[mapKey]) {
-          daySlotMap[mapKey] = { revenue: 0, hours: 0, count: 0 };
+          daySlotMap[mapKey] = { revenue: 0, count: 0 };
         }
         daySlotMap[mapKey].revenue += revenue || 0;
-        daySlotMap[mapKey].hours += hoursWorkedBySlot[slot] || 0;
         daySlotMap[mapKey].count += 1;
       });
     });
@@ -310,7 +320,7 @@ export default function Produttivita() {
           const slot = k.split('|')[1];
           const data = daySlotMap[k];
           const avgRevenue = data.revenue / data.count;
-          const avgHours = data.hours / data.count;
+          const avgHours = avgHoursPerSlot[slot] || 0;
           const productivity = avgHours > 0 ? avgRevenue / avgHours : 0;
           
           dayData[slot] = productivity;
