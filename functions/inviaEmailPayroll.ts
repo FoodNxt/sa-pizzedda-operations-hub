@@ -40,29 +40,23 @@ Deno.serve(async (req) => {
           });
           
           if (pdfResponse.data && pdfResponse.data.pdf_base64) {
-            // Convert base64 string to binary data for upload
-            const binaryString = atob(pdfResponse.data.pdf_base64);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-              bytes[i] = binaryString.charCodeAt(i);
+            // Convert base64 to Blob
+            const pdfBinary = atob(pdfResponse.data.pdf_base64);
+            const pdfBytes = new Uint8Array(pdfBinary.length);
+            for (let i = 0; i < pdfBinary.length; i++) {
+              pdfBytes[i] = pdfBinary.charCodeAt(i);
             }
+            const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
             
-            // Write to temp file for upload
-            const tempFilePath = `/tmp/contratto_${contrattoId}.pdf`;
-            await Deno.writeFile(tempFilePath, bytes);
-            
-            // Upload the file
-            const fileContent = await Deno.readFile(tempFilePath);
-            const uploadResponse = await base44.asServiceRole.integrations.Core.UploadFile({
-              file: fileContent
+            // Create File from Blob
+            const pdfFile = new File([pdfBlob], `contratto_${contratto.nome_cognome.replace(/\s+/g, '_')}.pdf`, { 
+              type: 'application/pdf' 
             });
             
-            // Clean up temp file
-            try {
-              await Deno.remove(tempFilePath);
-            } catch (e) {
-              // Ignore cleanup errors
-            }
+            // Upload the file
+            const uploadResponse = await base44.asServiceRole.integrations.Core.UploadFile({
+              file: pdfFile
+            });
             
             htmlBody += `<li style="margin-bottom: 8px;">📄 <a href="${uploadResponse.file_url}" style="color: #3b82f6; text-decoration: underline;">${contratto.template_nome}</a> <span style="color: #64748b; font-size: 0.9em;">(Inizio: ${new Date(contratto.data_inizio_contratto).toLocaleDateString('it-IT')})</span></li>`;
           }
