@@ -1968,7 +1968,7 @@ export default function Financials() {
               <h3 className="text-lg lg:text-xl font-bold text-slate-800 mb-1">
                 €{formatCurrency(processedData.avgOrderValue)}
               </h3>
-              <p className="text-xs text-slate-500">Medio</p>
+              <p className="text-xs text-slate-500">AOV</p>
             </div>
           </NeumorphicCard>
 
@@ -2015,7 +2015,7 @@ export default function Financials() {
                   }`}
                 >
                   {showAvgValue ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-                  Medio
+                  AOV
                 </button>
               </div>
             </div>
@@ -2184,7 +2184,7 @@ export default function Financials() {
                          dataKey="avgValue" 
                          stroke="#22c55e" 
                          strokeWidth={2} 
-                         name="Medio"
+                         name="AOV"
                          dot={{ fill: '#22c55e', r: 2 }}
                        />
                       )}
@@ -2663,10 +2663,10 @@ export default function Financials() {
                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
                     </>
                   )}
-                  <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">€ Medio</th>
+                  <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">AOV</th>
                   {processedData.comparisonData && (
                     <>
-                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Med Conf</th>
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">AOV Conf</th>
                       <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
                     </>
                   )}

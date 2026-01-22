@@ -10,6 +10,7 @@ export default function EmployeeReviewsPerformance() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [sortBy, setSortBy] = useState('rating');
 
   const { data: reviews = [] } = useQuery({
     queryKey: ['reviews'],
@@ -149,8 +150,14 @@ export default function EmployeeReviewsPerformance() {
       return emp;
     });
 
-    return employeeArray.sort((a, b) => b.avgRating - a.avgRating);
-  }, [reviews, selectedStore, startDate, endDate, users, turniPlanday]);
+    // Sort based on sortBy
+    if (sortBy === 'rating') {
+      return employeeArray.sort((a, b) => b.avgRating - a.avgRating);
+    } else if (sortBy === 'reviews') {
+      return employeeArray.sort((a, b) => b.totalReviews - a.totalReviews);
+    }
+    return employeeArray;
+  }, [reviews, selectedStore, startDate, endDate, users, turniPlanday, sortBy]);
 
   const getStoreName = (storeId) => {
     const store = stores.find(s => s.id === storeId);
@@ -219,6 +226,17 @@ export default function EmployeeReviewsPerformance() {
             {stores.map(store => (
               <option key={store.id} value={store.id}>{store.name}</option>
             ))}
+          </select>
+        </NeumorphicCard>
+
+        <NeumorphicCard className="px-4 py-2">
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="bg-transparent text-[#6b6b6b] outline-none"
+          >
+            <option value="rating">Ordina per Punteggio</option>
+            <option value="reviews">Ordina per N° Recensioni</option>
           </select>
         </NeumorphicCard>
 
