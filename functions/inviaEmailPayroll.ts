@@ -100,6 +100,23 @@ Deno.serve(async (req) => {
       body: fullHtmlBody
     });
 
+    // Log the email to PayrollEmailLog
+    try {
+      await base44.asServiceRole.entities.PayrollEmailLog.create({
+        data_invio: new Date().toISOString(),
+        destinatario: to,
+        dipendente_id: dipendente_id,
+        subject: subject,
+        body: body,
+        contratti_allegati: contratti_ids || [],
+        documenti_allegati: documenti && documenti.length > 0 ? documenti.map(d => d.nome) : [],
+        cob_completato: false
+      });
+    } catch (logError) {
+      console.error('Error logging email:', logError);
+      // Don't fail the email sending if logging fails
+    }
+
     return Response.json({ 
       success: true,
       message: 'Email inviata con successo'
