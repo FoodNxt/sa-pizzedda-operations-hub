@@ -36,30 +36,20 @@ Deno.serve(async (req) => {
             continue;
           }
           
-          if (!contratto.contenuto_contratto) {
-            console.error(`Contract ${contrattoId} has no content`);
-            continue;
-          }
-          
-          console.log(`Generating PDF for contract ${contrattoId}`);
-          // Generate PDF using generateContrattoPDF
-          const pdfResponse = await base44.asServiceRole.functions.invoke('generateContrattoPDF', {
-            contenuto: contratto.contenuto_contratto,
-            nome_cognome: contratto.nome_cognome,
-            status: contratto.status,
-            firma_dipendente: contratto.firma_dipendente,
-            data_firma: contratto.data_firma,
+          console.log(`Downloading PDF for contract ${contrattoId}`);
+          // Download PDF using downloadContrattoPDF
+          const pdfResponse = await base44.asServiceRole.functions.invoke('downloadContrattoPDF', {
             contratto_id: contrattoId
           });
           
           if (!pdfResponse.data || !pdfResponse.data.pdf_base64) {
-            console.error(`PDF generation failed for contract ${contrattoId}`, pdfResponse);
+            console.error(`PDF download failed for contract ${contrattoId}`, pdfResponse);
             continue;
           }
           
-          console.log(`PDF generated successfully for contract ${contrattoId}, uploading...`);
+          console.log(`PDF downloaded successfully for contract ${contrattoId}, uploading...`);
           
-          // Decode base64 to bytes
+          // Decode base64 and save to temp file
           const base64Data = pdfResponse.data.pdf_base64;
           const binaryString = atob(base64Data);
           const bytes = new Uint8Array(binaryString.length);
@@ -67,12 +57,23 @@ Deno.serve(async (req) => {
             bytes[i] = binaryString.charCodeAt(i);
           }
           
-          console.log(`Uploading PDF for contract ${contrattoId}, size: ${bytes.length} bytes`);
+          // Write to temp file
+          const filename = `contratto_${contrattoId}_${Date.now()}.pdf`;
+          const tempPath = `/tmp/${filename}`;
+          await Deno.writeFile(tempPath, bytes);
           
-          // Upload PDF file
+          console.log(`PDF saved to ${tempPath}, size: ${bytes.length} bytes, uploading...`);
+          
+          // Read and upload file
+          const fileData = await Deno.readFile(tempPath);
+          const file = new File([fileData], filename, { type: 'application/pdf' });
+          
           const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({
-            file: bytes
+            file: file
           });
+          
+          // Clean up temp file
+          await Deno.remove(tempPath);
           
           console.log(`Upload result for contract ${contrattoId}:`, uploadResult);
           
