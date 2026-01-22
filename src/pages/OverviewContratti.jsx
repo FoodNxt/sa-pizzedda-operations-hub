@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
-import { FileText, Calendar, Clock, Briefcase, User, ArrowUpDown, AlertTriangle, RefreshCw, X, History } from "lucide-react";
+import { FileText, Calendar, Clock, Briefcase, User, ArrowUpDown, AlertTriangle, RefreshCw, X, History, Send, Settings, Plus, Trash2 } from "lucide-react";
 import moment from "moment";
 
 export default function OverviewContratti() {
@@ -17,6 +17,16 @@ export default function OverviewContratti() {
     durata_mesi: 12
   });
   const [viewingHistory, setViewingHistory] = useState(null);
+  const [sendingToPayroll, setSendingToPayroll] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [payrollEmail, setPayrollEmail] = useState('');
+  const [templates, setTemplates] = useState([]);
+  const [newTemplate, setNewTemplate] = useState({ nome: '', oggetto: '', corpo: '' });
+  const [sendData, setSendData] = useState({
+    selectedContracts: [],
+    selectedDocuments: [],
+    templateIndex: null
+  });
 
   const queryClient = useQueryClient();
 
@@ -30,9 +40,14 @@ export default function OverviewContratti() {
     queryFn: () => base44.entities.User.list(),
   });
 
-  const { data: templates = [] } = useQuery({
+  const { data: contractTemplates = [] } = useQuery({
     queryKey: ['contratto-templates'],
     queryFn: () => base44.entities.ContrattoTemplate.filter({ attivo: true }),
+  });
+
+  const { data: payrollConfig = [] } = useQuery({
+    queryKey: ['payroll-config'],
+    queryFn: () => base44.entities.PayrollConfig.list(),
   });
 
   const { data: uscite = [] } = useQuery({
@@ -40,13 +55,39 @@ export default function OverviewContratti() {
     queryFn: () => base44.entities.Uscita.list(),
   });
 
+  const { data: allContracts = [] } = useQuery({
+    queryKey: ['all-contracts'],
+    queryFn: () => base44.entities.Contratto.list(),
+  });
+
+  const { data: documenti = [] } = useQuery({
+    queryKey: ['documenti'],
+    queryFn: () => base44.entities.RegolamentoDipendenti.list(),
+  });
+
   const createContractMutation = useMutation({
     mutationFn: (contractData) => base44.entities.Contratto.create(contractData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contratti-overview'] });
+      queryClient.invalidateQueries({ queryKey: ['all-contracts'] });
       setRenewingContract(null);
       setRenewalData({ template_id: '', data_inizio: '', durata_mesi: 12 });
       alert('✅ Contratto rinnovato e inviato al dipendente!');
+    },
+  });
+
+  const savePayrollConfigMutation = useMutation({
+    mutationFn: async (data) => {
+      const activeConfig = payrollConfig.find(c => c.is_active);
+      if (activeConfig) {
+        return await base44.entities.PayrollConfig.update(activeConfig.id, data);
+      } else {
+        return await base44.entities.PayrollConfig.create({ ...data, is_active: true });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payroll-config'] });
+      alert('✅ Configurazione salvata!');
     },
   });
 
@@ -81,17 +122,20 @@ export default function OverviewContratti() {
       let dataFine;
       let durataMesi = 0;
       
-      if (userData?.data_fine_contratto) {
-        // Use explicit end date from User entity
-        dataFine = new Date(userData.data_fine_contratto);
-      } else if (userData?.durata_contratto_mesi && userData.durata_contratto_mesi > 0) {
-        // Calculate from months in User entity
-        durataMesi = userData.durata_contratto_mesi;
+      // Prioritize data_fine_contratto from the most recent contract
+      if (currentContract.data_fine_contratto) {
+        dataFine = new Date(currentContract.data_fine_contratto);
+      } else if (currentContract.durata_contratto_mesi && currentContract.durata_contratto_mesi > 0) {
+        // Calculate from contract months
+        durataMesi = currentContract.durata_contratto_mesi;
         dataFine = new Date(dataInizio);
         dataFine.setMonth(dataFine.getMonth() + parseInt(durataMesi));
-      } else if (currentContract.durata_contratto_mesi && currentContract.durata_contratto_mesi > 0) {
-        // Fallback to contract data
-        durataMesi = currentContract.durata_contratto_mesi;
+      } else if (userData?.data_fine_contratto) {
+        // Fallback to User entity
+        dataFine = new Date(userData.data_fine_contratto);
+      } else if (userData?.durata_contratto_mesi && userData.durata_contratto_mesi > 0) {
+        // Fallback to User entity months
+        durataMesi = userData.durata_contratto_mesi;
         dataFine = new Date(dataInizio);
         dataFine.setMonth(dataFine.getMonth() + parseInt(durataMesi));
       } else {
@@ -171,7 +215,7 @@ export default function OverviewContratti() {
       return;
     }
 
-    const template = templates.find(t => t.id === renewalData.template_id);
+    const template = contractTemplates.find(t => t.id === renewalData.template_id);
     if (!template) {
       alert('Template non trovato');
       return;
@@ -284,15 +328,94 @@ export default function OverviewContratti() {
     return { totale, inScadenza30, scaduti, fullTime, partTime, senzaContratto, usciti };
   }, [dipendentiConContratti, dipendentiSenzaContratto]);
 
+  // Load payroll config
+  React.useEffect(() => {
+    if (payrollConfig.length > 0) {
+      const activeConfig = payrollConfig.find(c => c.is_active);
+      if (activeConfig) {
+        setPayrollEmail(activeConfig.email_payroll || '');
+        setTemplates(activeConfig.templates_email || []);
+      }
+    }
+  }, [payrollConfig]);
+
+  const handleSavePayrollConfig = () => {
+    savePayrollConfigMutation.mutate({
+      email_payroll: payrollEmail,
+      templates_email: templates
+    });
+  };
+
+  const handleAddTemplate = () => {
+    if (newTemplate.nome && newTemplate.oggetto && newTemplate.corpo) {
+      setTemplates([...templates, newTemplate]);
+      setNewTemplate({ nome: '', oggetto: '', corpo: '' });
+    }
+  };
+
+  const handleDeleteTemplate = (index) => {
+    setTemplates(templates.filter((_, i) => i !== index));
+  };
+
+  const handleSendToPayroll = async () => {
+    if (!payrollEmail) {
+      alert('Configura prima l\'email del payroll nelle Impostazioni');
+      return;
+    }
+    if (sendData.selectedContracts.length === 0) {
+      alert('Seleziona almeno un contratto');
+      return;
+    }
+    if (sendData.templateIndex === null) {
+      alert('Seleziona un template email');
+      return;
+    }
+
+    const template = templates[sendData.templateIndex];
+    const dipendente = sendingToPayroll.nome_cognome;
+    const dataInvio = moment().format('DD/MM/YYYY');
+    
+    let corpo = template.corpo
+      .replace(/{{nome_dipendente}}/g, dipendente)
+      .replace(/{{data_invio}}/g, dataInvio);
+
+    // Get selected contracts and documents details
+    const selectedContractsList = sendData.selectedContracts.map(id => {
+      const c = allContracts.find(ct => ct.id === id);
+      return `${c.template_nome} (${moment(c.data_inizio_contratto).format('DD/MM/YYYY')})`;
+    }).join(', ');
+
+    const selectedDocsList = sendData.selectedDocuments.map(id => {
+      const d = documenti.find(doc => doc.id === id);
+      return d.titolo;
+    }).join(', ');
+
+    alert(`Email inviata a: ${payrollEmail}\nOggetto: ${template.oggetto}\n\nContratti: ${selectedContractsList}\nDocumenti: ${selectedDocsList}`);
+    
+    setSendingToPayroll(null);
+    setSendData({ selectedContracts: [], selectedDocuments: [], templateIndex: null });
+  };
+
   return (
     <ProtectedPage pageName="OverviewContratti" requiredUserTypes={['admin', 'manager']}>
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="mb-6">
-          <div className="flex items-center gap-3 mb-2">
-            <FileText className="w-10 h-10 text-blue-600" />
-            <h1 className="text-3xl font-bold text-slate-800">Overview Contratti</h1>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 mb-2">
+              <FileText className="w-10 h-10 text-blue-600" />
+              <div>
+                <h1 className="text-3xl font-bold text-slate-800">Overview Contratti</h1>
+                <p className="text-slate-500">Panoramica completa dei contratti attivi</p>
+              </div>
+            </div>
+            <NeumorphicButton
+              onClick={() => setShowSettings(true)}
+              className="flex items-center gap-2"
+            >
+              <Settings className="w-4 h-4" />
+              Impostazioni
+            </NeumorphicButton>
           </div>
-          <p className="text-slate-500">Panoramica completa dei contratti attivi</p>
         </div>
 
         {/* Stats Cards */}
@@ -414,6 +537,9 @@ export default function OverviewContratti() {
                     <th className="text-center py-3 px-2 font-semibold text-slate-700">
                       Azioni
                     </th>
+                    <th className="text-center py-3 px-2 font-semibold text-slate-700">
+                      Payroll
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -516,6 +642,15 @@ export default function OverviewContratti() {
                             <RefreshCw className="w-4 h-4 text-green-600" />
                           </button>
                         </td>
+                        <td className="py-3 px-2 text-center">
+                          <button
+                            onClick={() => setSendingToPayroll(dip)}
+                            className="nav-button p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                            title="Invia a Payroll"
+                          >
+                            <Send className="w-4 h-4 text-blue-600" />
+                          </button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -568,7 +703,7 @@ export default function OverviewContratti() {
                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
                   >
                     <option value="">Seleziona template...</option>
-                    {templates.map(t => (
+                    {contractTemplates.map(t => (
                       <option key={t.id} value={t.id}>{t.nome_template}</option>
                     ))}
                   </select>
@@ -711,6 +846,254 @@ export default function OverviewContratti() {
                     </div>
                   );
                 })}
+              </div>
+            </NeumorphicCard>
+          </div>
+        )}
+
+        {/* Send to Payroll Modal */}
+        {sendingToPayroll && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                  <Send className="w-6 h-6 text-blue-600" />
+                  Invia a Payroll - {sendingToPayroll.nome_cognome}
+                </h2>
+                <button
+                  onClick={() => {
+                    setSendingToPayroll(null);
+                    setSendData({ selectedContracts: [], selectedDocuments: [], templateIndex: null });
+                  }}
+                  className="nav-button p-2 rounded-lg"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Contratti */}
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                    Seleziona Contratti da Allegare
+                  </label>
+                  <div className="neumorphic-pressed p-4 rounded-xl space-y-2 max-h-60 overflow-y-auto">
+                    {sendingToPayroll.tutti_contratti.map(c => (
+                      <label key={c.id} className="flex items-start gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded">
+                        <input
+                          type="checkbox"
+                          checked={sendData.selectedContracts.includes(c.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSendData({ ...sendData, selectedContracts: [...sendData.selectedContracts, c.id] });
+                            } else {
+                              setSendData({ ...sendData, selectedContracts: sendData.selectedContracts.filter(id => id !== c.id) });
+                            }
+                          }}
+                          className="w-4 h-4 mt-1"
+                        />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-slate-700">{c.template_nome}</p>
+                          <p className="text-xs text-slate-500">
+                            Inizio: {moment(c.data_inizio_contratto).format('DD/MM/YYYY')} • 
+                            Durata: {c.durata_contratto_mesi} mesi • 
+                            {c.ore_settimanali}h/sett
+                          </p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Documenti */}
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                    Seleziona Documenti da Allegare
+                  </label>
+                  <div className="neumorphic-pressed p-4 rounded-xl space-y-2 max-h-60 overflow-y-auto">
+                    {documenti.map(d => (
+                      <label key={d.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded">
+                        <input
+                          type="checkbox"
+                          checked={sendData.selectedDocuments.includes(d.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSendData({ ...sendData, selectedDocuments: [...sendData.selectedDocuments, d.id] });
+                            } else {
+                              setSendData({ ...sendData, selectedDocuments: sendData.selectedDocuments.filter(id => id !== d.id) });
+                            }
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm text-slate-700">{d.titolo}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Template Email */}
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                    Template Email <span className="text-red-600">*</span>
+                  </label>
+                  <select
+                    value={sendData.templateIndex !== null ? sendData.templateIndex : ''}
+                    onChange={(e) => setSendData({ ...sendData, templateIndex: e.target.value !== '' ? parseInt(e.target.value) : null })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                  >
+                    <option value="">Seleziona template...</option>
+                    {templates.map((t, idx) => (
+                      <option key={idx} value={idx}>{t.nome}</option>
+                    ))}
+                  </select>
+                  {sendData.templateIndex !== null && (
+                    <div className="mt-3 neumorphic-pressed p-3 rounded-xl bg-blue-50">
+                      <p className="text-xs text-blue-800 font-bold mb-1">Oggetto:</p>
+                      <p className="text-sm text-blue-700 mb-2">{templates[sendData.templateIndex].oggetto}</p>
+                      <p className="text-xs text-blue-800 font-bold mb-1">Corpo:</p>
+                      <p className="text-sm text-blue-700 whitespace-pre-wrap">{templates[sendData.templateIndex].corpo}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <NeumorphicButton
+                    onClick={() => {
+                      setSendingToPayroll(null);
+                      setSendData({ selectedContracts: [], selectedDocuments: [], templateIndex: null });
+                    }}
+                    className="flex-1"
+                  >
+                    Annulla
+                  </NeumorphicButton>
+                  <NeumorphicButton
+                    onClick={handleSendToPayroll}
+                    variant="primary"
+                    className="flex-1 flex items-center justify-center gap-2"
+                  >
+                    <Send className="w-5 h-5" />
+                    Invia a Payroll
+                  </NeumorphicButton>
+                </div>
+              </div>
+            </NeumorphicCard>
+          </div>
+        )}
+
+        {/* Settings Modal */}
+        {showSettings && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="max-w-4xl w-full p-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                  <Settings className="w-6 h-6 text-blue-600" />
+                  Impostazioni Payroll
+                </h2>
+                <button
+                  onClick={() => setShowSettings(false)}
+                  className="nav-button p-2 rounded-lg"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Email Payroll */}
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                    Email Payroll
+                  </label>
+                  <input
+                    type="email"
+                    value={payrollEmail}
+                    onChange={(e) => setPayrollEmail(e.target.value)}
+                    placeholder="payroll@example.com"
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                  />
+                </div>
+
+                {/* Templates */}
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-3 block">
+                    Template Email
+                  </label>
+
+                  {/* Add New Template */}
+                  <div className="neumorphic-pressed p-4 rounded-xl mb-4">
+                    <p className="text-xs font-bold text-slate-600 mb-3">Nuovo Template</p>
+                    <div className="space-y-3">
+                      <input
+                        type="text"
+                        value={newTemplate.nome}
+                        onChange={(e) => setNewTemplate({ ...newTemplate, nome: e.target.value })}
+                        placeholder="Nome template"
+                        className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm"
+                      />
+                      <input
+                        type="text"
+                        value={newTemplate.oggetto}
+                        onChange={(e) => setNewTemplate({ ...newTemplate, oggetto: e.target.value })}
+                        placeholder="Oggetto email"
+                        className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm"
+                      />
+                      <textarea
+                        value={newTemplate.corpo}
+                        onChange={(e) => setNewTemplate({ ...newTemplate, corpo: e.target.value })}
+                        placeholder="Corpo email (usa {{nome_dipendente}} e {{data_invio}})"
+                        className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm"
+                        rows="4"
+                      />
+                      <NeumorphicButton
+                        onClick={handleAddTemplate}
+                        className="w-full flex items-center justify-center gap-2"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Aggiungi Template
+                      </NeumorphicButton>
+                    </div>
+                  </div>
+
+                  {/* Existing Templates */}
+                  <div className="space-y-2">
+                    {templates.map((t, idx) => (
+                      <div key={idx} className="neumorphic-pressed p-3 rounded-xl">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <p className="text-sm font-bold text-slate-800">{t.nome}</p>
+                            <p className="text-xs text-slate-600 mt-1">Oggetto: {t.oggetto}</p>
+                            <p className="text-xs text-slate-500 mt-1 line-clamp-2">{t.corpo}</p>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteTemplate(idx)}
+                            className="ml-2 text-red-600 hover:text-red-800"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    {templates.length === 0 && (
+                      <p className="text-sm text-slate-400 text-center py-4">Nessun template configurato</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <NeumorphicButton
+                    onClick={() => setShowSettings(false)}
+                    className="flex-1"
+                  >
+                    Chiudi
+                  </NeumorphicButton>
+                  <NeumorphicButton
+                    onClick={handleSavePayrollConfig}
+                    variant="primary"
+                    className="flex-1"
+                    disabled={savePayrollConfigMutation.isPending}
+                  >
+                    Salva Configurazione
+                  </NeumorphicButton>
+                </div>
               </div>
             </NeumorphicCard>
           </div>
