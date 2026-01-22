@@ -188,12 +188,26 @@ export default function Produttivita() {
     });
 
     return Object.values(aggregation)
-      .map(item => ({
-        slot: item.slot,
-        avgRevenue: item.revenue / item.count,
-        avgHours: item.hours / item.count,
-        revenuePerHour: item.hours > 0 ? item.revenue / item.hours : 0
-      }))
+      .map(item => {
+        // For hourly view, sum all 30-min slots within the hour
+        let totalHours = item.hours;
+        if (timeSlotView === '1hour') {
+          const hourKey = item.slot;
+          totalHours = 0;
+          Object.entries(hoursWorkedBySlot || {}).forEach(([slot, hours]) => {
+            if (slot.startsWith(hourKey.split(':')[0] + ':')) {
+              totalHours += hours;
+            }
+          });
+        }
+        
+        return {
+          slot: item.slot,
+          avgRevenue: item.revenue / item.count,
+          avgHours: totalHours / item.count,
+          revenuePerHour: totalHours > 0 ? item.revenue / totalHours : 0
+        };
+      })
       .sort((a, b) => a.slot.localeCompare(b.slot));
   }, [filteredData, timeSlotView, hoursWorkedBySlot]);
 
