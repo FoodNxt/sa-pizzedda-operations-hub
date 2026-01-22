@@ -54,7 +54,10 @@ Deno.serve(async (req) => {
             }
           }
           
-          htmlBody += `<li style="margin-bottom: 8px;">📄 <a href="${contractUrl}" style="color: #3b82f6; text-decoration: underline;" target="_blank">${contratto.template_nome}</a> <span style="color: #64748b; font-size: 0.9em;">(Inizio: ${new Date(contratto.data_inizio_contratto).toLocaleDateString('it-IT')})</span></li>`;
+          // Create download link through our backend function
+          const downloadUrl = `https://base44.app/api/apps/6908ab1e933d8915e3cb27aa/functions/downloadContrattoPDF?contratto_id=${contrattoId}`;
+          
+          htmlBody += `<li style="margin-bottom: 8px;">📄 <a href="${downloadUrl}" style="color: #3b82f6; text-decoration: underline;" target="_blank">${contratto.template_nome}</a> <span style="color: #64748b; font-size: 0.9em;">(Inizio: ${new Date(contratto.data_inizio_contratto).toLocaleDateString('it-IT')})</span></li>`;
           
         } catch (err) {
           console.error(`Error processing contract ${contrattoId}:`, err.message, err.stack);
