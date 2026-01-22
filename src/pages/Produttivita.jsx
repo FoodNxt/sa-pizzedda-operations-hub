@@ -22,6 +22,7 @@ export default function Produttivita() {
   const [heatmapMode, setHeatmapMode] = useState('productivity'); // 'productivity' or 'revenue'
   const [showSettings, setShowSettings] = useState(false);
   const [includedTipiTurno, setIncludedTipiTurno] = useState([]);
+  const [selectedDayOfWeek, setSelectedDayOfWeek] = useState('all'); // 'all' or day index 0-6
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
