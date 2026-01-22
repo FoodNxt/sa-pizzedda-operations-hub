@@ -20,8 +20,9 @@ export default function OverviewContratti() {
   const [sendingToPayroll, setSendingToPayroll] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [payrollEmail, setPayrollEmail] = useState('');
-  const [templates, setTemplates] = useState([]);
+  const [emailTemplates, setEmailTemplates] = useState([]);
   const [newTemplate, setNewTemplate] = useState({ nome: '', oggetto: '', corpo: '' });
+  const [editingTemplateIndex, setEditingTemplateIndex] = useState(null);
   const [sendData, setSendData] = useState({
     selectedContracts: [],
     selectedDocuments: [],
@@ -62,7 +63,12 @@ export default function OverviewContratti() {
 
   const { data: documenti = [] } = useQuery({
     queryKey: ['documenti'],
-    queryFn: () => base44.entities.RegolamentoDipendenti.list(),
+    queryFn: () => base44.entities.RegolamentoDipendenti.filter({ is_active: true }),
+  });
+
+  const { data: lettereRichiamo = [] } = useQuery({
+    queryKey: ['lettere-richiamo'],
+    queryFn: () => base44.entities.LetteraRichiamoTemplate.filter({ is_active: true }),
   });
 
   const createContractMutation = useMutation({
@@ -334,7 +340,7 @@ export default function OverviewContratti() {
       const activeConfig = payrollConfig.find(c => c.is_active);
       if (activeConfig) {
         setPayrollEmail(activeConfig.email_payroll || '');
-        setTemplates(activeConfig.templates_email || []);
+        setEmailTemplates(activeConfig.templates_email || []);
       }
     }
   }, [payrollConfig]);
@@ -342,19 +348,39 @@ export default function OverviewContratti() {
   const handleSavePayrollConfig = () => {
     savePayrollConfigMutation.mutate({
       email_payroll: payrollEmail,
-      templates_email: templates
+      templates_email: emailTemplates
     });
   };
 
   const handleAddTemplate = () => {
     if (newTemplate.nome && newTemplate.oggetto && newTemplate.corpo) {
-      setTemplates([...templates, newTemplate]);
+      if (editingTemplateIndex !== null) {
+        const updated = [...emailTemplates];
+        updated[editingTemplateIndex] = newTemplate;
+        setEmailTemplates(updated);
+        setEditingTemplateIndex(null);
+      } else {
+        setEmailTemplates([...emailTemplates, newTemplate]);
+      }
       setNewTemplate({ nome: '', oggetto: '', corpo: '' });
     }
   };
 
+  const handleEditTemplate = (index) => {
+    setNewTemplate(emailTemplates[index]);
+    setEditingTemplateIndex(index);
+  };
+
   const handleDeleteTemplate = (index) => {
-    setTemplates(templates.filter((_, i) => i !== index));
+    setEmailTemplates(emailTemplates.filter((_, i) => i !== index));
+  };
+
+  const insertVariable = (variable, field) => {
+    if (field === 'oggetto') {
+      setNewTemplate({ ...newTemplate, oggetto: newTemplate.oggetto + variable });
+    } else if (field === 'corpo') {
+      setNewTemplate({ ...newTemplate, corpo: newTemplate.corpo + variable });
+    }
   };
 
   const handleSendToPayroll = async () => {
@@ -371,7 +397,7 @@ export default function OverviewContratti() {
       return;
     }
 
-    const template = templates[sendData.templateIndex];
+    const template = emailTemplates[sendData.templateIndex];
     const dipendente = sendingToPayroll.nome_cognome;
     const dataInvio = moment().format('DD/MM/YYYY');
     
@@ -386,8 +412,11 @@ export default function OverviewContratti() {
     }).join(', ');
 
     const selectedDocsList = sendData.selectedDocuments.map(id => {
-      const d = documenti.find(doc => doc.id === id);
-      return d.titolo;
+      const docReg = documenti.find(doc => doc.id === id);
+      if (docReg) return docReg.titolo;
+      const docLettera = lettereRichiamo.find(doc => doc.id === id);
+      if (docLettera) return docLettera.titolo;
+      return 'N/A';
     }).join(', ');
 
     alert(`Email inviata a: ${payrollEmail}\nOggetto: ${template.oggetto}\n\nContratti: ${selectedContractsList}\nDocumenti: ${selectedDocsList}`);
@@ -911,23 +940,62 @@ export default function OverviewContratti() {
                     Seleziona Documenti da Allegare
                   </label>
                   <div className="neumorphic-pressed p-4 rounded-xl space-y-2 max-h-60 overflow-y-auto">
-                    {documenti.map(d => (
-                      <label key={d.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded">
-                        <input
-                          type="checkbox"
-                          checked={sendData.selectedDocuments.includes(d.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSendData({ ...sendData, selectedDocuments: [...sendData.selectedDocuments, d.id] });
-                            } else {
-                              setSendData({ ...sendData, selectedDocuments: sendData.selectedDocuments.filter(id => id !== d.id) });
-                            }
-                          }}
-                          className="w-4 h-4"
-                        />
-                        <span className="text-sm text-slate-700">{d.titolo}</span>
-                      </label>
-                    ))}
+                    {documenti.length === 0 && lettereRichiamo.length === 0 ? (
+                      <p className="text-sm text-slate-400 text-center py-4">Nessun documento disponibile</p>
+                    ) : (
+                      <>
+                        {documenti.map(d => (
+                          <label key={d.id} className="flex items-start gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded">
+                            <input
+                              type="checkbox"
+                              checked={sendData.selectedDocuments.includes(d.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSendData({ ...sendData, selectedDocuments: [...sendData.selectedDocuments, d.id] });
+                                } else {
+                                  setSendData({ ...sendData, selectedDocuments: sendData.selectedDocuments.filter(id => id !== d.id) });
+                                }
+                              }}
+                              className="w-4 h-4 mt-1"
+                            />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-slate-700">{d.titolo}</p>
+                              {d.contenuto_pdf_url && (
+                                <a
+                                  href={d.contenuto_pdf_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-blue-600 hover:underline"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  Visualizza PDF
+                                </a>
+                              )}
+                            </div>
+                          </label>
+                        ))}
+                        {lettereRichiamo.map(l => (
+                          <label key={l.id} className="flex items-start gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded">
+                            <input
+                              type="checkbox"
+                              checked={sendData.selectedDocuments.includes(l.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSendData({ ...sendData, selectedDocuments: [...sendData.selectedDocuments, l.id] });
+                                } else {
+                                  setSendData({ ...sendData, selectedDocuments: sendData.selectedDocuments.filter(id => id !== l.id) });
+                                }
+                              }}
+                              className="w-4 h-4 mt-1"
+                            />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-slate-700">{l.titolo}</p>
+                              <p className="text-xs text-slate-500">Lettera di richiamo</p>
+                            </div>
+                          </label>
+                        ))}
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -942,16 +1010,16 @@ export default function OverviewContratti() {
                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
                   >
                     <option value="">Seleziona template...</option>
-                    {templates.map((t, idx) => (
+                    {emailTemplates.map((t, idx) => (
                       <option key={idx} value={idx}>{t.nome}</option>
                     ))}
                   </select>
                   {sendData.templateIndex !== null && (
                     <div className="mt-3 neumorphic-pressed p-3 rounded-xl bg-blue-50">
                       <p className="text-xs text-blue-800 font-bold mb-1">Oggetto:</p>
-                      <p className="text-sm text-blue-700 mb-2">{templates[sendData.templateIndex].oggetto}</p>
+                      <p className="text-sm text-blue-700 mb-2">{emailTemplates[sendData.templateIndex].oggetto}</p>
                       <p className="text-xs text-blue-800 font-bold mb-1">Corpo:</p>
-                      <p className="text-sm text-blue-700 whitespace-pre-wrap">{templates[sendData.templateIndex].corpo}</p>
+                      <p className="text-sm text-blue-700 whitespace-pre-wrap">{emailTemplates[sendData.templateIndex].corpo}</p>
                     </div>
                   )}
                 </div>
@@ -1018,9 +1086,11 @@ export default function OverviewContratti() {
                     Template Email
                   </label>
 
-                  {/* Add New Template */}
+                  {/* Add/Edit Template */}
                   <div className="neumorphic-pressed p-4 rounded-xl mb-4">
-                    <p className="text-xs font-bold text-slate-600 mb-3">Nuovo Template</p>
+                    <p className="text-xs font-bold text-slate-600 mb-3">
+                      {editingTemplateIndex !== null ? 'Modifica Template' : 'Nuovo Template'}
+                    </p>
                     <div className="space-y-3">
                       <input
                         type="text"
@@ -1029,33 +1099,91 @@ export default function OverviewContratti() {
                         placeholder="Nome template"
                         className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm"
                       />
-                      <input
-                        type="text"
-                        value={newTemplate.oggetto}
-                        onChange={(e) => setNewTemplate({ ...newTemplate, oggetto: e.target.value })}
-                        placeholder="Oggetto email"
-                        className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm"
-                      />
-                      <textarea
-                        value={newTemplate.corpo}
-                        onChange={(e) => setNewTemplate({ ...newTemplate, corpo: e.target.value })}
-                        placeholder="Corpo email (usa {{nome_dipendente}} e {{data_invio}})"
-                        className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm"
-                        rows="4"
-                      />
-                      <NeumorphicButton
-                        onClick={handleAddTemplate}
-                        className="w-full flex items-center justify-center gap-2"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Aggiungi Template
-                      </NeumorphicButton>
+                      
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-xs text-slate-600">Oggetto email</label>
+                          <div className="flex gap-1">
+                            <button
+                              type="button"
+                              onClick={() => insertVariable('{{nome_dipendente}}', 'oggetto')}
+                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200"
+                            >
+                              + Nome
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => insertVariable('{{data_invio}}', 'oggetto')}
+                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200"
+                            >
+                              + Data
+                            </button>
+                          </div>
+                        </div>
+                        <input
+                          type="text"
+                          value={newTemplate.oggetto}
+                          onChange={(e) => setNewTemplate({ ...newTemplate, oggetto: e.target.value })}
+                          placeholder="Oggetto email"
+                          className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-xs text-slate-600">Corpo email</label>
+                          <div className="flex gap-1">
+                            <button
+                              type="button"
+                              onClick={() => insertVariable('{{nome_dipendente}}', 'corpo')}
+                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200"
+                            >
+                              + Nome
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => insertVariable('{{data_invio}}', 'corpo')}
+                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200"
+                            >
+                              + Data
+                            </button>
+                          </div>
+                        </div>
+                        <textarea
+                          value={newTemplate.corpo}
+                          onChange={(e) => setNewTemplate({ ...newTemplate, corpo: e.target.value })}
+                          placeholder="Corpo email"
+                          className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm"
+                          rows="4"
+                        />
+                      </div>
+
+                      <div className="flex gap-2">
+                        {editingTemplateIndex !== null && (
+                          <NeumorphicButton
+                            onClick={() => {
+                              setEditingTemplateIndex(null);
+                              setNewTemplate({ nome: '', oggetto: '', corpo: '' });
+                            }}
+                            className="flex-1"
+                          >
+                            Annulla
+                          </NeumorphicButton>
+                        )}
+                        <NeumorphicButton
+                          onClick={handleAddTemplate}
+                          className="flex-1 flex items-center justify-center gap-2"
+                        >
+                          <Plus className="w-4 h-4" />
+                          {editingTemplateIndex !== null ? 'Aggiorna' : 'Aggiungi'} Template
+                        </NeumorphicButton>
+                      </div>
                     </div>
                   </div>
 
                   {/* Existing Templates */}
                   <div className="space-y-2">
-                    {templates.map((t, idx) => (
+                    {emailTemplates.map((t, idx) => (
                       <div key={idx} className="neumorphic-pressed p-3 rounded-xl">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -1063,16 +1191,24 @@ export default function OverviewContratti() {
                             <p className="text-xs text-slate-600 mt-1">Oggetto: {t.oggetto}</p>
                             <p className="text-xs text-slate-500 mt-1 line-clamp-2">{t.corpo}</p>
                           </div>
-                          <button
-                            onClick={() => handleDeleteTemplate(idx)}
-                            className="ml-2 text-red-600 hover:text-red-800"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <div className="flex gap-1 ml-2">
+                            <button
+                              onClick={() => handleEditTemplate(idx)}
+                              className="text-blue-600 hover:text-blue-800"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTemplate(idx)}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
-                    {templates.length === 0 && (
+                    {emailTemplates.length === 0 && (
                       <p className="text-sm text-slate-400 text-center py-4">Nessun template configurato</p>
                     )}
                   </div>
