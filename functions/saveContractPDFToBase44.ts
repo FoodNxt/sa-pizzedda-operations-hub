@@ -22,18 +22,17 @@ Deno.serve(async (req) => {
     }
 
     // Check if PDF already exists
-    if (contratto.pdf_file_url) {
+    if (contratto.pdf_base64) {
       console.log(`PDF already exists for contract ${contratto_id}`);
       return Response.json({ 
         success: true,
-        pdf_url: contratto.pdf_file_url,
         message: 'PDF already exists'
       });
     }
 
-    console.log('Generating PDF directly...');
+    console.log('Generating PDF...');
 
-    // Generate PDF directly instead of calling another function
+    // Generate PDF
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 20;
@@ -79,39 +78,21 @@ Deno.serve(async (req) => {
       doc.text(`Data firma: ${new Date(contratto.data_firma).toLocaleDateString('it-IT')}`, margin, y);
     }
 
-    // Get PDF as ArrayBuffer
-    const pdfArrayBuffer = doc.output('arraybuffer');
-    const bytes = new Uint8Array(pdfArrayBuffer);
+    // Get PDF as base64
+    const pdfBase64 = doc.output('dataurlstring').split(',')[1];
 
-    console.log(`PDF generated, size: ${bytes.length} bytes, uploading...`);
+    console.log(`PDF generated, size: ${pdfBase64.length} chars`);
 
-    // Create File object
-    const blob = new Blob([bytes], { type: 'application/pdf' });
-    const fileName = `contratto_${contratto.template_nome?.replace(/[^a-zA-Z0-9]/g, '_')}_${contratto.nome_cognome?.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
-    const file = new File([blob], fileName, { type: 'application/pdf' });
-
-    // Upload to Base44
-    const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({
-      file: file
-    });
-
-    if (!uploadResult || !uploadResult.file_url) {
-      console.error('Upload failed', uploadResult);
-      return Response.json({ error: 'Upload failed' }, { status: 500 });
-    }
-
-    console.log(`PDF uploaded successfully: ${uploadResult.file_url}`);
-
-    // Update contract with PDF URL
+    // Update contract with PDF base64
     await base44.asServiceRole.entities.Contratto.update(contratto_id, {
-      pdf_file_url: uploadResult.file_url
+      pdf_base64: pdfBase64
     });
 
-    console.log(`Contract ${contratto_id} updated with PDF URL`);
+    console.log(`Contract ${contratto_id} updated with PDF`);
 
     return Response.json({ 
       success: true,
-      pdf_url: uploadResult.file_url
+      message: 'PDF saved successfully'
     });
 
   } catch (error) {
