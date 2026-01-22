@@ -458,6 +458,7 @@ export default function OverviewContratti() {
 
       alert('✅ Email inviata con successo a ' + payrollEmail);
       
+      queryClient.invalidateQueries({ queryKey: ['payroll-email-logs'] });
       setSendingToPayroll(null);
       setSendData({ selectedContracts: [], selectedDocuments: [], templateIndex: null });
     } catch (error) {
