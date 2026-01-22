@@ -49,9 +49,13 @@ Deno.serve(async (req) => {
                 bytes[i] = binaryString.charCodeAt(i);
               }
               
+              // Create File object
+              const filename = `Contratto_${contratto.nome_cognome.replace(/\s+/g, '_')}.pdf`;
+              const pdfFile = new File([bytes], filename, { type: 'application/pdf' });
+              
               // Upload PDF file
               const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({
-                file: bytes
+                file: pdfFile
               });
               
               if (uploadResult && uploadResult.file_url) {
