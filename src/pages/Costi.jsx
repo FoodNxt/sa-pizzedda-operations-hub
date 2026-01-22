@@ -81,6 +81,11 @@ export default function Costi() {
     queryFn: () => base44.entities.BudgetMarketing.list(),
   });
 
+  const { data: pianiAds = [] } = useQuery({
+    queryKey: ['piani-ads-quarterly'],
+    queryFn: () => base44.entities.PianoAdsQuarterly.list(),
+  });
+
   const { data: iPraticoData = [] } = useQuery({
     queryKey: ['ipratico'],
     queryFn: () => base44.entities.iPratico.list('-order_date', 1000),
@@ -373,8 +378,42 @@ export default function Costi() {
                 return sum;
               }, 0) * proRata;
 
+              // Ads piattaforme delivery (da Piano Quarter)
+              const costoAdsPiattaforme = pianiAds.reduce((sum, piano) => {
+                // Verifica se il piano è nel mese selezionato
+                const dataInizio = moment(piano.data_inizio);
+                const dataFine = moment(piano.data_fine);
+                const meseInizio = moment(selectedMonth).startOf('month');
+                const meseFine = moment(selectedMonth).endOf('month');
+                
+                // Se il piano non interseca il mese selezionato, skip
+                if (dataFine.isBefore(meseInizio) || dataInizio.isAfter(meseFine)) {
+                  return sum;
+                }
+                
+                // Verifica se questo store è assegnato al piano
+                if (!piano.stores_ids || !piano.stores_ids.includes(storeId)) {
+                  return sum;
+                }
+                
+                // Calcola giorni del piano nel mese selezionato
+                const inizioPiano = dataInizio.isBefore(meseInizio) ? meseInizio : dataInizio;
+                const finePiano = dataFine.isAfter(meseFine) ? meseFine : dataFine;
+                const giorniPianoNelMese = finePiano.diff(inizioPiano, 'days') + 1;
+                
+                // Calcola giorni totali del piano
+                const giorniTotaliPiano = dataFine.diff(dataInizio, 'days') + 1;
+                
+                // Calcola costo proporzionale per il mese
+                const numStoresAssegnati = piano.stores_ids.length;
+                const costoPerStore = piano.budget / numStoresAssegnati;
+                const costoProrata = (costoPerStore / giorniTotaliPiano) * giorniPianoNelMese;
+                
+                return sum + costoProrata;
+              }, 0);
+
               // Totali
-              const totCosti = costoAffitto + costoUtenze + costoMateriePrime + costoPersonale + totaleSubscriptions + costoCommissioni + costoAds;
+              const totCosti = costoAffitto + costoUtenze + costoMateriePrime + costoPersonale + totaleSubscriptions + costoCommissioni + costoAds + costoAdsPiattaforme;
               const margine = ricaviMese - totCosti;
               const marginePerc = ricaviMese > 0 ? ((margine / ricaviMese) * 100) : 0;
 
@@ -635,6 +674,72 @@ export default function Costi() {
                                </div>
                              );
                            })}
+                       </div>
+                      )}
+                    </div>
+
+                    {/* Ads Piattaforme (da Piano Quarter) */}
+                    <div className="border-b border-slate-200">
+                      <button
+                        onClick={() => setExpandedDetails({...expandedDetails, [`${storeId}-ads-piattaforme`]: !expandedDetails[`${storeId}-ads-piattaforme`]})}
+                        className="w-full flex justify-between items-center py-2 hover:bg-slate-50 rounded transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          {expandedDetails[`${storeId}-ads-piattaforme`] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                          <span className="text-slate-600">Ads Piattaforme</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-500">{((costoAdsPiattaforme / totCosti) * 100).toFixed(1)}%</span>
+                          <span className="font-medium text-slate-800">{formatEuro(costoAdsPiattaforme)}</span>
+                        </div>
+                      </button>
+                      {expandedDetails[`${storeId}-ads-piattaforme`] && (
+                       <div className="pl-6 pb-2 space-y-1">
+                         {pianiAds
+                           .filter(piano => {
+                             const dataInizio = moment(piano.data_inizio);
+                             const dataFine = moment(piano.data_fine);
+                             const meseInizio = moment(selectedMonth).startOf('month');
+                             const meseFine = moment(selectedMonth).endOf('month');
+                             return !(dataFine.isBefore(meseInizio) || dataInizio.isAfter(meseFine)) && 
+                                    piano.stores_ids?.includes(storeId);
+                           })
+                           .map(piano => {
+                             const dataInizio = moment(piano.data_inizio);
+                             const dataFine = moment(piano.data_fine);
+                             const meseInizio = moment(selectedMonth).startOf('month');
+                             const meseFine = moment(selectedMonth).endOf('month');
+                             
+                             const inizioPiano = dataInizio.isBefore(meseInizio) ? meseInizio : dataInizio;
+                             const finePiano = dataFine.isAfter(meseFine) ? meseFine : dataFine;
+                             const giorniPianoNelMese = finePiano.diff(inizioPiano, 'days') + 1;
+                             const giorniTotaliPiano = dataFine.diff(dataInizio, 'days') + 1;
+                             
+                             const numStoresAssegnati = piano.stores_ids.length;
+                             const costoPerStore = piano.budget / numStoresAssegnati;
+                             const costoProrata = (costoPerStore / giorniTotaliPiano) * giorniPianoNelMese;
+                             
+                             return (
+                               <div key={piano.id} className="text-xs text-slate-500 flex justify-between">
+                                 <span>
+                                   {piano.nome} ({piano.piattaforma})
+                                   {numStoresAssegnati > 1 && <span className="ml-1 text-blue-600">÷{numStoresAssegnati}</span>}
+                                   <span className="ml-1 text-orange-600">({giorniPianoNelMese}/{giorniTotaliPiano}gg)</span>
+                                 </span>
+                                 <span>{formatEuro(costoProrata)}</span>
+                               </div>
+                             );
+                           })}
+                         {pianiAds.filter(piano => {
+                           const dataInizio = moment(piano.data_inizio);
+                           const dataFine = moment(piano.data_fine);
+                           const meseInizio = moment(selectedMonth).startOf('month');
+                           const meseFine = moment(selectedMonth).endOf('month');
+                           return !(dataFine.isBefore(meseInizio) || dataInizio.isAfter(meseFine)) && 
+                                  piano.stores_ids?.includes(storeId);
+                         }).length === 0 && (
+                           <div className="text-xs text-slate-400">Nessun piano ads nel periodo</div>
+                         )}
                        </div>
                       )}
                     </div>
