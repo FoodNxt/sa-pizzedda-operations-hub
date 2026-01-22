@@ -28,47 +28,62 @@ Deno.serve(async (req) => {
       htmlBody += '<br><br><hr style="border: 1px solid #e2e8f0; margin: 20px 0;"><br><strong>📄 Contratti:</strong><br><ul style="list-style-type: none; padding-left: 0;">';
       for (const contrattoId of contratti_ids) {
         try {
+          console.log(`Processing contract ${contrattoId}`);
           const contratto = await base44.asServiceRole.entities.Contratto.get(contrattoId);
-          if (contratto && contratto.contenuto_contratto) {
-            // Generate PDF using generateContrattoPDF
-            const pdfResponse = await base44.asServiceRole.functions.invoke('generateContrattoPDF', {
-              contenuto: contratto.contenuto_contratto,
-              nome_cognome: contratto.nome_cognome,
-              status: contratto.status,
-              firma_dipendente: contratto.firma_dipendente,
-              data_firma: contratto.data_firma,
-              contratto_id: contrattoId
-            });
-            
-            if (pdfResponse.data && pdfResponse.data.pdf_base64) {
-              // Save to temp file and upload
-              const base64Data = pdfResponse.data.pdf_base64;
-              const binaryString = atob(base64Data);
-              const bytes = new Uint8Array(binaryString.length);
-              for (let i = 0; i < binaryString.length; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-              }
-              
-              // Write to temp file
-              const filename = `contratto_${contrattoId}_${Date.now()}.pdf`;
-              const tempPath = `/tmp/${filename}`;
-              await Deno.writeFile(tempPath, bytes);
-              
-              // Read file and upload
-              const fileData = await Deno.readFile(tempPath);
-              
-              const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({
-                file: fileData
-              });
-              
-              // Clean up temp file
-              await Deno.remove(tempPath);
-              
-              if (uploadResult && uploadResult.file_url) {
-                htmlBody += `<li style="margin-bottom: 8px;">📄 <a href="${uploadResult.file_url}" style="color: #3b82f6; text-decoration: underline;" target="_blank">${contratto.template_nome}</a> <span style="color: #64748b; font-size: 0.9em;">(Inizio: ${new Date(contratto.data_inizio_contratto).toLocaleDateString('it-IT')})</span></li>`;
-              }
-            }
+          
+          if (!contratto) {
+            console.error(`Contract ${contrattoId} not found`);
+            continue;
           }
+          
+          if (!contratto.contenuto_contratto) {
+            console.error(`Contract ${contrattoId} has no content`);
+            continue;
+          }
+          
+          console.log(`Generating PDF for contract ${contrattoId}`);
+          // Generate PDF using generateContrattoPDF
+          const pdfResponse = await base44.asServiceRole.functions.invoke('generateContrattoPDF', {
+            contenuto: contratto.contenuto_contratto,
+            nome_cognome: contratto.nome_cognome,
+            status: contratto.status,
+            firma_dipendente: contratto.firma_dipendente,
+            data_firma: contratto.data_firma,
+            contratto_id: contrattoId
+          });
+          
+          if (!pdfResponse.data || !pdfResponse.data.pdf_base64) {
+            console.error(`PDF generation failed for contract ${contrattoId}`, pdfResponse);
+            continue;
+          }
+          
+          console.log(`PDF generated successfully for contract ${contrattoId}, uploading...`);
+          
+          // Decode base64 to bytes
+          const base64Data = pdfResponse.data.pdf_base64;
+          const binaryString = atob(base64Data);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          
+          console.log(`Uploading PDF for contract ${contrattoId}, size: ${bytes.length} bytes`);
+          
+          // Upload PDF file
+          const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({
+            file: bytes
+          });
+          
+          console.log(`Upload result for contract ${contrattoId}:`, uploadResult);
+          
+          if (!uploadResult || !uploadResult.file_url) {
+            console.error(`Upload failed for contract ${contrattoId}`, uploadResult);
+            continue;
+          }
+          
+          console.log(`PDF uploaded successfully for contract ${contrattoId}: ${uploadResult.file_url}`);
+          htmlBody += `<li style="margin-bottom: 8px;">📄 <a href="${uploadResult.file_url}" style="color: #3b82f6; text-decoration: underline;" target="_blank">${contratto.template_nome}</a> <span style="color: #64748b; font-size: 0.9em;">(Inizio: ${new Date(contratto.data_inizio_contratto).toLocaleDateString('it-IT')})</span></li>`;
+          
         } catch (err) {
           console.error(`Error processing contract ${contrattoId}:`, err);
           // Continue with other contracts even if one fails
