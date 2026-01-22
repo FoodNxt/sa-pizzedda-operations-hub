@@ -4,7 +4,8 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     
-    const { contratto_id } = await req.json();
+    const body = await req.json();
+    const contratto_id = body.contratto_id || body.event?.entity_id;
 
     if (!contratto_id) {
       return Response.json({ error: 'Missing contratto_id' }, { status: 400 });
