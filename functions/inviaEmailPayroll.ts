@@ -23,9 +23,9 @@ Deno.serve(async (req) => {
       .replace(/>/g, '&gt;')
       .replace(/\n/g, '<br>');
     
-    // Add contract PDFs as attachments directly in the email body
+    // Add contract download links
     if (contratti_ids && contratti_ids.length > 0) {
-      htmlBody += '<br><br><hr style="border: 1px solid #e2e8f0; margin: 20px 0;"><br><strong>📄 Contratti (in allegato):</strong><br><ul style="list-style-type: none; padding-left: 0;">';
+      htmlBody += '<br><br><hr style="border: 1px solid #e2e8f0; margin: 20px 0;"><br><strong>📄 Contratti:</strong><br><ul style="list-style-type: none; padding-left: 0;">';
       for (const contrattoId of contratti_ids) {
         try {
           console.log(`Processing contract ${contrattoId}`);
@@ -36,25 +36,31 @@ Deno.serve(async (req) => {
             continue;
           }
           
-          // Generate PDF if not exists
-          if (!contratto.pdf_base64) {
-            console.log(`No PDF for contract ${contrattoId}, generating...`);
-            await base44.asServiceRole.functions.invoke('saveContractPDFToBase44', {
+          let contractUrl = contratto.pdf_file_url;
+          
+          // If no PDF exists, generate and save it now
+          if (!contractUrl) {
+            console.log(`No PDF for contract ${contrattoId}, generating and saving...`);
+            const saveResponse = await base44.asServiceRole.functions.invoke('saveContractPDFToBase44', {
               contratto_id: contrattoId
             });
             
-            // Reload contract to get the PDF
-            const updatedContratto = await base44.asServiceRole.entities.Contratto.get(contrattoId);
-            contratto.pdf_base64 = updatedContratto.pdf_base64;
+            if (saveResponse.data && saveResponse.data.pdf_url) {
+              contractUrl = saveResponse.data.pdf_url;
+              console.log(`Contract ${contrattoId} PDF saved: ${contractUrl}`);
+            } else {
+              console.error(`Failed to save contract ${contrattoId} PDF`);
+              continue;
+            }
           }
           
-          htmlBody += `<li style="margin-bottom: 8px;">📄 ${contratto.template_nome} <span style="color: #64748b; font-size: 0.9em;">(Inizio: ${new Date(contratto.data_inizio_contratto).toLocaleDateString('it-IT')})</span></li>`;
+          htmlBody += `<li style="margin-bottom: 8px;">📄 <a href="${contractUrl}" style="color: #3b82f6; text-decoration: underline;" target="_blank">${contratto.template_nome}</a> <span style="color: #64748b; font-size: 0.9em;">(Inizio: ${new Date(contratto.data_inizio_contratto).toLocaleDateString('it-IT')})</span></li>`;
           
         } catch (err) {
           console.error(`Error processing contract ${contrattoId}:`, err.message, err.stack);
         }
       }
-      htmlBody += '</ul><br><p style="color: #64748b; font-size: 0.9em;"><em>Nota: I contratti PDF sono disponibili sul gestionale aziendale.</em></p>';
+      htmlBody += '</ul>';
     }
 
     // Add document links with hyperlinks

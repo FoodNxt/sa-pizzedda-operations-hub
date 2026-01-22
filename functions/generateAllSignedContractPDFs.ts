@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
 
         console.log(`Generating PDF for contract ${contratto.id}...`);
 
-        // Generate PDF directly
+        // Generate PDF
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
         const margin = 20;
