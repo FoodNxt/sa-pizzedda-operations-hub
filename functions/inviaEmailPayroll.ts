@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
           
           console.log(`PDF downloaded successfully for contract ${contrattoId}, uploading...`);
           
-          // Decode base64 and save to temp file
+          // Decode base64 to binary
           const base64Data = pdfResponse.data.pdf_base64;
           const binaryString = atob(base64Data);
           const bytes = new Uint8Array(binaryString.length);
@@ -57,25 +57,14 @@ Deno.serve(async (req) => {
             bytes[i] = binaryString.charCodeAt(i);
           }
           
-          // Write to temp file
-          const filename = `contratto_${contrattoId}_${Date.now()}.pdf`;
-          const tempPath = `/tmp/${filename}`;
-          await Deno.writeFile(tempPath, bytes);
+          console.log(`PDF decoded, size: ${bytes.length} bytes, uploading as ArrayBuffer...`);
           
-          console.log(`PDF saved to ${tempPath}, size: ${bytes.length} bytes, uploading...`);
-          
-          // Read and upload file
-          const fileData = await Deno.readFile(tempPath);
-          const file = new File([fileData], filename, { type: 'application/pdf' });
-          
+          // Upload using ArrayBuffer
           const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({
-            file: file
+            file: bytes.buffer
           });
           
-          // Clean up temp file
-          await Deno.remove(tempPath);
-          
-          console.log(`Upload result for contract ${contrattoId}:`, uploadResult);
+          console.log(`Upload result for contract ${contrattoId}:`, JSON.stringify(uploadResult));
           
           if (!uploadResult || !uploadResult.file_url) {
             console.error(`Upload failed for contract ${contrattoId}`, uploadResult);
@@ -86,7 +75,7 @@ Deno.serve(async (req) => {
           htmlBody += `<li style="margin-bottom: 8px;">📄 <a href="${uploadResult.file_url}" style="color: #3b82f6; text-decoration: underline;" target="_blank">${contratto.template_nome}</a> <span style="color: #64748b; font-size: 0.9em;">(Inizio: ${new Date(contratto.data_inizio_contratto).toLocaleDateString('it-IT')})</span></li>`;
           
         } catch (err) {
-          console.error(`Error processing contract ${contrattoId}:`, err);
+          console.error(`Error processing contract ${contrattoId}:`, err.message, err.stack);
           // Continue with other contracts even if one fails
         }
       }
