@@ -635,20 +635,50 @@ export default function Dashboard() {
   }, [stores, conteggiosCassa, alertsCassaConfig]);
 
   const sprechiStats = useMemo(() => {
-    const last30Days = moment().subtract(30, 'days').format('YYYY-MM-DD');
-    return sprechi
-      .filter(s => s.data_rilevazione && s.data_rilevazione.split('T')[0] >= last30Days)
-      .map(s => {
-        const valore = (s.quantita_grammi || 0) * (s.costo_unitario || 0) / 1000;
-        return {
-          storeName: stores.find(st => st.id === s.store_id)?.name || 'N/A',
-          data: s.data_rilevazione.split('T')[0],
-          valore,
-          prodotto: s.prodotto_nome || 'N/A'
-        };
-      })
-      .sort((a, b) => b.data.localeCompare(a.data));
-  }, [stores, sprechi]);
+    let cutoffDate, endFilterDate;
+    if (startDate || endDate) {
+      cutoffDate = startDate ? safeParseDate(startDate) : new Date(0);
+      endFilterDate = endDate ? safeParseDate(endDate) : new Date();
+    } else {
+      const days = parseInt(dateRange);
+      cutoffDate = subDays(new Date(), days);
+      endFilterDate = new Date();
+    }
+
+    const filteredSprechi = sprechi.filter(s => {
+      if (!s.data_rilevazione) return false;
+      const itemDate = safeParseDate(s.data_rilevazione);
+      if (!itemDate) return false;
+      if (cutoffDate && isBefore(itemDate, cutoffDate)) return false;
+      if (endFilterDate && isAfter(itemDate, endFilterDate)) return false;
+      return true;
+    });
+
+    // Raggruppa per locale e somma
+    const sprechiPerStore = {};
+    filteredSprechi.forEach(s => {
+      const storeName = stores.find(st => st.id === s.store_id)?.name || 'N/A';
+      const valore = (s.quantita_grammi || 0) * (s.costo_unitario || 0) / 1000;
+      
+      if (!sprechiPerStore[storeName]) {
+        sprechiPerStore[storeName] = { storeName, totale: 0, count: 0 };
+      }
+      sprechiPerStore[storeName].totale += valore;
+      sprechiPerStore[storeName].count += 1;
+    });
+
+    return Object.values(sprechiPerStore).sort((a, b) => b.totale - a.totale);
+  }, [stores, sprechi, dateRange, startDate, endDate]);
+
+  const { data: ordiniInviati = [] } = useQuery({
+    queryKey: ['ordini-inviati'],
+    queryFn: () => base44.entities.OrdineFornitore.filter({ status: 'inviato' }),
+  });
+
+  const { data: ordiniCompletati = [] } = useQuery({
+    queryKey: ['ordini-completati'],
+    queryFn: () => base44.entities.OrdineFornitore.filter({ status: 'completato' }),
+  });
 
   // Alert operativi - Ordini suggeriti aggregati per fornitore/store
   const ordiniDaFare = useMemo(() => {
@@ -684,6 +714,24 @@ export default function Dashboard() {
       const quantitaOrdine = product.store_specific_quantita_ordine?.[reading.store_id] || product.quantita_ordine || 0;
       
       if (reading.quantita_rilevata <= quantitaCritica && quantitaOrdine > 0) {
+        // Check se ha ordine in corso
+        const hasPendingOrder = ordiniInviati.some(o => 
+          o.store_id === reading.store_id &&
+          o.prodotti.some(p => p.prodotto_id === product.id)
+        );
+        
+        // Check se è arrivato oggi
+        const hasArrivedToday = ordiniCompletati.some(o => {
+          const completedToday = o.data_completamento && 
+            new Date(o.data_completamento).toDateString() === new Date().toDateString();
+          return completedToday &&
+            o.store_id === reading.store_id &&
+            o.prodotti.some(p => p.prodotto_id === product.id);
+        });
+        
+        // Salta se ha ordine in corso o è arrivato oggi
+        if (hasPendingOrder || hasArrivedToday) return;
+        
         const prezzoUnitario = product.prezzo_unitario || 0;
         const ivaPerc = product.iva_percentuale ?? 22;
         const prezzoConIva = prezzoUnitario * (1 + (ivaPerc / 100));
@@ -719,7 +767,7 @@ export default function Dashboard() {
     });
     
     return Object.values(ordiniAggregati);
-  }, [stores, inventario, inventarioCantina, materiePrime]);
+  }, [stores, inventario, inventarioCantina, materiePrime, ordiniInviati, ordiniCompletati]);
 
   const contrattiInScadenza = useMemo(() => {
     if (!allUsers) return [];
@@ -1090,16 +1138,16 @@ export default function Dashboard() {
 
             {/* Sprechi */}
             <div className="neumorphic-pressed p-4 rounded-xl">
-              <h3 className="font-bold text-slate-700 mb-3 text-sm">Sprechi (Ultimi 30 giorni)</h3>
+              <h3 className="font-bold text-slate-700 mb-3 text-sm">Sprechi per Locale</h3>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {sprechiStats.length > 0 ? sprechiStats.map((spreco, idx) => (
                   <div key={idx} className="p-2 rounded-lg bg-red-50 border border-red-200">
-                    <div className="flex justify-between items-center mb-1">
+                    <div className="flex justify-between items-center">
                       <span className="text-xs font-medium text-slate-700">{spreco.storeName}</span>
-                      <span className="text-xs font-bold text-red-600">{formatEuro(spreco.valore)}</span>
-                    </div>
-                    <div className="text-[10px] text-slate-500">
-                      {spreco.prodotto} • {moment(spreco.data).format('DD/MM/YYYY')}
+                      <div className="text-right">
+                        <span className="text-xs font-bold text-red-600">{formatEuro(spreco.totale)}</span>
+                        <p className="text-[10px] text-slate-500">{spreco.count} rilevazioni</p>
+                      </div>
                     </div>
                   </div>
                 )) : (
