@@ -396,20 +396,18 @@ export default function Costi() {
                   return sum;
                 }
                 
-                // Calcola giorni del piano nel mese selezionato
-                const inizioPiano = dataInizio.isBefore(meseInizio) ? meseInizio : dataInizio;
-                const finePiano = dataFine.isAfter(meseFine) ? meseFine : dataFine;
-                const giorniPianoNelMese = finePiano.diff(inizioPiano, 'days') + 1;
+                // Calcola numero di mesi del piano
+                const durataInMesi = dataFine.diff(dataInizio, 'months', true);
                 
-                // Calcola giorni totali del piano
-                const giorniTotaliPiano = dataFine.diff(dataInizio, 'days') + 1;
-                
-                // Calcola costo proporzionale per il mese
+                // Calcola budget mensile per locale
                 const numStoresAssegnati = piano.stores_ids.length;
-                const costoPerStore = piano.budget / numStoresAssegnati;
-                const costoProrata = (costoPerStore / giorniTotaliPiano) * giorniPianoNelMese;
+                const budgetPerLocale = piano.budget / numStoresAssegnati;
+                const budgetMensilePerLocale = budgetPerLocale / durataInMesi;
                 
-                return sum + costoProrata;
+                // Applica pro rata del mese corrente
+                const costoMeseConProrata = budgetMensilePerLocale * proRata;
+                
+                return sum + costoMeseConProrata;
               }, 0);
 
               // Totali
