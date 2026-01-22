@@ -619,6 +619,14 @@ export default function Financials() {
     } else if (startDate || endDate) {
       cutoffDate = startDate ? safeParseDate(startDate + 'T00:00:00') : new Date(0);
       endFilterDate = endDate ? safeParseDate(endDate + 'T23:59:59') : new Date();
+    } else if (dateRange === 'currentweek') {
+      const now = new Date();
+      const dayOfWeek = now.getDay();
+      const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      cutoffDate = new Date(now);
+      cutoffDate.setDate(now.getDate() + diffToMonday);
+      cutoffDate.setHours(0, 0, 0, 0);
+      endFilterDate = new Date();
     } else {
       const days = parseInt(dateRange, 10);
       cutoffDate = subDays(new Date(), days);
@@ -1287,23 +1295,14 @@ export default function Financials() {
       const totalStoreRevenue = data.storeRevenue.reduce((sum, v) => sum + v, 0);
       const totalChannelRevenue = data.totalChannelRevenue.reduce((sum, v) => sum + v, 0);
       
-      let value = 0;
-      if (dailyMetric === 'revenue') {
-        value = count > 0 ? totalRevenue / count : 0;
-      } else if (dailyMetric === 'avgOrderValue') {
-        value = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-      } else if (dailyMetric === 'orders') {
-        value = count > 0 ? totalOrders / count : 0;
-      } else if (dailyMetric === 'percentStore') {
-        value = totalChannelRevenue > 0 ? (totalStoreRevenue / totalChannelRevenue) * 100 : 0;
-      }
+      const value = count > 0 ? totalRevenue / count : 0;
       
       return {
         day: dayNames[dayOfWeek],
         value: parseFloat(value.toFixed(2))
       };
     });
-  }, [iPraticoData, selectedStore, dailyDays, dailyMetric]);
+  }, [iPraticoData, selectedStore, dailyDays]);
 
   // Calculate min/max for color scale
   const weeklyStats = useMemo(() => {
@@ -2732,51 +2731,73 @@ export default function Financials() {
 
                   const totalPaymentRevenue = paymentData.reduce((sum, m) => sum + m.revenue, 0);
 
-                  return paymentData.map((method, index) => (
-                    <tr key={index} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
-                      <td className="p-2 lg:p-3">
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-3 h-3 rounded-full flex-shrink-0" 
-                            style={{ background: PAYMENT_COLORS[index % PAYMENT_COLORS.length] }}
-                          />
-                          <span className="text-slate-700 font-medium text-sm">{method.name}</span>
-                        </div>
-                      </td>
-                      <td className="p-2 lg:p-3 text-right text-slate-700 font-bold text-sm">
-                       €{formatCurrency(method.revenue)}
-                      </td>
-                      {processedData.comparisonData && (
-                       <>
-                         <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">-</td>
-                         <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">-</td>
-                       </>
-                      )}
-                      <td className="p-2 lg:p-3 text-right text-slate-700 font-bold text-sm">
-                       {method.orders}
-                      </td>
-                      {processedData.comparisonData && (
-                       <>
-                         <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">-</td>
-                         <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">-</td>
-                       </>
-                      )}
-                      <td className="p-2 lg:p-3 text-right text-slate-700 font-bold text-sm">
-                       €{formatCurrency(method.avgValue)}
-                      </td>
-                      {processedData.comparisonData && (
-                        <>
-                          <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">-</td>
-                          <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">-</td>
-                        </>
-                      )}
-                      <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
-                        {totalPaymentRevenue > 0 
-                          ? ((method.revenue / totalPaymentRevenue) * 100).toFixed(1) 
-                          : 0}%
-                      </td>
-                    </tr>
-                  ));
+                  return paymentData.map((method, index) => {
+                    const compareMethod = paymentMethodsData.comparisonBreakdown?.find(m => m.name === method.name);
+                    const revDiff = compareMethod ? method.revenue - compareMethod.value : 0;
+                    const revDiffPercent = compareMethod && compareMethod.value > 0 ? (revDiff / compareMethod.value) * 100 : 0;
+                    const ordDiff = compareMethod ? method.orders - compareMethod.orders : 0;
+                    const ordDiffPercent = compareMethod && compareMethod.orders > 0 ? (ordDiff / compareMethod.orders) * 100 : 0;
+                    const avgDiff = compareMethod ? method.avgValue - compareMethod.avgValue : 0;
+                    const avgDiffPercent = compareMethod && compareMethod.avgValue > 0 ? (avgDiff / compareMethod.avgValue) * 100 : 0;
+                    
+                    return (
+                      <tr key={index} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                        <td className="p-2 lg:p-3">
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full flex-shrink-0" 
+                              style={{ background: PAYMENT_COLORS[index % PAYMENT_COLORS.length] }}
+                            />
+                            <span className="text-slate-700 font-medium text-sm">{method.name}</span>
+                          </div>
+                        </td>
+                        <td className="p-2 lg:p-3 text-right text-slate-700 font-bold text-sm">
+                         €{formatCurrency(method.revenue)}
+                        </td>
+                        {processedData.comparisonData && (
+                         <>
+                           <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
+                             €{compareMethod ? formatCurrency(compareMethod.value) : '0,00'}
+                           </td>
+                           <td className={`p-2 lg:p-3 text-right text-sm font-bold ${revDiff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                             {compareMethod ? `${revDiff >= 0 ? '+' : ''}${revDiffPercent.toFixed(1)}%` : '-'}
+                           </td>
+                         </>
+                        )}
+                        <td className="p-2 lg:p-3 text-right text-slate-700 font-bold text-sm">
+                         {method.orders}
+                        </td>
+                        {processedData.comparisonData && (
+                         <>
+                           <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
+                             {compareMethod ? compareMethod.orders : 0}
+                           </td>
+                           <td className={`p-2 lg:p-3 text-right text-sm font-bold ${ordDiff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                             {compareMethod ? `${ordDiff >= 0 ? '+' : ''}${ordDiffPercent.toFixed(1)}%` : '-'}
+                           </td>
+                         </>
+                        )}
+                        <td className="p-2 lg:p-3 text-right text-slate-700 font-bold text-sm">
+                         €{formatCurrency(method.avgValue)}
+                        </td>
+                        {processedData.comparisonData && (
+                          <>
+                            <td className="p-2 lg:p-3 text-right text-slate-500 text-sm">
+                              €{compareMethod ? formatCurrency(compareMethod.avgValue) : '0,00'}
+                            </td>
+                            <td className={`p-2 lg:p-3 text-right text-sm font-bold ${avgDiff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {compareMethod ? `${avgDiff >= 0 ? '+' : ''}${avgDiffPercent.toFixed(1)}%` : '-'}
+                            </td>
+                          </>
+                        )}
+                        <td className="p-2 lg:p-3 text-right text-slate-700 text-sm">
+                          {totalPaymentRevenue > 0 
+                            ? ((method.revenue / totalPaymentRevenue) * 100).toFixed(1) 
+                            : 0}%
+                        </td>
+                      </tr>
+                    );
+                  });
                 })()}
               </tbody>
             </table>
@@ -2940,6 +2961,7 @@ export default function Financials() {
                   <thead>
                     <tr className="border-b-2 border-blue-600">
                       <th className="text-left p-3 text-slate-600 font-medium text-sm">Settimana</th>
+                      <th className="text-right p-3 text-slate-600 font-medium text-sm">N°</th>
                       <th className="text-right p-3 text-slate-600 font-medium text-sm">Revenue</th>
                       <th className="text-right p-3 text-slate-600 font-medium text-sm">AOV</th>
                       <th className="text-right p-3 text-slate-600 font-medium text-sm">Ordini</th>
@@ -2959,6 +2981,15 @@ export default function Financials() {
                         >
                           <td className="p-3 text-slate-700 font-medium text-sm">
                             {week.weekStart && weekEnd ? `${safeFormatDate(safeParseDate(week.weekStart + 'T00:00:00'), 'dd/MM')} - ${safeFormatDate(weekEnd, 'dd/MM/yyyy')}` : week.weekStart}
+                          </td>
+                          <td className="p-3 text-right text-slate-600 text-xs font-mono">
+                            {(() => {
+                              const date = safeParseDate(week.weekStart + 'T00:00:00');
+                              if (!date) return '-';
+                              const weekNum = Math.ceil((date.getDate() + 6 - date.getDay()) / 7);
+                              const year = date.getFullYear().toString().slice(-2);
+                              return `W${weekNum}-${year}`;
+                            })()}
                           </td>
                           <td className={`p-3 text-right font-bold text-sm ${weeklyStats ? getColorForValue(week.revenue, weeklyStats.revenue.min, weeklyStats.revenue.max) : ''}`}>
                             €{formatCurrency(week.revenue / 1000, 1)}k
@@ -3146,19 +3177,6 @@ export default function Financials() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-sm text-slate-600 mb-2 block">Metrica</label>
-                    <select
-                      value={dailyMetric}
-                      onChange={(e) => setDailyMetric(e.target.value)}
-                      className="neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none text-sm"
-                    >
-                      <option value="revenue">Revenue</option>
-                      <option value="avgOrderValue">AOV</option>
-                      <option value="orders">Ordini</option>
-                      <option value="percentStore">% Store</option>
-                    </select>
-                  </div>
-                  <div>
                     <label className="text-sm text-slate-600 mb-2 block">Giorni</label>
                     <select
                       value={dailyDays}
@@ -3175,65 +3193,219 @@ export default function Financials() {
                 </div>
               </div>
 
-              <div className="w-full overflow-x-auto">
-                <div style={{ minWidth: '500px' }}>
-                  <ResponsiveContainer width="100%" height={400}>
-                    <BarChart data={dailyChartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
-                      <XAxis 
-                        dataKey="day" 
-                        stroke="#64748b"
-                        tick={{ fontSize: 12 }}
-                      />
-                      <YAxis 
-                        stroke="#64748b"
-                        tick={{ fontSize: 11 }}
-                        width={60}
-                      />
-                      <Tooltip 
-                        contentStyle={{ 
-                          background: 'rgba(248, 250, 252, 0.95)', 
-                          border: 'none',
-                          borderRadius: '12px',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                          fontSize: '11px'
-                        }}
-                        formatter={(value) => {
-                          if (dailyMetric === 'percentStore') return `${value}%`;
-                          if (dailyMetric === 'revenue' || dailyMetric === 'avgOrderValue') return `€${formatCurrency(value)}`;
-                          return value.toFixed(0);
-                        }}
-                      />
-                      <Legend wrapperStyle={{ fontSize: '11px' }} />
-                      <Bar 
-                        dataKey="value" 
-                        fill="url(#dailyGradient)" 
-                        name={
-                          dailyMetric === 'revenue' ? 'Revenue Media' :
-                          dailyMetric === 'avgOrderValue' ? 'AOV' :
-                          dailyMetric === 'orders' ? 'Ordini Medi' :
-                          '% Store Media'
-                        }
-                        radius={[8, 8, 0, 0]} 
-                      />
-                      <defs>
-                        <linearGradient id="dailyGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#3b82f6" />
-                          <stop offset="100%" stopColor="#2563eb" />
-                        </linearGradient>
-                      </defs>
-                    </BarChart>
-                  </ResponsiveContainer>
+              {/* Revenue Chart */}
+              <div className="mb-6">
+                <h3 className="text-base font-bold text-slate-700 mb-3">Revenue Media per Giorno</h3>
+                <div className="w-full overflow-x-auto">
+                  <div style={{ minWidth: '500px' }}>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={dailyChartData.map(d => ({ ...d, revenue: d.value }))}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                        <XAxis 
+                          dataKey="day" 
+                          stroke="#64748b"
+                          tick={{ fontSize: 12 }}
+                        />
+                        <YAxis 
+                          stroke="#64748b"
+                          tick={{ fontSize: 11 }}
+                          width={60}
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            background: 'rgba(248, 250, 252, 0.95)', 
+                            border: 'none',
+                            borderRadius: '12px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                            fontSize: '11px'
+                          }}
+                          formatter={(value) => `€${formatCurrency(value)}`}
+                        />
+                        <Bar 
+                          dataKey="revenue" 
+                          fill="url(#revenueGradient)" 
+                          name="Revenue Media"
+                          radius={[8, 8, 0, 0]}
+                          label={{ position: 'top', fontSize: 10, fill: '#475569' }}
+                        />
+                        <defs>
+                          <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#3b82f6" />
+                            <stop offset="100%" stopColor="#2563eb" />
+                          </linearGradient>
+                        </defs>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+
+              {/* AOV Chart */}
+              <div className="mb-6">
+                <h3 className="text-base font-bold text-slate-700 mb-3">AOV per Giorno</h3>
+                <div className="w-full overflow-x-auto">
+                  <div style={{ minWidth: '500px' }}>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={(() => {
+                        const cutoffDate = subDays(new Date(), dailyDays);
+                        let filtered = iPraticoData.filter(item => {
+                          if (!item.order_date) return false;
+                          const itemDate = safeParseDate(item.order_date + 'T00:00:00');
+                          if (!itemDate) return false;
+                          return itemDate >= cutoffDate;
+                        });
+                        if (selectedStore !== 'all') filtered = filtered.filter(item => item.store_id === selectedStore);
+                        
+                        const dayOfWeekData = {};
+                        filtered.forEach(item => {
+                          const itemDate = safeParseDate(item.order_date + 'T00:00:00');
+                          if (!itemDate) return;
+                          const dayOfWeek = itemDate.getDay();
+                          if (!dayOfWeekData[dayOfWeek]) dayOfWeekData[dayOfWeek] = { revenue: [], orders: [] };
+                          dayOfWeekData[dayOfWeek].revenue.push(item.total_revenue || 0);
+                          dayOfWeekData[dayOfWeek].orders.push(item.total_orders || 0);
+                        });
+                        
+                        const dayNames = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+                        return [1, 2, 3, 4, 5, 6, 0].map(dayOfWeek => {
+                          const data = dayOfWeekData[dayOfWeek];
+                          if (!data) return { day: dayNames[dayOfWeek], aov: 0 };
+                          const totalRevenue = data.revenue.reduce((sum, v) => sum + v, 0);
+                          const totalOrders = data.orders.reduce((sum, v) => sum + v, 0);
+                          return { day: dayNames[dayOfWeek], aov: totalOrders > 0 ? parseFloat((totalRevenue / totalOrders).toFixed(2)) : 0 };
+                        });
+                      })()}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                        <XAxis dataKey="day" stroke="#64748b" tick={{ fontSize: 12 }} />
+                        <YAxis stroke="#64748b" tick={{ fontSize: 11 }} width={60} />
+                        <Tooltip 
+                          contentStyle={{ background: 'rgba(248, 250, 252, 0.95)', border: 'none', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '11px' }}
+                          formatter={(value) => `€${formatCurrency(value)}`}
+                        />
+                        <Bar dataKey="aov" fill="url(#aovGradient)" name="AOV" radius={[8, 8, 0, 0]} label={{ position: 'top', fontSize: 10, fill: '#475569' }} />
+                        <defs>
+                          <linearGradient id="aovGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#22c55e" />
+                            <stop offset="100%" stopColor="#16a34a" />
+                          </linearGradient>
+                        </defs>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+
+              {/* Orders Chart */}
+              <div className="mb-6">
+                <h3 className="text-base font-bold text-slate-700 mb-3">Ordini Medi per Giorno</h3>
+                <div className="w-full overflow-x-auto">
+                  <div style={{ minWidth: '500px' }}>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={(() => {
+                        const cutoffDate = subDays(new Date(), dailyDays);
+                        let filtered = iPraticoData.filter(item => {
+                          if (!item.order_date) return false;
+                          const itemDate = safeParseDate(item.order_date + 'T00:00:00');
+                          if (!itemDate) return false;
+                          return itemDate >= cutoffDate;
+                        });
+                        if (selectedStore !== 'all') filtered = filtered.filter(item => item.store_id === selectedStore);
+                        
+                        const dayOfWeekData = {};
+                        filtered.forEach(item => {
+                          const itemDate = safeParseDate(item.order_date + 'T00:00:00');
+                          if (!itemDate) return;
+                          const dayOfWeek = itemDate.getDay();
+                          if (!dayOfWeekData[dayOfWeek]) dayOfWeekData[dayOfWeek] = { orders: [] };
+                          dayOfWeekData[dayOfWeek].orders.push(item.total_orders || 0);
+                        });
+                        
+                        const dayNames = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+                        return [1, 2, 3, 4, 5, 6, 0].map(dayOfWeek => {
+                          const data = dayOfWeekData[dayOfWeek];
+                          if (!data) return { day: dayNames[dayOfWeek], orders: 0 };
+                          const count = data.orders.length;
+                          const totalOrders = data.orders.reduce((sum, v) => sum + v, 0);
+                          return { day: dayNames[dayOfWeek], orders: count > 0 ? parseFloat((totalOrders / count).toFixed(0)) : 0 };
+                        });
+                      })()}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                        <XAxis dataKey="day" stroke="#64748b" tick={{ fontSize: 12 }} />
+                        <YAxis stroke="#64748b" tick={{ fontSize: 11 }} width={60} />
+                        <Tooltip 
+                          contentStyle={{ background: 'rgba(248, 250, 252, 0.95)', border: 'none', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '11px' }}
+                        />
+                        <Bar dataKey="orders" fill="url(#ordersGradient)" name="Ordini Medi" radius={[8, 8, 0, 0]} label={{ position: 'top', fontSize: 10, fill: '#475569' }} />
+                        <defs>
+                          <linearGradient id="ordersGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#8b5cf6" />
+                            <stop offset="100%" stopColor="#7c3aed" />
+                          </linearGradient>
+                        </defs>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+
+              {/* % Store Chart */}
+              <div>
+                <h3 className="text-base font-bold text-slate-700 mb-3">% Store per Giorno</h3>
+                <div className="w-full overflow-x-auto">
+                  <div style={{ minWidth: '500px' }}>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={(() => {
+                        const cutoffDate = subDays(new Date(), dailyDays);
+                        let filtered = iPraticoData.filter(item => {
+                          if (!item.order_date) return false;
+                          const itemDate = safeParseDate(item.order_date + 'T00:00:00');
+                          if (!itemDate) return false;
+                          return itemDate >= cutoffDate;
+                        });
+                        if (selectedStore !== 'all') filtered = filtered.filter(item => item.store_id === selectedStore);
+                        
+                        const dayOfWeekData = {};
+                        filtered.forEach(item => {
+                          const itemDate = safeParseDate(item.order_date + 'T00:00:00');
+                          if (!itemDate) return;
+                          const dayOfWeek = itemDate.getDay();
+                          if (!dayOfWeekData[dayOfWeek]) dayOfWeekData[dayOfWeek] = { storeRevenue: [], totalChannelRevenue: [] };
+                          dayOfWeekData[dayOfWeek].storeRevenue.push(item.sourceType_store || 0);
+                          dayOfWeekData[dayOfWeek].totalChannelRevenue.push((item.sourceType_store || 0) + (item.sourceType_delivery || 0));
+                        });
+                        
+                        const dayNames = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+                        return [1, 2, 3, 4, 5, 6, 0].map(dayOfWeek => {
+                          const data = dayOfWeekData[dayOfWeek];
+                          if (!data) return { day: dayNames[dayOfWeek], percentStore: 0 };
+                          const totalStoreRevenue = data.storeRevenue.reduce((sum, v) => sum + v, 0);
+                          const totalChannelRevenue = data.totalChannelRevenue.reduce((sum, v) => sum + v, 0);
+                          return { day: dayNames[dayOfWeek], percentStore: totalChannelRevenue > 0 ? parseFloat(((totalStoreRevenue / totalChannelRevenue) * 100).toFixed(1)) : 0 };
+                        });
+                      })()}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                        <XAxis dataKey="day" stroke="#64748b" tick={{ fontSize: 12 }} />
+                        <YAxis stroke="#64748b" tick={{ fontSize: 11 }} width={60} />
+                        <Tooltip 
+                          contentStyle={{ background: 'rgba(248, 250, 252, 0.95)', border: 'none', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '11px' }}
+                          formatter={(value) => `${value}%`}
+                        />
+                        <Bar dataKey="percentStore" fill="url(#storeGradient)" name="% Store" radius={[8, 8, 0, 0]} label={{ position: 'top', fontSize: 10, fill: '#475569', formatter: (value) => `${value}%` }} />
+                        <defs>
+                          <linearGradient id="storeGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#f59e0b" />
+                            <stop offset="100%" stopColor="#d97706" />
+                          </linearGradient>
+                        </defs>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </div>
 
               <div className="mt-4 p-3 bg-slate-50 rounded-lg">
                 <p className="text-xs text-slate-600">
-                  📊 Questo grafico mostra la media di <strong>
-                    {dailyMetric === 'revenue' ? 'Revenue' :
-                     dailyMetric === 'avgOrderValue' ? 'AOV' :
-                     dailyMetric === 'orders' ? 'Ordini' : '% Store'}
-                  </strong> per ogni giorno della settimana, calcolata sugli ultimi <strong>{dailyDays} giorni</strong>.
+                  📊 Questi grafici mostrano le medie per ogni giorno della settimana, calcolate sugli ultimi <strong>{dailyDays} giorni</strong>.
                 </p>
               </div>
             </NeumorphicCard>
