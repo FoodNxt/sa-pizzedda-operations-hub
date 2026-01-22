@@ -91,12 +91,6 @@ const navigationStructure = [
         icon: MapPin,
       },
       {
-        title: "Assign Reviews",
-        page: "AssignReviews",
-        url: createPageUrl("AssignReviews"),
-        icon: UserCheck,
-      },
-      {
         title: "Employee Reviews",
         page: "EmployeeReviewsPerformance",
         url: createPageUrl("EmployeeReviewsPerformance"),
@@ -500,6 +494,20 @@ const navigationStructure = [
       }
       ]
       },
+  {
+    title: "Impostazioni",
+    icon: Settings,
+    type: "section",
+    requiredUserType: ["admin"],
+    items: [
+      {
+        title: "Assign Reviews",
+        page: "AssignReviews",
+        url: createPageUrl("AssignReviews"),
+        icon: UserCheck,
+      }
+    ]
+  },
   {
     title: "Sistema",
     icon: User,
