@@ -40,22 +40,16 @@ Deno.serve(async (req) => {
           });
           
           if (pdfResponse.data && pdfResponse.data.pdf_base64) {
-            // Convert base64 to Blob
+            // Convert base64 to binary buffer
             const pdfBinary = atob(pdfResponse.data.pdf_base64);
             const pdfBytes = new Uint8Array(pdfBinary.length);
             for (let i = 0; i < pdfBinary.length; i++) {
               pdfBytes[i] = pdfBinary.charCodeAt(i);
             }
-            const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
             
-            // Create File from Blob
-            const pdfFile = new File([pdfBlob], `contratto_${contratto.nome_cognome.replace(/\s+/g, '_')}.pdf`, { 
-              type: 'application/pdf' 
-            });
-            
-            // Upload the file
+            // Upload directly as binary data
             const uploadResponse = await base44.asServiceRole.integrations.Core.UploadFile({
-              file: pdfFile
+              file: pdfBytes.buffer
             });
             
             htmlBody += `<li style="margin-bottom: 8px;">📄 <a href="${uploadResponse.file_url}" style="color: #3b82f6; text-decoration: underline;">${contratto.template_nome}</a> <span style="color: #64748b; font-size: 0.9em;">(Inizio: ${new Date(contratto.data_inizio_contratto).toLocaleDateString('it-IT')})</span></li>`;
