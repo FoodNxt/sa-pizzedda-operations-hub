@@ -102,10 +102,13 @@ Deno.serve(async (req) => {
 
     // Log the email to PayrollEmailLog
     try {
+      const dipendenteNome = dipendente_id ? (await base44.asServiceRole.entities.User.get(dipendente_id))?.nome_cognome || '-' : '-';
+      
       await base44.asServiceRole.entities.PayrollEmailLog.create({
         data_invio: new Date().toISOString(),
         destinatario: to,
         dipendente_id: dipendente_id,
+        dipendente_nome: dipendenteNome,
         subject: subject,
         body: body,
         contratti_allegati: contratti_ids || [],
