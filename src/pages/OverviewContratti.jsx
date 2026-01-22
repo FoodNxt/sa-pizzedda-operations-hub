@@ -327,6 +327,14 @@ export default function OverviewContratti() {
     );
   }, [users, dipendentiConContratti]);
 
+  const contrattiAttivi = useMemo(() => {
+    return dipendentiConContratti.filter(d => !d.uscita);
+  }, [dipendentiConContratti]);
+
+  const contrattiTerminati = useMemo(() => {
+    return dipendentiConContratti.filter(d => d.uscita);
+  }, [dipendentiConContratti]);
+
   const stats = useMemo(() => {
     const totale = dipendentiConContratti.length;
     const usciti = dipendentiConContratti.filter(d => d.uscita).length;
@@ -562,7 +570,7 @@ export default function OverviewContratti() {
           </NeumorphicCard>
         )}
 
-        {/* Contratti Table */}
+        {/* Contratti Attivi Table */}
         <NeumorphicCard className="p-6">
           <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
             <Briefcase className="w-5 h-5 text-blue-600" />
@@ -574,10 +582,10 @@ export default function OverviewContratti() {
               <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
               <p className="text-slate-500 mt-3">Caricamento...</p>
             </div>
-          ) : dipendentiConContratti.length === 0 ? (
+          ) : contrattiAttivi.length === 0 ? (
             <div className="text-center py-12">
               <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <p className="text-slate-500">Nessun contratto firmato trovato</p>
+              <p className="text-slate-500">Nessun contratto attivo trovato</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -623,16 +631,15 @@ export default function OverviewContratti() {
                   </tr>
                 </thead>
                 <tbody>
-                  {dipendentiConContratti.map(dip => {
-                    const hasUscita = !!dip.uscita;
-                    const isScaduto = !hasUscita && dip.giorni_rimanenti !== null && dip.giorni_rimanenti < 0;
-                    const isInScadenza = !hasUscita && dip.giorni_rimanenti !== null && dip.giorni_rimanenti >= 0 && dip.giorni_rimanenti <= 30;
-                    
+                  {contrattiAttivi.map(dip => {
+                    const isScaduto = dip.giorni_rimanenti !== null && dip.giorni_rimanenti < 0;
+                    const isInScadenza = dip.giorni_rimanenti !== null && dip.giorni_rimanenti >= 0 && dip.giorni_rimanenti <= 30;
+
                     return (
                       <tr 
                         key={dip.id} 
                         className={`border-b border-slate-100 hover:bg-slate-50 ${
-                          hasUscita ? 'bg-red-100' : isScaduto ? 'bg-red-50' : isInScadenza ? 'bg-orange-50' : ''
+                          isScaduto ? 'bg-red-50' : isInScadenza ? 'bg-orange-50' : ''
                         }`}
                       >
                         <td className="py-3 px-2 font-medium text-slate-800">
@@ -675,16 +682,7 @@ export default function OverviewContratti() {
                           )}
                         </td>
                         <td className="py-3 px-2 text-center">
-                          {hasUscita ? (
-                            <div className="flex flex-col items-center gap-1">
-                              <span className="px-2 py-1 bg-red-600 text-white rounded-full text-xs font-bold">
-                                {dip.uscita.tipo_uscita === 'licenziamento' ? '❌ LICENZIATO' : '📤 DIMESSO'}
-                              </span>
-                              <span className="text-xs text-red-600 font-medium">
-                                {moment(dip.uscita.data_uscita).format('DD/MM/YYYY')}
-                              </span>
-                            </div>
-                          ) : dip.durata_contratto === 'Indeterminato' ? (
+                          {dip.durata_contratto === 'Indeterminato' ? (
                             <span className="text-slate-400">-</span>
                           ) : dip.giorni_rimanenti !== null ? (
                             <span className={`font-bold ${
@@ -738,9 +736,80 @@ export default function OverviewContratti() {
               </table>
             </div>
           )}
-        </NeumorphicCard>
+          </NeumorphicCard>
 
-        {/* Rinnovo Contratto Modal */}
+          {/* Contratti Terminati Table */}
+          {contrattiTerminati.length > 0 && (
+          <NeumorphicCard className="p-6 bg-red-50 border-2 border-red-300">
+            <h2 className="text-xl font-bold text-red-800 mb-4 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+              Contratti Terminati ({contrattiTerminati.length})
+            </h2>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b-2 border-red-200">
+                    <th className="text-left py-3 px-2 font-semibold text-red-800">Nome</th>
+                    <th className="text-left py-3 px-2 font-semibold text-red-800">Tipo</th>
+                    <th className="text-center py-3 px-2 font-semibold text-red-800">Ore/sett</th>
+                    <th className="text-left py-3 px-2 font-semibold text-red-800">Ruolo</th>
+                    <th className="text-center py-3 px-2 font-semibold text-red-800">Data Inizio</th>
+                    <th className="text-center py-3 px-2 font-semibold text-red-800">Data Uscita</th>
+                    <th className="text-center py-3 px-2 font-semibold text-red-800">Tenure</th>
+                    <th className="text-center py-3 px-2 font-semibold text-red-800">Tipo Uscita</th>
+                    <th className="text-center py-3 px-2 font-semibold text-red-800">Storico</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {contrattiTerminati.map(dip => (
+                    <tr key={dip.id} className="border-b border-red-100 hover:bg-red-100">
+                      <td className="py-3 px-2 font-medium text-red-900">{dip.nome_cognome}</td>
+                      <td className="py-3 px-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          dip.employee_group === 'FT' ? 'bg-green-100 text-green-700' :
+                          dip.employee_group === 'PT' ? 'bg-purple-100 text-purple-700' :
+                          'bg-blue-100 text-blue-700'
+                        }`}>
+                          {dip.tipo_contratto_label}
+                        </span>
+                      </td>
+                      <td className="py-3 px-2 text-center font-medium text-red-900">{dip.ore_settimanali ?? 'N/A'}</td>
+                      <td className="py-3 px-2 text-red-800">{dip.ruoli}</td>
+                      <td className="py-3 px-2 text-center text-red-800">
+                        {dip.data_inizio ? moment(dip.data_inizio).format('DD/MM/YYYY') : 'N/A'}
+                      </td>
+                      <td className="py-3 px-2 text-center text-red-900 font-bold">
+                        {moment(dip.uscita.data_uscita).format('DD/MM/YYYY')}
+                      </td>
+                      <td className="py-3 px-2 text-center">
+                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-200 text-red-800">
+                          {dip.tenure_mesi} {dip.tenure_mesi === 1 ? 'mese' : 'mesi'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-2 text-center">
+                        <span className="px-2 py-1 bg-red-600 text-white rounded-full text-xs font-bold">
+                          {dip.uscita.tipo_uscita === 'licenziamento' ? '❌ LICENZIATO' : '📤 DIMESSO'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-2 text-center">
+                        <button
+                          onClick={() => setViewingHistory(dip)}
+                          className="nav-button p-2 rounded-lg hover:bg-red-200 transition-colors"
+                          title="Vedi storico contratti"
+                        >
+                          <History className="w-4 h-4 text-red-600" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </NeumorphicCard>
+          )}
+
+          {/* Rinnovo Contratto Modal */}
         {renewingContract && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="max-w-2xl w-full p-6">
