@@ -34,6 +34,7 @@ export default function StoricoCassa() {
   const [verificaDate, setVerificaDate] = useState(new Date().toISOString().split('T')[0]);
   const [editingSaldo, setEditingSaldo] = useState(null);
   const [showSaldoConfig, setShowSaldoConfig] = useState(false);
+  const [newManualSaldo, setNewManualSaldo] = useState({ dipendente: '', importo: 0 });
 
   const queryClient = useQueryClient();
 
@@ -92,6 +93,23 @@ export default function StoricoCassa() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['saldi-manuali'] });
       setEditingSaldo(null);
+    },
+  });
+
+  const updateSaldoPersonaleMutation = useMutation({
+    mutationFn: ({ dipendente, importo }) => {
+      return base44.entities.Deposito.create({
+        store_id: 'manual_adjustment',
+        store_name: 'Aggiustamento Manuale',
+        rilevato_da: dipendente,
+        importo: importo,
+        data_deposito: new Date().toISOString(),
+        note: 'Aggiustamento saldo manuale'
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['depositi'] });
+      setNewManualSaldo({ dipendente: '', importo: 0 });
     },
   });
 
@@ -447,42 +465,6 @@ export default function StoricoCassa() {
 
         {activeTab === 'storico' && (
           <>
-        {currentUser?.user_type === 'admin' && (
-          <NeumorphicCard className="p-4 lg:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base lg:text-lg font-bold text-slate-800">Imposta Saldo Manuale Partenza</h2>
-              <button
-                onClick={() => {
-                  setEditingSaldo({ data: new Date().toISOString().split('T')[0], saldo_iniziale: 0, store_id: selectedStore });
-                  setShowSaldoConfig(true);
-                }}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 text-white text-sm hover:from-purple-600 hover:to-purple-700"
-              >
-                <Plus className="w-4 h-4" />
-                Nuovo Saldo
-              </button>
-            </div>
-
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {saldiManuali.length === 0 ? (
-                <p className="text-sm text-slate-500 py-6 text-center">Nessun saldo manuale impostato</p>
-              ) : (
-                saldiManuali.map(saldo => (
-                  <div key={saldo.id} className="neumorphic-pressed p-3 rounded-xl flex items-center justify-between">
-                    <div>
-                      <p className="font-bold text-slate-800 text-sm">{saldo.store_name}</p>
-                      <div className="flex gap-3 text-xs text-slate-600 mt-1">
-                        <span>📅 {new Date(saldo.data).toLocaleDateString('it-IT')}</span>
-                        <span className="text-green-600 font-bold">€{saldo.saldo_iniziale.toFixed(2)}</span>
-                      </div>
-                      {saldo.note && <p className="text-xs text-slate-500 mt-1 italic">{saldo.note}</p>}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </NeumorphicCard>
-        )}
         <NeumorphicCard className="p-4 lg:p-6">
           <div className="flex items-center gap-2 mb-4">
             <Filter className="w-5 h-5 text-blue-600" />
@@ -1209,6 +1191,55 @@ export default function StoricoCassa() {
         {/* Saldo Personale Tab */}
         {activeTab === 'saldo' && (
           <>
+            <NeumorphicCard className="p-4 lg:p-6 bg-blue-50">
+              <h3 className="text-base font-bold text-slate-800 mb-4">Imposta Saldo Manuale</h3>
+              <p className="text-sm text-slate-600 mb-4">
+                Aggiungi un deposito manuale per correggere il saldo di un dipendente
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block">Dipendente</label>
+                  <select
+                    value={newManualSaldo.dipendente}
+                    onChange={(e) => setNewManualSaldo({ ...newManualSaldo, dipendente: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                  >
+                    <option value="">Seleziona...</option>
+                    {saldoDipendenti.map((dip, idx) => (
+                      <option key={idx} value={dip.nome}>{dip.nome}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block">Importo (€)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={newManualSaldo.importo}
+                    onChange={(e) => setNewManualSaldo({ ...newManualSaldo, importo: parseFloat(e.target.value) || 0 })}
+                    placeholder="Positivo per azzerare saldo"
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <button
+                    onClick={() => {
+                      if (newManualSaldo.dipendente && newManualSaldo.importo !== 0) {
+                        updateSaldoPersonaleMutation.mutate({
+                          dipendente: newManualSaldo.dipendente,
+                          importo: newManualSaldo.importo
+                        });
+                      }
+                    }}
+                    disabled={!newManualSaldo.dipendente || newManualSaldo.importo === 0}
+                    className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Salva
+                  </button>
+                </div>
+              </div>
+            </NeumorphicCard>
+
             <NeumorphicCard className="p-4 lg:p-6">
               <div className="flex items-center gap-2 mb-4">
                 <User className="w-5 h-5 text-blue-600" />

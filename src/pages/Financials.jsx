@@ -2942,6 +2942,189 @@ export default function Financials() {
         </>
         )}
 
+        {/* Monthly Tab */}
+        {activeTab === 'monthly' && (
+          <>
+            <NeumorphicCard className="p-4 lg:p-6">
+              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 gap-4">
+                <h2 className="text-lg font-bold text-slate-800">Analisi Mensile</h2>
+                <div className="flex flex-wrap gap-3">
+                  <div>
+                    <label className="text-sm text-slate-600 mb-2 block">Negozio</label>
+                    <select
+                      value={selectedStore}
+                      onChange={(e) => setSelectedStore(e.target.value)}
+                      className="neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none text-sm"
+                    >
+                      <option value="all">Tutti i Locali</option>
+                      {stores.map(store => (
+                        <option key={store.id} value={store.id}>{store.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="self-end">
+                    <button
+                      onClick={() => setShowWeeklySettings(!showWeeklySettings)}
+                      className="px-4 py-2 rounded-xl bg-slate-200 text-slate-700 hover:bg-slate-300 transition-colors text-sm font-medium flex items-center gap-2"
+                    >
+                      <Settings className="w-4 h-4" />
+                      Filtri
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {showWeeklySettings && (
+                <NeumorphicCard pressed className="p-4 mb-4 bg-blue-50 space-y-4">
+                  <div>
+                    <label className="text-sm text-slate-600 mb-2 block font-medium">Canali</label>
+                    <div className="flex flex-wrap gap-2">
+                      {allChannels.map(channel => (
+                        <button
+                          key={channel}
+                          onClick={() => {
+                            setWeeklySelectedChannels(prev => 
+                              prev.includes(channel) 
+                                ? prev.filter(c => c !== channel) 
+                                : [...prev, channel]
+                            );
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                            weeklySelectedChannels.length === 0 || weeklySelectedChannels.includes(channel)
+                              ? 'bg-blue-500 text-white'
+                              : 'bg-slate-200 text-slate-600'
+                          }`}
+                        >
+                          {channel.charAt(0).toUpperCase() + channel.slice(1)}
+                        </button>
+                      ))}
+                      {weeklySelectedChannels.length > 0 && (
+                        <button
+                          onClick={() => setWeeklySelectedChannels([])}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500 text-white flex items-center gap-1"
+                        >
+                          <X className="w-3 h-3" /> Reset
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm text-slate-600 mb-2 block font-medium">App Delivery</label>
+                    <div className="flex flex-wrap gap-2">
+                      {allApps.map(app => (
+                        <button
+                          key={app}
+                          onClick={() => {
+                            setWeeklySelectedApps(prev => 
+                              prev.includes(app) 
+                                ? prev.filter(a => a !== app) 
+                                : [...prev, app]
+                            );
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                            weeklySelectedApps.length === 0 || weeklySelectedApps.includes(app)
+                              ? 'bg-green-500 text-white'
+                              : 'bg-slate-200 text-slate-600'
+                          }`}
+                        >
+                          {app.charAt(0).toUpperCase() + app.slice(1)}
+                        </button>
+                      ))}
+                      {weeklySelectedApps.length > 0 && (
+                        <button
+                          onClick={() => setWeeklySelectedApps([])}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500 text-white flex items-center gap-1"
+                        >
+                          <X className="w-3 h-3" /> Reset
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm text-slate-600 mb-2 block font-medium">Metodi di Pagamento</label>
+                    <div className="flex flex-wrap gap-2">
+                      {['Bancomat', 'Contanti', 'Online', 'Satispay', 'Carta di Credito', 'Punti Fidelity'].map(method => (
+                        <button
+                          key={method}
+                          onClick={() => {
+                            setWeeklySelectedPayments(prev => 
+                              prev.includes(method) 
+                                ? prev.filter(m => m !== method) 
+                                : [...prev, method]
+                            );
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                            weeklySelectedPayments.length === 0 || weeklySelectedPayments.includes(method)
+                              ? 'bg-purple-500 text-white'
+                              : 'bg-slate-200 text-slate-600'
+                          }`}
+                        >
+                          {method}
+                        </button>
+                      ))}
+                      {weeklySelectedPayments.length > 0 && (
+                        <button
+                          onClick={() => setWeeklySelectedPayments([])}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500 text-white flex items-center gap-1"
+                        >
+                          <X className="w-3 h-3" /> Reset
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </NeumorphicCard>
+              )}
+
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[600px]">
+                  <thead>
+                    <tr className="border-b-2 border-blue-600">
+                      <th className="text-left p-3 text-slate-600 font-medium text-sm">Mese</th>
+                      <th className="text-right p-3 text-slate-600 font-medium text-sm">Revenue</th>
+                      <th className="text-right p-3 text-slate-600 font-medium text-sm">AOV</th>
+                      <th className="text-right p-3 text-slate-600 font-medium text-sm">Ordini</th>
+                      <th className="text-right p-3 text-slate-600 font-medium text-sm">% Store</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {monthlyData.map((month) => {
+                      const monthDate = safeParseDate(month.monthStart + '-01T00:00:00');
+                      
+                      return (
+                        <tr key={month.monthStart} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                          <td className="p-3 text-slate-700 font-medium text-sm">
+                            {monthDate ? format(monthDate, 'MMMM yyyy', { locale: it }) : month.monthStart}
+                          </td>
+                          <td className="p-3 text-right font-bold text-sm text-slate-800">
+                            €{formatCurrency(month.revenue / 1000, 1)}k
+                          </td>
+                          <td className="p-3 text-right font-bold text-sm text-slate-800">
+                            €{formatCurrency(month.avgOrderValue)}
+                          </td>
+                          <td className="p-3 text-right font-bold text-sm text-slate-800">
+                            {month.orders}
+                          </td>
+                          <td className="p-3 text-right font-bold text-sm text-slate-800">
+                            {month.percentStore.toFixed(1)}%
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {monthlyData.length === 0 && (
+                <div className="text-center py-8 text-slate-500">
+                  Nessun dato disponibile
+                </div>
+              )}
+            </NeumorphicCard>
+          </>
+        )}
+
         {/* Weekly Tab */}
         {activeTab === 'weekly' && (
           <>
