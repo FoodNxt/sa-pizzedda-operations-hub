@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
 
     console.log(`Generating and saving PDF for contract ${contratto_id}`);
 
-    // Get contract
+    // Get contract using asServiceRole for automation context
     const contratto = await base44.asServiceRole.entities.Contratto.get(contratto_id);
     
     if (!contratto) {
