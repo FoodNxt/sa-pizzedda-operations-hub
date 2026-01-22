@@ -757,6 +757,131 @@ export default function Financials() {
     return { breakdown, totalRevenue, totalOrders, comparisonBreakdown };
   }, [iPraticoData, selectedStore, dateRange, startDate, endDate, compareMode, compareStartDate, compareEndDate]);
 
+  // Monthly aggregation with filters
+  const monthlyData = useMemo(() => {
+    let filtered = iPraticoData;
+    if (selectedStore !== 'all') {
+      filtered = filtered.filter(item => item.store_id === selectedStore);
+    }
+
+    const monthlyMap = {};
+
+    filtered.forEach(item => {
+      if (!item.order_date) return;
+      const date = safeParseDate(item.order_date + 'T00:00:00');
+      if (!date) return;
+
+      const monthKey = format(date, 'yyyy-MM');
+
+      if (!monthlyMap[monthKey]) {
+        monthlyMap[monthKey] = {
+          monthStart: monthKey,
+          revenue: 0,
+          orders: 0,
+          storeRevenue: 0,
+          totalChannelRevenue: 0,
+          days: {}
+        };
+      }
+
+      // Apply filters for monthly aggregation
+      let itemRevenue = 0;
+      let itemOrders = 0;
+      
+      const channels = [
+        { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+        { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+        { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+        { key: 'store', revenue: item.sourceType_store || 0 }
+      ];
+      
+      let itemStoreRevenue = 0;
+      let itemDeliveryRevenue = 0;
+      
+      channels.forEach(ch => {
+        const mappedKey = channelMapping[ch.key] || ch.key;
+        if (mappedKey.toLowerCase() === 'store') {
+          itemStoreRevenue += ch.revenue;
+        } else if (mappedKey.toLowerCase() === 'delivery') {
+          itemDeliveryRevenue += ch.revenue;
+        }
+      });
+      
+      const itemTotalChannelRevenue = itemStoreRevenue + itemDeliveryRevenue;
+
+      if (weeklySelectedChannels.length === 0 && weeklySelectedApps.length === 0 && weeklySelectedPayments.length === 0) {
+        itemRevenue = item.total_revenue || 0;
+        itemOrders = item.total_orders || 0;
+      } else if (weeklySelectedPayments.length > 0) {
+        weeklySelectedPayments.forEach(method => {
+          if (method === 'Bancomat') {
+            itemRevenue += item.moneyType_bancomat || 0;
+            itemOrders += item.moneyType_bancomat_orders || 0;
+          } else if (method === 'Contanti') {
+            itemRevenue += item.moneyType_cash || 0;
+            itemOrders += item.moneyType_cash_orders || 0;
+          } else if (method === 'Online') {
+            itemRevenue += item.moneyType_online || 0;
+            itemOrders += item.moneyType_online_orders || 0;
+          } else if (method === 'Satispay') {
+            itemRevenue += item.moneyType_satispay || 0;
+            itemOrders += item.moneyType_satispay_orders || 0;
+          } else if (method === 'Carta di Credito') {
+            itemRevenue += item.moneyType_credit_card || 0;
+            itemOrders += item.moneyType_credit_card_orders || 0;
+          } else if (method === 'Punti Fidelity') {
+            itemRevenue += item.moneyType_fidelity_card_points || 0;
+            itemOrders += item.moneyType_fidelity_card_points_orders || 0;
+          }
+        });
+      } else if (weeklySelectedApps.length > 0) {
+        const apps = [
+          { key: 'glovo', revenue: item.sourceApp_glovo || 0, orders: item.sourceApp_glovo_orders || 0 },
+          { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0, orders: item.sourceApp_deliveroo_orders || 0 },
+          { key: 'justeat', revenue: item.sourceApp_justeat || 0, orders: item.sourceApp_justeat_orders || 0 },
+          { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0, orders: item.sourceApp_onlineordering_orders || 0 },
+          { key: 'ordertable', revenue: item.sourceApp_ordertable || 0, orders: item.sourceApp_ordertable_orders || 0 },
+          { key: 'tabesto', revenue: item.sourceApp_tabesto || 0, orders: item.sourceApp_tabesto_orders || 0 },
+          { key: 'store', revenue: item.sourceApp_store || 0, orders: item.sourceApp_store_orders || 0 }
+        ];
+        apps.forEach(app => {
+          const mappedKey = appMapping[app.key] || app.key;
+          if (weeklySelectedApps.includes(mappedKey)) {
+            itemRevenue += app.revenue;
+            itemOrders += app.orders;
+          }
+        });
+      } else if (weeklySelectedChannels.length > 0) {
+        const channels = [
+          { key: 'delivery', revenue: item.sourceType_delivery || 0, orders: item.sourceType_delivery_orders || 0 },
+          { key: 'takeaway', revenue: item.sourceType_takeaway || 0, orders: item.sourceType_takeaway_orders || 0 },
+          { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0, orders: item.sourceType_takeawayOnSite_orders || 0 },
+          { key: 'store', revenue: item.sourceType_store || 0, orders: item.sourceType_store_orders || 0 }
+        ];
+        channels.forEach(ch => {
+          const mappedKey = channelMapping[ch.key] || ch.key;
+          if (weeklySelectedChannels.includes(mappedKey)) {
+            itemRevenue += ch.revenue;
+            itemOrders += ch.orders;
+          }
+        });
+      }
+
+      monthlyMap[monthKey].revenue += itemRevenue;
+      monthlyMap[monthKey].orders += itemOrders;
+      monthlyMap[monthKey].storeRevenue += itemStoreRevenue;
+      monthlyMap[monthKey].totalChannelRevenue += itemTotalChannelRevenue;
+    });
+
+    return Object.values(monthlyMap)
+      .map(month => ({
+        ...month,
+        avgOrderValue: month.orders > 0 ? month.revenue / month.orders : 0,
+        percentStore: month.totalChannelRevenue > 0 ? (month.storeRevenue / month.totalChannelRevenue) * 100 : 0
+      }))
+      .sort((a, b) => b.monthStart.localeCompare(a.monthStart));
+  }, [iPraticoData, selectedStore, weeklySelectedChannels, weeklySelectedApps, weeklySelectedPayments, channelMapping, appMapping]);
+
   // Weekly aggregation with filters
   const weeklyData = useMemo(() => {
     let filtered = iPraticoData;
@@ -1514,7 +1639,18 @@ export default function Financials() {
             }`}
           >
             <TrendingUp className="w-4 h-4" />
-            Fatturato
+            Overview
+          </button>
+          <button
+            onClick={() => setActiveTab('monthly')}
+            className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
+              activeTab === 'monthly'
+                ? 'neumorphic-pressed bg-blue-50 text-blue-700'
+                : 'neumorphic-flat text-slate-600 hover:text-slate-800'
+            }`}
+          >
+            <Calendar className="w-4 h-4" />
+            Monthly
           </button>
           <button
             onClick={() => setActiveTab('weekly')}
