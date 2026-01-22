@@ -95,6 +95,13 @@ export default function OverviewContratti() {
     },
   });
 
+  const updatePayrollLogMutation = useMutation({
+    mutationFn: (data) => base44.entities.PayrollEmailLog.update(data.id, { cob_completato: data.cob_completato }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payroll-email-logs'] });
+    },
+  });
+
   const dipendentiConContratti = useMemo(() => {
     const oggi = new Date();
     
