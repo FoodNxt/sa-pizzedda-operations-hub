@@ -671,11 +671,7 @@ export default function OverviewContratti() {
                           {dip.data_inizio ? moment(dip.data_inizio).format('DD/MM/YYYY') : 'N/A'}
                         </td>
                         <td className="py-3 px-2 text-center text-slate-700">
-                          {hasUscita ? (
-                            <span className="text-red-600 font-bold">
-                              {moment(dip.uscita.data_uscita).format('DD/MM/YYYY')}
-                            </span>
-                          ) : dip.data_fine ? (
+                          {dip.data_fine ? (
                             moment(dip.data_fine).format('DD/MM/YYYY')
                           ) : (
                             'N/A'
