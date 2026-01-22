@@ -27,49 +27,21 @@ Deno.serve(async (req) => {
     if (contratti_ids && contratti_ids.length > 0) {
       htmlBody += '<br><br><hr style="border: 1px solid #e2e8f0; margin: 20px 0;"><br><strong>📄 Contratti:</strong><br><ul style="list-style-type: none; padding-left: 0;">';
       for (const contrattoId of contratti_ids) {
-        const contratto = await base44.asServiceRole.entities.Contratto.get(contrattoId);
-        if (contratto && contratto.contenuto_contratto) {
-          // Generate PDF using generateContrattoPDF
-          const pdfResponse = await base44.asServiceRole.functions.invoke('generateContrattoPDF', {
-            contenuto: contratto.contenuto_contratto,
-            nome_cognome: contratto.nome_cognome,
-            status: contratto.status,
-            firma_dipendente: contratto.firma_dipendente,
-            data_firma: contratto.data_firma,
-            contratto_id: contrattoId
-          });
-          
-          if (pdfResponse.data && pdfResponse.data.pdf_base64) {
-            // Convert base64 to Blob and create File
-            const pdfBinary = atob(pdfResponse.data.pdf_base64);
-            const pdfBytes = new Uint8Array(pdfBinary.length);
-            for (let i = 0; i < pdfBinary.length; i++) {
-              pdfBytes[i] = pdfBinary.charCodeAt(i);
-            }
-            
-            // Create a Blob with the binary data
-            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-            
-            // Create FormData and append the file
-            const formData = new FormData();
-            formData.append('file', blob, `contratto_${contratto.nome_cognome.replace(/\s+/g, '_')}.pdf`);
-            
-            // Upload using fetch directly to the upload endpoint
-            const uploadUrl = `${Deno.env.get('BASE44_API_URL') || 'https://api.base44.com'}/integrations/Core/UploadFile`;
-            const uploadResp = await fetch(uploadUrl, {
-              method: 'POST',
-              headers: {
-                'Authorization': req.headers.get('Authorization')
-              },
-              body: formData
+        try {
+          const contratto = await base44.asServiceRole.entities.Contratto.get(contrattoId);
+          if (contratto && contratto.contenuto_contratto) {
+            // Use the downloadContrattoPDF function which already generates and returns a working PDF URL
+            const downloadResponse = await base44.asServiceRole.functions.invoke('downloadContrattoPDF', {
+              contrattoId: contrattoId
             });
             
-            const uploadData = await uploadResp.json();
-            
-            if (uploadData.file_url) {
-              htmlBody += `<li style="margin-bottom: 8px;">📄 <a href="${uploadData.file_url}" style="color: #3b82f6; text-decoration: underline;">${contratto.template_nome}</a> <span style="color: #64748b; font-size: 0.9em;">(Inizio: ${new Date(contratto.data_inizio_contratto).toLocaleDateString('it-IT')})</span></li>`;
+            if (downloadResponse.data && downloadResponse.data.downloadUrl) {
+              htmlBody += `<li style="margin-bottom: 8px;">📄 <a href="${downloadResponse.data.downloadUrl}" style="color: #3b82f6; text-decoration: underline;">${contratto.template_nome}</a> <span style="color: #64748b; font-size: 0.9em;">(Inizio: ${new Date(contratto.data_inizio_contratto).toLocaleDateString('it-IT')})</span></li>`;
             }
           }
+        } catch (err) {
+          console.error(`Error processing contract ${contrattoId}:`, err);
+          // Continue with other contracts even if one fails
         }
       }
       htmlBody += '</ul>';
