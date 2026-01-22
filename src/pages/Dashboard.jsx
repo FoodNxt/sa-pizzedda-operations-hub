@@ -89,6 +89,21 @@ export default function Dashboard() {
     queryFn: () => base44.entities.MetricWeight.list(),
   });
 
+  const { data: attrezzature = [] } = useQuery({
+    queryKey: ['attrezzature'],
+    queryFn: () => base44.entities.Attrezzatura.list(),
+  });
+
+  const { data: domande = [] } = useQuery({
+    queryKey: ['domande-pulizia'],
+    queryFn: () => base44.entities.DomandaPulizia.list(),
+  });
+
+  const { data: malattie = [] } = useQuery({
+    queryKey: ['richieste-malattia-all'],
+    queryFn: () => base44.entities.RichiestaMalattia.list(),
+  });
+
   const { data: richiesteAssenze = { ferie: [], malattie: [], turniLiberi: [], scambi: [] } } = useQuery({
     queryKey: ['richieste-assenze'],
     queryFn: async () => {
@@ -289,34 +304,59 @@ export default function Dashboard() {
     const dipendenti = allUsers.filter(u => (u.user_type === 'dipendente' || u.user_type === 'user') && u.ruoli_dipendente?.length > 0);
     const totalEmployees = dipendenti.length;
 
-    // Calcola performanceScore per ogni dipendente (stesso calcolo di HR > Performance Dipendenti)
+    const getWeight = (metricName, ruolo = null) => {
+      let weight;
+      if (ruolo) {
+        weight = metricWeights.find(w => w.metric_name === metricName && w.ruolo === ruolo && w.is_active);
+      } else {
+        weight = metricWeights.find(w => w.metric_name === metricName && w.is_active);
+      }
+      return weight ? weight.weight : 1;
+    };
+
     const employeeScores = dipendenti.map(user => {
       const employeeName = user.nome_cognome || user.full_name || user.email;
       
-      const employeeShifts = turni.filter(s => s.dipendente_nome === employeeName);
+      const employeeShifts = turni.filter(s => {
+        if (s.dipendente_nome !== employeeName) return false;
+        const shiftDate = safeParseDate(s.data);
+        if (!shiftDate) return false;
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+        return shiftDate <= today;
+      });
+      
       const employeeWrongOrders = wrongOrderMatches.filter(m => m.matched_employee_name === employeeName);
       
-      const getWeight = (metricName, ruolo = null) => {
-        let weight;
-        if (ruolo) {
-          weight = metricWeights.find(w => w.metric_name === metricName && w.ruolo === ruolo && w.is_active);
-        }
-        if (!weight) {
-          weight = metricWeights.find(w => w.metric_name === metricName && w.is_active);
-        }
-        return weight ? weight.weight : (metricName === 'ordini_sbagliati' ? 2 : metricName === 'ritardi' ? 0.3 : metricName === 'timbrature_mancanti' ? 1 : 1);
-      };
+      const w_bonus_recensione = getWeight('bonus_per_recensione');
+      const w_min_recensioni = getWeight('min_recensioni');
+      const w_malus_recensioni = getWeight('malus_sotto_minimo_recensioni');
+      const w_punteggio_recensioni = getWeight('punteggio_recensioni');
+      const w_pulizie = getWeight('pulizie');
 
       let performanceScore = 100;
       
-      // Deduzioni ordini sbagliati
+      let deductionOrdini = 0;
+      let deductionRitardi = 0;
+      let deductionTimbrature = 0;
+      
       employeeWrongOrders.forEach(order => {
-        const shiftData = employeeShifts.find(s => s.data === order.order_date?.split('T')[0]);
+        const shiftData = employeeShifts.find(s => {
+          if (!s.data) return false;
+          const shiftDate = safeParseDate(s.data);
+          if (!shiftDate) return false;
+          const orderDate = safeParseDate(order.order_date);
+          if (!orderDate) return false;
+          return shiftDate.toISOString().split('T')[0] === orderDate.toISOString().split('T')[0];
+        });
         const ruolo = shiftData ? shiftData.ruolo : null;
-        performanceScore -= getWeight('ordini_sbagliati', ruolo);
+        let weight = getWeight('ordini_sbagliati', ruolo);
+        if (weight === 1 && ruolo) {
+          weight = getWeight('ordini_sbagliati', null) || 2;
+        }
+        deductionOrdini += weight;
       });
       
-      // Deduzioni ritardi
       employeeShifts.forEach(shift => {
         if (!shift.timbratura_entrata || !shift.ora_inizio) return;
         try {
@@ -327,25 +367,162 @@ export default function Dashboard() {
           const delayMs = clockInTime - scheduledStart;
           const delayMinutes = Math.floor(delayMs / 60000);
           if (delayMinutes > 0) {
-            performanceScore -= getWeight('ritardi', shift.ruolo);
+            let weight = getWeight('ritardi', shift.ruolo);
+            if (weight === 1 && shift.ruolo) {
+              weight = getWeight('ritardi', null) || 0.3;
+            }
+            deductionRitardi += weight;
           }
         } catch (e) {}
       });
       
-      // Deduzioni timbrature mancanti
       const missingClockIns = employeeShifts.filter(s => {
         if (s.timbratura_entrata) return false;
         const shiftDate = safeParseDate(s.data);
         if (!shiftDate) return false;
         const today = new Date();
-        if (shiftDate > today) return false;
-        return true;
+        return shiftDate <= today;
       });
       
       missingClockIns.forEach(shift => {
-        performanceScore -= getWeight('timbrature_mancanti', shift.ruolo);
+        let weight = getWeight('timbrature_mancanti', shift.ruolo);
+        if (weight === 1 && shift.ruolo) {
+          weight = getWeight('timbrature_mancanti', null) || 1;
+        }
+        deductionTimbrature += weight;
       });
+      
+      performanceScore -= deductionOrdini;
+      performanceScore -= deductionRitardi;
+      performanceScore -= deductionTimbrature;
+      
+      const employeeGoogleReviews = reviews.filter(r => {
+        if (r.source !== 'google' || !r.employee_assigned_name) return false;
+        const assignedNames = r.employee_assigned_name.split(',').map(n => n.trim().toLowerCase());
+        return assignedNames.includes(employeeName.toLowerCase());
+      });
+      
+      const avgRating = employeeGoogleReviews.length > 0
+        ? employeeGoogleReviews.reduce((sum, r) => sum + r.rating, 0) / employeeGoogleReviews.length
+        : 0;
+      
+      if (employeeGoogleReviews.length > 0 && avgRating < 5) {
+        const reviewPenalty = (5 - avgRating) * w_punteggio_recensioni;
+        performanceScore -= reviewPenalty;
+      }
+      
+      if (employeeGoogleReviews.length > 0 && w_bonus_recensione > 0) {
+        const reviewBonus = employeeGoogleReviews.length * w_bonus_recensione;
+        performanceScore += reviewBonus;
+      }
+      
+      if (w_min_recensioni > 0 && employeeGoogleReviews.length < w_min_recensioni && w_malus_recensioni > 0) {
+        const recensioniMancanti = w_min_recensioni - employeeGoogleReviews.length;
+        const malusTotale = recensioniMancanti * w_malus_recensioni;
+        performanceScore -= malusTotale;
+      }
+      
+      let puliti = 0;
+      let sporchi = 0;
+      
+      cleaningInspections.forEach(inspection => {
+        if (!inspection.domande_risposte || inspection.analysis_status !== 'completed') return;
+        
+        const dataCompilazione = new Date(inspection.inspection_date);
+        const inspectionStoreId = inspection.store_id;
+        
+        inspection.domande_risposte.forEach(domanda => {
+          let nomeAttrezzatura = domanda.attrezzatura;
+          
+          if (!nomeAttrezzatura && domanda.tipo_controllo === 'scelta_multipla') {
+            const originalQuestion = domande.find(d => d.id === domanda.domanda_id);
+            nomeAttrezzatura = originalQuestion?.attrezzatura;
+            
+            if (!nomeAttrezzatura) {
+              const domandaLower = domanda.domanda_testo?.toLowerCase() || '';
+              for (const attr of attrezzature) {
+                const attrLower = attr.nome.toLowerCase();
+                if (domandaLower.includes(attrLower)) {
+                  nomeAttrezzatura = attr.nome;
+                  break;
+                }
+              }
+            }
+          }
+          
+          if (!nomeAttrezzatura) return;
+          
+          const attrezzatura = attrezzature.find(a => a.nome === nomeAttrezzatura);
+          if (!attrezzatura || !attrezzatura.ruoli_responsabili || attrezzatura.ruoli_responsabili.length === 0) return;
+          
+          let statoPulizia = null;
+          
+          if (domanda.tipo_controllo === 'foto') {
+            const normalizeAttrezzatura = (name) => {
+              const map = {
+                'Forno': 'forno',
+                'Impastatrice': 'impastatrice',
+                'Tavolo da lavoro': 'tavolo_lavoro',
+                'Frigo': 'frigo',
+                'Cassa': 'cassa',
+                'Lavandino': 'lavandino',
+                'Tavolette Takeaway': 'tavolette_takeaway'
+              };
+              return map[name] || name?.toLowerCase().replace(/\s+/g, '_') || '';
+            };
 
+            const normalizedName = normalizeAttrezzatura(nomeAttrezzatura);
+            const statusField = `${normalizedName}_pulizia_status`;
+            const correctedField = `${normalizedName}_corrected_status`;
+            statoPulizia = inspection[correctedField] || inspection[statusField];
+          } else if (domanda.tipo_controllo === 'scelta_multipla') {
+            const originalQuestion = domande.find(d => d.id === domanda.domanda_id);
+            const isCorrect = domanda.risposta?.toLowerCase() === originalQuestion?.risposta_corretta?.toLowerCase();
+            statoPulizia = isCorrect ? 'pulito' : 'sporco';
+          }
+          
+          if (!statoPulizia) return;
+          
+          attrezzatura.ruoli_responsabili.forEach(ruoloResponsabile => {
+            const candidateShifts = employeeShifts.filter(t => {
+              if (t.store_id !== inspectionStoreId) return false;
+              if (t.ruolo !== ruoloResponsabile) return false;
+              if (!t.dipendente_nome) return false;
+              if (!t.data || !t.ora_fine) return false;
+
+              const shiftEndTime = t.timbratura_uscita 
+                ? new Date(t.timbratura_uscita)
+                : new Date(t.data + 'T' + t.ora_fine);
+
+              return shiftEndTime <= dataCompilazione;
+            });
+
+            const lastShift = candidateShifts.sort((a, b) => {
+              const endA = a.timbratura_uscita ? new Date(a.timbratura_uscita) : new Date(a.data + 'T' + a.ora_fine);
+              const endB = b.timbratura_uscita ? new Date(b.timbratura_uscita) : new Date(b.data + 'T' + b.ora_fine);
+              return endB - endA;
+            })[0];
+
+            if (!lastShift || lastShift.dipendente_nome !== employeeName) return;
+
+            if (statoPulizia === 'pulito') {
+              puliti++;
+            } else {
+              sporchi++;
+            }
+          });
+        });
+      });
+      
+      const totalControlli = puliti + sporchi;
+      if (totalControlli > 0) {
+        const percentualePulito = (puliti / totalControlli) * 100;
+        if (percentualePulito < 80) {
+          const cleaningPenalty = (80 - percentualePulito) * w_pulizie * 0.1;
+          performanceScore -= cleaningPenalty;
+        }
+      }
+      
       performanceScore = Math.max(0, Math.min(100, performanceScore));
       
       return {
@@ -360,7 +537,7 @@ export default function Dashboard() {
       worst: employeeScores[employeeScores.length - 1],
       total: totalEmployees
     };
-  }, [allUsers, turni, wrongOrderMatches, metricWeights]);
+  }, [allUsers, turni, wrongOrderMatches, metricWeights, reviews, cleaningInspections, attrezzature, domande]);
 
   const produttivitaStats = useMemo(() => {
     const storeProd = stores.map(s => ({
