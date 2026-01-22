@@ -5,6 +5,7 @@ import { DollarSign, TrendingUp, Filter, Calendar, X, Settings, Eye, EyeOff, Sav
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, subDays, isAfter, isBefore, parseISO, isValid, addDays, subYears } from 'date-fns';
+import { it } from 'date-fns/locale';
 import ProtectedPage from "../components/ProtectedPage";
 import { formatCurrency, formatEuro } from "../components/utils/formatCurrency";
 
