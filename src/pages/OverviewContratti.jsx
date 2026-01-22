@@ -63,12 +63,12 @@ export default function OverviewContratti() {
 
   const { data: documenti = [] } = useQuery({
     queryKey: ['documenti'],
-    queryFn: () => base44.entities.RegolamentoDipendenti.filter({ is_active: true }),
+    queryFn: () => base44.entities.RegolamentoDipendenti.filter({ attivo: true }),
   });
 
   const { data: lettereRichiamo = [] } = useQuery({
     queryKey: ['lettere-richiamo'],
-    queryFn: () => base44.entities.LetteraRichiamoTemplate.filter({ is_active: true }),
+    queryFn: () => base44.entities.LetteraRichiamoTemplate.filter({ attivo: true }),
   });
 
   const createContractMutation = useMutation({
