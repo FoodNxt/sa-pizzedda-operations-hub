@@ -77,7 +77,15 @@ export default function Presenze() {
           fineDate.setDate(fineDate.getDate() + 1);
         }
 
-        return isWithinInterval(now, { start: inizioDate, end: fineDate });
+        // Mostra se:
+        // 1. Orario turno include ora attuale
+        const inOrario = isWithinInterval(now, { start: inizioDate, end: fineDate });
+        // 2. Timbrato entrata prima dell'inizio turno
+        const timbratoPrecoce = turno.timbratura_entrata && parseISO(turno.timbratura_entrata) < inizioDate;
+        // 3. Timbrato entrata ma non ancora uscita dopo fine turno
+        const nonTimbratoUscita = turno.timbratura_entrata && !turno.timbratura_uscita && now > fineDate;
+
+        return inOrario || timbratoPrecoce || nonTimbratoUscita;
       } catch (error) {
         console.error('Error parsing turno times:', error);
         return false;
