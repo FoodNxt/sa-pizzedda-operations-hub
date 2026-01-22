@@ -41,25 +41,25 @@ Deno.serve(async (req) => {
             });
             
             if (pdfResponse.data && pdfResponse.data.pdf_base64) {
-              // Decode base64 to bytes
+              // Decode base64 directly to ArrayBuffer
               const base64Data = pdfResponse.data.pdf_base64;
               const binaryString = atob(base64Data);
-              const bytes = new Uint8Array(binaryString.length);
-              for (let i = 0; i < binaryString.length; i++) {
+              const len = binaryString.length;
+              const bytes = new Uint8Array(len);
+              for (let i = 0; i < len; i++) {
                 bytes[i] = binaryString.charCodeAt(i);
               }
               
-              // Create File object
-              const filename = `Contratto_${contratto.nome_cognome.replace(/\s+/g, '_')}.pdf`;
-              const pdfFile = new File([bytes], filename, { type: 'application/pdf' });
+              // Create Blob from bytes
+              const blob = new Blob([bytes.buffer], { type: 'application/pdf' });
               
-              // Upload PDF file
+              // Upload PDF file directly as blob
               const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({
-                file: pdfFile
+                file: blob
               });
               
               if (uploadResult && uploadResult.file_url) {
-                htmlBody += `<li style="margin-bottom: 8px;">📄 <a href="${uploadResult.file_url}" style="color: #3b82f6; text-decoration: underline;">${contratto.template_nome}</a> <span style="color: #64748b; font-size: 0.9em;">(Inizio: ${new Date(contratto.data_inizio_contratto).toLocaleDateString('it-IT')})</span></li>`;
+                htmlBody += `<li style="margin-bottom: 8px;">📄 <a href="${uploadResult.file_url}" style="color: #3b82f6; text-decoration: underline;" target="_blank">${contratto.template_nome}</a> <span style="color: #64748b; font-size: 0.9em;">(Inizio: ${new Date(contratto.data_inizio_contratto).toLocaleDateString('it-IT')})</span></li>`;
               }
             }
           }
