@@ -479,13 +479,22 @@ export default function OverviewContratti() {
                 <p className="text-slate-500">Panoramica completa dei contratti attivi</p>
               </div>
             </div>
-            <NeumorphicButton
-              onClick={() => setShowSettings(true)}
-              className="flex items-center gap-2"
-            >
-              <Settings className="w-4 h-4" />
-              Impostazioni
-            </NeumorphicButton>
+            <div className="flex gap-2">
+              <NeumorphicButton
+                onClick={() => setShowPayrollLog(true)}
+                className="flex items-center gap-2"
+              >
+                <Send className="w-4 h-4" />
+                Mail Payroll
+              </NeumorphicButton>
+              <NeumorphicButton
+                onClick={() => setShowSettings(true)}
+                className="flex items-center gap-2"
+              >
+                <Settings className="w-4 h-4" />
+                Impostazioni
+              </NeumorphicButton>
+            </div>
           </div>
         </div>
 
