@@ -30,13 +30,33 @@ Deno.serve(async (req) => {
         try {
           const contratto = await base44.asServiceRole.entities.Contratto.get(contrattoId);
           if (contratto && contratto.contenuto_contratto) {
-            // Use the downloadContrattoPDF function which already generates and returns a working PDF URL
-            const downloadResponse = await base44.asServiceRole.functions.invoke('downloadContrattoPDF', {
-              contrattoId: contrattoId
+            // Generate PDF using generateContrattoPDF
+            const pdfResponse = await base44.asServiceRole.functions.invoke('generateContrattoPDF', {
+              contenuto: contratto.contenuto_contratto,
+              nome_cognome: contratto.nome_cognome,
+              status: contratto.status,
+              firma_dipendente: contratto.firma_dipendente,
+              data_firma: contratto.data_firma,
+              contratto_id: contrattoId
             });
             
-            if (downloadResponse.data && downloadResponse.data.downloadUrl) {
-              htmlBody += `<li style="margin-bottom: 8px;">📄 <a href="${downloadResponse.data.downloadUrl}" style="color: #3b82f6; text-decoration: underline;">${contratto.template_nome}</a> <span style="color: #64748b; font-size: 0.9em;">(Inizio: ${new Date(contratto.data_inizio_contratto).toLocaleDateString('it-IT')})</span></li>`;
+            if (pdfResponse.data && pdfResponse.data.pdf_base64) {
+              // Decode base64 to bytes
+              const base64Data = pdfResponse.data.pdf_base64;
+              const binaryString = atob(base64Data);
+              const bytes = new Uint8Array(binaryString.length);
+              for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+              }
+              
+              // Upload PDF file
+              const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({
+                file: bytes
+              });
+              
+              if (uploadResult && uploadResult.file_url) {
+                htmlBody += `<li style="margin-bottom: 8px;">📄 <a href="${uploadResult.file_url}" style="color: #3b82f6; text-decoration: underline;">${contratto.template_nome}</a> <span style="color: #64748b; font-size: 0.9em;">(Inizio: ${new Date(contratto.data_inizio_contratto).toLocaleDateString('it-IT')})</span></li>`;
+              }
             }
           }
         } catch (err) {
