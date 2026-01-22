@@ -142,6 +142,13 @@ export default function OrdiniAdmin() {
     },
   });
 
+  const updateOrderMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.OrdineFornitore.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ordini-completati'] });
+    },
+  });
+
   // Calculate orders needed
   const ordersNeeded = React.useMemo(() => {
     const orders = [];
