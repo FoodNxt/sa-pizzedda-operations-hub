@@ -1102,6 +1102,78 @@ export default function OverviewContratti() {
           </div>
         )}
 
+        {/* Payroll Email Log Modal */}
+        {showPayrollLog && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="max-w-6xl w-full p-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                  <Send className="w-6 h-6 text-blue-600" />
+                  Log Email Payroll
+                </h2>
+                <button
+                  onClick={() => setShowPayrollLog(false)}
+                  className="nav-button p-2 rounded-lg"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b-2 border-slate-200">
+                      <th className="text-left py-3 px-2 font-semibold text-slate-700">Data Invio</th>
+                      <th className="text-left py-3 px-2 font-semibold text-slate-700">Dipendente</th>
+                      <th className="text-left py-3 px-2 font-semibold text-slate-700">Destinatario</th>
+                      <th className="text-left py-3 px-2 font-semibold text-slate-700">Oggetto</th>
+                      <th className="text-center py-3 px-2 font-semibold text-slate-700">COB</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payrollEmailLogs.map((log) => (
+                      <tr key={log.id} className="border-b border-slate-100 hover:bg-slate-50">
+                        <td className="py-3 px-2 text-slate-700">
+                          {moment(log.data_invio).format('DD/MM/YYYY HH:mm')}
+                        </td>
+                        <td className="py-3 px-2 text-slate-700">
+                          {log.dipendente_nome || '-'}
+                        </td>
+                        <td className="py-3 px-2 text-slate-600 text-xs">
+                          {log.destinatario}
+                        </td>
+                        <td className="py-3 px-2 text-slate-600 truncate max-w-xs">
+                          {log.subject}
+                        </td>
+                        <td className="py-3 px-2 text-center">
+                          <input
+                            type="checkbox"
+                            checked={log.cob_completato || false}
+                            onChange={(e) => {
+                              updatePayrollLogMutation.mutate({
+                                id: log.id,
+                                cob_completato: e.target.checked
+                              });
+                            }}
+                            className="w-5 h-5 cursor-pointer"
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {payrollEmailLogs.length === 0 && (
+                <div className="text-center py-8">
+                  <Send className="w-12 h-12 text-slate-300 mx-auto mb-2" />
+                  <p className="text-slate-500">Nessuna email inviata a payroll</p>
+                </div>
+              )}
+            </NeumorphicCard>
+          </div>
+        )}
+
         {/* Settings Modal */}
         {showSettings && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
