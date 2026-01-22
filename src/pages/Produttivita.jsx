@@ -166,6 +166,17 @@ export default function Produttivita() {
   const aggregatedData = useMemo(() => {
     if (filteredData.length === 0) return [];
 
+    // Pre-calculate average hours per hour slot (sum of 30-min slots)
+    const avgHoursPerSlot = {};
+    Object.entries(hoursWorkedBySlot || {}).forEach(([slot, hours]) => {
+      if (timeSlotView === '1hour') {
+        const hour = slot.split(':')[0] + ':00';
+        avgHoursPerSlot[hour] = (avgHoursPerSlot[hour] || 0) + hours;
+      } else {
+        avgHoursPerSlot[slot] = hours;
+      }
+    });
+
     const aggregation = {};
     
     filteredData.forEach(record => {
@@ -179,35 +190,20 @@ export default function Produttivita() {
         }
 
         if (!aggregation[key]) {
-          aggregation[key] = { slot: key, revenue: 0, hours: 0, count: 0 };
+          aggregation[key] = { slot: key, revenue: 0, count: 0 };
         }
         aggregation[key].revenue += revenue || 0;
-        aggregation[key].hours += hoursWorkedBySlot[slot] || 0;
         aggregation[key].count += 1;
       });
     });
 
     return Object.values(aggregation)
-      .map(item => {
-        // For hourly view, sum all 30-min slots within the hour
-        let totalHours = item.hours;
-        if (timeSlotView === '1hour') {
-          const hourKey = item.slot;
-          totalHours = 0;
-          Object.entries(hoursWorkedBySlot || {}).forEach(([slot, hours]) => {
-            if (slot.startsWith(hourKey.split(':')[0] + ':')) {
-              totalHours += hours;
-            }
-          });
-        }
-        
-        return {
-          slot: item.slot,
-          avgRevenue: item.revenue / item.count,
-          avgHours: totalHours / item.count,
-          revenuePerHour: totalHours > 0 ? item.revenue / totalHours : 0
-        };
-      })
+      .map(item => ({
+        slot: item.slot,
+        avgRevenue: item.revenue / item.count,
+        avgHours: avgHoursPerSlot[item.slot] || 0,
+        revenuePerHour: (avgHoursPerSlot[item.slot] || 0) > 0 ? (item.revenue / item.count) / (avgHoursPerSlot[item.slot] || 0) : 0
+      }))
       .sort((a, b) => a.slot.localeCompare(b.slot));
   }, [filteredData, timeSlotView, hoursWorkedBySlot]);
 
