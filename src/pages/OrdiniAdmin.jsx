@@ -1092,7 +1092,7 @@ Sa Pizzedda`,
                 return Object.entries(ordersByStore).map(([storeId, storeData]) => {
                   const isExpanded = expandedStoresCompletati[storeId];
                   const hasDiscrepancies = storeData.ordini.some(ordine =>
-                    ordine.prodotti.some(prod => prod.quantita_ricevuta !== prod.quantita_ordinata)
+                    !ordine.differenza_verificata && ordine.prodotti.some(prod => prod.quantita_ricevuta !== prod.quantita_ordinata)
                   );
 
                   return (
