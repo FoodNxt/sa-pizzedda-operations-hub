@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Store, TrendingUp, Users, DollarSign, Star, AlertTriangle, Filter, Calendar, X, RefreshCw, Package, Clock, FileText, UserX, Sparkles } from "lucide-react";
+import { Store, TrendingUp, Users, DollarSign, Star, AlertTriangle, Filter, Calendar, X, RefreshCw, Package, Clock, FileText, UserX, Sparkles, ExternalLink } from "lucide-react";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
@@ -9,6 +9,8 @@ import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, L
 import { format, subDays, isAfter, isBefore, parseISO, isValid, addDays } from 'date-fns';
 import { formatEuro } from "../components/utils/formatCurrency";
 import moment from 'moment';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 
 export default function Dashboard() {
   const [dateRange, setDateRange] = useState('30');
@@ -1113,7 +1115,10 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Ultima Rilevazione Cassa */}
             <div className="neumorphic-pressed p-4 rounded-xl">
-              <h3 className="font-bold text-slate-700 mb-3 text-sm">Ultima Rilevazione Cassa</h3>
+              <Link to={createPageUrl('StoricoCassa')} className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2 hover:text-blue-600 transition-colors">
+                Ultima Rilevazione Cassa
+                <ExternalLink className="w-3 h-3" />
+              </Link>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {cassaStats.length > 0 ? cassaStats.map((cassa, idx) => (
                   <div key={idx} className={`p-2 rounded-lg ${cassa.hasAlert ? 'bg-red-50' : 'bg-slate-50'}`}>
@@ -1138,7 +1143,10 @@ export default function Dashboard() {
 
             {/* Sprechi */}
             <div className="neumorphic-pressed p-4 rounded-xl">
-              <h3 className="font-bold text-slate-700 mb-3 text-sm">Sprechi per Locale</h3>
+              <Link to={createPageUrl('AnalisiSprechi')} className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2 hover:text-blue-600 transition-colors">
+                Sprechi per Locale
+                <ExternalLink className="w-3 h-3" />
+              </Link>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {sprechiStats.length > 0 ? sprechiStats.map((spreco, idx) => (
                   <div key={idx} className="p-2 rounded-lg bg-red-50 border border-red-200">
@@ -1168,13 +1176,14 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Ordini da fare */}
             <div className="neumorphic-pressed p-4 rounded-xl">
-              <h3 className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2">
+              <Link to={createPageUrl('OrdiniAdmin')} className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2 hover:text-blue-600 transition-colors">
                 <Package className="w-4 h-4 text-orange-600" />
                 Ordini da Fare
                 {ordiniDaFare.length > 0 && (
                   <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{ordiniDaFare.length}</span>
                 )}
-              </h3>
+                <ExternalLink className="w-3 h-3 ml-auto" />
+              </Link>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {ordiniDaFare.length > 0 ? ordiniDaFare.map((ord, idx) => (
                   <div key={idx} className="p-2 rounded-lg bg-orange-50 border border-orange-200">
@@ -1197,7 +1206,7 @@ export default function Dashboard() {
 
             {/* Richieste Ferie/Malattia */}
             <div className="neumorphic-pressed p-4 rounded-xl">
-              <h3 className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2">
+              <Link to={createPageUrl('Assenze')} className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2 hover:text-blue-600 transition-colors">
                 <Calendar className="w-4 h-4 text-blue-600" />
                 Richieste in Attesa
                 {richiesteAssenze && (richiesteAssenze.ferie?.length + richiesteAssenze.malattie?.length + richiesteAssenze.turniLiberi?.length + richiesteAssenze.scambi?.length) > 0 && (
@@ -1205,7 +1214,8 @@ export default function Dashboard() {
                    {(richiesteAssenze.ferie?.length || 0) + (richiesteAssenze.malattie?.length || 0) + (richiesteAssenze.turniLiberi?.length || 0) + (richiesteAssenze.scambi?.length || 0)}
                  </span>
                 )}
-              </h3>
+                <ExternalLink className="w-3 h-3 ml-auto" />
+              </Link>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {richiesteAssenze?.ferie?.map(f => {
                   const user = allUsers.find(u => u.id === f.dipendente_id);
@@ -1250,13 +1260,14 @@ export default function Dashboard() {
 
             {/* Contratti in Scadenza */}
             <div className="neumorphic-pressed p-4 rounded-xl">
-              <h3 className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2">
+              <Link to={createPageUrl('Alerts')} className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2 hover:text-blue-600 transition-colors">
                 <FileText className="w-4 h-4 text-purple-600" />
                 Contratti in Scadenza (30gg)
                 {contrattiInScadenza.length > 0 && (
                   <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{contrattiInScadenza.length}</span>
                 )}
-              </h3>
+                <ExternalLink className="w-3 h-3 ml-auto" />
+              </Link>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {contrattiInScadenza.length > 0 ? contrattiInScadenza.map((c, idx) => (
                   <div key={idx} className="p-2 rounded-lg bg-purple-50 border border-purple-200">
@@ -1273,10 +1284,11 @@ export default function Dashboard() {
 
             {/* Score Pulizie */}
             <div className="neumorphic-pressed p-4 rounded-xl">
-              <h3 className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2">
+              <Link to={createPageUrl('ValutazionePulizie')} className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2 hover:text-blue-600 transition-colors">
                 <Sparkles className="w-4 h-4 text-cyan-600" />
                 Score Pulizie per Store
-              </h3>
+                <ExternalLink className="w-3 h-3 ml-auto" />
+              </Link>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {pulizieScores.length > 0 ? pulizieScores.map((ps, idx) => (
                   <div key={idx} className="p-2 rounded-lg bg-cyan-50 border border-cyan-200">
@@ -1298,13 +1310,14 @@ export default function Dashboard() {
 
             {/* Turni Liberi */}
             <div className="neumorphic-pressed p-4 rounded-xl lg:col-span-2">
-              <h3 className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2">
+              <Link to={createPageUrl('Planday')} className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2 hover:text-blue-600 transition-colors">
                 <UserX className="w-4 h-4 text-red-600" />
                 Turni Liberi (Prossimi 14 giorni)
                 {turniLiberi.length > 0 && (
                   <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{turniLiberi.length}</span>
                 )}
-              </h3>
+                <ExternalLink className="w-3 h-3 ml-auto" />
+              </Link>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {turniLiberi.length > 0 ? turniLiberi.map(t => {
                   const store = stores.find(s => s.id === t.store_id);
