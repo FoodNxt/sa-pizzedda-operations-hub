@@ -165,7 +165,20 @@ export default function Produttivita() {
 
   // Aggregate by time slot (30min or 1hour)
   const aggregatedData = useMemo(() => {
-    if (filteredData.length === 0) return [];
+    let dataToAggregate = filteredData;
+
+    // Filter by day of week if selected
+    if (selectedDayOfWeek !== 'all') {
+      const selectedDayIndex = parseInt(selectedDayOfWeek);
+      dataToAggregate = filteredData.filter(record => {
+        const date = parseISO(record.date);
+        const dayIndex = date.getDay(); // 0=Sunday, 1=Monday, etc.
+        const adjustedIndex = dayIndex === 0 ? 6 : dayIndex - 1; // Convert to 0=Monday
+        return adjustedIndex === selectedDayIndex;
+      });
+    }
+
+    if (dataToAggregate.length === 0) return [];
 
     // Pre-calculate average hours per hour slot (sum of 30-min slots)
     const avgHoursPerSlot = {};
@@ -180,7 +193,7 @@ export default function Produttivita() {
 
     const aggregation = {};
     
-    filteredData.forEach(record => {
+    dataToAggregate.forEach(record => {
       Object.entries(record.slots || {}).forEach(([slot, revenue]) => {
         let key;
         if (timeSlotView === '1hour') {
@@ -206,7 +219,7 @@ export default function Produttivita() {
         revenuePerHour: (avgHoursPerSlot[item.slot] || 0) > 0 ? (item.revenue / item.count) / (avgHoursPerSlot[item.slot] || 0) : 0
       }))
       .sort((a, b) => a.slot.localeCompare(b.slot));
-  }, [filteredData, timeSlotView, hoursWorkedBySlot]);
+  }, [filteredData, timeSlotView, hoursWorkedBySlot, selectedDayOfWeek]);
 
   // Daily data for selected date
   const dailySlotData = useMemo(() => {
