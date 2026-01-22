@@ -1863,7 +1863,7 @@ export default function Financials() {
               </div>
 
               <div className="neumorphic-pressed p-4 rounded-xl bg-white">
-                <p className="text-xs text-slate-500 mb-1">Scontrino Medio</p>
+                <p className="text-xs text-slate-500 mb-1">AOV</p>
                 <div className="flex items-baseline gap-2">
                   <p className="text-lg font-bold text-slate-800">
                     €{formatCurrency(processedData.comparisonData.avgOrderValue)}
@@ -2277,7 +2277,7 @@ export default function Financials() {
                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Diff %</th>
                      </>
                    )}
-                   <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">€ Medio</th>
+                   <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">AOV</th>
                    {processedData.comparisonData && (
                      <>
                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Med Conf</th>
@@ -2941,7 +2941,7 @@ export default function Financials() {
                     <tr className="border-b-2 border-blue-600">
                       <th className="text-left p-3 text-slate-600 font-medium text-sm">Settimana</th>
                       <th className="text-right p-3 text-slate-600 font-medium text-sm">Revenue</th>
-                      <th className="text-right p-3 text-slate-600 font-medium text-sm">Scontrino Medio</th>
+                      <th className="text-right p-3 text-slate-600 font-medium text-sm">AOV</th>
                       <th className="text-right p-3 text-slate-600 font-medium text-sm">Ordini</th>
                       <th className="text-right p-3 text-slate-600 font-medium text-sm">% Store</th>
                     </tr>
@@ -3018,7 +3018,7 @@ export default function Financials() {
                           <th className="text-right p-3 text-slate-600 font-medium text-sm">Revenue</th>
                           <th className="text-right p-3 text-slate-600 font-medium text-sm">Media</th>
                           <th className="text-right p-3 text-slate-600 font-medium text-sm">vs Media</th>
-                          <th className="text-right p-3 text-slate-600 font-medium text-sm">Scontrino Medio</th>
+                          <th className="text-right p-3 text-slate-600 font-medium text-sm">AOV</th>
                           <th className="text-right p-3 text-slate-600 font-medium text-sm">Media</th>
                           <th className="text-right p-3 text-slate-600 font-medium text-sm">vs Media</th>
                           <th className="text-right p-3 text-slate-600 font-medium text-sm">Ordini</th>
@@ -3153,7 +3153,7 @@ export default function Financials() {
                       className="neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none text-sm"
                     >
                       <option value="revenue">Revenue</option>
-                      <option value="avgOrderValue">Scontrino Medio</option>
+                      <option value="avgOrderValue">AOV</option>
                       <option value="orders">Ordini</option>
                       <option value="percentStore">% Store</option>
                     </select>
@@ -3210,7 +3210,7 @@ export default function Financials() {
                         fill="url(#dailyGradient)" 
                         name={
                           dailyMetric === 'revenue' ? 'Revenue Media' :
-                          dailyMetric === 'avgOrderValue' ? 'Scontrino Medio' :
+                          dailyMetric === 'avgOrderValue' ? 'AOV' :
                           dailyMetric === 'orders' ? 'Ordini Medi' :
                           '% Store Media'
                         }
@@ -3231,7 +3231,7 @@ export default function Financials() {
                 <p className="text-xs text-slate-600">
                   📊 Questo grafico mostra la media di <strong>
                     {dailyMetric === 'revenue' ? 'Revenue' :
-                     dailyMetric === 'avgOrderValue' ? 'Scontrino Medio' :
+                     dailyMetric === 'avgOrderValue' ? 'AOV' :
                      dailyMetric === 'orders' ? 'Ordini' : '% Store'}
                   </strong> per ogni giorno della settimana, calcolata sugli ultimi <strong>{dailyDays} giorni</strong>.
                 </p>
@@ -3505,7 +3505,7 @@ export default function Financials() {
                   {/* Avg Order Value */}
                   <NeumorphicCard className="p-4">
                     <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-bold text-slate-700">Scontrino Medio</h3>
+                      <h3 className="text-sm font-bold text-slate-700">AOV</h3>
                       <DollarSign className="w-5 h-5 text-purple-600" />
                     </div>
                     <div className="space-y-2">
@@ -3553,8 +3553,8 @@ export default function Financials() {
                             <th className="text-right p-3 text-slate-600 font-medium text-sm">Diff %</th>
                             <th className="text-right p-3 text-slate-600 font-medium text-sm">Ordini P1</th>
                             <th className="text-right p-3 text-slate-600 font-medium text-sm">Ordini P2</th>
-                            <th className="text-right p-3 text-slate-600 font-medium text-sm">Medio P1</th>
-                            <th className="text-right p-3 text-slate-600 font-medium text-sm">Medio P2</th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm">AOV P1</th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm">AOV P2</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -3609,8 +3609,8 @@ export default function Financials() {
                             <th className="text-right p-3 text-slate-600 font-medium text-sm">Diff %</th>
                             <th className="text-right p-3 text-slate-600 font-medium text-sm">Ordini P1</th>
                             <th className="text-right p-3 text-slate-600 font-medium text-sm">Ordini P2</th>
-                            <th className="text-right p-3 text-slate-600 font-medium text-sm">Medio P1</th>
-                            <th className="text-right p-3 text-slate-600 font-medium text-sm">Medio P2</th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm">AOV P1</th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm">AOV P2</th>
                           </tr>
                         </thead>
                         <tbody>
