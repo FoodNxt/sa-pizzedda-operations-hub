@@ -29,20 +29,40 @@ Deno.serve(async (req) => {
       for (const contrattoId of contratti_ids) {
         const contratto = await base44.asServiceRole.entities.Contratto.get(contrattoId);
         if (contratto && contratto.contenuto_contratto) {
-          // Use generateContrattoPDF to create the actual signed PDF
+          // Generate PDF using generateContrattoPDF
           const pdfResponse = await base44.asServiceRole.functions.invoke('generateContrattoPDF', {
+            contenuto: contratto.contenuto_contratto,
+            nome_cognome: contratto.nome_cognome,
+            status: contratto.status,
+            firma_dipendente: contratto.firma_dipendente,
+            data_firma: contratto.data_firma,
             contratto_id: contrattoId
           });
           
           if (pdfResponse.data && pdfResponse.data.pdf_base64) {
-            // Convert base64 to blob and upload
-            const pdfBytes = Uint8Array.from(atob(pdfResponse.data.pdf_base64), c => c.charCodeAt(0));
-            const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
-            const pdfFile = new File([pdfBlob], `contratto_${contrattoId}.pdf`, { type: 'application/pdf' });
+            // Convert base64 string to binary data for upload
+            const binaryString = atob(pdfResponse.data.pdf_base64);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
             
+            // Write to temp file for upload
+            const tempFilePath = `/tmp/contratto_${contrattoId}.pdf`;
+            await Deno.writeFile(tempFilePath, bytes);
+            
+            // Upload the file
+            const fileContent = await Deno.readFile(tempFilePath);
             const uploadResponse = await base44.asServiceRole.integrations.Core.UploadFile({
-              file: pdfFile
+              file: fileContent
             });
+            
+            // Clean up temp file
+            try {
+              await Deno.remove(tempFilePath);
+            } catch (e) {
+              // Ignore cleanup errors
+            }
             
             htmlBody += `<li style="margin-bottom: 8px;">📄 <a href="${uploadResponse.file_url}" style="color: #3b82f6; text-decoration: underline;">${contratto.template_nome}</a> <span style="color: #64748b; font-size: 0.9em;">(Inizio: ${new Date(contratto.data_inizio_contratto).toLocaleDateString('it-IT')})</span></li>`;
           }
