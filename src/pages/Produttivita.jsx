@@ -622,30 +622,49 @@ export default function Produttivita() {
         </NeumorphicCard>
 
         {/* Time Slot Analysis Chart */}
-        <NeumorphicCard className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-[#6b6b6b]">Analisi per {timeSlotView === '30min' ? 'Slot (30 min)' : 'Ora'}</h3>
-            <div className="flex gap-3">
-              <label className="flex items-center gap-2 text-sm text-[#6b6b6b] cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={showRevenue}
-                  onChange={(e) => setShowRevenue(e.target.checked)}
-                  className="w-4 h-4"
-                />
-                Revenue
-              </label>
-              <label className="flex items-center gap-2 text-sm text-[#6b6b6b] cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={showHours}
-                  onChange={(e) => setShowHours(e.target.checked)}
-                  className="w-4 h-4"
-                />
-                Ore Lavorate
-              </label>
-            </div>
-          </div>
+         <NeumorphicCard className="p-6">
+           <div className="mb-4">
+             <div className="flex items-center justify-between mb-4">
+               <h3 className="text-lg font-bold text-[#6b6b6b]">Analisi per {timeSlotView === '30min' ? 'Slot (30 min)' : 'Ora'}</h3>
+               <div className="flex gap-3">
+                 <label className="flex items-center gap-2 text-sm text-[#6b6b6b] cursor-pointer">
+                   <input
+                     type="checkbox"
+                     checked={showRevenue}
+                     onChange={(e) => setShowRevenue(e.target.checked)}
+                     className="w-4 h-4"
+                   />
+                   Revenue
+                 </label>
+                 <label className="flex items-center gap-2 text-sm text-[#6b6b6b] cursor-pointer">
+                   <input
+                     type="checkbox"
+                     checked={showHours}
+                     onChange={(e) => setShowHours(e.target.checked)}
+                     className="w-4 h-4"
+                   />
+                   Ore Lavorate
+                 </label>
+               </div>
+             </div>
+             <div>
+               <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Giorno della Settimana</label>
+               <select
+                 value={selectedDayOfWeek}
+                 onChange={(e) => setSelectedDayOfWeek(e.target.value)}
+                 className="w-full md:w-64 neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
+               >
+                 <option value="all">Tutti i giorni</option>
+                 <option value="0">Lunedì</option>
+                 <option value="1">Martedì</option>
+                 <option value="2">Mercoledì</option>
+                 <option value="3">Giovedì</option>
+                 <option value="4">Venerdì</option>
+                 <option value="5">Sabato</option>
+                 <option value="6">Domenica</option>
+               </select>
+             </div>
+           </div>
           {aggregatedData.length > 0 ? (
             <ResponsiveContainer width="100%" height={400}>
               <BarChart data={aggregatedData}>
