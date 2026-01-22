@@ -16,35 +16,61 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Build email body with document links
-    let emailBody = body;
+    // Convert plain text body to HTML (preserve line breaks)
+    let htmlBody = body
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\n/g, '<br>');
     
-    // Add contract download links
+    // Add contract download links with hyperlinks
     if (contratti_ids && contratti_ids.length > 0) {
-      emailBody += '\n\n---\n\n📄 Link per scaricare i contratti:\n\n';
+      htmlBody += '<br><br><hr><br><strong>📄 Contratti:</strong><br><ul>';
       for (const contrattoId of contratti_ids) {
         const contratto = await base44.asServiceRole.entities.Contratto.get(contrattoId);
         if (contratto) {
-          // Generate a temporary download link for the contract PDF
-          const downloadUrl = `${Deno.env.get('BASE44_API_URL') || 'https://api.base44.com'}/apps/${Deno.env.get('BASE44_APP_ID')}/functions/downloadContrattoPDF?contratto_id=${contrattoId}`;
-          emailBody += `- ${contratto.template_nome}: ${downloadUrl}\n`;
+          // Call downloadContrattoPDF backend function to get PDF base64
+          const pdfResponse = await base44.asServiceRole.functions.invoke('downloadContrattoPDF', {
+            contrattoId: contrattoId
+          });
+          
+          if (pdfResponse.data.success && pdfResponse.data.pdf) {
+            // Upload PDF to get a permanent URL
+            const pdfBlob = Uint8Array.from(atob(pdfResponse.data.pdf), c => c.charCodeAt(0));
+            const uploadResponse = await base44.asServiceRole.integrations.Core.UploadFile({
+              file: pdfBlob
+            });
+            
+            htmlBody += `<li><a href="${uploadResponse.file_url}" style="color: #3b82f6; text-decoration: none;">${contratto.template_nome}</a> (Inizio: ${new Date(contratto.data_inizio_contratto).toLocaleDateString('it-IT')})</li>`;
+          }
         }
       }
+      htmlBody += '</ul>';
     }
 
-    // Add document links
+    // Add document links with hyperlinks
     if (documenti && documenti.length > 0) {
-      emailBody += '\n\n📎 Link per scaricare i documenti:\n\n';
+      htmlBody += '<br><strong>📎 Documenti:</strong><br><ul>';
       for (const doc of documenti) {
-        emailBody += `- ${doc.nome}: ${doc.url}\n`;
+        htmlBody += `<li><a href="${doc.url}" style="color: #3b82f6; text-decoration: none;">${doc.nome}</a></li>`;
       }
+      htmlBody += '</ul>';
     }
 
-    // Send email via Core integration
+    // Wrap in HTML structure
+    const fullHtmlBody = `
+      <html>
+        <body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+          ${htmlBody}
+        </body>
+      </html>
+    `;
+
+    // Send HTML email via Core integration
     await base44.asServiceRole.integrations.Core.SendEmail({
       to,
       subject,
-      body: emailBody
+      body: fullHtmlBody
     });
 
     return Response.json({ 
