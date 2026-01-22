@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
       .replace(/>/g, '&gt;')
       .replace(/\n/g, '<br>');
     
-    // Add contract download links - use existing Drive URLs or save new ones
+    // Add contract download links - use Base44 stored PDFs
     if (contratti_ids && contratti_ids.length > 0) {
       htmlBody += '<br><br><hr style="border: 1px solid #e2e8f0; margin: 20px 0;"><br><strong>📄 Contratti:</strong><br><ul style="list-style-type: none; padding-left: 0;">';
       for (const contrattoId of contratti_ids) {
@@ -36,26 +36,26 @@ Deno.serve(async (req) => {
             continue;
           }
           
-          let contractUrl = contratto.drive_url;
+          let contractUrl = contratto.pdf_file_url;
           
-          // If no Drive URL exists, save to Drive now
+          // If no PDF exists, generate and save it now
           if (!contractUrl) {
-            console.log(`No Drive URL for contract ${contrattoId}, saving to Drive...`);
-            const driveResponse = await base44.asServiceRole.functions.invoke('saveContractToDrive', {
+            console.log(`No PDF for contract ${contrattoId}, generating and saving...`);
+            const saveResponse = await base44.asServiceRole.functions.invoke('saveContractPDFToBase44', {
               contratto_id: contrattoId
             });
             
-            console.log(`Drive response for contract ${contrattoId}:`, JSON.stringify(driveResponse));
+            console.log(`Save response for contract ${contrattoId}:`, JSON.stringify(saveResponse));
             
-            if (driveResponse.data && driveResponse.data.viewUrl) {
-              contractUrl = driveResponse.data.viewUrl;
-              console.log(`Contract ${contrattoId} saved to Drive: ${contractUrl}`);
+            if (saveResponse.data && saveResponse.data.pdf_url) {
+              contractUrl = saveResponse.data.pdf_url;
+              console.log(`Contract ${contrattoId} PDF saved: ${contractUrl}`);
             } else {
-              console.error(`Failed to save contract ${contrattoId} to Drive`, driveResponse);
+              console.error(`Failed to save contract ${contrattoId} PDF`, saveResponse);
               continue;
             }
           } else {
-            console.log(`Using existing Drive URL for contract ${contrattoId}: ${contractUrl}`);
+            console.log(`Using existing PDF for contract ${contrattoId}: ${contractUrl}`);
           }
           
           htmlBody += `<li style="margin-bottom: 8px;">📄 <a href="${contractUrl}" style="color: #3b82f6; text-decoration: underline;" target="_blank">${contratto.template_nome}</a> <span style="color: #64748b; font-size: 0.9em;">(Inizio: ${new Date(contratto.data_inizio_contratto).toLocaleDateString('it-IT')})</span></li>`;
