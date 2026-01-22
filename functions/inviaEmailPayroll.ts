@@ -25,23 +25,26 @@ Deno.serve(async (req) => {
     
     // Add contract download links with hyperlinks
     if (contratti_ids && contratti_ids.length > 0) {
-      htmlBody += '<br><br><hr><br><strong>📄 Contratti:</strong><br><ul>';
+      htmlBody += '<br><br><hr style="border: 1px solid #e2e8f0; margin: 20px 0;"><br><strong>📄 Contratti:</strong><br><ul style="list-style-type: none; padding-left: 0;">';
       for (const contrattoId of contratti_ids) {
         const contratto = await base44.asServiceRole.entities.Contratto.get(contrattoId);
-        if (contratto) {
-          // Call downloadContrattoPDF backend function to get PDF base64
-          const pdfResponse = await base44.asServiceRole.functions.invoke('downloadContrattoPDF', {
-            contrattoId: contrattoId
+        if (contratto && contratto.contenuto_contratto) {
+          // Use generateContrattoPDF to create the actual signed PDF
+          const pdfResponse = await base44.asServiceRole.functions.invoke('generateContrattoPDF', {
+            contratto_id: contrattoId
           });
           
-          if (pdfResponse.data.success && pdfResponse.data.pdf) {
-            // Upload PDF to get a permanent URL
-            const pdfBlob = Uint8Array.from(atob(pdfResponse.data.pdf), c => c.charCodeAt(0));
+          if (pdfResponse.data && pdfResponse.data.pdf_base64) {
+            // Convert base64 to blob and upload
+            const pdfBytes = Uint8Array.from(atob(pdfResponse.data.pdf_base64), c => c.charCodeAt(0));
+            const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+            const pdfFile = new File([pdfBlob], `contratto_${contrattoId}.pdf`, { type: 'application/pdf' });
+            
             const uploadResponse = await base44.asServiceRole.integrations.Core.UploadFile({
-              file: pdfBlob
+              file: pdfFile
             });
             
-            htmlBody += `<li><a href="${uploadResponse.file_url}" style="color: #3b82f6; text-decoration: none;">${contratto.template_nome}</a> (Inizio: ${new Date(contratto.data_inizio_contratto).toLocaleDateString('it-IT')})</li>`;
+            htmlBody += `<li style="margin-bottom: 8px;">📄 <a href="${uploadResponse.file_url}" style="color: #3b82f6; text-decoration: underline;">${contratto.template_nome}</a> <span style="color: #64748b; font-size: 0.9em;">(Inizio: ${new Date(contratto.data_inizio_contratto).toLocaleDateString('it-IT')})</span></li>`;
           }
         }
       }
@@ -50,21 +53,23 @@ Deno.serve(async (req) => {
 
     // Add document links with hyperlinks
     if (documenti && documenti.length > 0) {
-      htmlBody += '<br><strong>📎 Documenti:</strong><br><ul>';
+      htmlBody += '<br><strong>📎 Documenti:</strong><br><ul style="list-style-type: none; padding-left: 0;">';
       for (const doc of documenti) {
-        htmlBody += `<li><a href="${doc.url}" style="color: #3b82f6; text-decoration: none;">${doc.nome}</a></li>`;
+        htmlBody += `<li style="margin-bottom: 8px;">📎 <a href="${doc.url}" style="color: #3b82f6; text-decoration: underline;">${doc.nome}</a></li>`;
       }
       htmlBody += '</ul>';
     }
 
     // Wrap in HTML structure
-    const fullHtmlBody = `
-      <html>
-        <body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
-          ${htmlBody}
-        </body>
-      </html>
-    `;
+    const fullHtmlBody = `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+  </head>
+  <body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; padding: 20px; max-width: 600px;">
+    ${htmlBody}
+  </body>
+</html>`;
 
     // Send HTML email via Core integration
     await base44.asServiceRole.integrations.Core.SendEmail({
