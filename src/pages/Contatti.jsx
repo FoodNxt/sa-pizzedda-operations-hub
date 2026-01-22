@@ -30,6 +30,9 @@ export default function Contatti() {
     link: '',
     societa: '',
     followers: '',
+    data_visita_negozio: '',
+    negozio_visitato: '',
+    mai_visitato: false,
     proposte_commerciali: [],
     note: ''
   });
@@ -78,6 +81,9 @@ export default function Contatti() {
       link: '',
       societa: '',
       followers: '',
+      data_visita_negozio: '',
+      negozio_visitato: '',
+      mai_visitato: false,
       proposte_commerciali: [],
       note: ''
     });
@@ -97,6 +103,9 @@ export default function Contatti() {
       link: contatto.link || '',
       societa: contatto.societa || '',
       followers: contatto.followers || '',
+      data_visita_negozio: contatto.data_visita_negozio || '',
+      negozio_visitato: contatto.negozio_visitato || '',
+      mai_visitato: contatto.mai_visitato || false,
       proposte_commerciali: contatto.proposte_commerciali || [],
       note: contatto.note || ''
     });
@@ -307,12 +316,28 @@ export default function Contatti() {
                     )}
                   </div>
 
-                  {contatto.categoria === 'Food influencers' && contatto.followers && (
-                    <div className="mt-3 pt-3 border-t border-slate-200">
-                      <p className="text-xs font-bold text-slate-700 mb-1">Followers</p>
-                      <p className="text-lg font-bold text-purple-600">
-                        {contatto.followers.toLocaleString()}
-                      </p>
+                  {contatto.categoria === 'Food influencers' && (
+                    <div className="mt-3 pt-3 border-t border-slate-200 space-y-2">
+                      {contatto.followers && (
+                        <div>
+                          <p className="text-xs font-bold text-slate-700">Followers</p>
+                          <p className="text-lg font-bold text-purple-600">
+                            {contatto.followers.toLocaleString()}
+                          </p>
+                        </div>
+                      )}
+                      {contatto.mai_visitato ? (
+                        <div>
+                          <p className="text-xs text-slate-500">❌ Non è mai venuto in negozio</p>
+                        </div>
+                      ) : contatto.data_visita_negozio ? (
+                        <div>
+                          <p className="text-xs text-slate-500">
+                            ✓ Visita: {new Date(contatto.data_visita_negozio).toLocaleDateString('it-IT')}
+                            {contatto.negozio_visitato && ` • ${contatto.negozio_visitato}`}
+                          </p>
+                        </div>
+                      ) : null}
                     </div>
                   )}
 
@@ -461,18 +486,69 @@ export default function Contatti() {
                   </div>
 
                   {formData.categoria === 'Food influencers' && (
-                    <div>
-                      <label className="text-sm font-medium text-slate-700 mb-2 block">
-                        Numero Followers
-                      </label>
-                      <input
-                        type="number"
-                        value={formData.followers}
-                        onChange={(e) => setFormData({ ...formData, followers: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                        placeholder="es. 50000"
-                      />
-                    </div>
+                    <>
+                      <div>
+                        <label className="text-sm font-medium text-slate-700 mb-2 block">
+                          Numero Followers
+                        </label>
+                        <input
+                          type="number"
+                          value={formData.followers}
+                          onChange={(e) => setFormData({ ...formData, followers: e.target.value })}
+                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                          placeholder="es. 50000"
+                        />
+                      </div>
+
+                      <div className="border-t pt-4 mt-4">
+                        <h3 className="text-sm font-bold text-slate-700 mb-4">Visita in Negozio</h3>
+
+                        <div className="flex items-center gap-3 mb-4">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={formData.mai_visitato}
+                              onChange={(e) => setFormData({ 
+                                ...formData, 
+                                mai_visitato: e.target.checked,
+                                data_visita_negozio: e.target.checked ? '' : formData.data_visita_negozio
+                              })}
+                              className="w-4 h-4"
+                            />
+                            <span className="text-sm text-slate-700">Non è mai venuto in negozio</span>
+                          </label>
+                        </div>
+
+                        {!formData.mai_visitato && (
+                          <>
+                            <div className="mb-3">
+                              <label className="text-sm font-medium text-slate-700 mb-2 block">
+                                Data Visita
+                              </label>
+                              <input
+                                type="date"
+                                value={formData.data_visita_negozio}
+                                onChange={(e) => setFormData({ ...formData, data_visita_negozio: e.target.value })}
+                                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-sm font-medium text-slate-700 mb-2 block">
+                                Negozio Visitato
+                              </label>
+                              <input
+                                type="text"
+                                value={formData.negozio_visitato}
+                                onChange={(e) => setFormData({ ...formData, negozio_visitato: e.target.value })}
+                                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                                placeholder="Nome del negozio"
+                              />
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </>
                   )}
 
                   <div className="border-t pt-4 mt-4">
