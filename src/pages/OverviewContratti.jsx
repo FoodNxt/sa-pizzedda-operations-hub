@@ -61,15 +61,7 @@ export default function OverviewContratti() {
     queryFn: () => base44.entities.Contratto.list(),
   });
 
-  const { data: documenti = [] } = useQuery({
-    queryKey: ['documenti'],
-    queryFn: () => base44.entities.RegolamentoDipendenti.filter({ attivo: true }),
-  });
 
-  const { data: lettereRichiamo = [] } = useQuery({
-    queryKey: ['lettere-richiamo'],
-    queryFn: () => base44.entities.LetteraRichiamoTemplate.filter({ attivo: true }),
-  });
 
   const createContractMutation = useMutation({
     mutationFn: (contractData) => base44.entities.Contratto.create(contractData),
@@ -397,32 +389,68 @@ export default function OverviewContratti() {
       return;
     }
 
-    const template = emailTemplates[sendData.templateIndex];
-    const dipendente = sendingToPayroll.nome_cognome;
-    const dataInvio = moment().format('DD/MM/YYYY');
-    
-    let corpo = template.corpo
-      .replace(/{{nome_dipendente}}/g, dipendente)
-      .replace(/{{data_invio}}/g, dataInvio);
+    try {
+      const template = emailTemplates[sendData.templateIndex];
+      const dipendente = sendingToPayroll.nome_cognome;
+      const dataInvio = moment().format('DD/MM/YYYY');
+      
+      let oggetto = template.oggetto
+        .replace(/{{nome_dipendente}}/g, dipendente)
+        .replace(/{{data_invio}}/g, dataInvio);
+      
+      let corpo = template.corpo
+        .replace(/{{nome_dipendente}}/g, dipendente)
+        .replace(/{{data_invio}}/g, dataInvio);
 
-    // Get selected contracts and documents details
-    const selectedContractsList = sendData.selectedContracts.map(id => {
-      const c = allContracts.find(ct => ct.id === id);
-      return `${c.template_nome} (${moment(c.data_inizio_contratto).format('DD/MM/YYYY')})`;
-    }).join(', ');
+      // Get user and prepare documents URLs
+      const user = users.find(u => u.id === sendingToPayroll.user_id);
+      const documentiUrls = [];
+      
+      sendData.selectedDocuments.forEach(docId => {
+        if (docId === 'documento_identita' && user?.documento_identita_url) {
+          documentiUrls.push({ nome: 'Documento d\'Identità', url: user.documento_identita_url });
+        } else if (docId === 'codice_fiscale_documento' && user?.codice_fiscale_documento_url) {
+          documentiUrls.push({ nome: 'Codice Fiscale', url: user.codice_fiscale_documento_url });
+        } else if (docId === 'permesso_soggiorno' && user?.permesso_soggiorno_url) {
+          documentiUrls.push({ nome: 'Permesso di Soggiorno', url: user.permesso_soggiorno_url });
+        }
+      });
 
-    const selectedDocsList = sendData.selectedDocuments.map(id => {
-      const docReg = documenti.find(doc => doc.id === id);
-      if (docReg) return docReg.titolo;
-      const docLettera = lettereRichiamo.find(doc => doc.id === id);
-      if (docLettera) return docLettera.titolo;
-      return 'N/A';
-    }).join(', ');
+      // Get contracts URLs
+      const contrattiUrls = sendData.selectedContracts.map(id => {
+        const c = allContracts.find(ct => ct.id === id);
+        return {
+          nome: `${c.template_nome} (${moment(c.data_inizio_contratto).format('DD/MM/YYYY')})`,
+          id: c.id
+        };
+      });
 
-    alert(`Email inviata a: ${payrollEmail}\nOggetto: ${template.oggetto}\n\nContratti: ${selectedContractsList}\nDocumenti: ${selectedDocsList}`);
-    
-    setSendingToPayroll(null);
-    setSendData({ selectedContracts: [], selectedDocuments: [], templateIndex: null });
+      // Add contracts list and documents list to email body
+      if (contrattiUrls.length > 0) {
+        corpo += '\n\n📄 Contratti allegati:\n' + contrattiUrls.map(c => `- ${c.nome}`).join('\n');
+      }
+      if (documentiUrls.length > 0) {
+        corpo += '\n\n📎 Documenti allegati:\n' + documentiUrls.map(d => `- ${d.nome}`).join('\n');
+      }
+
+      // Call backend function to send email
+      await base44.functions.invoke('inviaEmailPayroll', {
+        to: payrollEmail,
+        subject: oggetto,
+        body: corpo,
+        dipendente_id: sendingToPayroll.user_id,
+        contratti_ids: sendData.selectedContracts,
+        documenti: documentiUrls
+      });
+
+      alert('✅ Email inviata con successo a ' + payrollEmail);
+      
+      setSendingToPayroll(null);
+      setSendData({ selectedContracts: [], selectedDocuments: [], templateIndex: null });
+    } catch (error) {
+      console.error('Error sending email:', error);
+      alert('❌ Errore durante l\'invio dell\'email: ' + error.message);
+    }
   };
 
   return (
@@ -940,62 +968,65 @@ export default function OverviewContratti() {
                     Seleziona Documenti da Allegare
                   </label>
                   <div className="neumorphic-pressed p-4 rounded-xl space-y-2 max-h-60 overflow-y-auto">
-                    {documenti.length === 0 && lettereRichiamo.length === 0 ? (
-                      <p className="text-sm text-slate-400 text-center py-4">Nessun documento disponibile</p>
-                    ) : (
-                      <>
-                        {documenti.map(d => (
-                          <label key={d.id} className="flex items-start gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded">
-                            <input
-                              type="checkbox"
-                              checked={sendData.selectedDocuments.includes(d.id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSendData({ ...sendData, selectedDocuments: [...sendData.selectedDocuments, d.id] });
-                                } else {
-                                  setSendData({ ...sendData, selectedDocuments: sendData.selectedDocuments.filter(id => id !== d.id) });
-                                }
-                              }}
-                              className="w-4 h-4 mt-1"
-                            />
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-slate-700">{d.titolo}</p>
-                              {d.contenuto_pdf_url && (
-                                <a
-                                  href={d.contenuto_pdf_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-xs text-blue-600 hover:underline"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  Visualizza PDF
-                                </a>
-                              )}
-                            </div>
-                          </label>
-                        ))}
-                        {lettereRichiamo.map(l => (
-                          <label key={l.id} className="flex items-start gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded">
-                            <input
-                              type="checkbox"
-                              checked={sendData.selectedDocuments.includes(l.id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSendData({ ...sendData, selectedDocuments: [...sendData.selectedDocuments, l.id] });
-                                } else {
-                                  setSendData({ ...sendData, selectedDocuments: sendData.selectedDocuments.filter(id => id !== l.id) });
-                                }
-                              }}
-                              className="w-4 h-4 mt-1"
-                            />
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-slate-700">{l.titolo}</p>
-                              <p className="text-xs text-slate-500">Lettera di richiamo</p>
-                            </div>
-                          </label>
-                        ))}
-                      </>
-                    )}
+                    {(() => {
+                      const user = users.find(u => u.id === sendingToPayroll.user_id);
+                      const documentiDipendente = [];
+
+                      if (user?.documento_identita_url) {
+                        documentiDipendente.push({
+                          id: 'documento_identita',
+                          nome: 'Documento d\'Identità',
+                          url: user.documento_identita_url
+                        });
+                      }
+                      if (user?.codice_fiscale_documento_url) {
+                        documentiDipendente.push({
+                          id: 'codice_fiscale_documento',
+                          nome: 'Codice Fiscale',
+                          url: user.codice_fiscale_documento_url
+                        });
+                      }
+                      if (user?.permesso_soggiorno_url) {
+                        documentiDipendente.push({
+                          id: 'permesso_soggiorno',
+                          nome: 'Permesso di Soggiorno',
+                          url: user.permesso_soggiorno_url
+                        });
+                      }
+
+                      if (documentiDipendente.length === 0) {
+                        return <p className="text-sm text-slate-400 text-center py-4">Nessun documento caricato per questo dipendente</p>;
+                      }
+
+                      return documentiDipendente.map(doc => (
+                        <label key={doc.id} className="flex items-start gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded">
+                          <input
+                            type="checkbox"
+                            checked={sendData.selectedDocuments.includes(doc.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSendData({ ...sendData, selectedDocuments: [...sendData.selectedDocuments, doc.id] });
+                              } else {
+                                setSendData({ ...sendData, selectedDocuments: sendData.selectedDocuments.filter(id => id !== doc.id) });
+                              }
+                            }}
+                            className="w-4 h-4 mt-1"
+                          />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-slate-700">{doc.nome}</p>
+                            <a
+                              href={doc.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-600 hover:underline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              Visualizza Documento
+                            </a>
+                          </div>
+                        </label>
+                      ));
+                    })()}
                   </div>
                 </div>
 
