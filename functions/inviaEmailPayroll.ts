@@ -75,6 +75,13 @@ Deno.serve(async (req) => {
       htmlBody += '</ul>';
     }
 
+    // Add signature directly in the body
+    htmlBody += `<br><br><hr style="border: 1px solid #e2e8f0; margin: 20px 0;"><br>
+    <p style="color: #64748b; font-size: 0.9em;">
+      Grazie,<br>
+      <strong>${user.full_name || user.email}</strong>
+    </p>`;
+
     // Wrap in HTML structure
     const fullHtmlBody = `<!DOCTYPE html>
 <html>
