@@ -62,6 +62,11 @@ export default function OverviewContratti() {
     queryFn: () => base44.entities.Contratto.list(),
   });
 
+  const { data: payrollEmailLogs = [] } = useQuery({
+    queryKey: ['payroll-email-logs'],
+    queryFn: () => base44.entities.PayrollEmailLog.list('-data_invio', 100),
+  });
+
 
 
   const createContractMutation = useMutation({
