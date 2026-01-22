@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
       .replace(/>/g, '&gt;')
       .replace(/\n/g, '<br>');
     
-    // Add contract download links with hyperlinks
+    // Add contract download links - save to Google Drive for reliability
     if (contratti_ids && contratti_ids.length > 0) {
       htmlBody += '<br><br><hr style="border: 1px solid #e2e8f0; margin: 20px 0;"><br><strong>📄 Contratti:</strong><br><ul style="list-style-type: none; padding-left: 0;">';
       for (const contrattoId of contratti_ids) {
@@ -36,43 +36,22 @@ Deno.serve(async (req) => {
             continue;
           }
           
-          console.log(`Downloading PDF for contract ${contrattoId}`);
-          // Download PDF using downloadContrattoPDF
-          const pdfResponse = await base44.asServiceRole.functions.invoke('downloadContrattoPDF', {
+          console.log(`Saving contract ${contrattoId} to Drive...`);
+          // Use saveContractToDrive function
+          const driveResponse = await base44.asServiceRole.functions.invoke('saveContractToDrive', {
             contratto_id: contrattoId
           });
           
-          if (!pdfResponse.data || !pdfResponse.data.pdf_base64) {
-            console.error(`PDF download failed for contract ${contrattoId}`, pdfResponse);
+          console.log(`Drive response for contract ${contrattoId}:`, JSON.stringify(driveResponse));
+          
+          if (!driveResponse.data || !driveResponse.data.viewUrl) {
+            console.error(`Failed to save contract ${contrattoId} to Drive`, driveResponse);
             continue;
           }
           
-          console.log(`PDF downloaded successfully for contract ${contrattoId}, uploading...`);
-          
-          // Decode base64 to binary
-          const base64Data = pdfResponse.data.pdf_base64;
-          const binaryString = atob(base64Data);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-          }
-          
-          console.log(`PDF decoded, size: ${bytes.length} bytes, uploading as ArrayBuffer...`);
-          
-          // Upload using ArrayBuffer
-          const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({
-            file: bytes.buffer
-          });
-          
-          console.log(`Upload result for contract ${contrattoId}:`, JSON.stringify(uploadResult));
-          
-          if (!uploadResult || !uploadResult.file_url) {
-            console.error(`Upload failed for contract ${contrattoId}`, uploadResult);
-            continue;
-          }
-          
-          console.log(`PDF uploaded successfully for contract ${contrattoId}: ${uploadResult.file_url}`);
-          htmlBody += `<li style="margin-bottom: 8px;">📄 <a href="${uploadResult.file_url}" style="color: #3b82f6; text-decoration: underline;" target="_blank">${contratto.template_nome}</a> <span style="color: #64748b; font-size: 0.9em;">(Inizio: ${new Date(contratto.data_inizio_contratto).toLocaleDateString('it-IT')})</span></li>`;
+          const contractUrl = driveResponse.data.viewUrl;
+          console.log(`Contract ${contrattoId} saved successfully: ${contractUrl}`);
+          htmlBody += `<li style="margin-bottom: 8px;">📄 <a href="${contractUrl}" style="color: #3b82f6; text-decoration: underline;" target="_blank">${contratto.template_nome}</a> <span style="color: #64748b; font-size: 0.9em;">(Inizio: ${new Date(contratto.data_inizio_contratto).toLocaleDateString('it-IT')})</span></li>`;
           
         } catch (err) {
           console.error(`Error processing contract ${contrattoId}:`, err.message, err.stack);
