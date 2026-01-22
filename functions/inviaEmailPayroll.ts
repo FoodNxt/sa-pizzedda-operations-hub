@@ -40,19 +40,35 @@ Deno.serve(async (req) => {
           });
           
           if (pdfResponse.data && pdfResponse.data.pdf_base64) {
-            // Convert base64 to binary buffer
+            // Convert base64 to Blob and create File
             const pdfBinary = atob(pdfResponse.data.pdf_base64);
             const pdfBytes = new Uint8Array(pdfBinary.length);
             for (let i = 0; i < pdfBinary.length; i++) {
               pdfBytes[i] = pdfBinary.charCodeAt(i);
             }
             
-            // Upload directly as binary data
-            const uploadResponse = await base44.asServiceRole.integrations.Core.UploadFile({
-              file: pdfBytes.buffer
+            // Create a Blob with the binary data
+            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+            
+            // Create FormData and append the file
+            const formData = new FormData();
+            formData.append('file', blob, `contratto_${contratto.nome_cognome.replace(/\s+/g, '_')}.pdf`);
+            
+            // Upload using fetch directly to the upload endpoint
+            const uploadUrl = `${Deno.env.get('BASE44_API_URL') || 'https://api.base44.com'}/integrations/Core/UploadFile`;
+            const uploadResp = await fetch(uploadUrl, {
+              method: 'POST',
+              headers: {
+                'Authorization': req.headers.get('Authorization')
+              },
+              body: formData
             });
             
-            htmlBody += `<li style="margin-bottom: 8px;">📄 <a href="${uploadResponse.file_url}" style="color: #3b82f6; text-decoration: underline;">${contratto.template_nome}</a> <span style="color: #64748b; font-size: 0.9em;">(Inizio: ${new Date(contratto.data_inizio_contratto).toLocaleDateString('it-IT')})</span></li>`;
+            const uploadData = await uploadResp.json();
+            
+            if (uploadData.file_url) {
+              htmlBody += `<li style="margin-bottom: 8px;">📄 <a href="${uploadData.file_url}" style="color: #3b82f6; text-decoration: underline;">${contratto.template_nome}</a> <span style="color: #64748b; font-size: 0.9em;">(Inizio: ${new Date(contratto.data_inizio_contratto).toLocaleDateString('it-IT')})</span></li>`;
+            }
           }
         }
       }
