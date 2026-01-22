@@ -19,6 +19,7 @@ export default function OverviewContratti() {
   const [viewingHistory, setViewingHistory] = useState(null);
   const [sendingToPayroll, setSendingToPayroll] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showPayrollLog, setShowPayrollLog] = useState(false);
   const [payrollEmail, setPayrollEmail] = useState('');
   const [emailTemplates, setEmailTemplates] = useState([]);
   const [newTemplate, setNewTemplate] = useState({ nome: '', oggetto: '', corpo: '' });
