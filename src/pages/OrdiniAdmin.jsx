@@ -1129,11 +1129,31 @@ Sa Pizzedda`,
                             return (
                               <div key={ordine.id} className="neumorphic-pressed p-4 rounded-xl border-2 border-green-200">
                                 {hasDifferences && (
-                                  <div className="mb-3 p-2 bg-orange-50 border border-orange-200 rounded-lg flex items-center gap-2">
-                                    <AlertTriangle className="w-4 h-4 text-orange-600" />
-                                    <span className="text-xs font-medium text-orange-700">
-                                      ⚠️ Quantità ricevute diverse da quelle ordinate
-                                    </span>
+                                  <div className={`mb-3 p-2 border rounded-lg flex items-center justify-between ${
+                                    ordine.differenza_verificata
+                                      ? 'bg-blue-50 border-blue-200'
+                                      : 'bg-orange-50 border-orange-200'
+                                  }`}>
+                                    <div className="flex items-center gap-2">
+                                      <AlertTriangle className={`w-4 h-4 ${ordine.differenza_verificata ? 'text-blue-600' : 'text-orange-600'}`} />
+                                      <span className={`text-xs font-medium ${ordine.differenza_verificata ? 'text-blue-700' : 'text-orange-700'}`}>
+                                        {ordine.differenza_verificata 
+                                          ? '✓ Differenza verificata con fornitore' 
+                                          : '⚠️ Quantità ricevute diverse da quelle ordinate'}
+                                      </span>
+                                    </div>
+                                    {!ordine.differenza_verificata && (
+                                      <NeumorphicButton
+                                        onClick={() => updateOrderMutation.mutate({ 
+                                          id: ordine.id, 
+                                          data: { differenza_verificata: true } 
+                                        })}
+                                        className="flex items-center gap-1 text-xs"
+                                      >
+                                        <CheckCircle className="w-3 h-3" />
+                                        Segna Verificato
+                                      </NeumorphicButton>
+                                    )}
                                   </div>
                                 )}
                                 
