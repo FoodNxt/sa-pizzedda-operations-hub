@@ -776,18 +776,6 @@ export default function ControlloConsumi() {
           const firstDate = datesInPeriod[0];
           const lastDate = datesInPeriod[datesInPeriod.length - 1];
 
-          // Trova inventari effettivi del primo e ultimo giorno
-          const firstInventario = filteredInventari.find(inv => 
-            inv.prodotto_id === mozz.id && inv.data_rilevazione.split('T')[0] === firstDate
-          );
-          const lastInventario = filteredInventari.find(inv => 
-            inv.prodotto_id === mozz.id && inv.data_rilevazione.split('T')[0] === lastDate
-          );
-
-          // Trova nomi operatori
-          const firstOperatore = firstInventario ? users.find(u => u.email === firstInventario.created_by) : null;
-          const lastOperatore = lastInventario ? users.find(u => u.email === lastInventario.created_by) : null;
-
           // Qty iniziale: cerca inventario del giorno prima dell'INIZIO EFFETTIVO del periodo
           // Per weekly: periodoKey è il lunedì, cerco domenica prima
           // Per monthly: periodoKey è YYYY-MM, cerco ultimo giorno del mese precedente
@@ -825,6 +813,15 @@ export default function ControlloConsumi() {
             }
             qtyInizialeTeorica = true;
           }
+
+          // Trova operatore per inventario inizio periodo (giorno prima)
+          const initialOperatore = invDayBefore ? users.find(u => u.email === invDayBefore.created_by) : null;
+
+          // Trova inventario e operatore dell'ultimo giorno
+          const lastInventario = filteredInventari.find(inv => 
+            inv.prodotto_id === mozz.id && inv.data_rilevazione.split('T')[0] === lastDate
+          );
+          const lastOperatore = lastInventario ? users.find(u => u.email === lastInventario.created_by) : null;
 
           // Qty finale: dall'inventario dell'ultimo giorno
           const lastProd = datiGiornalieriPerProdotto[lastDate]?.[mozz.id];
@@ -898,10 +895,10 @@ export default function ControlloConsumi() {
             qtyAttesa,
             delta,
             breakdown: allBreakdown,
-            firstInventario: firstInventario ? {
-              data: firstInventario.data_rilevazione.split('T')[0],
-              timestamp: firstInventario.data_rilevazione,
-              operatore: firstOperatore?.nome_cognome || firstOperatore?.full_name || firstInventario.created_by
+            initialInventario: invDayBefore ? {
+              data: invDayBefore.data_rilevazione.split('T')[0],
+              timestamp: invDayBefore.data_rilevazione,
+              operatore: initialOperatore?.nome_cognome || initialOperatore?.full_name || invDayBefore.created_by
             } : null,
             lastInventario: lastInventario ? {
               data: lastInventario.data_rilevazione.split('T')[0],
@@ -1230,24 +1227,38 @@ export default function ControlloConsumi() {
                                                 </p>
                                               </div>
                                             )}
-                                            {prodottiChiaveViewMode !== 'daily' && (periodo.firstInventario || periodo.lastInventario) && (
+                                            {prodottiChiaveViewMode !== 'daily' && (
                                               <div className="mb-4 p-3 bg-blue-50 rounded-lg">
                                                 <p className="font-bold text-blue-800 mb-2">📅 Dettaglio Form Inventario:</p>
                                                 <div className="grid grid-cols-2 gap-4 ml-4 text-xs">
-                                                  {periodo.firstInventario && (
-                                                    <div>
-                                                      <p className="font-medium text-slate-700">Inizio Periodo:</p>
-                                                      <p className="text-slate-600">Data: {format(parseISO(periodo.firstInventario.timestamp), 'dd/MM/yyyy HH:mm')}</p>
-                                                      <p className="text-slate-600">Operatore: {periodo.firstInventario.operatore}</p>
-                                                    </div>
-                                                  )}
-                                                  {periodo.lastInventario && (
-                                                    <div>
-                                                      <p className="font-medium text-slate-700">Fine Periodo:</p>
-                                                      <p className="text-slate-600">Data: {format(parseISO(periodo.lastInventario.timestamp), 'dd/MM/yyyy HH:mm')}</p>
-                                                      <p className="text-slate-600">Operatore: {periodo.lastInventario.operatore}</p>
-                                                    </div>
-                                                  )}
+                                                  <div>
+                                                    <p className="font-medium text-slate-700">Inizio Periodo:</p>
+                                                    {periodo.initialInventario ? (
+                                                      <>
+                                                        <p className="text-slate-600">Data: {format(parseISO(periodo.initialInventario.timestamp), 'dd/MM/yyyy HH:mm')}</p>
+                                                        <p className="text-slate-600">Operatore: {periodo.initialInventario.operatore}</p>
+                                                      </>
+                                                    ) : (
+                                                      <>
+                                                        <p className="text-slate-600">Data: -</p>
+                                                        <p className="text-purple-600 font-medium">Operatore: Teorico</p>
+                                                      </>
+                                                    )}
+                                                  </div>
+                                                  <div>
+                                                    <p className="font-medium text-slate-700">Fine Periodo:</p>
+                                                    {periodo.lastInventario ? (
+                                                      <>
+                                                        <p className="text-slate-600">Data: {format(parseISO(periodo.lastInventario.timestamp), 'dd/MM/yyyy HH:mm')}</p>
+                                                        <p className="text-slate-600">Operatore: {periodo.lastInventario.operatore}</p>
+                                                      </>
+                                                    ) : (
+                                                      <>
+                                                        <p className="text-slate-600">Data: -</p>
+                                                        <p className="text-purple-600 font-medium">Operatore: Teorico</p>
+                                                      </>
+                                                    )}
+                                                  </div>
                                                 </div>
                                               </div>
                                             )}
