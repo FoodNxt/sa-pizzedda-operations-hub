@@ -42,6 +42,7 @@ export default function UsersManagement() {
     citta_nascita: '',
     codice_fiscale: '',
     indirizzo_residenza: '',
+    citta_residenza: '',
     iban: '',
     taglia_maglietta: '',
     ore_settimanali: 0,
@@ -103,6 +104,7 @@ export default function UsersManagement() {
       citta_nascita: user.citta_nascita || '',
       codice_fiscale: user.codice_fiscale || '',
       indirizzo_residenza: user.indirizzo_residenza || '',
+      citta_residenza: user.citta_residenza || '',
       iban: user.iban || '',
       taglia_maglietta: user.taglia_maglietta || '',
       ore_settimanali: user.ore_settimanali || 0,
@@ -149,6 +151,7 @@ export default function UsersManagement() {
       citta_nascita: '',
       codice_fiscale: '',
       indirizzo_residenza: '',
+      citta_residenza: '',
       iban: '',
       taglia_maglietta: '',
       ore_settimanali: 0,
@@ -213,6 +216,7 @@ export default function UsersManagement() {
            formData.data_nascita &&
            formData.codice_fiscale?.trim() &&
            formData.indirizzo_residenza?.trim() &&
+           formData.citta_residenza?.trim() &&
            formData.iban?.trim() &&
            formData.employee_group &&
            (formData.employee_group === 'CM' || formData.ore_settimanali > 0) &&
@@ -554,9 +558,13 @@ export default function UsersManagement() {
                       <p className="text-[#9b9b9b]">Taglia Maglietta</p>
                       <p className="text-[#6b6b6b] font-medium">{viewingUser.taglia_maglietta || '-'}</p>
                     </div>
-                    <div className="col-span-2">
-                      <p className="text-[#9b9b9b]">Indirizzo</p>
+                    <div>
+                      <p className="text-[#9b9b9b]">Indirizzo di Residenza</p>
                       <p className="text-[#6b6b6b] font-medium">{viewingUser.indirizzo_residenza || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[#9b9b9b]">Città di Residenza</p>
+                      <p className="text-[#6b6b6b] font-medium">{viewingUser.citta_residenza || '-'}</p>
                     </div>
                     <div className="col-span-2">
                       <p className="text-[#9b9b9b]">IBAN</p>
@@ -861,7 +869,7 @@ export default function UsersManagement() {
                       />
                     </div>
 
-                    <div className="md:col-span-2">
+                    <div>
                       <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
                         <MapPin className="w-4 h-4" />
                         Indirizzo di Residenza <span className="text-red-600">*</span>
@@ -871,7 +879,21 @@ export default function UsersManagement() {
                         value={formData.indirizzo_residenza}
                         onChange={(e) => setFormData({ ...formData, indirizzo_residenza: e.target.value })}
                         className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                        placeholder="Via Roma 123, 20100 Milano (MI)"
+                        placeholder="Via Roma 123"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
+                        <MapPin className="w-4 h-4" />
+                        Città di Residenza <span className="text-red-600">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.citta_residenza}
+                        onChange={(e) => setFormData({ ...formData, citta_residenza: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                        placeholder="Milano"
                       />
                     </div>
 
