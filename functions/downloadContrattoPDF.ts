@@ -2,14 +2,13 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 Deno.serve(async (req) => {
   try {
-    const url = new URL(req.url);
-    const contratto_id = url.searchParams.get('contratto_id');
+    const base44 = createClientFromRequest(req);
+    const body = await req.json();
+    const contratto_id = body.contrattoId;
 
     if (!contratto_id) {
-      return Response.json({ error: 'Missing contratto_id' }, { status: 400 });
+      return Response.json({ error: 'Missing contrattoId' }, { status: 400 });
     }
-
-    const base44 = createClientFromRequest(req);
 
     // Get contract
     const contratto = await base44.asServiceRole.entities.Contratto.get(contratto_id);
@@ -29,17 +28,14 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Failed to fetch PDF' }, { status: 500 });
     }
 
-    const pdfBlob = await pdfResponse.blob();
+    const pdfBuffer = await pdfResponse.arrayBuffer();
+    const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)));
     const fileName = `contratto_${contratto.template_nome?.replace(/[^a-zA-Z0-9]/g, '_')}_${contratto.nome_cognome?.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
 
-    // Return PDF with download headers
-    return new Response(pdfBlob, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${fileName}"`,
-        'Cache-Control': 'no-cache'
-      }
+    return Response.json({
+      success: true,
+      pdf: base64Pdf,
+      filename: fileName
     });
 
   } catch (error) {
