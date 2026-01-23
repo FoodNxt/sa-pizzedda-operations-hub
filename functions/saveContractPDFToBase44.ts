@@ -60,23 +60,76 @@ Deno.serve(async (req) => {
       y += 7;
     }
 
-    // Signature section
+    // DocuSign-style signature section
     if (contratto.status === 'firmato' && contratto.firma_dipendente) {
-      if (y > 240) {
+      if (y > 220) {
         doc.addPage();
         y = 20;
+      } else {
+        y += 20;
       }
-      
-      y += 20;
-      doc.setFontSize(10);
-      doc.setFont(undefined, 'bold');
-      doc.text('FIRMA DIGITALE', margin, y);
+
+      // Signature box
+      doc.setFillColor(250, 250, 250);
+      doc.rect(15, y, 180, 65, 'F');
+      doc.setDrawColor(70, 130, 180);
+      doc.setLineWidth(0.5);
+      doc.rect(15, y, 180, 65, 'S');
+
       y += 10;
+
+      // Header
+      doc.setFontSize(11);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(70, 130, 180);
+      doc.text('✓ Firmato Digitalmente', margin + 5, y);
       
+      y += 10;
+
+      // Signature line
+      doc.setFontSize(14);
       doc.setFont(undefined, 'normal');
-      doc.text(`Firmato da: ${contratto.firma_dipendente}`, margin, y);
-      y += 7;
-      doc.text(`Data firma: ${new Date(contratto.data_firma).toLocaleDateString('it-IT')}`, margin, y);
+      doc.setTextColor(0, 0, 0);
+      doc.text(contratto.firma_dipendente, margin + 5, y);
+      
+      y += 8;
+
+      // Timestamp
+      doc.setFontSize(9);
+      doc.setFont(undefined, 'normal');
+      doc.setTextColor(100, 100, 100);
+      const dataFirmaObj = new Date(contratto.data_firma);
+      const dataFirmaFormatted = dataFirmaObj.toLocaleDateString('it-IT', { 
+        day: '2-digit', 
+        month: 'long', 
+        year: 'numeric' 
+      }) + ' alle ' + dataFirmaObj.toLocaleTimeString('it-IT', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit' 
+      });
+      doc.text(`Firmato il: ${dataFirmaFormatted}`, margin + 5, y);
+      
+      y += 6;
+
+      // Document ID
+      doc.text(`ID Documento: ${contratto_id}`, margin + 5, y);
+      
+      y += 10;
+
+      // Footer line
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.2);
+      doc.line(margin + 5, y, 190, y);
+      
+      y += 5;
+
+      // Certification text
+      doc.setFontSize(7);
+      doc.setTextColor(120, 120, 120);
+      doc.text('Questo documento è stato firmato elettronicamente tramite la piattaforma Sa Pizzedda.', margin + 5, y);
+      y += 4;
+      doc.text('La firma digitale è legalmente vincolante e verificabile.', margin + 5, y);
     }
 
     // Get PDF as ArrayBuffer
