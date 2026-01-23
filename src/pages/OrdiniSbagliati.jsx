@@ -867,9 +867,16 @@ export default function OrdiniSbagliati() {
           <h3 className="text-3xl font-bold text-orange-600 mb-1">{stats.glovo}</h3>
           <p className="text-sm text-[#9b9b9b]">Glovo</p>
           {stats.lastGlovoOrder && (
-            <p className="text-xs text-[#9b9b9b] mt-2">
-              Ultimo: {new Date(stats.lastGlovoOrder.order_date).toLocaleDateString('it-IT')}
-            </p>
+            <div className="mt-2 space-y-1">
+              <p className="text-xs text-[#9b9b9b]">
+                <strong>Ultimo ordine:</strong> {new Date(stats.lastGlovoOrder.order_date).toLocaleDateString('it-IT')}
+              </p>
+              {stats.lastGlovoImport && (
+                <p className="text-xs text-[#9b9b9b]">
+                  <strong>Ultimo caricamento:</strong> {new Date(stats.lastGlovoImport.import_date).toLocaleDateString('it-IT')}
+                </p>
+              )}
+            </div>
           )}
         </NeumorphicCard>
 
@@ -880,9 +887,16 @@ export default function OrdiniSbagliati() {
           <h3 className="text-3xl font-bold text-teal-600 mb-1">{stats.deliveroo}</h3>
           <p className="text-sm text-[#9b9b9b]">Deliveroo</p>
           {stats.lastDeliverooOrder && (
-            <p className="text-xs text-[#9b9b9b] mt-2">
-              Ultimo: {new Date(stats.lastDeliverooOrder.order_date).toLocaleDateString('it-IT')}
-            </p>
+            <div className="mt-2 space-y-1">
+              <p className="text-xs text-[#9b9b9b]">
+                <strong>Ultimo ordine:</strong> {new Date(stats.lastDeliverooOrder.order_date).toLocaleDateString('it-IT')}
+              </p>
+              {stats.lastDeliverooImport && (
+                <p className="text-xs text-[#9b9b9b]">
+                  <strong>Ultimo caricamento:</strong> {new Date(stats.lastDeliverooImport.import_date).toLocaleDateString('it-IT')}
+                </p>
+              )}
+            </div>
           )}
         </NeumorphicCard>
 
