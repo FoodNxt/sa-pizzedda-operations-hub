@@ -669,10 +669,10 @@ export default function StoreManagerAdmin() {
               // Calculate if targets are met
               const fatturatoMet = target.target_fatturato && actual.fatturato >= target.target_fatturato;
               const recensioniMet = target.target_recensioni_media && actual.mediaRecensioni && actual.mediaRecensioni >= target.target_recensioni_media;
-              const numRecensioniMet = target.target_num_recensioni && actual.numRecensioni >= target.target_num_recensioni;
+              const numRecensioniMet = target.soglia_min_num_recensioni && actual.numRecensioni >= target.soglia_min_num_recensioni;
               const ordiniMet = target.target_ordini_sbagliati_max !== null && actual.numOrdiniSbagliati <= target.target_ordini_sbagliati_max;
               const ritardiMet = target.target_ritardi_max_minuti && actual.totaleRitardi <= target.target_ritardi_max_minuti;
-              const pulizieMet = target.target_pulizie_min_score && actual.mediaPulizie && actual.mediaPulizie >= target.target_pulizie_min_score;
+              const pulizieMet = target.soglia_min_pulizie && actual.mediaPulizie && actual.mediaPulizie >= target.soglia_min_pulizie;
 
               // Calculate total bonus (0 if any threshold is breached)
               let totalBonus = 0;
