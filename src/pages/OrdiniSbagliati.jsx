@@ -688,6 +688,12 @@ export default function OrdiniSbagliati() {
     )[0],
     lastDeliverooOrder: wrongOrders.filter(o => o.platform === 'deliveroo').sort((a, b) => 
       new Date(b.order_date) - new Date(a.order_date)
+    )[0],
+    lastGlovoImport: wrongOrders.filter(o => o.platform === 'glovo' && o.import_date).sort((a, b) => 
+      new Date(b.import_date) - new Date(a.import_date)
+    )[0],
+    lastDeliverooImport: wrongOrders.filter(o => o.platform === 'deliveroo' && o.import_date).sort((a, b) => 
+      new Date(b.import_date) - new Date(a.import_date)
     )[0]
   };
 
