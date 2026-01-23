@@ -201,9 +201,19 @@ export default function Inventory() {
         r.somma_a_materia_prima_id
       );
       
-      if (ricetta?.somma_a_materia_prima_id) {
-        const targetKey = `${reading.store_id}-${ricetta.somma_a_materia_prima_id}`;
-        aggregatedQuantities[targetKey] = (aggregatedQuantities[targetKey] || 0) + (reading.quantita_rilevata || 0);
+      if (ricetta?.somma_a_materia_prima_id && ricetta?.somma_ingrediente_id) {
+        // Find the ingredient to use for proportion calculation
+        const ingredienteIndex = parseInt(ricetta.somma_ingrediente_id.replace('ing_', ''));
+        const ingrediente = ricetta.ingredienti?.[ingredienteIndex];
+        
+        if (ingrediente && ricetta.quantita_prodotta && ricetta.quantita_prodotta > 0) {
+          // Calculate proportion: how much raw ingredient is needed per unit of finished product
+          const moltiplicatore = ingrediente.quantita / ricetta.quantita_prodotta;
+          const quantitaDaSommare = (reading.quantita_rilevata || 0) * moltiplicatore;
+          
+          const targetKey = `${reading.store_id}-${ricetta.somma_a_materia_prima_id}`;
+          aggregatedQuantities[targetKey] = (aggregatedQuantities[targetKey] || 0) + quantitaDaSommare;
+        }
       }
     });
     

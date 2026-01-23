@@ -39,6 +39,8 @@ export default function Ricette() {
     unita_misura_form_inventario: 'grammi',
     somma_a_materia_prima_id: '',
     somma_a_materia_prima_nome: '',
+    somma_ingrediente_id: '',
+    somma_ingrediente_nome: '',
     ingredienti: [],
     prezzo_vendita_online: '',
     prezzo_vendita_offline: '',
@@ -169,6 +171,8 @@ export default function Ricette() {
       unita_misura_form_inventario: ricetta.unita_misura_form_inventario || 'grammi',
       somma_a_materia_prima_id: ricetta.somma_a_materia_prima_id || '',
       somma_a_materia_prima_nome: ricetta.somma_a_materia_prima_nome || '',
+      somma_ingrediente_id: ricetta.somma_ingrediente_id || '',
+      somma_ingrediente_nome: ricetta.somma_ingrediente_nome || '',
       ingredienti: ricetta.ingredienti || [],
       prezzo_vendita_online: ricetta.prezzo_vendita_online,
       prezzo_vendita_offline: ricetta.prezzo_vendita_offline,
@@ -455,6 +459,8 @@ export default function Ricette() {
       delete data.unita_misura_form_inventario;
       delete data.somma_a_materia_prima_id;
       delete data.somma_a_materia_prima_nome;
+      delete data.somma_ingrediente_id;
+      delete data.somma_ingrediente_nome;
     } else {
       // Se è semilavorato, assicurati che quantita_prodotta sia un numero valido
       data.quantita_prodotta = formData.quantita_prodotta ? parseFloat(formData.quantita_prodotta) : null;
@@ -866,7 +872,9 @@ export default function Ricette() {
                               mostra_in_form_inventario: e.target.checked,
                               stores_form_inventario: e.target.checked ? formData.stores_form_inventario : [],
                               somma_a_materia_prima_id: e.target.checked ? formData.somma_a_materia_prima_id : '',
-                              somma_a_materia_prima_nome: e.target.checked ? formData.somma_a_materia_prima_nome : ''
+                              somma_a_materia_prima_nome: e.target.checked ? formData.somma_a_materia_prima_nome : '',
+                              somma_ingrediente_id: e.target.checked ? formData.somma_ingrediente_id : '',
+                              somma_ingrediente_nome: e.target.checked ? formData.somma_ingrediente_nome : ''
                             });
                           }}
                           className="w-5 h-5 rounded"
@@ -931,7 +939,9 @@ export default function Ricette() {
                                 setFormData({ 
                                   ...formData, 
                                   somma_a_materia_prima_id: e.target.value,
-                                  somma_a_materia_prima_nome: mp?.nome_prodotto || ''
+                                  somma_a_materia_prima_nome: mp?.nome_prodotto || '',
+                                  somma_ingrediente_id: '',
+                                  somma_ingrediente_nome: ''
                                 });
                               }}
                               className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
@@ -949,6 +959,36 @@ export default function Ricette() {
                               Se selezionato, la quantità di questo semilavorato verrà sommata alla materia prima per il calcolo degli ordini
                             </p>
                           </div>
+                          
+                          {formData.somma_a_materia_prima_id && formData.ingredienti.length > 0 && (
+                            <div>
+                              <label className="text-sm font-medium text-purple-800 mb-2 block">
+                                Ingrediente da Sommare
+                              </label>
+                              <select
+                                value={formData.somma_ingrediente_id}
+                                onChange={(e) => {
+                                  const ingrediente = formData.ingredienti.find((ing, idx) => `ing_${idx}` === e.target.value);
+                                  setFormData({ 
+                                    ...formData, 
+                                    somma_ingrediente_id: e.target.value,
+                                    somma_ingrediente_nome: ingrediente?.nome_prodotto || ''
+                                  });
+                                }}
+                                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                              >
+                                <option value="">-- Seleziona ingrediente --</option>
+                                {formData.ingredienti.map((ing, idx) => (
+                                  <option key={idx} value={`ing_${idx}`}>
+                                    {ing.nome_prodotto} ({ing.quantita} {ing.unita_misura})
+                                  </option>
+                                ))}
+                              </select>
+                              <p className="text-xs text-purple-600 mt-1">
+                                Seleziona quale ingrediente della ricetta viene sommato alla materia prima (la proporzione viene calcolata automaticamente)
+                              </p>
+                            </div>
+                          )}
                         </>
                       )}
                     </div>
