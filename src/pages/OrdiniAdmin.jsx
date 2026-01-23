@@ -98,6 +98,11 @@ export default function OrdiniAdmin() {
     queryFn: () => base44.entities.RegolaOrdine.filter({ attivo: true }),
   });
 
+  const { data: ricette = [] } = useQuery({
+    queryKey: ['ricette'],
+    queryFn: () => base44.entities.Ricetta.list(),
+  });
+
   const createOrderMutation = useMutation({
     mutationFn: (order) => base44.entities.OrdineFornitore.create(order),
     onSuccess: () => {
@@ -162,6 +167,24 @@ export default function OrdiniAdmin() {
       }
     });
     
+    // Build aggregated quantities (sum semilavorati to their materie prime)
+    const aggregatedQuantities = {};
+    Object.values(latestByProduct).forEach(reading => {
+      const key = `${reading.store_id}-${reading.prodotto_id}`;
+      aggregatedQuantities[key] = reading.quantita_rilevata || 0;
+      
+      // Check if this reading is a semilavorato that should be summed to a materia prima
+      const ricetta = ricette.find(r => 
+        r.nome_prodotto?.toLowerCase() === reading.nome_prodotto?.toLowerCase() &&
+        r.somma_a_materia_prima_id
+      );
+      
+      if (ricetta?.somma_a_materia_prima_id) {
+        const targetKey = `${reading.store_id}-${ricetta.somma_a_materia_prima_id}`;
+        aggregatedQuantities[targetKey] = (aggregatedQuantities[targetKey] || 0) + (reading.quantita_rilevata || 0);
+      }
+    });
+    
     Object.values(latestByProduct).forEach(reading => {
       const product = products.find(p => p.id === reading.prodotto_id);
       if (!product) return;
@@ -180,12 +203,17 @@ export default function OrdiniAdmin() {
                               (!product.in_uso_per_store?.[reading.store_id] && product.in_uso === true);
       if (!isInUsoForStore) return;
       
+      // Get aggregated quantity (including summed semilavorati)
+      const key = `${reading.store_id}-${reading.prodotto_id}`;
+      const quantitaEffettiva = aggregatedQuantities[key] || reading.quantita_rilevata || 0;
+      
       const quantitaCritica = product.store_specific_quantita_critica?.[reading.store_id] || product.quantita_critica || product.quantita_minima || 0;
       const quantitaOrdine = product.store_specific_quantita_ordine?.[reading.store_id] || product.quantita_ordine || 0;
       
-      if (reading.quantita_rilevata <= quantitaCritica && quantitaOrdine > 0) {
+      if (quantitaEffettiva <= quantitaCritica && quantitaOrdine > 0) {
         orders.push({
           ...reading,
+          quantita_rilevata: quantitaEffettiva,
           product,
           store,
           quantita_critica: quantitaCritica,
@@ -196,7 +224,7 @@ export default function OrdiniAdmin() {
     });
     
     return orders;
-  }, [inventory, inventoryCantina, products, stores]);
+  }, [inventory, inventoryCantina, products, stores, ricette]);
 
   // Group orders by store and supplier
   const ordersByStoreAndSupplier = React.useMemo(() => {
