@@ -415,16 +415,37 @@ export default function OverviewContratti() {
       const dipendente = sendingToPayroll.nome_cognome;
       const dataInvio = moment().format('DD/MM/YYYY');
       
+      // Get the current contract for variable replacement
+      const currentContract = sendingToPayroll.tutti_contratti[0];
+      const user = users.find(u => u.id === sendingToPayroll.user_id);
+      
       let oggetto = template.oggetto
         .replace(/{{nome_dipendente}}/g, dipendente)
-        .replace(/{{data_invio}}/g, dataInvio);
+        .replace(/{{data_invio}}/g, dataInvio)
+        .replace(/{{data_nascita}}/g, currentContract.data_nascita ? moment(currentContract.data_nascita).format('DD/MM/YYYY') : '-')
+        .replace(/{{codice_fiscale}}/g, currentContract.codice_fiscale || '-')
+        .replace(/{{citta_nascita}}/g, currentContract.citta_nascita || '-')
+        .replace(/{{indirizzo_residenza}}/g, currentContract.indirizzo_residenza || '-')
+        .replace(/{{livello}}/g, user?.livello?.toString() || '-')
+        .replace(/{{gruppo_contrattuale}}/g, currentContract.employee_group || '-')
+        .replace(/{{data_inizio_contratto}}/g, currentContract.data_inizio_contratto ? moment(currentContract.data_inizio_contratto).format('DD/MM/YYYY') : '-')
+        .replace(/{{ore_settimanali}}/g, currentContract.ore_settimanali?.toString() || '-')
+        .replace(/{{durata_contratto_mesi}}/g, currentContract.durata_contratto_mesi?.toString() || '-');
       
       let corpo = template.corpo
         .replace(/{{nome_dipendente}}/g, dipendente)
-        .replace(/{{data_invio}}/g, dataInvio);
+        .replace(/{{data_invio}}/g, dataInvio)
+        .replace(/{{data_nascita}}/g, currentContract.data_nascita ? moment(currentContract.data_nascita).format('DD/MM/YYYY') : '-')
+        .replace(/{{codice_fiscale}}/g, currentContract.codice_fiscale || '-')
+        .replace(/{{citta_nascita}}/g, currentContract.citta_nascita || '-')
+        .replace(/{{indirizzo_residenza}}/g, currentContract.indirizzo_residenza || '-')
+        .replace(/{{livello}}/g, user?.livello?.toString() || '-')
+        .replace(/{{gruppo_contrattuale}}/g, currentContract.employee_group || '-')
+        .replace(/{{data_inizio_contratto}}/g, currentContract.data_inizio_contratto ? moment(currentContract.data_inizio_contratto).format('DD/MM/YYYY') : '-')
+        .replace(/{{ore_settimanali}}/g, currentContract.ore_settimanali?.toString() || '-')
+        .replace(/{{durata_contratto_mesi}}/g, currentContract.durata_contratto_mesi?.toString() || '-');
 
-      // Get user and prepare documents URLs
-      const user = users.find(u => u.id === sendingToPayroll.user_id);
+      // Prepare documents URLs
       const documentiUrls = [];
       
       sendData.selectedDocuments.forEach(docId => {
@@ -1294,22 +1315,6 @@ export default function OverviewContratti() {
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <label className="text-xs text-slate-600">Oggetto email</label>
-                          <div className="flex gap-1">
-                            <button
-                              type="button"
-                              onClick={() => insertVariable('{{nome_dipendente}}', 'oggetto')}
-                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200"
-                            >
-                              + Nome
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => insertVariable('{{data_invio}}', 'oggetto')}
-                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200"
-                            >
-                              + Data
-                            </button>
-                          </div>
                         </div>
                         <input
                           type="text"
@@ -1323,21 +1328,21 @@ export default function OverviewContratti() {
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <label className="text-xs text-slate-600">Corpo email</label>
-                          <div className="flex gap-1">
-                            <button
-                              type="button"
-                              onClick={() => insertVariable('{{nome_dipendente}}', 'corpo')}
-                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200"
-                            >
-                              + Nome
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => insertVariable('{{data_invio}}', 'corpo')}
-                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200"
-                            >
-                              + Data
-                            </button>
+                        </div>
+                        <div className="text-xs text-slate-600 mb-3">
+                          <p className="mb-2 font-medium">Variabili disponibili:</p>
+                          <div className="grid grid-cols-3 gap-1 bg-slate-50 p-3 rounded-lg max-h-32 overflow-y-auto">
+                            <code className="text-blue-600">{'{{nome_dipendente}}'}</code>
+                            <code className="text-blue-600">{'{{data_invio}}'}</code>
+                            <code className="text-blue-600">{'{{data_nascita}}'}</code>
+                            <code className="text-blue-600">{'{{codice_fiscale}}'}</code>
+                            <code className="text-blue-600">{'{{citta_nascita}}'}</code>
+                            <code className="text-blue-600">{'{{indirizzo_residenza}}'}</code>
+                            <code className="text-blue-600">{'{{livello}}'}</code>
+                            <code className="text-blue-600">{'{{gruppo_contrattuale}}'}</code>
+                            <code className="text-blue-600">{'{{data_inizio_contratto}}'}</code>
+                            <code className="text-blue-600">{'{{ore_settimanali}}'}</code>
+                            <code className="text-blue-600">{'{{durata_contratto_mesi}}'}</code>
                           </div>
                         </div>
                         <textarea
@@ -1345,7 +1350,7 @@ export default function OverviewContratti() {
                           onChange={(e) => setNewTemplate({ ...newTemplate, corpo: e.target.value })}
                           placeholder="Corpo email"
                           className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm"
-                          rows="4"
+                          rows="6"
                         />
                       </div>
 

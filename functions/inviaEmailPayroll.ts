@@ -16,6 +16,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Note: Variable replacement is now done in the frontend before sending
     // Convert plain text body to HTML (preserve line breaks)
     let htmlBody = body
       .replace(/&/g, '&amp;')
