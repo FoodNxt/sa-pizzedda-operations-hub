@@ -788,16 +788,28 @@ export default function ControlloConsumi() {
           const firstOperatore = firstInventario ? users.find(u => u.email === firstInventario.created_by) : null;
           const lastOperatore = lastInventario ? users.find(u => u.email === lastInventario.created_by) : null;
 
-          // Qty iniziale: cerca inventario del giorno prima dell'inizio periodo
+          // Qty iniziale: cerca inventario del giorno prima dell'INIZIO EFFETTIVO del periodo
+          // Per weekly: periodoKey è il lunedì, cerco domenica prima
+          // Per monthly: periodoKey è YYYY-MM, cerco ultimo giorno del mese precedente
           let qtyIniziale = 0;
           let qtyInizialeTeorica = false;
-          const dayBeforePeriod = format(subDays(parseISO(firstDate), 1), 'yyyy-MM-dd');
+          let dayBeforePeriod;
+          
+          if (mode === 'weekly') {
+            // periodoKey è già la data del lunedì (inizio settimana)
+            dayBeforePeriod = format(subDays(parseISO(periodoKey), 1), 'yyyy-MM-dd');
+          } else if (mode === 'monthly') {
+            // periodoKey è YYYY-MM, quindi costruisco il primo del mese e poi sottraggo 1 giorno
+            const firstDayOfMonth = parseISO(periodoKey + '-01');
+            dayBeforePeriod = format(subDays(firstDayOfMonth, 1), 'yyyy-MM-dd');
+          }
+          
           const invDayBefore = allInventari.find(inv => 
             inv.prodotto_id === mozz.id && inv.data_rilevazione.split('T')[0] === dayBeforePeriod
           );
           
           if (invDayBefore) {
-            // Usa l'inventario del giorno prima
+            // Usa l'inventario del giorno prima dell'inizio periodo
             qtyIniziale = invDayBefore.quantita_rilevata;
             qtyInizialeTeorica = false;
           } else {
