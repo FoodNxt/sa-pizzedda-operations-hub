@@ -718,8 +718,9 @@ export default function ControlloConsumi() {
             // Inventory exists - determine if qtyIniziale is theoretical or actual
             const usandoTeorico = prevQtyAttesa !== null && (!prod?.qtyIniziale || prod.qtyIniziale === 0);
             const qtyIniziale = prevQtyAttesa !== null ? prevQtyAttesa : (prod?.qtyIniziale || 0);
+            const qtyFinale = prod?.qtyFinale || inventarioEsistente.quantita_rilevata || 0;
             const qtyAttesa = qtyIniziale - pezziVenduti + qtyArrivata;
-            const delta = prod.qtyFinale - qtyAttesa;
+            const delta = qtyFinale - qtyAttesa;
 
             datiMozz.periodi.push({
               periodo: date,
@@ -732,14 +733,14 @@ export default function ControlloConsumi() {
               qtyArrivata,
               sprechiGrammi: totaleSprechiGrammi,
               sprechiKg: totaleSprechiKg,
-              qtyFinale: prod.qtyFinale,
+              qtyFinale,
               qtyAttesa,
               delta,
               breakdown
             });
 
             // Next day will use actual final quantity
-            prevQtyAttesa = prod.qtyFinale;
+            prevQtyAttesa = qtyFinale;
           }
         });
       } else {
