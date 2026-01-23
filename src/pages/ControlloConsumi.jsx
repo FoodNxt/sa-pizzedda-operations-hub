@@ -642,12 +642,14 @@ export default function ControlloConsumi() {
 
         // Initialize with inventory from day before startDate if exists
         let prevQtyAttesa = null;
+        let prevWasInventoried = false; // Track if previous day had inventory
         const dayBeforeStart = format(subDays(parseISO(startDate), 1), 'yyyy-MM-dd');
         const invDayBefore = allInventari.find(inv => 
           inv.prodotto_id === mozz.id && inv.data_rilevazione.split('T')[0] === dayBeforeStart
         );
         if (invDayBefore) {
           prevQtyAttesa = invDayBefore.quantita_rilevata;
+          prevWasInventoried = true;
         }
 
         allDatesInRange.forEach(date => {
@@ -698,7 +700,7 @@ export default function ControlloConsumi() {
             datiMozz.periodi.push({
               periodo: date,
               inventarioMancante: true,
-              qtyInizialeteorica: true,
+              qtyInizialeteorica: !prevWasInventoried, // Theoretical only if prev day had no inventory
               qtyIniziale,
               grammiVenduti,
               kgVenduti,
@@ -712,11 +714,11 @@ export default function ControlloConsumi() {
               breakdown
             });
 
-            // Next day will use this expected quantity as initial
+            // Next day will use this expected quantity as initial (theoretical)
             prevQtyAttesa = qtyAttesa;
+            prevWasInventoried = false;
           } else {
-            // Inventory exists - determine if qtyIniziale is theoretical or actual
-            const usandoTeorico = prevQtyAttesa !== null && (!prod?.qtyIniziale || prod.qtyIniziale === 0);
+            // Inventory exists - qtyIniziale is theoretical only if previous day had no inventory
             const qtyIniziale = prevQtyAttesa !== null ? prevQtyAttesa : (prod?.qtyIniziale || 0);
             const qtyFinale = prod?.qtyFinale || inventarioEsistente.quantita_rilevata || 0;
             const qtyAttesa = qtyIniziale - pezziVenduti + qtyArrivata;
@@ -725,7 +727,7 @@ export default function ControlloConsumi() {
             datiMozz.periodi.push({
               periodo: date,
               inventarioMancante: false,
-              qtyInizialeteorica: usandoTeorico,
+              qtyInizialeteorica: !prevWasInventoried, // Theoretical only if prev day had no inventory
               qtyIniziale,
               grammiVenduti,
               kgVenduti,
@@ -739,8 +741,9 @@ export default function ControlloConsumi() {
               breakdown
             });
 
-            // Next day will use actual final quantity
+            // Next day will use actual final quantity from inventory
             prevQtyAttesa = qtyFinale;
+            prevWasInventoried = true;
           }
         });
       } else {
