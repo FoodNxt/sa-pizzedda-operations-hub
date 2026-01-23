@@ -29,6 +29,7 @@ export default function ProfiloDipendente() {
     citta_nascita: '',
     codice_fiscale: '',
     indirizzo_residenza: '',
+    citta_residenza: '',
     iban: '',
     taglia_maglietta: '',
     cittadinanza_italiana: true
@@ -58,6 +59,7 @@ export default function ProfiloDipendente() {
         citta_nascita: u.citta_nascita || '',
         codice_fiscale: u.codice_fiscale || '',
         indirizzo_residenza: u.indirizzo_residenza || '',
+        citta_residenza: u.citta_residenza || '',
         iban: u.iban || '',
         taglia_maglietta: u.taglia_maglietta || '',
         cittadinanza_italiana: u.cittadinanza_italiana !== false
@@ -114,6 +116,7 @@ export default function ProfiloDipendente() {
         citta_nascita: user.citta_nascita || '',
         codice_fiscale: user.codice_fiscale || '',
         indirizzo_residenza: user.indirizzo_residenza || '',
+        citta_residenza: user.citta_residenza || '',
         iban: user.iban || '',
         taglia_maglietta: user.taglia_maglietta || '',
         cittadinanza_italiana: user.cittadinanza_italiana !== false
@@ -186,7 +189,7 @@ export default function ProfiloDipendente() {
 
   // Check if profile is complete
   const isProfileComplete = user?.nome_cognome && user?.phone && user?.data_nascita && 
-    user?.citta_nascita && user?.codice_fiscale && user?.indirizzo_residenza && user?.iban &&
+    user?.citta_nascita && user?.codice_fiscale && user?.indirizzo_residenza && user?.citta_residenza && user?.iban &&
     user?.documento_identita_url && user?.codice_fiscale_documento_url &&
     (user?.cittadinanza_italiana !== false || user?.permesso_soggiorno_url);
 
@@ -370,13 +373,27 @@ export default function ProfiloDipendente() {
             <div>
               <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
                 <MapPin className="w-4 h-4" />
-                Indirizzo
+                Indirizzo di Residenza
               </label>
               <input
                 type="text"
                 value={formData.indirizzo_residenza}
                 onChange={(e) => setFormData({ ...formData, indirizzo_residenza: e.target.value })}
-                placeholder="Via Roma 123, 20100 Milano"
+                placeholder="Via Roma 123"
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
+                <MapPin className="w-4 h-4" />
+                Città di Residenza
+              </label>
+              <input
+                type="text"
+                value={formData.citta_residenza}
+                onChange={(e) => setFormData({ ...formData, citta_residenza: e.target.value })}
+                placeholder="Milano"
                 className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
               />
             </div>
@@ -518,9 +535,14 @@ export default function ProfiloDipendente() {
               <p className="text-sm text-slate-700 font-medium">{user?.phone || '-'}</p>
             </div>
 
-            <div className="neumorphic-pressed p-3 rounded-xl sm:col-span-2">
-              <p className="text-xs text-slate-500 mb-1">Indirizzo</p>
+            <div className="neumorphic-pressed p-3 rounded-xl">
+              <p className="text-xs text-slate-500 mb-1">Indirizzo di Residenza</p>
               <p className="text-sm text-slate-700 font-medium break-words">{user?.indirizzo_residenza || '-'}</p>
+            </div>
+
+            <div className="neumorphic-pressed p-3 rounded-xl">
+              <p className="text-xs text-slate-500 mb-1">Città di Residenza</p>
+              <p className="text-sm text-slate-700 font-medium">{user?.citta_residenza || '-'}</p>
             </div>
 
             <div className="neumorphic-pressed p-3 rounded-xl sm:col-span-2">
@@ -544,7 +566,7 @@ export default function ProfiloDipendente() {
         </h3>
 
         {/* Check if anagrafica is complete */}
-        {(!user?.nome_cognome || !user?.phone || !user?.data_nascita || !user?.citta_nascita || !user?.codice_fiscale || !user?.indirizzo_residenza || !user?.iban) ? (
+        {(!user?.nome_cognome || !user?.phone || !user?.data_nascita || !user?.citta_nascita || !user?.codice_fiscale || !user?.indirizzo_residenza || !user?.citta_residenza || !user?.iban) ? (
           <div className="neumorphic-pressed p-4 rounded-xl bg-yellow-50">
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
