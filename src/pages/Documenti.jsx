@@ -879,8 +879,9 @@ function ContrattiSection() {
     phone: '', data_nascita: '', citta_nascita: '', codice_fiscale: '', indirizzo_residenza: '',
     iban: '', taglia_maglietta: '', user_type: 'dipendente', ruoli_dipendente: [],
     assigned_stores: [], employee_group: '', function_name: '', ore_settimanali: 0,
-    data_inizio_contratto: '', durata_contratto_mesi: 0, status: 'bozza', note: ''
+    data_inizio_contratto: '', data_fine_contratto: '', durata_contratto_mesi: 0, status: 'bozza', note: ''
   });
+  const [editablePreview, setEditablePreview] = useState('');
   const [templateData, setTemplateData] = useState({
     nome_template: '', contenuto_template: '', descrizione: '', attivo: true
   });
@@ -952,11 +953,12 @@ function ContrattiSection() {
       phone: '', data_nascita: '', citta_nascita: '', codice_fiscale: '', indirizzo_residenza: '',
       iban: '', taglia_maglietta: '', user_type: 'dipendente', ruoli_dipendente: [],
       assigned_stores: [], employee_group: '', function_name: '', ore_settimanali: 0,
-      data_inizio_contratto: '', durata_contratto_mesi: 0, status: 'bozza', note: ''
+      data_inizio_contratto: '', data_fine_contratto: '', durata_contratto_mesi: 0, status: 'bozza', note: ''
     });
     setSelectedTemplate('');
     setEditingContratto(null);
     setShowForm(false);
+    setEditablePreview('');
   };
 
   const resetTemplateForm = () => {
@@ -1031,12 +1033,21 @@ function ContrattiSection() {
       return;
     }
 
-    const contenutoContratto = await replaceVariables(template.contenuto_template, formData);
+    // Calculate data_fine_contratto if not manually set
+    let dataFineContratto = formData.data_fine_contratto;
+    if (!dataFineContratto && formData.data_inizio_contratto && formData.durata_contratto_mesi > 0) {
+      const dataInizio = new Date(formData.data_inizio_contratto);
+      const dataFine = new Date(dataInizio);
+      dataFine.setMonth(dataFine.getMonth() + parseInt(formData.durata_contratto_mesi));
+      dataFineContratto = dataFine.toISOString().split('T')[0];
+    }
+
     const contrattoData = {
       ...formData,
+      data_fine_contratto: dataFineContratto,
       template_id: template.id,
       template_nome: template.nome_template,
-      contenuto_contratto: contenutoContratto
+      contenuto_contratto: editablePreview
     };
 
     if (editingContratto) {
@@ -1088,7 +1099,18 @@ function ContrattiSection() {
     const template = templates.find(t => t.id === templateId);
     if (template && formData.nome_cognome) {
       const preview = await replaceVariables(template.contenuto_template, formData);
-      setPreviewContratto(preview);
+      setEditablePreview(preview);
+    }
+  };
+
+  const handleFormDataChange = async (newFormData) => {
+    setFormData(newFormData);
+    if (selectedTemplate && newFormData.nome_cognome) {
+      const template = templates.find(t => t.id === selectedTemplate);
+      if (template) {
+        const preview = await replaceVariables(template.contenuto_template, newFormData);
+        setEditablePreview(preview);
+      }
     }
   };
 
@@ -1724,35 +1746,83 @@ function ContrattiSection() {
 
       {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <NeumorphicCard className="max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between mb-4">
-              <h2 className="text-xl font-bold">Nuovo Contratto</h2>
-              <button onClick={resetForm}><X className="w-5 h-5" /></button>
-            </div>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <select value={selectedTemplate} onChange={(e) => handleTemplateSelect(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required>
-                <option value="">Seleziona template...</option>
-                {templates.filter(t => t.attivo).map(t => (
-                  <option key={t.id} value={t.id}>{t.nome_template}</option>
-                ))}
-              </select>
-              <select value={formData.user_id} onChange={(e) => handleUserSelect(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none">
-                <option value="">Seleziona dipendente...</option>
-                {users.filter(u => u.user_type === 'dipendente').map(u => (
-                  <option key={u.id} value={u.id}>{u.nome_cognome || u.full_name || u.email}</option>
-                ))}
-              </select>
-              <input type="text" placeholder="Nome Cognome" value={formData.nome_cognome}
-                onChange={(e) => setFormData({ ...formData, nome_cognome: e.target.value })}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required />
-              <input type="date" value={formData.data_inizio_contratto}
-                onChange={(e) => setFormData({ ...formData, data_inizio_contratto: e.target.value })}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required />
-              <NeumorphicButton type="submit" variant="primary" className="w-full">Crea Contratto</NeumorphicButton>
-            </form>
-          </NeumorphicCard>
+          <div className="max-w-6xl w-full max-h-[90vh] flex gap-4">
+            {/* Left: Form */}
+            <NeumorphicCard className="w-1/2 p-6 overflow-y-auto">
+              <div className="flex justify-between mb-4">
+                <h2 className="text-xl font-bold">Nuovo Contratto</h2>
+                <button onClick={resetForm}><X className="w-5 h-5" /></button>
+              </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Template *</label>
+                  <select value={selectedTemplate} onChange={(e) => handleTemplateSelect(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required>
+                    <option value="">Seleziona template...</option>
+                    {templates.filter(t => t.attivo).map(t => (
+                      <option key={t.id} value={t.id}>{t.nome_template}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Dipendente</label>
+                  <select value={formData.user_id} onChange={(e) => handleUserSelect(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none">
+                    <option value="">Seleziona dipendente...</option>
+                    {users.filter(u => u.user_type === 'dipendente').map(u => (
+                      <option key={u.id} value={u.id}>{u.nome_cognome || u.full_name || u.email}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Nome Cognome *</label>
+                  <input type="text" placeholder="Nome Cognome" value={formData.nome_cognome}
+                    onChange={(e) => handleFormDataChange({ ...formData, nome_cognome: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">Data Inizio *</label>
+                    <input type="date" value={formData.data_inizio_contratto}
+                      onChange={(e) => handleFormDataChange({ ...formData, data_inizio_contratto: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">Durata (mesi)</label>
+                    <input type="number" placeholder="12" value={formData.durata_contratto_mesi}
+                      onChange={(e) => handleFormDataChange({ ...formData, durata_contratto_mesi: parseInt(e.target.value) || 0, data_fine_contratto: '' })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Data Fine (opzionale)</label>
+                  <input type="date" value={formData.data_fine_contratto}
+                    onChange={(e) => handleFormDataChange({ ...formData, data_fine_contratto: e.target.value, durata_contratto_mesi: 0 })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
+                  <p className="text-xs text-slate-500 mt-1">Lascia vuoto per calcolarla automaticamente dalla durata</p>
+                </div>
+                <NeumorphicButton type="submit" variant="primary" className="w-full">Crea Contratto</NeumorphicButton>
+              </form>
+            </NeumorphicCard>
+
+            {/* Right: Preview */}
+            <NeumorphicCard className="w-1/2 p-6 overflow-y-auto">
+              <h2 className="text-xl font-bold mb-4">Anteprima Contratto</h2>
+              {editablePreview ? (
+                <textarea
+                  value={editablePreview}
+                  onChange={(e) => setEditablePreview(e.target.value)}
+                  className="w-full h-full neumorphic-pressed px-4 py-3 rounded-xl outline-none resize-none font-mono text-sm"
+                  placeholder="Seleziona un template e compila i dati per vedere l'anteprima..."
+                />
+              ) : (
+                <div className="neumorphic-pressed p-6 rounded-xl bg-slate-50 text-center">
+                  <FileText className="w-16 h-16 text-slate-300 mx-auto mb-3" />
+                  <p className="text-slate-500 text-sm">Seleziona un template e compila i dati per vedere l'anteprima</p>
+                </div>
+              )}
+            </NeumorphicCard>
+          </div>
         </div>
       )}
 
