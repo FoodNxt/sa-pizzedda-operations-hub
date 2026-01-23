@@ -149,8 +149,16 @@ export default function Costi() {
       alert('Compila tutti i campi obbligatori (Store e Affitto Mensile)');
       return;
     }
-    if (activeTab === 'utenze' && (!formData.store_id || !formData.costo_mensile_stimato)) {
-      alert('Compila tutti i campi obbligatori (Store e Costo Mensile)');
+    if (activeTab === 'utenze' && !formData.costo_mensile_stimato) {
+      alert('Compila il campo Costo Mensile');
+      return;
+    }
+    if (activeTab === 'utenze' && formData.assegnazione === 'singolo' && !formData.store_id) {
+      alert('Seleziona un locale');
+      return;
+    }
+    if (activeTab === 'utenze' && formData.assegnazione === 'multipli' && (!formData.stores_ids || formData.stores_ids.length === 0)) {
+      alert('Seleziona almeno un locale');
       return;
     }
     
@@ -183,6 +191,10 @@ export default function Costi() {
     }
     if (activeTab === 'subscriptions' && formData.assegnazione === 'singolo' && !formData.store_id) {
       alert('Seleziona un locale per la subscription');
+      return;
+    }
+    if (activeTab === 'subscriptions' && formData.assegnazione === 'multipli' && (!formData.stores_ids || formData.stores_ids.length === 0)) {
+      alert('Seleziona almeno un locale per la subscription');
       return;
     }
     if (activeTab === 'commissioni' && (!formData.app_delivery || !formData.percentuale)) {
@@ -288,7 +300,14 @@ export default function Costi() {
               const costoAffitto = (affitto?.affitto_mensile || 0) * proRata;
 
               // Utenze (pro rata)
-              const utenzeStore = utenze.filter(u => u.store_id === storeId);
+              const utenzeStore = utenze.filter(u => {
+                if (u.assegnazione === 'singolo') {
+                  return u.store_id === storeId;
+                } else if (u.assegnazione === 'multipli') {
+                  return u.stores_ids?.includes(storeId);
+                }
+                return false;
+              });
               const costoUtenze = utenzeStore.reduce((sum, u) => sum + (u.costo_mensile_stimato || 0), 0) * proRata;
 
               // COGS (ordini completati del mese per questo store)
@@ -325,6 +344,8 @@ export default function Costi() {
                 .reduce((sum, s) => {
                   if (s.assegnazione === 'singolo' && s.store_id === storeId) {
                     return sum + (s.costo || 0);
+                  } else if (s.assegnazione === 'multipli' && s.stores_ids?.includes(storeId)) {
+                    return sum + (s.costo || 0);
                   } else if (s.assegnazione === 'tutti') {
                     return sum + ((s.costo || 0) / numStores);
                   }
@@ -334,6 +355,8 @@ export default function Costi() {
                 .filter(s => s.periodo === 'annuale')
                 .reduce((sum, s) => {
                   if (s.assegnazione === 'singolo' && s.store_id === storeId) {
+                    return sum + ((s.costo || 0) / 12);
+                  } else if (s.assegnazione === 'multipli' && s.stores_ids?.includes(storeId)) {
                     return sum + ((s.costo || 0) / 12);
                   } else if (s.assegnazione === 'tutti') {
                     return sum + ((s.costo || 0) / 12 / numStores);
@@ -491,14 +514,17 @@ export default function Costi() {
                         </div>
                       </button>
                       {expandedDetails[`${storeId}-utenze`] && utenzeStore.length > 0 && (
-                        <div className="pl-6 pb-2 space-y-1">
-                          {utenzeStore.map(u => (
-                            <div key={u.id} className="text-xs text-slate-500 flex justify-between">
-                              <span>{u.nome_utenza || 'Utenza'}</span>
-                              <span>{formatEuro(u.costo_mensile_stimato)}</span>
-                            </div>
-                          ))}
-                        </div>
+                       <div className="pl-6 pb-2 space-y-1">
+                         {utenzeStore.map(u => (
+                           <div key={u.id} className="text-xs text-slate-500 flex justify-between">
+                             <span>
+                               {u.nome_utenza || 'Utenza'}
+                               {u.assegnazione === 'multipli' && <span className="ml-1 text-orange-600">×{u.stores_ids?.length || 0}</span>}
+                             </span>
+                             <span>{formatEuro(u.costo_mensile_stimato)}</span>
+                           </div>
+                         ))}
+                       </div>
                       )}
                     </div>
 
@@ -572,23 +598,24 @@ export default function Costi() {
                         </div>
                       </button>
                       {expandedDetails[`${storeId}-subscriptions`] && subscriptions.length > 0 && (
-                       <div className="pl-6 pb-2 space-y-1">
-                         {subscriptions
-                           .filter(s => s.assegnazione === 'tutti' || (s.assegnazione === 'singolo' && s.store_id === storeId))
-                           .map(s => {
-                             const costoBase = s.periodo === 'annuale' ? s.costo / 12 : s.costo;
-                             const costoFinale = s.assegnazione === 'tutti' ? costoBase / numStores : costoBase;
-                             return (
-                               <div key={s.id} className="text-xs text-slate-500 flex justify-between">
-                                 <span>
-                                   {s.nome} ({s.periodo})
-                                   {s.assegnazione === 'tutti' && <span className="ml-1 text-blue-600">÷{numStores}</span>}
-                                 </span>
-                                 <span>{formatEuro(costoFinale)}</span>
-                               </div>
-                             );
-                           })}
-                       </div>
+                      <div className="pl-6 pb-2 space-y-1">
+                        {subscriptions
+                          .filter(s => s.assegnazione === 'tutti' || (s.assegnazione === 'singolo' && s.store_id === storeId) || (s.assegnazione === 'multipli' && s.stores_ids?.includes(storeId)))
+                          .map(s => {
+                            const costoBase = s.periodo === 'annuale' ? s.costo / 12 : s.costo;
+                            const costoFinale = s.assegnazione === 'tutti' ? costoBase / numStores : costoBase;
+                            return (
+                              <div key={s.id} className="text-xs text-slate-500 flex justify-between">
+                                <span>
+                                  {s.nome} ({s.periodo})
+                                  {s.assegnazione === 'tutti' && <span className="ml-1 text-blue-600">÷{numStores}</span>}
+                                  {s.assegnazione === 'multipli' && <span className="ml-1 text-orange-600">×{s.stores_ids?.length || 0}</span>}
+                                </span>
+                                <span>{formatEuro(costoFinale)}</span>
+                              </div>
+                            );
+                          })}
+                      </div>
                       )}
                     </div>
 
@@ -886,21 +913,65 @@ export default function Costi() {
             {showAddForm && (
               <div className="neumorphic-pressed p-4 rounded-xl mb-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Store</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Assegnazione</label>
                   <select
-                    value={formData.store_id || ''}
-                    onChange={(e) => {
-                      const store = stores.find(s => s.id === e.target.value);
-                      setFormData({ ...formData, store_id: e.target.value, store_name: store?.name });
-                    }}
+                    value={formData.assegnazione || 'singolo'}
+                    onChange={(e) => setFormData({ ...formData, assegnazione: e.target.value, store_id: '', store_name: '', stores_ids: [], stores_names: [] })}
                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
                   >
-                    <option value="">Seleziona store</option>
-                    {stores.map(store => (
-                      <option key={store.id} value={store.id}>{store.name}</option>
-                    ))}
+                    <option value="singolo">Singolo locale</option>
+                    <option value="multipli">Più locali</option>
                   </select>
                 </div>
+                {formData.assegnazione === 'singolo' ? (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Store</label>
+                    <select
+                      value={formData.store_id || ''}
+                      onChange={(e) => {
+                        const store = stores.find(s => s.id === e.target.value);
+                        setFormData({ ...formData, store_id: e.target.value, store_name: store?.name });
+                      }}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    >
+                      <option value="">Seleziona store</option>
+                      {stores.map(store => (
+                        <option key={store.id} value={store.id}>{store.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Stores</label>
+                    <div className="neumorphic-pressed p-4 rounded-xl space-y-2 max-h-48 overflow-y-auto">
+                      {stores.map(store => (
+                        <label key={store.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded">
+                          <input
+                            type="checkbox"
+                            checked={(formData.stores_ids || []).includes(store.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setFormData({
+                                  ...formData,
+                                  stores_ids: [...(formData.stores_ids || []), store.id],
+                                  stores_names: [...(formData.stores_names || []), store.name]
+                                });
+                              } else {
+                                setFormData({
+                                  ...formData,
+                                  stores_ids: (formData.stores_ids || []).filter(id => id !== store.id),
+                                  stores_names: (formData.stores_names || []).filter(n => n !== store.name)
+                                });
+                              }
+                            }}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-sm text-slate-700">{store.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Nome Utenza</label>
                   <div className="flex gap-2">
@@ -953,10 +1024,17 @@ export default function Costi() {
                 <div key={item.id} className="neumorphic-flat p-4 rounded-xl flex items-center justify-between">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <p className="font-bold text-slate-800">{item.store_name}</p>
+                      <p className="font-bold text-slate-800">
+                        {item.assegnazione === 'singolo' ? item.store_name : (item.stores_names?.join(', ') || 'Multipli')}
+                      </p>
                       {item.nome_utenza && (
                         <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
                           {item.nome_utenza}
+                        </span>
+                      )}
+                      {item.assegnazione === 'multipli' && (
+                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                          {item.stores_ids?.length || 0} locali
                         </span>
                       )}
                     </div>
@@ -1131,14 +1209,17 @@ export default function Costi() {
                   <label className="block text-sm font-medium text-slate-700 mb-2">Assegnazione</label>
                   <select
                     value={formData.assegnazione || 'tutti'}
-                    onChange={(e) => setFormData({ ...formData, assegnazione: e.target.value, store_id: '', store_name: '' })}
+                    onChange={(e) => setFormData({ ...formData, assegnazione: e.target.value, store_id: '', store_name: '', stores_ids: [], stores_names: [] })}
                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
                   >
                     <option value="tutti">Tutti i locali (costo diviso)</option>
                     <option value="singolo">Singolo locale</option>
+                    <option value="multipli">Più locali (costo per ognuno)</option>
                   </select>
                   <p className="text-xs text-slate-500 mt-1">
-                    {formData.assegnazione === 'tutti' ? 'Il costo verrà diviso equamente tra tutti i locali' : 'Il costo verrà assegnato solo al locale selezionato'}
+                    {formData.assegnazione === 'tutti' ? 'Il costo verrà diviso equamente tra tutti i locali' : 
+                     formData.assegnazione === 'singolo' ? 'Il costo verrà assegnato solo al locale selezionato' :
+                     'Ogni locale selezionato pagherà il costo completo'}
                   </p>
                 </div>
                 {formData.assegnazione === 'singolo' && (
@@ -1157,6 +1238,38 @@ export default function Costi() {
                         <option key={store.id} value={store.id}>{store.name}</option>
                       ))}
                     </select>
+                  </div>
+                )}
+                {formData.assegnazione === 'multipli' && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Locali</label>
+                    <div className="neumorphic-pressed p-4 rounded-xl space-y-2 max-h-48 overflow-y-auto">
+                      {stores.map(store => (
+                        <label key={store.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded">
+                          <input
+                            type="checkbox"
+                            checked={(formData.stores_ids || []).includes(store.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setFormData({
+                                  ...formData,
+                                  stores_ids: [...(formData.stores_ids || []), store.id],
+                                  stores_names: [...(formData.stores_names || []), store.name]
+                                });
+                              } else {
+                                setFormData({
+                                  ...formData,
+                                  stores_ids: (formData.stores_ids || []).filter(id => id !== store.id),
+                                  stores_names: (formData.stores_names || []).filter(n => n !== store.name)
+                                });
+                              }
+                            }}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-sm text-slate-700">{store.name}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 )}
                 <div>
@@ -1185,15 +1298,20 @@ export default function Costi() {
                         <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
                           Tutti i locali
                         </span>
-                      ) : (
+                      ) : item.assegnazione === 'singolo' ? (
                         <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
                           {item.store_name}
+                        </span>
+                      ) : (
+                        <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
+                          {item.stores_ids?.length || 0} locali
                         </span>
                       )}
                     </div>
                     <p className="text-sm text-slate-600">
                       {formatEuro(item.costo)}/{item.periodo}
                       {item.assegnazione === 'tutti' && <span className="text-blue-600 ml-1">(÷{stores.length} locali)</span>}
+                      {item.assegnazione === 'multipli' && <span className="text-orange-600 ml-1">({item.stores_names?.join(', ')})</span>}
                     </p>
                     {item.note && <p className="text-xs text-slate-500 mt-1">{item.note}</p>}
                   </div>
@@ -1360,14 +1478,17 @@ export default function Costi() {
                   <label className="block text-sm font-medium text-slate-700 mb-2">Assegnazione</label>
                   <select
                     value={formData.assegnazione || 'tutti'}
-                    onChange={(e) => setFormData({ ...formData, assegnazione: e.target.value, store_id: '', store_name: '' })}
+                    onChange={(e) => setFormData({ ...formData, assegnazione: e.target.value, store_id: '', store_name: '', stores_ids: [], stores_names: [] })}
                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
                   >
-                    <option value="tutti">Tutti i locali (budget diviso)</option>
+                    <option value="tutti">Tutti i locali (costo diviso)</option>
                     <option value="singolo">Singolo locale</option>
+                    <option value="multipli">Più locali (costo per ognuno)</option>
                   </select>
                   <p className="text-xs text-slate-500 mt-1">
-                    {formData.assegnazione === 'tutti' ? 'Il budget verrà diviso equamente tra tutti i locali' : 'Il budget verrà assegnato solo al locale selezionato'}
+                    {formData.assegnazione === 'tutti' ? 'Il costo verrà diviso equamente tra tutti i locali' : 
+                     formData.assegnazione === 'singolo' ? 'Il costo verrà assegnato solo al locale selezionato' :
+                     'Ogni locale selezionato pagherà il costo completo'}
                   </p>
                 </div>
                 {formData.assegnazione === 'singolo' && (
@@ -1386,6 +1507,38 @@ export default function Costi() {
                         <option key={store.id} value={store.id}>{store.name}</option>
                       ))}
                     </select>
+                  </div>
+                )}
+                {formData.assegnazione === 'multipli' && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Locali</label>
+                    <div className="neumorphic-pressed p-4 rounded-xl space-y-2 max-h-48 overflow-y-auto">
+                      {stores.map(store => (
+                        <label key={store.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded">
+                          <input
+                            type="checkbox"
+                            checked={(formData.stores_ids || []).includes(store.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setFormData({
+                                  ...formData,
+                                  stores_ids: [...(formData.stores_ids || []), store.id],
+                                  stores_names: [...(formData.stores_names || []), store.name]
+                                });
+                              } else {
+                                setFormData({
+                                  ...formData,
+                                  stores_ids: (formData.stores_ids || []).filter(id => id !== store.id),
+                                  stores_names: (formData.stores_names || []).filter(n => n !== store.name)
+                                });
+                              }
+                            }}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-sm text-slate-700">{store.name}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 )}
                 <div>
