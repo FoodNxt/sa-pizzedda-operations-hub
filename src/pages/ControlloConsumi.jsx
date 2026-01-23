@@ -630,9 +630,25 @@ export default function ControlloConsumi() {
       };
 
       if (mode === 'daily') {
-        datesSorted.forEach(date => {
+        // Generate all dates in the range
+        const allDatesInRange = [];
+        let currentDate = parseISO(startDate);
+        const lastDate = parseISO(endDate);
+        
+        while (currentDate <= lastDate) {
+          allDatesInRange.push(format(currentDate, 'yyyy-MM-dd'));
+          currentDate = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
+        }
+
+        let prevQtyAttesa = null;
+
+        allDatesInRange.forEach(date => {
           const prod = datiGiornalieriPerProdotto[date]?.[mozz.id];
-          if (!prod) return;
+
+          // Check if inventory was done on this date
+          const inventarioEsistente = filteredInventari.find(inv => 
+            inv.prodotto_id === mozz.id && inv.data_rilevazione.split('T')[0] === date
+          );
 
           const breakdown = [];
           filteredVendite.filter(v => v.data_vendita === date).forEach(vendita => {
@@ -655,8 +671,7 @@ export default function ControlloConsumi() {
 
           const grammiVenduti = breakdown.reduce((sum, item) => sum + item.grammiTotali, 0);
           const kgVenduti = grammiVenduti / 1000;
-          const pezziVenduti = prod.qtyVenduta;
-
+          
           const sprechiProdotto = filteredSprechi.filter(s => {
             const dataSpreco = s.data_rilevazione.split('T')[0];
             return dataSpreco === date && s.prodotto_id === mozz.id;
@@ -664,20 +679,51 @@ export default function ControlloConsumi() {
           const totaleSprechiGrammi = sprechiProdotto.reduce((sum, s) => sum + (s.quantita_grammi || 0), 0);
           const totaleSprechiKg = totaleSprechiGrammi / 1000;
 
-          datiMozz.periodi.push({
-            periodo: date,
-            qtyIniziale: prod.qtyIniziale,
-            grammiVenduti,
-            kgVenduti,
-            pezziVenduti,
-            qtyArrivata: prod.qtyArrivata,
-            sprechiGrammi: totaleSprechiGrammi,
-            sprechiKg: totaleSprechiKg,
-            qtyFinale: prod.qtyFinale,
-            qtyAttesa: prod.qtyIniziale - prod.qtyVenduta + prod.qtyArrivata,
-            delta: prod.delta,
-            breakdown
-          });
+          const qtyArrivata = ordiniPerGiorno[date]?.[mozz.id]?.quantita || 0;
+          const pezziVenduti = prod?.qtyVenduta || (quantitaVendutePerGiorno[date]?.[mozz.id]?.quantita || 0);
+
+          if (!inventarioEsistente) {
+            // NO inventory done - use expected quantity as initial
+            const qtyIniziale = prevQtyAttesa !== null ? prevQtyAttesa : 0;
+            const qtyAttesa = qtyIniziale - pezziVenduti + qtyArrivata;
+            
+            datiMozz.periodi.push({
+              periodo: date,
+              inventarioMancante: true,
+              qtyIniziale,
+              grammiVenduti,
+              kgVenduti,
+              pezziVenduti,
+              qtyArrivata,
+              sprechiGrammi: totaleSprechiGrammi,
+              sprechiKg: totaleSprechiKg,
+              qtyFinale: null,
+              qtyAttesa,
+              delta: null,
+              breakdown
+            });
+
+            prevQtyAttesa = qtyAttesa;
+          } else {
+            // Inventory exists
+            datiMozz.periodi.push({
+              periodo: date,
+              inventarioMancante: false,
+              qtyIniziale: prod.qtyIniziale,
+              grammiVenduti,
+              kgVenduti,
+              pezziVenduti,
+              qtyArrivata: prod.qtyArrivata,
+              sprechiGrammi: totaleSprechiGrammi,
+              sprechiKg: totaleSprechiKg,
+              qtyFinale: prod.qtyFinale,
+              qtyAttesa: prod.qtyIniziale - prod.qtyVenduta + prod.qtyArrivata,
+              delta: prod.delta,
+              breakdown
+            });
+
+            prevQtyAttesa = prod.qtyFinale;
+          }
         });
       } else {
         // Weekly or Monthly aggregation
@@ -1047,7 +1093,7 @@ export default function ControlloConsumi() {
                                 const deltaPercent = periodo.pezziVenduti !== 0 ? (periodo.delta / periodo.pezziVenduti * 100) : 0;
                                 return (
                                   <React.Fragment key={periodo.periodo}>
-                                    <tr className="border-b border-slate-100 hover:bg-slate-50">
+                                    <tr className={`border-b border-slate-100 hover:bg-slate-50 ${periodo.inventarioMancante ? 'bg-yellow-50' : ''}`}>
                                       <td className="py-2 px-3">
                                         <button
                                           onClick={() => setExpandedMozzarellaRows(prev => ({ ...prev, [rowKey]: !prev[rowKey] }))}
@@ -1060,6 +1106,11 @@ export default function ControlloConsumi() {
                                             ? `${format(parseISO(periodo.periodo), 'dd/MM/yyyy')}`
                                             : format(parseISO(periodo.periodo + '-01'), 'MMMM yyyy', { locale: it })
                                           }
+                                          {periodo.inventarioMancante && (
+                                            <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-yellow-200 text-yellow-800">
+                                              No inv.
+                                            </span>
+                                          )}
                                         </button>
                                       </td>
                                       <td className="py-2 px-3 text-right font-medium">{periodo.qtyIniziale.toFixed(2)}</td>
@@ -1076,16 +1127,44 @@ export default function ControlloConsumi() {
                                       </td>
                                       <td className="py-2 px-3 text-right text-blue-600 font-medium">+{periodo.qtyArrivata.toFixed(2)}</td>
                                       <td className="py-2 px-3 text-right text-slate-600">{periodo.qtyAttesa.toFixed(2)}</td>
-                                      <td className="py-2 px-3 text-right font-bold">{periodo.qtyFinale.toFixed(2)}</td>
-                                      <td className={`py-2 px-3 text-right ${periodo.delta > 0 ? 'text-green-600' : periodo.delta < 0 ? 'text-red-600' : 'text-slate-600'}`}>
-                                        <div className="font-bold">{periodo.delta > 0 ? '+' : ''}{periodo.delta.toFixed(2)}</div>
-                                        <div className="text-xs">({deltaPercent > 0 ? '+' : ''}{deltaPercent.toFixed(1)}%)</div>
+                                      <td className="py-2 px-3 text-right font-bold">
+                                        {periodo.inventarioMancante ? (
+                                          <span className="text-yellow-600">-</span>
+                                        ) : (
+                                          periodo.qtyFinale.toFixed(2)
+                                        )}
+                                      </td>
+                                      <td className={`py-2 px-3 text-right ${
+                                        periodo.inventarioMancante ? 'text-yellow-600' :
+                                        periodo.delta > 0 ? 'text-green-600' : 
+                                        periodo.delta < 0 ? 'text-red-600' : 
+                                        'text-slate-600'
+                                      }`}>
+                                        {periodo.inventarioMancante ? (
+                                          <span className="text-xs">N/A</span>
+                                        ) : (
+                                          <>
+                                            <div className="font-bold">{periodo.delta > 0 ? '+' : ''}{periodo.delta.toFixed(2)}</div>
+                                            <div className="text-xs">({deltaPercent > 0 ? '+' : ''}{deltaPercent.toFixed(1)}%)</div>
+                                          </>
+                                        )}
                                       </td>
                                     </tr>
                                     {isRowExpanded && (
                                       <tr>
-                                        <td colSpan="10" className="bg-slate-50 p-4">
+                                        <td colSpan="10" className={`p-4 ${periodo.inventarioMancante ? 'bg-yellow-50' : 'bg-slate-50'}`}>
                                           <div className="text-sm space-y-4">
+                                            {periodo.inventarioMancante && (
+                                              <div className="p-3 bg-yellow-100 border border-yellow-300 rounded-lg mb-4">
+                                                <p className="font-bold text-yellow-800 flex items-center gap-2">
+                                                  <AlertTriangle className="w-4 h-4" />
+                                                  ⚠️ Inventario non compilato in questa data
+                                                </p>
+                                                <p className="text-xs text-yellow-700 mt-1">
+                                                  La quantità iniziale è stata calcolata dalla quantità attesa del giorno precedente
+                                                </p>
+                                              </div>
+                                            )}
                                             {prodottiChiaveViewMode !== 'daily' && (periodo.firstInventario || periodo.lastInventario) && (
                                               <div className="mb-4 p-3 bg-blue-50 rounded-lg">
                                                 <p className="font-bold text-blue-800 mb-2">📅 Dettaglio Form Inventario:</p>
