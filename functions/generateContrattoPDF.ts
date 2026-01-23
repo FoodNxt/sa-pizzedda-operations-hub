@@ -53,36 +53,75 @@ Deno.serve(async (req) => {
 
     // Add signature section if contract is signed
     if (status === 'firmato' && firma_dipendente) {
-      // Add new page for signature
-      doc.addPage();
-      y = 30;
+      // Ensure there's space, otherwise add new page
+      if (y > pageHeight - 80) {
+        doc.addPage();
+        y = margin;
+      } else {
+        y += 20;
+      }
 
-      doc.setFontSize(12);
+      // DocuSign-style signature box
+      doc.setFillColor(250, 250, 250);
+      doc.rect(15, y, 180, 65, 'F');
+      doc.setDrawColor(70, 130, 180);
+      doc.setLineWidth(0.5);
+      doc.rect(15, y, 180, 65, 'S');
+
+      y += 10;
+
+      // Header
+      doc.setFontSize(11);
       doc.setFont(undefined, 'bold');
-      doc.text('FIRMA DIGITALE', 105, y, { align: 'center' });
+      doc.setTextColor(70, 130, 180);
+      doc.text('✓ Firmato Digitalmente', margin + 5, y);
       
-      y += 15;
-      doc.setDrawColor(100, 100, 100);
-      doc.line(20, y, 190, y);
       y += 10;
 
-      doc.setFontSize(10);
+      // Signature line
+      doc.setFontSize(14);
       doc.setFont(undefined, 'normal');
-      doc.text(`Firmato da: ${firma_dipendente}`, margin, y);
-      y += 8;
+      doc.setTextColor(0, 0, 0);
+      doc.text(firma_dipendente, margin + 5, y);
       
-      const dataFirmaFormatted = new Date(data_firma).toLocaleDateString('it-IT') + 
-                                  ' alle ' + 
-                                  new Date(data_firma).toLocaleTimeString('it-IT');
-      doc.text(`Data firma: ${dataFirmaFormatted}`, margin, y);
       y += 8;
 
-      doc.text(`Questo documento è stato firmato digitalmente sulla piattaforma Sa Pizzedda Workspace.`, margin, y);
+      // Timestamp
+      doc.setFontSize(9);
+      doc.setFont(undefined, 'normal');
+      doc.setTextColor(100, 100, 100);
+      const dataFirmaObj = new Date(data_firma);
+      const dataFirmaFormatted = dataFirmaObj.toLocaleDateString('it-IT', { 
+        day: '2-digit', 
+        month: 'long', 
+        year: 'numeric' 
+      }) + ' alle ' + dataFirmaObj.toLocaleTimeString('it-IT', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit' 
+      });
+      doc.text(`Firmato il: ${dataFirmaFormatted}`, margin + 5, y);
+      
       y += 6;
-      doc.text(`ID Contratto: ${contratto_id}`, margin, y);
+
+      // IP and Document ID
+      doc.text(`ID Documento: ${contratto_id}`, margin + 5, y);
       
       y += 10;
-      doc.line(20, y, 190, y);
+
+      // Footer line
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.2);
+      doc.line(margin + 5, y, 190, y);
+      
+      y += 5;
+
+      // Certification text
+      doc.setFontSize(7);
+      doc.setTextColor(120, 120, 120);
+      doc.text('Questo documento è stato firmato elettronicamente tramite la piattaforma Sa Pizzedda.', margin + 5, y);
+      y += 4;
+      doc.text('La firma digitale è legalmente vincolante e verificabile.', margin + 5, y);
     }
 
     // Get PDF as base64
