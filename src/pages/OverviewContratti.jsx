@@ -103,6 +103,13 @@ export default function OverviewContratti() {
     },
   });
 
+  const deletePayrollLogMutation = useMutation({
+    mutationFn: (id) => base44.entities.PayrollEmailLog.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payroll-email-logs'] });
+    },
+  });
+
   const dipendentiConContratti = useMemo(() => {
     const oggi = new Date();
     
@@ -449,6 +456,7 @@ export default function OverviewContratti() {
         .replace(/{{codice_fiscale}}/g, currentContract.codice_fiscale || '-')
         .replace(/{{citta_nascita}}/g, currentContract.citta_nascita || '-')
         .replace(/{{indirizzo_residenza}}/g, currentContract.indirizzo_residenza || '-')
+        .replace(/{{citta_residenza}}/g, user?.citta_residenza || '-')
         .replace(/{{livello}}/g, user?.livello?.toString() || '-')
         .replace(/{{gruppo_contrattuale}}/g, currentContract.employee_group || '-')
         .replace(/{{data_inizio_contratto}}/g, currentContract.data_inizio_contratto ? moment(currentContract.data_inizio_contratto).format('DD/MM/YYYY') : '-')
@@ -463,6 +471,7 @@ export default function OverviewContratti() {
         .replace(/{{codice_fiscale}}/g, currentContract.codice_fiscale || '-')
         .replace(/{{citta_nascita}}/g, currentContract.citta_nascita || '-')
         .replace(/{{indirizzo_residenza}}/g, currentContract.indirizzo_residenza || '-')
+        .replace(/{{citta_residenza}}/g, user?.citta_residenza || '-')
         .replace(/{{livello}}/g, user?.livello?.toString() || '-')
         .replace(/{{gruppo_contrattuale}}/g, currentContract.employee_group || '-')
         .replace(/{{data_inizio_contratto}}/g, currentContract.data_inizio_contratto ? moment(currentContract.data_inizio_contratto).format('DD/MM/YYYY') : '-')
@@ -1239,6 +1248,7 @@ export default function OverviewContratti() {
                       <th className="text-left py-3 px-2 font-semibold text-slate-700">Destinatario</th>
                       <th className="text-left py-3 px-2 font-semibold text-slate-700">Oggetto</th>
                       <th className="text-center py-3 px-2 font-semibold text-slate-700">COB</th>
+                      <th className="text-center py-3 px-2 font-semibold text-slate-700">Azioni</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1268,6 +1278,19 @@ export default function OverviewContratti() {
                             }}
                             className="w-5 h-5 cursor-pointer"
                           />
+                        </td>
+                        <td className="py-3 px-2 text-center">
+                          <button
+                            onClick={() => {
+                              if (confirm('Sei sicuro di voler eliminare questa mail dal log?')) {
+                                deletePayrollLogMutation.mutate(log.id);
+                              }
+                            }}
+                            className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
+                            title="Elimina"
+                          >
+                            <Trash2 className="w-4 h-4 text-red-600" />
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -1398,6 +1421,13 @@ export default function OverviewContratti() {
                               className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
                             >
                               {'{{indirizzo_residenza}}'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => insertVariable('{{citta_residenza}}')}
+                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
+                            >
+                              {'{{citta_residenza}}'}
                             </button>
                             <button
                               type="button"
