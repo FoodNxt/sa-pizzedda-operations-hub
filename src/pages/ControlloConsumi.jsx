@@ -640,7 +640,15 @@ export default function ControlloConsumi() {
           currentDate = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
         }
 
+        // Initialize with inventory from day before startDate if exists
         let prevQtyAttesa = null;
+        const dayBeforeStart = format(subDays(parseISO(startDate), 1), 'yyyy-MM-dd');
+        const invDayBefore = allInventari.find(inv => 
+          inv.prodotto_id === mozz.id && inv.data_rilevazione.split('T')[0] === dayBeforeStart
+        );
+        if (invDayBefore) {
+          prevQtyAttesa = invDayBefore.quantita_rilevata;
+        }
 
         allDatesInRange.forEach(date => {
           const prod = datiGiornalieriPerProdotto[date]?.[mozz.id];
@@ -683,7 +691,7 @@ export default function ControlloConsumi() {
           const pezziVenduti = prod?.qtyVenduta || (quantitaVendutePerGiorno[date]?.[mozz.id]?.quantita || 0);
 
           if (!inventarioEsistente) {
-            // NO inventory done - use expected quantity as initial
+            // NO inventory done - use expected quantity from previous day as initial
             const qtyIniziale = prevQtyAttesa !== null ? prevQtyAttesa : 0;
             const qtyAttesa = qtyIniziale - pezziVenduti + qtyArrivata;
             
@@ -703,25 +711,31 @@ export default function ControlloConsumi() {
               breakdown
             });
 
+            // Next day will use this expected quantity as initial
             prevQtyAttesa = qtyAttesa;
           } else {
-            // Inventory exists
+            // Inventory exists - determine qtyIniziale from previous day
+            const qtyIniziale = prevQtyAttesa !== null ? prevQtyAttesa : (prod?.qtyIniziale || 0);
+            const qtyAttesa = qtyIniziale - pezziVenduti + qtyArrivata;
+            const delta = prod.qtyFinale - qtyAttesa;
+
             datiMozz.periodi.push({
               periodo: date,
               inventarioMancante: false,
-              qtyIniziale: prod.qtyIniziale,
+              qtyIniziale,
               grammiVenduti,
               kgVenduti,
               pezziVenduti,
-              qtyArrivata: prod.qtyArrivata,
+              qtyArrivata,
               sprechiGrammi: totaleSprechiGrammi,
               sprechiKg: totaleSprechiKg,
               qtyFinale: prod.qtyFinale,
-              qtyAttesa: prod.qtyIniziale - prod.qtyVenduta + prod.qtyArrivata,
-              delta: prod.delta,
+              qtyAttesa,
+              delta,
               breakdown
             });
 
+            // Next day will use actual final quantity
             prevQtyAttesa = prod.qtyFinale;
           }
         });
