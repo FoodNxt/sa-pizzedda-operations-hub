@@ -403,7 +403,14 @@ export default function PianoQuarter() {
         
         if (overlapStart <= overlapEnd) {
           const overlapDays = Math.floor((overlapEnd - overlapStart) / (1000 * 60 * 60 * 24)) + 1;
-          adsBudget += (p.budget / pDays) * overlapDays;
+          const budgetGiornaliero = p.budget / pDays;
+          const budgetPeriodo = budgetGiornaliero * overlapDays;
+          
+          // Applica cofinanziamento
+          const percentualeCofinanziamento = p.percentuale_cofinanziamento || 0;
+          const costoEffettivo = budgetPeriodo * (1 - percentualeCofinanziamento / 100);
+          
+          adsBudget += costoEffettivo;
         }
       });
 

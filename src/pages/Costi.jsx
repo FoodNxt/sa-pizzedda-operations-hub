@@ -404,8 +404,12 @@ export default function Costi() {
                 const budgetPerLocale = piano.budget / numStoresAssegnati;
                 const budgetMensilePerLocale = budgetPerLocale / durataInMesi;
                 
+                // Calcola costo effettivo considerando il cofinanziamento
+                const percentualeCofinanziamento = piano.percentuale_cofinanziamento || 0;
+                const costoEffettivo = budgetMensilePerLocale * (1 - percentualeCofinanziamento / 100);
+                
                 // Applica pro rata del mese corrente
-                const costoMeseConProrata = budgetMensilePerLocale * proRata;
+                const costoMeseConProrata = costoEffettivo * proRata;
                 
                 return sum + costoMeseConProrata;
               }, 0);
@@ -692,42 +696,47 @@ export default function Costi() {
                         </div>
                       </button>
                       {expandedDetails[`${storeId}-ads-piattaforme`] && (
-                       <div className="pl-6 pb-2 space-y-1">
-                         {pianiAds
-                           .filter(piano => {
-                             const dataInizio = moment(piano.data_inizio);
-                             const dataFine = moment(piano.data_fine);
-                             const meseInizio = moment(selectedMonth).startOf('month');
-                             const meseFine = moment(selectedMonth).endOf('month');
-                             return !(dataFine.isBefore(meseInizio) || dataInizio.isAfter(meseFine)) && 
-                                    piano.stores_ids?.includes(storeId);
-                           })
-                           .map(piano => {
-                             const dataInizio = moment(piano.data_inizio);
-                             const dataFine = moment(piano.data_fine);
-                             
-                             // Calcola numero di mesi del piano
-                             const durataInMesi = dataFine.diff(dataInizio, 'months', true);
-                             
-                             // Calcola budget mensile per locale
-                             const numStoresAssegnati = piano.stores_ids.length;
-                             const budgetPerLocale = piano.budget / numStoresAssegnati;
-                             const budgetMensilePerLocale = budgetPerLocale / durataInMesi;
-                             
-                             // Applica pro rata del mese corrente (stesso calcolo del totale)
-                             const costoMeseConProrata = budgetMensilePerLocale * proRata;
-                             
-                             return (
-                               <div key={piano.id} className="text-xs text-slate-500 flex justify-between">
-                                 <span>
-                                   {piano.nome} ({piano.piattaforma})
-                                   {numStoresAssegnati > 1 && <span className="ml-1 text-blue-600">÷{numStoresAssegnati}</span>}
-                                   <span className="ml-1 text-orange-600">({giornoCorrente}/{ultimoGiornoMese}gg)</span>
-                                 </span>
-                                 <span>{formatEuro(costoMeseConProrata)}</span>
-                               </div>
-                             );
-                           })}
+                      <div className="pl-6 pb-2 space-y-1">
+                        {pianiAds
+                          .filter(piano => {
+                            const dataInizio = moment(piano.data_inizio);
+                            const dataFine = moment(piano.data_fine);
+                            const meseInizio = moment(selectedMonth).startOf('month');
+                            const meseFine = moment(selectedMonth).endOf('month');
+                            return !(dataFine.isBefore(meseInizio) || dataInizio.isAfter(meseFine)) && 
+                                   piano.stores_ids?.includes(storeId);
+                          })
+                          .map(piano => {
+                            const dataInizio = moment(piano.data_inizio);
+                            const dataFine = moment(piano.data_fine);
+
+                            // Calcola numero di mesi del piano
+                            const durataInMesi = dataFine.diff(dataInizio, 'months', true);
+
+                            // Calcola budget mensile per locale
+                            const numStoresAssegnati = piano.stores_ids.length;
+                            const budgetPerLocale = piano.budget / numStoresAssegnati;
+                            const budgetMensilePerLocale = budgetPerLocale / durataInMesi;
+
+                            // Calcola costo effettivo considerando il cofinanziamento
+                            const percentualeCofinanziamento = piano.percentuale_cofinanziamento || 0;
+                            const costoEffettivo = budgetMensilePerLocale * (1 - percentualeCofinanziamento / 100);
+
+                            // Applica pro rata del mese corrente
+                            const costoMeseConProrata = costoEffettivo * proRata;
+
+                            return (
+                              <div key={piano.id} className="text-xs text-slate-500 flex justify-between">
+                                <span>
+                                  {piano.nome} ({piano.piattaforma})
+                                  {numStoresAssegnati > 1 && <span className="ml-1 text-blue-600">÷{numStoresAssegnati}</span>}
+                                  {percentualeCofinanziamento > 0 && <span className="ml-1 text-green-600">-{percentualeCofinanziamento}%</span>}
+                                  <span className="ml-1 text-orange-600">({giornoCorrente}/{ultimoGiornoMese}gg)</span>
+                                </span>
+                                <span>{formatEuro(costoMeseConProrata)}</span>
+                              </div>
+                            );
+                          })}
                          {pianiAds.filter(piano => {
                            const dataInizio = moment(piano.data_inizio);
                            const dataFine = moment(piano.data_fine);
