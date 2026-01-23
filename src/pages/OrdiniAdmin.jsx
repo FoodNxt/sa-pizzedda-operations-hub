@@ -55,6 +55,9 @@ export default function OrdiniAdmin() {
   const [addProductModal, setAddProductModal] = useState({ open: false, availableProducts: [] });
   const [selectedProductToAdd, setSelectedProductToAdd] = useState('');
   const [productQuantity, setProductQuantity] = useState(0);
+  const [addProductEmailModal, setAddProductEmailModal] = useState({ open: false, availableProducts: [] });
+  const [selectedProductToAddEmail, setSelectedProductToAddEmail] = useState('');
+  const [productQuantityEmail, setProductQuantityEmail] = useState(0);
 
   const queryClient = useQueryClient();
 
@@ -526,6 +529,20 @@ Sa Pizzedda`,
                           <div>
                             <h2 className="text-lg font-bold text-slate-800">{storeData.store.name}</h2>
                             <p className="text-xs text-slate-500">{totalOrdersForStore} prodotti da ordinare</p>
+                            {(() => {
+                              const lastInventario = inventory.filter(i => i.store_id === storeId).sort((a, b) => new Date(b.data_rilevazione) - new Date(a.data_rilevazione))[0];
+                              const lastCantina = inventoryCantina.filter(i => i.store_id === storeId).sort((a, b) => new Date(b.data_rilevazione) - new Date(a.data_rilevazione))[0];
+                              return (
+                                <div className="text-xs text-slate-400 mt-1 space-y-0.5">
+                                  {lastInventario && (
+                                    <div>Ultimo inventario: {format(parseISO(lastInventario.data_rilevazione), 'dd/MM/yyyy HH:mm', { locale: it })}</div>
+                                  )}
+                                  {lastCantina && (
+                                    <div>Ultima cantina: {format(parseISO(lastCantina.data_rilevazione), 'dd/MM/yyyy HH:mm', { locale: it })}</div>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
                         {isExpanded ? (
@@ -2038,7 +2055,32 @@ Sa Pizzedda`,
               <div className="space-y-4">
                 {/* Prodotti con modifica quantità */}
                 <div>
-                  <h3 className="text-sm font-bold text-slate-700 mb-3">Prodotti da Ordinare</h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-bold text-slate-700">Prodotti da Ordinare</h3>
+                    <NeumorphicButton
+                      onClick={() => {
+                        // Get available products from this supplier
+                        const prodottiDisponibili = products.filter(p => 
+                          p.fornitore === customizingEmail.supplierName && 
+                          !emailTemplate.prodotti.some(ep => ep.prodotto_id === p.id)
+                        );
+                        
+                        if (prodottiDisponibili.length === 0) {
+                          alert('Nessun altro prodotto disponibile per questo fornitore');
+                          return;
+                        }
+
+                        setAddProductEmailModal({
+                          open: true,
+                          availableProducts: prodottiDisponibili
+                        });
+                      }}
+                      className="flex items-center gap-2 text-sm"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Aggiungi Prodotto
+                    </NeumorphicButton>
+                  </div>
                   <div className="space-y-2">
                     {emailTemplate.prodotti.map((prod, idx) => {
                       const prezzoConIVA = prod.prezzo_unitario * (1 + ((prod.iva_percentuale ?? 22) / 100));
@@ -2138,9 +2180,9 @@ Sa Pizzedda`,
           </div>
         )}
 
-        {/* Modal Aggiungi Singolo Prodotto */}
+        {/* Modal Aggiungi Prodotto (Segna Inviato) */}
         {addProductModal.open && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
             <NeumorphicCard className="max-w-2xl w-full p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-slate-800">Aggiungi Prodotto</h2>
@@ -2368,6 +2410,254 @@ Sa Pizzedda`,
                     disabled={createRegolaMutation.isPending || updateRegolaMutation.isPending}
                   >
                     {editingRegola.id ? 'Salva Modifiche' : 'Crea Regola'}
+                  </NeumorphicButton>
+                </div>
+              </div>
+            </NeumorphicCard>
+          </div>
+        )}
+
+        {/* Modal Aggiungi Prodotto (Invia Email) */}
+        {addProductEmailModal.open && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+            <NeumorphicCard className="max-w-2xl w-full p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800">Aggiungi Prodotto</h2>
+                <button onClick={() => { setAddProductEmailModal({ open: false, availableProducts: [] }); setSelectedProductToAddEmail(''); setProductQuantityEmail(0); }} className="nav-button p-2 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Seleziona Prodotto</label>
+                  <select
+                    value={selectedProductToAddEmail}
+                    onChange={(e) => setSelectedProductToAddEmail(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                  >
+                    <option value="">-- Seleziona un prodotto --</option>
+                    {addProductEmailModal.availableProducts.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.nome_prodotto} - €{p.prezzo_unitario?.toFixed(2) || '0.00'}/u
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Quantità</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      value={productQuantityEmail}
+                      onChange={(e) => setProductQuantityEmail(parseFloat(e.target.value) || 0)}
+                      className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      placeholder="0"
+                    />
+                    <span className="text-sm text-slate-600">
+                      {selectedProductToAddEmail && addProductEmailModal.availableProducts.find(p => p.id === selectedProductToAddEmail)?.unita_misura}
+                    </span>
+                  </div>
+                </div>
+
+                {selectedProductToAddEmail && (
+                  <div className="neumorphic-flat p-4 rounded-xl space-y-1">
+                    {(() => {
+                      const product = addProductEmailModal.availableProducts.find(p => p.id === selectedProductToAddEmail);
+                      const prezzoConIVA = (product?.prezzo_unitario || 0) * (1 + ((product?.iva_percentuale ?? 22) / 100));
+                      const totale = prezzoConIVA * productQuantityEmail;
+                      return (
+                        <>
+                          <p className="text-sm text-slate-600">
+                            <strong>Prezzo Unitario:</strong> €{(product?.prezzo_unitario || 0).toFixed(2)} (netto)
+                          </p>
+                          <p className="text-sm text-slate-600">
+                            <strong>Con IVA ({product?.iva_percentuale ?? 22}%):</strong> €{prezzoConIVA.toFixed(2)}/u
+                          </p>
+                          <p className="text-base font-bold text-blue-600">
+                            Totale: €{totale.toFixed(2)}
+                          </p>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-4">
+                  <NeumorphicButton onClick={() => { setAddProductEmailModal({ open: false, availableProducts: [] }); setSelectedProductToAddEmail(''); setProductQuantityEmail(0); }} className="flex-1">
+                    Annulla
+                  </NeumorphicButton>
+                  <NeumorphicButton
+                    onClick={() => {
+                      if (!selectedProductToAddEmail || productQuantityEmail <= 0) {
+                        alert('Seleziona un prodotto e inserisci una quantità');
+                        return;
+                      }
+
+                      const product = addProductEmailModal.availableProducts.find(p => p.id === selectedProductToAddEmail);
+                      const newProduct = {
+                        prodotto_id: product.id,
+                        nome_prodotto: product.nome_prodotto,
+                        quantita_ordinata: productQuantityEmail,
+                        unita_misura: product.unita_misura,
+                        prezzo_unitario: product.prezzo_unitario || 0,
+                        iva_percentuale: product.iva_percentuale ?? 22
+                      };
+
+                      const newProdotti = [...emailTemplate.prodotti, newProduct];
+                      
+                      // Update email body with new product list
+                      const productList = newProdotti.map(p => 
+                        `• ${p.nome_prodotto}: ${p.quantita_ordinata} ${p.unita_misura}`
+                      ).join('\n');
+                      
+                      const newBody = emailTemplate.body.replace(
+                        /Vi inviamo il seguente ordine.*:\n\n([\s\S]*?)\n\nGrazie/,
+                        `Vi inviamo il seguente ordine per il locale ${customizingEmail.storeName}:\n\n${productList}\n\nGrazie`
+                      );
+
+                      setEmailTemplate({
+                        ...emailTemplate,
+                        prodotti: newProdotti,
+                        body: newBody
+                      });
+
+                      setAddProductEmailModal({ open: false, availableProducts: [] });
+                      setSelectedProductToAddEmail('');
+                      setProductQuantityEmail(0);
+                    }}
+                    variant="primary"
+                    className="flex-1"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Aggiungi
+                  </NeumorphicButton>
+                </div>
+              </div>
+            </NeumorphicCard>
+          </div>
+        )}
+
+        {/* Modal Aggiungi Prodotto (Invia Email) */}
+        {addProductEmailModal.open && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+            <NeumorphicCard className="max-w-2xl w-full p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800">Aggiungi Prodotto</h2>
+                <button onClick={() => { setAddProductEmailModal({ open: false, availableProducts: [] }); setSelectedProductToAddEmail(''); setProductQuantityEmail(0); }} className="nav-button p-2 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Seleziona Prodotto</label>
+                  <select
+                    value={selectedProductToAddEmail}
+                    onChange={(e) => setSelectedProductToAddEmail(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                  >
+                    <option value="">-- Seleziona un prodotto --</option>
+                    {addProductEmailModal.availableProducts.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.nome_prodotto} - €{p.prezzo_unitario?.toFixed(2) || '0.00'}/u
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Quantità</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      value={productQuantityEmail}
+                      onChange={(e) => setProductQuantityEmail(parseFloat(e.target.value) || 0)}
+                      className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      placeholder="0"
+                    />
+                    <span className="text-sm text-slate-600">
+                      {selectedProductToAddEmail && addProductEmailModal.availableProducts.find(p => p.id === selectedProductToAddEmail)?.unita_misura}
+                    </span>
+                  </div>
+                </div>
+
+                {selectedProductToAddEmail && (
+                  <div className="neumorphic-flat p-4 rounded-xl space-y-1">
+                    {(() => {
+                      const product = addProductEmailModal.availableProducts.find(p => p.id === selectedProductToAddEmail);
+                      const prezzoConIVA = (product?.prezzo_unitario || 0) * (1 + ((product?.iva_percentuale ?? 22) / 100));
+                      const totale = prezzoConIVA * productQuantityEmail;
+                      return (
+                        <>
+                          <p className="text-sm text-slate-600">
+                            <strong>Prezzo Unitario:</strong> €{(product?.prezzo_unitario || 0).toFixed(2)} (netto)
+                          </p>
+                          <p className="text-sm text-slate-600">
+                            <strong>Con IVA ({product?.iva_percentuale ?? 22}%):</strong> €{prezzoConIVA.toFixed(2)}/u
+                          </p>
+                          <p className="text-base font-bold text-blue-600">
+                            Totale: €{totale.toFixed(2)}
+                          </p>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-4">
+                  <NeumorphicButton onClick={() => { setAddProductEmailModal({ open: false, availableProducts: [] }); setSelectedProductToAddEmail(''); setProductQuantityEmail(0); }} className="flex-1">
+                    Annulla
+                  </NeumorphicButton>
+                  <NeumorphicButton
+                    onClick={() => {
+                      if (!selectedProductToAddEmail || productQuantityEmail <= 0) {
+                        alert('Seleziona un prodotto e inserisci una quantità');
+                        return;
+                      }
+
+                      const product = addProductEmailModal.availableProducts.find(p => p.id === selectedProductToAddEmail);
+                      const newProduct = {
+                        prodotto_id: product.id,
+                        nome_prodotto: product.nome_prodotto,
+                        quantita_ordinata: productQuantityEmail,
+                        unita_misura: product.unita_misura,
+                        prezzo_unitario: product.prezzo_unitario || 0,
+                        iva_percentuale: product.iva_percentuale ?? 22
+                      };
+
+                      const newProdotti = [...emailTemplate.prodotti, newProduct];
+                      
+                      // Update email body with new product list
+                      const productList = newProdotti.map(p => 
+                        `• ${p.nome_prodotto}: ${p.quantita_ordinata} ${p.unita_misura}`
+                      ).join('\n');
+                      
+                      const newBody = emailTemplate.body.replace(
+                        /Vi inviamo il seguente ordine.*:\n\n([\s\S]*?)\n\nGrazie/,
+                        `Vi inviamo il seguente ordine per il locale ${customizingEmail.storeName}:\n\n${productList}\n\nGrazie`
+                      );
+
+                      setEmailTemplate({
+                        ...emailTemplate,
+                        prodotti: newProdotti,
+                        body: newBody
+                      });
+
+                      setAddProductEmailModal({ open: false, availableProducts: [] });
+                      setSelectedProductToAddEmail('');
+                      setProductQuantityEmail(0);
+                    }}
+                    variant="primary"
+                    className="flex-1"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Aggiungi
                   </NeumorphicButton>
                 </div>
               </div>
