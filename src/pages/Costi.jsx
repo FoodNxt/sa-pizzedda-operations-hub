@@ -1023,22 +1023,13 @@ export default function Costi() {
               {utenze.map(item => (
                 <div key={item.id} className="neumorphic-flat p-4 rounded-xl flex items-center justify-between">
                   <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="font-bold text-slate-800">
-                        {item.assegnazione === 'singolo' ? item.store_name : (item.stores_names?.join(', ') || 'Multipli')}
-                      </p>
-                      {item.nome_utenza && (
-                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                          {item.nome_utenza}
-                        </span>
-                      )}
-                      {item.assegnazione === 'multipli' && (
-                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
-                          {item.stores_ids?.length || 0} locali
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-slate-600">{formatEuro(item.costo_mensile_stimato)}/mese</p>
+                    <p className="font-bold text-slate-800 mb-1">
+                      {item.nome_utenza || 'Utenza'}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {item.assegnazione === 'singolo' ? item.store_name : (item.stores_names?.join(', ') || 'Multipli')}
+                    </p>
+                    <p className="text-sm text-slate-600 mt-1">{formatEuro(item.costo_mensile_stimato)}/mese</p>
                     {item.note && <p className="text-xs text-slate-500 mt-1">{item.note}</p>}
                   </div>
                   <div className="flex gap-2">
