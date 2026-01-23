@@ -29,6 +29,8 @@ export default function OverviewContratti() {
     selectedDocuments: [],
     templateIndex: null
   });
+  const [editableEmailOggetto, setEditableEmailOggetto] = useState('');
+  const [editableEmailCorpo, setEditableEmailCorpo] = useState('');
   const corpoTextareaRef = React.useRef(null);
 
   const queryClient = useQueryClient();
@@ -431,53 +433,8 @@ export default function OverviewContratti() {
     }
 
     try {
-      const template = emailTemplates[sendData.templateIndex];
-      const dipendente = sendingToPayroll.nome_cognome;
-      const dataInvio = moment().format('DD/MM/YYYY');
-      
-      // Get the current contract for variable replacement
-      const currentContract = sendingToPayroll.tutti_contratti[0];
-      const user = users.find(u => u.id === sendingToPayroll.user_id);
-      
-      // Calculate data_fine_contratto
-      let dataFineContratto = '-';
-      if (currentContract.data_fine_contratto) {
-        dataFineContratto = moment(currentContract.data_fine_contratto).format('DD/MM/YYYY');
-      } else if (currentContract.data_inizio_contratto && currentContract.durata_contratto_mesi) {
-        const dataInizio = moment(currentContract.data_inizio_contratto);
-        const dataFine = dataInizio.clone().add(currentContract.durata_contratto_mesi, 'months');
-        dataFineContratto = dataFine.format('DD/MM/YYYY');
-      }
-      
-      let oggetto = template.oggetto
-        .replace(/{{nome_dipendente}}/g, dipendente)
-        .replace(/{{data_invio}}/g, dataInvio)
-        .replace(/{{data_nascita}}/g, currentContract.data_nascita ? moment(currentContract.data_nascita).format('DD/MM/YYYY') : '-')
-        .replace(/{{codice_fiscale}}/g, currentContract.codice_fiscale || '-')
-        .replace(/{{citta_nascita}}/g, currentContract.citta_nascita || '-')
-        .replace(/{{indirizzo_residenza}}/g, currentContract.indirizzo_residenza || '-')
-        .replace(/{{citta_residenza}}/g, user?.citta_residenza || '-')
-        .replace(/{{livello}}/g, user?.livello?.toString() || '-')
-        .replace(/{{gruppo_contrattuale}}/g, currentContract.employee_group || '-')
-        .replace(/{{data_inizio_contratto}}/g, currentContract.data_inizio_contratto ? moment(currentContract.data_inizio_contratto).format('DD/MM/YYYY') : '-')
-        .replace(/{{ore_settimanali}}/g, currentContract.ore_settimanali?.toString() || '-')
-        .replace(/{{durata_contratto_mesi}}/g, currentContract.durata_contratto_mesi?.toString() || '-')
-        .replace(/{{data_fine_contratto}}/g, dataFineContratto);
-      
-      let corpo = template.corpo
-        .replace(/{{nome_dipendente}}/g, dipendente)
-        .replace(/{{data_invio}}/g, dataInvio)
-        .replace(/{{data_nascita}}/g, currentContract.data_nascita ? moment(currentContract.data_nascita).format('DD/MM/YYYY') : '-')
-        .replace(/{{codice_fiscale}}/g, currentContract.codice_fiscale || '-')
-        .replace(/{{citta_nascita}}/g, currentContract.citta_nascita || '-')
-        .replace(/{{indirizzo_residenza}}/g, currentContract.indirizzo_residenza || '-')
-        .replace(/{{citta_residenza}}/g, user?.citta_residenza || '-')
-        .replace(/{{livello}}/g, user?.livello?.toString() || '-')
-        .replace(/{{gruppo_contrattuale}}/g, currentContract.employee_group || '-')
-        .replace(/{{data_inizio_contratto}}/g, currentContract.data_inizio_contratto ? moment(currentContract.data_inizio_contratto).format('DD/MM/YYYY') : '-')
-        .replace(/{{ore_settimanali}}/g, currentContract.ore_settimanali?.toString() || '-')
-        .replace(/{{durata_contratto_mesi}}/g, currentContract.durata_contratto_mesi?.toString() || '-')
-        .replace(/{{data_fine_contratto}}/g, dataFineContratto);
+      let oggetto = editableEmailOggetto;
+      let corpo = editableEmailCorpo;
 
       // Prepare documents URLs
       const documentiUrls = [];
@@ -524,6 +481,8 @@ export default function OverviewContratti() {
       queryClient.invalidateQueries({ queryKey: ['payroll-email-logs'] });
       setSendingToPayroll(null);
       setSendData({ selectedContracts: [], selectedDocuments: [], templateIndex: null });
+      setEditableEmailOggetto('');
+      setEditableEmailCorpo('');
     } catch (error) {
       console.error('Error sending email:', error);
       alert('❌ Errore durante l\'invio dell\'email: ' + error.message);
@@ -1064,6 +1023,8 @@ export default function OverviewContratti() {
                   onClick={() => {
                     setSendingToPayroll(null);
                     setSendData({ selectedContracts: [], selectedDocuments: [], templateIndex: null });
+                    setEditableEmailOggetto('');
+                    setEditableEmailCorpo('');
                   }}
                   className="nav-button p-2 rounded-lg"
                 >
@@ -1180,7 +1141,60 @@ export default function OverviewContratti() {
                   </label>
                   <select
                     value={sendData.templateIndex !== null ? sendData.templateIndex : ''}
-                    onChange={(e) => setSendData({ ...sendData, templateIndex: e.target.value !== '' ? parseInt(e.target.value) : null })}
+                    onChange={(e) => {
+                      const idx = e.target.value !== '' ? parseInt(e.target.value) : null;
+                      setSendData({ ...sendData, templateIndex: idx });
+                      
+                      if (idx !== null) {
+                        const template = emailTemplates[idx];
+                        const dipendente = sendingToPayroll.nome_cognome;
+                        const dataInvio = moment().format('DD/MM/YYYY');
+                        const currentContract = sendingToPayroll.tutti_contratti[0];
+                        const user = users.find(u => u.id === sendingToPayroll.user_id);
+                        
+                        let dataFineContratto = '-';
+                        if (currentContract.data_fine_contratto) {
+                          dataFineContratto = moment(currentContract.data_fine_contratto).format('DD/MM/YYYY');
+                        } else if (currentContract.data_inizio_contratto && currentContract.durata_contratto_mesi) {
+                          const dataInizio = moment(currentContract.data_inizio_contratto);
+                          const dataFine = dataInizio.clone().add(currentContract.durata_contratto_mesi, 'months');
+                          dataFineContratto = dataFine.format('DD/MM/YYYY');
+                        }
+                        
+                        let oggetto = template.oggetto
+                          .replace(/{{nome_dipendente}}/g, dipendente)
+                          .replace(/{{data_invio}}/g, dataInvio)
+                          .replace(/{{data_nascita}}/g, currentContract.data_nascita ? moment(currentContract.data_nascita).format('DD/MM/YYYY') : '-')
+                          .replace(/{{codice_fiscale}}/g, currentContract.codice_fiscale || '-')
+                          .replace(/{{citta_nascita}}/g, currentContract.citta_nascita || '-')
+                          .replace(/{{indirizzo_residenza}}/g, currentContract.indirizzo_residenza || '-')
+                          .replace(/{{citta_residenza}}/g, user?.citta_residenza || '-')
+                          .replace(/{{livello}}/g, user?.livello?.toString() || '-')
+                          .replace(/{{gruppo_contrattuale}}/g, currentContract.employee_group || '-')
+                          .replace(/{{data_inizio_contratto}}/g, currentContract.data_inizio_contratto ? moment(currentContract.data_inizio_contratto).format('DD/MM/YYYY') : '-')
+                          .replace(/{{ore_settimanali}}/g, currentContract.ore_settimanali?.toString() || '-')
+                          .replace(/{{durata_contratto_mesi}}/g, currentContract.durata_contratto_mesi?.toString() || '-')
+                          .replace(/{{data_fine_contratto}}/g, dataFineContratto);
+                        
+                        let corpo = template.corpo
+                          .replace(/{{nome_dipendente}}/g, dipendente)
+                          .replace(/{{data_invio}}/g, dataInvio)
+                          .replace(/{{data_nascita}}/g, currentContract.data_nascita ? moment(currentContract.data_nascita).format('DD/MM/YYYY') : '-')
+                          .replace(/{{codice_fiscale}}/g, currentContract.codice_fiscale || '-')
+                          .replace(/{{citta_nascita}}/g, currentContract.citta_nascita || '-')
+                          .replace(/{{indirizzo_residenza}}/g, currentContract.indirizzo_residenza || '-')
+                          .replace(/{{citta_residenza}}/g, user?.citta_residenza || '-')
+                          .replace(/{{livello}}/g, user?.livello?.toString() || '-')
+                          .replace(/{{gruppo_contrattuale}}/g, currentContract.employee_group || '-')
+                          .replace(/{{data_inizio_contratto}}/g, currentContract.data_inizio_contratto ? moment(currentContract.data_inizio_contratto).format('DD/MM/YYYY') : '-')
+                          .replace(/{{ore_settimanali}}/g, currentContract.ore_settimanali?.toString() || '-')
+                          .replace(/{{durata_contratto_mesi}}/g, currentContract.durata_contratto_mesi?.toString() || '-')
+                          .replace(/{{data_fine_contratto}}/g, dataFineContratto);
+                        
+                        setEditableEmailOggetto(oggetto);
+                        setEditableEmailCorpo(corpo);
+                      }
+                    }}
                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
                   >
                     <option value="">Seleziona template...</option>
@@ -1189,11 +1203,25 @@ export default function OverviewContratti() {
                     ))}
                   </select>
                   {sendData.templateIndex !== null && (
-                    <div className="mt-3 neumorphic-pressed p-3 rounded-xl bg-blue-50">
-                      <p className="text-xs text-blue-800 font-bold mb-1">Oggetto:</p>
-                      <p className="text-sm text-blue-700 mb-2">{emailTemplates[sendData.templateIndex].oggetto}</p>
-                      <p className="text-xs text-blue-800 font-bold mb-1">Corpo:</p>
-                      <p className="text-sm text-blue-700 whitespace-pre-wrap">{emailTemplates[sendData.templateIndex].corpo}</p>
+                    <div className="mt-3 space-y-3">
+                      <div>
+                        <label className="text-xs text-slate-600 font-bold mb-1 block">Oggetto:</label>
+                        <input
+                          type="text"
+                          value={editableEmailOggetto}
+                          onChange={(e) => setEditableEmailOggetto(e.target.value)}
+                          className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-600 font-bold mb-1 block">Corpo:</label>
+                        <textarea
+                          value={editableEmailCorpo}
+                          onChange={(e) => setEditableEmailCorpo(e.target.value)}
+                          className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none resize-none"
+                          rows="8"
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
