@@ -599,7 +599,6 @@ export default function PlandayStoreView({
                   onChange={(e) => setQuickForm({ 
                     ...quickForm, 
                     is_prova: e.target.checked,
-                    dipendente_id: e.target.checked ? '' : quickForm.dipendente_id,
                     candidato_id: ''
                   })}
                   className="w-4 h-4"
