@@ -60,6 +60,7 @@ export default function PianoQuarter() {
     end: format(new Date(), 'yyyy-MM-dd')
   });
   const [foodCostPercentage, setFoodCostPercentage] = useState(30);
+  const [platformFeesPercentage, setPlatformFeesPercentage] = useState(15);
   const [selectedPromoDay, setSelectedPromoDay] = useState(null);
 
   const [formAds, setFormAds] = useState({
@@ -113,12 +114,15 @@ export default function PianoQuarter() {
     queryFn: () => base44.entities.iPratico.list()
   });
 
-  // Carica food cost percentage dalla configurazione
+  // Carica food cost percentage e platform fees dalla configurazione
   useEffect(() => {
     if (financeConfigs.length > 0) {
       const activeConfig = financeConfigs.find(c => c.is_active);
       if (activeConfig?.default_food_cost_percentage) {
         setFoodCostPercentage(activeConfig.default_food_cost_percentage);
+      }
+      if (activeConfig?.default_platform_fees_percentage) {
+        setPlatformFeesPercentage(activeConfig.default_platform_fees_percentage);
       }
     }
   }, [financeConfigs]);
@@ -134,6 +138,25 @@ export default function PianoQuarter() {
       } else {
         await base44.entities.FinanceConfig.create({ 
           default_food_cost_percentage: newPercentage,
+          is_active: true
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['finance-config'] });
+    },
+  });
+
+  const updatePlatformFeesMutation = useMutation({
+    mutationFn: async (newPercentage) => {
+      const activeConfig = financeConfigs.find(c => c.is_active);
+      if (activeConfig) {
+        await base44.entities.FinanceConfig.update(activeConfig.id, { 
+          default_platform_fees_percentage: newPercentage 
+        });
+      } else {
+        await base44.entities.FinanceConfig.create({ 
+          default_platform_fees_percentage: newPercentage,
           is_active: true
         });
       }
@@ -381,6 +404,9 @@ export default function PianoQuarter() {
     // Food cost
     const foodCost = revenue * (foodCostPercentage / 100);
 
+    // Platform fees
+    const platformFees = revenue * (platformFeesPercentage / 100);
+
     // Ads budget spalmate nel periodo
     const adsQuarters = new Set();
     let current = new Date(startDate);
@@ -417,10 +443,11 @@ export default function PianoQuarter() {
     return {
       revenue,
       foodCost: -foodCost,
+      platformFees: -platformFees,
       adsBudget: -adsBudget,
-      total: revenue - foodCost - adsBudget
+      total: revenue - foodCost - platformFees - adsBudget
     };
-  }, [pianiAds, contoEconomicoDateRange, selectedDeliveryApp, iPraticoData, foodCostPercentage]);
+  }, [pianiAds, contoEconomicoDateRange, selectedDeliveryApp, iPraticoData, foodCostPercentage, platformFeesPercentage]);
 
   const promoCalendarDays = useMemo(() => {
     const monthStart = startOfMonth(promoCalendarMonth);
@@ -1059,7 +1086,7 @@ export default function PianoQuarter() {
         {/* Sezione Conto Economico */}
         {activeTab === 'conto' && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">App Delivery</label>
                 <select
@@ -1083,6 +1110,22 @@ export default function PianoQuarter() {
                     const newValue = parseFloat(e.target.value);
                     setFoodCostPercentage(newValue);
                     updateFoodCostMutation.mutate(newValue);
+                  }}
+                  className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Platform Fees %</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={platformFeesPercentage}
+                  onChange={(e) => {
+                    const newValue = parseFloat(e.target.value);
+                    setPlatformFeesPercentage(newValue);
+                    updatePlatformFeesMutation.mutate(newValue);
                   }}
                   className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
                 />
@@ -1120,6 +1163,10 @@ export default function PianoQuarter() {
                      <span className="text-lg font-bold text-red-600">{contoEconomico.foodCost.toFixed(2)} €</span>
                    </div>
                   <div className="flex justify-between items-center pb-3 border-b">
+                    <span className="text-slate-700">Platform Fees ({platformFeesPercentage}%)</span>
+                    <span className="text-lg font-bold text-red-600">{contoEconomico.platformFees.toFixed(2)} €</span>
+                  </div>
+                  <div className="flex justify-between items-center pb-3 border-b">
                     <span className="text-slate-700">Budget Ads</span>
                     <span className="text-lg font-bold text-red-600">{contoEconomico.adsBudget.toFixed(2)} €</span>
                   </div>
@@ -1144,6 +1191,18 @@ export default function PianoQuarter() {
                       <div
                         className="bg-red-500 h-2 rounded-full"
                         style={{ width: `${Math.min((Math.abs(contoEconomico.foodCost) / contoEconomico.revenue) * 100, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span>Platform Fees ({platformFeesPercentage}%)</span>
+                      <span className="font-bold">{((Math.abs(contoEconomico.platformFees) / contoEconomico.revenue) * 100).toFixed(1)}%</span>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-2">
+                      <div
+                        className="bg-purple-500 h-2 rounded-full"
+                        style={{ width: `${Math.min((Math.abs(contoEconomico.platformFees) / contoEconomico.revenue) * 100, 100)}%` }}
                       />
                     </div>
                   </div>
