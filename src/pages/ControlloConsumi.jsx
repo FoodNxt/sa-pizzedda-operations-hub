@@ -788,9 +788,31 @@ export default function ControlloConsumi() {
           const firstOperatore = firstInventario ? users.find(u => u.email === firstInventario.created_by) : null;
           const lastOperatore = lastInventario ? users.find(u => u.email === lastInventario.created_by) : null;
 
-          // Qty iniziale: dall'inventario del primo giorno
-          const firstProd = datiGiornalieriPerProdotto[firstDate]?.[mozz.id];
-          const qtyIniziale = firstProd ? firstProd.qtyIniziale : 0;
+          // Qty iniziale: cerca inventario del giorno prima dell'inizio periodo
+          let qtyIniziale = 0;
+          let qtyInizialeTeorica = false;
+          const dayBeforePeriod = format(subDays(parseISO(firstDate), 1), 'yyyy-MM-dd');
+          const invDayBefore = allInventari.find(inv => 
+            inv.prodotto_id === mozz.id && inv.data_rilevazione.split('T')[0] === dayBeforePeriod
+          );
+          
+          if (invDayBefore) {
+            // Usa l'inventario del giorno prima
+            qtyIniziale = invDayBefore.quantita_rilevata;
+            qtyInizialeTeorica = false;
+          } else {
+            // Usa quantità attesa del primo giorno del periodo
+            const firstProd = datiGiornalieriPerProdotto[firstDate]?.[mozz.id];
+            if (firstProd) {
+              // Calcola qtyAttesa per il primo giorno
+              const firstDayVendite = quantitaVendutePerGiorno[firstDate]?.[mozz.id]?.quantita || 0;
+              const firstDayArrivi = ordiniPerGiorno[firstDate]?.[mozz.id]?.quantita || 0;
+              qtyIniziale = (firstProd.qtyFinale || 0) - firstDayArrivi + firstDayVendite;
+            } else {
+              qtyIniziale = 0;
+            }
+            qtyInizialeTeorica = true;
+          }
 
           // Qty finale: dall'inventario dell'ultimo giorno
           const lastProd = datiGiornalieriPerProdotto[lastDate]?.[mozz.id];
@@ -853,6 +875,7 @@ export default function ControlloConsumi() {
           datiMozz.periodi.push({
             periodo: periodoKey,
             qtyIniziale,
+            qtyInizialeteorica: qtyInizialeTeorica,
             grammiVenduti: grammiVendutiTotali,
             kgVenduti: kgVendutiTotali,
             pezziVenduti: pezziVendutiTotali,
