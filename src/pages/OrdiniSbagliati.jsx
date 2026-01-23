@@ -445,7 +445,11 @@ export default function OrdiniSbagliati() {
 
       for (const record of records) {
         try {
-          const existing = wrongOrders.find(o => o.order_id === record.order_id && o.platform === record.platform);
+          const existing = wrongOrders.find(o => 
+            o.order_id === record.order_id && 
+            o.platform === record.platform &&
+            o.order_date?.split('T')[0] === record.order_date?.split('T')[0]
+          );
           if (existing) {
             duplicateCount++;
             continue;
