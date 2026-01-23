@@ -432,6 +432,16 @@ export default function OverviewContratti() {
       const currentContract = sendingToPayroll.tutti_contratti[0];
       const user = users.find(u => u.id === sendingToPayroll.user_id);
       
+      // Calculate data_fine_contratto
+      let dataFineContratto = '-';
+      if (currentContract.data_fine_contratto) {
+        dataFineContratto = moment(currentContract.data_fine_contratto).format('DD/MM/YYYY');
+      } else if (currentContract.data_inizio_contratto && currentContract.durata_contratto_mesi) {
+        const dataInizio = moment(currentContract.data_inizio_contratto);
+        const dataFine = dataInizio.clone().add(currentContract.durata_contratto_mesi, 'months');
+        dataFineContratto = dataFine.format('DD/MM/YYYY');
+      }
+      
       let oggetto = template.oggetto
         .replace(/{{nome_dipendente}}/g, dipendente)
         .replace(/{{data_invio}}/g, dataInvio)
@@ -443,7 +453,8 @@ export default function OverviewContratti() {
         .replace(/{{gruppo_contrattuale}}/g, currentContract.employee_group || '-')
         .replace(/{{data_inizio_contratto}}/g, currentContract.data_inizio_contratto ? moment(currentContract.data_inizio_contratto).format('DD/MM/YYYY') : '-')
         .replace(/{{ore_settimanali}}/g, currentContract.ore_settimanali?.toString() || '-')
-        .replace(/{{durata_contratto_mesi}}/g, currentContract.durata_contratto_mesi?.toString() || '-');
+        .replace(/{{durata_contratto_mesi}}/g, currentContract.durata_contratto_mesi?.toString() || '-')
+        .replace(/{{data_fine_contratto}}/g, dataFineContratto);
       
       let corpo = template.corpo
         .replace(/{{nome_dipendente}}/g, dipendente)
@@ -456,7 +467,8 @@ export default function OverviewContratti() {
         .replace(/{{gruppo_contrattuale}}/g, currentContract.employee_group || '-')
         .replace(/{{data_inizio_contratto}}/g, currentContract.data_inizio_contratto ? moment(currentContract.data_inizio_contratto).format('DD/MM/YYYY') : '-')
         .replace(/{{ore_settimanali}}/g, currentContract.ore_settimanali?.toString() || '-')
-        .replace(/{{durata_contratto_mesi}}/g, currentContract.durata_contratto_mesi?.toString() || '-');
+        .replace(/{{durata_contratto_mesi}}/g, currentContract.durata_contratto_mesi?.toString() || '-')
+        .replace(/{{data_fine_contratto}}/g, dataFineContratto);
 
       // Prepare documents URLs
       const documentiUrls = [];
@@ -1421,6 +1433,13 @@ export default function OverviewContratti() {
                               className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
                             >
                               {'{{durata_contratto_mesi}}'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => insertVariable('{{data_fine_contratto}}')}
+                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
+                            >
+                              {'{{data_fine_contratto}}'}
                             </button>
                           </div>
                         </div>
