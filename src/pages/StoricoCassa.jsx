@@ -104,12 +104,14 @@ export default function StoricoCassa() {
         rilevato_da: dipendente,
         importo: importo,
         data_deposito: new Date().toISOString(),
-        note: 'Aggiustamento saldo manuale'
+        note: 'Aggiustamento saldo manuale',
+        impostato_da: currentUser?.email || ''
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['depositi'] });
       setNewManualSaldo({ dipendente: '', importo: 0 });
+      alert('✅ Saldo aggiornato con successo!');
     },
   });
 
@@ -1238,6 +1240,64 @@ export default function StoricoCassa() {
                   </button>
                 </div>
               </div>
+            </NeumorphicCard>
+
+            {/* Log Aggiustamenti Manuali */}
+            <NeumorphicCard className="p-4 lg:p-6 bg-purple-50">
+              <div className="flex items-center gap-2 mb-4">
+                <Settings className="w-5 h-5 text-purple-600" />
+                <h2 className="text-base lg:text-lg font-bold text-slate-800">Log Aggiustamenti Manuali</h2>
+              </div>
+              {(() => {
+                const aggiustamentiManuali = depositi
+                  .filter(d => d.store_id === 'manual_adjustment')
+                  .sort((a, b) => new Date(b.data_deposito) - new Date(a.data_deposito));
+
+                if (aggiustamentiManuali.length === 0) {
+                  return (
+                    <p className="text-sm text-purple-700 text-center py-4">
+                      Nessun aggiustamento manuale registrato
+                    </p>
+                  );
+                }
+
+                return (
+                  <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
+                    <table className="w-full min-w-[600px]">
+                      <thead>
+                        <tr className="border-b-2 border-purple-600">
+                          <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Data</th>
+                          <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Dipendente</th>
+                          <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Importo</th>
+                          <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Impostato da</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {aggiustamentiManuali.map((deposito) => (
+                          <tr key={deposito.id} className="border-b border-purple-200 hover:bg-purple-50 transition-colors">
+                            <td className="p-2 lg:p-3">
+                              <span className="text-slate-700 text-sm">
+                                {format(parseISO(deposito.data_deposito), 'dd/MM/yyyy HH:mm', { locale: it })}
+                              </span>
+                            </td>
+                            <td className="p-2 lg:p-3">
+                              <span className="text-slate-700 text-sm font-medium">{deposito.rilevato_da}</span>
+                            </td>
+                            <td className="p-2 lg:p-3 text-right">
+                              <span className="text-purple-600 font-bold text-sm lg:text-base">
+                                €{deposito.importo.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+                              </span>
+                            </td>
+                            <td className="p-2 lg:p-3">
+                              <span className="text-slate-600 text-xs">{deposito.impostato_da || '-'}</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
             </NeumorphicCard>
 
             <NeumorphicCard className="p-4 lg:p-6">
