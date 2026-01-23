@@ -698,6 +698,7 @@ export default function ControlloConsumi() {
             datiMozz.periodi.push({
               periodo: date,
               inventarioMancante: true,
+              qtyInizialeteorica: true,
               qtyIniziale,
               grammiVenduti,
               kgVenduti,
@@ -714,7 +715,8 @@ export default function ControlloConsumi() {
             // Next day will use this expected quantity as initial
             prevQtyAttesa = qtyAttesa;
           } else {
-            // Inventory exists - determine qtyIniziale from previous day
+            // Inventory exists - determine if qtyIniziale is theoretical or actual
+            const usandoTeorico = prevQtyAttesa !== null && (!prod?.qtyIniziale || prod.qtyIniziale === 0);
             const qtyIniziale = prevQtyAttesa !== null ? prevQtyAttesa : (prod?.qtyIniziale || 0);
             const qtyAttesa = qtyIniziale - pezziVenduti + qtyArrivata;
             const delta = prod.qtyFinale - qtyAttesa;
@@ -722,6 +724,7 @@ export default function ControlloConsumi() {
             datiMozz.periodi.push({
               periodo: date,
               inventarioMancante: false,
+              qtyInizialeteorica: usandoTeorico,
               qtyIniziale,
               grammiVenduti,
               kgVenduti,
@@ -1127,7 +1130,16 @@ export default function ControlloConsumi() {
                                           )}
                                         </button>
                                       </td>
-                                      <td className="py-2 px-3 text-right font-medium">{periodo.qtyIniziale.toFixed(2)}</td>
+                                      <td className="py-2 px-3 text-right font-medium">
+                                        <div className="flex items-center justify-end gap-1">
+                                          <span>{periodo.qtyIniziale.toFixed(2)}</span>
+                                          {periodo.qtyInizialeteorica && (
+                                            <span className="text-xs px-1.5 py-0.5 rounded bg-purple-100 text-purple-700" title="Valore teorico calcolato">
+                                              T
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
                                       <td className="py-2 px-3 text-right text-orange-600">{periodo.grammiVenduti.toFixed(0)} g</td>
                                       <td className="py-2 px-3 text-right text-orange-600 font-medium">{periodo.kgVenduti.toFixed(2)} kg</td>
                                       <td className="py-2 px-3 text-right text-orange-700 font-bold">-{periodo.pezziVenduti.toFixed(2)}</td>
