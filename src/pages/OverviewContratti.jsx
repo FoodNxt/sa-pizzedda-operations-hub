@@ -29,6 +29,7 @@ export default function OverviewContratti() {
     selectedDocuments: [],
     templateIndex: null
   });
+  const corpoTextareaRef = React.useRef(null);
 
   const queryClient = useQueryClient();
 
@@ -388,12 +389,24 @@ export default function OverviewContratti() {
     setEmailTemplates(emailTemplates.filter((_, i) => i !== index));
   };
 
-  const insertVariable = (variable, field) => {
-    if (field === 'oggetto') {
-      setNewTemplate({ ...newTemplate, oggetto: newTemplate.oggetto + variable });
-    } else if (field === 'corpo') {
-      setNewTemplate({ ...newTemplate, corpo: newTemplate.corpo + variable });
-    }
+  const insertVariable = (variable) => {
+    const textarea = corpoTextareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = newTemplate.corpo;
+    const before = text.substring(0, start);
+    const after = text.substring(end, text.length);
+    
+    const newText = before + variable + after;
+    setNewTemplate({ ...newTemplate, corpo: newText });
+    
+    // Restore cursor position after the inserted variable
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + variable.length, start + variable.length);
+    }, 0);
   };
 
   const handleSendToPayroll = async () => {
@@ -1330,22 +1343,89 @@ export default function OverviewContratti() {
                           <label className="text-xs text-slate-600">Corpo email</label>
                         </div>
                         <div className="text-xs text-slate-600 mb-3">
-                          <p className="mb-2 font-medium">Variabili disponibili:</p>
+                          <p className="mb-2 font-medium">Clicca per inserire variabile:</p>
                           <div className="grid grid-cols-3 gap-1 bg-slate-50 p-3 rounded-lg max-h-32 overflow-y-auto">
-                            <code className="text-blue-600">{'{{nome_dipendente}}'}</code>
-                            <code className="text-blue-600">{'{{data_invio}}'}</code>
-                            <code className="text-blue-600">{'{{data_nascita}}'}</code>
-                            <code className="text-blue-600">{'{{codice_fiscale}}'}</code>
-                            <code className="text-blue-600">{'{{citta_nascita}}'}</code>
-                            <code className="text-blue-600">{'{{indirizzo_residenza}}'}</code>
-                            <code className="text-blue-600">{'{{livello}}'}</code>
-                            <code className="text-blue-600">{'{{gruppo_contrattuale}}'}</code>
-                            <code className="text-blue-600">{'{{data_inizio_contratto}}'}</code>
-                            <code className="text-blue-600">{'{{ore_settimanali}}'}</code>
-                            <code className="text-blue-600">{'{{durata_contratto_mesi}}'}</code>
+                            <button
+                              type="button"
+                              onClick={() => insertVariable('{{nome_dipendente}}')}
+                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
+                            >
+                              {'{{nome_dipendente}}'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => insertVariable('{{data_invio}}')}
+                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
+                            >
+                              {'{{data_invio}}'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => insertVariable('{{data_nascita}}')}
+                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
+                            >
+                              {'{{data_nascita}}'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => insertVariable('{{codice_fiscale}}')}
+                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
+                            >
+                              {'{{codice_fiscale}}'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => insertVariable('{{citta_nascita}}')}
+                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
+                            >
+                              {'{{citta_nascita}}'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => insertVariable('{{indirizzo_residenza}}')}
+                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
+                            >
+                              {'{{indirizzo_residenza}}'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => insertVariable('{{livello}}')}
+                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
+                            >
+                              {'{{livello}}'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => insertVariable('{{gruppo_contrattuale}}')}
+                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
+                            >
+                              {'{{gruppo_contrattuale}}'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => insertVariable('{{data_inizio_contratto}}')}
+                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
+                            >
+                              {'{{data_inizio_contratto}}'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => insertVariable('{{ore_settimanali}}')}
+                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
+                            >
+                              {'{{ore_settimanali}}'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => insertVariable('{{durata_contratto_mesi}}')}
+                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
+                            >
+                              {'{{durata_contratto_mesi}}'}
+                            </button>
                           </div>
                         </div>
                         <textarea
+                          ref={corpoTextareaRef}
                           value={newTemplate.corpo}
                           onChange={(e) => setNewTemplate({ ...newTemplate, corpo: e.target.value })}
                           placeholder="Corpo email"
