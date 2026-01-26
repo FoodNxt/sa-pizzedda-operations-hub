@@ -716,7 +716,7 @@ export default function Sconti() {
               )}
             </NeumorphicCard>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-6">
               <NeumorphicCard className="p-6">
                 <h2 className="text-xl font-bold text-slate-800 mb-4 pb-3 border-b-2 border-blue-500">Per App</h2>
                 <div className="overflow-x-auto">
