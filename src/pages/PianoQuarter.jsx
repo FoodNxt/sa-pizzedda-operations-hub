@@ -430,7 +430,7 @@ export default function PianoQuarter() {
     const endDate = new Date(contoEconomicoDateRange.end);
     const daysDiff = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
 
-    // Revenue
+    // Net Revenue (revenue after discounts)
     const revenue = iPraticoData
       .filter(d => {
         const dDate = new Date(d.order_date);
@@ -438,8 +438,23 @@ export default function PianoQuarter() {
       })
       .reduce((sum, d) => sum + (selectedDeliveryApp === 'Glovo' ? d.sourceApp_glovo || 0 : d.sourceApp_deliveroo || 0), 0);
 
-    // Food cost
-    const foodCost = revenue * (foodCostPercentage / 100);
+    // Gross Sales (revenue + discounts)
+    const grossSales = revenue + iPraticoData
+      .filter(d => {
+        const dDate = new Date(d.order_date);
+        return dDate >= startDate && dDate <= endDate;
+      })
+      .reduce((sum, d) => {
+        if (selectedDeliveryApp === 'Glovo' && d.sourceApp_glovo) {
+          return sum + (d.total_discount_price || 0);
+        } else if (selectedDeliveryApp === 'Deliveroo' && d.sourceApp_deliveroo) {
+          return sum + (d.total_discount_price || 0);
+        }
+        return sum;
+      }, 0);
+
+    // Food cost (calculated on gross sales)
+    const foodCost = grossSales * (foodCostPercentage / 100);
 
     // Platform fees
     const platformFees = revenue * (platformFeesPercentage / 100);
