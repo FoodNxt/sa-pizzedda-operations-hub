@@ -318,7 +318,7 @@ export default function TurniDipendente() {
   const { data: allUsersData = [] } = useQuery({
     queryKey: ['all-users'],
     queryFn: () => base44.entities.User.list(),
-    enabled: activeView === 'scambi' && showScambioModal,
+    enabled: showScambioModal,
     staleTime: 60000,
   });
 
