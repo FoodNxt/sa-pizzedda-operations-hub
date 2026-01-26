@@ -317,7 +317,11 @@ export default function TurniDipendente() {
 
   const { data: allUsersData = [] } = useQuery({
     queryKey: ['all-users'],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: async () => {
+      // Usa la backend function che ha accesso service role
+      const response = await base44.functions.invoke('getAllDipendentiForPlanday', {});
+      return response.data.dipendenti || [];
+    },
     enabled: showScambioModal,
     staleTime: 60000,
   });
