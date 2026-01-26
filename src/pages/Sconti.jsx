@@ -722,10 +722,10 @@ export default function Sconti() {
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b-2 border-slate-300">
-                        <th className="text-left p-3 text-sm font-bold text-slate-700">App</th>
-                        <th className="text-right p-3 text-sm font-bold text-slate-700">Gross</th>
-                        <th className="text-right p-3 text-sm font-bold text-slate-700">Revenue</th>
+                       <tr className="border-b-2 border-slate-300">
+                         <th className="text-left p-3 text-sm font-bold text-slate-700">App</th>
+                         <th className="text-right p-3 text-sm font-bold text-slate-700">Gross</th>
+                         <th className="text-right p-3 text-sm font-bold text-slate-700">Net Sales</th>
                         <th className="text-right p-3 text-sm font-bold text-slate-700">Sconto</th>
                         <th className="text-right p-3 text-sm font-bold text-slate-700">%</th>
                       </tr>
