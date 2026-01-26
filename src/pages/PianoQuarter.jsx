@@ -1360,8 +1360,8 @@ export default function PianoQuarter() {
                 <div className="space-y-3">
                   <div>
                     <div className="flex justify-between text-sm mb-1">
-                      <span>Food Cost ({foodCostPercentage}%)</span>
-                      <span className="font-bold">{((Math.abs(contoEconomico.foodCost) / contoEconomico.revenue) * 100).toFixed(1)}%</span>
+                      <span>Food Cost ({foodCostPercentage}% of Gross)</span>
+                      <span className="font-bold">{((Math.abs(contoEconomico.foodCost) / contoEconomico.grossSales) * 100).toFixed(1)}%</span>
                     </div>
                     <div className="w-full bg-slate-200 rounded-full h-2">
                       <div
