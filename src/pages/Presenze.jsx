@@ -67,9 +67,9 @@ export default function Presenze() {
   const availableTipiTurno = useMemo(() => {
     // Prendi da config
     if (tipiTurnoConfig.length > 0) {
-      const tipi = tipiTurnoConfig.map(t => t.nome).sort();
-      console.log('Available tipi turno:', tipi);
-      return tipi;
+      return tipiTurnoConfig
+        .map(t => t.tipo_turno)
+        .sort();
     }
     // Fallback: raccogli dai turni
     const tipiSet = new Set();
