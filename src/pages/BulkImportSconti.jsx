@@ -20,61 +20,41 @@ export default function BulkImportSconti() {
     mutationFn: async (file) => {
       setUploadStatus('uploading');
       
-      let uploadResult;
-      try {
-        uploadResult = await base44.integrations.Core.UploadFile({ file });
-      } catch (error) {
-        throw new Error(`Errore caricamento file: ${error.message}. Verifica che il file sia un CSV valido.`);
-      }
+      // Parse CSV manualmente
+      const text = await file.text();
+      const lines = text.split('\n').map(line => line.trim()).filter(line => line);
       
-      if (!uploadResult?.file_url) {
-        throw new Error('Nessun URL file ricevuto dal server');
+      if (lines.length < 2) {
+        throw new Error('Il file CSV è vuoto o non contiene dati');
       }
-      
-      const { file_url } = uploadResult;
       
       setUploadStatus('processing');
       
-      const jsonSchema = {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            order_date: { type: "string" },
-            total_discount_price: { type: "number" },
-            channel: { type: "string" },
-            sourceApp_glovo: { type: "number" },
-            sourceApp_deliveroo: { type: "number" },
-            sourceApp_justeat: { type: "number" },
-            sourceApp_onlineordering: { type: "number" },
-            sourceApp_ordertable: { type: "number" },
-            sourceApp_tabesto: { type: "number" },
-            sourceApp_deliverect: { type: "number" },
-            sourceApp_store: { type: "number" },
-            sourceType_delivery: { type: "number" },
-            sourceType_takeaway: { type: "number" },
-            sourceType_takeawayOnSite: { type: "number" },
-            sourceType_store: { type: "number" },
-            moneyType_bancomat: { type: "number" },
-            moneyType_cash: { type: "number" },
-            moneyType_online: { type: "number" },
-            moneyType_satispay: { type: "number" },
-            moneyType_credit_card: { type: "number" },
-            moneyType_fidelity_card_points: { type: "number" }
-          }
-        }
-      };
+      const headers = lines[0].split(',').map(h => h.trim());
       
-      const extractResult = await base44.integrations.Core.ExtractDataFromUploadedFile({
-        file_url,
-        json_schema: jsonSchema
-      });
-      
-      if (extractResult.status === 'error') {
-        throw new Error(extractResult.details || 'Errore durante estrazione dati');
+      // Verifica che le colonne principali esistano
+      const requiredColumns = ['order_date', 'total_discount_price', 'channel'];
+      const missingColumns = requiredColumns.filter(col => !headers.includes(col));
+      if (missingColumns.length > 0) {
+        throw new Error(`Colonne mancanti: ${missingColumns.join(', ')}`);
       }
       
-      const scontiData = extractResult.output || [];
+      const scontiData = lines.slice(1).map(line => {
+        const values = line.split(',').map(v => v.trim());
+        const row = {};
+        
+        headers.forEach((header, index) => {
+          const value = values[index] || '';
+          
+          if (header === 'order_date' || header === 'channel') {
+            row[header] = value;
+          } else {
+            row[header] = parseFloat(value) || 0;
+          }
+        });
+        
+        return row;
+      });
       
       setUploadStatus('matching');
       
