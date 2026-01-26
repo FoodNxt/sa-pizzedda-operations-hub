@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
-import { Plus, Euro, TrendingDown, Trash2, Edit, X, Calendar, DollarSign, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Euro, TrendingDown, Trash2, Edit, X, Calendar, DollarSign, ChevronLeft, ChevronRight, Settings } from "lucide-react";
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isWithinInterval } from "date-fns";
 import { it } from 'date-fns/locale';
 
@@ -81,10 +81,15 @@ export default function PianoQuarter() {
     prodotti_scontati: [],
     percentuale_sconto: '',
     percentuale_cofinanziamento: '',
+    target_sconto: '',
     data_inizio: '',
     data_fine: '',
     note: ''
   });
+  
+  const [showTargetSettings, setShowTargetSettings] = useState(false);
+  const [targetForm, setTargetForm] = useState({ nome: '', descrizione: '' });
+  const [editingTarget, setEditingTarget] = useState(null);
 
   const [nuovoProdotto, setNuovoProdotto] = useState('');
 
@@ -112,6 +117,11 @@ export default function PianoQuarter() {
   const { data: iPraticoData = [] } = useQuery({
     queryKey: ['ipratico'],
     queryFn: () => base44.entities.iPratico.list()
+  });
+
+  const { data: promoTargets = [] } = useQuery({
+    queryKey: ['promo-targets'],
+    queryFn: () => base44.entities.PromoTargetConfig.list('ordine')
   });
 
   // Carica food cost percentage e platform fees dalla configurazione
@@ -212,6 +222,31 @@ export default function PianoQuarter() {
     }
   });
 
+  const createTargetMutation = useMutation({
+    mutationFn: (data) => base44.entities.PromoTargetConfig.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['promo-targets'] });
+      setTargetForm({ nome: '', descrizione: '' });
+      setEditingTarget(null);
+    }
+  });
+
+  const updateTargetMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.PromoTargetConfig.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['promo-targets'] });
+      setTargetForm({ nome: '', descrizione: '' });
+      setEditingTarget(null);
+    }
+  });
+
+  const deleteTargetMutation = useMutation({
+    mutationFn: (id) => base44.entities.PromoTargetConfig.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['promo-targets'] });
+    }
+  });
+
   const resetFormAds = () => {
     setFormAds({
       nome: '',
@@ -235,6 +270,7 @@ export default function PianoQuarter() {
       prodotti_scontati: [],
       percentuale_sconto: '',
       percentuale_cofinanziamento: '',
+      target_sconto: '',
       data_inizio: '',
       data_fine: '',
       note: ''
@@ -292,6 +328,7 @@ export default function PianoQuarter() {
       prodotti_scontati: piano.prodotti_scontati || [],
       percentuale_sconto: piano.percentuale_sconto,
       percentuale_cofinanziamento: piano.percentuale_cofinanziamento || 0,
+      target_sconto: piano.target_sconto || '',
       data_inizio: piano.data_inizio,
       data_fine: piano.data_fine,
       note: piano.note || ''
@@ -730,6 +767,99 @@ export default function PianoQuarter() {
           </>
         )}
 
+        {/* Modal Impostazioni Target */}
+        {showTargetSettings && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-slate-800">Gestione Target Sconto</h2>
+                <button onClick={() => setShowTargetSettings(false)} className="p-2 hover:bg-slate-100 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Form nuovo target */}
+              <div className="neumorphic-pressed p-4 rounded-xl mb-4 space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Nome Target</label>
+                  <input
+                    type="text"
+                    value={targetForm.nome}
+                    onChange={(e) => setTargetForm({ ...targetForm, nome: e.target.value })}
+                    placeholder="es. Nuovi Clienti"
+                    className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Descrizione</label>
+                  <input
+                    type="text"
+                    value={targetForm.descrizione}
+                    onChange={(e) => setTargetForm({ ...targetForm, descrizione: e.target.value })}
+                    placeholder="Descrizione del target..."
+                    className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
+                  />
+                </div>
+                <NeumorphicButton
+                  onClick={() => {
+                    if (!targetForm.nome.trim()) {
+                      alert('Inserisci un nome per il target');
+                      return;
+                    }
+                    if (editingTarget) {
+                      updateTargetMutation.mutate({ id: editingTarget.id, data: targetForm });
+                    } else {
+                      createTargetMutation.mutate({ ...targetForm, ordine: promoTargets.length });
+                    }
+                  }}
+                  variant="primary"
+                  className="w-full"
+                >
+                  {editingTarget ? 'Aggiorna' : 'Aggiungi Target'}
+                </NeumorphicButton>
+              </div>
+
+              {/* Lista target esistenti */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-bold text-slate-700 mb-3">Target Esistenti</h3>
+                {promoTargets.length === 0 ? (
+                  <p className="text-sm text-slate-500 text-center py-4">Nessun target creato</p>
+                ) : (
+                  promoTargets.map(target => (
+                    <div key={target.id} className="neumorphic-pressed p-3 rounded-xl flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-slate-800">{target.nome}</p>
+                        {target.descrizione && <p className="text-xs text-slate-500">{target.descrizione}</p>}
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            setEditingTarget(target);
+                            setTargetForm({ nome: target.nome, descrizione: target.descrizione || '' });
+                          }}
+                          className="p-2 rounded-lg hover:bg-blue-50"
+                        >
+                          <Edit className="w-4 h-4 text-blue-600" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm('Eliminare questo target?')) {
+                              deleteTargetMutation.mutate(target.id);
+                            }
+                          }}
+                          className="p-2 rounded-lg hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </NeumorphicCard>
+          </div>
+        )}
+
         {/* Sezione Promo */}
         {activeTab === 'promo' && (
           <>
@@ -747,14 +877,23 @@ export default function PianoQuarter() {
                   <option value="Q4-26">Q4-26 (Ott-Dic)</option>
                 </select>
               </div>
-              <NeumorphicButton
-                onClick={() => setShowFormPromo(true)}
-                variant="primary"
-                className="flex items-center gap-2"
-              >
-                <Plus className="w-5 h-5" />
-                Nuova Promo
-              </NeumorphicButton>
+              <div className="flex gap-2">
+                <NeumorphicButton
+                  onClick={() => setShowTargetSettings(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Settings className="w-5 h-5" />
+                  Target Sconto
+                </NeumorphicButton>
+                <NeumorphicButton
+                  onClick={() => setShowFormPromo(true)}
+                  variant="primary"
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="w-5 h-5" />
+                  Nuova Promo
+                </NeumorphicButton>
+              </div>
             </div>
 
             {showFormPromo && (
@@ -814,6 +953,20 @@ export default function PianoQuarter() {
                         onChange={(e) => setFormPromo({ ...formPromo, percentuale_cofinanziamento: e.target.value })}
                         className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
                       />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">A chi è rivolto</label>
+                      <select
+                        value={formPromo.target_sconto}
+                        onChange={(e) => setFormPromo({ ...formPromo, target_sconto: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
+                      >
+                        <option value="">Seleziona target</option>
+                        {promoTargets.filter(t => t.attivo).map(target => (
+                          <option key={target.id} value={target.nome}>{target.nome}</option>
+                        ))}
+                      </select>
                     </div>
 
                     <div>
@@ -1054,6 +1207,9 @@ export default function PianoQuarter() {
                               <p><span className="font-semibold">🏷️ Sconto:</span> {promo.percentuale_sconto}%</p>
                               {promo.percentuale_cofinanziamento > 0 && (
                                 <p><span className="font-semibold">💰 Cofinanziamento:</span> {promo.percentuale_cofinanziamento}%</p>
+                              )}
+                              {promo.target_sconto && (
+                                <p><span className="font-semibold">🎯 Target:</span> {promo.target_sconto}</p>
                               )}
                               <p><span className="font-semibold">📅 Periodo:</span> {format(parseISO(promo.data_inizio), 'dd MMM', { locale: it })} - {format(parseISO(promo.data_fine), 'dd MMM', { locale: it })}</p>
                               {promo.prodotti_scontati && promo.prodotti_scontati.length > 0 && (
