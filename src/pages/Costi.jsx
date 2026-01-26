@@ -969,7 +969,8 @@ export default function Costi() {
                 </div>
               );
             })}
-          </NeumorphicCard>
+            </NeumorphicCard>
+          </div>
         )}
 
         {/* Tabs */}
