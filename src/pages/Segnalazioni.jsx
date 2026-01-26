@@ -188,6 +188,7 @@ export default function Segnalazioni() {
     switch(stato) {
       case 'aperta': return 'bg-red-100 text-red-700 border-red-200';
       case 'in_gestione': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+      case 'on_hold': return 'bg-purple-100 text-purple-700 border-purple-200';
       case 'risolta': return 'bg-green-100 text-green-700 border-green-200';
       default: return 'bg-gray-100 text-gray-700 border-gray-200';
     }
@@ -197,6 +198,7 @@ export default function Segnalazioni() {
     switch(stato) {
       case 'aperta': return <AlertTriangle className="w-5 h-5" />;
       case 'in_gestione': return <Clock className="w-5 h-5" />;
+      case 'on_hold': return <XCircle className="w-5 h-5" />;
       case 'risolta': return <CheckCircle className="w-5 h-5" />;
       default: return <AlertTriangle className="w-5 h-5" />;
     }
@@ -210,9 +212,14 @@ export default function Segnalazioni() {
   };
 
   const groupedSegnalazioni = React.useMemo(() => {
-    const filtered = activeTab === 'aperte' 
-      ? segnalazioni.filter(s => s.stato !== 'risolta')
-      : segnalazioni.filter(s => s.stato === 'risolta');
+    let filtered;
+    if (activeTab === 'aperte') {
+      filtered = segnalazioni.filter(s => s.stato !== 'risolta' && s.stato !== 'on_hold');
+    } else if (activeTab === 'on_hold') {
+      filtered = segnalazioni.filter(s => s.stato === 'on_hold');
+    } else {
+      filtered = segnalazioni.filter(s => s.stato === 'risolta');
+    }
 
     const grouped = {};
     filtered.forEach(seg => {
@@ -303,7 +310,7 @@ export default function Segnalazioni() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <NeumorphicCard className="p-6 text-center">
           <AlertTriangle className="w-8 h-8 text-red-600 mx-auto mb-2" />
           <p className="text-2xl font-bold text-red-600">
@@ -323,6 +330,16 @@ export default function Segnalazioni() {
             ).filter(s => s.stato === 'in_gestione').length}
           </p>
           <p className="text-sm text-[#9b9b9b]">In Gestione</p>
+        </NeumorphicCard>
+        <NeumorphicCard className="p-6 text-center">
+          <XCircle className="w-8 h-8 text-purple-600 mx-auto mb-2" />
+          <p className="text-2xl font-bold text-purple-600">
+            {(isAdmin || isStoreManager 
+              ? segnalazioni 
+              : segnalazioni.filter(s => s.dipendente_id === user?.id)
+            ).filter(s => s.stato === 'on_hold').length}
+          </p>
+          <p className="text-sm text-[#9b9b9b]">On Hold</p>
         </NeumorphicCard>
         <NeumorphicCard className="p-6 text-center">
           <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
@@ -449,7 +466,18 @@ export default function Segnalazioni() {
           Aperte / In Gestione ({(isAdmin || isStoreManager 
             ? segnalazioni 
             : segnalazioni.filter(s => s.dipendente_id === user?.id)
-          ).filter(s => s.stato !== 'risolta').length})
+          ).filter(s => s.stato === 'aperta' || s.stato === 'in_gestione').length})
+        </NeumorphicButton>
+        <NeumorphicButton
+          onClick={() => setActiveTab('on_hold')}
+          variant={activeTab === 'on_hold' ? 'primary' : 'default'}
+          className="flex items-center gap-2"
+        >
+          <XCircle className="w-4 h-4" />
+          On Hold ({(isAdmin || isStoreManager 
+            ? segnalazioni 
+            : segnalazioni.filter(s => s.dipendente_id === user?.id)
+          ).filter(s => s.stato === 'on_hold').length})
         </NeumorphicButton>
         <NeumorphicButton
           onClick={() => setActiveTab('chiuse')}
@@ -467,13 +495,17 @@ export default function Segnalazioni() {
       {/* Segnalazioni List */}
       <NeumorphicCard className="p-6">
         <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">
-          {activeTab === 'aperte' ? 'Segnalazioni Aperte' : 'Segnalazioni Risolte'}
+          {activeTab === 'aperte' ? 'Segnalazioni Aperte / In Gestione' : 
+           activeTab === 'on_hold' ? 'Segnalazioni On Hold' : 
+           'Segnalazioni Risolte'}
         </h2>
         
         {Object.keys(groupedSegnalazioni).length === 0 ? (
           <div className="text-center py-12">
             <AlertTriangle className="w-16 h-16 text-[#9b9b9b] opacity-50 mx-auto mb-4" />
-            <p className="text-[#9b9b9b]">Nessuna segnalazione {activeTab === 'aperte' ? 'aperta' : 'risolta'}</p>
+            <p className="text-[#9b9b9b]">
+              Nessuna segnalazione {activeTab === 'aperte' ? 'aperta' : activeTab === 'on_hold' ? 'on hold' : 'risolta'}
+            </p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -585,6 +617,16 @@ export default function Segnalazioni() {
                         )}
                         
                         <div className="flex flex-wrap gap-2">
+                          {segnalazione.stato !== 'on_hold' && (
+                            <NeumorphicButton
+                              onClick={() => handleUpdateStato(segnalazione.id, 'on_hold')}
+                              className="text-sm flex items-center gap-1 text-purple-600"
+                            >
+                              <XCircle className="w-4 h-4" />
+                              On Hold
+                            </NeumorphicButton>
+                          )}
+                          
                           <NeumorphicButton
                             onClick={() => handleUpdateStato(segnalazione.id, segnalazione.stato === 'risolta' ? 'aperta' : 'risolta')}
                             variant={segnalazione.stato === 'risolta' ? 'default' : 'primary'}
@@ -592,7 +634,7 @@ export default function Segnalazioni() {
                           >
                             {segnalazione.stato === 'risolta' ? (
                               <>
-                                <XCircle className="w-4 h-4" />
+                                <AlertTriangle className="w-4 h-4" />
                                 Riapri
                               </>
                             ) : (
@@ -671,6 +713,16 @@ export default function Segnalazioni() {
                               ))}
                             </select>
                           </div>
+                        )}
+                        
+                        {segnalazione.stato !== 'on_hold' && (
+                          <NeumorphicButton
+                            onClick={() => handleUpdateStato(segnalazione.id, 'on_hold')}
+                            className="text-sm flex items-center gap-1 text-purple-600"
+                          >
+                            <XCircle className="w-4 h-4" />
+                            On Hold
+                          </NeumorphicButton>
                         )}
                         
                         <NeumorphicButton
