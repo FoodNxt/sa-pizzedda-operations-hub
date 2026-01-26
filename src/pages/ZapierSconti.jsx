@@ -212,9 +212,10 @@ export default function ZapierSconti() {
                   </p>
                   <ul className="text-sm text-yellow-800 list-disc ml-5 mt-2 space-y-1">
                     <li>Il campo <code>order_date</code> deve essere in formato YYYY-MM-DD (es. 2026-01-15)</li>
-                    <li>Il campo <code>total_discount_price</code> deve essere un numero (es. 12.50)</li>
+                    <li>Il campo <code>total_discount_price</code> è lo sconto totale dell'ordine in euro (es. 12.50)</li>
                     <li>Il campo <code>channel</code> indica il nome dello store (es. "Roma Centro", "Milano Duomo")</li>
-                    <li>I campi booleani (sourceApp_*, sourceType_*, moneyType_*) devono essere TRUE o FALSE</li>
+                    <li>I campi sourceApp_*, sourceType_* e moneyType_* sono valori monetari in euro che indicano lo sconto per singolo canale/tipo/metodo (es. 5.00, 0, 7.50)</li>
+                    <li>La somma dei vari campi di sconto dovrebbe corrispondere al total_discount_price</li>
                   </ul>
                 </div>
               </div>
@@ -229,13 +230,13 @@ export default function ZapierSconti() {
               <div className="ml-9">
                 <div className="neumorphic-pressed p-4 rounded-xl bg-slate-50 overflow-x-auto">
                   <pre className="text-xs font-mono text-slate-700">
-{`order_date | total_discount_price | channel     | sourceApp_glovo | sourceApp_deliveroo | ...
-2026-01-15 | 12.50                | Roma Centro | TRUE            | FALSE               | ...
-2026-01-15 | 8.30                 | Milano      | FALSE           | TRUE                | ...`}
+{`order_date | total_discount_price | channel     | sourceApp_glovo | sourceApp_deliveroo | sourceType_delivery | moneyType_online | ...
+2026-01-15 | 12.50                | Roma Centro | 12.50           | 0                   | 12.50               | 12.50            | ...
+2026-01-15 | 8.30                 | Milano      | 0               | 8.30                | 8.30                | 0                | ...`}
                   </pre>
                 </div>
                 <p className="text-sm text-slate-600 mt-3">
-                  Ogni riga del foglio rappresenta un ordine con sconto. La colonna <code>channel</code> deve contenere il nome dello store.
+                  Ogni riga del foglio rappresenta un ordine con sconto. La colonna <code>channel</code> deve contenere il nome dello store. I valori nelle colonne sourceApp_*, sourceType_* e moneyType_* sono importi in euro (non TRUE/FALSE), che rappresentano lo sconto specifico per quel canale/tipo/metodo di pagamento.
                 </p>
               </div>
             </div>
@@ -276,7 +277,8 @@ export default function ZapierSconti() {
             <li>✅ Verifica che i nomi delle colonne nel foglio Google Sheets corrispondano esattamente a quelli richiesti</li>
             <li>✅ Usa il formato data YYYY-MM-DD per evitare errori</li>
             <li>✅ Il campo "channel" deve contenere il nome esatto dello store (es. "Roma Centro")</li>
-            <li>✅ Per i campi booleani usa TRUE/FALSE (maiuscolo)</li>
+            <li>✅ I campi sourceApp_*, sourceType_* e moneyType_* sono valori numerici in euro (es. 5.00, 0, 12.50)</li>
+            <li>✅ Verifica che la somma degli sconti parziali corrisponda al total_discount_price</li>
             <li>✅ Controlla i dati importati nella pagina Sconti dopo ogni caricamento</li>
           </ul>
         </NeumorphicCard>
