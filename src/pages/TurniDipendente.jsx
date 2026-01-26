@@ -109,12 +109,7 @@ export default function TurniDipendente() {
     staleTime: 300000,
   });
 
-  const { data: allEmployees = [] } = useQuery({
-    queryKey: ['all-employees'],
-    queryFn: () => base44.entities.Employee.list(),
-    enabled: activeView === 'scambi' && showScambioModal,
-    staleTime: 60000,
-  });
+
 
   const { data: accessoStoreData = [] } = useQuery({
     queryKey: ['accesso-store'],
@@ -1055,45 +1050,30 @@ export default function TurniDipendente() {
 
   // Colleghi disponibili per scambio
   const colleghiPerScambio = useMemo(() => {
-    if (!selectedTurnoScambio || !allEmployees.length) return [];
+    if (!selectedTurnoScambio || !allUsersData.length) return [];
     
     console.log('=== DEBUG SCAMBIO TURNO ===');
     console.log('Turno selezionato:', selectedTurnoScambio);
     console.log('Ruolo richiesto:', selectedTurnoScambio.ruolo);
-    console.log('Store ID:', selectedTurnoScambio.store_id);
-    console.log('Totale dipendenti:', allEmployees.length);
-    console.log('Accessi store:', accessoStoreData.length);
+    console.log('Totale utenti:', allUsersData.length);
     
-    // Filtra dipendenti per ruolo
-    const dipendentiConRuolo = allEmployees.filter(emp => {
-      if (emp.employee_id_external === currentUser?.id) return false;
+    // Filtra dipendenti per ruolo utilizzando User entity
+    const dipendentiConRuolo = allUsersData.filter(user => {
+      if (user.id === currentUser?.id) return false;
       
-      const hasRole = emp.function_name === selectedTurnoScambio.ruolo;
-      console.log(`${emp.full_name}: ruolo=${emp.function_name}, match=${hasRole}`);
+      const userRoles = user.ruoli_dipendente || [];
+      const hasRole = userRoles.includes(selectedTurnoScambio.ruolo);
+      console.log(`${user.nome_cognome || user.full_name}: ruoli=${userRoles.join(', ')}, match=${hasRole}`);
       return hasRole;
     });
     
     console.log('Dipendenti con ruolo corretto:', dipendentiConRuolo.length);
     
-    // Mappa gli accessi store per employee_id_external
-    const accessiPerDipendente = {};
-    accessoStoreData.forEach(acc => {
-      if (!accessiPerDipendente[acc.employee_id]) {
-        accessiPerDipendente[acc.employee_id] = [];
-      }
-      accessiPerDipendente[acc.employee_id].push(acc.store_id);
-    });
-    
-    return dipendentiConRuolo.map(emp => {
-      const storesAssegnati = accessiPerDipendente[emp.employee_id_external] || [];
-      const isAssegnatoStore = storesAssegnati.length === 0 || storesAssegnati.includes(selectedTurnoScambio.store_id);
+    return dipendentiConRuolo.map(user => {
+      // Trova turni del dipendente nello stesso giorno
+      const turniDipendente = tuttiTurniGiornoScambio.filter(t => t.dipendente_id === user.id);
       
-      console.log(`${emp.full_name} - Stores: ${storesAssegnati.join(', ') || 'nessuno'}, assigned: ${isAssegnatoStore}`);
-      
-      // Trova turni del dipendente
-      const turniDipendente = tuttiTurniGiornoScambio.filter(t => t.dipendente_id === emp.employee_id_external);
-      
-      // Controlla sovrapposizioni
+      // Controlla sovrapposizioni orarie
       const turniSovrapposti = turniDipendente.filter(t => 
         checkSovrapposizioneOraria(
           selectedTurnoScambio.ora_inizio, 
@@ -1105,23 +1085,24 @@ export default function TurniDipendente() {
       
       const haConflitti = turniSovrapposti.length > 0;
       
+      console.log(`${user.nome_cognome || user.full_name} - Turni in giorno: ${turniDipendente.length}, Sovrapposti: ${turniSovrapposti.length}`);
+      
       return {
-        id: emp.employee_id_external,
-        nome_cognome: emp.full_name,
-        full_name: emp.full_name,
-        ruoli_dipendente: [emp.function_name],
-        isAssegnatoStore,
+        id: user.id,
+        nome_cognome: user.nome_cognome || user.full_name,
+        full_name: user.full_name || user.nome_cognome,
+        ruoli_dipendente: user.ruoli_dipendente || [],
         haConflitti,
         turniSovrapposti,
         tuttiTurniGiorno: turniDipendente
       };
     })
     .sort((a, b) => {
+      // Mostra prima quelli senza conflitti
       if (a.haConflitti !== b.haConflitti) return a.haConflitti ? 1 : -1;
-      if (a.isAssegnatoStore !== b.isAssegnatoStore) return a.isAssegnatoStore ? -1 : 1;
-      return 0;
+      return (a.nome_cognome || '').localeCompare(b.nome_cognome || '');
     });
-  }, [selectedTurnoScambio, allEmployees, accessoStoreData, tuttiTurniGiornoScambio, currentUser]);
+  }, [selectedTurnoScambio, allUsersData, tuttiTurniGiornoScambio, currentUser]);
 
   const openScambioModal = (turno) => {
     // Controlla se il turno è già iniziato
@@ -3021,7 +3002,7 @@ export default function TurniDipendente() {
                     Nessun collega disponibile con il ruolo {selectedTurnoScambio.ruolo}
                   </p>
                   <p className="text-xs text-slate-400">
-                    Totale dipendenti: {allEmployees.length} | Apri console (F12) per debug
+                    Totale utenti: {allUsersData.length} | Apri console (F12) per debug
                   </p>
                 </div>
               ) : (
@@ -3051,12 +3032,6 @@ export default function TurniDipendente() {
                           <div>
                             <div className="font-medium text-slate-800">{collega.nome_cognome || collega.full_name}</div>
                             <div className="text-xs text-slate-500">{(collega.ruoli_dipendente || []).join(', ')}</div>
-                            {!collega.isAssegnatoStore && (
-                              <div className="text-xs text-orange-600 flex items-center gap-1 mt-0.5">
-                                <AlertTriangle className="w-3 h-3" />
-                                Non assegnato a questo store
-                              </div>
-                            )}
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-1">
