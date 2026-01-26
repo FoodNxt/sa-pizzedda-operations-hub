@@ -16,6 +16,7 @@ import "moment/locale/it";
 moment.locale('it');
 
 const RUOLI = ["Pizzaiolo", "Cassiere", "Store Manager"];
+const DEFAULT_TIPI_TURNO = ["Normale", "Straordinario", "Formazione", "Affiancamento", "Apertura", "Chiusura", "Ferie", "Malattia (Certificata)", "Malattia (Non Certificata)", "Permesso"];
 
 export default function PlandayStoreManager() {
   const [currentView, setCurrentView] = useState('turni'); // 'turni', 'richieste', 'prove'
@@ -374,7 +375,12 @@ export default function PlandayStoreManager() {
     'Chiusura': '#8b5cf6'
   });
 
-  const tipiTurno = ['Normale', 'Straordinario', 'Formazione', 'Affiancamento', 'Apertura', 'Chiusura'];
+  // Tipi turno personalizzati - caricati dal database come admin
+  const tipiTurno = useMemo(() => {
+    const tipiFromConfigs = tipiTurnoConfigs.map(c => c.tipo_turno);
+    const allTipi = [...new Set([...DEFAULT_TIPI_TURNO, ...tipiFromConfigs])];
+    return allTipi;
+  }, [tipiTurnoConfigs]);
 
   if (!currentUser) {
     return (
