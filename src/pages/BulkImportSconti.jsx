@@ -27,7 +27,7 @@ export default function BulkImportSconti() {
     mutationFn: async (file) => {
       setUploadStatus('parsing');
       
-      // Parse CSV manualmente
+      // Parse CSV con rilevamento automatico del delimitatore
       const text = await file.text();
       const lines = text.split('\n').map(line => line.trim()).filter(line => line);
       
@@ -35,17 +35,26 @@ export default function BulkImportSconti() {
         throw new Error('Il file CSV è vuoto o non contiene dati');
       }
       
-      const headers = lines[0].split(',').map(h => h.trim());
+      // Rileva il delimitatore (virgola o punto e virgola)
+      const firstLine = lines[0];
+      const delimiter = firstLine.includes(';') ? ';' : ',';
+      
+      console.log('Delimiter rilevato:', delimiter);
+      console.log('Prima riga:', firstLine);
+      
+      const headers = lines[0].split(delimiter).map(h => h.trim().replace(/^"|"$/g, ''));
+      
+      console.log('Headers trovati:', headers);
       
       // Verifica che le colonne principali esistano
       const requiredColumns = ['order_date', 'total_discount_price', 'channel'];
       const missingColumns = requiredColumns.filter(col => !headers.includes(col));
       if (missingColumns.length > 0) {
-        throw new Error(`Colonne mancanti: ${missingColumns.join(', ')}`);
+        throw new Error(`Colonne mancanti: ${missingColumns.join(', ')}. Headers trovati: ${headers.join(', ')}`);
       }
       
-      const scontiData = lines.slice(1).map(line => {
-        const values = line.split(',').map(v => v.trim());
+      const scontiData = lines.slice(1).map((line, idx) => {
+        const values = line.split(delimiter).map(v => v.trim().replace(/^"|"$/g, ''));
         const row = {};
         
         headers.forEach((header, index) => {
@@ -57,6 +66,12 @@ export default function BulkImportSconti() {
             row[header] = parseFloat(value) || 0;
           }
         });
+        
+        // Debug prima riga
+        if (idx === 0) {
+          console.log('Prima riga parsata:', row);
+          console.log('Channel trovato:', row.channel);
+        }
         
         return row;
       });
@@ -96,12 +111,17 @@ export default function BulkImportSconti() {
       return scontiWithStores;
     },
     onSuccess: (data) => {
+      console.log('Dati parsati:', data);
+      console.log('Primi 3 canali:', data.slice(0, 3).map(d => d.channel));
+      
       setParsedData(data);
       setUploadStatus(null);
       
       // Initialize mapping
       const mapping = {};
       const uniqueChannels = [...new Set(data.map(s => s.channel))];
+      console.log('Canali unici trovati:', uniqueChannels);
+      
       uniqueChannels.forEach(channel => {
         const matched = data.find(s => s.channel === channel && s.store_id);
         mapping[channel] = matched?.store_id || '';
@@ -358,8 +378,12 @@ export default function BulkImportSconti() {
               <p className="text-sm font-medium text-blue-900 mb-3">
                 📊 Trovati {uniqueChannels.length} canali unici nel CSV
               </p>
+              <div className="text-xs text-blue-800 space-y-1">
+                <p>Canali nel CSV: {uniqueChannels.join(', ')}</p>
+                <p>Store nel database ({stores.length}): {stores.map(s => s.store_name).join(', ')}</p>
+              </div>
               {stores.length === 0 && (
-                <p className="text-xs text-red-600">⚠️ Nessuno store trovato nel database!</p>
+                <p className="text-xs text-red-600 mt-2">⚠️ Nessuno store trovato nel database!</p>
               )}
             </div>
 
