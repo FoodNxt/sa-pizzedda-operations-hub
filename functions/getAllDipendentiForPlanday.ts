@@ -11,11 +11,14 @@ Deno.serve(async (req) => {
     }
 
     // Parse body per parametri opzionali
-    const body = await req.json().catch(() => ({}));
-    const filterData = body.data;
-
-    console.log('Body ricevuto:', body);
-    console.log('FilterData estratto:', filterData);
+    let body = {};
+    try {
+      body = await req.json();
+    } catch (e) {
+      body = {};
+    }
+    
+    const filterData = body?.data || null;
 
     // Carica tutti gli Employee attivi usando service role
     const allEmployees = await base44.asServiceRole.entities.Employee.list();
@@ -77,14 +80,9 @@ Deno.serve(async (req) => {
     // Se è richiesta anche la lista turni per una data specifica
     let turni = [];
     if (filterData) {
-      console.log('Filtering turni for data:', filterData);
       turni = await base44.asServiceRole.entities.TurnoPlanday.filter({
         data: filterData
       });
-      console.log('Turni trovati:', turni.length);
-      console.log('Primi 3 turni:', turni.slice(0, 3).map(t => ({ dipendente: t.dipendente_nome, orario: `${t.ora_inizio}-${t.ora_fine}` })));
-    } else {
-      console.log('Nessun filterData fornito, non carico turni');
     }
 
     return Response.json({ dipendenti, turni });
